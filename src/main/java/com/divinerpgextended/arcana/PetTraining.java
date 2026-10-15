@@ -166,6 +166,7 @@ public class PetTraining {
             ((WorldServer) p.worldObj).func_147487_a("happyVillager", pet.posX, pet.posY + pet.height, pet.posZ, 20, 0.4, 0.4, 0.4, 0.1);
         }
         say(p, EnumChatFormatting.GREEN, "dre." + who + ".trained", name, String.valueOf(lvl + 1));
+        com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.petTrainer);
         say(p, EnumChatFormatting.AQUA, "dre.zelus.skill." + kind(pet) + "." + (lvl + 1));
     }
 

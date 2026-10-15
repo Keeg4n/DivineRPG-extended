@@ -157,6 +157,10 @@ public class WarGeneral {
         return ps.getCompoundTag(TAG);
     }
 
+    public static int ordersDone(EntityPlayer p) {
+        return data(p).getInteger("done");
+    }
+
     public static int statueCount(EntityPlayer p) {
         return Integer.bitCount(data(p).getInteger("statues"));
     }

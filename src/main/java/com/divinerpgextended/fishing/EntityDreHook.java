@@ -323,11 +323,13 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
             for (int i = 0; i < count; i++) {
                 ItemStack loot = FishingLoot.roll(rand, zone, power, bait != null, crate, rod.rareMultiplier());
                 if (loot != null) toss(p, loot);
+                if (loot != null) com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.fishFirst);
             }
             ItemStack relic = bait == null ? null : FishingLoot.relic(rand, zone, power);
             if (relic != null) {
                 toss(p, relic);
                 FishingGear.announceRelic(p, relic);
+                com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.relic);
             }
             worldObj.spawnEntityInWorld(new EntityXPOrb(p.worldObj, p.posX, p.posY + 0.5, p.posZ + 0.5, rand.nextInt(6) + 1));
             if (bait != null && !p.capabilities.isCreativeMode && rand.nextFloat() >= rod.baitSave()

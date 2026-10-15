@@ -135,6 +135,12 @@ public class CommonProxy {
             .register(merchants);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.fishing.ItemWormShovel.Handler());
         fishingRecipes();
+        DreAchievements.register();
+        DreAchievements.Handler achievements = new DreAchievements.Handler();
+        MinecraftForge.EVENT_BUS.register(achievements);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(achievements);
 
         GameRegistry.registerWorldGenerator(new WorldGenLairs(), 50);
         GameRegistry.registerWorldGenerator(new IceikaDecor(), 100);

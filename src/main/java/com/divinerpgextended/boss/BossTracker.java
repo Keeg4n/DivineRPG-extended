@@ -53,6 +53,7 @@ public class BossTracker {
             EntityPlayerMP player = (EntityPlayerMP) o;
             if (ids.contains(player.getUniqueID()) && BossProgress.grant(player, boss)) {
                 ProgressSync.send(player);
+                com.divinerpgextended.DreAchievements.give(player, com.divinerpgextended.DreAchievements.forBoss(boss));
                 ChatComponentTranslation msg = new ChatComponentTranslation(
                     "dre.chat.boss_unlocked",
                     new ChatComponentTranslation(boss.langKey()));

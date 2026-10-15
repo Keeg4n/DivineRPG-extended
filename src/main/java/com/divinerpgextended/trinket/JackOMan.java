@@ -170,6 +170,7 @@ public class JackOMan {
         ItemStack pay = new ItemStack(VanillaItemsOther.shadowCoins, coins);
         if (!p.inventory.addItemStackToInventory(pay)) p.worldObj.spawnEntityInWorld(new EntityItem(p.worldObj, p.posX, p.posY + 0.5, p.posZ, pay));
         p.inventoryContainer.detectAndSendChanges();
+        com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.jackTrade);
         say(p, EnumChatFormatting.GREEN, "dre.jack.junk_done", String.valueOf(coins), String.valueOf(left - coins));
     }
 
@@ -258,6 +259,7 @@ public class JackOMan {
         if (!p.inventory.addItemStackToInventory(made)) p.worldObj.spawnEntityInWorld(new EntityItem(p.worldObj, p.posX, p.posY + 0.5, p.posZ, made));
         p.inventoryContainer.detectAndSendChanges();
         p.worldObj.playSoundAtEntity(p, "mob.wither.idle", 0.4F, 1.6F);
+        com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.headHunter);
         say(p, EnumChatFormatting.GOLD, "dre.jack.done", new ChatComponentTranslation("item.dre.trinket." + t.key() + ".name"));
     }
 }

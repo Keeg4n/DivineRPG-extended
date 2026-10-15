@@ -185,6 +185,7 @@ public class FurnaceRoles {
         if (!e.entityPlayer.capabilities.isCreativeMode) held.stackSize--;
         e.world.playSoundEffect(e.x + 0.5, e.y + 0.5, e.z + 0.5, "random.anvil_use", 0.5F, 1.6F);
         int chance = Math.round(((role == null ? 0 : role.chance) + a[0] * MODULE_CHANCE) * 100);
+        com.divinerpgextended.DreAchievements.give(e.entityPlayer, com.divinerpgextended.DreAchievements.furnaceModule);
         say(e.entityPlayer, EnumChatFormatting.GREEN, "dre.furnace.installed", String.valueOf(a[0]), String.valueOf(a[1]),
             String.valueOf(chance), String.valueOf(1 + a[1]));
     }

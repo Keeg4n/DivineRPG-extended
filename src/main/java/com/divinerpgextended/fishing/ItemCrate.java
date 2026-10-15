@@ -49,6 +49,7 @@ public class ItemCrate extends Item {
             }
         }
         w.playSoundAtEntity(p, "random.chestopen", 0.8F, 1.0F);
+        com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.fishCrate);
         if (!p.capabilities.isCreativeMode) s.stackSize--;
         p.inventoryContainer.detectAndSendChanges();
         return s;
