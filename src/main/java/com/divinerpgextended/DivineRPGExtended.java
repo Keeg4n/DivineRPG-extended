@@ -47,6 +47,8 @@ public class DivineRPGExtended {
         event.registerServerCommand(new com.divinerpgextended.boss.CommandDreBoss());
         event.registerServerCommand(new com.divinerpgextended.accessory.CommandDreInv());
         event.registerServerCommand(new com.divinerpgextended.debug.CommandDreDebug());
+        // самопроверка - только при запуске с -Ddre.selftest=true (тестовый сервер), в обычной игре не включается
+        if (com.divinerpgextended.selftest.SelfTest.enabled()) com.divinerpgextended.selftest.SelfTest.start();
     }
 
     @Mod.EventHandler

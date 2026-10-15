@@ -257,7 +257,7 @@ public class Nightmare {
             for (Object o : effects) {
                 PotionEffect pe = (PotionEffect) o;
                 Potion pot = Potion.potionTypes[pe.getPotionID()];
-                if (pot == null || pot.isBadEffect()) continue;
+                if (pot == null || bad(pot)) continue;
                 p.removePotionEffect(pe.getPotionID());
                 if (pe.getPotionID() == Potion.heal.id) {
                     p.attackEntityFrom(DamageSource.magic, 2 * (4 << pe.getAmplifier())); // уже вылечило - снимаем вдвое
@@ -269,6 +269,18 @@ public class Nightmare {
             }
             com.divinerpgextended.debug.Debug.note(p, "Кошмар: чужое зелье перевёрнуто");
             hint(p, "potion");
+        }
+    }
+
+    /**
+     * Плохой ли эффект. Potion.isBadEffect() в Minecraft есть только на клиенте - на сервере вызов падает, поэтому
+     * читаем само поле.
+     */
+    public static boolean bad(Potion p) {
+        try {
+            return cpw.mods.fml.relauncher.ReflectionHelper.<Boolean, Potion>getPrivateValue(Potion.class, p, "isBadEffect", "field_76418_K");
+        } catch (Throwable t) {
+            return false;
         }
     }
 

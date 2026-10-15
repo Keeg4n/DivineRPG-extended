@@ -346,7 +346,7 @@ public class DebugEvents {
             IChatComponent c = new Debug.DebugText("[эффект] " + sign);
             c.appendSibling(new ChatComponentTranslation(pot.getName()));
             c.appendText(tail);
-            c.setChatStyle(new ChatStyle().setColor(pot.isBadEffect() ? EnumChatFormatting.DARK_PURPLE : EnumChatFormatting.DARK_AQUA));
+            c.setChatStyle(new ChatStyle().setColor(com.divinerpgextended.vethea.Nightmare.bad(pot) ? EnumChatFormatting.DARK_PURPLE : EnumChatFormatting.DARK_AQUA));
             p.addChatMessage(c);
         }
         if (fl.file) Debug.file(p, "effect", sign + pot.getName(), tail.trim());
