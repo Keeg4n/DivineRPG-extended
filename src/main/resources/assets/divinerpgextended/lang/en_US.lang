@@ -777,3 +777,6 @@ dre.gift.karos=Karos
 dre.gift.raglok=Raglok
 dre.gift.wreck=Wreck
 dre.gift.lady_luna=Lady Luna
+dre.vethea.stash_found=Items locked in the separate Vethea inventory (Divine) are being returned: %s stacks.
+dre.vethea.stash_done=All locked items from the Vethea inventory have been returned.
+dre.vethea.stash_wait=Free up inventory space: %s more stacks are waiting to be returned.

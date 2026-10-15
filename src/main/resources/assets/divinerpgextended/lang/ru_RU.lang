@@ -844,3 +844,6 @@ dre.gift.karos=Карос
 dre.gift.raglok=Раглок
 dre.gift.wreck=Рек
 dre.gift.lady_luna=Леди Луна
+dre.vethea.stash_found=Из отдельного инвентаря Ветеи (Divine) возвращаются запертые вещи: %s стаков.
+dre.vethea.stash_done=Все запертые вещи из инвентаря Ветеи возвращены.
+dre.vethea.stash_wait=Освободи место в инвентаре: ещё %s стаков ждут возврата.

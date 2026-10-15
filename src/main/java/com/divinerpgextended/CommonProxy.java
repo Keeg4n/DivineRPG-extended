@@ -152,6 +152,9 @@ public class CommonProxy {
             .bus()
             .register(floors);
         com.divinerpgextended.vethea.VetheaFloors.registerRecipes();
+        FMLCommonHandler.instance()
+            .bus()
+            .register(new com.divinerpgextended.vethea.VetheaStash());
         com.divinerpgextended.debug.DebugEvents debug = new com.divinerpgextended.debug.DebugEvents();
         MinecraftForge.EVENT_BUS.register(debug);
         FMLCommonHandler.instance()
@@ -258,6 +261,7 @@ public class CommonProxy {
         GameRegistry.addRecipe(new ItemStack(net.divinerpg.utils.blocks.ArcanaBlocks.arcanaPortalFrame, 12), " c ", "iEi",
             " c ", 'c', VanillaItemsOther.bluefireStone, 'i', Blocks.iron_block, 'E', ModItems.watcherEye);
 
+        com.divinerpgextended.vethea.VetheaStash.disableDivineSwap();
         if (Config.warnVetheaInventory && net.divinerpg.utils.config.ConfigurationHelper.vetheaInventory) {
             DivineRPGExtended.LOG.warn(
                 "В конфиге Divine включён отдельный инвентарь Vethea (Vethea Inventory = true). "
