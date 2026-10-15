@@ -7,7 +7,7 @@ import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
 /**
  * Coremod аддона: чинит "бесконечные" печи Divine (угольная печь Iceika и печи Molten, Oceanfire, Whitefire,
  * Demon), чтобы с ними работали воронки и трубы ({@link FurnaceTransformer}), и снимает зашитый максимум арканы 200
- * ({@link ArcanaTransformer}).
+ * ({@link ArcanaTransformer}), чинит свойства полных сетов брони ({@link ArmorSetTransformer}).
  */
 @IFMLLoadingPlugin.MCVersion("1.7.10")
 @IFMLLoadingPlugin.Name("DivineRPG Extended Core")
@@ -16,7 +16,8 @@ public class DreCorePlugin implements IFMLLoadingPlugin {
 
     @Override
     public String[] getASMTransformerClass() {
-        return new String[] { FurnaceTransformer.class.getName(), ArcanaTransformer.class.getName() };
+        return new String[] { FurnaceTransformer.class.getName(), ArcanaTransformer.class.getName(),
+            ArmorSetTransformer.class.getName() };
     }
 
     @Override

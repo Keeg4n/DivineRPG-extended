@@ -73,6 +73,7 @@ public class CommonProxy {
             .bus()
             .register(arcanaGate);
         MinecraftForge.EVENT_BUS.register(new ColdMobs());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.ArmorSets());
         IceikaCombat iceikaCombat = new IceikaCombat();
         MinecraftForge.EVENT_BUS.register(iceikaCombat);
         FMLCommonHandler.instance()
