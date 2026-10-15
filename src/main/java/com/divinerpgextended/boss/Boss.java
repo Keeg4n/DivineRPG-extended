@@ -31,7 +31,9 @@ public enum Boss {
     KAROT(EntityKarot.class, -1),
     CARCINUS(EntityCarcinus.class, -1),
     SNOW_GLACON(EntitySnowGlacon.class, -1),
-    LICH_KING(EntityLichKing.class, -1);
+    LICH_KING(EntityLichKing.class, -1),
+    DRAMIX(net.divinerpg.entities.arcana.EntityDramix.class, -1),
+    PARASECTA(net.divinerpg.entities.arcana.EntityParasecta.class, -1);
 
     private final Class<? extends Entity> entityClass;
     /** Для великого кадиллиона - номер мира, иначе -1. */

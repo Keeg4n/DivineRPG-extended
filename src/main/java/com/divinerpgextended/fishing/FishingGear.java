@@ -28,7 +28,7 @@ public final class FishingGear {
     }
 
     public static boolean hasBaitBag(EntityPlayer p) {
-        return p != null && p.inventory.hasItem(ModItems.baitBag);
+        return p != null && com.divinerpgextended.trinket.TrinketEffects.wears(p, com.divinerpgextended.trinket.Trinket.TACKLE_BOX);
     }
 
     public static int power(World w, EntityPlayer p, Rod rod, Bait bait, Zone zone) {

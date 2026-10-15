@@ -225,6 +225,7 @@ public class JackOMan {
             say(p, EnumChatFormatting.GOLD, "dre.jack.menu");
             if (tier >= 1) say(p, EnumChatFormatting.YELLOW, "dre.jack.junk_menu", String.valueOf(NIGHT_CAP));
             for (Trinket x : Trinket.values()) {
+                if (!x.jack()) continue;
                 ChatComponentTranslation name = new ChatComponentTranslation("item.dre.trinket." + x.key() + ".name");
                 if (trinketTier(x) <= tier) say(p, EnumChatFormatting.YELLOW, "dre.jack.menu_line", name, price(x));
                 else say(p, EnumChatFormatting.DARK_GRAY, "dre.jack.locked", name,

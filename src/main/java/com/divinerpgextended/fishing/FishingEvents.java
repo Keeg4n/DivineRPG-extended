@@ -175,7 +175,7 @@ public class FishingEvents {
             case 20: return new ItemStack(ModItems.angler[1]);
             case 25: return new ItemStack(ModItems.angler[2]);
             case 30: return new ItemStack(ModItems.fishGuide);
-            case 50: return new ItemStack(ModItems.baitBag);
+            case 50: return new ItemStack(ModItems.trinket, 1, com.divinerpgextended.trinket.Trinket.TACKLE_BOX.ordinal());
             default: return null;
         }
     }

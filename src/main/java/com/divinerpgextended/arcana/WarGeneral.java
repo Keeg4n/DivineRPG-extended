@@ -234,6 +234,7 @@ public class WarGeneral {
         if (after > before) {
             ItemStack gift = rankGift(after);
             if (gift != null) give(p, gift);
+            if (after == 4) give(p, new ItemStack(com.divinerpgextended.registry.ModItems.trinket, 1, com.divinerpgextended.trinket.Trinket.VALOR_MEDAL.ordinal()));
             say(p, EnumChatFormatting.GOLD, "dre.general.promoted", new ChatComponentTranslation("dre.rank." + after),
                 gift == null ? "" : gift.getDisplayName());
         }

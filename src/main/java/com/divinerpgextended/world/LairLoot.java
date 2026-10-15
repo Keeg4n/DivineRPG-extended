@@ -48,7 +48,8 @@ public final class LairLoot {
             e(VanillaItemsOther.aquaticIngot, 1, 3, 6), e(VanillaItemsOther.sharkFin, 1, 2, 5),
             e(VanillaItemsOther.realmiteIngot, 2, 6, 8), e(Items.iron_ingot, 2, 5, 8), e(Items.gold_ingot, 1, 4, 5),
             e(Items.fish, 2, 5, 6), e(Items.diamond, 1, 2, 2), e(VanillaItemsOther.arlemiteIngot, 1, 2, 3),
-            e(VanillaItemsWeapons.crabclawMaul, 1, 1, 1), e(ModItems.lairMap, 1, 1, 1, 2) };
+            e(VanillaItemsWeapons.crabclawMaul, 1, 1, 1), e(ModItems.lairMap, 1, 1, 1, 2),
+            e(ModItems.trinket, com.divinerpgextended.trinket.Trinket.DEEP_SHELL.ordinal(), 1, 1, 2) };
     }
 
     private static WeightedRandomChestContent[] snow() {
@@ -80,7 +81,8 @@ public final class LairLoot {
             e(Items.golden_apple, 1, 1, 1), e(IceikaItems.snowSlash, 1, 1, 1), e(IceikaItems.glacierSword, 1, 1, 1),
             e(IceikaItems.frossivence, 1, 1, 1), e(IceikaItems.icicleBow, 1, 1, 1), e(VanillaItemsArmor.frozenHelmet, 1, 1, 1),
             e(VanillaItemsArmor.frozenBody, 1, 1, 1), e(VanillaItemsArmor.frozenLegs, 1, 1, 1),
-            e(VanillaItemsArmor.frozenBoots, 1, 1, 1), e(ModItems.rimePick, 1, 1, 1), e(ModItems.lairMap, 2, 1, 1, 2) };
+            e(VanillaItemsArmor.frozenBoots, 1, 1, 1), e(ModItems.rimePick, 1, 1, 1), e(ModItems.lairMap, 2, 1, 1, 2),
+            e(ModItems.trinket, com.divinerpgextended.trinket.Trinket.ETERNAL_ICE_RING.ordinal(), 1, 1, 1) };
     }
 
     /** Саркофаги Древней гробницы: золото и самоцветы, кости фараонов, редкое оружие и яблоки. */
@@ -90,7 +92,8 @@ public final class LairLoot {
             e(Items.rotten_flesh, 2, 5, 4), e(VanillaItemsOther.rupeeIngot, 1, 2, 4), e(VanillaItemsOther.arlemiteIngot, 1, 3, 5),
             e(VanillaItemsOther.shadowCoins, 2, 6, 4), e(Items.golden_apple, 1, 1, 2), e(Items.golden_apple, 1, 1, 1, 1),
             e(VanillaItemsWeapons.sandslash, 1, 1, 2), e(Items.name_tag, 1, 1, 2), e(Items.saddle, 1, 1, 2),
-            e(Items.golden_horse_armor, 1, 1, 1), e(ModItems.lairMap, 3, 1, 1, 1) };
+            e(Items.golden_horse_armor, 1, 1, 1), e(ModItems.lairMap, 3, 1, 1, 1),
+            e(ModItems.trinket, com.divinerpgextended.trinket.Trinket.PHARAOH_ANKH.ordinal(), 1, 1, 1) };
     }
 
     /** Добавить в уже стоящий сундук count стопок из таблицы. */

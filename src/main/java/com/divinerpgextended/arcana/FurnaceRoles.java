@@ -318,5 +318,11 @@ public class FurnaceRoles {
             new ItemStack(ModItems.furnaceModule, 1, 0)));
         list.add(new InfiniteTrade(new ItemStack(ArcanaItems.arcanium, 10), new ItemStack(ArcanaItems.chargedCollector, 1),
             new ItemStack(ModItems.furnaceModule, 1, 1)));
+        for (Iterator<?> it = list.iterator(); it.hasNext();) {
+            ItemStack sell = ((MerchantRecipe) it.next()).getItemToSell();
+            if (sell != null && sell.getItem() == ModItems.trinket) it.remove();
+        }
+        list.add(new InfiniteTrade(new ItemStack(ArcanaItems.arcanium, 16), new ItemStack(ArcanaItems.chargedCollector, 1),
+            new ItemStack(ModItems.trinket, 1, com.divinerpgextended.trinket.Trinket.POCKET_MAGNET.ordinal())));
     }
 }

@@ -105,6 +105,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.arcana.PetTraining());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.arcana.ItemPetCarrier.Handler());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.trinket.JackOMan());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.trinket.AccessorySources());
         FMLCommonHandler.instance()
             .bus()
             .register(new com.divinerpgextended.boss.ProgressSync());

@@ -87,7 +87,7 @@ public class Accessories implements IInventory {
         Accessories a = of(p);
         for (int i = 0; i < Math.min(a.unlocked, SIZE); i++) {
             ItemStack s = a.stacks[i];
-            if (s != null && s.getItem() == ModItems.trinket && ItemTrinket.of(s) == t) return true;
+            if (s != null && s.getItem() == ModItems.trinket && ItemTrinket.of(s).provides().contains(t)) return true;
         }
         return false;
     }
@@ -122,9 +122,11 @@ public class Accessories implements IInventory {
     /** Можно ли положить эту вещь в слот: только бижутерия, слот открыт, такой же вещи в других слотах нет. */
     public boolean canPlace(int slot, ItemStack s) {
         if (readOnly || s == null || s.getItem() != ModItems.trinket || slot >= unlocked) return false;
-        Trinket t = ItemTrinket.of(s);
+        // один и тот же эффект дважды не надеть - ни саму вещь, ни объединённую с ней
+        java.util.Set<Trinket> mine = ItemTrinket.of(s).provides();
         for (int i = 0; i < SIZE; i++) {
-            if (i != slot && stacks[i] != null && stacks[i].getItem() == ModItems.trinket && ItemTrinket.of(stacks[i]) == t) return false;
+            if (i == slot || stacks[i] == null || stacks[i].getItem() != ModItems.trinket) continue;
+            for (Trinket other : ItemTrinket.of(stacks[i]).provides()) if (mine.contains(other)) return false;
         }
         return true;
     }

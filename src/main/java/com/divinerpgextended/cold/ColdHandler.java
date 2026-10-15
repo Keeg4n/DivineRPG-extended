@@ -132,6 +132,8 @@ public class ColdHandler {
                 if (p.isInWater()) r *= 2;
                 if (blizzard) r *= 3;
                 if (PerkEffects.wears(p, FROZEN)) r *= 0.5F;
+                if (com.divinerpgextended.trinket.TrinketEffects.wears(p, com.divinerpgextended.trinket.Trinket.WARM_SCARF)) r *= 0.5F;
+                if (com.divinerpgextended.trinket.TrinketEffects.wears(p, com.divinerpgextended.trinket.Trinket.ICE_BROOCH)) r *= 0.67F;
                 cold += r;
             }
             if (warm > 0) warm--;
