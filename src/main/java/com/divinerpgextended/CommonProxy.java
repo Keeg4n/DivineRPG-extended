@@ -75,6 +75,11 @@ public class CommonProxy {
             .register(arcanaGate);
         MinecraftForge.EVENT_BUS.register(new ColdMobs());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.ArmorSets());
+        com.divinerpgextended.perk.OverHealth overHealth = new com.divinerpgextended.perk.OverHealth();
+        MinecraftForge.EVENT_BUS.register(overHealth);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(overHealth);
         IceikaCombat iceikaCombat = new IceikaCombat();
         MinecraftForge.EVENT_BUS.register(iceikaCombat);
         FMLCommonHandler.instance()
