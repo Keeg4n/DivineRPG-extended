@@ -118,6 +118,10 @@ public class Nightmare {
     private static boolean weapon(ItemStack s) {
         Item i = s.getItem();
         if (i instanceof ItemSword || i instanceof ItemTool || i instanceof ItemBow) return true;
+        // инструменты Tinkers' Construct не наследуют ванильные мечи и урон считают сами - узнаём по базовому классу
+        for (Class<?> c = i.getClass(); c != null; c = c.getSuperclass()) {
+            if ("tconstruct.library.tools.ToolCore".equals(c.getName())) return true;
+        }
         @SuppressWarnings("rawtypes")
         Collection c = s.getAttributeModifiers().get(SharedMonsterAttributes.attackDamage.getAttributeUnlocalizedName());
         return c != null && !c.isEmpty();

@@ -44,7 +44,7 @@ public class WarGeneral {
 
     private static final String TAG = "dre_general";
     private static final UUID HEARTS = UUID.fromString("6f3e2a7c-5b1d-4e9a-9c2f-7d8e1a4b3c21");
-    private static final String SAVED_HP = "dreSavedHp";
+    private static final String SAVED_HP = "dreSavedHp", RESTORE_HP = "dreRestoreHp";
 
     // ---------------- Зал славы ----------------
 
@@ -304,6 +304,14 @@ public class WarGeneral {
     public void onPlayerTick(TickEvent.PlayerTickEvent e) {
         if (e.phase != TickEvent.Phase.END || e.player.worldObj.isRemote || e.player.ticksExisted % 40 != 0) return;
         applyHearts(e.player);
+        // восстановление здоровья после входа - не сразу: другие моды (контейнеры сердец Tinkers' Construct) навешивают
+        // свой максимум чуть позже, иначе их сердца срезало бы
+        NBTTagCompound d = e.player.getEntityData();
+        if (d.hasKey(RESTORE_HP)) {
+            float saved = d.getFloat(RESTORE_HP);
+            d.removeTag(RESTORE_HP);
+            if (saved > e.player.getHealth()) e.player.setHealth(Math.min(saved, e.player.getMaxHealth()));
+        }
     }
 
     /** Модификатор не сохраняется в файл игрока: при выходе запоминаем здоровье, иначе при входе его обрежет до 20. */
@@ -316,8 +324,7 @@ public class WarGeneral {
     public void onLogin(cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent e) {
         if (e.player.worldObj.isRemote) return;
         applyHearts(e.player, true);
-        float saved = e.player.getEntityData().getFloat(SAVED_HP);
-        if (saved > e.player.getHealth()) e.player.setHealth(Math.min(saved, e.player.getMaxHealth()));
+        if (e.player.getEntityData().hasKey(SAVED_HP)) e.player.getEntityData().setFloat(RESTORE_HP, e.player.getEntityData().getFloat(SAVED_HP));
     }
 
     @SubscribeEvent
