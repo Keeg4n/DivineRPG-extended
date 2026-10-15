@@ -74,50 +74,52 @@ public final class DreAchievements {
     }
 
     public static void register() {
-        // Страница Divine занимает столбцы 0-9: наши ветки - правее, а связи с её ачивками там, где это одно и то же место
-        // в прогрессии (вход в Аркану, Эдем, Мортум, Джек, питомец Зелуса).
+        // Страница Divine занимает столбцы 0-9, наш блок - столбцы 11-21. Minecraft рисует связь уголком: по строке ребёнка
+        // до столбца родителя и вверх по столбцу родителя. Поэтому дети одного родителя стоят "гребёнкой" - правее и
+        // каждый на своей строке, чтобы линии не шли под чужими иконками. Длинных связей с деревом Divine нет.
         // главная ветка: путь по боссам
         crab = a("crab", 11, 0, s(VanillaItemsOther.crabClaw), null, false);
-        carcinus = a("carcinus", 11, 2, s(ModItems.deepShell), crab, false);
-        snowGlacon = a("snow_glacon", 13, 2, s(IceikaItems.snowGlobe), carcinus, false);
-        lichKing = a("lich_king", 15, 2, s(ModItems.throneShard), snowGlacon, false);
-        ancientEntity = a("ancient_entity", 17, 2, s(VanillaItemsOther.mysteriousClock), lichKing, false);
-        watcher = a("watcher", 19, 2, s(ModItems.watcherEye), ancientEntity, false);
-        rime = a("rime", 13, 0, s(ModItems.rimeIngot), snowGlacon, false);
-        frostbite = a("frostbite", 15, 0, s(IceikaItems.iceShards), snowGlacon, false);
-        lockedPortal = a("locked_portal", 19, 0, s(Item.getItemFromBlock(ArcanaBlocks.arcanaPortalFrame)), null, false);
-        // сумеречные миры: от входа в Эдем и в Мортум (ачивки Divine)
-        eden = a("eden", 11, 4, s(TwilightItemsOther.edenSoul), DivineRPGAchievements.possibilities, false);
+        carcinus = a("carcinus", 13, 0, s(ModItems.deepShell), crab, false);
+        snowGlacon = a("snow_glacon", 15, 0, s(IceikaItems.snowGlobe), carcinus, false);
+        lichKing = a("lich_king", 17, 0, s(ModItems.throneShard), snowGlacon, false);
+        ancientEntity = a("ancient_entity", 19, 0, s(VanillaItemsOther.mysteriousClock), lichKing, false);
+        watcher = a("watcher", 21, 0, s(ModItems.watcherEye), ancientEntity, false);
+        frostbite = a("frostbite", 13, 2, s(IceikaItems.iceShards), snowGlacon, false);
+        rime = a("rime", 17, 2, s(ModItems.rimeIngot), snowGlacon, false);
+        lockedPortal = a("locked_portal", 21, 2, s(Item.getItemFromBlock(ArcanaBlocks.arcanaPortalFrame)), null, false);
+        // сумеречные миры
+        eden = a("eden", 11, 4, s(TwilightItemsOther.edenSoul), null, false);
         wildwood = a("wildwood", 13, 4, s(TwilightItemsOther.wildwoodSoul), eden, false);
         apalachia = a("apalachia", 15, 4, s(TwilightItemsOther.apalachiaSoul), wildwood, false);
         skythern = a("skythern", 17, 4, s(TwilightItemsOther.skythernSoul), apalachia, false);
-        twilightDemon = a("twilight_demon", 11, 6, s(TwilightItemsOther.mortumSoul), DivineRPGAchievements.darkAnotherDay, false);
-        karot = a("karot", 13, 6, s(TwilightItemsOther.mortumGem), twilightDemon, true);
+        twilightDemon = a("twilight_demon", 19, 4, s(TwilightItemsOther.mortumSoul), skythern, false);
+        karot = a("karot", 21, 4, s(TwilightItemsOther.mortumGem), twilightDemon, true);
         // Наковальня Странника
-        anvil = a("anvil", 15, 6, s(Item.getItemFromBlock(ModBlocks.wandererAnvil)), null, false);
-        perk = a("perk", 17, 6, s(ModItems.wanderer[1]), anvil, false);
-        temper = a("temper", 19, 6, s(TwilightItemsOther.edenGem), perk, true);
-        // торговцы Арканы: от входа в Аркану (ачивка Divine)
-        memoryCrystal = a("memory_crystal", 11, 8, s(ModItems.memoryCrystal), DivineRPGAchievements.whatLiesWithin, false);
-        reforge = a("reforge", 13, 8, s(Items.iron_sword), memoryCrystal, false);
-        dullReforge = a("dull_reforge", 13, 10, s(Items.stone_sword), reforge, false);
-        legendary = a("legendary", 15, 10, s(Items.golden_sword), reforge, true);
-        hallOfFame = a("hall_of_fame", 15, 8, s(Items.skull), memoryCrystal, false);
-        corporal = a("corporal", 17, 8, s(ArcanaItems.reflector), hallOfFame, false);
-        research = a("research", 11, 10, s(ArcanaItems.wizardBook), memoryCrystal, false);
-        furnaceModule = a("furnace_module", 17, 10, s(ModItems.furnaceModule), memoryCrystal, false);
-        petTrainer = a("pet_trainer", 19, 8, s(Items.lead), DivineRPGAchievements.littleCreature, false);
-        petCarrier = a("pet_carrier", 19, 10, s(ModItems.petCarrier), petTrainer, false);
+        anvil = a("anvil", 11, 6, s(Item.getItemFromBlock(ModBlocks.wandererAnvil)), null, false);
+        perk = a("perk", 13, 6, s(ModItems.wanderer[1]), anvil, false);
+        temper = a("temper", 15, 6, s(TwilightItemsOther.edenGem), perk, true);
+        // Джек о'Мэн и аксессуары
+        jackTrade = a("jack_trade", 17, 6, s(VanillaItemsOther.shadowCoins), null, false);
+        headHunter = a("head_hunter", 19, 6, s(ModItems.trinket, 0), jackTrade, false);
+        allSlots = a("all_slots", 21, 6, s(ModItems.trinket, 4), headHunter, true);
         // рыбалка
-        fishFirst = a("fish_first", 21, 0, s(Items.fishing_rod), null, false);
-        fishCrate = a("fish_crate", 23, 0, s(ModItems.crate), fishFirst, false);
-        fishQuest = a("fish_quest", 21, 2, s(ModItems.fish, 2), fishFirst, false);
-        goldenRod = a("golden_rod", 23, 2, s(ModItems.rods[Rod.GOLDEN.ordinal()]), fishQuest, true);
-        relic = a("relic", 21, 4, s(ModItems.nightmareDrill), fishFirst, true);
-        // Джек о'Мэн и аксессуары: от разговора с Джеком (ачивка Divine)
-        jackTrade = a("jack_trade", 21, 6, s(VanillaItemsOther.shadowCoins), DivineRPGAchievements.halloweenSpirit, false);
-        headHunter = a("head_hunter", 23, 6, s(ModItems.trinket, 0), jackTrade, false);
-        allSlots = a("all_slots", 23, 8, s(ModItems.trinket, 4), headHunter, true);
+        fishFirst = a("fish_first", 11, 8, s(Items.fishing_rod), null, false);
+        fishCrate = a("fish_crate", 13, 8, s(ModItems.crate), fishFirst, false);
+        fishQuest = a("fish_quest", 13, 10, s(ModItems.fish, 2), fishFirst, false);
+        goldenRod = a("golden_rod", 15, 10, s(ModItems.rods[Rod.GOLDEN.ordinal()]), fishQuest, true);
+        relic = a("relic", 13, 12, s(ModItems.nightmareDrill), fishFirst, true);
+        // питомцы
+        petTrainer = a("pet_trainer", 17, 8, s(Items.lead), null, false);
+        petCarrier = a("pet_carrier", 19, 8, s(ModItems.petCarrier), petTrainer, false);
+        // торговцы Арканы
+        memoryCrystal = a("memory_crystal", 11, 14, s(ModItems.memoryCrystal), null, false);
+        reforge = a("reforge", 13, 14, s(Items.iron_sword), memoryCrystal, false);
+        dullReforge = a("dull_reforge", 15, 14, s(Items.stone_sword), reforge, false);
+        legendary = a("legendary", 15, 16, s(Items.golden_sword), reforge, true);
+        hallOfFame = a("hall_of_fame", 13, 18, s(Items.skull), memoryCrystal, false);
+        corporal = a("corporal", 15, 18, s(ArcanaItems.reflector), hallOfFame, false);
+        research = a("research", 13, 20, s(ArcanaItems.wizardBook), memoryCrystal, false);
+        furnaceModule = a("furnace_module", 13, 22, s(ModItems.furnaceModule), memoryCrystal, false);
 
         // всё на одну страницу с ачивками Divine
         DivineRPGAchievements.page.getAchievements().addAll(ALL);
