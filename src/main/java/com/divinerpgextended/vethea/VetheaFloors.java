@@ -183,6 +183,8 @@ public class VetheaFloors {
                     if (rifts.carved.contains(key)) continue;
                     int[] c = rift(w, rx, rz, f);
                     if (!w.getChunkProvider().chunkExists(c[0] >> 4, c[1] >> 4)) continue;
+                    // только в населённом чанке: иначе деревья и постройки Divine потом перезапишут край (а то и шахту)
+                    if (!w.getChunkFromChunkCoords(c[0] >> 4, c[1] >> 4).isTerrainPopulated) continue;
                     carve(w, c[0], c[1], f);
                     com.divinerpgextended.debug.Debug.note(p, "Разлом прорублен: плита " + f + ", центр " + c[0] + " " + c[1]);
                     rifts.carved.add(key);
@@ -210,10 +212,10 @@ public class VetheaFloors {
     }
 
     private static void rim(World w, int x, int y, int z) {
+        // любой обычный твёрдый блок плиты (в полах Ветеи бывают кристаллы и прочее), но не воздух, не сундук и не бедрок
         Block bl = w.getBlock(x, y, z);
-        if (bl == VetheaBlocks.dreamStone || bl == VetheaBlocks.dreamGrass || bl == VetheaBlocks.dreamDirt) {
-            w.setBlock(x, y, z, VetheaBlocks.fireCrystal, 0, 2);
-        }
+        if (bl.isAir(w, x, y, z) || w.getTileEntity(x, y, z) != null || bl.getBlockHardness(w, x, y, z) < 0) return;
+        w.setBlock(x, y, z, VetheaBlocks.fireCrystal, 0, 2);
     }
 
     // ---------------- Крылья и дозволенный этаж ----------------

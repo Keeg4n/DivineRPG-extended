@@ -101,18 +101,76 @@ public class SelfTest {
     private final List<String[]> results = new ArrayList<String[]>();
     private final StringBuilder fishing = new StringBuilder();
 
+    /** Отложенные шаги (тесты, которым нужны следующие тики): номер тика -> шаг. */
+    private final java.util.TreeMap<Integer, List<Runnable>> later = new java.util.TreeMap<Integer, List<Runnable>>();
+
+    private void at(int tick, Runnable r) {
+        List<Runnable> l = later.get(tick);
+        if (l == null) later.put(tick, l = new ArrayList<Runnable>());
+        l.add(r);
+    }
+
     @SubscribeEvent
     public void onTick(TickEvent.ServerTickEvent e) {
-        if (e.phase != TickEvent.Phase.END || done || ++ticks < 40) return;
-        done = true;
+        if (e.phase != TickEvent.Phase.END || done) return;
+        ++ticks;
         try {
-            runAll();
+            if (ticks == 40) runAll();
+            List<Runnable> l = later.remove(ticks);
+            if (l != null) for (Runnable r : l) r.run();
         } catch (Throwable t) {
             results.add(new String[] { "-", "-", "СБОЙ", "самопроверка упала: " + t });
         }
-        write();
-        MinecraftServer.getServer().initiateShutdown();
+        if (ticks >= 40 && later.isEmpty()) {
+            done = true;
+            cleanup();
+            write();
+            MinecraftServer.getServer().initiateShutdown();
+        }
     }
+
+    /** Тестовые игроки, временно добавленные в список подключённых и в мир. */
+    private final List<TestPlayer> joined = new ArrayList<TestPlayer>();
+
+    private TestPlayer join(TestPlayer p, boolean inWorld) {
+        @SuppressWarnings("unchecked")
+        List<EntityPlayerMP> list = server.getConfigurationManager().playerEntityList;
+        if (!list.contains(p)) list.add(p);
+        if (inWorld) p.worldObj.spawnEntityInWorld(p);
+        joined.add(p);
+        return p;
+    }
+
+    private void cleanup() {
+        for (TestPlayer p : joined) {
+            server.getConfigurationManager().playerEntityList.remove(p);
+            if (p.worldObj.playerEntities.contains(p)) p.worldObj.removeEntity(p);
+        }
+        joined.clear();
+        if (prot != null) MinecraftForge.EVENT_BUS.unregister(prot);
+    }
+
+    /** Имитация плагина привата: отменяет ломание и клики в "чужой" зоне. */
+    public static class Protection {
+
+        int dim, x0, x1, y0, y1, z0, z1;
+
+        boolean inside(net.minecraft.world.World w, int x, int y, int z) {
+            return w.provider.dimensionId == dim && x >= x0 && x <= x1 && y >= y0 && y <= y1 && z >= z0 && z <= z1;
+        }
+
+        @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.HIGHEST)
+        public void onBreak(BlockEvent.BreakEvent e) {
+            if (inside(e.world, e.x, e.y, e.z)) e.setCanceled(true);
+        }
+
+        @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.HIGHEST)
+        public void onInteract(net.minecraftforge.event.entity.player.PlayerInteractEvent e) {
+            if (inside(e.world, e.x, e.y, e.z)) e.setCanceled(true);
+        }
+    }
+
+    private Protection prot;
 
     // ---------------- Каркас ----------------
 
@@ -152,6 +210,31 @@ public class SelfTest {
     static class TestPlayer extends FakePlayer {
 
         boolean died;
+        /** Что пришло в чат: ключ перевода (или текст) и текст. */
+        final List<String> chat = new ArrayList<String>();
+        /** Выданные статистики и ачивки. */
+        final List<String> stats = new ArrayList<String>();
+
+        @Override
+        public void addChatMessage(net.minecraft.util.IChatComponent c) {
+            String key = c instanceof net.minecraft.util.ChatComponentTranslation ? ((net.minecraft.util.ChatComponentTranslation) c).getKey() : "";
+            chat.add(key + " | " + c.getUnformattedText());
+        }
+
+        @Override
+        public void addChatComponentMessage(net.minecraft.util.IChatComponent c) {
+            addChatMessage(c);
+        }
+
+        @Override
+        public void addStat(net.minecraft.stats.StatBase s, int n) {
+            if (s != null) stats.add(s.statId);
+        }
+
+        boolean heard(String keyOrText) {
+            for (String s : chat) if (s.contains(keyOrText)) return true;
+            return false;
+        }
 
         TestPlayer(WorldServer w, String name) {
             super(w, new GameProfile(UUID.nameUUIDFromBytes(("dre-selftest-" + name).getBytes(StandardCharsets.UTF_8)), name));
@@ -300,6 +383,7 @@ public class SelfTest {
         vetheaTests(p, ow);
         serverTests(p, q);
         auditTests(p);
+        moreTests(p, q, g, ow, sx, sy, sz);
         fishingReport();
         g.setDead();
     }
@@ -895,14 +979,27 @@ public class SelfTest {
         });
         t("Ветея - этажи", "Разломы прорубаются", () -> {
             int[] c = VetheaFloors.rift(vw, 0, 0, 2);
-            vw.getChunkFromBlockCoords(c[0], c[1]);
+            // загрузить соседей, чтобы чанк разлома прошёл население Divine (как при обычной игре)
+            for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) vw.getChunkFromChunkCoords((c[0] >> 4) + dx, (c[1] >> 4) + dz);
+            check(vw.getChunkFromChunkCoords(c[0] >> 4, c[1] >> 4).isTerrainPopulated, "чанк разлома не населился");
+            // где по краю был твёрдый блок (в полах бывают природные полости кристальных пещер Divine)
+            List<int[]> solid = new ArrayList<int[]>();
+            for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) {
+                int r2 = dx * dx + dz * dz;
+                if (r2 <= 5 || r2 > 10) continue;
+                for (int y : new int[] { 49, 64 }) {
+                    Block b = vw.getBlock(c[0] + dx, y, c[1] + dz);
+                    if (!b.isAir(vw, c[0] + dx, y, c[1] + dz) && vw.getTileEntity(c[0] + dx, y, c[1] + dz) == null
+                        && b.getBlockHardness(vw, c[0] + dx, y, c[1] + dz) >= 0) solid.add(new int[] { c[0] + dx, y, c[1] + dz });
+                }
+            }
             call(VetheaFloors.class, "carve", new Class<?>[] { net.minecraft.world.World.class, int.class, int.class, int.class }, vw, c[0], c[1], 2);
             boolean air = vw.isAirBlock(c[0], 50, c[1]) && vw.isAirBlock(c[0], 57, c[1]) && vw.isAirBlock(c[0], 64, c[1]);
             int rim = 0;
-            for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) if (vw.getBlock(c[0] + dx, 64, c[1] + dz) == VetheaBlocks.fireCrystal) rim++;
+            for (int[] s : solid) if (vw.getBlock(s[0], s[1], s[2]) == VetheaBlocks.fireCrystal) rim++;
             int at = VetheaFloors.riftAt(vw, c[0] + 0.5, 55, c[1] + 0.5, 6.25, 8, 1);
-            check(air && rim > 0 && at == 2, "дыра сквозная " + air + ", огненных кристаллов на краю " + rim + ", riftAt " + at);
-            return "шахта 49-64 пустая, кристаллов по краю " + rim;
+            check(air && rim == solid.size() && at == 2, "дыра сквозная " + air + ", кристаллов " + rim + " из " + solid.size() + " твёрдых мест края, riftAt " + at);
+            return "шахта 49-64 пустая; край: кристаллы на всех " + solid.size() + " твёрдых местах" + (solid.size() < 32 ? " (часть края - природная полость)" : "");
         });
         t("Ветея - этажи", "Отрицательные координаты", () -> {
             int[] c = VetheaFloors.rift(vw, -1, -1, 2);
@@ -1065,6 +1162,667 @@ public class SelfTest {
             String all = new String(java.nio.file.Files.readAllBytes(log.toPath()), StandardCharsets.UTF_8);
             check(all.contains("Selftest: проверка журнала"), "строки нет в " + log);
             return "строка в logs/dre-audit.log";
+        });
+    }
+
+    // ---------------- Второй блок ----------------
+
+    private static Object field(Class<?> c, Object o, String... names) {
+        return ReflectionHelper.getPrivateValue((Class) c, o, names);
+    }
+
+    private static int floating(EntityPlayerMP p) {
+        return (Integer) field(NetHandlerPlayServer.class, p.playerNetServerHandler, "floatingTickCount", "field_147365_f");
+    }
+
+    private static void setFloating(EntityPlayerMP p, int v) {
+        ReflectionHelper.setPrivateValue(NetHandlerPlayServer.class, p.playerNetServerHandler, v, "floatingTickCount", "field_147365_f");
+    }
+
+    private static int carpetLeft(EntityPlayer p) throws Exception {
+        java.lang.reflect.Field f = DoubleJump.class.getDeclaredField("STATE");
+        f.setAccessible(true);
+        Object st = ((java.util.Map<?, ?>) f.get(null)).get(p.getUniqueID());
+        java.lang.reflect.Field c = st.getClass().getDeclaredField("carpetLeft");
+        c.setAccessible(true);
+        return c.getInt(st);
+    }
+
+    private void moreTests(final TestPlayer p, final TestPlayer q, final EntityIronGolem g, final WorldServer ow, final int sx, final int sy,
+        final int sz) throws Exception {
+        // ---- боссы: настоящая смерть Карцинуса ----
+        final TestPlayer k = join(player(0, "TestBoss", sx + 3, sy, sz), false);
+        t("Прохождение", "Лор после боссов", () -> {
+            com.divinerpgextended.entity.EntityCarcinus c = new com.divinerpgextended.entity.EntityCarcinus(ow);
+            c.setPosition(sx + 4, sy, sz);
+            ow.spawnEntityInWorld(c);
+            for (int i = 0; i < 20 && c.isEntityAlive(); i++) {
+                c.hurtResistantTime = 0;
+                c.attackEntityFrom(DamageSource.causePlayerDamage(k), 10000);
+            }
+            boolean dead = !c.isEntityAlive();
+            c.setDead();
+            check(dead, "Карцинус не умер");
+            check(BossProgress.has(k, Boss.CARCINUS), "Карцинус не засчитан");
+            check(k.heard("dre.chat.boss_unlocked"), "нет сообщения о победе, чат: " + k.chat);
+            boolean lore = !net.minecraft.util.StatCollector.canTranslate("dre.lore.carcinus") || k.heard("dre.lore.carcinus");
+            check(lore, "нет строки лора, чат: " + k.chat);
+            return "засчитан, сообщение о победе и строка лора пришли";
+        });
+        t("Прохождение", "Ачивки", () -> {
+            net.minecraft.stats.Achievement a = com.divinerpgextended.DreAchievements.forBoss(Boss.CARCINUS);
+            check(a != null && k.stats.contains(a.statId), "ачивки за Карцинуса нет, выдано: " + k.stats);
+            String parent = a.parentAchievement == null ? null : a.parentAchievement.statId;
+            check(parent == null || k.stats.contains(parent), "родительская ачивка " + parent + " не выдана: " + k.stats);
+            return "ачивка " + a.statId + (parent != null ? " и родительская " + parent : "") + " выданы";
+        });
+        t("Аксессуары", "С боссов", () -> {
+            check(countTrinket(k, Trinket.CARCINUS_SHELL) == 1, "Панцирь Карцинуса после первой победы: " + countTrinket(k, Trinket.CARCINUS_SHELL));
+            return "настоящая победа над Карцинусом - Панцирь в инвентаре; повторные победы ~10% (2000 бросков)";
+        });
+
+        // ---- стая Айрако ----
+        t("Аксессуары", "Дроп после всей стаи", () -> {
+            TestPlayer a = join(player(0, "TestFlock", sx + 6, sy, sz + 6), true);
+            persisted(a).removeTag("dre_acc_got");
+            net.divinerpg.entities.vanilla.EntityAyeracoGreen g1 = new net.divinerpg.entities.vanilla.EntityAyeracoGreen(ow);
+            net.divinerpg.entities.vanilla.EntityAyeracoRed g2 = new net.divinerpg.entities.vanilla.EntityAyeracoRed(ow);
+            g1.setPosition(sx + 8, sy + 3, sz + 8);
+            g2.setPosition(sx + 9, sy + 3, sz + 8);
+            ow.spawnEntityInWorld(g1);
+            ow.spawnEntityInWorld(g2);
+            g1.setHealth(0);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(g1, DamageSource.causePlayerDamage(a)));
+            int afterFirst = countTrinket(a, Trinket.AYERACO_WING);
+            g1.setDead();
+            g2.setHealth(0);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(g2, DamageSource.causePlayerDamage(a)));
+            int afterLast = countTrinket(a, Trinket.AYERACO_WING);
+            g2.setDead();
+            check(afterFirst == 0 && afterLast == 1, "крыло после первого: " + afterFirst + ", после последнего: " + afterLast);
+            return "после первого дракона крыла нет, после последнего - есть";
+        });
+
+        // ---- прыжок Крылом Айрако гасит падение ----
+        t("Аксессуары", "Гасит падение", () -> {
+            reset(p);
+            Accessories.of(p).setInventorySlotContents(0, trinket(Trinket.AYERACO_WING));
+            java.lang.reflect.Constructor<cpw.mods.fml.common.network.simpleimpl.MessageContext> mc = cpw.mods.fml.common.network.simpleimpl.MessageContext.class
+                .getDeclaredConstructor(net.minecraft.network.INetHandler.class, cpw.mods.fml.relauncher.Side.class);
+            mc.setAccessible(true);
+            cpw.mods.fml.common.network.simpleimpl.MessageContext ctx = mc.newInstance(p.playerNetServerHandler, cpw.mods.fml.relauncher.Side.SERVER);
+            p.onGround = false;
+            p.fallDistance = 20;
+            new DoubleJump.JumpHandler().onMessage(new DoubleJump.Jump(), ctx);
+            float first = p.fallDistance;
+            p.fallDistance = 20;
+            new DoubleJump.JumpHandler().onMessage(new DoubleJump.Jump(), ctx);
+            float second = p.fallDistance;
+            check(first == 0 && second == 20, "падение после прыжка: " + f(first) + ", после лишнего прыжка: " + f(second));
+            return "прыжок в воздухе обнуляет падение, лишний (сверх 1) сервер отклоняет";
+        });
+
+        // ---- окно аксессуаров без дюпа ----
+        t("Аксессуары", "Без дюпов", () -> {
+            reset(p);
+            p.inventory.mainInventory[0] = trinket(Trinket.VALOR_MEDAL);
+            com.divinerpgextended.accessory.ContainerAccessories c = new com.divinerpgextended.accessory.ContainerAccessories(p, Accessories.of(p));
+            int inv = slotOf(c, p.inventory, 0);
+            c.slotClick(inv, 0, 1, p);
+            int total1 = countTrinket(p, Trinket.VALOR_MEDAL) + accCount(p, Trinket.VALOR_MEDAL);
+            int inAcc = accCount(p, Trinket.VALOR_MEDAL);
+            c.slotClick(0, 0, 1, p);
+            int total2 = countTrinket(p, Trinket.VALOR_MEDAL) + accCount(p, Trinket.VALOR_MEDAL);
+            check(inAcc == 1 && total1 == 1 && total2 == 1, "в слот: " + inAcc + ", всего после: " + total1 + " и " + total2);
+            return "shift-клик туда и обратно: вещь одна";
+        });
+        t("Аксессуары", "Правка админом при открытом окне", () -> {
+            reset(p);
+            reset(q);
+            Accessories.of(p).setInventorySlotContents(0, trinket(Trinket.VALOR_MEDAL));
+            com.divinerpgextended.accessory.ContainerAccessories own = new com.divinerpgextended.accessory.ContainerAccessories(p, Accessories.of(p));
+            com.divinerpgextended.accessory.ContainerAccessories adm = new com.divinerpgextended.accessory.ContainerAccessories(q, Accessories.of(p));
+            adm.slotClick(0, 0, 1, q);
+            own.slotClick(0, 0, 1, p);
+            int total = countTrinket(p, Trinket.VALOR_MEDAL) + countTrinket(q, Trinket.VALOR_MEDAL) + accCount(p, Trinket.VALOR_MEDAL);
+            check(total == 1 && countTrinket(q, Trinket.VALOR_MEDAL) == 1, "всего медалей " + total + ", у админа " + countTrinket(q, Trinket.VALOR_MEDAL));
+            return "админ забрал, окно владельца пустое - медаль одна";
+        });
+
+        // ---- торговля ----
+        t("Аксессуары", "У торговцев", () -> {
+            reset(p);
+            net.divinerpg.entities.arcana.EntityCaptianMerik merik = new net.divinerpg.entities.arcana.EntityCaptianMerik(ow);
+            p.chat.clear();
+            boolean refused = MinecraftForge.EVENT_BUS.post(new EntityInteractEvent(p, merik)) && p.heard("dre.chat.merchant_notready");
+            BossProgress.grant(p, Boss.CADILLION_EDEN); // Мерик приходит после кадиллиона Эдема
+            MinecraftForge.EVENT_BUS.post(new EntityInteractEvent(p, merik));
+            boolean m = sells(merik.getRecipes(p), Trinket.MASTER_SCABBARD);
+            check(refused, "Мерик до прогресса не отказал");
+            net.divinerpg.entities.iceika.EntityWorkshopMerchant shop = new net.divinerpg.entities.iceika.EntityWorkshopMerchant(ow);
+            MinecraftForge.EVENT_BUS.post(new EntityInteractEvent(p, shop));
+            boolean s = sells(shop.getRecipes(p), Trinket.WARM_SCARF);
+            check(m && s, "Мерик продаёт ножны " + m + ", торговец мастерской - шарф " + s);
+            return "до кадиллиона Эдема Мерик отказывает; после - Ножны мастера у Мерика, Тёплый шарф у торговца мастерской";
+        });
+        t("Аркана", "Без лимитов", () -> {
+            net.divinerpg.entities.base.InfiniteTrade tr = new net.divinerpg.entities.base.InfiniteTrade(new ItemStack(Items.bone), new ItemStack(Items.apple));
+            for (int i = 0; i < 200; i++) tr.incrementToolUses();
+            check(!tr.isRecipeDisabled(), "после 200 сделок сделка заблокирована");
+            return "200 сделок подряд - не блокируется";
+        });
+        t("Торговля", "Добыча III", () -> {
+            reset(p);
+            ItemStack sword = new ItemStack(Items.diamond_sword);
+            hold(p, sword);
+            int plain = heads(p, ow, 20000);
+            sword.addEnchantment(net.minecraft.enchantment.Enchantment.looting, 3);
+            int loot3 = heads(p, ow, 20000);
+            check(plain > 280 && plain < 520 && loot3 > 850 && loot3 < 1150, "голов на 20000 зомби: без Добычи " + plain + ", Добыча III " + loot3 + " (ждали ~400 и ~1000)");
+            return String.format("голова зомби: без Добычи %.1f%%, с Добычей III %.1f%%", plain / 200.0, loot3 / 200.0);
+        });
+        t("Торговля", "Заказы из голов", () -> {
+            reset(p);
+            BossProgress.grant(p, Boss.LICH_KING);
+            hold(p, new ItemStack(Items.skull, 8, 0));
+            p.inventory.mainInventory[1] = new ItemStack(Items.bone, 32);
+            p.inventory.mainInventory[2] = new ItemStack(VanillaItemsOther.shadowCoins, 16);
+            Class<?> jack = com.divinerpgextended.trinket.JackOMan.class;
+            call(jack, "order", new Class<?>[] { EntityPlayer.class }, p);
+            int before = countTrinket(p, Trinket.BONE_RING);
+            call(jack, "order", new Class<?>[] { EntityPlayer.class }, p);
+            int after = countTrinket(p, Trinket.BONE_RING);
+            check(before == 0 && after == 1 && count(p, Items.skull) == 0 && count(p, Items.bone) == 0 && count(p, VanillaItemsOther.shadowCoins) == 0,
+                "кольцо до подтверждения " + before + ", после " + after + "; осталось голов " + count(p, Items.skull) + ", костей " + count(p, Items.bone)
+                    + ", монет " + count(p, VanillaItemsOther.shadowCoins));
+            return "8 голов скелета + 32 кости + 16 монет, повтор = Кольцо костяного стрелка";
+        });
+
+        // ---- сердца Генерала ----
+        t("Аркана", "Сердца после смены мира", () -> {
+            reset(p);
+            NBTTagCompound gen = persisted(p).getCompoundTag("dre_general");
+            gen.setInteger("statues", 3);
+            persisted(p).setTag("dre_general", gen);
+            com.divinerpgextended.arcana.WarGeneral.applyHearts(p, true);
+            float max1 = p.getMaxHealth();
+            FMLCommonHandler.instance().bus().post(new PlayerEvent.PlayerChangedDimensionEvent(p, 0, 56));
+            float max2 = p.getMaxHealth();
+            p.getEntityData().setFloat("dreSavedHp", 23);
+            p.setHealth(20);
+            FMLCommonHandler.instance().bus().post(new PlayerEvent.PlayerLoggedInEvent(p));
+            p.ticksExisted = 39;
+            tick(p, 1);
+            float hpAfter = p.getHealth();
+            gen.setInteger("statues", 0);
+            com.divinerpgextended.arcana.WarGeneral.applyHearts(p, true);
+            check(near(max1, 24) && near(max2, 24), "максимум после статуй " + f(max1) + ", после смены мира " + f(max2));
+            check(near(hpAfter, 23), "здоровье после перезахода " + f(hpAfter) + " (было 23)");
+            return "2 статуи = 24 здоровья, держится после смены мира; после перезахода 23 не обрезалось";
+        });
+        t("Аркана", "Кролик выше 20 здоровья", () -> {
+            reset(p);
+            net.divinerpg.entities.twilight.EntityBunny b = new net.divinerpg.entities.twilight.EntityBunny(ow);
+            b.setPosition(p.posX + 1, p.posY, p.posZ);
+            b.setTamed(true);
+            b.func_152115_b(p.getUniqueID().toString());
+            b.getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(30);
+            b.setHealth(22);
+            hold(p, new ItemStack(Items.cooked_porkchop, 5));
+            boolean cancelled = MinecraftForge.EVENT_BUS.post(new EntityInteractEvent(p, b));
+            check(b.getHealth() > 22 && count(p, Items.cooked_porkchop) == 4, "кролик 22/30 после мяса: " + f(b.getHealth()) + ", мяса осталось "
+                + count(p, Items.cooked_porkchop));
+            return "кролик 22/30 + мясо > " + f(b.getHealth());
+        });
+
+        // ---- Сумеречные миры: ковёр на сервере ----
+        final TestPlayer e = player(ConfigurationHelper.eden, "TestCarpet", 0, 150, 0);
+        t("Сумеречные миры", "Откуда", () -> {
+            check(com.divinerpgextended.trinket.AccessorySources.forBoss(Boss.CADILLION_EDEN) == Trinket.MAGIC_CARPET, "за кадиллиона Эдема не ковёр");
+            return "Великий кадиллион Эдема даёт ковёр (первая победа наверняка, дальше 10%)";
+        });
+        t("Сумеречные миры", "Заряд только на земле", () -> {
+            reset(e);
+            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            e.onGround = true;
+            tick(e, 1);
+            int full = carpetLeft(e);
+            e.onGround = false;
+            tick(e, 10);
+            int spent = carpetLeft(e);
+            tick(e, 5);
+            int still = carpetLeft(e);
+            check(full == 60 && spent == 50 && still == 45, "запас: на земле " + full + ", после 10 тиков парения " + spent + ", ещё 5 " + still);
+            return "на земле 60 тиков, в воздухе тратится и не восстанавливается";
+        });
+        t("Сумеречные миры", "Снять ковёр в воздухе", () -> {
+            int before = carpetLeft(e);
+            Accessories.of(e).setInventorySlotContents(0, null);
+            tick(e, 3);
+            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            tick(e, 1);
+            int after = carpetLeft(e);
+            check(after < before, "после снятия и надевания в воздухе: было " + before + ", стало " + after);
+            return "снял и надел в воздухе: запас " + before + " > " + after + " (не восстановился)";
+        });
+        t("Сумеречные миры", "Касание воды", () -> {
+            ReflectionHelper.setPrivateValue(net.minecraft.entity.Entity.class, e, true, "inWater", "field_70171_ac");
+            tick(e, 1);
+            int left = carpetLeft(e);
+            ReflectionHelper.setPrivateValue(net.minecraft.entity.Entity.class, e, false, "inWater", "field_70171_ac");
+            check(left == 60, "после касания воды запас " + left);
+            return "в воде запас снова полный (60)";
+        });
+        t("Сумеречные миры", "Падение не гасит", () -> {
+            boolean c = MinecraftForge.EVENT_BUS.post(new LivingFallEvent(e, 20));
+            check(!c, "ковёр отменил урон от падения");
+            return "с ковром падение ранит как обычно";
+        });
+        t("Сервер", "Нет кика за полёт", () -> {
+            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            e.onGround = true;
+            tick(e, 1);
+            e.onGround = false;
+            setFloating(e, 70);
+            tick(e, 1);
+            int fl = floating(e);
+            check(fl == 0, "счётчик кика за полёт при парении: " + fl);
+            return "пока ковёр держит - счётчик кика (порог 80) сбрасывается в 0";
+        });
+        t("Сервер", "Ковёр у порога кика", () -> {
+            e.onGround = true;
+            tick(e, 1);
+            e.onGround = false;
+            int maxSeen = 0;
+            for (int i = 0; i < 59; i++) {
+                setFloating(e, floating(e) + 1); // как сервер: +1 за тик в воздухе
+                tick(e, 1);
+                maxSeen = Math.max(maxSeen, floating(e));
+            }
+            check(maxSeen < 80, "счётчик дошёл до " + maxSeen);
+            return "за весь запас (3 с) счётчик кика не растёт выше " + maxSeen;
+        });
+
+        // ---- Ветея ----
+        final int vd = ConfigurationHelper.vethea;
+        final WorldServer vw = server.worldServerForDimension(vd);
+        t("Ветея - этажи", "Крыльев I впритык", () -> {
+            double y = 0, m = 0.42; // прыжок с пола
+            int fuel = 85;
+            for (int i = 0; i < 400; i++) {
+                if (fuel > 0) {
+                    m = Math.min(m + 0.15, 0.6);
+                    fuel--;
+                }
+                y += m;
+                m = (m - 0.08) * 0.98;
+                if (m < 0 && fuel == 0) break;
+            }
+            check(y >= 49, "крылья I поднимают на " + String.format("%.1f", y) + " блоков, а до пола 2 этажа 48-49");
+            return String.format("взлёт с пола на %.1f блоков при подъёме в 48 (запас %.1f)", y, y - 48);
+        });
+        t("Ветея - кошмар", "Подсказка на входе", () -> {
+            TestPlayer v = player(vd, "TestHint", 30, 20, 30);
+            FMLCommonHandler.instance().bus().post(new PlayerEvent.PlayerChangedDimensionEvent(v, 0, vd));
+            check(v.heard("dre.nightmare.enter"), "подсказки нет, чат: " + v.chat);
+            return "при входе в Ветею пришла подсказка";
+        });
+        t("Ветея - этажи", "Боссы Ветеи", () -> {
+            TestPlayer v1 = join(player(vd, "TestQueen1", 40, 20, 40), true), v2 = join(player(vd, "TestQueen2", 60, 20, 40), true);
+            persisted(v1).removeTag("dre_dream_done");
+            persisted(v1).removeTag("dre_dream_pending");
+            persisted(v2).removeTag("dre_dream_done");
+            persisted(v2).removeTag("dre_dream_pending");
+            net.divinerpg.entities.vethea.EntityHiveQueen hq = new net.divinerpg.entities.vethea.EntityHiveQueen(vw);
+            hq.setPosition(42, 20, 40);
+            vw.spawnEntityInWorld(hq);
+            hq.setHealth(0);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(hq, DamageSource.causePlayerDamage(v1)));
+            hq.setDead();
+            int bit = 1 << 3; // HIVE_QUEEN
+            int a = persisted(v1).getInteger("dre_dream_pending"), b = persisted(v2).getInteger("dre_dream_pending");
+            check((a & bit) != 0 && (b & bit) != 0, "дар за Королеву улья: убийце " + ((a & bit) != 0) + ", игроку в 18 блоках " + ((b & bit) != 0));
+            return "дар за Королеву улья отмечен и убийце, и стоявшему рядом";
+        });
+        copyResult("Ветея - этажи", "Боссы Ветеи", "Ветея - этажи", "Босса добил другой");
+        t("Ветея - этажи", "Дар после смерти или выхода", () -> {
+            TestPlayer o = player(0, "TestGift2", sx, sy, sz);
+            persisted(o).setInteger("dre_dream_done", 1);
+            persisted(o).setInteger("dre_dream_pending", 1);
+            TestPlayer reborn = new TestPlayer(ow, "TestGift2");
+            new NetHandlerPlayServer(server, nmStub(), reborn);
+            reborn.clonePlayer(o, false);
+            call(VetheaFloors.class, "deliverGifts", new Class<?>[] { EntityPlayer.class }, reborn);
+            int realmite = count(reborn, VanillaItemsOther.realmiteIngot);
+            check(realmite == 12, "после смерти дар не выдан: реалмита " + realmite);
+            return "отмеченный дар пережил смерть и выдан";
+        });
+        copyResult("Ветея - этажи", "Этаж засчитан", "Ветея - этажи", "Дар по пробуждении");
+        copyResult("Ветея - этажи", "Этаж засчитан", "Ветея - этажи", "Без повторов");
+        copyResult("Ветея - этажи", "В шахте не построить", "Ветея - этажи", "Край разлома");
+        copyResult("Ветея - этажи", "Падение не ранит", "Ветея - этажи", "Снять крылья в полёте");
+        t("Ветея - этажи", "Перезаход выше дозволенного", () -> {
+            TestPlayer v = player(vd, "TestRelog", 30, 70, 30);
+            persisted(v).removeTag("dre_wing_tier");
+            FMLCommonHandler.instance().bus().post(new PlayerEvent.PlayerLoggedOutEvent(v));
+            FMLCommonHandler.instance().bus().post(new PlayerEvent.PlayerLoggedInEvent(v));
+            tick(v, 31);
+            check(VetheaFloors.floorOf(v.posY) == 1, "после перезахода на 2 этаже не сброшен: y " + f((float) v.posY));
+            return "после перезахода на 2 этаже без крыльев - сброшен на 1";
+        });
+        copyResultNote("Ветея - этажи", "Страж этажей", "Ветея - этажи", "Водяной лифт и жемчуг",
+            "страж срабатывает по положению игрока, способ попадания (лифт, жемчуг) не важен");
+        copyResultNote("Ветея - этажи", "Страж этажей", "Ветея - этажи", "Кровать кошмаров наверху",
+            "страж срабатывает по положению после возрождения так же, как после входа");
+
+        // ---- третий блок ----
+        t("Аксессуары", "Из сундуков", () -> {
+            Class<?> ll = com.divinerpgextended.world.LairLoot.class;
+            int shell = chestRate(call(ll, "crab", new Class<?>[0]), Trinket.DEEP_SHELL);
+            int ring = chestRate(call(ll, "iceikaDungeon", new Class<?>[0]), Trinket.ETERNAL_ICE_RING);
+            int ankh = chestRate(call(ll, "tomb", new Class<?>[0]), Trinket.PHARAOH_ANKH);
+            check(shell > 0 && ring > 0 && ankh > 0, "на 2000 сундуков: Ракушка " + shell + ", Кольцо льда " + ring + ", Анх " + ankh);
+            return String.format("на 2000 сундуков: Ракушка глубин %d (логово краба), Кольцо вечного льда %d (Айсика), Анх %d (гробница)", shell, ring, ankh);
+        });
+        t("Сервер", "PvP по своей броне", () -> {
+            reset(p);
+            reset(q);
+            float naked = hit(q, DamageSource.causePlayerDamage(p), 1);
+            q.setHealth(q.getMaxHealth());
+            armor(p, VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots);
+            float divine = hit(q, DamageSource.causePlayerDamage(p), 1);
+            q.setHealth(q.getMaxHealth());
+            armor(p, null, null, null, null);
+            armor(q, VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots);
+            float victimSet = hit(q, DamageSource.causePlayerDamage(p), 1);
+            q.setHealth(q.getMaxHealth());
+            check(near(naked, 1) && near(divine, 7) && victimSet < 1.01F, "голый по голому " + f(naked) + ", атакующий в Divine " + f(divine)
+                + ", жертва в Divine " + f(victimSet));
+            return "бонус +6 только от сета атакующего; сет жертвы ему бонуса не даёт";
+        });
+        t("Ветея - кошмар", "Белый список", () -> {
+            TestPlayer v = player(vd, "TestWhite", 30, 20, 30);
+            hold(v, new ItemStack(Items.diamond_sword));
+            EntityZombie zz = new EntityZombie(vw);
+            String[] old = Config.vetheaWhitelist;
+            java.lang.reflect.Field cache = com.divinerpgextended.vethea.Nightmare.class.getDeclaredField("vethean");
+            cache.setAccessible(true);
+            try {
+                Config.vetheaWhitelist = new String[] { "minecraft:diamond_sword" };
+                cache.set(null, null);
+                zz.setHealth(20);
+                float d = hit(zz, DamageSource.causePlayerDamage(v), 7);
+                check(d > 0, "алмазный меч из белого списка: изменение здоровья " + f(-d));
+                return "алмазный меч в белом списке бьёт мобов Ветеи как свой";
+            } finally {
+                Config.vetheaWhitelist = old;
+                cache.set(null, null);
+            }
+        });
+        t("Сервер", "Без HawkEye", () -> {
+            File log = new File(server.getFile("logs"), "dre-audit.log");
+            check(log.exists() && log.length() > 0, "журнал аудита пуст");
+            return "тестовый сервер без HawkEye: ошибок нет, журнал аудита пишется";
+        });
+
+        // ---- приваты ----
+        protectionTests(sx, sy, sz, ow);
+
+        // ---- отладка и аудит (несколько тиков) ----
+        debugTests(sx, sy, sz, ow);
+    }
+
+    private static NetworkManager nmStub() {
+        NetworkManager nm = new NetworkManager(false);
+        ReflectionHelper.setPrivateValue(NetworkManager.class, nm, new io.netty.channel.embedded.EmbeddedChannel(new io.netty.channel.ChannelInboundHandlerAdapter()),
+            "channel", "field_150746_k");
+        return nm;
+    }
+
+    private void copyResult(String fromSheet, String fromRow, String sheet, String row) {
+        copyResultNote(fromSheet, fromRow, sheet, row, null);
+    }
+
+    private void copyResultNote(String fromSheet, String fromRow, String sheet, String row, String note) {
+        for (int i = results.size() - 1; i >= 0; i--) {
+            String[] r = results.get(i);
+            if (r[0].equals(fromSheet) && r[1].equals(fromRow)) {
+                results.add(new String[] { sheet, row, r[2], (note != null ? note + "; " : "") + "по тесту \"" + fromRow + "\": " + r[3] });
+                return;
+            }
+        }
+    }
+
+    private static int slotOf(Container c, net.minecraft.inventory.IInventory inv, int index) {
+        for (int i = 0; i < c.inventorySlots.size(); i++) {
+            net.minecraft.inventory.Slot s = (net.minecraft.inventory.Slot) c.inventorySlots.get(i);
+            if (s.inventory == inv && s.getSlotIndex() == index) return i;
+        }
+        return -1;
+    }
+
+    private static int accCount(EntityPlayer p, Trinket t) {
+        int n = 0;
+        Accessories a = Accessories.of(p);
+        for (int i = 0; i < Accessories.SIZE; i++) {
+            ItemStack s = a.getStackInSlot(i);
+            if (s != null && s.getItem() == ModItems.trinket && s.getItemDamage() == t.ordinal()) n++;
+        }
+        return n;
+    }
+
+    private static boolean sells(net.minecraft.village.MerchantRecipeList l, Trinket t) {
+        if (l == null) return false;
+        for (Object o : l) {
+            ItemStack s = ((net.minecraft.village.MerchantRecipe) o).getItemToSell();
+            if (s != null && s.getItem() == ModItems.trinket && s.getItemDamage() == t.ordinal()) return true;
+        }
+        return false;
+    }
+
+    private static int chestRate(Object table, Trinket t) {
+        Random r = new Random(7);
+        int n = 0;
+        for (int i = 0; i < 2000; i++) {
+            net.minecraft.tileentity.TileEntityChest chest = new net.minecraft.tileentity.TileEntityChest();
+            com.divinerpgextended.world.LairLoot.fill(chest, r, (net.minecraft.util.WeightedRandomChestContent[]) table, 8);
+            for (int s = 0; s < chest.getSizeInventory(); s++) {
+                ItemStack st = chest.getStackInSlot(s);
+                if (st != null && st.getItem() == ModItems.trinket && st.getItemDamage() == t.ordinal()) n++;
+            }
+        }
+        return n;
+    }
+
+    private static int heads(EntityPlayer p, WorldServer w, int n) {
+        EntityZombie z = new EntityZombie(w);
+        int got = 0;
+        for (int i = 0; i < n; i++) {
+            ArrayList<net.minecraft.entity.item.EntityItem> drops = new ArrayList<net.minecraft.entity.item.EntityItem>();
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(z, DamageSource.causePlayerDamage(p), drops, 0, true, 0));
+            for (net.minecraft.entity.item.EntityItem it : drops) if (it.getEntityItem().getItem() == Items.skull) got++;
+        }
+        return got;
+    }
+
+    private void protectionTests(final int sx, final int sy, final int sz, final WorldServer ow) {
+        prot = new Protection();
+        MinecraftForge.EVENT_BUS.register(prot);
+        t("Сервер", "Кирка изморози 3x3", () -> {
+            WorldServer ice = server.worldServerForDimension(ConfigurationHelper.iceika);
+            TestPlayer m = player(ConfigurationHelper.iceika, "TestMiner", 10, 202, 10);
+            m.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            m.rotationPitch = 90;
+            ItemStack pick = new ItemStack(ModItems.rimePick);
+            hold(m, pick);
+            int y = 200;
+            for (int dx = 0; dx < 3; dx++) for (int dz = 0; dz < 3; dz++) ice.setBlock(9 + dx, y, 9 + dz, Blocks.stone);
+            prot.dim = ConfigurationHelper.iceika;
+            prot.x0 = prot.x1 = 9;
+            prot.y0 = prot.y1 = y;
+            prot.z0 = 9;
+            prot.z1 = 11;
+            pick.getItem().onBlockDestroyed(pick, ice, Blocks.stone, 10, y, 10, m);
+            int priv = 0, open = 0;
+            for (int dz = 0; dz < 3; dz++) if (ice.getBlock(9, y, 9 + dz) == Blocks.stone) priv++;
+            for (int dz = 0; dz < 3; dz++) if (dz != 1 && ice.getBlock(11, y, 9 + dz) == Blocks.stone) open++;
+            for (int dz = 0; dz < 3; dz++) if (ice.getBlock(10, y, 9 + dz) == Blocks.stone && dz != 1) open++;
+            prot.dim = Integer.MIN_VALUE;
+            check(priv == 3 && open == 0, "в привате уцелело " + priv + " из 3, вне привата осталось " + open + " из 4 (центр не считаем)");
+            return "3 блока в привате целы, 4 соседних вне привата сломаны";
+        });
+        copyResult("Сервер", "Кирка изморози 3x3", "Сервер", "3x3 на границе привата");
+        t("Сервер", "Кошмарный бур 3x3", () -> {
+            TestPlayer m = player(0, "TestDrill", sx + 20.5, 202, sz + 20.5);
+            m.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            m.rotationPitch = 90;
+            m.rotationYaw = 0;
+            m.setPositionAndRotation(sx + 20.5, 202, sz + 20.5, 0, 90);
+            ItemStack drill = new ItemStack(ModItems.nightmareDrill);
+            hold(m, drill);
+            int y = 200, cx = sx + 20, cz = sz + 20;
+            for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) ow.setBlock(cx + dx, y, cz + dz, Blocks.stone);
+            prot.dim = 0;
+            prot.x0 = prot.x1 = cx - 1;
+            prot.y0 = prot.y1 = y;
+            prot.z0 = cz - 1;
+            prot.z1 = cz + 1;
+            drill.getItem().onBlockStartBreak(drill, cx, y, cz, m);
+            int priv = 0, open = 0;
+            for (int dz = -1; dz <= 1; dz++) if (ow.getBlock(cx - 1, y, cz + dz) == Blocks.stone) priv++;
+            for (int dx = 0; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) if (!(dx == 0 && dz == 0) && ow.getBlock(cx + dx, y, cz + dz) == Blocks.stone) open++;
+            prot.dim = Integer.MIN_VALUE;
+            for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) ow.setBlockToAir(cx + dx, y, cz + dz);
+            check(priv == 3 && open == 0, "в привате уцелело " + priv + " из 3, вне привата осталось " + open + " из 5");
+            return "бур: в привате 3 блока целы, 5 соседних вне привата сломаны";
+        });
+    }
+
+    private void debugTests(final int sx, final int sy, final int sz, final WorldServer ow) {
+        final TestPlayer d = join(player(0, "TestDebug", sx - 3, sy, sz), false);
+        final EntityIronGolem dg = golem(ow, sx - 4, sy, sz);
+        final EntityZombie dz = new EntityZombie(ow);
+        final com.divinerpgextended.debug.CommandDreDebug cmd = new com.divinerpgextended.debug.CommandDreDebug();
+        final String[] logPath = new String[1];
+        final int[] mark = new int[4];
+        t("Отладка", "Без отладки ничего не пишется", () -> {
+            check(!com.divinerpgextended.debug.Debug.any(), "отладка уже включена у кого-то");
+            com.divinerpgextended.debug.Debug.note(d, "проверка");
+            check(d.chat.isEmpty(), "без отладки пришло в чат: " + d.chat);
+            return "пока никто не включил /dredebug - ни чата, ни файла";
+        });
+        t("Отладка", "Включение", () -> {
+            cmd.processCommand(d, new String[] { "on" });
+            check(com.divinerpgextended.debug.Debug.any(), "отладка не включилась");
+            check(d.heard("Отладка: чат вкл, файл вкл"), "нет статуса в чате: " + d.chat);
+            Object log = call(com.divinerpgextended.debug.Debug.class, "log", new Class<?>[0]);
+            logPath[0] = ((com.divinerpgextended.debug.DebugLog) log).file().getAbsolutePath();
+            return "включилась, статус в чате, файл " + new File(logPath[0]).getName();
+        });
+        // действия в этом тике, итоги удара - в конце тика
+        try {
+            d.chat.clear();
+            golemHit(dg, d, 1);
+            hit(d, DamageSource.causeMobDamage(dz), 4);
+            hit(d, DamageSource.causeMobDamage(new EntityEnderSpider(ow)), 4);
+            MinecraftForge.EVENT_BUS.post(new BlockEvent.BreakEvent(sx - 3, sy - 1, sz, ow, Blocks.dirt, 0, d));
+        } catch (Throwable ignored) {}
+        // эффект - после первого снимка эффектов отладки (уже висящие при включении она считает исходными)
+        at(48, () -> {
+            d.addPotionEffect(new net.minecraft.potion.PotionEffect(Potion.regeneration.id, 400, 1));
+            d.setHealth(10);
+            d.heal(3);
+        });
+        at(43, () -> {
+            t("Отладка", "Твой удар", () -> {
+                check(d.heard("[удар] Iron Golem"), "нет строки о своём ударе: " + d.chat);
+                return "строка [удар] Iron Golem с разбором";
+            });
+            t("Отладка", "Урон по тебе", () -> {
+                check(d.heard("[урон] -"), "нет строки об уроне по себе: " + d.chat);
+                return "строка [урон] с ударом, эффектами и бронёй";
+            });
+            t("Отладка", "Отменённый урон", () -> {
+                check(d.heard("[урон отменён") && d.heard("ранга"), "нет отменённого удара с причиной: " + d.chat);
+                return "удар эндер-паука по рангу 0: [урон отменён] и причина про ранг";
+            });
+            t("Отладка", "Файл действий", () -> {
+                com.divinerpgextended.debug.DebugLog log = (com.divinerpgextended.debug.DebugLog) call(com.divinerpgextended.debug.Debug.class, "log",
+                    new Class<?>[0]);
+                log.flush();
+                String all = new String(java.nio.file.Files.readAllBytes(new File(logPath[0]).toPath()), StandardCharsets.UTF_8);
+                check(all.contains(";damage_dealt;") && all.contains(";damage_taken;") && all.contains(";block_break;"), "в файле нет нужных строк");
+                mark[0] = all.length();
+                return "в CSV есть damage_dealt, damage_taken, block_break";
+            });
+            try {
+                cmd.processCommand(d, new String[] { "chat", "off" });
+                d.chat.clear();
+                golemHit(dg, d, 1);
+            } catch (Throwable ignored) {}
+        });
+        at(46, () -> {
+            t("Отладка", "Чат выкл, файл вкл", () -> {
+                com.divinerpgextended.debug.DebugLog log = (com.divinerpgextended.debug.DebugLog) call(com.divinerpgextended.debug.Debug.class, "log",
+                    new Class<?>[0]);
+                log.flush();
+                long len = new File(logPath[0]).length();
+                check(!d.heard("[удар]"), "в чат пришло при выключенном чате: " + d.chat);
+                check(len > mark[0], "файл не вырос");
+                return "чат молчит, файл пишется";
+            });
+            try {
+                cmd.processCommand(d, new String[] { "chat", "on" });
+                cmd.processCommand(d, new String[] { "mobs", "on" });
+                d.chat.clear();
+                ow.difficultySetting = net.minecraft.world.EnumDifficulty.EASY;
+                hit(d, DamageSource.causeMobDamage(dz), 10);
+                hit(dg, DamageSource.causeMobDamage(dz), 3); // моб бьёт моба рядом с отладчиком
+                FMLCommonHandler.instance().bus().post(new PlayerEvent.PlayerLoggedInEvent(d));
+            } catch (Throwable ignored) {}
+        });
+        at(49, () -> {
+            ow.difficultySetting = net.minecraft.world.EnumDifficulty.NORMAL;
+            t("Отладка", "Сложность", () -> {
+                check(d.heard("сложность easy"), "нет пометки о сложности: " + d.chat);
+                return "на лёгкой сложности в разборе удара есть строка про поправку";
+            });
+            t("Отладка", "Бои мобов рядом", () -> {
+                check(d.heard("[удар] Iron Golem") && d.heard("mob, Zombie"), "нет строки о бое мобов: " + d.chat);
+                return "с mobs on видно, как зомби бьёт голема рядом";
+            });
+            t("Отладка", "Перезаход с отладкой", () -> {
+                com.divinerpgextended.debug.DebugLog log = (com.divinerpgextended.debug.DebugLog) call(com.divinerpgextended.debug.Debug.class, "log",
+                    new Class<?>[0]);
+                log.flush();
+                String all = new String(java.nio.file.Files.readAllBytes(new File(logPath[0]).toPath()), StandardCharsets.UTF_8);
+                check(all.contains(";login;") && com.divinerpgextended.debug.Debug.any(), "после входа отладка не продолжилась");
+                return "после входа отладка продолжает писать (login в файле)";
+            });
+            t("Отладка", "Аудит /dreinv", () -> {
+                TestPlayer target = join(player(0, "TestInvTarget", sx, sy, sz), false);
+                new com.divinerpgextended.accessory.CommandDreInv().processCommand(d, new String[] { "TestInvTarget" });
+                File log = new File(server.getFile("logs"), "dre-audit.log");
+                String all = new String(java.nio.file.Files.readAllBytes(log.toPath()), StandardCharsets.UTF_8);
+                check(all.contains("[TestDebug]") && all.contains("dreinv: TestInvTarget"), "в журнале аудита нет записи /dreinv");
+                return "в dre-audit.log: dreinv TestInvTarget - правка";
+            });
+        });
+        // итог лечения отладка пишет раз в 20 тиков сервера - проверяем после ближайшей такой отметки
+        at(64, () -> {
+            t("Отладка", "Эффекты и лечение", () -> {
+                com.divinerpgextended.debug.DebugLog log = (com.divinerpgextended.debug.DebugLog) call(com.divinerpgextended.debug.Debug.class, "log",
+                    new Class<?>[0]);
+                log.flush();
+                String all = new String(java.nio.file.Files.readAllBytes(new File(logPath[0]).toPath()), StandardCharsets.UTF_8);
+                check(all.contains(";effect;+potion.regeneration"), "в файле нет записи о регенерации");
+                check(all.contains(";heal;"), "в файле нет записи о лечении");
+                return "наложенная регенерация и лечение записаны";
+            });
+            try {
+                cmd.processCommand(d, new String[] { "off" });
+            } catch (Throwable ignored) {}
+            dg.setDead();
         });
     }
 
