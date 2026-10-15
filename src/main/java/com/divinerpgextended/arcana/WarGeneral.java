@@ -44,6 +44,7 @@ public class WarGeneral {
 
     private static final String TAG = "dre_general";
     private static final UUID HEARTS = UUID.fromString("6f3e2a7c-5b1d-4e9a-9c2f-7d8e1a4b3c21");
+    private static final String SAVED_HP = "dreSavedHp";
 
     // ---------------- Зал славы ----------------
 
@@ -282,10 +283,18 @@ public class WarGeneral {
 
     /** +2 здоровья за каждую отданную статую - модификатором, который держим на игроке (после смерти тоже). */
     public static void applyHearts(EntityPlayer p) {
+        applyHearts(p, false);
+    }
+
+    /**
+     * force - снять и поставить заново, даже если не изменилось: так максимум здоровья заново уходит клиенту. Нужно после
+     * входа, возрождения и смены мира - клиент тогда создаёт персонажа заново со стандартными 20.
+     */
+    public static void applyHearts(EntityPlayer p, boolean force) {
         IAttributeInstance hp = p.getEntityAttribute(SharedMonsterAttributes.maxHealth);
         double want = 2.0 * statueCount(p);
         AttributeModifier cur = hp.getModifier(HEARTS);
-        if (cur != null && cur.getAmount() == want) return;
+        if (!force && cur != null && cur.getAmount() == want) return;
         if (cur != null) hp.removeModifier(cur);
         if (want > 0) hp.applyModifier(new AttributeModifier(HEARTS, "Зал славы", want, 0).setSaved(false));
         if (p.getHealth() > p.getMaxHealth()) p.setHealth(p.getMaxHealth());
@@ -295,5 +304,29 @@ public class WarGeneral {
     public void onPlayerTick(TickEvent.PlayerTickEvent e) {
         if (e.phase != TickEvent.Phase.END || e.player.worldObj.isRemote || e.player.ticksExisted % 40 != 0) return;
         applyHearts(e.player);
+    }
+
+    /** Модификатор не сохраняется в файл игрока: при выходе запоминаем здоровье, иначе при входе его обрежет до 20. */
+    @SubscribeEvent
+    public void onLogout(cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent e) {
+        e.player.getEntityData().setFloat(SAVED_HP, e.player.getHealth());
+    }
+
+    @SubscribeEvent
+    public void onLogin(cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent e) {
+        if (e.player.worldObj.isRemote) return;
+        applyHearts(e.player, true);
+        float saved = e.player.getEntityData().getFloat(SAVED_HP);
+        if (saved > e.player.getHealth()) e.player.setHealth(Math.min(saved, e.player.getMaxHealth()));
+    }
+
+    @SubscribeEvent
+    public void onRespawn(cpw.mods.fml.common.gameevent.PlayerEvent.PlayerRespawnEvent e) {
+        if (!e.player.worldObj.isRemote) applyHearts(e.player, true);
+    }
+
+    @SubscribeEvent
+    public void onDimension(cpw.mods.fml.common.gameevent.PlayerEvent.PlayerChangedDimensionEvent e) {
+        if (!e.player.worldObj.isRemote) applyHearts(e.player, true);
     }
 }

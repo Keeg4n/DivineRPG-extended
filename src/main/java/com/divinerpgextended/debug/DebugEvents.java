@@ -65,7 +65,7 @@ public class DebugEvents {
         final String weapon;
         final List<EntityPlayerMP> watchers;
         final List<String> notes = new ArrayList<String>();
-        float raw, after = -1, before;
+        float raw, after = -1, before, hurtStart = -1;
 
         Hit(EntityLivingBase victim, DamageSource src, float raw, List<EntityPlayerMP> watchers) {
             this.victim = victim;
@@ -218,6 +218,13 @@ public class DebugEvents {
         report(h, "на атаке", 0);
     }
 
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void hurtStart(LivingHurtEvent e) {
+        if (STACK.isEmpty()) return;
+        Hit h = find(e.entityLiving, e.source);
+        if (h != null) h.hurtStart = e.ammount;
+    }
+
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public void hurtEnd(LivingHurtEvent e) {
         if (STACK.isEmpty()) return;
@@ -230,9 +237,9 @@ public class DebugEvents {
         }
         h.after = e.ammount;
         h.before = hp(e.entityLiving);
-        // удар в окно неуязвимости: Minecraft засчитывает только разницу с прошлым ударом
-        if (e.entityLiving.hurtResistantTime > e.entityLiving.maxHurtResistantTime / 2.0F) {
-            h.notes.add("повторный удар в неуязвимость: засчитана только разница с прошлым");
+        // удар в окно неуязвимости: Minecraft засчитывает только разницу с прошлым - урон пришёл в событие уже меньше удара
+        if (h.hurtStart >= 0 && h.hurtStart < h.raw - 0.01F) {
+            h.notes.add(0, "повторный удар в неуязвимость: засчитана разница " + f(h.hurtStart) + " из " + f(h.raw));
         }
         PENDING.add(h);
     }
