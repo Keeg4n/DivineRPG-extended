@@ -52,7 +52,8 @@ public final class DebugLog {
             b.append(who != null ? who.worldObj.getTotalWorldTime() : "").append(';').append(side).append(';');
             b.append(cell(who != null ? who.getCommandSenderName() : "")).append(';');
             b.append(who != null ? who.dimension : "").append(';');
-            b.append(who != null ? String.format("%.1f;%.1f;%.1f", who.posX, who.posY, who.posZ) : ";;").append(';');
+            // y по ногам: у клиентского игрока posY - уровень глаз
+            b.append(who != null ? String.format("%.1f;%.1f;%.1f", who.posX, who.boundingBox.minY, who.posZ) : ";;").append(';');
             b.append(cell(category)).append(';').append(cell(event)).append(';').append(cell(details));
             out.write(b.toString());
             out.newLine();

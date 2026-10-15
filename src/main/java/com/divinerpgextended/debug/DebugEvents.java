@@ -161,8 +161,11 @@ public class DebugEvents {
                 category = "damage_cancelled";
             } else {
                 float armor = h.after - dealt;
+                // цель умерла: остаток урона ушёл "в никуда", это не броня
+                String last = hp(h.victim) <= 0 ? " > добит, лишний урон " + f(Math.max(0, armor))
+                    : " > броня и защита " + (armor >= 0 ? "-" : "+") + f(Math.abs(armor));
                 text = (taken ? "[урон] -" : "[удар] " + who + " -") + f(dealt) + " HP (" + src + "): удар " + f(h.raw)
-                    + " > после эффектов " + f(h.after) + " > броня и защита " + (armor >= 0 ? "-" : "+") + f(Math.abs(armor))
+                    + " > после эффектов " + f(h.after) + last
                     + " | HP " + f(h.victim.getHealth()) + "/" + f(h.victim.getMaxHealth());
                 color = taken ? EnumChatFormatting.RED : h.attacker == w || owner(h.attacker) == w ? EnumChatFormatting.GREEN
                     : EnumChatFormatting.GRAY;
