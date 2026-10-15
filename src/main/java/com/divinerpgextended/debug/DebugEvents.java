@@ -78,6 +78,7 @@ public class DebugEvents {
         }
     }
 
+    private static final String IFRAMES = "неуязвимость после прошлого удара";
     private static final ArrayDeque<Hit> STACK = new ArrayDeque<Hit>();
     private static final List<Hit> PENDING = new ArrayList<Hit>();
     private static final Map<UUID, Map<Integer, int[]>> EFFECTS = new HashMap<UUID, Map<Integer, int[]>>();
@@ -154,6 +155,11 @@ public class DebugEvents {
             String who = taken ? "по тебе" : name(h.victim);
             String text, category;
             EnumChatFormatting color;
+            if (cancelled == IFRAMES) {
+                // обычная неуязвимость Minecraft после удара (полсекунды): только в файл, в чате это спам
+                if (fl.file) Debug.file(w, "damage_iframes", name(h.victim), f(h.raw) + " (" + src + ")" + (ns.isEmpty() ? "" : " | " + ns));
+                continue;
+            }
             if (cancelled != null) {
                 text = "[урон отменён, " + cancelled + "] " + who + ": " + f(h.raw) + " (" + src + ")"
                     + (ns.isEmpty() ? " - отменил Divine или другой мод" : "");
@@ -276,7 +282,7 @@ public class DebugEvents {
         if (e.phase != TickEvent.Phase.END) return;
         for (Hit h : PENDING) report(h, null, h.before - hp(h.victim));
         PENDING.clear();
-        for (Hit h : STACK) report(h, "неуязвимость после прошлого удара", 0);
+        for (Hit h : STACK) report(h, IFRAMES, 0);
         STACK.clear();
         if (!Debug.any()) return;
         MinecraftServer s = MinecraftServer.getServer();
@@ -315,8 +321,8 @@ public class DebugEvents {
         for (Map.Entry<Integer, int[]> en : now.entrySet()) {
             int[] old = was.get(en.getKey());
             int[] v = en.getValue();
-            // новый, сильнее или заметно продлён
-            if (old == null || old[0] != v[0] || v[1] > old[1] + 10) effectMsg(p, fl, en.getKey(), "+", v);
+            // новый или другой силы; продление того же эффекта (холод, ночное зрение перков) - не новость
+            if (old == null || old[0] != v[0]) effectMsg(p, fl, en.getKey(), "+", v);
         }
         for (Integer id : was.keySet()) if (!now.containsKey(id)) effectMsg(p, fl, id, "-", null);
     }

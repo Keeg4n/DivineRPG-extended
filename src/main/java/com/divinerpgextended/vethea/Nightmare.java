@@ -209,10 +209,12 @@ public class Nightmare {
             }
             if (!alien) return;
             e.setCanceled(true);
+            // заметка - до повторного удара, иначе отладка прицепит её к нему, а не к отменённому
+            com.divinerpgextended.debug.Debug.note(p, "Кошмар: чужая броня, удар заменён на x" + String.format("%.2f", 1 + Math.min(guard, 1.0))
+                + " сквозь броню");
             DamageSource again = e.source.getEntity() != null || e.source.getSourceOfDamage() != null ? new UnarmoredEntity(e.source)
                 : new Unarmored(e.source);
             p.attackEntityFrom(again, (float) (e.ammount * (1 + Math.min(guard, 1.0))));
-            com.divinerpgextended.debug.Debug.note(p, "Кошмар: чужая броня, урон x" + String.format("%.2f", 1 + Math.min(guard, 1.0)));
             hint(p, "armor");
         }
     }

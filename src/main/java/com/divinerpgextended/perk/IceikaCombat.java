@@ -47,7 +47,7 @@ public class IceikaCombat {
             EntityPlayer p = (EntityPlayer) event.entityLiving;
             if (attacker != null && attacker != p && ColdHandler.inIceika(p) && PerkEffects.wears(p, SANTA)) {
                 event.ammount *= 0.6F;
-                com.divinerpgextended.debug.Debug.note(p, "Сет Santa в Айсике: x0.6");
+                com.divinerpgextended.debug.Debug.note(p, "Санта в Айсике, бонус аддона поверх Divine: x0.6");
             }
             return;
         }
