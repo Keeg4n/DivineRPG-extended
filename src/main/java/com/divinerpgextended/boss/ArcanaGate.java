@@ -59,6 +59,7 @@ public class ArcanaGate {
         if (nearPortal(p)) {
             p.timeUntilPortal = 20; // портал Divine не перенесёт, пока пауза не кончилась
             if (p.ticksExisted % 60 == 0) p.addChatMessage(new ChatComponentTranslation("dre.chat.arcana_locked"));
+            com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.lockedPortal);
         } else if (p.ticksExisted % 20 == 0 && p.onGround) {
             SAFE.put(p.getUniqueID(), new double[] { p.dimension, p.posX, p.posY, p.posZ });
         }

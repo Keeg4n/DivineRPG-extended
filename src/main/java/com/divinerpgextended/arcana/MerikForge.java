@@ -74,6 +74,8 @@ public class MerikForge {
         Reforge r = Reforge.roll(p.worldObj.rand, origin);
         r.apply(held);
         com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.reforge);
+        if (r.bad()) com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.dullReforge);
+        if (r == Reforge.LEGENDARY) com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.legendary);
         p.inventoryContainer.detectAndSendChanges();
         p.worldObj.playSoundAtEntity(p, "random.anvil_use", 0.7F, 1.0F + p.worldObj.rand.nextFloat() * 0.3F);
         say(p, r.bad() ? EnumChatFormatting.GRAY : r == Reforge.LEGENDARY ? EnumChatFormatting.GOLD : EnumChatFormatting.GREEN,

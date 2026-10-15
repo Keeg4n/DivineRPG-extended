@@ -102,6 +102,7 @@ public class ItemPetCarrier extends Item {
                 held.getTagCompound().setTag(PET, tag);
                 t.setDead();
                 p.worldObj.playSoundAtEntity(p, "random.pop", 0.6F, 1.4F);
+                com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.petCarrier);
                 p.inventoryContainer.detectAndSendChanges();
                 return;
             }
