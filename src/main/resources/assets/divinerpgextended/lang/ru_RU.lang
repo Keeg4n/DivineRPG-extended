@@ -814,3 +814,5 @@ dre.tinker.no_money=Мастер мастерской: работа стоит %
 dre.tinker.done=Мастер мастерской: готово - "%s"!
 item.dre.trinket.ayeraco_wing.name=Крыло Айрако
 dre.trinket.ayeraco_wing.desc=Прыжок в воздухе, в Сумеречных мирах - два
+item.dre.trinket.magic_carpet.name=Ковёр-самолёт
+dre.trinket.magic_carpet.desc=В Сумеречных мирах: зажми прыжок в воздухе - паришь на одной высоте. 3 с, дольше за Великих кадиллионов, без предела после Сумеречного демона

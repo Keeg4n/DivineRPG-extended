@@ -38,13 +38,15 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.DreBossBar());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.AccessoryButton());
         ColdHud coldHud = new ColdHud();
+        com.divinerpgextended.trinket.DoubleJump.Client airMoves = new com.divinerpgextended.trinket.DoubleJump.Client();
         MinecraftForge.EVENT_BUS.register(coldHud);
         FMLCommonHandler.instance()
             .bus()
             .register(coldHud);
         FMLCommonHandler.instance()
             .bus()
-            .register(new com.divinerpgextended.trinket.DoubleJump.Client());
+            .register(airMoves);
+        MinecraftForge.EVENT_BUS.register(airMoves);
         RenderingRegistry.registerEntityRenderingHandler(EntityGreatCadillion.class, new RenderGreatCadillion());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.fishing.EntityDreHook.class,
             new com.divinerpgextended.client.RenderDreHook());

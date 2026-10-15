@@ -78,6 +78,7 @@ public class AccessorySources {
             case KING_OF_SCORCHERS: return Trinket.BLUE_FLAME;
             case DRAMIX: return Trinket.DRAMIX_SEAL;
             case PARASECTA: return Trinket.PARASECTA_STING;
+            case CADILLION_EDEN: return Trinket.MAGIC_CARPET;
             default: return null;
         }
     }

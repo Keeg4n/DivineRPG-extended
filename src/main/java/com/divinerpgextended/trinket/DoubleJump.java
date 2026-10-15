@@ -9,11 +9,18 @@ import java.util.UUID;
 import net.divinerpg.utils.config.ConfigurationHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.potion.Potion;
+import net.minecraft.world.WorldServer;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
 
 import com.divinerpgextended.accessory.Accessories;
+import com.divinerpgextended.boss.Boss;
+import com.divinerpgextended.boss.BossProgress;
 import com.divinerpgextended.cold.ColdHandler;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -22,20 +29,40 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
+import cpw.mods.fml.relauncher.ReflectionHelper;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Крыло Айрако: прыжок в воздухе, в Сумеречных мирах - два. Движение игрока считает клиент, поэтому прыгает он сам;
- * сервер сверяет, что крыло надето и прыжки не исчерпаны, и только тогда обнуляет высоту падения. Сколько прыжков
- * доступно, сервер сообщает клиенту (при изменении и раз в 5 секунд).
+ * Движение в воздухе от аксессуаров. Движение игрока считает клиент, поэтому прыгает и парит он сам; сервер сверяет,
+ * что вещь надета и запас не исчерпан, и только тогда снимает наказания (высоту падения, кик за полёт). Что доступно,
+ * сервер сообщает клиенту (при изменении и раз в 5 секунд).
+ * <ul>
+ * <li>Крыло Айрако: прыжок в воздухе, в Сумеречных мирах - два.</li>
+ * <li>Ковёр-самолёт (только в Сумеречных мирах): прыжок зажат в воздухе - высота держится, летишь по горизонтали.
+ * Запас 3 с, дольше за Великих кадиллионов, без предела после Сумеречного демона; копится только на земле. Падение
+ * не гасит.</li>
+ * </ul>
  */
 public class DoubleJump {
 
-    /** Сервер: [прыжков сделано с последнего касания земли, сколько доступно по последней отправке]. */
-    private static final Map<UUID, int[]> STATE = new HashMap<UUID, int[]>();
-    /** Клиент: сколько прыжков в воздухе доступно (присылает сервер). */
-    static int clientAllowed;
+    /** Ковёр без предела по времени. */
+    public static final int UNLIMITED = -1;
+
+    private static class State {
+
+        /** Прыжков с последнего касания земли. */
+        int used;
+        /** Сколько тиков ковра осталось до земли. */
+        int carpetLeft;
+        /** Что ушло клиенту в последний раз. */
+        int sentJumps = -2, sentCarpet = -2;
+        double lastY;
+    }
+
+    private static final Map<UUID, State> STATE = new HashMap<UUID, State>();
+    /** Клиент: прыжков в воздухе и тиков ковра (присылает сервер). */
+    static int clientAllowed, clientCarpet;
 
     public static void register() {
         ColdHandler.NET.registerMessage(SyncHandler.class, Sync.class, 6, Side.CLIENT);
@@ -52,29 +79,55 @@ public class DoubleJump {
         return twilight(p.dimension) ? 2 : 1;
     }
 
-    /** Касается опоры: прыжки восстанавливаются. */
+    /** Запас ковра в тиках: 0 - не работает, {@link #UNLIMITED} - без предела. */
+    public static int carpetTicks(EntityPlayer p) {
+        if (!twilight(p.dimension) || !Accessories.wears(p, Trinket.MAGIC_CARPET)) return 0;
+        if (BossProgress.has(p, Boss.TWILIGHT_DEMON)) return UNLIMITED;
+        if (BossProgress.has(p, Boss.CADILLION_SKYTHERN)) return 200;
+        if (BossProgress.has(p, Boss.CADILLION_APALACHIA)) return 140;
+        if (BossProgress.has(p, Boss.CADILLION_WILDWOOD)) return 100;
+        if (BossProgress.has(p, Boss.CADILLION_EDEN)) return 80;
+        return 60;
+    }
+
+    /** Касается опоры: прыжки и ковёр восстанавливаются. */
     private static boolean grounded(EntityPlayer p) {
         return p.onGround || p.isInWater() || p.handleLavaMovement() || p.isOnLadder() || p.capabilities.isFlying
             || p.ridingEntity != null;
     }
 
-    private static int[] state(EntityPlayer p) {
-        int[] s = STATE.get(p.getUniqueID());
-        if (s == null) STATE.put(p.getUniqueID(), s = new int[] { 0, -1 });
+    private static State state(EntityPlayer p) {
+        State s = STATE.get(p.getUniqueID());
+        if (s == null) STATE.put(p.getUniqueID(), s = new State());
         return s;
     }
 
     @SubscribeEvent
     public void onTick(TickEvent.PlayerTickEvent e) {
         if (e.phase != TickEvent.Phase.END || e.player.worldObj.isRemote) return;
-        EntityPlayer p = e.player;
-        int[] s = state(p);
-        if (grounded(p)) s[0] = 0;
+        EntityPlayerMP p = (EntityPlayerMP) e.player;
+        State s = state(p);
+        double dy = p.posY - s.lastY;
+        s.lastY = p.posY;
+        int carpet = carpetTicks(p);
+        if (grounded(p)) {
+            s.used = 0;
+            s.carpetLeft = carpet;
+        } else if (carpet != 0 && (carpet == UNLIMITED || s.carpetLeft > 0) && Math.abs(dy) < 0.05) {
+            // парит на ковре: сервер не должен принимать это за запрещённый полёт
+            if (carpet != UNLIMITED) s.carpetLeft = Math.min(s.carpetLeft, carpet) - 1;
+            ReflectionHelper.setPrivateValue(NetHandlerPlayServer.class, p.playerNetServerHandler, 0, "floatingTickCount",
+                "field_147365_f");
+            if (p.ticksExisted % 4 == 0) {
+                ((WorldServer) p.worldObj).func_147487_a("cloud", p.posX, p.boundingBox.minY, p.posZ, 2, 0.3, 0.02, 0.3, 0.01);
+            }
+        }
         if (p.ticksExisted % 10 != 0) return;
         int a = allowed(p);
-        if (a != s[1] || p.ticksExisted % 100 == 0) {
-            s[1] = a;
-            ColdHandler.NET.sendTo(new Sync(a), (EntityPlayerMP) p);
+        if (a != s.sentJumps || carpet != s.sentCarpet || p.ticksExisted % 100 == 0) {
+            s.sentJumps = a;
+            s.sentCarpet = carpet;
+            ColdHandler.NET.sendTo(new Sync(a, carpet), p);
         }
     }
 
@@ -87,22 +140,25 @@ public class DoubleJump {
 
     public static class Sync implements IMessage {
 
-        int allowed;
+        int allowed, carpet;
 
         public Sync() {}
 
-        Sync(int allowed) {
+        Sync(int allowed, int carpet) {
             this.allowed = allowed;
+            this.carpet = carpet;
         }
 
         @Override
         public void fromBytes(ByteBuf buf) {
             allowed = buf.readByte();
+            carpet = buf.readShort();
         }
 
         @Override
         public void toBytes(ByteBuf buf) {
             buf.writeByte(allowed);
+            buf.writeShort(carpet);
         }
     }
 
@@ -111,6 +167,7 @@ public class DoubleJump {
         @Override
         public IMessage onMessage(Sync msg, MessageContext ctx) {
             clientAllowed = msg.allowed;
+            clientCarpet = msg.carpet;
             return null;
         }
     }
@@ -129,9 +186,9 @@ public class DoubleJump {
         @Override
         public IMessage onMessage(Jump msg, MessageContext ctx) {
             EntityPlayerMP p = ctx.getServerHandler().playerEntity;
-            int[] s = state(p);
-            if (s[0] >= allowed(p)) return null; // крыла нет или прыжки кончились - падение считается как обычно
-            s[0]++;
+            State s = state(p);
+            if (s.used >= allowed(p)) return null; // крыла нет или прыжки кончились - падение считается как обычно
+            s.used++;
             p.fallDistance = 0;
             p.worldObj.playSoundAtEntity(p, "mob.enderdragon.wings", 0.35F, 1.6F);
             return null;
@@ -143,8 +200,8 @@ public class DoubleJump {
     @SideOnly(Side.CLIENT)
     public static class Client {
 
-        private int used;
-        private boolean wasDown;
+        private int used, carpetLeft;
+        private boolean wasDown, airborne;
 
         @SubscribeEvent
         public void onTick(TickEvent.ClientTickEvent e) {
@@ -152,18 +209,36 @@ public class DoubleJump {
             Minecraft mc = Minecraft.getMinecraft();
             EntityClientPlayerMP p = mc.thePlayer;
             if (p == null) {
-                clientAllowed = 0;
+                clientAllowed = clientCarpet = 0;
                 return;
             }
             boolean down = mc.gameSettings.keyBindJump.getIsKeyPressed();
             boolean pressed = down && !wasDown;
             wasDown = down;
-            if (grounded(p)) {
+            airborne = !grounded(p);
+            if (!airborne) {
                 used = 0;
+                carpetLeft = clientCarpet;
                 return;
             }
             // в творческом двойной пробел включает полёт - не мешаем ему
-            if (!pressed || mc.currentScreen != null || p.capabilities.allowFlying || used >= clientAllowed) return;
+            if (mc.currentScreen != null || p.capabilities.allowFlying) return;
+            if (pressed && used < clientAllowed) {
+                jump(p);
+                return;
+            }
+            // ковёр: прыжок зажат, игрок уже не поднимается - держим высоту
+            if (down && p.motionY <= 0 && clientCarpet != 0 && (clientCarpet == UNLIMITED || carpetLeft > 0)) {
+                p.motionY = 0;
+                if (clientCarpet != UNLIMITED) carpetLeft--;
+                if (p.ticksExisted % 2 == 0) {
+                    p.worldObj.spawnParticle("reddust", p.posX + (p.getRNG().nextDouble() - 0.5), p.boundingBox.minY,
+                        p.posZ + (p.getRNG().nextDouble() - 0.5), 0.9, 0.2, 0.1);
+                }
+            }
+        }
+
+        private void jump(EntityClientPlayerMP p) {
             used++;
             p.motionY = 0.48;
             if (p.isPotionActive(Potion.jump)) p.motionY += (p.getActivePotionEffect(Potion.jump).getAmplifier() + 1) * 0.1F;
@@ -174,6 +249,17 @@ public class DoubleJump {
                     Math.cos(a) * 0.08, -0.05, Math.sin(a) * 0.08);
             }
             ColdHandler.NET.sendToServer(new Jump());
+        }
+
+        /** Полоска запаса ковра под прицелом, пока он тратится. */
+        @SubscribeEvent
+        public void onOverlay(RenderGameOverlayEvent.Post e) {
+            if (e.type != RenderGameOverlayEvent.ElementType.CROSSHAIRS) return;
+            if (!airborne || clientCarpet <= 0 || carpetLeft >= clientCarpet) return;
+            ScaledResolution r = e.resolution;
+            int x = r.getScaledWidth() / 2 - 20, y = r.getScaledHeight() / 2 + 10;
+            Gui.drawRect(x - 1, y - 1, x + 41, y + 3, 0x90000000);
+            Gui.drawRect(x, y, x + 40 * Math.max(carpetLeft, 0) / clientCarpet, y + 2, carpetLeft > clientCarpet / 4 ? 0xFFE0B040 : 0xFFE04030);
         }
     }
 }
