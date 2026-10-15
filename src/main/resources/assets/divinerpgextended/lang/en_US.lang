@@ -745,3 +745,5 @@ dre.tinker.need=Workshop Tinkerer: I also need "%s" in your bag to make "%s".
 dre.tinker.offer=Workshop Tinkerer: "%s" + "%s" = "%s" for %s snowflakes. Sneak and click again.
 dre.tinker.no_money=Workshop Tinkerer: the work costs %s snowflakes.
 dre.tinker.done=Workshop Tinkerer: done - "%s"!
+item.dre.trinket.ayeraco_wing.name=Ayeraco Wing
+dre.trinket.ayeraco_wing.desc=Jump once more in mid-air, twice in the Twilight worlds

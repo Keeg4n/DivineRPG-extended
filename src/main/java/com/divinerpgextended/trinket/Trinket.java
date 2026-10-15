@@ -38,7 +38,9 @@ public enum Trinket {
     // из сундуков и с мобов
     DEEP_SHELL, PHARAOH_ANKH, ETERNAL_ICE_RING, DUNGEON_LAMP,
     // объединённые у мастера мастерской
-    STEADFAST_BELT, HEART_OF_WINTER, TIDE_ARMOR;
+    STEADFAST_BELT, HEART_OF_WINTER, TIDE_ARMOR,
+    /** С последнего из пяти Айрако: прыжок в воздухе, в Сумеречных мирах - два. */
+    AYERACO_WING;
 
     /** Заказ у Джека: сколько голов [скелет, визер-скелет, зомби, крипер]; null - не заказ Джека. */
     public final int[] heads;

@@ -812,3 +812,5 @@ dre.tinker.need=Мастер мастерской: нужна ещё "%s" в р�
 dre.tinker.offer=Мастер мастерской: "%s" + "%s" = "%s" за %s снежинок. Присядь и нажми ещё раз.
 dre.tinker.no_money=Мастер мастерской: работа стоит %s снежинок.
 dre.tinker.done=Мастер мастерской: готово - "%s"!
+item.dre.trinket.ayeraco_wing.name=Крыло Айрако
+dre.trinket.ayeraco_wing.desc=Прыжок в воздухе, в Сумеречных мирах - два

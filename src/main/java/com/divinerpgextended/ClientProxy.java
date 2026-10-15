@@ -42,6 +42,9 @@ public class ClientProxy extends CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(coldHud);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(new com.divinerpgextended.trinket.DoubleJump.Client());
         RenderingRegistry.registerEntityRenderingHandler(EntityGreatCadillion.class, new RenderGreatCadillion());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.fishing.EntityDreHook.class,
             new com.divinerpgextended.client.RenderDreHook());

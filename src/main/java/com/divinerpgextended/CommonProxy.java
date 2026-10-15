@@ -52,6 +52,7 @@ public class CommonProxy {
         com.divinerpgextended.arcana.MerchantMessages.register();
         com.divinerpgextended.accessory.AccessoryMessages.register();
         com.divinerpgextended.boss.ProgressSync.register();
+        com.divinerpgextended.trinket.DoubleJump.register();
     }
 
     public void init(FMLInitializationEvent event) {
@@ -109,6 +110,9 @@ public class CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(new com.divinerpgextended.boss.ProgressSync());
+        FMLCommonHandler.instance()
+            .bus()
+            .register(new com.divinerpgextended.trinket.DoubleJump());
         com.divinerpgextended.trinket.TrinketEffects trinkets = new com.divinerpgextended.trinket.TrinketEffects();
         MinecraftForge.EVENT_BUS.register(trinkets);
         FMLCommonHandler.instance()

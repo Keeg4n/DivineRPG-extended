@@ -10,6 +10,7 @@ import net.divinerpg.entities.arcana.EntityCaptianMerik;
 import net.divinerpg.entities.base.InfiniteTrade;
 import net.divinerpg.entities.iceika.EntityWorkshopMerchant;
 import net.divinerpg.entities.iceika.EntityWorkshopTinkerer;
+import net.divinerpg.entities.vanilla.EntityAyeraco;
 import net.divinerpg.utils.items.ArcanaItems;
 import net.divinerpg.utils.items.IceikaItems;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -37,7 +38,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 /**
  * Откуда берутся аксессуары (кроме заказов Джека):
  * <ul>
- * <li>боссы: за первую победу - гарантированно, потом 10% с каждой;</li>
+ * <li>боссы: за первую победу - гарантированно, потом 10% с каждой (Айрако - когда пал последний из пяти);</li>
  * <li>Капитан Мерик - Ножны мастера, торговец мастерской Айсики - Тёплый шарф (сделки дописываются на обеих сторонах:
  * окно Divine строит список на клиенте);</li>
  * <li>мобы Арканы - Лампа подземелий (1% + 0.5% за уровень Добычи);</li>
@@ -96,14 +97,28 @@ public class AccessorySources {
         say(p, EnumChatFormatting.LIGHT_PURPLE, "dre.chat.accessory_drop", s.getDisplayName());
     }
 
-    /** Колосс не отдельный босс в учёте (засчитывается вместе с Королём-личом), его наплечник - тем, кто рядом. */
+    /**
+     * Колосс не отдельный босс в учёте (засчитывается вместе с Королём-личом), его наплечник - тем, кто рядом.
+     * Айрако - пять драконов: крыло дают, когда пал последний из стаи.
+     */
     @SubscribeEvent
     public void onDeath(LivingDeathEvent e) {
-        if (!(e.entityLiving instanceof EntityFrostColossus) || e.entityLiving.worldObj.isRemote) return;
+        if (e.entityLiving.worldObj.isRemote) return;
+        Trinket t;
+        if (e.entityLiving instanceof EntityFrostColossus) {
+            t = Trinket.COLOSSUS_PAULDRON;
+        } else if (e.entityLiving instanceof EntityAyeraco) {
+            List<?> flock = e.entityLiving.worldObj.getEntitiesWithinAABB(EntityAyeraco.class,
+                e.entityLiving.boundingBox.expand(128, 96, 128));
+            for (Object o : flock) if (o != e.entityLiving && ((EntityAyeraco) o).isEntityAlive()) return;
+            t = Trinket.AYERACO_WING;
+        } else {
+            return;
+        }
         @SuppressWarnings("unchecked")
         List<EntityPlayer> near = e.entityLiving.worldObj.getEntitiesWithinAABB(EntityPlayer.class,
-            e.entityLiving.boundingBox.expand(48, 32, 48));
-        for (EntityPlayer p : near) reward(p, Trinket.COLOSSUS_PAULDRON);
+            e.entityLiving.boundingBox.expand(64, 48, 64));
+        for (EntityPlayer p : near) reward(p, t);
     }
 
     /** Лампа подземелий - редкий дроп мобов Арканы. */
