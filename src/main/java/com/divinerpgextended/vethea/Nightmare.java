@@ -20,6 +20,7 @@ import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemArmor;
 import net.minecraft.item.ItemBow;
 import net.minecraft.item.ItemFood;
 import net.minecraft.item.ItemPotion;
@@ -35,6 +36,7 @@ import net.minecraft.util.ChatStyle;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EntityDamageSourceIndirect;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraftforge.common.ISpecialArmor;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed;
 import net.minecraftforge.event.entity.player.PlayerUseItemEvent;
@@ -54,7 +56,7 @@ import cpw.mods.fml.common.registry.GameData;
  * угодно, но пользоваться этим во сне вредно.
  * <ul>
  * <li>чужое оружие лечит цель вместо урона (по игрокам - просто не бьёт);</li>
- * <li>чужая броня не защищает и добавляет 15% входящего урона за вещь;</li>
+ * <li>чужая броня не защищает, а усиливает входящий урон настолько, насколько защищала бы (80% -> x1.8);</li>
  * <li>чужая еда отнимает сытость, чужие зелья дают обратный эффект;</li>
  * <li>чужие инструменты копают в 5 раз медленнее.</li>
  * </ul>
@@ -195,15 +197,31 @@ public class Nightmare {
         // чужая броня: не защищает и усиливает удар
         if (e.entityLiving instanceof EntityPlayer && active((EntityPlayer) e.entityLiving) && !e.source.isUnblockable()) {
             EntityPlayer p = (EntityPlayer) e.entityLiving;
-            int alien = 0;
-            for (ItemStack a : p.inventory.armorInventory) if (a != null && !vethean(a)) alien++;
-            if (alien == 0) return;
+            // чем сильнее чужая броня защищала бы, тем сильнее она притягивает удар: защита 80% -> урон x1.8
+            double guard = 0;
+            boolean alien = false;
+            for (int slot = 0; slot < 4; slot++) {
+                ItemStack a = p.inventory.armorInventory[slot];
+                if (a == null || vethean(a)) continue;
+                alien = true;
+                guard += protection(p, a, e.source, e.ammount, slot);
+            }
+            if (!alien) return;
             e.setCanceled(true);
             DamageSource again = e.source.getEntity() != null || e.source.getSourceOfDamage() != null ? new UnarmoredEntity(e.source)
                 : new Unarmored(e.source);
-            p.attackEntityFrom(again, e.ammount * (1 + 0.15F * alien));
+            p.attackEntityFrom(again, (float) (e.ammount * (1 + Math.min(guard, 1.0))));
             hint(p, "armor");
         }
+    }
+
+    /** Какую долю урона вещь сняла бы обычно: особая броня (Divine и др.) - по её свойствам, обычная - 4% за очко. */
+    private static double protection(EntityPlayer p, ItemStack a, DamageSource s, float amount, int slot) {
+        Item i = a.getItem();
+        try {
+            if (i instanceof ISpecialArmor) return Math.max(0, ((ISpecialArmor) i).getProperties(p, a, s, amount, slot).AbsorbRatio);
+        } catch (Throwable ignored) {}
+        return i instanceof ItemArmor ? ((ItemArmor) i).damageReduceAmount * 0.04 : 0;
     }
 
     // ---------------- Еда и зелья ----------------
