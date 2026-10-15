@@ -336,7 +336,7 @@ public class DebugEvents {
         if (pot == null) return;
         String tail = v != null ? " " + roman(v[0] + 1) + " на " + (v[1] / 20) + " с" : " снят";
         if (fl.chat) {
-            IChatComponent c = new ChatComponentText("[эффект] " + sign);
+            IChatComponent c = new Debug.DebugText("[эффект] " + sign);
             c.appendSibling(new ChatComponentTranslation(pot.getName()));
             c.appendText(tail);
             c.setChatStyle(new ChatStyle().setColor(pot.isBadEffect() ? EnumChatFormatting.DARK_PURPLE : EnumChatFormatting.DARK_AQUA));
@@ -356,6 +356,11 @@ public class DebugEvents {
         if (p.getAbsorptionAmount() > 0) b.append(" +").append(f(p.getAbsorptionAmount()));
         b.append(" | еда ").append(p.getFoodStats().getFoodLevel()).append(" сыт ").append(f(p.getFoodStats().getSaturationLevel()));
         b.append(" | ур ").append(p.experienceLevel).append(" | падение ").append(f(p.fallDistance));
+        b.append(" | ранг ").append(com.divinerpgextended.boss.ProgressSpawns.rank(p)).append(" ступень брони ")
+            .append(com.divinerpgextended.item.ArmorData.effectiveTier(p));
+        if (p.getEntityData().hasKey("dreCold")) b.append(" | холод ").append(f(p.getEntityData().getFloat("dreCold")));
+        net.divinerpg.utils.events.ArcanaHelper ar = net.divinerpg.utils.events.ArcanaHelper.getProperties(p);
+        if (ar != null) b.append(" | аркана ").append(f(ar.getBarValue())).append('/').append(f(com.divinerpgextended.asm.ArcanaHooks.max(p)));
         b.append(" | в руке ").append(stack(p.getHeldItem())).append(" | броня");
         for (int i = 3; i >= 0; i--) b.append(' ').append(stack(p.inventory.armorItemInSlot(i)));
         Accessories a = Accessories.of(p);

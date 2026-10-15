@@ -157,6 +157,11 @@ public class CommonProxy {
             .register(new com.divinerpgextended.vethea.VetheaStash());
         com.divinerpgextended.debug.DebugEvents debug = new com.divinerpgextended.debug.DebugEvents();
         MinecraftForge.EVENT_BUS.register(debug);
+        com.divinerpgextended.debug.DebugWatch watch = new com.divinerpgextended.debug.DebugWatch();
+        MinecraftForge.EVENT_BUS.register(watch);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(watch);
         FMLCommonHandler.instance()
             .bus()
             .register(debug);

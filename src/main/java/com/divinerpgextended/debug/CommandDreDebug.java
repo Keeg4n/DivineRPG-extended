@@ -40,6 +40,7 @@ public class CommandDreDebug extends CommandBase {
         if (op.equals("on")) {
             if (f == null) Debug.ON.put(p.getUniqueID(), f = new Debug.Flags());
             Debug.sendState(p, f.file);
+            DebugWatch.tap(p);
             Debug.file(p, "debug", "on", "");
             status(p, f);
             return;

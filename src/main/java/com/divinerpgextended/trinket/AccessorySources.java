@@ -91,7 +91,11 @@ public class AccessorySources {
         NBTTagCompound ps = d.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
         long got = ps.getLong(GOT), bit = 1L << t.ordinal();
         boolean first = (got & bit) == 0;
-        if (!first && p.worldObj.rand.nextFloat() >= 0.1F) return;
+        if (!first && p.worldObj.rand.nextFloat() >= 0.1F) {
+            com.divinerpgextended.debug.Debug.note(p, "Аксессуар " + t.name().toLowerCase() + ": не выпал (повторная победа, шанс 10%)");
+            return;
+        }
+        com.divinerpgextended.debug.Debug.note(p, "Аксессуар " + t.name().toLowerCase() + ": выпал" + (first ? " (первая победа)" : " (повторная, 10%)"));
         ps.setLong(GOT, got | bit);
         ItemStack s = stack(t);
         give(p, s);

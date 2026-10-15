@@ -184,6 +184,7 @@ public class VetheaFloors {
                     int[] c = rift(w, rx, rz, f);
                     if (!w.getChunkProvider().chunkExists(c[0] >> 4, c[1] >> 4)) continue;
                     carve(w, c[0], c[1], f);
+                    com.divinerpgextended.debug.Debug.note(p, "Разлом прорублен: плита " + f + ", центр " + c[0] + " " + c[1]);
                     rifts.carved.add(key);
                     rifts.markDirty();
                 }

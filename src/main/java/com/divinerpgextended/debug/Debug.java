@@ -70,8 +70,16 @@ public final class Debug {
         DebugEvents.note(who, text);
     }
 
+    /** Строка отладки в чате: перехват исходящего чата её не пишет в файл второй раз. */
+    public static class DebugText extends ChatComponentText {
+
+        public DebugText(String text) {
+            super(text);
+        }
+    }
+
     static void chat(EntityPlayer p, EnumChatFormatting color, String text) {
-        IChatComponent c = new ChatComponentText(text);
+        IChatComponent c = new DebugText(text);
         c.setChatStyle(new ChatStyle().setColor(color));
         p.addChatMessage(c);
     }

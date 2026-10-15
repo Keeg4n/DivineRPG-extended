@@ -57,6 +57,8 @@ public class DoubleJump {
         int carpetLeft, wingLeft;
         /** Что ушло клиенту в последний раз. */
         int sentJumps = -2, sentCarpet = -2, sentWing = -2;
+        /** Для отладки: тиков подряд парит на ковре, тиков взлёта на крыльях. */
+        int hoverRun, wingRun;
         double lastY;
     }
 
@@ -118,24 +120,35 @@ public class DoubleJump {
         double dy = p.posY - s.lastY;
         s.lastY = p.posY;
         int carpet = carpetTicks(p), wing = wingTicks(p);
+        boolean hovering = false, rising = false;
         if (grounded(p)) {
             s.used = 0;
             s.carpetLeft = carpet;
             s.wingLeft = wing;
         } else if (wing > 0 && s.wingLeft > 0 && dy > -0.03) {
             // взлёт на крыльях сна: не запрещённый полёт
+            rising = true;
             s.wingLeft = Math.min(s.wingLeft, wing) - 1;
             ReflectionHelper.setPrivateValue(NetHandlerPlayServer.class, p.playerNetServerHandler, 0, "floatingTickCount",
                 "field_147365_f");
+            if (s.wingLeft == 0) com.divinerpgextended.debug.Debug.note(p, "Крылья сна: запас взлёта кончился на y " + (int) p.posY);
         } else if (carpet != 0 && (carpet == UNLIMITED || s.carpetLeft > 0) && Math.abs(dy) < 0.05) {
             // парит на ковре: сервер не должен принимать это за запрещённый полёт
+            hovering = true;
             if (carpet != UNLIMITED) s.carpetLeft = Math.min(s.carpetLeft, carpet) - 1;
             ReflectionHelper.setPrivateValue(NetHandlerPlayServer.class, p.playerNetServerHandler, 0, "floatingTickCount",
                 "field_147365_f");
             if (p.ticksExisted % 4 == 0) {
                 ((WorldServer) p.worldObj).func_147487_a("cloud", p.posX, p.boundingBox.minY, p.posZ, 2, 0.3, 0.02, 0.3, 0.01);
             }
+            if (s.carpetLeft == 0 && carpet != UNLIMITED) com.divinerpgextended.debug.Debug.note(p, "Ковёр: запас кончился");
         }
+        // отладка: начало парения (5 тиков подряд, чтобы не путать с верхней точкой прыжка) и взлёта
+        s.hoverRun = hovering ? s.hoverRun + 1 : 0;
+        s.wingRun = rising ? s.wingRun + 1 : 0;
+        if (s.hoverRun == 5) com.divinerpgextended.debug.Debug.note(p, "Ковёр: парение, запас "
+            + (carpet == UNLIMITED ? "без предела" : (s.carpetLeft + 5) / 20.0 + " с из " + carpet / 20.0));
+        if (s.wingRun == 3) com.divinerpgextended.debug.Debug.note(p, "Крылья сна: взлёт с y " + (int) p.posY + ", запас " + (s.wingLeft + 3) + " тиков");
         if (p.ticksExisted % 10 != 0) return;
         int a = allowed(p);
         if (a != s.sentJumps || carpet != s.sentCarpet || wing != s.sentWing || p.ticksExisted % 100 == 0) {

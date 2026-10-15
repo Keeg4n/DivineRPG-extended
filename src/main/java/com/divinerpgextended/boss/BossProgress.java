@@ -34,11 +34,13 @@ public final class BossProgress {
         int m = mask(player);
         if ((m & boss.bit()) != 0) return false;
         persisted(player).setInteger(KEY, m | boss.bit());
+        com.divinerpgextended.debug.Debug.note(player, "Босс засчитан: " + boss.name().toLowerCase());
         return true;
     }
 
     /** Снять отметку (для команды /dreboss). */
     public static void revoke(EntityPlayer player, Boss boss) {
         persisted(player).setInteger(KEY, mask(player) & ~boss.bit());
+        com.divinerpgextended.debug.Debug.note(player, "Босс снят: " + boss.name().toLowerCase());
     }
 }

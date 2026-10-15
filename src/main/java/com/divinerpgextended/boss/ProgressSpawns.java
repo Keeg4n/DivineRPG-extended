@@ -146,6 +146,9 @@ public class ProgressSpawns {
     @SubscribeEvent
     public void onDrops(LivingDropsEvent event) {
         if (event.entityLiving.getEntityData()
-            .getBoolean(NO_DROPS)) event.drops.clear();
+            .getBoolean(NO_DROPS)) {
+            event.drops.clear();
+            com.divinerpgextended.debug.Debug.note(event.source.getEntity(), "Моб убит ниже нужного ранга: дроп и опыт не выпали");
+        }
     }
 }
