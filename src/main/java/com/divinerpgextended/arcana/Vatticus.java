@@ -154,4 +154,23 @@ public class Vatticus {
     public void onPlayerTick(TickEvent.PlayerTickEvent e) {
         if (e.phase == TickEvent.Phase.END && !e.player.worldObj.isRemote && e.player.ticksExisted % 40 == 0) sync(e.player);
     }
+
+    /** Divine при смене мира и возрождении ставит аркане ровно 200 (зашито) - заполняем до настоящего максимума. */
+    private static void refill(EntityPlayer p) {
+        if (p.worldObj.isRemote) return;
+        net.divinerpg.utils.events.ArcanaHelper a = net.divinerpg.utils.events.ArcanaHelper.getProperties(p);
+        if (a == null) return;
+        a.setBarValue(ArcanaHooks.max(p));
+        sync(p);
+    }
+
+    @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.LOWEST)
+    public void onDimension(cpw.mods.fml.common.gameevent.PlayerEvent.PlayerChangedDimensionEvent e) {
+        refill(e.player);
+    }
+
+    @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.LOWEST)
+    public void onRespawn(cpw.mods.fml.common.gameevent.PlayerEvent.PlayerRespawnEvent e) {
+        refill(e.player);
+    }
 }
