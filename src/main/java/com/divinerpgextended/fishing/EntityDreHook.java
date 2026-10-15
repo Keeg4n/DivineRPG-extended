@@ -263,6 +263,7 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
                 ws.func_147487_a(lava ? "smoke" : "wake", posX, fy + 1.0F, posZ, (int) (1.0F + width * 20.0F), width, 0.0,
                     width, 0.2F);
                 ticksCatchable = MathHelper.getRandomIntegerInRange(rand, 10, 30);
+                com.divinerpgextended.debug.Debug.note(field_146042_b, "Рыбалка: поклёвка, подсекать " + ticksCatchable + " тиков");
             } else {
                 fishApproachAngle = (float) (fishApproachAngle + rand.nextGaussian() * 4.0);
                 float a = fishApproachAngle * ((float) Math.PI / 180F);
@@ -297,6 +298,8 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
             ticksCaughtDelay = (int) (MathHelper.getRandomIntegerInRange(rand, 100, 900) * mult);
             ticksCaughtDelay -= EnchantmentHelper.func_151387_h(field_146042_b) * 20 * 5;
             ticksCaughtDelay = Math.max(20, ticksCaughtDelay);
+            com.divinerpgextended.debug.Debug.note(field_146042_b, "Рыбалка: ждём ~" + ticksCaughtDelay / 20 + " с | зона " + zone + ", удочка " + rod + ", приманка "
+                + (bait == null ? "нет" : bait) + ", сила " + p + (lava ? ", лава" : ""));
         }
         if (ticksCatchable > 0) motionY -= rand.nextFloat() * rand.nextFloat() * rand.nextFloat() * 0.2;
     }
@@ -320,12 +323,18 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
             int power = power(bait, zone);
             float crate = rod.crateBonus() + (bait == null ? 0 : bait.crateBonus());
             int count = rand.nextFloat() < rod.doubleChance() ? 2 : 1;
+            StringBuilder caught = new StringBuilder();
             for (int i = 0; i < count; i++) {
                 ItemStack loot = FishingLoot.roll(rand, zone, power, bait != null, crate, rod.rareMultiplier());
+                caught.append(caught.length() == 0 ? "" : ", ").append(loot == null ? "ничего" : loot.getDisplayName()
+                    + (loot.stackSize > 1 ? " x" + loot.stackSize : ""));
                 if (loot != null) toss(p, loot);
                 if (loot != null) com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.fishFirst);
             }
             ItemStack relic = bait == null ? null : FishingLoot.relic(rand, zone, power);
+            com.divinerpgextended.debug.Debug.note(p, "Рыбалка: улов " + caught + (relic != null ? " + РЕЛИКВИЯ " + relic.getDisplayName() : "") + " | зона " + zone
+                + ", удочка " + rod + ", приманка " + (bait == null ? "нет" : bait) + ", сила " + power + ", бонус ящика " + crate
+                + (count > 1 ? ", двойной улов" : ""));
             if (relic != null) {
                 toss(p, relic);
                 FishingGear.announceRelic(p, relic);
@@ -336,9 +345,13 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
                 && !(FishingGear.hasBaitBag(p) && rand.nextFloat() < FishingGear.BAG_SAVE)) {
                 p.inventory.decrStackSize(slot, 1);
                 p.inventoryContainer.detectAndSendChanges();
+                com.divinerpgextended.debug.Debug.note(p, "Рыбалка: приманка " + bait + " потрачена");
+            } else if (bait != null) {
+                com.divinerpgextended.debug.Debug.note(p, "Рыбалка: приманка " + bait + " сохранена" + (p.capabilities.isCreativeMode ? " (творческий)" : ""));
             }
             dmg = 1;
         }
+        else if (!inGround) com.divinerpgextended.debug.Debug.note(p, "Рыбалка: подсечка мимо - поклёвки не было");
         if (inGround) dmg = 2;
         setDead();
         return dmg;

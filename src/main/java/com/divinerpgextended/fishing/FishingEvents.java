@@ -132,10 +132,12 @@ public class FishingEvents {
         String zone = StatCollector.translateToLocal("dre.zone." + f.zone.key());
         if (doneToday) {
             say(p, EnumChatFormatting.GRAY, "dre.quest.done_today");
+            com.divinerpgextended.debug.Debug.note(p, "Леорна: задание на сегодня уже сдано (день " + day(w) + ")");
             return true;
         }
         if (!holdsFish || held.getItemDamage() != f.ordinal()) {
             say(p, EnumChatFormatting.LIGHT_PURPLE, "dre.quest.ask", name, zone);
+            com.divinerpgextended.debug.Debug.note(p, "Леорна: рыба дня " + f + " (" + f.zone + ")" + (holdsFish ? ", в руке не та рыба" : ""));
             progress(p);
             return true;
         }
@@ -148,6 +150,8 @@ public class FishingEvents {
         Bait b = Bait.randomArcana(w.rand);
         give(p, new ItemStack(b.item(), 3 + w.rand.nextInt(4)));
         say(p, EnumChatFormatting.GREEN, "dre.quest.thanks", String.valueOf(n));
+        com.divinerpgextended.debug.Debug.note(p, "Леорна: задание сдано, всего " + n + ", награда арканиум и приманка " + b
+            + (n % 5 == 0 ? " + ящик" : "") + (milestone(n) != null ? " + веха " + milestone(n).getDisplayName() : ""));
         if (n % 5 == 0) {
             ItemStack crate = new ItemStack(ModItems.crate, 1, f.zone.ordinal());
             give(p, crate.copy());

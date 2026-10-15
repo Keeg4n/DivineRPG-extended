@@ -230,6 +230,10 @@ public class DebugEvents {
         }
         h.after = e.ammount;
         h.before = hp(e.entityLiving);
+        // удар в окно неуязвимости: Minecraft засчитывает только разницу с прошлым ударом
+        if (e.entityLiving.hurtResistantTime > e.entityLiving.maxHurtResistantTime / 2.0F) {
+            h.notes.add("повторный удар в неуязвимость: засчитана только разница с прошлым");
+        }
         PENDING.add(h);
     }
 
