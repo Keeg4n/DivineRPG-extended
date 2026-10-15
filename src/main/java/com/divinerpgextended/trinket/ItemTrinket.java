@@ -44,7 +44,7 @@ public class ItemTrinket extends Item {
     @Override
     public EnumRarity getRarity(ItemStack s) {
         Trinket t = of(s);
-        return t == Trinket.JACK_AMULET || t == Trinket.PHARAOH_ANKH || t.parts() != null ? EnumRarity.epic : EnumRarity.rare;
+        return t == Trinket.JACK_AMULET || t == Trinket.PHARAOH_ANKH || t == Trinket.DREAM_WINGS_3 || t.parts() != null ? EnumRarity.epic : EnumRarity.rare;
     }
 
     @Override

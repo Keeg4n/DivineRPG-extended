@@ -42,7 +42,9 @@ public enum Trinket {
     /** С последнего из пяти Айрако: прыжок в воздухе, в Сумеречных мирах - два. */
     AYERACO_WING,
     /** С Великого кадиллиона Эдема: в Сумеречных мирах парить на одной высоте (запас растёт за кадиллионов). */
-    MAGIC_CARPET;
+    MAGIC_CARPET,
+    /** Крылья сна (только в Ветее): взлёт и пропуск на 2, 3, 4 этаж. Крафт из жемчуга и слитков этажей. */
+    DREAM_WINGS_1, DREAM_WINGS_2, DREAM_WINGS_3;
 
     /** Заказ у Джека: сколько голов [скелет, визер-скелет, зомби, крипер]; null - не заказ Джека. */
     public final int[] heads;
@@ -83,6 +85,11 @@ public enum Trinket {
             case TIDE_ARMOR: return new Trinket[] { DEEP_SHELL, CARCINUS_SHELL };
             default: return null;
         }
+    }
+
+    /** Своя для Ветеи вещь: в кошмаре работает (остальные аксессуары там молчат). */
+    public boolean vethean() {
+        return this == DREAM_WINGS_1 || this == DREAM_WINGS_2 || this == DREAM_WINGS_3;
     }
 
     /** Какие эффекты даёт: сам и, у объединённых, оба компонента. */

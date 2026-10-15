@@ -50,6 +50,9 @@ public class Config {
     /** Рыбалка: реликвии (кошмарный бур из Ветеи), шанс червей у червекопалки. */
     public static boolean fishingRelics = true, drillArea = true;
     public static double relicChanceMultiplier = 1.0, wormChance = 0.08, wormRainChance = 0.2;
+    /** Ветея: чужие вещи наоборот; этажи (разломы, страж, крылья, запрет полёта); свои вещи из других модов. */
+    public static boolean vetheaNightmare = true, vetheaFloors = true;
+    public static String[] vetheaWhitelist = {};
 
     /** Массив из конфига; если в старом файле он короче нового - дополняется значениями по умолчанию. */
     private static int[] intList(Configuration cfg, String cat, String key, int[] def, String comment) {
@@ -141,6 +144,15 @@ public class Config {
             "Кошмарный бур копает 3x3 (присев - один блок). false - всегда один блок");
         wormChance = cfg.get(fish, "wormChance", wormChance, "Шанс червя с земли/травы при копании червекопалкой").getDouble();
         wormRainChance = cfg.get(fish, "wormRainChance", wormRainChance, "То же в дождь").getDouble();
+        String v = "vethea";
+        vetheaNightmare = cfg.getBoolean("vetheaNightmare", v, vetheaNightmare,
+            "Кошмар наоборот: в Ветее чужое оружие лечит, чужая броня усиливает урон, чужая еда отнимает сытость, чужие зелья "
+                + "дают обратный эффект, чужие инструменты копают медленно, не ветейские аксессуары молчат");
+        vetheaFloors = cfg.getBoolean("vetheaFloors", v, vetheaFloors,
+            "Этажи Ветеи: наверх только через разломы на Крыльях сна, низ плит не ломается, выше дозволенного этажа "
+                + "сбрасывает, обычный полёт выключен (кроме творческого режима)");
+        vetheaWhitelist = cfg.getStringList("vetheaWhitelist", v, vetheaWhitelist,
+            "Предметы других модов, которые в Ветее считаются своими (modid:name, по одному в строке)");
         if (cfg.hasChanged()) {
             cfg.save();
         }

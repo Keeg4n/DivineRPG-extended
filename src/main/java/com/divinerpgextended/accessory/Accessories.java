@@ -81,9 +81,11 @@ public class Accessories implements IInventory {
         return !player.isDead && LIVE.get(player.getUniqueID()) == this;
     }
 
-    /** Надет ли такой аксессуар (только в открытых слотах). */
+    /** Надет ли такой аксессуар (только в открытых слотах). В Ветее работают только ветейские. */
     public static boolean wears(EntityPlayer p, Trinket t) {
         if (p == null || p.worldObj.isRemote) return false;
+        if (!t.vethean() && com.divinerpgextended.Config.vetheaNightmare
+            && p.dimension == net.divinerpg.utils.config.ConfigurationHelper.vethea) return false;
         Accessories a = of(p);
         for (int i = 0; i < Math.min(a.unlocked, SIZE); i++) {
             ItemStack s = a.stacks[i];

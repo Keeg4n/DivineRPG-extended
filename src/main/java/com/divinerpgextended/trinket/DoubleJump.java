@@ -53,16 +53,18 @@ public class DoubleJump {
 
         /** Прыжков с последнего касания земли. */
         int used;
-        /** Сколько тиков ковра осталось до земли. */
-        int carpetLeft;
+        /** Сколько тиков ковра и крыльев сна осталось до земли. */
+        int carpetLeft, wingLeft;
         /** Что ушло клиенту в последний раз. */
-        int sentJumps = -2, sentCarpet = -2;
+        int sentJumps = -2, sentCarpet = -2, sentWing = -2;
         double lastY;
     }
 
     private static final Map<UUID, State> STATE = new HashMap<UUID, State>();
-    /** Клиент: прыжков в воздухе и тиков ковра (присылает сервер). */
-    static int clientAllowed, clientCarpet;
+    /** Клиент: прыжков в воздухе, тиков ковра и крыльев сна (присылает сервер). */
+    static int clientAllowed, clientCarpet, clientWing;
+    /** Запас взлёта крыльев сна по ступеням (тиков; скорость подъёма до 0.6 блока за тик - хватает на этаж в 48). */
+    private static final int[] WING_TICKS = { 0, 85, 100, 120 };
 
     public static void register() {
         ColdHandler.NET.registerMessage(SyncHandler.class, Sync.class, 6, Side.CLIENT);
@@ -90,7 +92,13 @@ public class DoubleJump {
         return 60;
     }
 
-    /** Касается опоры: прыжки и ковёр восстанавливаются. */
+    /** Запас взлёта крыльев сна (только в Ветее), тиков. */
+    public static int wingTicks(EntityPlayer p) {
+        if (p.dimension != ConfigurationHelper.vethea) return 0;
+        return WING_TICKS[com.divinerpgextended.vethea.VetheaFloors.wingTier(p)];
+    }
+
+    /** Касается опоры: прыжки, ковёр и крылья восстанавливаются. */
     private static boolean grounded(EntityPlayer p) {
         return p.onGround || p.isInWater() || p.handleLavaMovement() || p.isOnLadder() || p.capabilities.isFlying
             || p.ridingEntity != null;
@@ -109,10 +117,16 @@ public class DoubleJump {
         State s = state(p);
         double dy = p.posY - s.lastY;
         s.lastY = p.posY;
-        int carpet = carpetTicks(p);
+        int carpet = carpetTicks(p), wing = wingTicks(p);
         if (grounded(p)) {
             s.used = 0;
             s.carpetLeft = carpet;
+            s.wingLeft = wing;
+        } else if (wing > 0 && s.wingLeft > 0 && dy > -0.03) {
+            // взлёт на крыльях сна: не запрещённый полёт
+            s.wingLeft = Math.min(s.wingLeft, wing) - 1;
+            ReflectionHelper.setPrivateValue(NetHandlerPlayServer.class, p.playerNetServerHandler, 0, "floatingTickCount",
+                "field_147365_f");
         } else if (carpet != 0 && (carpet == UNLIMITED || s.carpetLeft > 0) && Math.abs(dy) < 0.05) {
             // парит на ковре: сервер не должен принимать это за запрещённый полёт
             if (carpet != UNLIMITED) s.carpetLeft = Math.min(s.carpetLeft, carpet) - 1;
@@ -124,10 +138,11 @@ public class DoubleJump {
         }
         if (p.ticksExisted % 10 != 0) return;
         int a = allowed(p);
-        if (a != s.sentJumps || carpet != s.sentCarpet || p.ticksExisted % 100 == 0) {
+        if (a != s.sentJumps || carpet != s.sentCarpet || wing != s.sentWing || p.ticksExisted % 100 == 0) {
             s.sentJumps = a;
             s.sentCarpet = carpet;
-            ColdHandler.NET.sendTo(new Sync(a, carpet), p);
+            s.sentWing = wing;
+            ColdHandler.NET.sendTo(new Sync(a, carpet, wing), p);
         }
     }
 
@@ -140,25 +155,28 @@ public class DoubleJump {
 
     public static class Sync implements IMessage {
 
-        int allowed, carpet;
+        int allowed, carpet, wing;
 
         public Sync() {}
 
-        Sync(int allowed, int carpet) {
+        Sync(int allowed, int carpet, int wing) {
             this.allowed = allowed;
             this.carpet = carpet;
+            this.wing = wing;
         }
 
         @Override
         public void fromBytes(ByteBuf buf) {
             allowed = buf.readByte();
             carpet = buf.readShort();
+            wing = buf.readShort();
         }
 
         @Override
         public void toBytes(ByteBuf buf) {
             buf.writeByte(allowed);
             buf.writeShort(carpet);
+            buf.writeShort(wing);
         }
     }
 
@@ -168,6 +186,7 @@ public class DoubleJump {
         public IMessage onMessage(Sync msg, MessageContext ctx) {
             clientAllowed = msg.allowed;
             clientCarpet = msg.carpet;
+            clientWing = msg.wing;
             return null;
         }
     }
@@ -200,7 +219,7 @@ public class DoubleJump {
     @SideOnly(Side.CLIENT)
     public static class Client {
 
-        private int used, carpetLeft;
+        private int used, carpetLeft, wingLeft;
         private boolean wasDown, airborne;
 
         @SubscribeEvent
@@ -209,7 +228,7 @@ public class DoubleJump {
             Minecraft mc = Minecraft.getMinecraft();
             EntityClientPlayerMP p = mc.thePlayer;
             if (p == null) {
-                clientAllowed = clientCarpet = 0;
+                clientAllowed = clientCarpet = clientWing = 0;
                 return;
             }
             boolean down = mc.gameSettings.keyBindJump.getIsKeyPressed();
@@ -219,10 +238,22 @@ public class DoubleJump {
             if (!airborne) {
                 used = 0;
                 carpetLeft = clientCarpet;
+                wingLeft = clientWing;
                 return;
             }
             // в творческом двойной пробел включает полёт - не мешаем ему
             if (mc.currentScreen != null || p.capabilities.allowFlying) return;
+            // крылья сна: прыжок зажат - тянет вверх, пока есть запас; зависнуть нельзя
+            if (clientWing > 0) {
+                if (down && wingLeft > 0) {
+                    wingLeft--;
+                    p.motionY = Math.min(p.motionY + 0.15, 0.6);
+                    p.fallDistance = 0;
+                    p.worldObj.spawnParticle("witchMagic", p.posX + (p.getRNG().nextDouble() - 0.5), p.boundingBox.minY + 0.6,
+                        p.posZ + (p.getRNG().nextDouble() - 0.5), 0, -0.1, 0);
+                }
+                return;
+            }
             if (pressed && used < clientAllowed) {
                 jump(p);
                 return;
@@ -251,15 +282,18 @@ public class DoubleJump {
             ColdHandler.NET.sendToServer(new Jump());
         }
 
-        /** Полоска запаса ковра под прицелом, пока он тратится. */
+        /** Полоска запаса ковра или крыльев под прицелом, пока он тратится. */
         @SubscribeEvent
         public void onOverlay(RenderGameOverlayEvent.Post e) {
-            if (e.type != RenderGameOverlayEvent.ElementType.CROSSHAIRS) return;
-            if (!airborne || clientCarpet <= 0 || carpetLeft >= clientCarpet) return;
+            if (e.type != RenderGameOverlayEvent.ElementType.CROSSHAIRS || !airborne) return;
+            boolean wings = clientWing > 0;
+            int max = wings ? clientWing : clientCarpet, left = wings ? wingLeft : carpetLeft;
+            if (max <= 0 || left >= max) return;
             ScaledResolution r = e.resolution;
             int x = r.getScaledWidth() / 2 - 20, y = r.getScaledHeight() / 2 + 10;
+            int color = left <= max / 4 ? 0xFFE04030 : wings ? 0xFFB060F0 : 0xFFE0B040;
             Gui.drawRect(x - 1, y - 1, x + 41, y + 3, 0x90000000);
-            Gui.drawRect(x, y, x + 40 * Math.max(carpetLeft, 0) / clientCarpet, y + 2, carpetLeft > clientCarpet / 4 ? 0xFFE0B040 : 0xFFE04030);
+            Gui.drawRect(x, y, x + 40 * Math.max(left, 0) / max, y + 2, color);
         }
     }
 }

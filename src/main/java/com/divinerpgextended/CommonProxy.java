@@ -139,6 +139,17 @@ public class CommonProxy {
             .bus()
             .register(merchants);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.fishing.ItemWormShovel.Handler());
+        com.divinerpgextended.vethea.Nightmare nightmare = new com.divinerpgextended.vethea.Nightmare();
+        MinecraftForge.EVENT_BUS.register(nightmare);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(nightmare);
+        com.divinerpgextended.vethea.VetheaFloors floors = new com.divinerpgextended.vethea.VetheaFloors();
+        MinecraftForge.EVENT_BUS.register(floors);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(floors);
+        com.divinerpgextended.vethea.VetheaFloors.registerRecipes();
         fishingRecipes();
         DreAchievements.register();
         DreAchievements.Handler achievements = new DreAchievements.Handler();
