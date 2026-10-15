@@ -278,7 +278,7 @@ public class PetTraining {
     @SubscribeEvent
     public void onHurt(LivingHurtEvent e) {
         Entity src = e.source.getEntity();
-        if (!(src instanceof EntityDivineRPGTameable) || src.worldObj.isRemote) return;
+        if (!(src instanceof EntityDivineRPGTameable) || src.worldObj.isRemote || e.entityLiving instanceof EntityPlayer) return;
         int lvl = level(src);
         if (lvl <= 0) return;
         e.ammount *= 1.0F + 0.2F * lvl;

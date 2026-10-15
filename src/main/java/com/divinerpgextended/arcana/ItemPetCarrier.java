@@ -56,6 +56,7 @@ public class ItemPetCarrier extends Item {
     public boolean onItemUse(ItemStack s, EntityPlayer p, World w, int x, int y, int z, int side, float hx, float hy, float hz) {
         NBTTagCompound tag = pet(s);
         if (tag == null) return false;
+        if (!p.canPlayerEdit(x, y, z, side, s)) return false; // чужой приват
         if (w.isRemote) return true;
         Entity e = EntityList.createEntityFromNBT(tag, w);
         if (e == null) return false;

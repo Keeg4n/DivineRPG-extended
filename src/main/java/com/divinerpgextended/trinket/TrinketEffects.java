@@ -68,7 +68,8 @@ public class TrinketEffects {
     public void onHurt(LivingHurtEvent e) {
         Entity src = e.source.getEntity();
         boolean melee = src != null && e.source.getSourceOfDamage() == src && !e.source.isProjectile();
-        if (src instanceof EntityPlayer && !src.worldObj.isRemote) {
+        // бонусы аксессуаров - только против мобов: по игрокам бьёт лишь обычный урон (приваты с запретом PvP не обойти)
+        if (src instanceof EntityPlayer && !src.worldObj.isRemote && !(e.entityLiving instanceof EntityPlayer)) {
             EntityPlayer p = (EntityPlayer) src;
             if (e.source.isProjectile() && wears(p, Trinket.BONE_RING)) e.ammount *= 1.2F;
             if (melee && wears(p, Trinket.WITHER_RING) && p.worldObj.rand.nextFloat() < 0.2F) {
@@ -91,7 +92,8 @@ public class TrinketEffects {
                 e.ammount *= 0.85F;
             }
             // Панцирь Карцинуса: 15% - удар ближнего боя отражается обратно (шипы не отражаются, чтобы не было пинг-понга)
-            if (melee && src instanceof EntityLivingBase && !"thorns".equals(e.source.damageType) && wears(v, Trinket.CARCINUS_SHELL)
+            if (melee && src instanceof EntityLivingBase && !(src instanceof EntityPlayer) && !"thorns".equals(e.source.damageType)
+                && wears(v, Trinket.CARCINUS_SHELL)
                 && v.worldObj.rand.nextFloat() < 0.15F) {
                 src.attackEntityFrom(DamageSource.causeThornsDamage(v), e.ammount);
                 e.ammount = 0;

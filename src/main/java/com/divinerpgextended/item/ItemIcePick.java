@@ -74,13 +74,18 @@ public class ItemIcePick extends ItemPickaxe {
         return isIcyRock(block) || super.canHarvestBlock(block, stack);
     }
 
+    /** Идёт ломание соседей (оно само вызывает onBlockDestroyed - не уходим в рекурсию). */
+    private static boolean breaking;
+
     @Override
     public boolean onBlockDestroyed(ItemStack stack, World world, Block block, int x, int y, int z,
         EntityLivingBase entity) {
         boolean r = super.onBlockDestroyed(stack, world, block, x, y, z, entity);
         if (!rime || world.isRemote || !inIceika(world) || !isIcyRock(block) || !(entity instanceof EntityPlayer)) return r;
         EntityPlayer player = (EntityPlayer) entity;
-        if (player.isSneaking()) return r;
+        if (player.isSneaking() || breaking || !(player instanceof net.minecraft.entity.player.EntityPlayerMP)) return r;
+        breaking = true;
+        try {
         // плоскость 3x3 поперёк взгляда: смотрим вверх/вниз - горизонтальная, иначе вертикальная стенка
         boolean vertical = Math.abs(player.rotationPitch) > 50;
         double yaw = Math.toRadians(player.rotationYaw);
@@ -105,10 +110,13 @@ public class ItemIcePick extends ItemPickaxe {
                 int bx = x + dx, by = y + dy, bz = z + dz;
                 Block other = world.getBlock(bx, by, bz);
                 if (!isIcyRock(other) || other.getBlockHardness(world, bx, by, bz) < 0) continue;
-                if (stack.getItemDamage() >= stack.getMaxDamage()) return r;
-                world.func_147480_a(bx, by, bz, !player.capabilities.isCreativeMode);
-                stack.damageItem(1, player);
+                if (stack.stackSize <= 0) return r; // кирка сломалась
+                // как обычный удар игрока: приваты и плагины видят ломание и могут запретить его
+                ((net.minecraft.entity.player.EntityPlayerMP) player).theItemInWorldManager.tryHarvestBlock(bx, by, bz);
             }
+        }
+        } finally {
+            breaking = false;
         }
         return r;
     }

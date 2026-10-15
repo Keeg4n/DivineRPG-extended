@@ -163,13 +163,14 @@ public class FurnaceRoles {
     }
 
     /** Присесть + ПКМ модулем по печи Divine - поставить модуль. */
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onUse(PlayerInteractEvent e) {
-        if (e.action != PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK || !e.entityPlayer.isSneaking()) return;
+        if (e.isCanceled() || e.action != PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK || !e.entityPlayer.isSneaking()) return;
         ItemStack held = e.entityPlayer.getCurrentEquippedItem();
         if (held == null || held.getItem() != ModItems.furnaceModule) return;
         TileEntity te = e.world.getTileEntity(e.x, e.y, e.z);
         if (te == null || !isFurnace(te)) return;
+        if (!e.entityPlayer.canPlayerEdit(e.x, e.y, e.z, e.face, held)) return; // чужая печь в привате
         e.setCanceled(true);
         if (e.world.isRemote) return;
         Role role = Role.of(te);
