@@ -254,6 +254,7 @@ public class VetheaFloors {
         p.fallDistance = 0;
         p.motionY = 0;
         say(p, EnumChatFormatting.DARK_PURPLE, "dre.vethea.guard", String.valueOf(need));
+        com.divinerpgextended.debug.Debug.note(p, "Страж этажей: сброшен на этаж " + floor + " (нужна ступень " + need + ")");
     }
 
     @SubscribeEvent
@@ -284,6 +285,7 @@ public class VetheaFloors {
             s.lastRift = p.ticksExisted;
             if (tier < f - 1) {
                 p.motionY = -0.8;
+                if (p.ticksExisted % 20 == 0) com.divinerpgextended.debug.Debug.note(p, "Поток разлома: вниз, ступень крыльев " + tier + " < " + (f - 1));
                 p.velocityChanged = true;
                 if (p.ticksExisted - s.lastMsg > 100) {
                     s.lastMsg = p.ticksExisted;
@@ -315,7 +317,10 @@ public class VetheaFloors {
         if (!(e.entityLiving instanceof EntityPlayer) || e.entityLiving.worldObj.isRemote || !vethea(e.entityLiving.worldObj)) return;
         EntityPlayer p = (EntityPlayer) e.entityLiving;
         State s = STATE.get(p.getUniqueID());
-        if (wingTier(p) > 0 || s != null && p.ticksExisted - s.lastRift < 100) e.setCanceled(true);
+        if (wingTier(p) > 0 || s != null && p.ticksExisted - s.lastRift < 100) {
+            e.setCanceled(true);
+            com.divinerpgextended.debug.Debug.note(p, "Падение не ранит: " + (wingTier(p) > 0 ? "крылья сна" : "прыжок через разлом"));
+        }
     }
 
     // ---------------- Плиты и шахты ----------------
@@ -325,6 +330,7 @@ public class VetheaFloors {
         if (!Config.vetheaFloors || !vethea(e.world) || e.getPlayer() == null || e.getPlayer().capabilities.isCreativeMode) return;
         if (!protectedSlab(e.y)) return;
         e.setCanceled(true);
+        com.divinerpgextended.debug.Debug.note(e.getPlayer(), "Основа этажа: ломать нельзя (y " + e.y + ")");
         Nightmare.hint(e.getPlayer(), "slab");
     }
 
@@ -333,6 +339,7 @@ public class VetheaFloors {
         if (!Config.vetheaFloors || !vethea(e.world) || e.player == null || e.player.capabilities.isCreativeMode) return;
         if (!inShaft(e.world, e.x, e.y, e.z)) return;
         e.setCanceled(true);
+        com.divinerpgextended.debug.Debug.note(e.player, "Шахта разлома: строить нельзя");
         Nightmare.hint(e.player, "rift_place");
     }
 
@@ -387,6 +394,7 @@ public class VetheaFloors {
         if ((done & bit) != 0) return;
         d.setInteger(GIFT_DONE, done | bit);
         d.setInteger(GIFT_PENDING, d.getInteger(GIFT_PENDING) | bit);
+        com.divinerpgextended.debug.Debug.note(p, "Дар сна отмечен: " + g.name());
         say(p, EnumChatFormatting.LIGHT_PURPLE, "dre.vethea.gift_marked", new ChatComponentTranslation(g.key()));
     }
 
@@ -402,6 +410,7 @@ public class VetheaFloors {
                 if (!p.inventory.addItemStackToInventory(c)) p.worldObj.spawnEntityInWorld(new EntityItem(p.worldObj, p.posX, p.posY + 0.5, p.posZ, c));
             }
             p.addExperience(g.xp);
+            com.divinerpgextended.debug.Debug.note(p, "Дар сна выдан: " + g.name());
             say(p, EnumChatFormatting.LIGHT_PURPLE, "dre.vethea.gift", new ChatComponentTranslation(g.key()));
         }
         p.inventoryContainer.detectAndSendChanges();

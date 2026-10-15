@@ -47,15 +47,20 @@ public class IceikaCombat {
             EntityPlayer p = (EntityPlayer) event.entityLiving;
             if (attacker != null && attacker != p && ColdHandler.inIceika(p) && PerkEffects.wears(p, SANTA)) {
                 event.ammount *= 0.6F;
+                com.divinerpgextended.debug.Debug.note(p, "Сет Santa в Айсике: x0.6");
             }
             return;
         }
         if (!event.entityLiving.getEntityData()
             .getBoolean(ThroneCombat.MINION_TAG)) return;
         Item melee = ThroneCombat.melee(event.source);
-        if (melee == IceikaItems.snowSlash) event.ammount *= 3.0F;
+        if (melee == IceikaItems.snowSlash) {
+            event.ammount *= 3.0F;
+            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Snowslash по приспешнику трона: x3");
+        }
         if (ThroneCombat.iceCannon(event.source)) {
             event.ammount *= 4.0F;
+            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Ледяная пушка по приспешнику трона: x4");
             FrostPowers.particles(event.entityLiving.worldObj, "snowshovel", event.entityLiving.posX,
                 event.entityLiving.posY + 1, event.entityLiving.posZ, 20, 0.4, 0.1);
         }
@@ -74,12 +79,18 @@ public class IceikaCombat {
         long now = p.worldObj.getTotalWorldTime();
         if (now - d.getLong(HEAL_TICK) < COOLDOWN) {
             float before = d.getFloat(LAST_HP);
-            if (before > 0 && p.getHealth() > before) p.setHealth(before);
+            if (before > 0 && p.getHealth() > before) {
+                p.setHealth(before);
+                com.divinerpgextended.debug.Debug.note(p, "Фроссивенс на перезарядке: лечение отменено");
+            }
             return;
         }
         d.setLong(HEAL_TICK, now);
         boolean santa = PerkEffects.wears(p, SANTA), frozen = PerkEffects.wears(p, FROZEN);
-        if ((santa || frozen) && p.getHealth() < p.getMaxHealth()) p.heal(p.getMaxHealth() / 2);
+        if ((santa || frozen) && p.getHealth() < p.getMaxHealth()) {
+            p.heal(p.getMaxHealth() / 2);
+            com.divinerpgextended.debug.Debug.note(p, "Фроссивенс с ледяным сетом: лечение на половину здоровья");
+        }
         float chill = d.getFloat(CHILL) + 3.0F * (santa ? 0.4F : frozen ? 0.6F : 1.0F);
         if (d.getFloat(CHILL) < 7 && chill >= 7) p.addChatMessage(new ChatComponentTranslation("dre.chat.frossivence_chill"));
         d.setFloat(CHILL, Math.min(12, chill));

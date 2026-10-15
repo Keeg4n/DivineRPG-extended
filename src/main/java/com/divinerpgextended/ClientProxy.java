@@ -47,6 +47,11 @@ public class ClientProxy extends CommonProxy {
             .bus()
             .register(airMoves);
         MinecraftForge.EVENT_BUS.register(airMoves);
+        com.divinerpgextended.debug.DebugClient debugClient = new com.divinerpgextended.debug.DebugClient();
+        MinecraftForge.EVENT_BUS.register(debugClient);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(debugClient);
         RenderingRegistry.registerEntityRenderingHandler(EntityGreatCadillion.class, new RenderGreatCadillion());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.fishing.EntityDreHook.class,
             new com.divinerpgextended.client.RenderDreHook());

@@ -190,6 +190,7 @@ public class Nightmare {
                     ((net.minecraft.world.WorldServer) p.worldObj).func_147487_a("heart", e.entityLiving.posX,
                         e.entityLiving.posY + e.entityLiving.height, e.entityLiving.posZ, 2, 0.3, 0.2, 0.3, 0);
                 }
+                com.divinerpgextended.debug.Debug.note(p, "Кошмар: чужое оружие лечит вместо урона (" + e.ammount + ")");
                 hint(p, "weapon");
                 return;
             }
@@ -211,6 +212,7 @@ public class Nightmare {
             DamageSource again = e.source.getEntity() != null || e.source.getSourceOfDamage() != null ? new UnarmoredEntity(e.source)
                 : new Unarmored(e.source);
             p.attackEntityFrom(again, (float) (e.ammount * (1 + Math.min(guard, 1.0))));
+            com.divinerpgextended.debug.Debug.note(p, "Кошмар: чужая броня, урон x" + String.format("%.2f", 1 + Math.min(guard, 1.0)));
             hint(p, "armor");
         }
     }
@@ -241,6 +243,7 @@ public class Nightmare {
             t.setFloat("foodSaturationLevel", 0F);
             p.getFoodStats().readNBT(t);
             p.addPotionEffect(new PotionEffect(Potion.hunger.id, 300, 1));
+            com.divinerpgextended.debug.Debug.note(p, "Кошмар: чужая еда, сытость -" + 2 * heal);
             hint(p, "food");
         } else if (i instanceof ItemPotion) {
             List<?> effects = ((ItemPotion) i).getEffects(e.item);
@@ -258,6 +261,7 @@ public class Nightmare {
                 if (inv != null) p.addPotionEffect(new PotionEffect(inv.id, Math.max(pe.getDuration(), 100), pe.getAmplifier()));
                 else if (pot == Potion.fireResistance) p.setFire(Math.min(pe.getDuration() / 20, 10));
             }
+            com.divinerpgextended.debug.Debug.note(p, "Кошмар: чужое зелье перевёрнуто");
             hint(p, "potion");
         }
     }

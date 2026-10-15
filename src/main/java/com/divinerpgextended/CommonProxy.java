@@ -53,6 +53,7 @@ public class CommonProxy {
         com.divinerpgextended.accessory.AccessoryMessages.register();
         com.divinerpgextended.boss.ProgressSync.register();
         com.divinerpgextended.trinket.DoubleJump.register();
+        com.divinerpgextended.debug.Debug.register();
     }
 
     public void init(FMLInitializationEvent event) {
@@ -151,6 +152,11 @@ public class CommonProxy {
             .bus()
             .register(floors);
         com.divinerpgextended.vethea.VetheaFloors.registerRecipes();
+        com.divinerpgextended.debug.DebugEvents debug = new com.divinerpgextended.debug.DebugEvents();
+        MinecraftForge.EVENT_BUS.register(debug);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(debug);
         fishingRecipes();
         DreAchievements.register();
         DreAchievements.Handler achievements = new DreAchievements.Handler();

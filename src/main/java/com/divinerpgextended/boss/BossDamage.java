@@ -53,5 +53,6 @@ public class BossDamage {
         int have = ArmorData.effectiveTier((EntityPlayer) event.entityLiving);
         if (have >= req) return;
         event.ammount *= (float) Math.pow(Config.underTierMultiplier, req - have);
+        com.divinerpgextended.debug.Debug.note(event.entityLiving, "Броня ступени " + have + " ниже нужной " + req + ": урон босса x" + Math.pow(Config.underTierMultiplier, req - have));
     }
 }

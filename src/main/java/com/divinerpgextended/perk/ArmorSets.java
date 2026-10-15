@@ -29,6 +29,10 @@ public class ArmorSets {
 
     private static Boolean active;
 
+    private static void note(Entity e, String s) {
+        com.divinerpgextended.debug.Debug.note(e, s);
+    }
+
     private static boolean active() {
         if (active == null) {
             try {
@@ -82,15 +86,27 @@ public class ArmorSets {
         if ((set(a, VanillaItemsArmor.aquastriveBoots, VanillaItemsArmor.aquastriveLegs, VanillaItemsArmor.aquastriveBody,
             VanillaItemsArmor.aquastriveHelmet)
             || set(a, VanillaItemsArmor.krakenBoots, VanillaItemsArmor.krakenLegs, VanillaItemsArmor.krakenBody, VanillaItemsArmor.krakenHelmet))
-            && s == DamageSource.drown) e.setCanceled(true);
+            && s == DamageSource.drown) {
+            e.setCanceled(true);
+            note(p, "Сет Kraken/Aquastrive: не тонешь");
+        }
         else if (set(a, TwilightItemsArmor.apalachiaBoots, TwilightItemsArmor.apalachiaLeggings, TwilightItemsArmor.apalachiaChestplate,
             TwilightItemsArmor.apalachiaHelmet)
             && (s == DamageSource.cactus || s == DamageSource.fallingBlock || s == DamageSource.anvil || s == DamageSource.inWall
-                || s == Util.trapSource)) e.setCanceled(true);
+                || s == Util.trapSource)) {
+            e.setCanceled(true);
+            note(p, "Сет Apalachia: кактус, ловушки и блоки не ранят");
+        }
         else if (set(a, VanillaItemsArmor.witherReaperBoots, VanillaItemsArmor.witherReaperLegs, VanillaItemsArmor.witherReaperBody,
-            VanillaItemsArmor.witherReaperHelmet) && s == DamageSource.wither) e.setCanceled(true);
+            VanillaItemsArmor.witherReaperHelmet) && s == DamageSource.wither) {
+            e.setCanceled(true);
+            note(p, "Сет Wither Reaper: иссушение не ранит");
+        }
         else if (set(a, VanillaItemsArmor.jungleBoots, VanillaItemsArmor.jungleLegs, VanillaItemsArmor.jungleBody,
-            VanillaItemsArmor.jungleHelmet) && s == DamageSource.magic) e.setCanceled(true);
+            VanillaItemsArmor.jungleHelmet) && s == DamageSource.magic) {
+            e.setCanceled(true);
+            note(p, "Сет Jungle: яд не ранит");
+        }
     }
 
     // ---------------- Урон: защита жертвы и бонус атакующего ----------------
@@ -112,6 +128,7 @@ public class ArmorSets {
             if (set(a, VanillaItemsArmor.bedrockBoots, VanillaItemsArmor.bedrockLegs, VanillaItemsArmor.bedrockBody,
                 VanillaItemsArmor.bedrockHelmet) && s.isExplosion()) {
                 e.setCanceled(true);
+                note(p, "Сет Bedrock: взрыв не ранит");
                 return;
             }
             if (any(a[0], VanillaItemsArmor.enderBoots, VanillaItemsArmor.redEnderBoots, VanillaItemsArmor.yellowEnderBoots,
@@ -124,10 +141,14 @@ public class ArmorSets {
                     VanillaItemsArmor.greenEnderHelmet, VanillaItemsArmor.blueEnderHelmet, VanillaItemsArmor.grayEnderHelmet)
                 && s.isExplosion()) {
                 e.setCanceled(true);
+                note(p, "Сет Ender: взрыв не ранит");
                 return;
             }
             if (set(a, VanillaItemsArmor.arlemiteBoots, VanillaItemsArmor.arlemiteLegs, VanillaItemsArmor.arlemiteBody,
-                VanillaItemsArmor.arlemiteHelmet) && (s.isProjectile() || "thrown".equals(s.damageType))) e.ammount *= 0.3F;
+                VanillaItemsArmor.arlemiteHelmet) && (s.isProjectile() || "thrown".equals(s.damageType))) {
+            e.ammount *= 0.3F;
+            note(p, "Сет Arlemite: стрелы x0.3");
+        }
             if (any(a[0], VanillaItemsArmor.rupeeBoots, VanillaItemsArmor.redRupeeBoots, VanillaItemsArmor.yellowRupeeBoots,
                 VanillaItemsArmor.greenRupeeBoots, VanillaItemsArmor.blueRupeeBoots, VanillaItemsArmor.grayRupeeBoots)
                 && any(a[1], VanillaItemsArmor.rupeeLegs, VanillaItemsArmor.redRupeeLegs, VanillaItemsArmor.yellowRupeeLegs,
@@ -136,21 +157,42 @@ public class ArmorSets {
                     VanillaItemsArmor.greenRupeeBody, VanillaItemsArmor.blueRupeeBody, VanillaItemsArmor.grayRupeeBody)
                 && any(a[3], VanillaItemsArmor.rupeeHelmet, VanillaItemsArmor.redRupeeHelmet, VanillaItemsArmor.yellowRupeeHelmet,
                     VanillaItemsArmor.greenRupeeHelmet, VanillaItemsArmor.blueRupeeHelmet, VanillaItemsArmor.grayRupeeHelmet)
-                && "mob".equals(s.damageType) && !s.isProjectile()) e.ammount *= 0.3F;
+                && "mob".equals(s.damageType) && !s.isProjectile()) {
+            e.ammount *= 0.3F;
+            note(p, "Сет Rupee: удары мобов x0.3");
+        }
             if (set(a, IceikaItems.santaBoots, IceikaItems.santaPants, IceikaItems.santaTunic, IceikaItems.santaCap)
-                && p.worldObj.provider.dimensionId == ConfigurationHelper.iceika) e.ammount *= 0.2F;
+                && p.worldObj.provider.dimensionId == ConfigurationHelper.iceika) {
+            e.ammount *= 0.2F;
+            note(p, "Сет Santa в Айсике: x0.2");
+        }
         }
         // ветейские сеты: шлем, маска или капюшон решают, от чего защищает
         if (vetheaBody(a, VetheaItems.degradedBoots, VetheaItems.degradedLegs, VetheaItems.degradedBody)
-            && vetheaGuard(a[3], VetheaItems.degradedHelmet, VetheaItems.degradedMask, VetheaItems.degradedHood, s)) e.ammount *= 0.82F;
+            && vetheaGuard(a[3], VetheaItems.degradedHelmet, VetheaItems.degradedMask, VetheaItems.degradedHood, s)) {
+            e.ammount *= 0.82F;
+            note(p, "Сет Degraded: x0.82");
+        }
         if (vetheaBody(a, VetheaItems.finishedBoots, VetheaItems.finishedLegs, VetheaItems.finishedBody)
-            && vetheaGuard(a[3], VetheaItems.finishedHelmet, VetheaItems.finishedMask, VetheaItems.finishedHood, s)) e.ammount *= 0.773F;
+            && vetheaGuard(a[3], VetheaItems.finishedHelmet, VetheaItems.finishedMask, VetheaItems.finishedHood, s)) {
+            e.ammount *= 0.773F;
+            note(p, "Сет Finished: x0.773");
+        }
         if (vetheaBody(a, VetheaItems.glisteningBoots, VetheaItems.glisteningLegs, VetheaItems.glisteningBody)
-            && vetheaGuard(a[3], VetheaItems.glisteningHelmet, VetheaItems.glisteningMask, VetheaItems.glisteningHood, s)) e.ammount *= 0.7F;
+            && vetheaGuard(a[3], VetheaItems.glisteningHelmet, VetheaItems.glisteningMask, VetheaItems.glisteningHood, s)) {
+            e.ammount *= 0.7F;
+            note(p, "Сет Glistening: x0.7");
+        }
         if (vetheaBody(a, VetheaItems.demonizedBoots, VetheaItems.demonizedLegs, VetheaItems.demonizedBody)
-            && vetheaGuard(a[3], VetheaItems.demonizedHelmet, VetheaItems.demonizedMask, VetheaItems.demonizedHood, s)) e.ammount *= 0.625F;
+            && vetheaGuard(a[3], VetheaItems.demonizedHelmet, VetheaItems.demonizedMask, VetheaItems.demonizedHood, s)) {
+            e.ammount *= 0.625F;
+            note(p, "Сет Demonized: x0.625");
+        }
         if (vetheaBody(a, VetheaItems.tormentedBoots, VetheaItems.tormentedLegs, VetheaItems.tormentedBody)
-            && vetheaGuard(a[3], VetheaItems.tormentedHelmet, VetheaItems.tormentedMask, VetheaItems.tormentedHood, s)) e.ammount *= 0.348F;
+            && vetheaGuard(a[3], VetheaItems.tormentedHelmet, VetheaItems.tormentedMask, VetheaItems.tormentedHood, s)) {
+            e.ammount *= 0.348F;
+            note(p, "Сет Tormented: x0.348");
+        }
     }
 
     private static void attack(LivingHurtEvent e, EntityPlayer p) {
@@ -159,19 +201,39 @@ public class ArmorSets {
         boolean melee = !s.isProjectile() && !s.isMagicDamage(), dream = Nightmare.active(p);
         if (!dream) {
             if (melee && set(a, IceikaItems.santaBoots, IceikaItems.santaPants, IceikaItems.santaTunic, IceikaItems.santaCap)
-                && e.entityLiving.worldObj.provider.dimensionId == ConfigurationHelper.iceika) e.ammount += 6.0F;
+                && e.entityLiving.worldObj.provider.dimensionId == ConfigurationHelper.iceika) {
+            e.ammount += 6.0F;
+            note(p, "Сет Santa в Айсике: +6");
+        }
             if (melee && set(a, TwilightItemsArmor.haliteBoots, TwilightItemsArmor.haliteLeggings, TwilightItemsArmor.haliteChestplate,
-                TwilightItemsArmor.haliteHelmet)) e.ammount += 16.0F;
+                TwilightItemsArmor.haliteHelmet)) {
+            e.ammount += 16.0F;
+            note(p, "Сет Halite: +16");
+        }
             if (melee && set(a, VanillaItemsArmor.divineBoots, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBody,
-                VanillaItemsArmor.divineHelmet)) e.ammount += 6.0F;
+                VanillaItemsArmor.divineHelmet)) {
+            e.ammount += 6.0F;
+            note(p, "Сет Divine: +6");
+        }
             if (s.isProjectile() && set(a, VanillaItemsArmor.corruptedBoots, VanillaItemsArmor.corruptedLegs,
-                VanillaItemsArmor.corruptedBody, VanillaItemsArmor.corruptedHelmet)) e.ammount *= 1.2F;
+                VanillaItemsArmor.corruptedBody, VanillaItemsArmor.corruptedHelmet)) {
+            e.ammount *= 1.2F;
+            note(p, "Сет Corrupted: стрельба x1.2");
+        }
         }
         if (melee && set(a, VetheaItems.glisteningBoots, VetheaItems.glisteningLegs, VetheaItems.glisteningBody, VetheaItems.glisteningHelmet))
+        {
             e.ammount += 3.0F;
-        if (melee && set(a, VetheaItems.demonizedBoots, VetheaItems.demonizedLegs, VetheaItems.demonizedBody, VetheaItems.demonizedHelmet))
+            note(p, "Сет Glistening: +3");
+        }
+        if (melee && set(a, VetheaItems.demonizedBoots, VetheaItems.demonizedLegs, VetheaItems.demonizedBody, VetheaItems.demonizedHelmet)) {
             e.ammount += 6.0F;
+            note(p, "Сет Demonized: +6");
+        }
         if (melee && set(a, VetheaItems.tormentedBoots, VetheaItems.tormentedLegs, VetheaItems.tormentedBody, VetheaItems.tormentedHelmet))
+        {
             e.ammount += 9.0F;
+            note(p, "Сет Tormented: +9");
+        }
     }
 }

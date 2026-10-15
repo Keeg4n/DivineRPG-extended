@@ -34,14 +34,19 @@ public class ColdMobs {
     public void onHurt(LivingHurtEvent event) {
         Entity attacker = event.source.getEntity();
         if (isCold(event.entityLiving)) {
-            if (event.source.isFireDamage()) event.ammount *= 2.0F;
+            if (event.source.isFireDamage()) {
+                event.ammount *= 2.0F;
+                com.divinerpgextended.debug.Debug.note(event.entityLiving, "Холодный моб: огонь x2");
+            }
             if (attacker instanceof EntityPlayer && isHellWeapon((EntityPlayer) attacker)) {
                 event.ammount *= 2.0F;
                 event.entityLiving.setFire(5);
+                com.divinerpgextended.debug.Debug.note(attacker, "Адское оружие по холодному мобу: x2 и поджог");
             }
         } else if (event.entityLiving instanceof EntityPlayer && isCold(attacker)
             && PerkEffects.wearsFireArmor((EntityPlayer) event.entityLiving)) {
                 event.ammount *= 0.5F;
+                com.divinerpgextended.debug.Debug.note(event.entityLiving, "Огненная броня: от холодных мобов x0.5");
             }
     }
 }

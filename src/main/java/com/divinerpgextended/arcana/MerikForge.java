@@ -148,6 +148,7 @@ public class MerikForge {
             default:
         }
         e.ammount *= mult;
+        com.divinerpgextended.debug.Debug.note(p, "Перековка " + r.name() + ": x" + mult);
         if (r == Reforge.BLOODTHIRSTY) p.heal(Math.max(0.5F, e.ammount * 0.04F));
     }
 

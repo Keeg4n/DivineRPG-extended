@@ -202,7 +202,10 @@ public class PetTraining {
     public void onOwnerHurt(LivingHurtEvent e) {
         if (!(e.entityLiving instanceof EntityPlayer) || e.entityLiving.worldObj.isRemote || !e.source.isExplosion()) return;
         int lvl = nearPet((EntityPlayer) e.entityLiving, EntityStoneGolem.class, 10);
-        if (lvl >= 2) e.ammount *= lvl >= 3 ? 0.25F : 0.5F;
+        if (lvl >= 2) {
+            e.ammount *= lvl >= 3 ? 0.25F : 0.5F;
+            com.divinerpgextended.debug.Debug.note(e.entityLiving, "Каменный голем рядом: взрыв x" + (lvl >= 3 ? "0.25" : "0.5"));
+        }
     }
 
     /** Snapper 3: под водой копаешь без замедления. */
@@ -282,6 +285,7 @@ public class PetTraining {
         int lvl = level(src);
         if (lvl <= 0) return;
         e.ammount *= 1.0F + 0.2F * lvl;
+        com.divinerpgextended.debug.Debug.note(src, "Питомец уровня " + lvl + ": урон x" + (1.0F + 0.2F * lvl));
         if (src instanceof EntityFyracryx && lvl >= 3) e.entityLiving.setFire(4);
     }
 

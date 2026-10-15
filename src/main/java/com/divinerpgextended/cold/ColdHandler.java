@@ -214,6 +214,9 @@ public class ColdHandler {
         if (attacker == null || !attacker.getClass()
             .getName()
             .startsWith("net.divinerpg.entities.iceika")) return;
-        if (PerkEffects.wears((EntityPlayer) event.entityLiving, FROZEN)) event.ammount *= 0.9F;
+        if (PerkEffects.wears((EntityPlayer) event.entityLiving, FROZEN)) {
+            event.ammount *= 0.9F;
+            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Сет Frozen: от мобов Айсики x0.9");
+        }
     }
 }

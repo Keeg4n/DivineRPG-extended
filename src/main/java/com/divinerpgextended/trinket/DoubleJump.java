@@ -206,8 +206,12 @@ public class DoubleJump {
         public IMessage onMessage(Jump msg, MessageContext ctx) {
             EntityPlayerMP p = ctx.getServerHandler().playerEntity;
             State s = state(p);
-            if (s.used >= allowed(p)) return null; // крыла нет или прыжки кончились - падение считается как обычно
+            if (s.used >= allowed(p)) {
+                com.divinerpgextended.debug.Debug.note(p, "Прыжок в воздухе отклонён сервером: " + s.used + "/" + allowed(p));
+                return null; // крыла нет или прыжки кончились - падение считается как обычно
+            }
             s.used++;
+            com.divinerpgextended.debug.Debug.note(p, "Крыло Айрако: прыжок в воздухе " + s.used + "/" + allowed(p));
             p.fallDistance = 0;
             p.worldObj.playSoundAtEntity(p, "mob.enderdragon.wings", 0.35F, 1.6F);
             return null;

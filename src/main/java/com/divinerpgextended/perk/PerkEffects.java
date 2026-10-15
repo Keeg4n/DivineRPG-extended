@@ -67,8 +67,10 @@ public class PerkEffects {
         if (event.source.isFireDamage() && ArmorData.hasEquippedPerk(player, Perk.FIRE_PROTECTION)) {
             player.extinguish();
             event.setCanceled(true);
+            com.divinerpgextended.debug.Debug.note(player, "Перк защиты от огня: огонь не ранит");
         } else if (event.source.isExplosion() && ArmorData.hasEquippedPerk(player, Perk.EXPLOSION_PROTECTION)) {
             event.setCanceled(true);
+            com.divinerpgextended.debug.Debug.note(player, "Перк защиты от взрывов: взрыв не ранит");
         }
     }
 
@@ -98,17 +100,21 @@ public class PerkEffects {
         if (attacker instanceof EntityPlayer && !attacker.worldObj.isDaytime()
             && ArmorData.hasEquippedPerk((EntityPlayer) attacker, Perk.NIGHT_REAPER)) {
             event.ammount *= 1.2F;
+            com.divinerpgextended.debug.Debug.note(attacker, "Перк Ночной жнец: ночью x1.2");
         }
         if (attacker instanceof EntityCarcinus && "mob".equals(event.source.damageType)
             && event.entityLiving instanceof EntityPlayer
             && wearsWaterArmor((EntityPlayer) event.entityLiving)) {
             event.ammount *= (float) Config.carcinusWaterArmorFactor;
+            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Водная броня против клешней Карцинуса: x" + Config.carcinusWaterArmorFactor);
         }
         if (attacker instanceof EntityPlayer && isAquatic(event.entityLiving) && wears((EntityPlayer) attacker, KRAKEN)) {
             event.ammount *= 1.5F;
+            com.divinerpgextended.debug.Debug.note(attacker, "Сет Kraken: по водным x1.5");
         } else if (event.entityLiving instanceof EntityPlayer && isAquatic(attacker)
             && wears((EntityPlayer) event.entityLiving, KRAKEN)) {
                 event.ammount *= 0.7F;
+                com.divinerpgextended.debug.Debug.note(event.entityLiving, "Сет Kraken: от водных x0.7");
             }
     }
 

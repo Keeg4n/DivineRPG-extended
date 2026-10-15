@@ -113,7 +113,10 @@ public class ProgressSpawns {
     public void onAttack(LivingAttackEvent event) {
         if (!(event.entityLiving instanceof EntityPlayer) || event.entityLiving.worldObj.isRemote
             || !gated(event.entityLiving.worldObj)) return;
-        if (tier(event.source.getEntity()) > rank((EntityPlayer) event.entityLiving)) event.setCanceled(true);
+        if (tier(event.source.getEntity()) > rank((EntityPlayer) event.entityLiving)) {
+            event.setCanceled(true);
+            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Моб выше твоего ранга: урон отменён");
+        }
     }
 
     private static final String NO_DROPS = "dreNoDrops";
