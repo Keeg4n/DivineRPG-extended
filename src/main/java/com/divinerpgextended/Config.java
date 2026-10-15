@@ -53,6 +53,8 @@ public class Config {
     /** Ветея: чужие вещи наоборот; этажи (разломы, страж, крылья, запрет полёта); свои вещи из других модов. */
     public static boolean vetheaNightmare = true, vetheaFloors = true;
     public static String[] vetheaWhitelist = {};
+    /** Журнал аудита для админов (logs/dre-audit.log) и запись в HawkEye, если он есть на сервере. */
+    public static boolean auditLog = true, auditHawkEye = true;
 
     /** Массив из конфига; если в старом файле он короче нового - дополняется значениями по умолчанию. */
     private static int[] intList(Configuration cfg, String cat, String key, int[] def, String comment) {
@@ -153,6 +155,10 @@ public class Config {
                 + "сбрасывает, обычный полёт выключен (кроме творческого режима)");
         vetheaWhitelist = cfg.getStringList("vetheaWhitelist", v, vetheaWhitelist,
             "Предметы других модов, которые в Ветее считаются своими (modid:name, по одному в строке)");
+        auditLog = cfg.getBoolean("auditLog", "audit", auditLog,
+            "Журнал действий для админов: logs/dre-audit.log (аксессуары, переноска питомцев, /dreinv, сделки и услуги торговцев, дары и возврат вещей Ветеи)");
+        auditHawkEye = cfg.getBoolean("auditHawkEye", "audit", auditHawkEye,
+            "Те же действия - в HawkEye, если он стоит на сервере (тип OTHER, действия DRE ...)");
         if (cfg.hasChanged()) {
             cfg.save();
         }

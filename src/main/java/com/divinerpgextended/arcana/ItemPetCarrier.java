@@ -63,6 +63,7 @@ public class ItemPetCarrier extends Item {
         e.setLocationAndAngles(x + 0.5 + Facing.offsetsXForSide[side], y + Facing.offsetsYForSide[side], z + 0.5 + Facing.offsetsZForSide[side],
             p.rotationYaw, 0);
         if (!w.spawnEntityInWorld(e)) return false; // выпуск запрещён (приват и т.п.) - питомец остаётся в переноске
+        com.divinerpgextended.audit.Audit.log(p, "Pet release", e.getCommandSenderName() + " @ " + x + " " + y + " " + z);
         s.getTagCompound().removeTag(PET);
         w.playSoundAtEntity(e, "random.pop", 0.6F, 0.8F);
         return true;
@@ -102,6 +103,7 @@ public class ItemPetCarrier extends Item {
                 if (!held.hasTagCompound()) held.setTagCompound(new NBTTagCompound());
                 held.getTagCompound().setTag(PET, tag);
                 t.setDead();
+                com.divinerpgextended.audit.Audit.log(p, "Pet capture", t.getCommandSenderName());
                 p.worldObj.playSoundAtEntity(p, "random.pop", 0.6F, 1.4F);
                 com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.petCarrier);
                 p.inventoryContainer.detectAndSendChanges();

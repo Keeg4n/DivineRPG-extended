@@ -71,6 +71,7 @@ public class CommandDreInv extends CommandBase {
         PENDING.put(admin.getUniqueID(), acc);
         admin.openGui(DivineRPGExtended.instance, GuiHandler.ACCESSORIES, admin.worldObj, acc.unlocked, acc.readOnly ? 1 : 0, 0);
         admin.addChatMessage(new ChatComponentTranslation(acc.readOnly ? "dre.cmd.inv_offline" : "dre.cmd.inv_online", name));
+        com.divinerpgextended.audit.Audit.log(admin, "dreinv", name + (acc.readOnly ? " - просмотр (не в сети)" : " - правка"));
     }
 
     /** Снимок аксессуаров игрока не в сети - из world/playerdata/UUID.dat. */

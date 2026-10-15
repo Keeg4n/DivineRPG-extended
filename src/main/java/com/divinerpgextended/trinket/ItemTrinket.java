@@ -81,6 +81,7 @@ public class ItemTrinket extends Item {
         if (w.isRemote) return s;
         if (com.divinerpgextended.accessory.Accessories.of(p).equip(s)) {
             w.playSoundAtEntity(p, "random.orb", 0.5F, 1.4F);
+            com.divinerpgextended.audit.Audit.log(p, "Accessory", "надет из руки: " + s.getDisplayName());
             if (!p.capabilities.isCreativeMode) s.stackSize--;
         } else {
             p.addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.accessories.no_slot"));

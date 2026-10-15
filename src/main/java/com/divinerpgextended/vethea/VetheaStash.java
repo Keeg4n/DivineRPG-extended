@@ -41,6 +41,7 @@ public class VetheaStash {
     }
 
     private static void say(EntityPlayer p, String key, Object... args) {
+        com.divinerpgextended.audit.Audit.say(p, key, args);
         ChatComponentTranslation c = new ChatComponentTranslation(key, args);
         c.setChatStyle(new ChatStyle().setColor(EnumChatFormatting.LIGHT_PURPLE));
         p.addChatMessage(c);

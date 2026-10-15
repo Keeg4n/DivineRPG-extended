@@ -40,6 +40,29 @@ public class ContainerAccessories extends Container {
         }
     }
 
+    /** Любое перекладывание в слотах аксессуаров - в журнал аудита: кто, у кого, что было и что стало. */
+    @Override
+    public ItemStack slotClick(int slot, int button, int mode, EntityPlayer p) {
+        String[] before = new String[Accessories.SIZE];
+        for (int i = 0; i < Accessories.SIZE; i++) before[i] = name(acc.getStackInSlot(i));
+        ItemStack r = super.slotClick(slot, button, mode, p);
+        if (!p.worldObj.isRemote) {
+            for (int i = 0; i < Accessories.SIZE; i++) {
+                String now = name(acc.getStackInSlot(i));
+                if (!now.equals(before[i])) {
+                    String owner = acc.player != null ? acc.player.getCommandSenderName() : "?";
+                    com.divinerpgextended.audit.Audit.log(p, "Accessory", (acc.player == p ? "" : "у " + owner + " ") + "слот " + (i + 1) + ": " + before[i]
+                        + " > " + now);
+                }
+            }
+        }
+        return r;
+    }
+
+    private static String name(ItemStack s) {
+        return s == null ? "пусто" : s.getDisplayName();
+    }
+
     public ContainerAccessories(EntityPlayer viewer, Accessories acc) {
         this.acc = acc;
         for (int i = 0; i < Accessories.SIZE; i++) addSlotToContainer(new AccessorySlot(acc, i, SLOT_X + i * 18, SLOT_Y));

@@ -47,6 +47,7 @@ public class JackOMan {
     private static final Map<UUID, long[]> PENDING = new HashMap<UUID, long[]>();
 
     private static void say(EntityPlayer p, EnumChatFormatting color, String key, Object... args) {
+        com.divinerpgextended.audit.Audit.say(p, key, args);
         ChatComponentTranslation c = new ChatComponentTranslation(key, args);
         c.setChatStyle(new ChatStyle().setColor(color));
         p.addChatMessage(c);

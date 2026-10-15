@@ -58,6 +58,7 @@ public class Vatticus {
     public static final int TASK_COUNT = 8;
 
     private static void say(EntityPlayer p, EnumChatFormatting color, String key, Object... args) {
+        com.divinerpgextended.audit.Audit.say(p, key, args);
         ChatComponentTranslation c = new ChatComponentTranslation(key, args);
         c.setChatStyle(new ChatStyle().setColor(color));
         p.addChatMessage(c);
