@@ -1,0 +1,21 @@
+{
+	"modListVersion": 2,
+	"modList": [{
+		"modid": "divinerpgextended",
+		"name": "DivineRPG Extended",
+		"description": "Аддон к DivineRPG: связная прогрессия, броня Странника, которая растёт вместе с игроком, перки за победы над боссами.",
+		"version": "${version}",
+		"mcversion": "${mcversion}",
+		"url": "",
+		"updateUrl": "",
+		"authorList": [],
+		"credits": "Основан на DivineRPG (Eternaldoom, RadioactiveStud, XolovA и др.)",
+		"logoFile": "",
+		"screenshots": [],
+		"parent": "",
+		"requiredMods": ["divinerpg"],
+		"dependencies": ["divinerpg"],
+		"dependants": [],
+		"useDependencyInformation": true
+	}]
+}

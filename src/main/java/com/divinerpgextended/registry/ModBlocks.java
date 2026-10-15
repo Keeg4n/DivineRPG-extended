@@ -1,0 +1,72 @@
+package com.divinerpgextended.registry;
+
+import net.minecraft.block.Block;
+
+import com.divinerpgextended.block.BlockBossAltar;
+import com.divinerpgextended.block.BlockBrazier;
+import com.divinerpgextended.block.BlockFrostIce;
+import com.divinerpgextended.block.BlockBubbleCurtain;
+import com.divinerpgextended.block.BlockBurrow;
+import com.divinerpgextended.block.BlockCarcinusHeart;
+import com.divinerpgextended.block.BlockHearth;
+import com.divinerpgextended.block.BlockRimeOre;
+import com.divinerpgextended.block.BlockSharkNest;
+import com.divinerpgextended.block.BlockTrapFloor;
+import com.divinerpgextended.station.BlockWandererAnvil;
+import com.divinerpgextended.station.TileWandererAnvil;
+
+import cpw.mods.fml.common.registry.GameRegistry;
+
+public final class ModBlocks {
+
+    public static Block wandererAnvil;
+    public static Block carcinusAltar;
+    public static Block glaconAltar;
+    public static Block burrow;
+    public static Block carcinusHeart;
+    public static Block bubbleCurtain;
+    public static Block sharkNest;
+    public static Block hearth;
+    public static Block frostIce;
+    public static Block brazier;
+    public static Block throneAltar;
+    public static Block rimeOre;
+    public static Block tombAltar;
+    public static Block trapFloor;
+
+    private ModBlocks() {}
+
+    public static void register() {
+        wandererAnvil = new BlockWandererAnvil();
+        GameRegistry.registerBlock(wandererAnvil, "wandererAnvil");
+        GameRegistry.registerTileEntity(TileWandererAnvil.class, "divinerpgextended:wandererAnvil");
+        carcinusAltar = new BlockBossAltar(BlockBossAltar.CARCINUS);
+        GameRegistry.registerBlock(carcinusAltar, "carcinusAltar");
+        glaconAltar = new BlockBossAltar(BlockBossAltar.SNOW_GLACON);
+        GameRegistry.registerBlock(glaconAltar, "glaconAltar");
+        burrow = new BlockBurrow();
+        GameRegistry.registerBlock(burrow, "burrow");
+        bubbleCurtain = new BlockBubbleCurtain();
+        GameRegistry.registerBlock(bubbleCurtain, "bubbleCurtain");
+        carcinusHeart = new BlockCarcinusHeart();
+        GameRegistry.registerBlock(carcinusHeart, "carcinusHeart");
+        GameRegistry.registerTileEntity(BlockCarcinusHeart.Tile.class, "divinerpgextended:carcinusHeart");
+        sharkNest = new BlockSharkNest();
+        GameRegistry.registerBlock(sharkNest, "sharkNest");
+        GameRegistry.registerTileEntity(BlockSharkNest.Tile.class, "divinerpgextended:sharkNest");
+        hearth = new BlockHearth();
+        GameRegistry.registerBlock(hearth, "hearth");
+        frostIce = new BlockFrostIce();
+        GameRegistry.registerBlock(frostIce, "frostIce");
+        brazier = new BlockBrazier();
+        GameRegistry.registerBlock(brazier, "brazier");
+        throneAltar = new BlockBossAltar(BlockBossAltar.THRONE);
+        GameRegistry.registerBlock(throneAltar, "throneAltar");
+        rimeOre = new BlockRimeOre();
+        GameRegistry.registerBlock(rimeOre, "rimeOre");
+        tombAltar = new BlockBossAltar(BlockBossAltar.TOMB);
+        GameRegistry.registerBlock(tombAltar, "tombAltar");
+        trapFloor = new BlockTrapFloor();
+        GameRegistry.registerBlock(trapFloor, "trapFloor");
+    }
+}
