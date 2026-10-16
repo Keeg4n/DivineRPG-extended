@@ -27,8 +27,10 @@ import cpw.mods.fml.relauncher.SideOnly;
  */
 public class ItemLairMap extends Item {
 
-    private static final String[] KEYS = { "carcinus", "snow", "throne", "tomb", "nest", "circle" };
-    private static final int[] COLORS = { 0x4FA3C8, 0xDDEEFF, 0x6FC8FF, 0xE8C060, 0x7FD15A, 0xB0302A };
+    private static final String[] KEYS = { "carcinus", "snow", "throne", "tomb", "nest", "circle", "watcher", "scorchers", "ayeraco" };
+    private static final int[] COLORS = { 0x4FA3C8, 0xDDEEFF, 0x6FC8FF, 0xE8C060, 0x7FD15A, 0xB0302A, 0x7A2E4E, 0xF07A20, 0xD0C890 };
+    /** Мета карт к логовам Ада и Энда: Смотритель, Король скорчеров, орда Айрако. */
+    public static final int WATCHER = 6, SCORCHERS = 7, AYERACO = 8;
     /** Мета карты к гнезду Великого кадиллиона (в его мире) и к Демоническому кругу (Мортум). */
     public static final int NEST = 4, CIRCLE = 5;
     private static final String[] DIRS = { "s", "sw", "w", "nw", "n", "ne", "e", "se" };
@@ -62,6 +64,7 @@ public class ItemLairMap extends Item {
         if (world.isRemote) return stack;
         int t = type(stack);
         if (t == NEST || t == CIRCLE) return twilight(stack, world, player, t);
+        if (t >= WATCHER) return outer(world, player, t);
         // логова - в обычном мире, Ледяной Трон - в Iceika
         int dim = t == LairData.THRONE ? net.divinerpg.utils.config.ConfigurationHelper.iceika : 0;
         if (world.provider.dimensionId != dim) {
@@ -111,6 +114,25 @@ public class ItemLairMap extends Item {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.map_none_" + KEYS[t]));
             return stack;
         }
+        player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, c[0], c[2]),
+            direction(player, c[0], c[2]), c[1] + 1, c[0], c[2]));
+        return stack;
+    }
+
+    /** Логова Ада и Энда - из сида. */
+    private static ItemStack outer(World world, EntityPlayer player, int t) {
+        int type = t - WATCHER;
+        ItemStack stack = player.getHeldItem();
+        if (!com.divinerpgextended.world.WorldGenOuterLairs.enabled(type)) {
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.map_none_" + KEYS[t]));
+            return stack;
+        }
+        if (world.provider.dimensionId != com.divinerpgextended.world.WorldGenOuterLairs.dim(type)) {
+            player.addChatMessage(new ChatComponentTranslation(type == com.divinerpgextended.world.WorldGenOuterLairs.AYERACO ? "dre.chat.map_end"
+                : "dre.chat.map_nether"));
+            return stack;
+        }
+        int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(world.getSeed(), type, player.posX, player.posZ);
         player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, c[0], c[2]),
             direction(player, c[0], c[2]), c[1] + 1, c[0], c[2]));
         return stack;
@@ -178,6 +200,9 @@ public class ItemLairMap extends Item {
         list.add(new ItemStack(item, 1, 3));
         list.add(new ItemStack(item, 1, NEST));
         list.add(new ItemStack(item, 1, CIRCLE));
+        list.add(new ItemStack(item, 1, WATCHER));
+        list.add(new ItemStack(item, 1, SCORCHERS));
+        list.add(new ItemStack(item, 1, AYERACO));
     }
 
     @Override

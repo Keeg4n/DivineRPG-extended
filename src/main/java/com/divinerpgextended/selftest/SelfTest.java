@@ -1767,6 +1767,47 @@ public class SelfTest {
                     + ", возврат " + back + " (" + dist + ")");
             return "лагерь в Скайтерне: Странник (" + deals + " сделок), горящий костёр; костёр запомнил - возрождение у него";
         });
+        t("Логова", "Обсерватория Смотрителя", () -> {
+            int type = com.divinerpgextended.world.WorldGenOuterLairs.WATCHER;
+            WorldServer w = server.worldServerForDimension(-1);
+            int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
+            loadAround(w, c[0], c[2], 3);
+            int f = com.divinerpgextended.world.WorldGenOuterLairs.FLOOR[type], R = com.divinerpgextended.world.WorldGenOuterLairs.RADIUS[type];
+            boolean hall = w.getBlock(c[0], f, c[2]) == Blocks.glowstone && w.isAirBlock(c[0] + 4, f + 6, c[2] + 4)
+                && w.isAirBlock(c[0] + R + 4, f + 2, c[2]);
+            TestPlayer v = player(-1, "TestWatcher", c[0], f + 1, c[2]);
+            net.minecraft.item.Item call = net.divinerpg.utils.items.VanillaItemsOther.callWatcher;
+            String in = com.divinerpgextended.boss.LairSummons.refusal(v, call, c[0] + 3, f, c[2] - 2);
+            String out = com.divinerpgextended.boss.LairSummons.refusal(v, call, c[0] + 200, 60, c[2]);
+            check(hall && in == null && "dre.chat.summon_lair_0".equals(out), "зал " + hall + ", внутри " + in + ", снаружи " + out);
+            return "зал в Аду в " + c[0] + "," + c[2] + " (пол y=" + f + ", тоннели наружу); Зов работает только внутри";
+        });
+        t("Логова", "Огненная палата", () -> {
+            int type = com.divinerpgextended.world.WorldGenOuterLairs.SCORCHERS;
+            WorldServer w = server.worldServerForDimension(-1);
+            int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
+            loadAround(w, c[0], c[2], 3);
+            int f = com.divinerpgextended.world.WorldGenOuterLairs.FLOOR[type];
+            boolean moat = w.getBlock(c[0] + 8, f, c[2] + 8).getMaterial() == net.minecraft.block.material.Material.lava;
+            boolean bridge = w.getBlock(c[0] + 11, f, c[2]) == Blocks.nether_brick && w.isAirBlock(c[0] + 3, f + 3, c[2] + 3);
+            String out = com.divinerpgextended.boss.LairSummons.refusal(p, net.divinerpg.utils.items.VanillaItemsOther.infernalFlame, c[0] + 200, 60, c[2]);
+            check(moat && bridge && "dre.chat.summon_lair_1".equals(out), "ров " + moat + ", мостик " + bridge + ", снаружи " + out);
+            return "палата в Аду в " + c[0] + "," + c[2] + ": лавовый ров с мостиками; пламя вне палаты не работает";
+        });
+        t("Логова", "Гнездовье Айрако", () -> {
+            int type = com.divinerpgextended.world.WorldGenOuterLairs.AYERACO;
+            WorldServer w = server.worldServerForDimension(1);
+            int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
+            loadAround(w, c[0], c[2], 3);
+            int f = com.divinerpgextended.world.WorldGenOuterLairs.FLOOR[type];
+            boolean nest = w.getBlock(c[0], f, c[2]) == Blocks.glowstone && w.isAirBlock(c[0] + 2, f + 4, c[2] + 2);
+            TestPlayer v = player(1, "TestAerie", c[0], f + 1, c[2]);
+            net.minecraft.item.Item horn = net.divinerpg.utils.items.VanillaItemsOther.hordeHorn;
+            String in = com.divinerpgextended.boss.LairSummons.refusal(v, horn, c[0] + 2, f, c[2] + 3);
+            String out = com.divinerpgextended.boss.LairSummons.refusal(v, horn, 0, 64, 0);
+            check(nest && in == null && "dre.chat.summon_lair_2".equals(out), "гнездовье " + nest + ", внутри " + in + ", снаружи " + out);
+            return "гнездовье в Энде в " + c[0] + "," + c[2] + " (" + (int) Math.sqrt(c[0] * c[0] + c[2] * c[2]) + " блоков от центра); рог только там";
+        });
         t("Логова", "Карта к гнезду", () -> {
             int dim = ConfigurationHelper.eden;
             TestPlayer v = player(dim, "TestNestMap", 100, 150, 100);

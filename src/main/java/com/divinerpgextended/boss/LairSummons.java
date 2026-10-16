@@ -10,6 +10,7 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
 import com.divinerpgextended.Config;
 import com.divinerpgextended.block.BlockBossAltar;
+import com.divinerpgextended.world.WorldGenOuterLairs;
 import com.divinerpgextended.world.twilight.WorldGenNests;
 
 import cpw.mods.fml.common.eventhandler.Event;
@@ -22,6 +23,8 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * <li>Кристаллы сумеречных боссов (Сумеречный демон, Карот, Вечный лучник, Денсос и Рейвор, Пожиратель душ,
  * Вамачерон) - только внутри Демонического круга Мортума.</li>
  * <li>Таинственные часы (Древняя сущность) - только на алтаре гробницы.</li>
+ * <li>Зов Смотрителя, Инфернальное пламя, Рог орды Айрако - только в своих логовах в Аду и Энде
+ * ({@link WorldGenOuterLairs}).</li>
  * </ul>
  * Творческий режим не ограничен (админам для проверок).
  */
@@ -53,10 +56,19 @@ public class LairSummons {
     @SubscribeEvent
     public void onJoin(net.minecraftforge.event.entity.EntityJoinWorldEvent e) {
         if (e.world.isRemote || !(e.entity instanceof net.minecraft.entity.EntityLiving) || e.entity.getEntityData().hasKey(HOME)) return;
-        if (!(e.entity instanceof net.minecraft.entity.boss.IBossDisplayData || e.entity instanceof net.divinerpg.entities.base.EntityDivineRPGBoss)) return;
-        if (!WorldGenNests.inCircle(e.world, e.entity.posX, e.entity.posY, e.entity.posZ)) return;
-        int[] c = WorldGenNests.nearest(e.world.getSeed(), e.world.provider.dimensionId, e.entity.posX, e.entity.posZ);
-        leash(e.entity, c[0], WorldGenNests.TOP + 1, c[2], WorldGenNests.CIRCLE_R - 2);
+        if (!(e.entity instanceof net.minecraft.entity.boss.IBossDisplayData || e.entity instanceof net.divinerpg.entities.base.EntityDivineRPGBoss
+            || e.entity instanceof net.divinerpg.entities.vanilla.EntityAyeraco)) return;
+        if (WorldGenNests.inCircle(e.world, e.entity.posX, e.entity.posY, e.entity.posZ)) {
+            int[] c = WorldGenNests.nearest(e.world.getSeed(), e.world.provider.dimensionId, e.entity.posX, e.entity.posZ);
+            leash(e.entity, c[0], WorldGenNests.TOP + 1, c[2], WorldGenNests.CIRCLE_R - 2);
+            return;
+        }
+        for (int type = 0; type < 3; type++) {
+            if (!WorldGenOuterLairs.inside(e.world, type, e.entity.posX, e.entity.posY, e.entity.posZ)) continue;
+            int[] c = WorldGenOuterLairs.nearest(e.world.getSeed(), type, e.entity.posX, e.entity.posZ);
+            leash(e.entity, c[0], WorldGenOuterLairs.FLOOR[type] + 1, c[2], WorldGenOuterLairs.RADIUS[type] - 3);
+            return;
+        }
     }
 
     @SubscribeEvent
@@ -79,6 +91,10 @@ public class LairSummons {
             return WorldGenNests.inCircle(p.worldObj, x + 0.5, y + 1, z + 0.5) ? null : "dre.chat.summon_circle";
         }
         if (item == VanillaItemsOther.mysteriousClock) return "dre.chat.summon_tomb";
-        return null;
+        int type = item instanceof net.divinerpg.items.vanilla.ItemCallOfTheWatcher ? WorldGenOuterLairs.WATCHER
+            : item instanceof net.divinerpg.items.vanilla.ItemInfernalFlame ? WorldGenOuterLairs.SCORCHERS
+                : item instanceof net.divinerpg.items.vanilla.ItemHordeHorn ? WorldGenOuterLairs.AYERACO : -1;
+        if (type < 0 || !WorldGenOuterLairs.enabled(type)) return null;
+        return WorldGenOuterLairs.inside(p.worldObj, type, x + 0.5, y + 1, z + 0.5) ? null : "dre.chat.summon_lair_" + type;
     }
 }

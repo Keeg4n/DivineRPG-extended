@@ -189,6 +189,7 @@ public class CommonProxy {
         GameRegistry.registerWorldGenerator(new WorldGenThrone(), 60);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.WorldGenNests(), 62);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.WorldGenTwilightFeatures(), 64);
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenOuterLairs(), 66);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaDoors(), 70);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenTomb(), 55);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.ClockGuard());
@@ -216,6 +217,14 @@ public class CommonProxy {
             net.divinerpg.utils.items.TwilightItemsOther.edenFragments, 'P', Items.paper);
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.CIRCLE), "SSS", "SPS", "SSS", 'S',
             net.divinerpg.utils.items.TwilightItemsOther.mortumFragments, 'P', Items.paper);
+
+        // Карты к логовам Ада и Энда: бумага в адском кирпиче (Смотритель), огненном порошке (скорчеры), эндерняке (Айрако)
+        GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.WATCHER), "SSS", "SPS", "SSS", 'S',
+            Items.netherbrick, 'P', Items.paper);
+        GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.SCORCHERS), "SSS", "SPS", "SSS", 'S',
+            Items.blaze_powder, 'P', Items.paper);
+        GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.AYERACO), "SSS", "SPS", "SSS", 'S',
+            Blocks.end_stone, 'P', Items.paper);
 
         // Карта Ледяного Трона: бумага в ледяных осколках
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, 2), "SSS", "SPS", "SSS", 'S', IceikaItems.iceShards,

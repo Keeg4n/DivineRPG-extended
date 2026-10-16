@@ -39,6 +39,8 @@ public class Config {
     public static int throneSpacing = 2048, throneSummonSnowflakes = 12;
     /** Логова боссов сумеречных миров (гнёзда кадиллионов, Демонический круг): одно на квадрат N x N блоков. */
     public static int nestSpacing = 640;
+    /** Логова Смотрителя и Короля скорчеров в Аду: одно каждого на квадрат N x N (0 - нет, вместе с гнездовьем Айрако). */
+    public static int netherLairSpacing = 384;
     /** Боссов вызывают только в их логовах (алтари, круг); выключить - вызов где угодно, как в Divine. */
     public static boolean summonOnlyInLairs = true;
     /** Постройки сумеречных миров: 1 на N чанков (0 - нет). */
@@ -133,6 +135,8 @@ public class Config {
             "Мосты между близкими островами сумеречных миров (пролёт 4-14 блоков): пробовать в 1 из N чанков, ставится только если рядом есть пропасть подходящей ширины (0 - не генерировать)");
         twilightCampRarity = cfg.getInt("twilightCampRarity", "worldgen", twilightCampRarity, 0, 100000,
             "Лагеря странников в сумеречных мирах (торговец, костёр - точка возрождения): в среднем 1 на N чанков (0 - не генерировать)");
+        netherLairSpacing = cfg.getInt("netherLairSpacing", "worldgen", netherLairSpacing, 0, 100000,
+            "Логова Ада (Обсерватория Смотрителя, Огненная палата Короля скорчеров): одно каждого на квадрат N x N блоков Ада; 0 - не генерировать их и гнездовье Айрако в Энде (тогда их предметы вызова работают где угодно)");
         summonOnlyInLairs = cfg.getBoolean("summonOnlyInLairs", b, summonOnlyInLairs,
             "Боссов вызывают только в их логовах: зов кадиллиона - на алтаре гнезда, кристаллы Мортума - в Демоническом круге, Таинственные часы - на алтаре гробницы. false - где угодно, как в Divine");
         throneSpacing = cfg.getInt("throneSpacing", "worldgen", throneSpacing, 0, 100000,
