@@ -33,7 +33,7 @@ public class TwilightRelight {
     private static final int DONE = 4096;
     /** Перепроверка Minecraft идёт только в активных чанках вокруг игрока (радиус 7) - берём с запасом. */
     private static final int RADIUS = 8;
-    private static final long BUDGET_NS = 2000000L, SLOW_NS = 50000000L;
+    private static final long BUDGET_NS = 2000000L, SLOW_NS = 8000000L;
 
     private Field queued, gaps;
     /** Чанк, где остановилась его перепроверка (счётчик Minecraft прячем, своё значение храним здесь). */
@@ -101,7 +101,7 @@ public class TwilightRelight {
                     long t0 = System.nanoTime();
                     c.enqueueRelightChecks(); // 8 шагов Minecraft с этого места
                     q = queued.getInt(c);
-                    // один шаг дольше 50 мс - свет тут разлит огромной волной (большая постройка над пустотой):
+                    // один шаг дольше 8 мс - свет тут разлит огромной волной (большая постройка над пустотой):
                     // дальше не проверяем этот чанк, чтобы не висеть секундами
                     if (System.nanoTime() - t0 > SLOW_NS) q = DONE;
                 }

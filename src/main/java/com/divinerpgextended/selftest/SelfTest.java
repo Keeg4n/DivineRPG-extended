@@ -1642,6 +1642,56 @@ public class SelfTest {
             check(bosses.size() == 1 && (left == null || left.stackSize == 0), "кадиллионов в центре " + bosses.size() + ", зов в руке " + left);
             return "роща в " + c[0] + "," + c[2] + " на высоте " + top + ": алтарь у святилища, свет в центре поляны; Зов на алтаре - кадиллион в центре";
         });
+        t("Логова", "Бой с кадиллионом", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            int x = 9500, y = 100, z = 9500;
+            loadAround(w, x + 8, z, 3); // сущность обновляется, только если вокруг на 32 блока загружено
+            for (int xi = -4; xi < 20; xi++) for (int zq = -6; zq <= 6; zq++) {
+                w.setBlock(x + xi, y - 1, z + zq, Blocks.stone);
+                for (int hh = y; hh < y + 6; hh++) w.setBlockToAir(x + xi, hh, z + zq);
+            }
+            com.divinerpgextended.entity.EntityGreatCadillion b = new com.divinerpgextended.entity.EntityGreatCadillion(w);
+            b.setVariant(0);
+            b.setLocationAndAngles(x + 0.5, y, z + 0.5, 0, 0);
+            w.spawnEntityInWorld(b);
+            TestPlayer v = player(ConfigurationHelper.eden, "TestCadFight", x + 5.5, y, z + 0.5);
+            // дальность и перезарядка обычного удара
+            boolean far = b.attackEntityAsMob(v);
+            v.setPosition(x + 2.5, y, z + 0.5);
+            v.hurtResistantTime = 0;
+            boolean near = b.attackEntityAsMob(v);
+            v.hurtResistantTime = 0;
+            boolean again = b.attackEntityAsMob(v);
+            // оглушённый получает двойной урон
+            b.stun(80);
+            float hp = b.getHealth();
+            b.hurtResistantTime = 0;
+            b.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(v), 10);
+            float lost = hp - b.getHealth();
+            // таран в стену: стена в 2 блока между боссом и игроком
+            b.setDead();
+            com.divinerpgextended.entity.EntityGreatCadillion c = new com.divinerpgextended.entity.EntityGreatCadillion(w);
+            c.setVariant(0);
+            c.setLocationAndAngles(x + 0.5, y, z + 0.5, 0, 0);
+            w.spawnEntityInWorld(c);
+            for (int zq = -6; zq <= 6; zq++) for (int hh = y; hh < y + 2; hh++) w.setBlock(x + 9, hh, z + zq, Blocks.stone);
+            for (int hh = y; hh < y + 3; hh++) w.setBlock(x + 13, hh, z, Blocks.stone); // игрок на столбе - видно поверх стены
+            v.setPosition(x + 13.5, y + 3, z + 0.5);
+            v.setHealth(v.getMaxHealth());
+            c.setAttackTarget(v);
+            boolean stunned = false;
+            int maxState = 0;
+            for (int tk = 0; tk < 300 && !stunned; tk++) {
+                c.setAttackTarget(v);
+                w.updateEntity(c);
+                maxState = Math.max(maxState, c.chargeState());
+                stunned = c.chargeState() == com.divinerpgextended.entity.EntityGreatCadillion.STUNNED;
+            }
+            c.setDead();
+            check(!far && near && !again && Math.abs(lost - 20) < 0.5 && stunned, "с 5 блоков " + far + ", с 2 " + near + ", сразу второй " + again
+                + ", урон оглушённому " + lost + " из 10, таран в стену оглушил " + stunned + " (стадия " + maxState + ", x " + (int) c.posX + ")");
+            return "бьёт только вблизи и раз в 1.25 с; таран в стену - оглушение, оглушённый получает двойной урон";
+        });
         t("Логова", "Зов мимо алтаря", () -> {
             int dim = ConfigurationHelper.eden;
             WorldServer w = server.worldServerForDimension(dim);

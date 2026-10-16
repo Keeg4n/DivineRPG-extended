@@ -23,6 +23,7 @@ import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 
 import com.divinerpgextended.Config;
 import com.divinerpgextended.boss.BossDamage;
@@ -37,6 +38,16 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
 
     private static final int DW_VARIANT = 20;
     private int abilityTimer = 100;
+
+    // ---- бой: дальность и перезарядка удара, таран с оглушением
+    /** Удар достаёт на столько блоков от центра (игрок мечом - примерно на 4.2): ближний бой честный. */
+    public static final double REACH = 3.6;
+    /** Перезарядка удара в тиках (ванильный ИИ 1.7.10 бьёт каждые полсекунды). */
+    public static final int ATTACK_COOLDOWN = 25;
+    public static final int IDLE = 0, WINDUP = 1, CHARGE = 2, STUNNED = 3;
+    private int chargeState = IDLE, stateTimer, chargeCooldown = 120, lastAttack = -100;
+    private double chargeX, chargeZ;
+    private boolean chargeHit;
 
     public EntityGreatCadillion(World world) {
         super(world);
@@ -123,17 +134,106 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
         return 0.6F;
     }
 
+    public int chargeState() {
+        return chargeState;
+    }
+
+    /** Оглушить на ticks: не бьёт, не ходит, получает двойной урон. */
+    public void stun(int ticks) {
+        chargeState = STUNNED;
+        stateTimer = ticks;
+        motionX = motionZ = 0;
+        getNavigator().clearPathEntity();
+        worldObj.playSoundAtEntity(this, "random.anvil_land", 1.5F, 0.5F);
+        for (Object o : worldObj.getEntitiesWithinAABB(EntityPlayer.class, boundingBox.expand(24, 12, 24))) {
+            ((EntityPlayer) o).addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.cadillion_stunned"));
+        }
+    }
+
+    /**
+     * Таран: раз в ~8 с, если цель в 5-20 блоках, кадиллион опускает рог (секунду стоит, искры и фырканье), потом
+     * мчится по прямой туда, где была цель. Врезался в ствол или колонну - оглушён на 4 с.
+     */
+    private void charge() {
+        EntityLivingBase t = getAttackTarget();
+        WorldServer ws = (WorldServer) worldObj;
+        switch (chargeState) {
+            case IDLE:
+                if (t == null || --chargeCooldown > 0) return;
+                double d = getDistanceToEntity(t);
+                if (d < 5 || d > 20 || !canEntityBeSeen(t)) return;
+                chargeState = WINDUP;
+                stateTimer = 20;
+                double dx = t.posX - posX, dz = t.posZ - posZ, len = Math.sqrt(dx * dx + dz * dz);
+                chargeX = dx / len;
+                chargeZ = dz / len;
+                worldObj.playSoundAtEntity(this, "mob.horse.angry", 2.0F, 0.6F);
+                return;
+            case WINDUP:
+                getNavigator().clearPathEntity();
+                motionX = motionZ = 0;
+                rotationYaw = renderYawOffset = rotationYawHead = (float) (Math.atan2(chargeZ, chargeX) * 180 / Math.PI) - 90;
+                ws.func_147487_a("angryVillager", posX, posY + height * 0.8, posZ, 2, 0.6, 0.3, 0.6, 0);
+                if (--stateTimer <= 0) {
+                    chargeState = CHARGE;
+                    stateTimer = 30;
+                    chargeHit = false;
+                }
+                return;
+            case CHARGE:
+                getNavigator().clearPathEntity();
+                motionX = chargeX * 0.85;
+                motionZ = chargeZ * 0.85;
+                ws.func_147487_a("cloud", posX, posY + 0.3, posZ, 3, 0.8, 0.1, 0.8, 0.02);
+                if (!chargeHit) {
+                    for (Object o : worldObj.getEntitiesWithinAABB(EntityPlayer.class, boundingBox.expand(0.6, 0.2, 0.6))) {
+                        EntityPlayer p = (EntityPlayer) o;
+                        p.attackEntityFrom(net.minecraft.util.DamageSource.causeMobDamage(this),
+                            (float) getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue() * 1.6F);
+                        p.motionX += chargeX * 1.2;
+                        p.motionZ += chargeZ * 1.2;
+                        p.velocityChanged = true;
+                        chargeHit = true;
+                    }
+                }
+                if (isCollidedHorizontally && stateTimer < 28) {
+                    stun(80);
+                    return;
+                }
+                if (--stateTimer <= 0) {
+                    chargeState = IDLE;
+                    chargeCooldown = 140 + rand.nextInt(60);
+                }
+                return;
+            default: // оглушён
+                getNavigator().clearPathEntity();
+                motionX = motionZ = 0;
+                if (ticksExisted % 4 == 0) ws.func_147487_a("crit", posX, posY + height, posZ, 6, 0.8, 0.3, 0.8, 0.1);
+                if (--stateTimer <= 0) {
+                    chargeState = IDLE;
+                    chargeCooldown = 140 + rand.nextInt(60);
+                }
+        }
+    }
+
+    @Override
+    public boolean attackEntityFrom(net.minecraft.util.DamageSource src, float amount) {
+        return super.attackEntityFrom(src, chargeState == STUNNED ? amount * 2 : amount);
+    }
+
     @Override
     public void onLivingUpdate() {
         super.onLivingUpdate();
-        if (worldObj.isRemote || getAttackTarget() == null) return;
+        if (worldObj.isRemote) return;
+        charge();
+        if (getAttackTarget() == null || chargeState != IDLE) return;
         if (--abilityTimer > 0) return;
 
         @SuppressWarnings("unchecked")
         List<EntityPlayer> near = worldObj.getEntitiesWithinAABB(EntityPlayer.class, boundingBox.expand(10, 6, 10));
         switch (world()) {
             case EDEN: // вспышка: ослепление
-                for (EntityPlayer p : near) p.addPotionEffect(new PotionEffect(Potion.blindness.id, 80, 0));
+                for (EntityPlayer p : near) p.addPotionEffect(new PotionEffect(Potion.blindness.id, 40, 0));
                 worldObj.playSoundAtEntity(this, "random.fizz", 2.0F, 0.5F);
                 abilityTimer = 200;
                 break;
@@ -180,10 +280,13 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
         dataWatcher.updateObject(DW_VARIANT, Byte.valueOf(tag.getByte("Variant")));
     }
 
+    /** Обычный удар: только вблизи, с перезарядкой, оглушённый и в таране не бьёт. */
     @Override
     public boolean attackEntityAsMob(Entity target) {
-        boolean hit = super.attackEntityAsMob(target);
-        if (hit) target.motionY += 0.4D;
-        return hit;
+        if (chargeState != IDLE || ticksExisted - lastAttack < ATTACK_COOLDOWN) return false;
+        double dx = target.posX - posX, dz = target.posZ - posZ;
+        if (dx * dx + dz * dz > REACH * REACH) return false;
+        lastAttack = ticksExisted;
+        return super.attackEntityAsMob(target);
     }
 }
