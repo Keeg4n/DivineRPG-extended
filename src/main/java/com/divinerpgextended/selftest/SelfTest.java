@@ -310,6 +310,22 @@ public class SelfTest {
     }
 
     /** Урон по цели: здоровье до минус после (минус - значит вылечили). */
+    /** Для превью: непустые блоки вокруг постройки в logs/<name>.txt (x y z блок мета). */
+    private static void dump(WorldServer w, int cx, int top, int cz, int r, String name) {
+        try {
+            java.io.PrintWriter out = new java.io.PrintWriter(new File(MinecraftServer.getServer().getFile("logs"), name + ".txt"), "UTF-8");
+            for (int x = cx - r; x <= cx + r; x++) for (int z = cz - r; z <= cz + r; z++) for (int y = top - 30; y <= top + 16; y++) {
+                net.minecraft.block.Block b = w.getBlock(x, y, z);
+                if (b.getMaterial() == net.minecraft.block.material.Material.air) continue;
+                out.println((x - cx) + " " + (y - top) + " " + (z - cz) + " " + net.minecraft.block.Block.blockRegistry.getNameForObject(b) + " "
+                    + w.getBlockMetadata(x, y, z));
+            }
+            out.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     /** Загрузить и заселить чанки вокруг точки (радиус в чанках + 1 на заселение краёв). */
     private static void loadAround(WorldServer w, int x, int z, int r) {
         for (int i = -r - 1; i <= r + 1; i++)
@@ -1612,7 +1628,8 @@ public class SelfTest {
             int az = c[2] - com.divinerpgextended.world.twilight.WorldGenNests.ALTAR_DZ;
             net.minecraft.block.Block altar = w.getBlock(c[0], top + 2, az), mid = w.getBlock(c[0], top, c[2]);
             boolean clear = w.isAirBlock(c[0], top + 5, c[2]) && w.isAirBlock(c[0] + 5, top + 3, c[2] + 5);
-            check(altar == com.divinerpgextended.registry.ModBlocks.nestAltar && mid == net.divinerpg.utils.blocks.TwilightBlocks.edenBlock && clear,
+            dump(w, c[0], top, c[2], 34, "nest-eden");
+            check(altar == com.divinerpgextended.registry.ModBlocks.nestAltar && mid == Blocks.glowstone && clear,
                 "в " + c[0] + "," + c[2] + ": алтарь " + altar.getUnlocalizedName() + ", центр " + mid.getUnlocalizedName() + ", над полом пусто " + clear);
             // алтарь принимает Зов Эдема и ставит кадиллиона в центр гнезда
             TestPlayer v = player(dim, "TestNest", c[0], top + 1, az + 2);
@@ -1623,7 +1640,7 @@ public class SelfTest {
             ItemStack left = v.getHeldItem();
             for (Object o : bosses) ((net.minecraft.entity.Entity) o).setDead();
             check(bosses.size() == 1 && (left == null || left.stackSize == 0), "кадиллионов в центре " + bosses.size() + ", зов в руке " + left);
-            return "гнездо в " + c[0] + "," + c[2] + " на высоте " + top + ": алтарь на помосте, центр из камня Эдема; Зов на алтаре - кадиллион в центре";
+            return "гнездо в " + c[0] + "," + c[2] + " на высоте " + top + ": алтарь на помосте, свет в центре; Зов на алтаре - кадиллион в центре";
         });
         t("Логова", "Зов мимо алтаря", () -> {
             int dim = ConfigurationHelper.eden;

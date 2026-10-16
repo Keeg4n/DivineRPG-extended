@@ -145,6 +145,8 @@ public class WorldGenNests implements IWorldGenerator {
     static class Nest extends ColumnStructure {
 
         private final TwilightWorld w;
+        /** Ветки, торчащие из вала наружу и вверх. */
+        private static final int TWIGS = 14;
 
         Nest(TwilightWorld w) {
             this.w = w;
@@ -160,37 +162,99 @@ public class WorldGenNests implements IWorldGenerator {
             return b == Blocks.glowstone || b == ModBlocks.nestAltar;
         }
 
+        /** Плавный шум 0..1 по ячейкам cell (билинейный по хэшам углов). */
+        static double noise(int x, int z, int cell, int salt) {
+            int gx = Math.floorDiv(x, cell), gz = Math.floorDiv(z, cell);
+            double fx = (x - gx * cell) / (double) cell, fz = (z - gz * cell) / (double) cell;
+            fx = fx * fx * (3 - 2 * fx);
+            fz = fz * fz * (3 - 2 * fz);
+            double a = hash(gx + salt, gz) % 1000 / 1000.0, b = hash(gx + 1 + salt, gz) % 1000 / 1000.0;
+            double c = hash(gx + salt, gz + 1) % 1000 / 1000.0, d = hash(gx + 1 + salt, gz + 1) % 1000 / 1000.0;
+            return (a + (b - a) * fx) * (1 - fz) + (c + (d - c) * fx) * fz;
+        }
+
+        /** Бревно вдоль касательной к кругу: мета 4 - вдоль X, 8 - вдоль Z. */
+        private static int tangent(int dx, int dz) {
+            return Math.abs(dz) > Math.abs(dx) ? 4 : 8;
+        }
+
         @Override
         protected boolean column(int dx, int dz, int[] col) {
-            double r = Math.sqrt(dx * dx + dz * dz), R = NEST_R;
-            if (r > R + 0.5) return false;
-            bowl(dx, dz, r, R, col, true);
-            boolean rim = r >= R - 3;
-            put(col, TOP, rim ? LOG : GRASS, 0);
-            for (int y = TOP + 1; y <= TOP + 24; y++) put(col, y, AIR, 0);
-            if (rim && !gate(dx, dz)) {
-                int h = 3 + hash(dx, dz) % 3;
-                for (int y = TOP + 1; y <= TOP + h; y++) put(col, y, LOG, 0);
-                if (hash(dz, dx) % 2 == 0) put(col, TOP + h + 1, LEAVES, 0);
-            } else if (rim) {
-                put(col, TOP, PLANKS, 0); // порог прохода
+            double r = Math.sqrt(dx * dx + dz * dz);
+            double rOut = NEST_R - 1 + noise(dx, dz, 7, 11) * 3, rIn = rOut - 6;
+            boolean any = false;
+            if (r <= rOut) {
+                any = true;
+                // низ - неровный остров: земля под полом, глубже камень с землёй, каменные сосульки и редкие корни
+                // к краю остров сходит на нет: и толщина, и шум затухают (без отвесной стенки)
+                double edge = 1 - r / rOut;
+                double depth = 16 * (1 - Math.pow(r / rOut, 1.3)) + noise(dx, dz, 5, 23) * 6 * Math.sqrt(edge);
+                int bottom = TOP - 1 - (int) depth;
+                for (int y = bottom; y < TOP; y++) {
+                    boolean dirt = y >= TOP - 2 || hash(dx * 31 + y, dz) % 10 < 3;
+                    put(col, y, dirt ? DIRT : STONE, 0);
+                }
+                int h = hash(dx, dz);
+                if (r < rOut - 5 && h % 29 == 0) {
+                    int len = 1 + h / 29 % 4;
+                    for (int y = bottom - len; y < bottom; y++) put(col, y, STONE, 0);
+                } else if (r < rOut - 6 && h % 53 == 0) {
+                    int len = 3 + h / 53 % 6;
+                    for (int y = bottom - len; y < bottom; y++) put(col, y, LOG, 0);
+                }
+                for (int y = TOP + 1; y <= TOP + 24; y++) put(col, y, AIR, 0);
+                if (r < rIn) {
+                    // пол: трава, подстилка из листвы, кладка яиц, помост с алтарём, немного света
+                    put(col, TOP, GRASS, 0);
+                    if (hash(dz, dx) % 7 == 0 && r > 4) put(col, TOP + 1, LEAVES, 0);
+                    if (ringDist(dx, dz, 9, 6, Math.PI / 6) < 0.5) put(col, TOP, GLOW, 0);
+                    // кладка: пять "яиц" у центра
+                    double egg = ringDist(dx, dz, 3, 5, 0.3);
+                    if (egg < 0.8) {
+                        put(col, TOP + 1, GEM, 0);
+                        put(col, TOP + 2, GEM, 0);
+                    } else if (egg < 1.6) {
+                        put(col, TOP + 1, GEM, 0);
+                    }
+                    if (r < 1.2) put(col, TOP, GLOW, 0);
+                } else {
+                    // вал, сплетённый из лежащих брёвен, листвы и досок; выше всего посередине
+                    double t = (r - rIn) / (rOut - rIn);
+                    double ang = (Math.toDegrees(Math.atan2(dz, dx)) + 360) % 90;
+                    boolean gate = ang < 5 || ang > 85;
+                    int lip = gate ? 1 : (int) Math.round(5.5 * Math.sin(Math.PI * Math.pow(t, 0.8)) + noise(dx, dz, 3, 41) * 2 - 0.5);
+                    put(col, TOP, LOG, tangent(dx, dz));
+                    for (int y = TOP + 1; y <= TOP + lip; y++) {
+                        int k = hash(dx * 7 + y, dz * 13 - y) % 20;
+                        if (k < 11) put(col, y, LOG, tangent(dx, dz));
+                        else if (k < 17) put(col, y, LEAVES, 0);
+                        else put(col, y, PLANKS, 0);
+                    }
+                    if (!gate && lip > 0 && hash(dz, dx + 5) % 3 == 0) put(col, TOP + lip + 1, LEAVES, 0);
+                    if (gate) put(col, TOP, PLANKS, 0);
+                }
+                // помост с алтарём на севере
+                double ad = Math.sqrt(dx * dx + (dz + ALTAR_DZ) * (dz + ALTAR_DZ));
+                if (ad <= 2.5) put(col, TOP + 1, GEM, 0);
+                if (ad <= 1.5) put(col, TOP + 1, PLANKS, 0);
+                if (dx == 0 && dz == -ALTAR_DZ) put(col, TOP + 2, ALTAR, 0);
             }
-            // кольцо деревянных клыков с кронами
-            double fang = ringDist(dx, dz, 15, 8, Math.PI / 8);
-            if (fang < 0.9) {
-                for (int y = TOP + 1; y <= TOP + 7; y++) put(col, y, LOG, 0);
-                put(col, TOP + 8, LEAVES, 0);
-            } else if (fang < 1.9) {
-                put(col, TOP + 7, LEAVES, 0);
+            // ветки: из вала наружу и вверх, на концах листва
+            for (int i = 0; i < TWIGS; i++) {
+                double a = Math.PI * 2 * i / TWIGS + (hash(i, 77) % 100) / 100.0 * 0.35;
+                double ca = Math.cos(a), sa = Math.sin(a);
+                double bx = ca * (NEST_R - 3), bz = sa * (NEST_R - 3);
+                double along = (dx - bx) * ca + (dz - bz) * sa, across = Math.abs(-(dx - bx) * sa + (dz - bz) * ca);
+                int len = 6 + hash(i, 13) % 5;
+                if (along < 0 || along > len || across > 0.75) continue;
+                any = true;
+                int y = TOP + 3 + (int) Math.round(along * (0.45 + hash(i, 5) % 30 / 100.0));
+                put(col, y, LOG, Math.abs(ca) > Math.abs(sa) ? 4 : 8);
+                if (along > len - 1.5) {
+                    put(col, y + 1, LEAVES, 0);
+                }
             }
-            // светящееся кольцо в полу
-            if (ringDist(dx, dz, 9, 8, 0) < 0.5) put(col, TOP, GLOW, 0);
-            if (r < 1.5) put(col, TOP, GEM, 0);
-            // помост с алтарём на севере
-            double ad = Math.sqrt(dx * dx + (dz + ALTAR_DZ) * (dz + ALTAR_DZ));
-            if (ad <= 2.5) put(col, TOP + 1, GEM, 0);
-            if (dx == 0 && dz == -ALTAR_DZ) put(col, TOP + 2, ALTAR, 0);
-            return true;
+            return any;
         }
     }
 

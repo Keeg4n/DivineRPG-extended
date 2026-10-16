@@ -76,6 +76,9 @@ public abstract class ColumnStructure {
         }
         for (Chunk ch : touched) {
             ch.generateSkylightMap();
+            // свет по столбцам не знает соседей: под большой постройкой над пустотой остаётся чёрный столб. Пусть
+            // сервер досчитает свет как для обычного острова, до отправки чанка игроку - иначе это делает клиент
+            ch.isLightPopulated = false;
             ch.setChunkModified();
         }
         for (int[] l : lights) w.func_147451_t(l[0], l[1], l[2]);
