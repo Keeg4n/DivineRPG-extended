@@ -26,7 +26,7 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
 public class GenBench {
 
     private static final int R = 8, ORIGIN = 4000;
-    private static final List<String> MOBS = new ArrayList<String>();
+    private static final List<String> MOBS = new ArrayList<String>(), GAPS = new ArrayList<String>();
     private int ticks;
 
     public static boolean enabled() {
@@ -39,6 +39,7 @@ public class GenBench {
 
     @SubscribeEvent
     public void onTick(TickEvent.ServerTickEvent e) {
+        if (e.phase == TickEvent.Phase.END && ticks == 39) System.out.println("[dre-genbench] старт");
         if (e.phase != TickEvent.Phase.END || ++ticks != 40) return;
         MinecraftServer server = MinecraftServer.getServer();
         List<String> out = new ArrayList<String>();
@@ -55,6 +56,9 @@ public class GenBench {
                 out.add(names[d] + ": ошибка " + t);
             }
         }
+        out.add("");
+        out.add("Небесный свет по перепадам высот (recheckGaps) на чанк");
+        out.addAll(GAPS);
         out.add("");
         out.add("Мобы после заселения квадрата и время одного их тика");
         out.addAll(MOBS);
@@ -158,6 +162,31 @@ public class GenBench {
                 }
             }
         double lighting = lit == 0 ? 0 : (System.nanoTime() - t0) / 1e6 / lit;
+        // небесный свет по перепадам высот (recheckGaps): так же делает клиент для каждого пришедшего чанка
+        java.lang.reflect.Method gaps = ReflectionHelper.findMethod(Chunk.class, null, new String[] { "recheckGaps", "func_150803_c" }, boolean.class);
+        t0 = System.nanoTime();
+        int gapped = 0;
+        double worstGap = 0;
+        System.out.println("[dre-genbench] " + name + ": перепады света...");
+        for (int x = -2; x <= 2; x++)
+            for (int z = -2; z <= 2; z++) {
+                if (System.nanoTime() - t0 > 60000000000L) break; // не дольше минуты на мир
+                Chunk c = cps.provideChunk(base + x, base + z);
+                boolean pending = ReflectionHelper.getPrivateValue(Chunk.class, c, "isGapLightingUpdated", "field_76650_s");
+                if (!pending) continue;
+                long g0 = System.nanoTime();
+                try {
+                    gaps.invoke(c, false);
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+                worstGap = Math.max(worstGap, (System.nanoTime() - g0) / 1e6);
+                System.out.println("[dre-genbench]   " + name + " чанк " + x + "," + z + ": " + (System.nanoTime() - g0) / 1000000 + " мс");
+                gapped++;
+            }
+        double gapMs = gapped == 0 ? 0 : (System.nanoTime() - t0) / 1e6 / gapped;
+        GAPS.add(String.format("%-10s небо %-3s чанков с перепадами %3d, ср %7.1f мс, худший %7.1f мс", name,
+            w.provider.hasNoSky ? "нет" : "да", gapped, gapMs, worstGap));
         // мобы, появившиеся при заселении, и цена их тика (без игрока рядом мобы не обновляются - держим тикет на чанках
         // через обычный тик мира не выйдет, поэтому обновляем сущности напрямую)
         int mobs = 0;

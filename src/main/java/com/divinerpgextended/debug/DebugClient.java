@@ -65,14 +65,85 @@ public class DebugClient {
     private int frames;
     private long worstFrame, lastFrame, lastSecond, lastChunkUpdates;
 
+    /**
+     * Сэмплер рывков: фоновый поток каждые 10 мс снимает стек главного потока игры (пока включена отладка). Кадр дольше
+     * 150 мс - в журнал строка lag: где игра провела это время (самые частые места в стеке).
+     */
+    private static final int SAMPLE_MS = 10, LAG_MS = 150;
+    private static volatile Thread main;
+    private static final java.util.ArrayDeque<Object[]> SAMPLES = new java.util.ArrayDeque<Object[]>();
+
+    static {
+        Thread t = new Thread("dre-lag-sampler") {
+
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        Thread.sleep(SAMPLE_MS);
+                        Thread m = main;
+                        if (m == null || !Debug.clientOn) continue;
+                        StackTraceElement[] st = m.getStackTrace();
+                        synchronized (SAMPLES) {
+                            SAMPLES.addLast(new Object[] { System.nanoTime(), st });
+                            while (SAMPLES.size() > 300) SAMPLES.removeFirst();
+                        }
+                    } catch (Throwable ignored) {}
+                }
+            }
+        };
+        t.setDaemon(true);
+        t.start();
+    }
+
+    /** Самые частые места в стеке за отрезок: метод игры/мода (без java, lwjgl) и путь к нему из 4 вызовов. */
+    private static String hotspots(long from, long to) {
+        java.util.Map<String, Integer> top = new java.util.HashMap<String, Integer>();
+        int n = 0;
+        synchronized (SAMPLES) {
+            for (Object[] s : SAMPLES) {
+                long t = (Long) s[0];
+                if (t < from || t > to) continue;
+                n++;
+                StackTraceElement[] st = (StackTraceElement[]) s[1];
+                StringBuilder b = new StringBuilder();
+                int taken = 0;
+                for (StackTraceElement el : st) {
+                    String c = el.getClassName();
+                    if (taken == 0 && (c.startsWith("java.") || c.startsWith("sun.") || c.startsWith("org.lwjgl"))) continue;
+                    if (taken > 0) b.append(" < ");
+                    b.append(c.substring(c.lastIndexOf('.') + 1)).append('.').append(el.getMethodName());
+                    if (++taken == 4) break;
+                }
+                String k = b.toString();
+                top.put(k, top.containsKey(k) ? top.get(k) + 1 : 1);
+            }
+        }
+        java.util.List<java.util.Map.Entry<String, Integer>> l = new java.util.ArrayList<java.util.Map.Entry<String, Integer>>(top.entrySet());
+        java.util.Collections.sort(l, new java.util.Comparator<java.util.Map.Entry<String, Integer>>() {
+
+            @Override
+            public int compare(java.util.Map.Entry<String, Integer> a, java.util.Map.Entry<String, Integer> b) {
+                return b.getValue() - a.getValue();
+            }
+        });
+        StringBuilder b = new StringBuilder("сэмплов " + n);
+        for (int i = 0; i < Math.min(4, l.size()); i++) b.append(" | ").append(l.get(i).getValue()).append("x ").append(l.get(i).getKey());
+        return b.toString();
+    }
+
     /** Замер плавности: каждый кадр - его длительность; раз в секунду - строка perf в журнал. */
     @SubscribeEvent
     public void onRender(TickEvent.RenderTickEvent e) {
         if (e.phase != TickEvent.Phase.END || !Debug.clientOn) return;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null || mc.theWorld == null) return;
+        main = Thread.currentThread();
         long now = System.nanoTime();
-        if (lastFrame != 0) worstFrame = Math.max(worstFrame, now - lastFrame);
+        if (lastFrame != 0) {
+            worstFrame = Math.max(worstFrame, now - lastFrame);
+            if (now - lastFrame > LAG_MS * 1000000L) write("lag", (now - lastFrame) / 1000000 + " мс", hotspots(lastFrame, now));
+        }
         lastFrame = now;
         frames++;
         if (now - lastSecond < 1000000000L) return;
