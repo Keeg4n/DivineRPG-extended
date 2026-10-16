@@ -30,7 +30,7 @@ import cpw.mods.fml.common.IWorldGenerator;
 public class WorldGenTwilightFeatures implements IWorldGenerator {
 
     /** Для замеров и автотеста: сколько построено с запуска. */
-    public static int ruins, dungeons, bridges;
+    public static int ruins, dungeons, bridges, camps;
 
     @Override
     public void generate(Random rand, int chunkX, int chunkZ, World world, IChunkProvider gen, IChunkProvider prov) {
@@ -45,6 +45,8 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         int[][] spots = { { 0, 0 }, { 7, 0 }, { 0, 7 }, { 7, 7 } };
         if (Config.twilightRuinsRarity > 0 && r.nextInt(Config.twilightRuinsRarity) == 0) {
             for (int[] o : spots) if (!built && (built = ruin(world, r, tw, x0 + o[0], z0 + o[1]))) ruins++;
+        } else if (Config.twilightCampRarity > 0 && r.nextInt(Config.twilightCampRarity) == 0) {
+            for (int[] o : spots) if (!built && (built = camp(world, r, tw, x0 + o[0], z0 + o[1]))) camps++;
         } else if (Config.twilightDungeonRarity > 0 && r.nextInt(Config.twilightDungeonRarity) == 0) {
             for (int[] o : spots) if (!built && (built = dungeon(world, r, tw, x0 + o[0], z0 + o[1], x0 + 23))) dungeons++;
         }
@@ -179,6 +181,58 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
             w.setBlock(x + i - 1, floor, cz, Blocks.air, 0, 2);
             w.setBlock(x + i - 1, floor + 1, cz, Blocks.air, 0, 2);
         }
+    }
+
+    // ---------------------------------------------------------------- лагерь
+
+    /** Цвет шерсти палатки: у каждого мира свой. */
+    private static int wool(TwilightWorld tw) {
+        switch (tw) {
+            case EDEN: return 4;
+            case WILDWOOD: return 11;
+            case APALACHIA: return 10;
+            case SKYTHERN: return 0;
+            default: return 14;
+        }
+    }
+
+    /**
+     * Лагерь странника 8 x 8 с углом в (x, z): палатка-шалаш из шерсти цвета мира с сундуком, горящий костёр (жаровня)
+     * с брёвнами-сиденьями, у костра Странник-торговец. Присесть и ПКМ по костру - точка возрождения в этом мире.
+     */
+    public static boolean camp(World w, Random r, TwilightWorld tw, int x, int z) {
+        int lo = 999, hi = -1;
+        for (int i = 0; i < 8; i++) for (int k = 0; k < 8; k++) {
+            int y = surface(w, tw, x + i, z + k);
+            if (y < 0) return false;
+            lo = Math.min(lo, y);
+            hi = Math.max(hi, y);
+        }
+        if (hi - lo > 3) return false;
+        int base = hi;
+        for (int i = 0; i < 8; i++) for (int k = 0; k < 8; k++) {
+            int s = surface(w, tw, x + i, z + k);
+            for (int y = s + 1; y <= base; y++) w.setBlock(x + i, y, z + k, y == base ? tw.grass() : tw.dirt(), 0, 2);
+            for (int y = base + 1; y <= base + 5; y++) if (!w.isAirBlock(x + i, y, z + k)) w.setBlock(x + i, y, z + k, Blocks.air, 0, 2);
+        }
+        // шалаш вдоль X: x..x+3, поперёк z+1..z+5 (высоты 1-2-3-2-1), задняя стенка закрыта
+        int c = wool(tw);
+        int[] roof = { 1, 2, 3, 2, 1 };
+        for (int i = 0; i < 4; i++) for (int k = 0; k < 5; k++) {
+            w.setBlock(x + i, base + roof[k], z + 1 + k, Blocks.wool, c, 2);
+            if (i == 0) for (int y = 1; y < roof[k]; y++) w.setBlock(x, base + y, z + 1 + k, Blocks.wool, c, 2);
+        }
+        chest(w, r, x + 1, base + 1, z + 3, TwilightLoot.ruins(tw), 3 + r.nextInt(3));
+        // костёр с сиденьями
+        w.setBlock(x + 6, base, z + 3, com.divinerpgextended.registry.ModBlocks.brazier, 1, 2);
+        w.setBlock(x + 6, base + 1, z + 1, tw.log(), 8, 2);
+        w.setBlock(x + 6, base + 1, z + 5, tw.log(), 8, 2);
+        // Странник
+        com.divinerpgextended.entity.EntityWanderer t = new com.divinerpgextended.entity.EntityWanderer(w);
+        t.setHome(tw);
+        t.setLocationAndAngles(x + 5.5, base + 1, z + 3.5, 90, 0);
+        w.spawnEntityInWorld(t);
+        return true;
     }
 
     // ---------------------------------------------------------------- мост

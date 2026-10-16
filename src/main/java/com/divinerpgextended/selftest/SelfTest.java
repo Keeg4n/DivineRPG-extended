@@ -1678,7 +1678,7 @@ public class SelfTest {
             for (int i = -2; i < 12; i++) for (int kk = -2; kk < 12; kk++) {
                 for (int h = y - 3; h < y; h++) w.setBlock(x + i, h, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone);
                 w.setBlock(x + i, y, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodGrass);
-                for (int h = y + 1; h < y + 10; h++) w.setBlockToAir(x + i, h, z + kk);
+                for (int h = y + 1; h < 160; h++) w.setBlockToAir(x + i, h, z + kk);
             }
             boolean built = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.ruin(w, new java.util.Random(5),
                 com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD, x, z);
@@ -1699,7 +1699,7 @@ public class SelfTest {
             for (int i = -2; i < 12; i++) for (int kk = -2; kk < 12; kk++) {
                 for (int h = top - 20; h < top; h++) w.setBlock(x + i, h, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone);
                 w.setBlock(x + i, top, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.apalachiaGrass);
-                for (int h = top + 1; h < top + 4; h++) w.setBlockToAir(x + i, h, z + kk);
+                for (int h = top + 1; h < 160; h++) w.setBlockToAir(x + i, h, z + kk);
             }
             boolean built = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.dungeon(w, new java.util.Random(7),
                 com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA, x, z, x + 23);
@@ -1734,6 +1734,38 @@ public class SelfTest {
                 if (w.getBlock(x, h, z0 + 8) == net.divinerpg.utils.blocks.TwilightBlocks.edenPlanks) planks++;
             check(built && planks >= 7, "мост " + built + ", досок над пропастью " + planks);
             return "мост из досок Эдема через пропасть в 10 блоков (" + planks + " досок пролёта)";
+        });
+        t("Логова", "Лагерь странника", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.skythern);
+            int x = 9300, y = 100, z = 9300;
+            w.getChunkFromBlockCoords(x, z);
+            for (int i = -2; i < 11; i++) for (int kk = -2; kk < 11; kk++) {
+                for (int h = y - 3; h < y; h++) w.setBlock(x + i, h, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone);
+                w.setBlock(x + i, y, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.skythernGrass);
+                for (int h = y + 1; h < 160; h++) w.setBlockToAir(x + i, h, z + kk);
+            }
+            boolean built = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.camp(w, new java.util.Random(2),
+                com.divinerpgextended.world.twilight.TwilightWorld.SKYTHERN, x, z);
+            java.util.List<?> traders = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityWanderer.class,
+                net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 2, y, z - 2, x + 10, y + 4, z + 10));
+            int deals = traders.isEmpty() ? 0 : ((com.divinerpgextended.entity.EntityWanderer) traders.get(0)).getRecipes(p).size();
+            boolean fire = w.getBlock(x + 6, y, z + 3) == com.divinerpgextended.registry.ModBlocks.brazier
+                && com.divinerpgextended.block.BlockBrazier.isLit(w, x + 6, y, z + 3);
+            // костёр - точка возрождения: запомнить и вернуться после "смерти" в обычном мире
+            TestPlayer v = player(ConfigurationHelper.skythern, "TestCamp", x + 5, y + 1, z + 3);
+            v.setSneaking(true);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(v,
+                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, x + 6, y, z + 3, 1, w));
+            v.setSneaking(false);
+            int[] mark = com.divinerpgextended.world.twilight.Campfire.get(v);
+            v.setPosition(x + 30, y + 20, z + 30);
+            boolean back = com.divinerpgextended.world.twilight.Campfire.respawn(v);
+            double dist = Math.abs(v.posX - (x + 7.5)) + Math.abs(v.posZ - (z + 3.5));
+            for (Object o : traders) ((net.minecraft.entity.Entity) o).setDead();
+            check(built && traders.size() == 1 && deals >= 7 && fire && mark != null && back && dist < 1.5,
+                "построено " + built + ", странников " + traders.size() + ", сделок " + deals + ", костёр " + fire + ", метка " + (mark != null)
+                    + ", возврат " + back + " (" + dist + ")");
+            return "лагерь в Скайтерне: Странник (" + deals + " сделок), горящий костёр; костёр запомнил - возрождение у него";
         });
         t("Логова", "Карта к гнезду", () -> {
             int dim = ConfigurationHelper.eden;
