@@ -53,6 +53,8 @@ public class Config {
     /** Ветея: чужие вещи наоборот; этажи (разломы, страж, крылья, запрет полёта); свои вещи из других модов. */
     public static boolean vetheaNightmare = true, vetheaFloors = true;
     public static String[] vetheaWhitelist = {};
+    /** Оружие других модов, которое кошмар Ветеи сам не узнаёт (урон считает само, без ванильной основы). */
+    public static String[] vetheaWeapons = {};
     /** Журнал аудита для админов (logs/dre-audit.log) и запись в HawkEye, если он есть на сервере. */
     public static boolean auditLog = true, auditHawkEye = true;
 
@@ -155,6 +157,8 @@ public class Config {
                 + "сбрасывает, обычный полёт выключен (кроме творческого режима)");
         vetheaWhitelist = cfg.getStringList("vetheaWhitelist", v, vetheaWhitelist,
             "Предметы других модов, которые в Ветее считаются своими (modid:name, по одному в строке)");
+        vetheaWeapons = cfg.getStringList("vetheaWeapons", v, vetheaWeapons,
+            "Оружие других модов, которое в Ветее не распознаётся само (modid:name): чужое оружие лечит мобов. Мечи, инструменты, луки, Tinkers' Construct, катана и разборщик Tainted Magic, мульти-инструмент Blood Magic узнаются без настройки");
         auditLog = cfg.getBoolean("auditLog", "audit", auditLog,
             "Журнал действий для админов: logs/dre-audit.log (аксессуары, переноска питомцев, /dreinv, сделки и услуги торговцев, дары и возврат вещей Ветеи)");
         auditHawkEye = cfg.getBoolean("auditHawkEye", "audit", auditHawkEye,

@@ -1559,6 +1559,27 @@ public class SelfTest {
                 cache.set(null, null);
             }
         });
+        t("Ветея - кошмар", "Чужое оружие из конфига", () -> {
+            TestPlayer v = player(vd, "TestForeign", 30, 20, 30);
+            hold(v, new ItemStack(Items.stick));
+            EntityZombie zz = new EntityZombie(vw);
+            String[] old = Config.vetheaWeapons;
+            java.lang.reflect.Field cache = com.divinerpgextended.vethea.Nightmare.class.getDeclaredField("foreignWeapons");
+            cache.setAccessible(true);
+            try {
+                zz.setHealth(10);
+                float plain = hit(zz, DamageSource.causePlayerDamage(v), 1);
+                Config.vetheaWeapons = new String[] { "minecraft:stick" };
+                cache.set(null, null);
+                zz.setHealth(10);
+                float listed = hit(zz, DamageSource.causePlayerDamage(v), 1);
+                check(plain > 0 && listed < 0, "палка без настройки: " + f(-plain) + ", палка в vetheaWeapons: " + f(-listed));
+                return "предмет из vetheaWeapons считается чужим оружием и лечит моба, без настройки - обычный удар";
+            } finally {
+                Config.vetheaWeapons = old;
+                cache.set(null, null);
+            }
+        });
         t("Сервер", "Без HawkEye", () -> {
             File log = new File(server.getFile("logs"), "dre-audit.log");
             check(log.exists() && log.length() > 0, "журнал аудита пуст");

@@ -115,13 +115,32 @@ public class Nightmare {
         return vethean().contains(i);
     }
 
+    /** Tinkers' Construct, Tainted Magic (катана, разборщик), Blood Magic (связанный мульти-инструмент). */
+    private static final Set<String> FOREIGN_WEAPONS = new HashSet<String>(java.util.Arrays.asList(
+        "tconstruct.library.tools.ToolCore",
+        "taintedmagic.common.items.tools.ItemKatana",
+        "taintedmagic.common.items.tools.ItemThaumicDisassembler",
+        "WayofTime.alchemicalWizardry.api.items.ItemSpellMultiTool"));
+    private static Set<Item> foreignWeapons;
+
+    private static Set<Item> foreignWeapons() {
+        if (foreignWeapons != null) return foreignWeapons;
+        Set<Item> s = new HashSet<Item>();
+        for (String name : Config.vetheaWeapons) {
+            Object o = GameData.getItemRegistry().getObject(name.trim());
+            if (o instanceof Item) s.add((Item) o);
+        }
+        return foreignWeapons = s;
+    }
+
     private static boolean weapon(ItemStack s) {
         Item i = s.getItem();
         if (i instanceof ItemSword || i instanceof ItemTool || i instanceof ItemBow) return true;
-        // инструменты Tinkers' Construct не наследуют ванильные мечи и урон считают сами - узнаём по базовому классу
+        // оружие других модов без ванильной основы и атрибута урона (урон считают сами) - узнаём по классу
         for (Class<?> c = i.getClass(); c != null; c = c.getSuperclass()) {
-            if ("tconstruct.library.tools.ToolCore".equals(c.getName())) return true;
+            if (FOREIGN_WEAPONS.contains(c.getName())) return true;
         }
+        if (foreignWeapons().contains(i)) return true;
         @SuppressWarnings("rawtypes")
         Collection c = s.getAttributeModifiers().get(SharedMonsterAttributes.attackDamage.getAttributeUnlocalizedName());
         return c != null && !c.isEmpty();
