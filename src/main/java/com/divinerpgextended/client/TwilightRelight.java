@@ -7,8 +7,11 @@ import java.util.Comparator;
 import java.util.List;
 
 import net.divinerpg.utils.config.ConfigurationHelper;
+import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
@@ -18,14 +21,13 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 /**
  * Фризы при исследовании Эдема и Вайлдвуда. Получив чанк по сети, клиент для любого мира, кроме обычного, перепроверяет
- * в нём свет (4096 шагов: воздух рядом с блоками) - сервер при генерации досчитывает свет у краёв не до конца, и
- * клиент его поправляет. Minecraft делает это сразу пачкой (до 10 чанков по 8 шагов за тик), а у летающих островов
- * много воздуха под небом - пачка небесного света тянет на 200-1000 мс.
+ * в нём свет (воздух рядом с блоками) - сервер при генерации досчитывает свет у краёв не до конца, клиент поправляет.
+ * Minecraft делает это шагами по 128 пересчётов света подряд; у летающих островов и огромных крон один такой шаг
+ * тянет на полсекунды, и прервать его нельзя.
  * <p>
- * Работу не выбрасываем, а растягиваем: прячем чанки от пачки Minecraft (счётчик "проверено") и сами продолжаем их
- * перепроверку с того же места, ближние первыми, не дольше {@link #BUDGET_NS} за тик. Так же поступаем с досчётом по
- * перепадам высот (recheckGaps): он целиком по столбу и над пустотой тянет до 500 мс - вместо него та же перепроверка.
- * Свет выходит тот же, без рывков.
+ * Поэтому перепроверку делаем сами, той же логикой Minecraft, но по одному блоку: после каждого пересчёта смотрим на
+ * часы и не тратим больше {@link #BUDGET_NS} за тик, ближние чанки первыми. Чанки прячем от Minecraft (счётчик
+ * "проверено"), досчёт по перепадам высот (recheckGaps, тоже целыми столбами) отдаём сюда же. Свет выходит тот же.
  */
 @SideOnly(Side.CLIENT)
 public class TwilightRelight {
@@ -33,10 +35,10 @@ public class TwilightRelight {
     private static final int DONE = 4096;
     /** Перепроверка Minecraft идёт только в активных чанках вокруг игрока (радиус 7) - берём с запасом. */
     private static final int RADIUS = 8;
-    private static final long BUDGET_NS = 2000000L, SLOW_NS = 8000000L;
+    private static final long BUDGET_NS = 2000000L;
 
     private Field queued, gaps;
-    /** Чанк, где остановилась его перепроверка (счётчик Minecraft прячем, своё значение храним здесь). */
+    /** Чанк -> позиция перепроверки: шаг Minecraft (0..4095) * 16 + блок в столбике шага (0..15). */
     private final java.util.Map<Chunk, Integer> pending = new java.util.WeakHashMap<Chunk, Integer>();
 
     /**
@@ -65,12 +67,12 @@ public class TwilightRelight {
                     Chunk c = mc.theWorld.getChunkFromChunkCoords(x, z);
                     int q = queued.getInt(c);
                     if (q < DONE) {
-                        pending.put(c, q);
+                        Integer had = pending.get(c);
+                        pending.put(c, Math.min(had == null ? q * 16 : had, q * 16));
                         queued.setInt(c, DONE);
                     }
                 }
-            // досчёт по перепадам высот (recheckGaps) Minecraft делает по столбу целиком - у острова над пустотой это до
-            // 500 мс за раз. Снимаем его и отдаём той же растянутой перепроверке всего воздуха чанка (во всей дальности)
+            // досчёт по перепадам высот - той же перепроверкой (во всей дальности прорисовки)
             int far = mc.gameSettings.renderDistanceChunks + 1;
             for (int x = px - far; x <= px + far; x++)
                 for (int z = pz - far; z <= pz + far; z++) {
@@ -89,33 +91,50 @@ public class TwilightRelight {
                     return dist(a, px, pz) - dist(b, px, pz);
                 }
             });
-            long start = System.nanoTime();
+            long deadline = System.nanoTime() + BUDGET_NS;
             for (Chunk c : order) {
                 if (!c.isChunkLoaded) {
                     pending.remove(c); // выгружен - придёт заново, тогда и проверим
                     continue;
                 }
-                int q = pending.get(c);
-                while (q < DONE && System.nanoTime() - start < BUDGET_NS) {
-                    queued.setInt(c, q);
-                    long t0 = System.nanoTime();
-                    c.enqueueRelightChecks(); // 8 шагов Minecraft с этого места
-                    q = queued.getInt(c);
-                    // один шаг дольше 8 мс - свет тут разлит огромной волной (большая постройка над пустотой):
-                    // дальше не проверяем этот чанк, чтобы не висеть секундами
-                    if (System.nanoTime() - t0 > SLOW_NS) q = DONE;
-                }
-                queued.setInt(c, DONE);
-                if (q >= DONE) pending.remove(c);
+                int pos = relight(mc.theWorld, c, pending.get(c), deadline);
+                if (pos >= DONE * 16) pending.remove(c);
                 else {
-                    pending.put(c, q);
-                    break; // бюджет тика кончился
+                    pending.put(c, pos);
+                    break; // время тика кончилось
                 }
             }
         } catch (Throwable t) {
             queued = null; // другой клиент (поля не нашлись) - не мешаем, Minecraft проверит сам
             pending.clear();
         }
+    }
+
+    /**
+     * Перепроверка света чанка с позиции pos до срока deadline - как Chunk.enqueueRelightChecks, но по блоку.
+     * Возвращает позицию, где остановились (DONE * 16 - чанк проверен).
+     */
+    static int relight(World w, Chunk c, int pos, long deadline) {
+        ExtendedBlockStorage[] arr = c.getBlockStorageArray();
+        while (pos < DONE * 16) {
+            int step = pos >> 4, k1 = pos & 15;
+            int j = step % 16, k = step / 16 % 16, l = step / 256;
+            int x = (c.xPosition << 4) + k, z = (c.zPosition << 4) + l, y = (j << 4) + k1;
+            ExtendedBlockStorage s = arr[j];
+            boolean check = s == null ? (k1 == 0 || k1 == 15 || k == 0 || k == 15 || l == 0 || l == 15)
+                : s.getBlockByExtId(k, k1, l).getMaterial() == Material.air;
+            pos++;
+            if (!check) continue;
+            if (w.getBlock(x, y - 1, z).getLightValue() > 0) w.func_147451_t(x, y - 1, z);
+            if (w.getBlock(x, y + 1, z).getLightValue() > 0) w.func_147451_t(x, y + 1, z);
+            if (w.getBlock(x - 1, y, z).getLightValue() > 0) w.func_147451_t(x - 1, y, z);
+            if (w.getBlock(x + 1, y, z).getLightValue() > 0) w.func_147451_t(x + 1, y, z);
+            if (w.getBlock(x, y, z - 1).getLightValue() > 0) w.func_147451_t(x, y, z - 1);
+            if (w.getBlock(x, y, z + 1).getLightValue() > 0) w.func_147451_t(x, y, z + 1);
+            w.func_147451_t(x, y, z);
+            if (System.nanoTime() > deadline) break;
+        }
+        return pos;
     }
 
     private static int dist(Chunk c, int px, int pz) {

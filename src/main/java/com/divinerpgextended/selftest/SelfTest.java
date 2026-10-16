@@ -1692,6 +1692,66 @@ public class SelfTest {
                 + ", урон оглушённому " + lost + " из 10, таран в стену оглушил " + stunned + " (стадия " + maxState + ", x " + (int) c.posX + ")");
             return "бьёт только вблизи и раз в 1.25 с; таран в стену - оглушение, оглушённый получает двойной урон";
         });
+        t("Логова", "Подкрепление кадиллиона", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            int x = 9600, y = 100, z = 9600;
+            loadAround(w, x, z, 2);
+            for (int xi = -10; xi <= 10; xi++) for (int zq = -10; zq <= 10; zq++) {
+                w.setBlock(x + xi, y - 1, z + zq, Blocks.stone);
+                for (int hh = y; hh < y + 12; hh++) w.setBlockToAir(x + xi, hh, z + zq);
+            }
+            com.divinerpgextended.entity.EntityGreatCadillion b = new com.divinerpgextended.entity.EntityGreatCadillion(w);
+            b.setVariant(0);
+            b.setLocationAndAngles(x + 0.5, y, z + 0.5, 0, 0);
+            w.spawnEntityInWorld(b);
+            int total = 0;
+            for (int i = 0; i < 4; i++) total += b.callAdds();
+            java.util.List<?> adds = w.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class,
+                net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 20, y - 5, z - 20, x + 20, y + 20, z + 20));
+            int mine = 0;
+            for (Object o : adds) if (o != b && !(o instanceof EntityPlayer)) { mine++; ((net.minecraft.entity.Entity) o).setDead(); }
+            b.setDead();
+            check(total > 0 && total <= com.divinerpgextended.entity.EntityGreatCadillion.MAX_ADDS && mine <= com.divinerpgextended.entity.EntityGreatCadillion.MAX_ADDS,
+                "позвал " + total + ", рядом мобов " + mine);
+            return "кадиллион зовёт мобов Эдема (" + total + "), не больше " + com.divinerpgextended.entity.EntityGreatCadillion.MAX_ADDS + " живых";
+        });
+        t("Логова", "Самонаведение эденского лука", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            int x = 9700, y = 120, z = 9700;
+            loadAround(w, x, z, 2);
+            net.divinerpg.entities.twilight.EntityEdenCori cori = new net.divinerpg.entities.twilight.EntityEdenCori(w);
+            cori.setLocationAndAngles(x + 10.5, y + 3, z + 0.5, 0, 0);
+            w.spawnEntityInWorld(cori);
+            net.divinerpg.entities.base.EntityDivineArrow a = new net.divinerpg.entities.base.EntityDivineArrow(w, x + 0.5, y, z + 0.5);
+            a.motionX = 2.0;
+            a.motionY = 0;
+            a.motionZ = 0.3;
+            boolean turned = com.divinerpgextended.perk.HomingArrows.steer(a);
+            double up = a.motionY, side = a.motionZ;
+            cori.setDead();
+            boolean noTarget = !com.divinerpgextended.perk.HomingArrows.steer(a);
+            check(turned && up > 0.1 && side < 0.3 && noTarget, "довернула " + turned + ", вверх " + up + ", вбок " + side + ", без цели " + noTarget);
+            return "стрела доворачивает на Кори впереди; без летучей цели летит как летела";
+        });
+        t("Сумеречные миры", "Ковёр после фриза", () -> {
+            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            e.onGround = true;
+            tick(e, 1);
+            e.onGround = false;
+            tick(e, 3); // запас на сервере ещё есть, а клиент уже планирует вниз
+            double yy = e.posY;
+            float maxFall = 0;
+            for (int i = 0; i < 20; i++) {
+                yy -= 0.1;
+                e.setPosition(e.posX, yy, e.posZ);
+                e.fallDistance += 0.1F;
+                tick(e, 1);
+                maxFall = Math.max(maxFall, e.fallDistance);
+            }
+            e.setPosition(e.posX, 100, e.posZ);
+            check(carpetLeft(e) > 0 && maxFall < 0.2F, "запас на сервере " + carpetLeft(e) + ", накоплено падения " + maxFall);
+            return "клиент планирует, хотя у сервера запас ещё есть - высота падения всё равно не копится";
+        });
         t("Логова", "Зов мимо алтаря", () -> {
             int dim = ConfigurationHelper.eden;
             WorldServer w = server.worldServerForDimension(dim);

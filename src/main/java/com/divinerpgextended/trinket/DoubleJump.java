@@ -157,8 +157,9 @@ public class DoubleJump {
                 ((WorldServer) p.worldObj).func_147487_a("cloud", p.posX, p.boundingBox.minY, p.posZ, 2, 0.3, 0.02, 0.3, 0.01);
             }
             if (s.carpetLeft == 0 && carpet != UNLIMITED) com.divinerpgextended.debug.Debug.note(p, "Ковёр: запас кончился, дальше планирование");
-        } else if (carpet > 0 && s.carpetLeft <= 0 && dy <= -0.03 && dy >= -0.2) {
-            // запас кончился, пробел зажат: клиент медленно опускает (около 2 блоков в секунду) - падение не копится
+        } else if (carpet != 0 && dy <= -0.03 && dy >= -0.2) {
+            // ковёр медленно опускает (около 2 блоков в секунду) - падение не копится. Остаток запаса не проверяем:
+            // после фризов клиент мог истратить запас раньше сервера, и планирование тогда не засчитывалось бы
             gliding = true;
             p.fallDistance = 0;
         }

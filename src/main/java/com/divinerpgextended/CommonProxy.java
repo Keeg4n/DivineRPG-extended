@@ -66,6 +66,9 @@ public class CommonProxy {
             .register(perks);
         MinecraftForge.EVENT_BUS.register(new BossTracker());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.LairSummons());
+        com.divinerpgextended.perk.HomingArrows homing = new com.divinerpgextended.perk.HomingArrows();
+        MinecraftForge.EVENT_BUS.register(homing);
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(homing);
         com.divinerpgextended.world.twilight.Campfire campfire = new com.divinerpgextended.world.twilight.Campfire();
         MinecraftForge.EVENT_BUS.register(campfire);
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(campfire);

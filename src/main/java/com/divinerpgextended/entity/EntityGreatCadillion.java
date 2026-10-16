@@ -48,6 +48,9 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
     private int chargeState = IDLE, stateTimer, chargeCooldown = 120, lastAttack = -100;
     private double chargeX, chargeZ;
     private boolean chargeHit;
+    /** Подкрепление: мобы его мира (в том числе летучие Кори), раз в ~15 с боя, живых не больше 4. */
+    private int addsTimer = 200;
+    public static final int MAX_ADDS = 4;
 
     public EntityGreatCadillion(World world) {
         super(world);
@@ -216,6 +219,34 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
         }
     }
 
+    /** Позвать мобов своего мира: двух рядом, если живых подручных меньше {@link #MAX_ADDS}. */
+    public int callAdds() {
+        com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.values()[getVariant()];
+        Class<? extends net.minecraft.entity.EntityLiving>[] mobs = tw.mobs();
+        int alive = 0;
+        for (Object o : worldObj.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class, boundingBox.expand(30, 20, 30))) {
+            for (Class<?> c : mobs) if (c.isInstance(o)) alive++;
+        }
+        int made = 0;
+        for (int i = 0; i < 2 && alive + made < MAX_ADDS; i++) {
+            try {
+                net.minecraft.entity.EntityLiving m = mobs[rand.nextInt(mobs.length)].getConstructor(World.class).newInstance(worldObj);
+                double a = rand.nextDouble() * Math.PI * 2;
+                boolean flies = m instanceof net.minecraft.entity.EntityFlying;
+                m.setLocationAndAngles(posX + Math.cos(a) * 6, posY + (flies ? 6 : 0.5), posZ + Math.sin(a) * 6, rand.nextFloat() * 360, 0);
+                if (!flies && !worldObj.getCollidingBoundingBoxes(m, m.boundingBox).isEmpty()) continue;
+                m.setAttackTarget(getAttackTarget());
+                worldObj.spawnEntityInWorld(m);
+                ((WorldServer) worldObj).func_147487_a("portal", m.posX, m.posY + 1, m.posZ, 20, 0.5, 0.8, 0.5, 0.1);
+                made++;
+            } catch (Exception ignored) {
+                // у моба нет конструктора (World)
+            }
+        }
+        if (made > 0) worldObj.playSoundAtEntity(this, "mob.horse.angry", 2.0F, 0.4F);
+        return made;
+    }
+
     @Override
     public boolean attackEntityFrom(net.minecraft.util.DamageSource src, float amount) {
         return super.attackEntityFrom(src, chargeState == STUNNED ? amount * 2 : amount);
@@ -226,6 +257,10 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
         super.onLivingUpdate();
         if (worldObj.isRemote) return;
         charge();
+        if (getAttackTarget() != null && --addsTimer <= 0) {
+            addsTimer = 300;
+            callAdds();
+        }
         if (getAttackTarget() == null || chargeState != IDLE) return;
         if (--abilityTimer > 0) return;
 
