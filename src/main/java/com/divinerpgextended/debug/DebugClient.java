@@ -100,11 +100,14 @@ public class DebugClient {
     private static String hotspots(long from, long to) {
         java.util.Map<String, Integer> top = new java.util.HashMap<String, Integer>();
         int n = 0;
+        StackTraceElement[] deep = null;
+        long mid = (from + to) / 2;
         synchronized (SAMPLES) {
             for (Object[] s : SAMPLES) {
                 long t = (Long) s[0];
                 if (t < from || t > to) continue;
                 n++;
+                if (deep == null && t >= mid) deep = (StackTraceElement[]) s[1];
                 StackTraceElement[] st = (StackTraceElement[]) s[1];
                 StringBuilder b = new StringBuilder();
                 int taken = 0;
@@ -129,6 +132,14 @@ public class DebugClient {
         });
         StringBuilder b = new StringBuilder("сэмплов " + n);
         for (int i = 0; i < Math.min(4, l.size()); i++) b.append(" | ").append(l.get(i).getValue()).append("x ").append(l.get(i).getKey());
+        // полный путь одного сэмпла из середины рывка: видно, кто запустил тяжёлую работу
+        if (deep != null) {
+            b.append(" || путь:");
+            for (int i = 0; i < Math.min(30, deep.length); i++) {
+                String c = deep[i].getClassName();
+                b.append(' ').append(c.substring(c.lastIndexOf('.') + 1)).append('.').append(deep[i].getMethodName());
+            }
+        }
         return b.toString();
     }
 

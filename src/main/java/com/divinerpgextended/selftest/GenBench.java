@@ -57,7 +57,7 @@ public class GenBench {
             }
         }
         out.add("");
-        out.add("Небесный свет по перепадам высот (recheckGaps) на чанк");
+        out.add("Блоки, прилетевшие в уже загруженные чанки при генерации кольца вокруг (их клиент пересчитывает по свету)");
         out.addAll(GAPS);
         out.add("");
         out.add("Мобы после заселения квадрата и время одного их тика");
@@ -126,7 +126,7 @@ public class GenBench {
         return ms;
     }
 
-    private static String bench(WorldServer w, String name) {
+    private static String bench(final WorldServer w, String name) {
         ChunkProviderServer cps = w.theChunkProviderServer;
         IChunkProvider gen = ReflectionHelper.getPrivateValue(ChunkProviderServer.class, cps, "currentChunkProvider", "field_73246_d");
         int dim = w.provider.dimensionId;
@@ -162,31 +162,63 @@ public class GenBench {
                 }
             }
         double lighting = lit == 0 ? 0 : (System.nanoTime() - t0) / 1e6 / lit;
-        // небесный свет по перепадам высот (recheckGaps): так же делает клиент для каждого пришедшего чанка
-        java.lang.reflect.Method gaps = ReflectionHelper.findMethod(Chunk.class, null, new String[] { "recheckGaps", "func_150803_c" }, boolean.class);
-        t0 = System.nanoTime();
-        int gapped = 0;
-        double worstGap = 0;
-        System.out.println("[dre-genbench] " + name + ": перепады света...");
-        for (int x = -2; x <= 2; x++)
-            for (int z = -2; z <= 2; z++) {
-                if (System.nanoTime() - t0 > 60000000000L) break; // не дольше минуты на мир
-                Chunk c = cps.provideChunk(base + x, base + z);
-                boolean pending = ReflectionHelper.getPrivateValue(Chunk.class, c, "isGapLightingUpdated", "field_76650_s");
-                if (!pending) continue;
-                long g0 = System.nanoTime();
-                try {
-                    gaps.invoke(c, false);
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
-                worstGap = Math.max(worstGap, (System.nanoTime() - g0) / 1e6);
-                System.out.println("[dre-genbench]   " + name + " чанк " + x + "," + z + ": " + (System.nanoTime() - g0) / 1000000 + " мс");
-                gapped++;
+        // какие блоки меняются сами: как сервер возле игрока - случайные тики (3 блока на секцию за тик) и отложенные
+        final java.util.Map<String, Integer> changed = new java.util.TreeMap<String, Integer>();
+        final int fb = base;
+        net.minecraft.world.IWorldAccess spy = new net.minecraft.world.IWorldAccess() {
+
+            public void markBlockForUpdate(int x, int y, int z) {
+                if (Math.abs((x >> 4) - fb) > R || Math.abs((z >> 4) - fb) > R) return;
+                String k = net.minecraft.block.Block.blockRegistry.getNameForObject(w.getBlock(x, y, z));
+                changed.put(k, changed.containsKey(k) ? changed.get(k) + 1 : 1);
             }
-        double gapMs = gapped == 0 ? 0 : (System.nanoTime() - t0) / 1e6 / gapped;
-        GAPS.add(String.format("%-10s небо %-3s чанков с перепадами %3d, ср %7.1f мс, худший %7.1f мс", name,
-            w.provider.hasNoSky ? "нет" : "да", gapped, gapMs, worstGap));
+
+            public void markBlockForRenderUpdate(int x, int y, int z) {}
+
+            public void markBlockRangeForRenderUpdate(int a, int b, int c, int d, int e, int f) {}
+
+            public void playSound(String s, double x, double y, double z, float v, float p) {}
+
+            public void playSoundToNearExcept(net.minecraft.entity.player.EntityPlayer pl, String s, double x, double y, double z, float v, float p) {}
+
+            public void spawnParticle(String s, double x, double y, double z, double a, double b, double c) {}
+
+            public void onEntityCreate(net.minecraft.entity.Entity e) {}
+
+            public void onEntityDestroy(net.minecraft.entity.Entity e) {}
+
+            public void playRecord(String s, int x, int y, int z) {}
+
+            public void broadcastSound(int id, int x, int y, int z, int d) {}
+
+            public void playAuxSFX(net.minecraft.entity.player.EntityPlayer pl, int id, int x, int y, int z, int d) {}
+
+            public void destroyBlockPartially(int id, int x, int y, int z, int p) {}
+
+            public void onStaticEntitiesChanged() {}
+        };
+        w.addWorldAccess(spy);
+        // квадрат уже у игрока: чанки готовы к отправке; генерация кольца вокруг - что из него прилетит в квадрат
+        for (int x = -R; x <= R; x++)
+            for (int z = -R; z <= R; z++) {
+                Chunk c = cps.provideChunk(base + x, base + z);
+                ReflectionHelper.setPrivateValue(Chunk.class, c, true, "field_150815_m");
+                c.isLightPopulated = true;
+            }
+        for (int x = -R - 3; x <= R + 3; x++)
+            for (int z = -R - 3; z <= R + 3; z++)
+                if (Math.abs(x) > R || Math.abs(z) > R) cps.loadChunk(base + x, base + z);
+        ((java.util.List<?>) ReflectionHelper.getPrivateValue(net.minecraft.world.World.class, w, "worldAccesses", "field_73021_x")).remove(spy);
+        int changes = 0;
+        for (int v : changed.values()) changes += v;
+        java.util.List<java.util.Map.Entry<String, Integer>> top = new java.util.ArrayList<java.util.Map.Entry<String, Integer>>(changed.entrySet());
+        java.util.Collections.sort(top, new java.util.Comparator<java.util.Map.Entry<String, Integer>>() {
+
+            public int compare(java.util.Map.Entry<String, Integer> a, java.util.Map.Entry<String, Integer> b) {
+                return b.getValue() - a.getValue();
+            }
+        });
+        GAPS.add(String.format("%-10s изменений %6d: %s", name, changes, top.subList(0, Math.min(6, top.size()))));
         // мобы, появившиеся при заселении, и цена их тика (без игрока рядом мобы не обновляются - держим тикет на чанках
         // через обычный тик мира не выйдет, поэтому обновляем сущности напрямую)
         int mobs = 0;
