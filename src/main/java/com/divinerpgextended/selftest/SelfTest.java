@@ -1487,6 +1487,37 @@ public class SelfTest {
             check(!eden.provider.hasNoSky && !wild.provider.hasNoSky, "небо выключено: Эдем " + eden.provider.hasNoSky + ", Вайлдвуд " + wild.provider.hasNoSky);
             return "небесный свет на месте (тени и темнота как в оригинале)";
         });
+        t("Сумеречные миры", "Починка чёрных чанков 0.44.0", () -> {
+            WorldServer eden = server.worldServerForDimension(ConfigurationHelper.eden);
+            net.minecraft.world.chunk.Chunk c = eden.getChunkFromChunkCoords(320, 320);
+            int top = c.getHeightValue(8, 8) + 1;
+            c.setLightValue(net.minecraft.world.EnumSkyBlock.Sky, 8, top, 8, 0);
+            // так выглядит чанк, сохранённый без неба: секции без SkyLight
+            NBTTagCompound nbt = new NBTTagCompound(), level = new NBTTagCompound();
+            NBTTagList sections = new NBTTagList();
+            NBTTagCompound sec = new NBTTagCompound();
+            sec.setByte("Y", (byte) 0);
+            sections.appendTag(sec);
+            // и как после пересохранения 0.44.1: верхняя секция с нулевым небесным светом
+            NBTTagCompound zero = new NBTTagCompound();
+            zero.setByte("Y", (byte) 7);
+            zero.setByteArray("SkyLight", new byte[2048]);
+            sections.appendTag(zero);
+            NBTTagList healthy = new NBTTagList();
+            NBTTagCompound lit = new NBTTagCompound();
+            lit.setByte("Y", (byte) 7);
+            byte[] sl = new byte[2048];
+            sl[100] = (byte) 0xFF;
+            lit.setByteArray("SkyLight", sl);
+            healthy.appendTag(lit);
+            check(!com.divinerpgextended.world.SkyRepair.dark(healthy), "обычный чанк принят за чёрный");
+            level.setTag("Sections", sections);
+            nbt.setTag("Level", level);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.world.ChunkDataEvent.Load(c, nbt));
+            int sky = c.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Sky, 8, top, 8);
+            check(sky == 15, "небесный свет над землёй после починки " + sky);
+            return "чанк без неба (0.44.0) и с нулевым небом (0.44.1): свет над землёй снова 15; обычный чанк не трогается";
+        });
         t("Сумеречные миры", "Быстрый поиск портала", () -> {
             net.minecraft.block.Block portal = net.divinerpg.utils.blocks.TwilightBlocks.wildwoodPortal;
             net.minecraft.block.Block frame = ReflectionHelper.getPrivateValue(net.divinerpg.blocks.base.portal.BlockModPortal.class,
