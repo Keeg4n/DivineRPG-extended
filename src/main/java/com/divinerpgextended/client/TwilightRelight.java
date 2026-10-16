@@ -23,7 +23,9 @@ import cpw.mods.fml.relauncher.SideOnly;
  * много воздуха под небом - пачка небесного света тянет на 200-1000 мс.
  * <p>
  * Работу не выбрасываем, а растягиваем: прячем чанки от пачки Minecraft (счётчик "проверено") и сами продолжаем их
- * перепроверку с того же места, ближние первыми, не дольше {@link #BUDGET_NS} за тик. Свет выходит тот же, без рывков.
+ * перепроверку с того же места, ближние первыми, не дольше {@link #BUDGET_NS} за тик. Так же поступаем с досчётом по
+ * перепадам высот (recheckGaps): он целиком по столбу и над пустотой тянет до 500 мс - вместо него та же перепроверка.
+ * Свет выходит тот же, без рывков.
  */
 @SideOnly(Side.CLIENT)
 public class TwilightRelight {
@@ -33,25 +35,29 @@ public class TwilightRelight {
     private static final int RADIUS = 8;
     private static final long BUDGET_NS = 2000000L;
 
-    private Field queued;
+    private Field queued, gaps;
     /** Чанк, где остановилась его перепроверка (счётчик Minecraft прячем, своё значение храним здесь). */
     private final java.util.Map<Chunk, Integer> pending = new java.util.WeakHashMap<Chunk, Integer>();
 
+    /**
+     * Тик своего игрока: он идёт после приёма пакетов (новые чанки уже сброшены Minecraft), но до тика мира, где
+     * Minecraft проверил бы их пачкой - перехватываем ровно между ними.
+     */
     @SubscribeEvent
-    public void onTick(TickEvent.ClientTickEvent e) {
-        if (e.phase != TickEvent.Phase.START) return;
+    public void onTick(TickEvent.PlayerTickEvent e) {
+        if (e.phase != TickEvent.Phase.END || !e.player.worldObj.isRemote) return;
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc.theWorld == null || mc.thePlayer == null) {
-            pending.clear();
-            return;
-        }
+        if (e.player != mc.thePlayer || mc.theWorld == null) return;
         int dim = mc.theWorld.provider.dimensionId;
         if (dim != ConfigurationHelper.eden && dim != ConfigurationHelper.wildwood) {
             pending.clear();
             return;
         }
         try {
-            if (queued == null) queued = ReflectionHelper.findField(Chunk.class, "queuedLightChecks", "field_76649_t");
+            if (queued == null) {
+                queued = ReflectionHelper.findField(Chunk.class, "queuedLightChecks", "field_76649_t");
+                gaps = ReflectionHelper.findField(Chunk.class, "isGapLightingUpdated", "field_76650_s");
+            }
             final int px = (int) Math.floor(mc.thePlayer.posX) >> 4, pz = (int) Math.floor(mc.thePlayer.posZ) >> 4;
             // новые (сброшенные Minecraft) чанки забираем себе
             for (int x = px - RADIUS; x <= px + RADIUS; x++)
@@ -62,6 +68,17 @@ public class TwilightRelight {
                         pending.put(c, q);
                         queued.setInt(c, DONE);
                     }
+                }
+            // досчёт по перепадам высот (recheckGaps) Minecraft делает по столбу целиком - у острова над пустотой это до
+            // 500 мс за раз. Снимаем его и отдаём той же растянутой перепроверке всего воздуха чанка (во всей дальности)
+            int far = mc.gameSettings.renderDistanceChunks + 1;
+            for (int x = px - far; x <= px + far; x++)
+                for (int z = pz - far; z <= pz + far; z++) {
+                    Chunk c = mc.theWorld.getChunkFromChunkCoords(x, z);
+                    if (!gaps.getBoolean(c)) continue;
+                    gaps.setBoolean(c, false);
+                    pending.put(c, 0);
+                    queued.setInt(c, DONE);
                 }
             if (pending.isEmpty()) return;
             List<Chunk> order = new ArrayList<Chunk>(pending.keySet());
@@ -78,7 +95,6 @@ public class TwilightRelight {
                     pending.remove(c); // выгружен - придёт заново, тогда и проверим
                     continue;
                 }
-                if (dist(c, px, pz) > RADIUS * RADIUS * 2) continue; // далеко - ждёт, пока подлетишь
                 int q = pending.get(c);
                 while (q < DONE && System.nanoTime() - start < BUDGET_NS) {
                     queued.setInt(c, q);
