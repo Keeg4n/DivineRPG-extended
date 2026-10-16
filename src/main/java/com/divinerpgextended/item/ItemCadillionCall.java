@@ -19,7 +19,7 @@ import com.divinerpgextended.world.CadillionWorld;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Зов великого кадиллиона: призывает босса, но только в его сумеречном мире. */
+/** Зов великого кадиллиона: призывает босса на алтаре его гнезда (или где угодно в его мире, если summonOnlyInLairs выключен). */
 public class ItemCadillionCall extends Item {
 
     private static final int[] COLORS = { 0xF2D24B, 0x4FB848, 0xC45AD8, 0xD8E6F5 };
@@ -54,6 +54,11 @@ public class ItemCadillionCall extends Item {
         if (world.provider.dimensionId != w.dimension()) {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.call_wrong_world",
                 new ChatComponentTranslation("dre.world." + w.key())));
+            return true;
+        }
+        if (com.divinerpgextended.Config.summonOnlyInLairs && !player.capabilities.isCreativeMode) {
+            // алтарь гнезда сам принимает Зов (клик по нему сюда не доходит); здесь - клик мимо алтаря
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.call_at_nest"));
             return true;
         }
         EntityGreatCadillion boss = new EntityGreatCadillion(world);

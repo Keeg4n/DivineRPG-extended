@@ -37,6 +37,10 @@ public class Config {
     public static double snowGlaconHealth = 400, snowGlaconDamage = 9;
     public static double colossusHealth = 1500, colossusDamage = 16, lichHealth = 600, lichDamage = 12;
     public static int throneSpacing = 2048, throneSummonSnowflakes = 12;
+    /** Логова боссов сумеречных миров (гнёзда кадиллионов, Демонический круг): одно на квадрат N x N блоков. */
+    public static int nestSpacing = 640;
+    /** Боссов вызывают только в их логовах (алтари, круг); выключить - вызов где угодно, как в Divine. */
+    public static boolean summonOnlyInLairs = true;
     /** Логово Карцинуса: 1 на N океанских чанков; снежное подземелье: 1 на N заснеженных чанков (0 - выключить). */
     public static int carcinusShoreRarity = 40, snowDungeonRarity = 200;
 
@@ -117,6 +121,10 @@ public class Config {
         lichDamage = cfg.get(b, "lichDamage", lichDamage, "Урон Короля-лича в ближнем бою").getDouble();
         throneSummonSnowflakes = cfg.getInt("throneSummonSnowflakes", b, throneSummonSnowflakes, 0, 64,
             "Сколько снежинок нужно для призыва Ледяного Колосса на алтаре Ледяного Трона");
+        nestSpacing = cfg.getInt("nestSpacing", "worldgen", nestSpacing, 0, 100000,
+            "Логова боссов сумеречных миров (гнёзда Великих кадиллионов, Демонический круг Мортума): одно на квадрат N x N блоков в каждом мире, над островами на высоте 140 (0 - не генерировать). Меньше 256 не ставить");
+        summonOnlyInLairs = cfg.getBoolean("summonOnlyInLairs", b, summonOnlyInLairs,
+            "Боссов вызывают только в их логовах: зов кадиллиона - на алтаре гнезда, кристаллы Мортума - в Демоническом круге, Таинственные часы - на алтаре гробницы. false - где угодно, как в Divine");
         throneSpacing = cfg.getInt("throneSpacing", "worldgen", throneSpacing, 0, 100000,
             "Ледяной Трон в Iceika: один на квадрат N x N блоков, место выбирается из сида мира (0 - не генерировать). Меньше 1024 не ставить: арена 300 блоков");
         carcinusShoreRarity = cfg.getInt("carcinusShoreRarity", "worldgen", carcinusShoreRarity, 0, 100000,

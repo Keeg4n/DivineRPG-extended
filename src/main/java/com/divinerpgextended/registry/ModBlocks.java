@@ -32,6 +32,7 @@ public final class ModBlocks {
     public static Block throneAltar;
     public static Block rimeOre;
     public static Block tombAltar;
+    public static Block nestAltar;
     public static Block trapFloor;
 
     private ModBlocks() {}
@@ -66,6 +67,8 @@ public final class ModBlocks {
         GameRegistry.registerBlock(rimeOre, "rimeOre");
         tombAltar = new BlockBossAltar(BlockBossAltar.TOMB);
         GameRegistry.registerBlock(tombAltar, "tombAltar");
+        nestAltar = new BlockBossAltar(BlockBossAltar.NEST);
+        GameRegistry.registerBlock(nestAltar, "nestAltar");
         trapFloor = new BlockTrapFloor();
         GameRegistry.registerBlock(trapFloor, "trapFloor");
     }

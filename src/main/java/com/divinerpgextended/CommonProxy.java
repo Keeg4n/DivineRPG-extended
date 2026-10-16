@@ -65,6 +65,7 @@ public class CommonProxy {
             .bus()
             .register(perks);
         MinecraftForge.EVENT_BUS.register(new BossTracker());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.LairSummons());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.PopulationResend.Installer());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.SkyRepair());
         MinecraftForge.EVENT_BUS.register(new BossDamage());
@@ -183,6 +184,7 @@ public class CommonProxy {
         GameRegistry.registerWorldGenerator(new WorldGenLairs(), 50);
         GameRegistry.registerWorldGenerator(new IceikaDecor(), 100);
         GameRegistry.registerWorldGenerator(new WorldGenThrone(), 60);
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.WorldGenNests(), 62);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaDoors(), 70);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenTomb(), 55);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.ClockGuard());
@@ -204,6 +206,12 @@ public class CommonProxy {
         // Карта к Древней гробнице: бумага в резном песчанике
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, 3), "SSS", "SPS", "SSS", 'S', new ItemStack(Blocks.sandstone,
             1, 1), 'P', Items.paper);
+
+        // Карта к гнезду Великого кадиллиона: бумага в осколках Эдема; к Демоническому кругу - в осколках Мортума
+        GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.NEST), "SSS", "SPS", "SSS", 'S',
+            net.divinerpg.utils.items.TwilightItemsOther.edenFragments, 'P', Items.paper);
+        GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.CIRCLE), "SSS", "SPS", "SSS", 'S',
+            net.divinerpg.utils.items.TwilightItemsOther.mortumFragments, 'P', Items.paper);
 
         // Карта Ледяного Трона: бумага в ледяных осколках
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, 2), "SSS", "SPS", "SSS", 'S', IceikaItems.iceShards,

@@ -310,6 +310,12 @@ public class SelfTest {
     }
 
     /** Урон по цели: здоровье до минус после (минус - значит вылечили). */
+    /** Загрузить и заселить чанки вокруг точки (радиус в чанках + 1 на заселение краёв). */
+    private static void loadAround(WorldServer w, int x, int z, int r) {
+        for (int i = -r - 1; i <= r + 1; i++)
+            for (int k = -r - 1; k <= r + 1; k++) w.theChunkProviderServer.loadChunk((x >> 4) + i, (z >> 4) + k);
+    }
+
     /** Телепорт свиньи с (x, 70, z); куда поставило - в at. */
     private static void placePig(net.minecraft.world.Teleporter t, WorldServer w, double x, double z, double[] at) {
         net.minecraft.entity.passive.EntityPig pig = new net.minecraft.entity.passive.EntityPig(w);
@@ -1596,6 +1602,83 @@ public class SelfTest {
             } finally {
                 eden.getPlayerManager().removePlayer(v);
             }
+        });
+        t("Логова", "Гнездо Великого кадиллиона", () -> {
+            int dim = ConfigurationHelper.eden;
+            WorldServer w = server.worldServerForDimension(dim);
+            int[] c = com.divinerpgextended.world.twilight.WorldGenNests.nearest(w.getSeed(), dim, 0, 0);
+            loadAround(w, c[0], c[2], 4);
+            int top = com.divinerpgextended.world.twilight.WorldGenNests.TOP;
+            int az = c[2] - com.divinerpgextended.world.twilight.WorldGenNests.ALTAR_DZ;
+            net.minecraft.block.Block altar = w.getBlock(c[0], top + 2, az), mid = w.getBlock(c[0], top, c[2]);
+            boolean clear = w.isAirBlock(c[0], top + 5, c[2]) && w.isAirBlock(c[0] + 5, top + 3, c[2] + 5);
+            check(altar == com.divinerpgextended.registry.ModBlocks.nestAltar && mid == net.divinerpg.utils.blocks.TwilightBlocks.edenBlock && clear,
+                "в " + c[0] + "," + c[2] + ": алтарь " + altar.getUnlocalizedName() + ", центр " + mid.getUnlocalizedName() + ", над полом пусто " + clear);
+            // алтарь принимает Зов Эдема и ставит кадиллиона в центр гнезда
+            TestPlayer v = player(dim, "TestNest", c[0], top + 1, az + 2);
+            hold(v, new ItemStack(com.divinerpgextended.registry.ModItems.cadillionCall, 1, 0));
+            altar.onBlockActivated(w, c[0], top + 2, az, v, 1, 0.5F, 0.5F, 0.5F);
+            java.util.List<?> bosses = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityGreatCadillion.class,
+                net.minecraft.util.AxisAlignedBB.getBoundingBox(c[0] - 4, top - 2, c[2] - 4, c[0] + 4, top + 8, c[2] + 4));
+            ItemStack left = v.getHeldItem();
+            for (Object o : bosses) ((net.minecraft.entity.Entity) o).setDead();
+            check(bosses.size() == 1 && (left == null || left.stackSize == 0), "кадиллионов в центре " + bosses.size() + ", зов в руке " + left);
+            return "гнездо в " + c[0] + "," + c[2] + " на высоте " + top + ": алтарь на помосте, центр из камня Эдема; Зов на алтаре - кадиллион в центре";
+        });
+        t("Логова", "Зов мимо алтаря", () -> {
+            int dim = ConfigurationHelper.eden;
+            WorldServer w = server.worldServerForDimension(dim);
+            TestPlayer v = player(dim, "TestCallAway", 3000, 100, 3000);
+            ItemStack call = new ItemStack(com.divinerpgextended.registry.ModItems.cadillionCall, 1, 0);
+            hold(v, call);
+            w.setBlock(3000, 99, 3000, Blocks.stone);
+            v.chat.clear();
+            call.getItem().onItemUse(call, v, w, 3000, 99, 3000, 1, 0.5F, 1F, 0.5F);
+            java.util.List<?> bosses = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityGreatCadillion.class,
+                net.minecraft.util.AxisAlignedBB.getBoundingBox(2990, 90, 2990, 3010, 110, 3010));
+            check(bosses.isEmpty() && call.stackSize == 1 && v.heard("dre.chat.call_at_nest"), "боссов " + bosses.size() + ", зов " + call.stackSize + ", чат " + v.chat);
+            return "Зов по обычному блоку не работает, подсказка про алтарь гнезда";
+        });
+        t("Логова", "Демонический круг", () -> {
+            int dim = ConfigurationHelper.mortum;
+            WorldServer w = server.worldServerForDimension(dim);
+            int[] c = com.divinerpgextended.world.twilight.WorldGenNests.nearest(w.getSeed(), dim, 0, 0);
+            loadAround(w, c[0], c[2], 4);
+            int top = com.divinerpgextended.world.twilight.WorldGenNests.TOP;
+            boolean floor = w.getBlock(c[0], top, c[2]) == net.divinerpg.utils.blocks.TwilightBlocks.mortumBlock && w.isAirBlock(c[0], top + 3, c[2]);
+            TestPlayer v = player(dim, "TestCircle", c[0], top + 1, c[2]);
+            String inside = com.divinerpgextended.boss.LairSummons.refusal(v, net.divinerpg.utils.items.TwilightItemsOther.twilightDemonCrystal, c[0] + 3, top, c[2] + 2);
+            String outside = com.divinerpgextended.boss.LairSummons.refusal(v, net.divinerpg.utils.items.TwilightItemsOther.twilightDemonCrystal, c[0] + 60, 60, c[2]);
+            check(floor && inside == null && "dre.chat.summon_circle".equals(outside), "пол " + floor + ", внутри " + inside + ", снаружи " + outside);
+            return "круг в " + c[0] + "," + c[2] + " построен; кристалл внутри круга работает, снаружи - отказ";
+        });
+        t("Логова", "Часы только у гробницы", () -> {
+            String r = com.divinerpgextended.boss.LairSummons.refusal(p, net.divinerpg.utils.items.VanillaItemsOther.mysteriousClock, 0, 64, 0);
+            check("dre.chat.summon_tomb".equals(r), "отказ " + r);
+            return "Таинственные часы вне алтаря гробницы не работают";
+        });
+        t("Логова", "Босс не падает из логова", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            net.minecraft.entity.monster.EntityZombie b = new net.minecraft.entity.monster.EntityZombie(w);
+            b.setPosition(4000.5, 150, 4000.5);
+            w.spawnEntityInWorld(b);
+            com.divinerpgextended.boss.LairSummons.leash(b, 4000, 141, 4000, 20);
+            b.setPosition(4040.5, 120, 4000.5); // за краем и ниже пола
+            b.ticksExisted = 10;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(b));
+            double x = b.posX, y = b.posY;
+            b.setDead();
+            check(Math.abs(x - 4000.5) < 0.1 && y > 140, "босс в " + x + ", " + y);
+            return "босс, ушедший за край логова, вернулся в центр";
+        });
+        t("Логова", "Карта к гнезду", () -> {
+            int dim = ConfigurationHelper.eden;
+            TestPlayer v = player(dim, "TestNestMap", 100, 150, 100);
+            ItemStack map = new ItemStack(com.divinerpgextended.registry.ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.NEST);
+            v.chat.clear();
+            map.getItem().onItemRightClick(map, server.worldServerForDimension(dim), v);
+            check(v.heard("dre.chat.map_found_nest"), "чат " + v.chat);
+            return "карта в Эдеме показывает ближайшее гнездо";
         });
         t("Сумеречные миры", "Быстрый поиск портала", () -> {
             net.minecraft.block.Block portal = net.divinerpg.utils.blocks.TwilightBlocks.wildwoodPortal;

@@ -27,14 +27,16 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * Алтарь призыва босса в логове: Карцинус (4 крабовые клешни), Снежный Глакон (Панцирь глубин) или Ледяной Колосс
  * с Королём-личом (снежинки; алтарь у трона, Колосс встаёт в центре зала), Древняя сущность (Таинственные часы;
- * алтарь в погребальном зале гробницы, босс встаёт в центре зала). Неразрушим в выживании.
+ * алтарь в погребальном зале гробницы, босс встаёт в центре зала), Великий кадиллион (Зов своего мира; алтарь на
+ * помосте гнезда, босс встаёт в центре гнезда). Неразрушим в выживании.
  */
 public class BlockBossAltar extends Block {
 
-    public static final int CARCINUS = 0, SNOW_GLACON = 1, THRONE = 2, TOMB = 3;
-    private static final String[] NAMES = { "dre.carcinusAltar", "dre.glaconAltar", "dre.throneAltar", "dre.tombAltar" };
+    public static final int CARCINUS = 0, SNOW_GLACON = 1, THRONE = 2, TOMB = 3, NEST = 4;
+    private static final String[] NAMES = { "dre.carcinusAltar", "dre.glaconAltar", "dre.throneAltar", "dre.tombAltar",
+        "dre.nestAltar" };
     private static final String[] TEXTURES = { "minecraft:stonebrick_carved", "minecraft:lapis_block",
-        "minecraft:diamond_block", "minecraft:gold_block" };
+        "minecraft:diamond_block", "minecraft:gold_block", "minecraft:emerald_block" };
     private final int type;
 
     public BlockBossAltar(int type) {
@@ -54,6 +56,10 @@ public class BlockBossAltar extends Block {
     @SideOnly(Side.CLIENT)
     public void randomDisplayTick(World world, int x, int y, int z, Random rand) {
         if (type == CARCINUS) return;
+        if (type == NEST) { // зелёные искры над гнездом
+            world.spawnParticle("happyVillager", x + rand.nextDouble(), y + 1.0 + rand.nextDouble() * 0.6, z + rand.nextDouble(), 0, 0, 0);
+            return;
+        }
         if (type == TOMB) { // золотая пыль
             world.spawnParticle("reddust", x + rand.nextDouble(), y + 1.0 + rand.nextDouble() * 0.6, z + rand.nextDouble(),
                 1.0, 0.85, 0.2);
@@ -66,6 +72,7 @@ public class BlockBossAltar extends Block {
     }
 
     private Item cost() {
+        if (type == NEST) return ModItems.cadillionCall;
         if (type == TOMB) return VanillaItemsOther.mysteriousClock;
         return type == CARCINUS ? VanillaItemsOther.crabClaw : type == THRONE ? IceikaItems.snowflake : ModItems.deepShell;
     }
@@ -74,10 +81,44 @@ public class BlockBossAltar extends Block {
         return type == CARCINUS ? Config.carcinusSummonClaws : type == THRONE ? Config.throneSummonSnowflakes : 1;
     }
 
+    /**
+     * Алтарь гнезда Великого кадиллиона: нужен Зов этого мира; кадиллион встаёт в центре гнезда (алтарь на помосте в
+     * {@link com.divinerpgextended.world.twilight.WorldGenNests#ALTAR_DZ} блоках к северу от центра).
+     */
+    private boolean nest(World world, int x, int y, int z, EntityPlayer player) {
+        com.divinerpgextended.world.CadillionWorld w = null;
+        for (com.divinerpgextended.world.CadillionWorld c : com.divinerpgextended.world.CadillionWorld.values()) {
+            if (c.dimension() == world.provider.dimensionId) w = c;
+        }
+        if (w == null) return true;
+        net.minecraft.util.AxisAlignedBB area = net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 48, y - 24, z - 48, x + 48, y + 24, z + 48);
+        if (!world.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityGreatCadillion.class, area).isEmpty()) {
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.altar_busy"));
+            return true;
+        }
+        ItemStack held = player.getHeldItem();
+        ItemStack need = new ItemStack(ModItems.cadillionCall, 1, w.ordinal());
+        if (!player.capabilities.isCreativeMode && (held == null || held.getItem() != ModItems.cadillionCall || held.getItemDamage() != w.ordinal())) {
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.altar_cost", 1, need.getDisplayName()));
+            return true;
+        }
+        if (!player.capabilities.isCreativeMode) held.stackSize--;
+        com.divinerpgextended.entity.EntityGreatCadillion boss = new com.divinerpgextended.entity.EntityGreatCadillion(world);
+        boss.setVariant(w.ordinal());
+        boss.setLocationAndAngles(x + 0.5, y - 1, z + 0.5 + com.divinerpgextended.world.twilight.WorldGenNests.ALTAR_DZ, 0, 0);
+        com.divinerpgextended.boss.LairSummons.leash(boss, x, y - 1, z + com.divinerpgextended.world.twilight.WorldGenNests.ALTAR_DZ,
+            com.divinerpgextended.world.twilight.WorldGenNests.NEST_R - 4);
+        world.spawnEntityInWorld(boss);
+        world.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, "mob.wither.spawn", 0.6F, 0.8F);
+        com.divinerpgextended.audit.Audit.log(player, "Summon", "Великий кадиллион (" + w.key() + ") на алтаре гнезда");
+        return true;
+    }
+
     @Override
     public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hx,
         float hy, float hz) {
         if (world.isRemote) return true;
+        if (type == NEST) return nest(world, x, y, z, player);
         Class<? extends EntityLiving> bossClass = type == CARCINUS ? EntityCarcinus.class
             : type == THRONE ? EntityFrostColossus.class
                 : type == TOMB ? net.divinerpg.entities.vanilla.EntityAncientEntity.class : EntitySnowGlacon.class;

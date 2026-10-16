@@ -27,8 +27,10 @@ import cpw.mods.fml.relauncher.SideOnly;
  */
 public class ItemLairMap extends Item {
 
-    private static final String[] KEYS = { "carcinus", "snow", "throne", "tomb" };
-    private static final int[] COLORS = { 0x4FA3C8, 0xDDEEFF, 0x6FC8FF, 0xE8C060 };
+    private static final String[] KEYS = { "carcinus", "snow", "throne", "tomb", "nest", "circle" };
+    private static final int[] COLORS = { 0x4FA3C8, 0xDDEEFF, 0x6FC8FF, 0xE8C060, 0x7FD15A, 0xB0302A };
+    /** Мета карты к гнезду Великого кадиллиона (в его мире) и к Демоническому кругу (Мортум). */
+    public static final int NEST = 4, CIRCLE = 5;
     private static final String[] DIRS = { "s", "sw", "w", "nw", "n", "ne", "e", "se" };
 
     public ItemLairMap() {
@@ -41,7 +43,7 @@ public class ItemLairMap extends Item {
     }
 
     private static int type(ItemStack stack) {
-        return Math.max(0, Math.min(3, stack.getItemDamage()));
+        return Math.max(0, Math.min(KEYS.length - 1, stack.getItemDamage()));
     }
 
     @Override
@@ -59,6 +61,7 @@ public class ItemLairMap extends Item {
     public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
         if (world.isRemote) return stack;
         int t = type(stack);
+        if (t == NEST || t == CIRCLE) return twilight(stack, world, player, t);
         // логова - в обычном мире, Ледяной Трон - в Iceika
         int dim = t == LairData.THRONE ? net.divinerpg.utils.config.ConfigurationHelper.iceika : 0;
         if (world.provider.dimensionId != dim) {
@@ -92,6 +95,24 @@ public class ItemLairMap extends Item {
         }
         player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, lair[1], lair[3]),
             direction(player, lair[1], lair[3]), lair[2], lair[1], lair[3]));
+        return stack;
+    }
+
+    /** Гнёзда и круг - из сида мира, карта знает их заранее (как Трон). */
+    private static ItemStack twilight(ItemStack stack, World world, EntityPlayer player, int t) {
+        com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.of(world.provider.dimensionId);
+        boolean ok = tw != null && (t == CIRCLE) == (tw == com.divinerpgextended.world.twilight.TwilightWorld.MORTUM);
+        if (!ok) {
+            player.addChatMessage(new ChatComponentTranslation(t == CIRCLE ? "dre.chat.map_mortum" : "dre.chat.map_cadillion_world"));
+            return stack;
+        }
+        int[] c = com.divinerpgextended.world.twilight.WorldGenNests.nearest(world.getSeed(), world.provider.dimensionId, player.posX, player.posZ);
+        if (c == null) {
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.map_none_" + KEYS[t]));
+            return stack;
+        }
+        player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, c[0], c[2]),
+            direction(player, c[0], c[2]), c[1] + 1, c[0], c[2]));
         return stack;
     }
 
@@ -155,6 +176,8 @@ public class ItemLairMap extends Item {
         list.add(new ItemStack(item, 1, 1));
         list.add(new ItemStack(item, 1, 2));
         list.add(new ItemStack(item, 1, 3));
+        list.add(new ItemStack(item, 1, NEST));
+        list.add(new ItemStack(item, 1, CIRCLE));
     }
 
     @Override
