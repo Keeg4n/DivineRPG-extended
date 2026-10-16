@@ -42,6 +42,11 @@ public class TreeShiftTransformer implements IClassTransformer, Opcodes {
             int trees = 0, cones = 0;
             for (MethodNode m : node.methods) {
                 if (!("func_73153_a".equals(m.name) || "populate".equals(m.name))) continue;
+                // метка "идёт заселение" на всё время метода (для пересылки чанков целиком - PopulationResend)
+                m.instructions.insert(new MethodInsnNode(INVOKESTATIC, HOOKS, "begin", "()V", false));
+                for (AbstractInsnNode r = m.instructions.getFirst(); r != null; r = r.getNext()) {
+                    if (r.getOpcode() == RETURN) m.instructions.insertBefore(r, new MethodInsnNode(INVOKESTATIC, HOOKS, "end", "()V", false));
+                }
                 for (AbstractInsnNode i = m.instructions.getFirst(); i != null; i = i.getNext()) {
                     if (i.getOpcode() != INVOKEVIRTUAL) continue;
                     MethodInsnNode c = (MethodInsnNode) i;

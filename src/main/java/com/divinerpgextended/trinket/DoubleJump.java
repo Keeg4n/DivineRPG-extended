@@ -122,6 +122,11 @@ public class DoubleJump {
         State s = state(p);
         double dy = p.posY - s.lastY;
         s.lastY = p.posY;
+        // клиент шлёт пакет движения каждый тик, сервер в воздухе считает их в счётчике полёта (мы его обнуляем каждый
+        // тик парения). Пакетов с прошлого тика не было - клиент завис (фриз): запас ковра и крыльев не тратим
+        int packets = ReflectionHelper.<Integer, NetHandlerPlayServer>getPrivateValue(NetHandlerPlayServer.class, p.playerNetServerHandler,
+            "floatingTickCount", "field_147365_f");
+        boolean moved = packets > 0;
         int carpet = carpetTicks(p), wing = wingTicks(p);
         boolean hovering = false, rising = false;
         if (grounded(p)) {
@@ -131,7 +136,7 @@ public class DoubleJump {
         } else if (wing > 0 && s.wingLeft > 0 && dy > -0.03) {
             // взлёт на крыльях сна: не запрещённый полёт
             rising = true;
-            s.wingLeft = Math.min(s.wingLeft, wing) - 1;
+            if (moved) s.wingLeft = Math.min(s.wingLeft, wing) - 1;
             ReflectionHelper.setPrivateValue(NetHandlerPlayServer.class, p.playerNetServerHandler, 0, "floatingTickCount",
                 "field_147365_f");
             if (s.wingLeft == 0) com.divinerpgextended.debug.Debug.note(p, "Крылья сна: запас взлёта кончился на y " + (int) p.posY);
@@ -139,7 +144,7 @@ public class DoubleJump {
             // парит на ковре: сервер не должен принимать это за запрещённый полёт; высота падения считается от ковра,
             // а не от места, откуда начал падать до него
             hovering = true;
-            if (carpet != UNLIMITED) s.carpetLeft = Math.min(s.carpetLeft, carpet) - 1;
+            if (carpet != UNLIMITED && moved) s.carpetLeft = Math.min(s.carpetLeft, carpet) - 1;
             p.fallDistance = 0;
             ReflectionHelper.setPrivateValue(NetHandlerPlayServer.class, p.playerNetServerHandler, 0, "floatingTickCount",
                 "field_147365_f");

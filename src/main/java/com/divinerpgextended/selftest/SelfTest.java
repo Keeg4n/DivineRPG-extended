@@ -368,6 +368,8 @@ public class SelfTest {
     private static void tick(EntityPlayer p, int times) {
         for (int i = 0; i < times; i++) {
             p.ticksExisted++;
+            // как сервер: пакет движения от клиента за тик в воздухе +1 к счётчику полёта
+            if (p instanceof EntityPlayerMP && !p.onGround) setFloating((EntityPlayerMP) p, floating((EntityPlayerMP) p) + 1);
             FMLCommonHandler.instance().bus().post(new TickEvent.PlayerTickEvent(TickEvent.Phase.END, p));
         }
     }
@@ -1436,6 +1438,16 @@ public class SelfTest {
             check(full == 60 && spent == 50 && still == 45, "запас: на земле " + full + ", после 10 тиков парения " + spent + ", ещё 5 " + still);
             return "на земле 60 тиков, в воздухе тратится и не восстанавливается";
         });
+        t("Сумеречные миры", "Фриз клиента не тратит ковёр", () -> {
+            int before = carpetLeft(e);
+            for (int i = 0; i < 10; i++) {
+                e.ticksExisted++; // тики сервера без пакетов от клиента
+                FMLCommonHandler.instance().bus().post(new TickEvent.PlayerTickEvent(TickEvent.Phase.END, e));
+            }
+            int after = carpetLeft(e);
+            check(after == before, "за 10 тиков без пакетов запас " + before + " > " + after);
+            return "клиент завис на 10 тиков - запас ковра не тронут (" + after + ")";
+        });
         t("Сумеречные миры", "Снять ковёр в воздухе", () -> {
             int before = carpetLeft(e);
             Accessories.of(e).setInventorySlotContents(0, null);
@@ -1517,6 +1529,33 @@ public class SelfTest {
             int sky = c.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Sky, 8, top, 8);
             check(sky == 15, "небесный свет над землёй после починки " + sky);
             return "чанк без неба (0.44.0) и с нулевым небом (0.44.1): свет над землёй снова 15; обычный чанк не трогается";
+        });
+        t("Сумеречные миры", "Чанк целиком при заселении", () -> {
+            WorldServer eden = server.worldServerForDimension(ConfigurationHelper.eden);
+            TestPlayer v = player(ConfigurationHelper.eden, "TestResend", 7000, 120, 7000);
+            eden.getPlayerManager().addPlayer(v);
+            try {
+                net.minecraft.world.chunk.Chunk c = eden.getChunkFromBlockCoords(7000, 7000);
+                ReflectionHelper.setPrivateValue(net.minecraft.world.chunk.Chunk.class, c, true, "field_150815_m");
+                c.isLightPopulated = true;
+                int before = com.divinerpgextended.world.PopulationResend.resends;
+                // обычная правка (игрок ставит блок) - пачкой, как раньше
+                eden.setBlock(7000, 125, 7000, Blocks.glass);
+                int afterPlayer = com.divinerpgextended.world.PopulationResend.resends;
+                eden.getPlayerManager().updatePlayerInstances();
+                // правки во время заселения - чанк целиком
+                com.divinerpgextended.asm.TreeShiftHooks.begin();
+                eden.setBlock(7001, 125, 7000, Blocks.glass);
+                eden.setBlock(7002, 125, 7000, Blocks.glass);
+                com.divinerpgextended.asm.TreeShiftHooks.end();
+                int afterGen = com.divinerpgextended.world.PopulationResend.resends;
+                eden.getPlayerManager().updatePlayerInstances();
+                for (int x = 7000; x <= 7002; x++) eden.setBlockToAir(x, 125, 7000);
+                check(afterPlayer == before && afterGen > afterPlayer, "пересылок: от игрока " + (afterPlayer - before) + ", от заселения " + (afterGen - afterPlayer));
+                return "блоки от заселения уходят чанком целиком, правки игрока - как раньше";
+            } finally {
+                eden.getPlayerManager().removePlayer(v);
+            }
         });
         t("Сумеречные миры", "Быстрый поиск портала", () -> {
             net.minecraft.block.Block portal = net.divinerpg.utils.blocks.TwilightBlocks.wildwoodPortal;

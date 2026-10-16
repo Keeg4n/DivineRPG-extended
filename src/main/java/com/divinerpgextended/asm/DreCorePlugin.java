@@ -10,7 +10,7 @@ import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
  * ({@link ArcanaTransformer}), чинит свойства полных сетов брони ({@link ArmorSetTransformer}), выключает обмен
  * инвентаря Ветеи и в Divine без настройки vetheaInventory ({@link VetheaSwapTransformer}), ускоряет поиск парного
  * портала в сумеречных мирах ({@link PortalTransformer}), ставит их деревья внутрь заселяемой области
- * ({@link TreeShiftTransformer}).
+ * ({@link TreeShiftTransformer}) и отмечает время их заселения (для пересылки чанков целиком).
  */
 @IFMLLoadingPlugin.MCVersion("1.7.10")
 @IFMLLoadingPlugin.Name("DivineRPG Extended Core")

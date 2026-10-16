@@ -164,11 +164,13 @@ public class GenBench {
         double lighting = lit == 0 ? 0 : (System.nanoTime() - t0) / 1e6 / lit;
         // какие блоки меняются сами: как сервер возле игрока - случайные тики (3 блока на секцию за тик) и отложенные
         final java.util.Map<String, Integer> changed = new java.util.TreeMap<String, Integer>();
+        final java.util.Set<Long> pairs = new java.util.HashSet<Long>();
         final int fb = base;
         net.minecraft.world.IWorldAccess spy = new net.minecraft.world.IWorldAccess() {
 
             public void markBlockForUpdate(int x, int y, int z) {
                 if (Math.abs((x >> 4) - fb) > R || Math.abs((z >> 4) - fb) > R) return;
+                pairs.add(((long) com.divinerpgextended.asm.TreeShiftHooks.begins << 32) ^ net.minecraft.world.ChunkCoordIntPair.chunkXZ2Int(x >> 4, z >> 4));
                 String k = net.minecraft.block.Block.blockRegistry.getNameForObject(w.getBlock(x, y, z));
                 changed.put(k, changed.containsKey(k) ? changed.get(k) + 1 : 1);
             }
@@ -218,7 +220,23 @@ public class GenBench {
                 return b.getValue() - a.getValue();
             }
         });
-        GAPS.add(String.format("%-10s изменений %6d: %s", name, changes, top.subList(0, Math.min(6, top.size()))));
+        GAPS.add(String.format("%-10s изменений %6d, затронуто пар (заселение, загруженный чанк) %5d на %d новых чанков: %s", name, changes, pairs.size(),
+            (2 * R + 7) * (2 * R + 7) - (2 * R + 1) * (2 * R + 1), top.subList(0, Math.min(6, top.size()))));
+        // цена пересылки чанка целиком: размер пакета и время сборки (сжатие)
+        Chunk sample = cps.provideChunk(base, base);
+        long p0 = System.nanoTime();
+        int bytes = 0;
+        for (int i = 0; i < 20; i++) {
+            net.minecraft.network.play.server.S21PacketChunkData pk = new net.minecraft.network.play.server.S21PacketChunkData(sample, false, 0xFFFF);
+            io.netty.buffer.ByteBuf buf = io.netty.buffer.Unpooled.buffer();
+            try {
+                pk.writePacketData(new net.minecraft.network.PacketBuffer(buf));
+            } catch (java.io.IOException ex) {
+                throw new RuntimeException(ex);
+            }
+            bytes = buf.readableBytes();
+        }
+        GAPS.add(String.format("%-10s   чанк целиком: %d байт, сборка %.2f мс", "", bytes, (System.nanoTime() - p0) / 1e6 / 20));
         // мобы, появившиеся при заселении, и цена их тика (без игрока рядом мобы не обновляются - держим тикет на чанках
         // через обычный тик мира не выйдет, поэтому обновляем сущности напрямую)
         int mobs = 0;

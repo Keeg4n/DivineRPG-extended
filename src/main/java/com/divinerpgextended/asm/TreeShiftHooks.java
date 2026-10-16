@@ -12,6 +12,20 @@ import net.minecraft.world.gen.feature.WorldGenerator;
  */
 public class TreeShiftHooks {
 
+    /** Сколько заселений сумеречных миров сейчас идёт (на сервере в его потоке). */
+    public static int populating;
+    /** Для замера: сколько заселений началось. */
+    public static int begins;
+
+    public static void begin() {
+        populating++;
+        begins++;
+    }
+
+    public static void end() {
+        if (populating > 0) populating--;
+    }
+
     public static boolean tree(WorldGenerator g, World w, Random r, int x, int y, int z) {
         int nx = x + 8, nz = z + 8;
         return g.generate(w, r, nx, y - w.getHeightValue(x, z) + w.getHeightValue(nx, nz), nz);
