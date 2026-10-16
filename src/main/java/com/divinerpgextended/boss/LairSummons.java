@@ -80,11 +80,19 @@ public class LairSummons {
     @SubscribeEvent
     public void onUpdate(net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent e) {
         net.minecraft.entity.EntityLivingBase m = e.entityLiving;
-        if (m.worldObj.isRemote || m.ticksExisted % 10 != 0) return;
+        if (m.worldObj.isRemote || m.ticksExisted % 2 != 0) return;
         int[] h = m.getEntityData().getIntArray(HOME);
         if (h.length != 4) return;
-        double dx = m.posX - h[0] - 0.5, dz = m.posZ - h[2] - 0.5;
-        if (dx * dx + dz * dz <= h[3] * h[3] && m.posY >= h[1] - 2) return;
+        double dx = m.posX - h[0] - 0.5, dz = m.posZ - h[2] - 0.5, d = Math.sqrt(dx * dx + dz * dz);
+        if (d <= h[3] && m.posY >= h[1] - 2) return;
+        if (d <= h[3] + 6 && m.posY >= h[1] - 2) {
+            // чуть вышел за край - разворачиваем к центру, без телепорта
+            if (m instanceof net.minecraft.entity.EntityLiving) ((net.minecraft.entity.EntityLiving) m).getNavigator().clearPathEntity();
+            m.motionX = -dx / d * 0.45;
+            m.motionZ = -dz / d * 0.45;
+            m.velocityChanged = true;
+            return;
+        }
         m.fallDistance = 0;
         m.motionX = m.motionY = m.motionZ = 0;
         m.setPositionAndUpdate(h[0] + 0.5, h[1] + 0.5, h[2] + 0.5);

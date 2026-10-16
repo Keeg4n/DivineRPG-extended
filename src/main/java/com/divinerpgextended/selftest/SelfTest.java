@@ -1715,16 +1715,25 @@ public class SelfTest {
             b.setVariant(0);
             b.setLocationAndAngles(x + 0.5, y, z + 0.5, 0, 0);
             w.spawnEntityInWorld(b);
+            for (int i = 0; i < 6; i++) { // обычные мобы Эдема рядом - их подручными не считать
+                net.divinerpg.entities.twilight.EntityEdenCadillion wild = new net.divinerpg.entities.twilight.EntityEdenCadillion(w);
+                wild.setPosition(x + 4.5, y, z + 4.5);
+                w.spawnEntityInWorld(wild);
+            }
             int total = 0;
             for (int i = 0; i < 4; i++) total += b.callAdds();
             java.util.List<?> adds = w.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class,
                 net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 20, y - 5, z - 20, x + 20, y + 20, z + 20));
             int mine = 0;
-            for (Object o : adds) if (o != b && !(o instanceof EntityPlayer)) { mine++; ((net.minecraft.entity.Entity) o).setDead(); }
+            for (Object o : adds) {
+                net.minecraft.entity.Entity en = (net.minecraft.entity.Entity) o;
+                if (en.getEntityData().getInteger("dreCadillionAdd") == b.getEntityId()) mine++;
+                if (en != b && !(en instanceof EntityPlayer)) en.setDead();
+            }
             b.setDead();
-            check(total > 0 && total <= com.divinerpgextended.entity.EntityGreatCadillion.MAX_ADDS && mine <= com.divinerpgextended.entity.EntityGreatCadillion.MAX_ADDS,
-                "позвал " + total + ", рядом мобов " + mine);
-            return "кадиллион зовёт мобов Эдема (" + total + "), не больше " + com.divinerpgextended.entity.EntityGreatCadillion.MAX_ADDS + " живых";
+            check(total > 0 && total <= com.divinerpgextended.entity.EntityGreatCadillion.MAX_ADDS && mine == total,
+                "позвал " + total + ", его подручных рядом " + mine + " (рядом ещё 6 обычных мобов Эдема)");
+            return "кадиллион зовёт мобов Эдема (" + total + ") даже среди обычных мобов мира, своих живых не больше " + com.divinerpgextended.entity.EntityGreatCadillion.MAX_ADDS;
         });
         t("Логова", "Самонаведение эденского лука", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
@@ -2071,6 +2080,20 @@ public class SelfTest {
             String out = com.divinerpgextended.boss.LairSummons.refusal(v, horn, 0, 64, 0);
             check(nest && in == null && "dre.chat.summon_lair_2".equals(out), "гнездовье " + nest + ", внутри " + in + ", снаружи " + out);
             return "гнездовье в Энде в " + c[0] + "," + c[2] + " (" + (int) Math.sqrt(c[0] * c[0] + c[2] * c[2]) + " блоков от центра); рог только там";
+        });
+        t("Логова", "Мягкая привязь", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            loadAround(w, 4100, 4100, 2);
+            net.minecraft.entity.monster.EntityZombie b = new net.minecraft.entity.monster.EntityZombie(w);
+            b.setPosition(4122.5, 150, 4100.5); // на 2 блока за краем (радиус 20)
+            w.spawnEntityInWorld(b);
+            com.divinerpgextended.boss.LairSummons.leash(b, 4100, 141, 4100, 20);
+            b.ticksExisted = 10;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(b));
+            double x = b.posX, mx = b.motionX;
+            b.setDead();
+            check(Math.abs(x - 4122.5) < 0.1 && mx < -0.2, "позиция " + x + ", скорость к центру " + mx);
+            return "чуть за краем - разворачивает к центру без телепорта (далеко или ниже пола - телепорт)";
         });
         t("Логова", "Карта к роще", () -> {
             int dim = ConfigurationHelper.eden;

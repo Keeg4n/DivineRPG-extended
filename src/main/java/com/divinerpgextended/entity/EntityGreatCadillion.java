@@ -51,6 +51,7 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
     /** Подкрепление: мобы его мира (в том числе летучие Кори), раз в ~15 с боя, живых не больше 4. */
     private int addsTimer = 200;
     public static final int MAX_ADDS = 4;
+    private static final String ADD_TAG = "dreCadillionAdd";
 
     public EntityGreatCadillion(World world) {
         super(world);
@@ -236,9 +237,10 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
         com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.values()[getVariant()];
         Class<? extends net.minecraft.entity.EntityLiving>[] mobs = tw.surfaceMobs(); // роща открыта небу
         Class<? extends net.minecraft.entity.EntityLiving> flyer = tw.flyer();
+        // считаем только своих подручных: обычных мобов мира в роще и так много
         int alive = 0;
-        for (Object o : worldObj.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class, boundingBox.expand(30, 20, 30))) {
-            for (Class<?> c : tw.mobs()) if (c.isInstance(o)) alive++;
+        for (Object o : worldObj.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class, boundingBox.expand(40, 24, 40))) {
+            if (((net.minecraft.entity.Entity) o).getEntityData().getInteger(ADD_TAG) == getEntityId()) alive++;
         }
         int made = 0;
         for (int i = 0; i < 2 && alive + made < MAX_ADDS; i++) {
@@ -250,6 +252,7 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
                 m.setLocationAndAngles(posX + Math.cos(a) * 6, posY + (flies ? 6 : 0.5), posZ + Math.sin(a) * 6, rand.nextFloat() * 360, 0);
                 if (!flies && !worldObj.getCollidingBoundingBoxes(m, m.boundingBox).isEmpty()) continue;
                 m.setAttackTarget(getAttackTarget());
+                m.getEntityData().setInteger(ADD_TAG, getEntityId());
                 worldObj.spawnEntityInWorld(m);
                 ((WorldServer) worldObj).func_147487_a("portal", m.posX, m.posY + 1, m.posZ, 20, 0.5, 0.8, 0.5, 0.1);
                 made++;
