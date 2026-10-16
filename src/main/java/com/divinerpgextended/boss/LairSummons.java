@@ -47,6 +47,12 @@ public class LairSummons {
 
     private static final String HOME = "dreLairHome";
 
+    /** Дом логова босса [x, пол, z, радиус] или null. */
+    public static int[] home(net.minecraft.entity.Entity boss) {
+        int[] h = boss.getEntityData().getIntArray(HOME);
+        return h.length == 4 ? h : null;
+    }
+
     /** Босс вызван в логове над пропастью: не уходит за край (center, радиус, пол). */
     public static void leash(net.minecraft.entity.Entity boss, int cx, int floorY, int cz, int radius) {
         boss.getEntityData().setIntArray(HOME, new int[] { cx, floorY, cz, radius });

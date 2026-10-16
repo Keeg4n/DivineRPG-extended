@@ -1752,6 +1752,45 @@ public class SelfTest {
             check(carpetLeft(e) > 0 && maxFall < 0.2F, "запас на сервере " + carpetLeft(e) + ", накоплено падения " + maxFall);
             return "клиент планирует, хотя у сервера запас ещё есть - высота падения всё равно не копится";
         });
+        t("Логова", "Кадиллион вне рощи неуязвим", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            int x = 9800, y = 100, z = 9800;
+            loadAround(w, x, z, 2);
+            com.divinerpgextended.entity.EntityGreatCadillion b = new com.divinerpgextended.entity.EntityGreatCadillion(w);
+            b.setVariant(0);
+            b.setLocationAndAngles(x + 0.5, y, z + 0.5, 0, 0);
+            w.spawnEntityInWorld(b);
+            com.divinerpgextended.boss.LairSummons.leash(b, x, y, z, 20);
+            TestPlayer v = player(ConfigurationHelper.eden, "TestCadOut", x + 40.5, y, z + 0.5);
+            float hp = b.getHealth();
+            b.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(v), 10);
+            float far = hp - b.getHealth();
+            v.setPosition(x + 5.5, y, z + 0.5);
+            b.hurtResistantTime = 0;
+            b.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(v), 10);
+            float near = hp - b.getHealth();
+            b.setDead();
+            check(far == 0 && near > 0, "урон издалека " + far + ", с поляны " + near);
+            return "издалека (вне рощи) кадиллиона не ранить, с поляны - как обычно";
+        });
+        t("Броня", "Броня дома", () -> {
+            TestPlayer v = player(ConfigurationHelper.eden, "TestHomeArmor", 9900, 100, 9900);
+            armor(v, net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet, net.divinerpg.utils.items.TwilightItemsArmor.edenChestplate,
+                net.divinerpg.utils.items.TwilightItemsArmor.edenLeggings, net.divinerpg.utils.items.TwilightItemsArmor.edenBoots);
+            boolean home = com.divinerpgextended.perk.HomeArmor.atHome(v);
+            TestPlayer o = player(ConfigurationHelper.wildwood, "TestAwayArmor", 9900, 100, 9900);
+            armor(o, net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet, net.divinerpg.utils.items.TwilightItemsArmor.edenChestplate,
+                net.divinerpg.utils.items.TwilightItemsArmor.edenLeggings, net.divinerpg.utils.items.TwilightItemsArmor.edenBoots);
+            boolean away = com.divinerpgextended.perk.HomeArmor.atHome(o);
+            net.minecraft.entity.monster.EntityZombie zz = new net.minecraft.entity.monster.EntityZombie(v.worldObj);
+            net.minecraftforge.event.entity.living.LivingHurtEvent ev = new net.minecraftforge.event.entity.living.LivingHurtEvent(v,
+                net.minecraft.util.DamageSource.causeMobDamage(zz), 10);
+            MinecraftForge.EVENT_BUS.post(ev);
+            armor(v, null, null, null, null);
+            armor(o, null, null, null, null);
+            check(home && !away && Math.abs(ev.ammount - 7) < 0.6, "дома " + home + ", в чужом мире " + away + ", урон моба 10 > " + ev.ammount);
+            return "сет Эдема в Эдеме: урон мобов x0.7; в другом мире бонуса нет";
+        });
         t("Логова", "Зов мимо алтаря", () -> {
             int dim = ConfigurationHelper.eden;
             WorldServer w = server.worldServerForDimension(dim);

@@ -185,6 +185,16 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
                 return;
             case CHARGE:
                 getNavigator().clearPathEntity();
+                int[] home = com.divinerpgextended.boss.LairSummons.home(this);
+                if (home != null) {
+                    double nx = posX + chargeX * 2 - home[0] - 0.5, nz = posZ + chargeZ * 2 - home[2] - 0.5;
+                    if (nx * nx + nz * nz > (home[3] - 1) * (home[3] - 1)) { // край поляны - тормозит, а не телепортируется
+                        chargeState = IDLE;
+                        chargeCooldown = 140 + rand.nextInt(60);
+                        motionX = motionZ = 0;
+                        return;
+                    }
+                }
                 motionX = chargeX * 0.85;
                 motionZ = chargeZ * 0.85;
                 ws.func_147487_a("cloud", posX, posY + 0.3, posZ, 3, 0.8, 0.1, 0.8, 0.02);
@@ -195,6 +205,8 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
                             (float) getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue() * 1.6F);
                         p.motionX += chargeX * 1.2;
                         p.motionZ += chargeZ * 1.2;
+                        p.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 60, 1));
+                        p.addPotionEffect(new PotionEffect(Potion.weakness.id, 80, 0));
                         p.velocityChanged = true;
                         chargeHit = true;
                     }
@@ -222,15 +234,17 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
     /** Позвать мобов своего мира: двух рядом, если живых подручных меньше {@link #MAX_ADDS}. */
     public int callAdds() {
         com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.values()[getVariant()];
-        Class<? extends net.minecraft.entity.EntityLiving>[] mobs = tw.mobs();
+        Class<? extends net.minecraft.entity.EntityLiving>[] mobs = tw.surfaceMobs(); // роща открыта небу
+        Class<? extends net.minecraft.entity.EntityLiving> flyer = tw.flyer();
         int alive = 0;
         for (Object o : worldObj.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class, boundingBox.expand(30, 20, 30))) {
-            for (Class<?> c : mobs) if (c.isInstance(o)) alive++;
+            for (Class<?> c : tw.mobs()) if (c.isInstance(o)) alive++;
         }
         int made = 0;
         for (int i = 0; i < 2 && alive + made < MAX_ADDS; i++) {
             try {
-                net.minecraft.entity.EntityLiving m = mobs[rand.nextInt(mobs.length)].getConstructor(World.class).newInstance(worldObj);
+                Class<? extends net.minecraft.entity.EntityLiving> kind = i == 0 && flyer != null ? flyer : mobs[rand.nextInt(mobs.length)];
+                net.minecraft.entity.EntityLiving m = kind.getConstructor(World.class).newInstance(worldObj);
                 double a = rand.nextDouble() * Math.PI * 2;
                 boolean flies = m instanceof net.minecraft.entity.EntityFlying;
                 m.setLocationAndAngles(posX + Math.cos(a) * 6, posY + (flies ? 6 : 0.5), posZ + Math.sin(a) * 6, rand.nextFloat() * 360, 0);
@@ -243,12 +257,31 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
                 // у моба нет конструктора (World)
             }
         }
-        if (made > 0) worldObj.playSoundAtEntity(this, "mob.horse.angry", 2.0F, 0.4F);
+        if (made > 0) {
+            worldObj.playSoundAtEntity(this, "mob.horse.angry", 2.0F, 0.4F);
+            for (Object o : worldObj.getEntitiesWithinAABB(EntityPlayer.class, boundingBox.expand(30, 16, 30))) {
+                ((EntityPlayer) o).addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.cadillion_adds"));
+            }
+            com.divinerpgextended.debug.Debug.note(this, "Кадиллион позвал подручных: " + made);
+        }
         return made;
+    }
+
+    /** Атакующий стоит вне поляны логова (стреляет издалека) - урона нет. */
+    public boolean outOfLair(Entity attacker) {
+        int[] home = com.divinerpgextended.boss.LairSummons.home(this);
+        if (home == null || !(attacker instanceof EntityPlayer)) return false;
+        double dx = attacker.posX - home[0] - 0.5, dz = attacker.posZ - home[2] - 0.5;
+        return dx * dx + dz * dz > (home[3] + 4) * (home[3] + 4) || attacker.posY < home[1] - 4;
     }
 
     @Override
     public boolean attackEntityFrom(net.minecraft.util.DamageSource src, float amount) {
+        if (outOfLair(src.getEntity())) {
+            EntityPlayer p = (EntityPlayer) src.getEntity();
+            if (p.ticksExisted % 20 == 0 || src.isProjectile()) p.addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.cadillion_out_of_lair"));
+            return false;
+        }
         return super.attackEntityFrom(src, chargeState == STUNNED ? amount * 2 : amount);
     }
 

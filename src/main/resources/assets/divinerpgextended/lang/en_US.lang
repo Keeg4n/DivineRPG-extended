@@ -844,3 +844,5 @@ dre.chat.summon_lair_0=The Call of the Watcher is heard only in its Observatory 
 dre.chat.summon_lair_1=The Infernal Flame kindles only in the Fire Chamber in the Nether (the chamber map shows the way).
 dre.chat.summon_lair_2=The Horde Horn calls the Ayeraco only at their aerie in the End (the aerie map shows the way).
 dre.chat.cadillion_stunned=The Great Cadillion crashed and is stunned - strike before it recovers!
+dre.chat.cadillion_adds=The Great Cadillion calls its pack!
+dre.chat.cadillion_out_of_lair=You cannot reach the cadillion from beyond the grove trees - step into the glade.

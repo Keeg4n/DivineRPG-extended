@@ -142,6 +142,44 @@ public enum TwilightWorld {
         }
     }
 
+    /** Мобы, которые горят на солнце: для стражи под открытым небом и подручных босса не годятся. */
+    public static boolean burnsInSun(Class<?> c) {
+        return c == net.divinerpg.entities.twilight.EntityGreenfeet.class || c == net.divinerpg.entities.twilight.EntityApalachiaWarrior.class;
+    }
+
+    /** Мобы мира, которым не страшно солнце. */
+    @SuppressWarnings("unchecked")
+    public Class<? extends EntityLiving>[] surfaceMobs() {
+        java.util.List<Class<? extends EntityLiving>> l = new java.util.ArrayList<Class<? extends EntityLiving>>();
+        for (Class<? extends EntityLiving> c : mobs()) if (!burnsInSun(c)) l.add(c);
+        return l.toArray(new Class[l.size()]);
+    }
+
+    /** Летучий моб мира (Кори) или null. */
+    public Class<? extends EntityLiving> flyer() {
+        switch (this) {
+            case EDEN: return net.divinerpg.entities.twilight.EntityEdenCori.class;
+            case SKYTHERN: return net.divinerpg.entities.twilight.EntitySkythernCori.class;
+            default: return null;
+        }
+    }
+
+    /** Полный сет брони этого мира: шлем, нагрудник, поножи, ботинки. */
+    public Item[] armor() {
+        switch (this) {
+            case EDEN: return new Item[] { net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet, net.divinerpg.utils.items.TwilightItemsArmor.edenChestplate,
+                net.divinerpg.utils.items.TwilightItemsArmor.edenLeggings, net.divinerpg.utils.items.TwilightItemsArmor.edenBoots };
+            case WILDWOOD: return new Item[] { net.divinerpg.utils.items.TwilightItemsArmor.wildwoodHelmet, net.divinerpg.utils.items.TwilightItemsArmor.wildwoodChestplate,
+                net.divinerpg.utils.items.TwilightItemsArmor.wildwoodLeggings, net.divinerpg.utils.items.TwilightItemsArmor.wildwoodBoots };
+            case APALACHIA: return new Item[] { net.divinerpg.utils.items.TwilightItemsArmor.apalachiaHelmet, net.divinerpg.utils.items.TwilightItemsArmor.apalachiaChestplate,
+                net.divinerpg.utils.items.TwilightItemsArmor.apalachiaLeggings, net.divinerpg.utils.items.TwilightItemsArmor.apalachiaBoots };
+            case SKYTHERN: return new Item[] { net.divinerpg.utils.items.TwilightItemsArmor.skythernHelmet, net.divinerpg.utils.items.TwilightItemsArmor.skythernChestplate,
+                net.divinerpg.utils.items.TwilightItemsArmor.skythernLeggings, net.divinerpg.utils.items.TwilightItemsArmor.skythernBoots };
+            default: return new Item[] { net.divinerpg.utils.items.TwilightItemsArmor.mortumHelmet, net.divinerpg.utils.items.TwilightItemsArmor.mortumChestplate,
+                net.divinerpg.utils.items.TwilightItemsArmor.mortumLeggings, net.divinerpg.utils.items.TwilightItemsArmor.mortumBoots };
+        }
+    }
+
     /** Мобы мира для стражи руин и спавнеров подземелий. */
     @SuppressWarnings("unchecked")
     public Class<? extends EntityLiving>[] mobs() {

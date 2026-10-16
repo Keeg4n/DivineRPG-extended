@@ -300,7 +300,7 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
     }
 
     static void spawn(World w, Random r, TwilightWorld tw, int x, int y, int z) {
-        Class<? extends EntityLiving>[] mobs = tw.mobs();
+        Class<? extends EntityLiving>[] mobs = tw.surfaceMobs(); // стража стоит под открытым небом
         try {
             EntityLiving m = mobs[r.nextInt(mobs.length)].getConstructor(World.class).newInstance(w);
             m.setLocationAndAngles(x + 0.5, y, z + 0.5, r.nextFloat() * 360, 0);
