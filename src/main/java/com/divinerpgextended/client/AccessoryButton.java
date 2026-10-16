@@ -17,10 +17,13 @@ import com.divinerpgextended.cold.ColdHandler;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
-/** Маленькая кнопка-звёздочка "Аксессуары" у правого края окна инвентаря (обычного и творческого). */
+/**
+ * Маленькая кнопка-звёздочка "Аксессуары" как у Baubles, только в правом нижнем углу рамки с моделькой игрока
+ * (обычный инвентарь и вкладка инвентаря в творческом).
+ */
 public class AccessoryButton {
 
-    private static final int ID = 2401, SIZE = 18;
+    private static final int ID = 2401, SIZE = 10;
     private static final ResourceLocation STAR = new ResourceLocation("divinerpgextended", "textures/gui/accessories_star.png");
 
     /** Кнопка рисует только рамку ванильной кнопки и звезду поверх. */
@@ -44,7 +47,7 @@ public class AccessoryButton {
             drawTexturedModalRect(xPosition + width / 2, yPosition + height - 2, 200 - width / 2, v + 18, width / 2, 2);
             mc.getTextureManager().bindTexture(STAR);
             GL11.glEnable(GL11.GL_BLEND);
-            Gui.func_146110_a(xPosition + 1, yPosition + 1, 0, 0, 16, 16, 16, 16);
+            Gui.func_146110_a(xPosition + 1, yPosition + 1, 0, 0, SIZE - 2, SIZE - 2, SIZE - 2, SIZE - 2);
             GL11.glDisable(GL11.GL_BLEND);
         }
     }
@@ -71,14 +74,15 @@ public class AccessoryButton {
             c, "guiLeft", "field_147003_i");
         int top = cpw.mods.fml.relauncher.ReflectionHelper.getPrivateValue(net.minecraft.client.gui.inventory.GuiContainer.class,
             c, "guiTop", "field_147009_r");
-        // обычный инвентарь: внутри окна, под слотом результата крафта (там пусто и NEI не перекрывает);
-        // творческий: свободного места внутри нет - слева снаружи
+        // правый нижний угол рамки с моделькой: в обычном инвентаре рамка 26..77 x 8..78, в творческом 27..61 x 5..50
         if (gui instanceof GuiInventory) {
-            button.xPosition = left + 143;
-            button.yPosition = top + 59;
+            button.visible = true;
+            button.xPosition = left + 77 - SIZE - 1;
+            button.yPosition = top + 78 - SIZE - 1;
         } else {
-            button.xPosition = left - SIZE - 2;
-            button.yPosition = top + 4;
+            button.visible = ((GuiContainerCreative) gui).func_147056_g() == net.minecraft.creativetab.CreativeTabs.tabInventory.getTabIndex();
+            button.xPosition = left + 61 - SIZE - 1;
+            button.yPosition = top + 50 - SIZE - 1;
         }
     }
 
@@ -97,7 +101,7 @@ public class AccessoryButton {
     /** Подсказка "Аксессуары" при наведении. */
     @SubscribeEvent
     public void onDraw(GuiScreenEvent.DrawScreenEvent.Post e) {
-        if (button == null || !(e.gui instanceof GuiInventory || e.gui instanceof GuiContainerCreative)) return;
+        if (button == null || !button.visible || !(e.gui instanceof GuiInventory || e.gui instanceof GuiContainerCreative)) return;
         if (e.mouseX < button.xPosition || e.mouseY < button.yPosition || e.mouseX >= button.xPosition + SIZE
             || e.mouseY >= button.yPosition + SIZE) return;
         String text = StatCollector.translateToLocal("dre.accessories.title");
