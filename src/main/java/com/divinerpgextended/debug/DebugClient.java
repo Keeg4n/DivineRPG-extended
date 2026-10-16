@@ -61,6 +61,55 @@ public class DebugClient {
         write("gui", g == null ? "close" : "open", g == null ? "" : g.getClass().getName());
     }
 
+    /** Кадры за текущую секунду: число, самый долгий кадр (нс), время прошлого кадра. */
+    private int frames;
+    private long worstFrame, lastFrame, lastSecond, lastChunkUpdates;
+
+    /** Замер плавности: каждый кадр - его длительность; раз в секунду - строка perf в журнал. */
+    @SubscribeEvent
+    public void onRender(TickEvent.RenderTickEvent e) {
+        if (e.phase != TickEvent.Phase.END || !Debug.clientOn) return;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null || mc.theWorld == null) return;
+        long now = System.nanoTime();
+        if (lastFrame != 0) worstFrame = Math.max(worstFrame, now - lastFrame);
+        lastFrame = now;
+        frames++;
+        if (now - lastSecond < 1000000000L) return;
+        if (lastSecond != 0) write("perf", "second", perf(mc));
+        lastSecond = now;
+        frames = 0;
+        worstFrame = 0;
+    }
+
+    /**
+     * Кадров за секунду, худший кадр, сколько участков чанков пересобрано и сколько ждёт пересборки (так видно, тормозит
+     * ли отрисовка новых чанков), дальность прорисовки, графика; в одиночной игре - средний тик своего сервера.
+     */
+    private String perf(Minecraft mc) {
+        int updates = net.minecraft.client.renderer.WorldRenderer.chunksUpdated;
+        StringBuilder b = new StringBuilder();
+        b.append("кадров ").append(frames).append(", худший кадр ").append(worstFrame / 1000000).append(" мс");
+        b.append(", пересобрано участков ").append(Math.max(0, updates - lastChunkUpdates));
+        lastChunkUpdates = updates;
+        try {
+            java.util.List<?> queue = cpw.mods.fml.relauncher.ReflectionHelper.getPrivateValue(net.minecraft.client.renderer.RenderGlobal.class,
+                mc.renderGlobal, "worldRenderersToUpdate", "field_72767_j");
+            b.append(", ждут пересборки ").append(queue.size());
+        } catch (Throwable t) {
+            // другой рендер (OptiFine) - без очереди
+        }
+        b.append(", прорисовка ").append(mc.gameSettings.renderDistanceChunks).append(mc.gameSettings.fancyGraphics ? ", графика детальная" : ", графика быстрая");
+        b.append(", загружено чанков ").append(mc.theWorld.getChunkProvider().getLoadedChunkCount());
+        net.minecraft.server.integrated.IntegratedServer s = mc.getIntegratedServer();
+        if (s != null) {
+            long sum = 0;
+            for (long t : s.tickTimeArray) sum += t;
+            b.append(", тик своего сервера ").append(String.format(java.util.Locale.ROOT, "%.1f", sum / 1e6 / s.tickTimeArray.length)).append(" мс");
+        }
+        return b.toString();
+    }
+
     /** Раз в секунду - на диск; отладку выключили - закрыть файл. */
     @SubscribeEvent
     public void onTick(TickEvent.ClientTickEvent e) {

@@ -26,6 +26,7 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
 public class GenBench {
 
     private static final int R = 8, ORIGIN = 4000;
+    private static final List<String> MOBS = new ArrayList<String>();
     private int ticks;
 
     public static boolean enabled() {
@@ -42,7 +43,7 @@ public class GenBench {
         MinecraftServer server = MinecraftServer.getServer();
         List<String> out = new ArrayList<String>();
         out.add("Замер генерации: квадрат " + (2 * R + 1) + "x" + (2 * R + 1) + " чанков от (" + ORIGIN + ", " + ORIGIN + ")");
-        out.add(String.format("%-10s %10s %10s %12s %12s %10s", "мир", "мс/чанк", "рельеф мс", "заселение мс", "лишних чанков", "всего"));
+        out.add(String.format("%-10s %10s %10s %12s %10s %12s %10s", "мир", "мс/чанк", "рельеф мс", "заселение мс", "свет мс", "лишних чанков", "всего"));
         String[] names = { "Overworld", "Eden", "Wildwood", "Apalachia", "Skythern", "Mortum", "Iceika", "Vethea", "Arcana" };
         int[] dims = { 0, ConfigurationHelper.eden, ConfigurationHelper.wildwood, ConfigurationHelper.apalachia,
             ConfigurationHelper.skythern, ConfigurationHelper.mortum, ConfigurationHelper.iceika, ConfigurationHelper.vethea,
@@ -54,6 +55,9 @@ public class GenBench {
                 out.add(names[d] + ": ошибка " + t);
             }
         }
+        out.add("");
+        out.add("Мобы после заселения квадрата и время одного их тика");
+        out.addAll(MOBS);
         out.add("");
         out.add("Телепорт порталом, мс: Divine > быстрый (Divine создаёт новый телепорт на каждый вход)");
         out.add(String.format("%-10s %18s %18s %18s", "мир", "1-й вход", "повторный", "назад"));
@@ -138,6 +142,47 @@ public class GenBench {
             for (int z = -R; z <= R; z++)
                 cps.loadChunk(base + x, base + z);
         double total = (System.nanoTime() - t0) / 1e6 / n;
+        // освещение: чанк уходит игроку только когда свет рассчитан; сервер считает его в следующих тиках
+        java.lang.reflect.Method light = ReflectionHelper.findMethod(Chunk.class, null, new String[] { "func_150809_p" });
+        t0 = System.nanoTime();
+        int lit = 0;
+        for (int x = -R; x <= R; x++)
+            for (int z = -R; z <= R; z++) {
+                Chunk c = cps.provideChunk(base + x, base + z);
+                if (!c.isTerrainPopulated) continue;
+                try {
+                    light.invoke(c);
+                    lit++;
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        double lighting = lit == 0 ? 0 : (System.nanoTime() - t0) / 1e6 / lit;
+        // мобы, появившиеся при заселении, и цена их тика (без игрока рядом мобы не обновляются - держим тикет на чанках
+        // через обычный тик мира не выйдет, поэтому обновляем сущности напрямую)
+        int mobs = 0;
+        java.util.Map<String, Integer> kinds = new java.util.TreeMap<String, Integer>();
+        for (Object o : w.loadedEntityList) {
+            net.minecraft.entity.Entity en = (net.minecraft.entity.Entity) o;
+            if (!(en instanceof net.minecraft.entity.EntityLiving)) continue;
+            if (Math.abs(((int) en.posX >> 4) - base) > R || Math.abs(((int) en.posZ >> 4) - base) > R) continue;
+            mobs++;
+            String k = en.getClass().getSimpleName();
+            kinds.put(k, kinds.containsKey(k) ? kinds.get(k) + 1 : 1);
+        }
+        t0 = System.nanoTime();
+        int ticked = 0;
+        for (int i = 0; i < 20; i++) {
+            for (Object o : new ArrayList<Object>(w.loadedEntityList)) {
+                net.minecraft.entity.Entity en = (net.minecraft.entity.Entity) o;
+                if (!(en instanceof net.minecraft.entity.EntityLiving) || en.isDead) continue;
+                if (Math.abs(((int) en.posX >> 4) - base) > R || Math.abs(((int) en.posZ >> 4) - base) > R) continue;
+                w.updateEntity(en);
+                ticked++;
+            }
+        }
+        double mobTick = (System.nanoTime() - t0) / 1e6 / 20;
+        MOBS.add(String.format("%-10s мобов %4d, их тик %6.2f мс: %s", name, mobs, mobTick, kinds));
         int outside = 0, all = 0;
         for (Object o : cps.loadedChunks) {
             Chunk c = (Chunk) o;
@@ -145,7 +190,7 @@ public class GenBench {
             all++;
             if (Math.abs(c.xPosition - base) > R || Math.abs(c.zPosition - base) > R) outside++;
         }
-        return String.format("%-10s %10.1f %10.1f %12.1f %12d %10d", name, total, terrain, Math.max(0, total - terrain), outside,
-            cps.loadedChunks.size() - before);
+        return String.format("%-10s %10.1f %10.1f %12.1f %10.1f %12d %10d", name, total, terrain, Math.max(0, total - terrain), lighting,
+            outside, cps.loadedChunks.size() - before);
     }
 }
