@@ -1458,6 +1458,17 @@ public class SelfTest {
             check(fl == 0, "счётчик кика за полёт при парении: " + fl);
             return "пока ковёр держит - счётчик кика (порог 80) сбрасывается в 0";
         });
+        t("Сумеречные миры", "Высота падения от ковра", () -> {
+            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            e.onGround = true;
+            tick(e, 1);
+            e.onGround = false;
+            e.fallDistance = 12;
+            tick(e, 2);
+            float hover = e.fallDistance;
+            check(hover == 0, "высота падения на ковре " + hover);
+            return "пока ковёр держит, накопленная высота падения (12) сбрасывается - урон считается от ковра";
+        });
         t("Сервер", "Ковёр у порога кика", () -> {
             e.onGround = true;
             tick(e, 1);

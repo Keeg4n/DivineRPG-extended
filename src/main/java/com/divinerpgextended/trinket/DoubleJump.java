@@ -40,8 +40,8 @@ import cpw.mods.fml.relauncher.SideOnly;
  * <ul>
  * <li>Крыло Айрако: прыжок в воздухе, в Сумеречных мирах - два.</li>
  * <li>Ковёр-самолёт (только в Сумеречных мирах): прыжок зажат в воздухе - высота держится, летишь по горизонтали.
- * Запас 3 с, дольше за Великих кадиллионов, без предела после Сумеречного демона; копится только на земле. Падение
- * не гасит.</li>
+ * Запас 3 с, дольше за Великих кадиллионов, без предела после Сумеречного демона; копится только на земле. Под ногами
+ * виден ковёр (и другим игрокам). Падение не гасит, но высота падения считается от ковра.</li>
  * </ul>
  */
 public class DoubleJump {
@@ -60,6 +60,8 @@ public class DoubleJump {
         /** Для отладки: тиков подряд парит на ковре, тиков взлёта на крыльях. */
         int hoverRun, wingRun;
         double lastY;
+        /** Ковёр под ногами показан игрокам рядом. */
+        boolean carpetShown;
     }
 
     private static final Map<UUID, State> STATE = new HashMap<UUID, State>();
@@ -71,6 +73,7 @@ public class DoubleJump {
     public static void register() {
         ColdHandler.NET.registerMessage(SyncHandler.class, Sync.class, 6, Side.CLIENT);
         ColdHandler.NET.registerMessage(JumpHandler.class, Jump.class, 7, Side.SERVER);
+        ColdHandler.NET.registerMessage(CarpetStateHandler.class, CarpetState.class, 9, Side.CLIENT);
     }
 
     public static boolean twilight(int d) {
@@ -132,16 +135,25 @@ public class DoubleJump {
             ReflectionHelper.setPrivateValue(NetHandlerPlayServer.class, p.playerNetServerHandler, 0, "floatingTickCount",
                 "field_147365_f");
             if (s.wingLeft == 0) com.divinerpgextended.debug.Debug.note(p, "Крылья сна: запас взлёта кончился на y " + (int) p.posY);
-        } else if (carpet != 0 && (carpet == UNLIMITED || s.carpetLeft > 0) && Math.abs(dy) < 0.05) {
-            // парит на ковре: сервер не должен принимать это за запрещённый полёт
+        } else if (carpet != 0 && (carpet == UNLIMITED || s.carpetLeft > 0) && dy < 0.05 && dy > -0.1) {
+            // парит на ковре: сервер не должен принимать это за запрещённый полёт; высота падения считается от ковра,
+            // а не от места, откуда начал падать до него
             hovering = true;
             if (carpet != UNLIMITED) s.carpetLeft = Math.min(s.carpetLeft, carpet) - 1;
+            p.fallDistance = 0;
             ReflectionHelper.setPrivateValue(NetHandlerPlayServer.class, p.playerNetServerHandler, 0, "floatingTickCount",
                 "field_147365_f");
             if (p.ticksExisted % 4 == 0) {
                 ((WorldServer) p.worldObj).func_147487_a("cloud", p.posX, p.boundingBox.minY, p.posZ, 2, 0.3, 0.02, 0.3, 0.01);
             }
             if (s.carpetLeft == 0 && carpet != UNLIMITED) com.divinerpgextended.debug.Debug.note(p, "Ковёр: запас кончился");
+        }
+        // ковёр под ногами видят все рядом: при смене состояния и раз в секунду, пока парит (для подошедших позже)
+        boolean onCarpet = hovering && s.hoverRun >= 1;
+        if (onCarpet != s.carpetShown || onCarpet && p.ticksExisted % 20 == 0) {
+            s.carpetShown = onCarpet;
+            ColdHandler.NET.sendToAllAround(new CarpetState(p.getEntityId(), onCarpet),
+                new cpw.mods.fml.common.network.NetworkRegistry.TargetPoint(p.dimension, p.posX, p.posY, p.posZ, 96));
         }
         // отладка: начало парения (5 тиков подряд, чтобы не путать с верхней точкой прыжка) и взлёта
         s.hoverRun = hovering ? s.hoverRun + 1 : 0;
@@ -204,6 +216,45 @@ public class DoubleJump {
         }
     }
 
+    /** Кто сейчас стоит на ковре (для отрисовки ковра под ногами у других игроков). */
+    public static class CarpetState implements IMessage {
+
+        int entity;
+        boolean on;
+
+        public CarpetState() {}
+
+        CarpetState(int entity, boolean on) {
+            this.entity = entity;
+            this.on = on;
+        }
+
+        @Override
+        public void fromBytes(ByteBuf buf) {
+            entity = buf.readInt();
+            on = buf.readBoolean();
+        }
+
+        @Override
+        public void toBytes(ByteBuf buf) {
+            buf.writeInt(entity);
+            buf.writeBoolean(on);
+        }
+    }
+
+    public static class CarpetStateHandler implements IMessageHandler<CarpetState, IMessage> {
+
+        @Override
+        public IMessage onMessage(CarpetState msg, MessageContext ctx) {
+            if (msg.on) CARPETS.put(msg.entity, System.currentTimeMillis());
+            else CARPETS.remove(msg.entity);
+            return null;
+        }
+    }
+
+    /** Клиент: id игроков на ковре -> когда пришло (без обновления 2 с - ковра нет). */
+    static final Map<Integer, Long> CARPETS = new java.util.concurrent.ConcurrentHashMap<Integer, Long>();
+
     public static class Jump implements IMessage {
 
         @Override
@@ -238,6 +289,93 @@ public class DoubleJump {
 
         private int used, carpetLeft, wingLeft;
         private boolean wasDown, airborne;
+        /** Тик, когда свой игрок последний раз держался на ковре (свой ковёр рисуем сразу, не ждём сервер). */
+        private int selfCarpet = -100;
+
+        /**
+         * Ковёр под ногами: красная шерсть с золотой каймой, повёрнут по корпусу игрока и чуть колышется. Свой - по
+         * своему парению, чужие - по сообщениям сервера.
+         */
+        @SubscribeEvent
+        public void onRenderWorld(net.minecraftforge.client.event.RenderWorldLastEvent e) {
+            Minecraft mc = Minecraft.getMinecraft();
+            if (mc.theWorld == null || mc.thePlayer == null) return;
+            long now = System.currentTimeMillis();
+            for (Object o : mc.theWorld.playerEntities) {
+                EntityPlayer p = (EntityPlayer) o;
+                boolean on;
+                if (p == mc.thePlayer) on = p.ticksExisted - selfCarpet <= 1 && !grounded(p);
+                else {
+                    Long t = CARPETS.get(p.getEntityId());
+                    on = t != null && now - t < 2000 && !p.onGround;
+                }
+                if (on) drawCarpet(p, e.partialTicks);
+            }
+        }
+
+        private static void drawCarpet(EntityPlayer p, float pt) {
+            Minecraft mc = Minecraft.getMinecraft();
+            double x = p.lastTickPosX + (p.posX - p.lastTickPosX) * pt - net.minecraft.client.renderer.entity.RenderManager.renderPosX;
+            double y = p.lastTickPosY + (p.posY - p.lastTickPosY) * pt - p.yOffset
+                - net.minecraft.client.renderer.entity.RenderManager.renderPosY;
+            double z = p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * pt - net.minecraft.client.renderer.entity.RenderManager.renderPosZ;
+            float yaw = p.prevRenderYawOffset + (p.renderYawOffset - p.prevRenderYawOffset) * pt;
+            float wave = (p.ticksExisted + pt) * 0.25F;
+            int light = p.getBrightnessForRender(pt);
+            net.minecraft.client.renderer.OpenGlHelper.setLightmapTextureCoords(net.minecraft.client.renderer.OpenGlHelper.lightmapTexUnit,
+                light % 65536, light / 65536);
+            mc.getTextureManager().bindTexture(net.minecraft.client.renderer.texture.TextureMap.locationBlocksTexture);
+            net.minecraft.util.IIcon red = net.minecraft.init.Blocks.wool.getIcon(1, 14);
+            net.minecraft.util.IIcon gold = net.minecraft.init.Blocks.wool.getIcon(1, 4);
+            org.lwjgl.opengl.GL11.glPushMatrix();
+            org.lwjgl.opengl.GL11.glTranslated(x, y - 0.06, z);
+            org.lwjgl.opengl.GL11.glRotatef(-yaw, 0, 1, 0);
+            org.lwjgl.opengl.GL11.glDisable(org.lwjgl.opengl.GL11.GL_LIGHTING);
+            org.lwjgl.opengl.GL11.glDisable(org.lwjgl.opengl.GL11.GL_CULL_FACE);
+            org.lwjgl.opengl.GL11.glColor4f(1, 1, 1, 1);
+            net.minecraft.client.renderer.Tessellator t = net.minecraft.client.renderer.Tessellator.instance;
+            t.startDrawingQuads();
+            // полотно 1.0 x 1.5 (длинной стороной вдоль взгляда), разбито на полосы - по ним бежит волна
+            double w = 0.5, l = 0.75, h = 0.05, b = 0.08;
+            int n = 6;
+            for (int i = 0; i < n; i++) {
+                double z0 = -l + 2 * l * i / n, z1 = -l + 2 * l * (i + 1) / n;
+                double y0 = Math.sin(wave + i * 0.9) * 0.03, y1 = Math.sin(wave + (i + 1) * 0.9) * 0.03;
+                strip(t, red, -w + b, w - b, z0, z1, y0, y1, h);
+                strip(t, gold, -w, -w + b, z0, z1, y0, y1, h);
+                strip(t, gold, w - b, w, z0, z1, y0, y1, h);
+            }
+            // золотые торцы спереди и сзади
+            double ye = Math.sin(wave) * 0.03, yf = Math.sin(wave + n * 0.9) * 0.03;
+            strip(t, gold, -w, w, -l - b, -l, ye, ye, h);
+            strip(t, gold, -w, w, l, l + b, yf, yf, h);
+            t.draw();
+            org.lwjgl.opengl.GL11.glEnable(org.lwjgl.opengl.GL11.GL_CULL_FACE);
+            org.lwjgl.opengl.GL11.glEnable(org.lwjgl.opengl.GL11.GL_LIGHTING);
+            org.lwjgl.opengl.GL11.glPopMatrix();
+        }
+
+        /** Полоса ковра: верх, низ и боковые грани толщиной h; y0/y1 - высота на ближнем и дальнем краю. */
+        private static void strip(net.minecraft.client.renderer.Tessellator t, net.minecraft.util.IIcon i, double x0, double x1,
+            double z0, double z1, double y0, double y1, double h) {
+            double u0 = i.getMinU(), u1 = i.getMaxU(), v0 = i.getMinV(), v1 = i.getMaxV();
+            t.addVertexWithUV(x0, y0 + h, z0, u0, v0);
+            t.addVertexWithUV(x0, y1 + h, z1, u0, v1);
+            t.addVertexWithUV(x1, y1 + h, z1, u1, v1);
+            t.addVertexWithUV(x1, y0 + h, z0, u1, v0);
+            t.addVertexWithUV(x0, y0, z0, u0, v0);
+            t.addVertexWithUV(x1, y0, z0, u1, v0);
+            t.addVertexWithUV(x1, y1, z1, u1, v1);
+            t.addVertexWithUV(x0, y1, z1, u0, v1);
+            t.addVertexWithUV(x0, y0, z0, u0, v0);
+            t.addVertexWithUV(x0, y0 + h, z0, u0, v1);
+            t.addVertexWithUV(x1, y0 + h, z0, u1, v1);
+            t.addVertexWithUV(x1, y0, z0, u1, v0);
+            t.addVertexWithUV(x0, y1, z1, u0, v0);
+            t.addVertexWithUV(x1, y1, z1, u1, v0);
+            t.addVertexWithUV(x1, y1 + h, z1, u1, v1);
+            t.addVertexWithUV(x0, y1 + h, z1, u0, v1);
+        }
 
         @SubscribeEvent
         public void onTick(TickEvent.ClientTickEvent e) {
@@ -281,6 +419,8 @@ public class DoubleJump {
             // ковёр: прыжок зажат, игрок уже не поднимается - держим высоту
             if (down && p.motionY <= 0 && clientCarpet != 0 && (clientCarpet == UNLIMITED || carpetLeft > 0)) {
                 p.motionY = 0;
+                p.fallDistance = 0;
+                selfCarpet = p.ticksExisted;
                 if (clientCarpet != UNLIMITED) carpetLeft--;
                 if (p.ticksExisted % 2 == 0) {
                     p.worldObj.spawnParticle("reddust", p.posX + (p.getRNG().nextDouble() - 0.5), p.boundingBox.minY,
