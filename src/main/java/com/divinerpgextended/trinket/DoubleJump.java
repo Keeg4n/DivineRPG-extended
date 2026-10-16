@@ -249,7 +249,10 @@ public class DoubleJump {
                 return;
             }
             boolean down = mc.gameSettings.keyBindJump.getIsKeyPressed();
-            boolean pressed = down && !wasDown;
+            // обычный прыжок с земли отрывает игрока в тот же тик, что и нажатие - прыжком в воздухе считается
+            // только нажатие, когда игрок был в воздухе уже на прошлом тике
+            boolean wasAirborne = airborne;
+            boolean pressed = down && !wasDown && wasAirborne;
             wasDown = down;
             airborne = !grounded(p);
             if (!airborne) {
