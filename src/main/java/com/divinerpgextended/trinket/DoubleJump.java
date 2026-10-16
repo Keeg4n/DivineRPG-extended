@@ -40,14 +40,17 @@ import cpw.mods.fml.relauncher.SideOnly;
  * <ul>
  * <li>Крыло Айрако: прыжок в воздухе, в Сумеречных мирах - два.</li>
  * <li>Ковёр-самолёт (только в Сумеречных мирах): прыжок зажат в воздухе - высота держится, летишь по горизонтали.
- * Запас 3 с, дольше за Великих кадиллионов, без предела после Сумеречного демона; копится только на земле. Под ногами
- * виден ковёр (и другим игрокам). Падение не гасит, но высота падения считается от ковра.</li>
+ * Запас по миру: Эдем и Вайлдвуд 10 с, Апалачия 8, Скайтерн 5, Мортум 3; без предела после Сумеречного демона;
+ * копится только на земле. Кончился - пока пробел зажат, ковёр медленно опускает (планирование) без урона. Под ногами
+ * виден ковёр (и другим игрокам). Высота падения считается от ковра.</li>
  * </ul>
  */
 public class DoubleJump {
 
     /** Ковёр без предела по времени. */
     public static final int UNLIMITED = -1;
+    /** Скорость планирования на ковре после конца запаса (блоков за тик вниз). */
+    static final double GLIDE = -0.1;
 
     private static class State {
 
@@ -90,10 +93,12 @@ public class DoubleJump {
     public static int carpetTicks(EntityPlayer p) {
         if (!twilight(p.dimension) || !Accessories.wears(p, Trinket.MAGIC_CARPET)) return 0;
         if (BossProgress.has(p, Boss.TWILIGHT_DEMON)) return UNLIMITED;
-        if (BossProgress.has(p, Boss.CADILLION_SKYTHERN)) return 200;
-        if (BossProgress.has(p, Boss.CADILLION_APALACHIA)) return 140;
-        if (BossProgress.has(p, Boss.CADILLION_WILDWOOD)) return 100;
-        if (BossProgress.has(p, Boss.CADILLION_EDEN)) return 80;
+        // по миру: в первых трёх пропасти между островами - там ковёр нужнее всего; в Скайтерне важнее высота,
+        // в Мортуме пропастей почти нет
+        int d = p.dimension;
+        if (d == ConfigurationHelper.eden || d == ConfigurationHelper.wildwood) return 200;
+        if (d == ConfigurationHelper.apalachia) return 160;
+        if (d == ConfigurationHelper.skythern) return 100;
         return 60;
     }
 
@@ -128,7 +133,7 @@ public class DoubleJump {
             "floatingTickCount", "field_147365_f");
         boolean moved = packets > 0;
         int carpet = carpetTicks(p), wing = wingTicks(p);
-        boolean hovering = false, rising = false;
+        boolean hovering = false, rising = false, gliding = false;
         if (grounded(p)) {
             s.used = 0;
             s.carpetLeft = carpet;
@@ -151,10 +156,14 @@ public class DoubleJump {
             if (p.ticksExisted % 4 == 0) {
                 ((WorldServer) p.worldObj).func_147487_a("cloud", p.posX, p.boundingBox.minY, p.posZ, 2, 0.3, 0.02, 0.3, 0.01);
             }
-            if (s.carpetLeft == 0 && carpet != UNLIMITED) com.divinerpgextended.debug.Debug.note(p, "Ковёр: запас кончился");
+            if (s.carpetLeft == 0 && carpet != UNLIMITED) com.divinerpgextended.debug.Debug.note(p, "Ковёр: запас кончился, дальше планирование");
+        } else if (carpet > 0 && s.carpetLeft <= 0 && dy <= -0.03 && dy >= -0.2) {
+            // запас кончился, пробел зажат: клиент медленно опускает (около 2 блоков в секунду) - падение не копится
+            gliding = true;
+            p.fallDistance = 0;
         }
         // ковёр под ногами видят все рядом: при смене состояния и раз в секунду, пока парит (для подошедших позже)
-        boolean onCarpet = hovering && s.hoverRun >= 1;
+        boolean onCarpet = hovering && s.hoverRun >= 1 || gliding;
         if (onCarpet != s.carpetShown || onCarpet && p.ticksExisted % 20 == 0) {
             s.carpetShown = onCarpet;
             ColdHandler.NET.sendToAllAround(new CarpetState(p.getEntityId(), onCarpet),
@@ -423,6 +432,13 @@ public class DoubleJump {
             }
             if (pressed && used < clientAllowed) {
                 jump(p);
+                return;
+            }
+            // ковёр, запас кончился: пробел зажат - медленно опускаем (около 2 блоков в секунду), падение не копится
+            if (down && p.motionY < 0 && clientCarpet > 0 && carpetLeft <= 0) {
+                p.motionY = Math.max(p.motionY, GLIDE);
+                p.fallDistance = 0;
+                selfCarpet = p.ticksExisted;
                 return;
             }
             // ковёр: прыжок зажат, игрок уже не поднимается - держим высоту

@@ -747,18 +747,22 @@ public class SelfTest {
 
     private void twilightTests() {
         t("Сумеречные миры", "Запас растёт", () -> {
-            TestPlayer e = player(ConfigurationHelper.eden, "TestEden", 0, 100, 0);
-            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            int[] dims = { ConfigurationHelper.eden, ConfigurationHelper.wildwood, ConfigurationHelper.apalachia, ConfigurationHelper.skythern,
+                ConfigurationHelper.mortum };
             int[] v = new int[6];
-            v[0] = DoubleJump.carpetTicks(e);
-            Boss[] seq = { Boss.CADILLION_EDEN, Boss.CADILLION_WILDWOOD, Boss.CADILLION_APALACHIA, Boss.CADILLION_SKYTHERN, Boss.TWILIGHT_DEMON };
-            for (int i = 0; i < 5; i++) {
-                BossProgress.grant(e, seq[i]);
-                v[i + 1] = DoubleJump.carpetTicks(e);
+            for (int i = 0; i < dims.length; i++) {
+                TestPlayer w = player(dims[i], "TestCarpet" + i, 0, 100, 0);
+                Accessories.of(w).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+                v[i] = DoubleJump.carpetTicks(w);
+                if (i == 0) {
+                    BossProgress.grant(w, Boss.TWILIGHT_DEMON);
+                    v[5] = DoubleJump.carpetTicks(w);
+                    BossProgress.revoke(w, Boss.TWILIGHT_DEMON);
+                }
             }
-            check(v[0] == 60 && v[1] == 80 && v[2] == 100 && v[3] == 140 && v[4] == 200 && v[5] == -1,
-                "тиков: " + v[0] + "/" + v[1] + "/" + v[2] + "/" + v[3] + "/" + v[4] + "/" + v[5]);
-            return "3 > 4 > 5 > 7 > 10 с > без предела";
+            check(v[0] == 200 && v[1] == 200 && v[2] == 160 && v[3] == 100 && v[4] == 60 && v[5] == -1,
+                "тиков: " + v[0] + "/" + v[1] + "/" + v[2] + "/" + v[3] + "/" + v[4] + ", с демоном " + v[5]);
+            return "по миру: Эдем 10 с, Вайлдвуд 10, Апалачия 8, Скайтерн 5, Мортум 3; после демона - без предела";
         });
         t("Сумеречные миры", "Отозвать Сумеречного демона", () -> {
             TestPlayer e = player(ConfigurationHelper.eden, "TestEden", 0, 100, 0);
@@ -1435,8 +1439,28 @@ public class SelfTest {
             int spent = carpetLeft(e);
             tick(e, 5);
             int still = carpetLeft(e);
-            check(full == 60 && spent == 50 && still == 45, "запас: на земле " + full + ", после 10 тиков парения " + spent + ", ещё 5 " + still);
-            return "на земле 60 тиков, в воздухе тратится и не восстанавливается";
+            check(full == 200 && spent == 190 && still == 185, "запас: на земле " + full + ", после 10 тиков парения " + spent + ", ещё 5 " + still);
+            return "на земле 200 тиков, в воздухе тратится и не восстанавливается";
+        });
+        t("Сумеречные миры", "Планирование после запаса", () -> {
+            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            e.onGround = true;
+            tick(e, 1);
+            e.onGround = false;
+            tick(e, 205); // запас Эдема (200) кончился в парении
+            int left = carpetLeft(e);
+            double y = e.posY;
+            float maxFall = 0;
+            for (int i = 0; i < 20; i++) { // клиент опускает на 0.1 за тик
+                y -= 0.1;
+                e.setPosition(e.posX, y, e.posZ);
+                e.fallDistance += 0.1F;
+                tick(e, 1);
+                maxFall = Math.max(maxFall, e.fallDistance);
+            }
+            e.setPosition(e.posX, 100, e.posZ);
+            check(left <= 0 && maxFall < 0.2F, "запас " + left + ", накопленное падение при планировании до " + maxFall);
+            return "запас кончился - планирование 2 блока/с, высота падения не копится";
         });
         t("Сумеречные миры", "Фриз клиента не тратит ковёр", () -> {
             int before = carpetLeft(e);
@@ -1449,6 +1473,10 @@ public class SelfTest {
             return "клиент завис на 10 тиков - запас ковра не тронут (" + after + ")";
         });
         t("Сумеречные миры", "Снять ковёр в воздухе", () -> {
+            e.onGround = true; // зарядиться на земле и чуть потратить в воздухе
+            tick(e, 1);
+            e.onGround = false;
+            tick(e, 5);
             int before = carpetLeft(e);
             Accessories.of(e).setInventorySlotContents(0, null);
             tick(e, 3);
@@ -1463,8 +1491,8 @@ public class SelfTest {
             tick(e, 1);
             int left = carpetLeft(e);
             ReflectionHelper.setPrivateValue(net.minecraft.entity.Entity.class, e, false, "inWater", "field_70171_ac");
-            check(left == 60, "после касания воды запас " + left);
-            return "в воде запас снова полный (60)";
+            check(left == 200, "после касания воды запас " + left);
+            return "в воде запас снова полный (200)";
         });
         t("Сумеречные миры", "Падение не гасит", () -> {
             boolean c = MinecraftForge.EVENT_BUS.post(new LivingFallEvent(e, 20));
