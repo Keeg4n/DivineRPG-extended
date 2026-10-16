@@ -67,6 +67,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new BossTracker());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.LairSummons());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.HomeArmor());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.TwilightDrops());
         com.divinerpgextended.perk.HomingArrows homing = new com.divinerpgextended.perk.HomingArrows();
         MinecraftForge.EVENT_BUS.register(homing);
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(homing);
@@ -117,6 +118,9 @@ public class CommonProxy {
         RecipeSorter.register("divinerpgextended:clock_upgrade", ClockUpgradeRecipe.class,
             RecipeSorter.Category.SHAPELESS, "after:minecraft:shapeless");
         GameRegistry.addRecipe(new ClockUpgradeRecipe());
+        RecipeSorter.register("divinerpgextended:temper", com.divinerpgextended.item.TemperRecipe.class,
+            RecipeSorter.Category.SHAPELESS, "after:minecraft:shapeless");
+        GameRegistry.addRecipe(new com.divinerpgextended.item.TemperRecipe());
 
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.fishing.FishingEvents());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.arcana.MerikForge());
@@ -238,10 +242,13 @@ public class CommonProxy {
         GameRegistry.addRecipe(new ItemStack(ModItems.icePick), "III", " S ", " S ", 'I', IceikaItems.iceStone,
             'S', Items.stick);
 
-        // Зов великого кадиллиона: 8 душ мира вокруг камня мира
+        // Зов великого кадиллиона: души мира, камень мира, рог (у Скайтерна - эссенция) с мобов мира и печать святилища
+        // из подземелья острова - до босса не дойти без исследования мира
         for (CadillionWorld w : CadillionWorld.values()) {
-            GameRegistry.addRecipe(new ItemStack(ModItems.cadillionCall, 1, w.ordinal()), "SSS", "SGS", "SSS", 'S',
-                w.soul(), 'G', w.gem());
+            com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.values()[w.ordinal()];
+            GameRegistry.addRecipe(new ItemStack(ModItems.cadillionCall, 1, w.ordinal()), "SHS", "SGS", "SPS", 'S', w.soul(), 'G', w.gem(),
+                'H', new ItemStack(ModItems.twilightMaterial, 1, com.divinerpgextended.world.twilight.TwilightMaterial.call(tw).ordinal()),
+                'P', new ItemStack(ModItems.sanctumSeal, 1, w.ordinal()));
         }
     }
 

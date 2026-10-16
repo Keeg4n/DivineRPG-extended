@@ -43,16 +43,14 @@ public final class TwilightLoot {
     }
 
     public static WeightedRandomChestContent[] ruins(TwilightWorld w) {
-        WeightedRandomChestContent call = w == TwilightWorld.MORTUM ? e(w.gem(), 1, 1, 1)
-            : e(ModItems.cadillionCall, w.ordinal(), 1, 1, 1);
+        WeightedRandomChestContent seal = w == TwilightWorld.MORTUM ? e(w.gem(), 1, 1, 1) : e(ModItems.sanctumSeal, w.ordinal(), 1, 1, 1);
         return new WeightedRandomChestContent[] { e(w.soul(), 1, 3, 10), e(w.fragments(), 2, 6, 10), e(w.gem(), 1, 2, 5),
             e(chunk(w), 1, 1, 3), e(Items.bread, 2, 5, 6), e(Items.apple, 1, 3, 5), e(Items.arrow, 4, 12, 4),
-            e(VanillaItemsOther.arlemiteIngot, 1, 2, 3), e(Items.gold_ingot, 1, 3, 3), map(w, 3), call };
+            e(VanillaItemsOther.arlemiteIngot, 1, 2, 3), e(Items.gold_ingot, 1, 3, 3), map(w, 3), seal };
     }
 
     public static WeightedRandomChestContent[] dungeon(TwilightWorld w) {
-        WeightedRandomChestContent call = w == TwilightWorld.MORTUM ? e(w.gem(), 2, 3, 2)
-            : e(ModItems.cadillionCall, w.ordinal(), 1, 1, 2);
+        WeightedRandomChestContent call = e(w.gem(), 2, 3, 2);
         return new WeightedRandomChestContent[] { e(w.soul(), 2, 5, 10), e(w.gem(), 2, 4, 8), e(w.fragments(), 4, 8, 8),
             e(chunk(w), 1, 2, 6), e(Items.golden_apple, 1, 1, 2), e(Items.diamond, 1, 2, 3),
             e(VanillaItemsOther.rupeeIngot, 1, 2, 3), e(VanillaItemsOther.arlemiteIngot, 1, 3, 4), e(Items.experience_bottle, 2, 5, 4),

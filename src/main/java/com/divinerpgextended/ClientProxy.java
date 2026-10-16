@@ -38,6 +38,16 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.DreBossBar());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.AccessoryButton());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.TooltipWrap());
+        MinecraftForge.EVENT_BUS.register(new Object() {
+
+            /** Закалённая вещь сумеречного мира: строка в подсказке (у чужих предметов Divine - сюда). */
+            @cpw.mods.fml.common.eventhandler.SubscribeEvent
+            public void onTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent e) {
+                if (com.divinerpgextended.item.TemperRecipe.tempered(e.itemStack)) {
+                    e.toolTip.add(1, net.minecraft.util.EnumChatFormatting.GOLD + net.minecraft.util.StatCollector.translateToLocal("dre.tooltip.tempered"));
+                }
+            }
+        });
         ColdHud coldHud = new ColdHud();
         com.divinerpgextended.trinket.DoubleJump.Client airMoves = new com.divinerpgextended.trinket.DoubleJump.Client();
         MinecraftForge.EVENT_BUS.register(coldHud);

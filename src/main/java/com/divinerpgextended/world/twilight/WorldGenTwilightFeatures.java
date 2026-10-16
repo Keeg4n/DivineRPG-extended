@@ -50,7 +50,8 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         } else if (Config.twilightDungeonRarity > 0 && r.nextInt(Config.twilightDungeonRarity) == 0) {
             for (int[] o : spots) if (!built && (built = dungeon(world, r, tw, x0 + o[0], z0 + o[1], x0 + 23))) dungeons++;
         }
-        if (!built && Config.twilightBridgeRarity > 0 && r.nextInt(Config.twilightBridgeRarity) == 0) {
+        // мосты: у построек - всегда пробуем (мост издалека подсказывает, что рядом что-то есть), в остальных местах редко
+        if (Config.twilightBridgeRarity > 0 && (built || r.nextInt(Config.twilightBridgeRarity) == 0)) {
             if (bridge(world, r, tw, x0, z0)) bridges++;
         }
     }
@@ -155,6 +156,7 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
             if (name != null) ((TileEntityMobSpawner) w.getTileEntity(x + 4, floor, z + 4)).func_145881_a().setEntityName(name);
         }
         chest(w, r, x + 7, floor, z + 1, TwilightLoot.dungeon(tw), 6 + r.nextInt(3));
+        sealIn(w, x + 7, floor, z + 1, tw);
         // лестница наверх в углу: шахта до поверхности
         for (int y = floor; y <= top + 1; y++) {
             w.setBlock(x + 1, y, z + 7, Blocks.air, 0, 2);
@@ -284,13 +286,30 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
                 if (q != 0 && !gone) {
                     boolean post = (i - a) % 4 == 0;
                     w.setBlock(x, y + 1, z, post ? log : Blocks.fence, 0, 2);
-                    if (post) w.setBlock(x, y + 2, z, Blocks.fence, 0, 2);
+                    if (post) {
+                        w.setBlock(x, y + 2, z, Blocks.fence, 0, 2);
+                        if ((i - a) % 8 == 0) w.setBlock(x, y + 3, z, Blocks.glowstone, 0, 2); // фонарь
+                    }
                 }
             }
         }
     }
 
     // ---------------------------------------------------------------- общее
+
+    /** В сундуке подземелья всегда печать святилища мира (кроме Мортума - там вызывают кристаллами). */
+    static void sealIn(World w, int x, int y, int z, TwilightWorld tw) {
+        if (tw == TwilightWorld.MORTUM || !(w.getTileEntity(x, y, z) instanceof TileEntityChest)) return;
+        TileEntityChest c = (TileEntityChest) w.getTileEntity(x, y, z);
+        net.minecraft.item.ItemStack seal = new net.minecraft.item.ItemStack(com.divinerpgextended.registry.ModItems.sanctumSeal, 1, tw.ordinal());
+        for (int i = 0; i < c.getSizeInventory(); i++) {
+            if (c.getStackInSlot(i) == null) {
+                c.setInventorySlotContents(i, seal);
+                return;
+            }
+        }
+        c.setInventorySlotContents(13, seal);
+    }
 
     static void chest(World w, Random r, int x, int y, int z, WeightedRandomChestContent[] table, int count) {
         w.setBlock(x, y, z, Blocks.chest, 0, 2);

@@ -53,9 +53,9 @@ public class EntityWanderer extends EntityVillager {
         l.add(new MerchantRecipe(new ItemStack(w.soul(), 4), new ItemStack(w.gem(), 1)));
         l.add(new MerchantRecipe(new ItemStack(w.gem(), 2), new ItemStack(ModItems.lairMap, 1,
             w == TwilightWorld.MORTUM ? ItemLairMap.CIRCLE : ItemLairMap.NEST)));
-        if (w != TwilightWorld.MORTUM) {
-            l.add(new MerchantRecipe(new ItemStack(w.soul(), 6), new ItemStack(w.gem(), 2), new ItemStack(ModItems.cadillionCall, 1, w.ordinal())));
-        }
+        // материалы мира - тем, кому не везёт с выпадением (дорого)
+        com.divinerpgextended.world.twilight.TwilightMaterial[] m = com.divinerpgextended.world.twilight.TwilightMaterial.ofWorld(w);
+        l.add(new MerchantRecipe(new ItemStack(w.gem(), 3), new ItemStack(ModItems.twilightMaterial, 1, m[0].ordinal())));
         l.add(new MerchantRecipe(new ItemStack(w.gem(), 1), new ItemStack(Items.bread, 6)));
         l.add(new MerchantRecipe(new ItemStack(w.gem(), 1), new ItemStack(Items.cooked_beef, 4)));
         l.add(new MerchantRecipe(new ItemStack(w.gem(), 2), new ItemStack(Items.potionitem, 1, 8229))); // лечение II

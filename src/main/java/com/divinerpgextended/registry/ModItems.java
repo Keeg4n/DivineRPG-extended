@@ -41,6 +41,7 @@ public final class ModItems {
     public static Item cadillionCall;
     public static Item deepShell;
     public static Item lairMap;
+    public static Item twilightMaterial, sanctumSeal;
     public static Item icePick;
     public static Item rimePick;
     public static Item rimeIngot;
@@ -80,6 +81,10 @@ public final class ModItems {
         GameRegistry.registerItem(deepShell, "deepShell");
         lairMap = new ItemLairMap();
         GameRegistry.registerItem(lairMap, "lairMap");
+        twilightMaterial = new com.divinerpgextended.item.ItemTwilightMaterial(false);
+        GameRegistry.registerItem(twilightMaterial, "twilightMaterial");
+        sanctumSeal = new com.divinerpgextended.item.ItemTwilightMaterial(true);
+        GameRegistry.registerItem(sanctumSeal, "sanctumSeal");
         icePick = new ItemIcePick(false);
         GameRegistry.registerItem(icePick, "icePick");
         rimePick = new ItemIcePick(true);

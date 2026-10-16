@@ -28,6 +28,8 @@ public class HomingArrows {
 
     private static final double RANGE = 24, CONE = Math.cos(Math.toRadians(40)), TURN = 0.25;
     private final Set<EntityDivineArrow> arrows = Collections.newSetFromMap(new WeakHashMap<EntityDivineArrow, Boolean>());
+    /** Стрелы из закалённого лука: доворот сильнее, дальность больше. */
+    private final Set<EntityDivineArrow> strong = Collections.newSetFromMap(new WeakHashMap<EntityDivineArrow, Boolean>());
 
     static boolean twilightBow(ItemStack s) {
         if (s == null) return false;
@@ -41,7 +43,10 @@ public class HomingArrows {
     public void onJoin(EntityJoinWorldEvent e) {
         if (e.world.isRemote || !(e.entity instanceof EntityDivineArrow)) return;
         EntityDivineArrow a = (EntityDivineArrow) e.entity;
-        if (a.shootingEntity instanceof EntityPlayer && twilightBow(((EntityPlayer) a.shootingEntity).getHeldItem())) arrows.add(a);
+        if (a.shootingEntity instanceof EntityPlayer && twilightBow(((EntityPlayer) a.shootingEntity).getHeldItem())) {
+            arrows.add(a);
+            if (com.divinerpgextended.item.TemperRecipe.tempered(((EntityPlayer) a.shootingEntity).getHeldItem())) strong.add(a);
+        }
     }
 
     @SubscribeEvent
@@ -52,7 +57,7 @@ public class HomingArrows {
                 arrows.remove(a);
                 continue;
             }
-            steer(a);
+            steer(a, strong.contains(a));
         }
     }
 
@@ -64,8 +69,13 @@ public class HomingArrows {
         }
     }
 
-    /** Довернуть стрелу на ближайшего летучего моба впереди. */
     public static boolean steer(EntityDivineArrow a) {
+        return steer(a, false);
+    }
+
+    /** Довернуть стрелу на ближайшего летучего моба впереди; strong - из закалённого лука. */
+    public static boolean steer(EntityDivineArrow a, boolean strong) {
+        double RANGE = strong ? 36 : HomingArrows.RANGE, TURN = strong ? 0.45 : HomingArrows.TURN;
         double v = Math.sqrt(a.motionX * a.motionX + a.motionY * a.motionY + a.motionZ * a.motionZ);
         if (v < 0.3) return false;
         double fx = a.motionX / v, fy = a.motionY / v, fz = a.motionZ / v;

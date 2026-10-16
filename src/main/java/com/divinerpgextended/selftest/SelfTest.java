@@ -326,6 +326,17 @@ public class SelfTest {
         }
     }
 
+    /** Пустая сетка верстака 3 x 3 для проверки рецептов. */
+    private static net.minecraft.inventory.InventoryCrafting grid() {
+        return new net.minecraft.inventory.InventoryCrafting(new Container() {
+
+            @Override
+            public boolean canInteractWith(EntityPlayer p) {
+                return true;
+            }
+        }, 3, 3);
+    }
+
     /** Загрузить и заселить чанки вокруг точки (радиус в чанках + 1 на заселение краёв). */
     private static void loadAround(WorldServer w, int x, int z, int r) {
         for (int i = -r - 1; i <= r + 1; i++)
@@ -1791,6 +1802,83 @@ public class SelfTest {
             check(home && !away && Math.abs(ev.ammount - 7) < 0.6, "дома " + home + ", в чужом мире " + away + ", урон моба 10 > " + ev.ammount);
             return "сет Эдема в Эдеме: урон мобов x0.7; в другом мире бонуса нет";
         });
+        t("Прохождение", "Материалы с мобов", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            TestPlayer v = player(ConfigurationHelper.eden, "TestDrops", 9950, 100, 9950);
+            net.divinerpg.entities.twilight.EntityEdenCori cori = new net.divinerpg.entities.twilight.EntityEdenCori(w);
+            cori.setPosition(9950, 100, 9950);
+            int got = 0;
+            for (int i = 0; i < 100; i++) {
+                java.util.ArrayList<net.minecraft.entity.item.EntityItem> drops = new java.util.ArrayList<net.minecraft.entity.item.EntityItem>();
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(cori,
+                    net.minecraft.util.DamageSource.causePlayerDamage(v), drops, 0, true, 0));
+                for (net.minecraft.entity.item.EntityItem d : drops) {
+                    ItemStack it = d.getEntityItem();
+                    if (it.getItem() == com.divinerpgextended.registry.ModItems.twilightMaterial
+                        && it.getItemDamage() == com.divinerpgextended.world.twilight.TwilightMaterial.SUN_FEATHER.ordinal()) got++;
+                }
+            }
+            check(got > 15 && got < 60, "солнечных перьев с 100 Кори: " + got);
+            return "с Кори падает солнечное перо: " + got + " из 100 (шанс 35%)";
+        });
+        t("Прохождение", "Зов требует печать", () -> {
+            net.minecraft.inventory.InventoryCrafting old = grid(), now = grid();
+            Item soul = net.divinerpg.utils.items.TwilightItemsOther.edenSoul, gem = net.divinerpg.utils.items.TwilightItemsOther.edenGem;
+            for (int i = 0; i < 9; i++) old.setInventorySlotContents(i, new ItemStack(i == 4 ? gem : soul));
+            ItemStack[] layout = { new ItemStack(soul), new ItemStack(com.divinerpgextended.registry.ModItems.twilightMaterial, 1,
+                com.divinerpgextended.world.twilight.TwilightMaterial.HORN_SHARD.ordinal()), new ItemStack(soul), new ItemStack(soul), new ItemStack(gem),
+                new ItemStack(soul), new ItemStack(soul), new ItemStack(com.divinerpgextended.registry.ModItems.sanctumSeal, 1, 0), new ItemStack(soul) };
+            for (int i = 0; i < 9; i++) now.setInventorySlotContents(i, layout[i]);
+            ItemStack a = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(old, server.worldServers[0]);
+            ItemStack b = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(now, server.worldServers[0]);
+            check(a == null && b != null && b.getItem() == com.divinerpgextended.registry.ModItems.cadillionCall && b.getItemDamage() == 0,
+                "старый рецепт " + a + ", новый " + b);
+            return "8 душ вокруг камня больше не дают Зов; души + камень + обломок рога + печать святилища - Зов Эдема";
+        });
+        t("Прохождение", "Закалка", () -> {
+            Item feather = com.divinerpgextended.registry.ModItems.twilightMaterial, gem = net.divinerpg.utils.items.TwilightItemsOther.edenGem;
+            int ff = com.divinerpgextended.world.twilight.TwilightMaterial.SUN_FEATHER.ordinal(), root = com.divinerpgextended.world.twilight.TwilightMaterial.GREENFEET_ROOT.ordinal();
+            net.minecraft.inventory.InventoryCrafting tg = grid();
+            tg.setInventorySlotContents(0, new ItemStack(net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet));
+            tg.setInventorySlotContents(1, new ItemStack(feather, 1, ff));
+            tg.setInventorySlotContents(2, new ItemStack(feather, 1, ff));
+            tg.setInventorySlotContents(3, new ItemStack(feather, 1, root));
+            tg.setInventorySlotContents(4, new ItemStack(feather, 1, root));
+            tg.setInventorySlotContents(5, new ItemStack(gem));
+            ItemStack helm = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(tg, server.worldServers[0]);
+            tg.setInventorySlotContents(4, null);
+            ItemStack short_ = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(tg, server.worldServers[0]);
+            net.minecraft.inventory.InventoryCrafting bg = grid();
+            bg.setInventorySlotContents(0, new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBow));
+            for (int i = 1; i <= 3; i++) bg.setInventorySlotContents(i, new ItemStack(feather, 1, ff));
+            bg.setInventorySlotContents(4, new ItemStack(gem));
+            ItemStack bow = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(bg, server.worldServers[0]);
+            check(com.divinerpgextended.item.TemperRecipe.tempered(helm) && short_ == null && com.divinerpgextended.item.TemperRecipe.tempered(bow),
+                "шлем " + helm + ", без одного корня " + short_ + ", лук " + bow);
+            return "шлем Эдема + 2 пера + 2 корня + камень - закалён; без корня не крафтится; лук Эдема + 3 пера + камень - закалён";
+        });
+        t("Прохождение", "Закалённый сет", () -> {
+            TestPlayer v = player(ConfigurationHelper.eden, "TestTempered", 9960, 100, 9960);
+            Item[] set = { net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet, net.divinerpg.utils.items.TwilightItemsArmor.edenChestplate,
+                net.divinerpg.utils.items.TwilightItemsArmor.edenLeggings, net.divinerpg.utils.items.TwilightItemsArmor.edenBoots };
+            for (int i = 0; i < 4; i++) {
+                ItemStack st = new ItemStack(set[i]);
+                st.setTagCompound(new net.minecraft.nbt.NBTTagCompound());
+                st.getTagCompound().setBoolean(com.divinerpgextended.item.TemperRecipe.TAG, true);
+                v.setCurrentItemOrArmor(4 - i, st);
+            }
+            v.addPotionEffect(new net.minecraft.potion.PotionEffect(net.minecraft.potion.Potion.blindness.id, 100, 0));
+            v.ticksExisted = 100;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(v));
+            boolean blind = v.isPotionActive(net.minecraft.potion.Potion.blindness);
+            net.minecraft.entity.monster.EntityZombie zz = new net.minecraft.entity.monster.EntityZombie(v.worldObj);
+            net.minecraftforge.event.entity.living.LivingHurtEvent ev = new net.minecraftforge.event.entity.living.LivingHurtEvent(v,
+                net.minecraft.util.DamageSource.causeMobDamage(zz), 10);
+            MinecraftForge.EVENT_BUS.post(ev);
+            armor(v, null, null, null, null);
+            check(!blind && Math.abs(ev.ammount - 5) < 0.6, "ослепление осталось " + blind + ", урон моба 10 > " + ev.ammount);
+            return "закалённый сет Эдема снимает ослепление, урон мобов дома x0.5";
+        });
         t("Логова", "Зов мимо алтаря", () -> {
             int dim = ConfigurationHelper.eden;
             WorldServer w = server.worldServerForDimension(dim);
@@ -1840,7 +1928,7 @@ public class SelfTest {
         t("Логова", "Руины", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
             int x = 9000, y = 100, z = 9000;
-            w.getChunkFromBlockCoords(x, z);
+            loadAround(w, x, z, 3); // соседи заселяются до расчистки, а не поверх неё
             for (int i = -2; i < 12; i++) for (int kk = -2; kk < 12; kk++) {
                 for (int h = y - 3; h < y; h++) w.setBlock(x + i, h, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone);
                 w.setBlock(x + i, y, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodGrass);
@@ -1861,7 +1949,7 @@ public class SelfTest {
         t("Логова", "Подземелье в острове", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             int x = 9100, z = 9100, top = 100;
-            w.getChunkFromBlockCoords(x, z);
+            loadAround(w, x, z, 3);
             for (int i = -2; i < 12; i++) for (int kk = -2; kk < 12; kk++) {
                 for (int h = top - 20; h < top; h++) w.setBlock(x + i, h, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone);
                 w.setBlock(x + i, top, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.apalachiaGrass);
@@ -1874,6 +1962,12 @@ public class SelfTest {
             String mob = sp instanceof net.minecraft.tileentity.TileEntityMobSpawner
                 ? ((net.minecraft.tileentity.TileEntityMobSpawner) sp).func_145881_a().getEntityNameToSpawn() : null;
             boolean chest = w.getTileEntity(x + 7, floor, z + 1) instanceof net.minecraft.tileentity.TileEntityChest;
+            boolean seal = false;
+            if (chest) for (int i = 0; i < 27; i++) {
+                ItemStack it = ((net.minecraft.tileentity.TileEntityChest) w.getTileEntity(x + 7, floor, z + 1)).getStackInSlot(i);
+                if (it != null && it.getItem() == com.divinerpgextended.registry.ModItems.sanctumSeal) seal = true;
+            }
+            chest &= seal;
             boolean ladder = w.getBlock(x + 1, floor + 6, z + 7) == Blocks.ladder && w.isAirBlock(x + 4, floor + 2, z + 4);
             check(built && mob != null && chest && ladder, "построено " + built + ", спавнер " + mob + ", сундук " + chest + ", лестница " + ladder);
             return "комната в толще острова Апалачии: спавнер (" + mob + "), сундук, лестница наверх";
@@ -1881,8 +1975,7 @@ public class SelfTest {
         t("Логова", "Мост через пропасть", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             int x0 = 9208, z0 = 9208, y = 100; // область заселения чанка (575, 575)
-            w.getChunkFromBlockCoords(x0, z0);
-            w.getChunkFromBlockCoords(x0 + 16, z0 + 16);
+            loadAround(w, x0 + 8, z0 + 8, 3);
             for (int x = x0 - 8; x < x0 + 24; x++) for (int z = z0 - 8; z < z0 + 24; z++) {
                 for (int h = 1; h < 140; h++) w.setBlockToAir(x, h, z);
                 boolean island = x < x0 + 4 || x > x0 + 13; // пропасть 10 блоков вдоль X
@@ -1895,16 +1988,21 @@ public class SelfTest {
             boolean built = false;
             for (int i = 0; i < 5 && !built; i++) built = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.bridge(w, rr,
                 com.divinerpgextended.world.twilight.TwilightWorld.EDEN, x0, z0);
-            int planks = 0;
+            int planks = 0, lamps = 0;
             for (int x = x0 + 4; x <= x0 + 13; x++) for (int h = y - 4; h <= y + 1; h++)
                 if (w.getBlock(x, h, z0 + 8) == net.divinerpg.utils.blocks.TwilightBlocks.edenPlanks) planks++;
-            check(built && planks >= 7, "мост " + built + ", досок над пропастью " + planks);
+            for (int x = x0 - 6; x <= x0 + 22; x++) for (int h = y - 6; h <= y + 6; h++) for (int zz = z0 + 7; zz <= z0 + 9; zz++)
+                if (w.getBlock(x, h, zz) == Blocks.glowstone) lamps++;
+            String where = "";
+            for (int x = x0 - 8; x < x0 + 24 && where.isEmpty(); x++) for (int zz = z0 - 8; zz < z0 + 24 && where.isEmpty(); zz++)
+                for (int h = 60; h < 140; h++) if (w.getBlock(x, h, zz) == net.divinerpg.utils.blocks.TwilightBlocks.edenPlanks) { where = (x - x0) + "," + h + "," + (zz - z0); break; }
+            check(built && planks >= 7 && lamps > 0, "мост " + built + ", досок над пропастью " + planks + ", фонарей " + lamps + ", первая доска (от x0,z0) " + where);
             return "мост из досок Эдема через пропасть в 10 блоков (" + planks + " досок пролёта)";
         });
         t("Логова", "Лагерь странника", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.skythern);
             int x = 9300, y = 100, z = 9300;
-            w.getChunkFromBlockCoords(x, z);
+            loadAround(w, x, z, 3);
             for (int i = -2; i < 11; i++) for (int kk = -2; kk < 11; kk++) {
                 for (int h = y - 3; h < y; h++) w.setBlock(x + i, h, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone);
                 w.setBlock(x + i, y, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.skythernGrass);
