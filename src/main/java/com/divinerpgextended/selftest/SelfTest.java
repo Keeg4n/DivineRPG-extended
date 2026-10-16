@@ -310,6 +310,18 @@ public class SelfTest {
     }
 
     /** Урон по цели: здоровье до минус после (минус - значит вылечили). */
+    /** Телепорт свиньи с (x, 70, z); куда поставило - в at. */
+    private static void placePig(net.minecraft.world.Teleporter t, WorldServer w, double x, double z, double[] at) {
+        net.minecraft.entity.passive.EntityPig pig = new net.minecraft.entity.passive.EntityPig(w);
+        pig.setPosition(x, 70, z);
+        t.placeInPortal(pig, x, 70, z, 0);
+        if (at != null) {
+            at[0] = pig.posX;
+            at[1] = pig.posY;
+            at[2] = pig.posZ;
+        }
+    }
+
     private static float hit(EntityLivingBase victim, DamageSource s, float amount) {
         victim.hurtResistantTime = 0;
         float before = hp(victim);
@@ -1468,6 +1480,26 @@ public class SelfTest {
             float hover = e.fallDistance;
             check(hover == 0, "высота падения на ковре " + hover);
             return "пока ковёр держит, накопленная высота падения (12) сбрасывается - урон считается от ковра";
+        });
+        t("Сумеречные миры", "Быстрый поиск портала", () -> {
+            net.minecraft.block.Block portal = net.divinerpg.utils.blocks.TwilightBlocks.wildwoodPortal;
+            net.minecraft.block.Block frame = ReflectionHelper.getPrivateValue(net.divinerpg.blocks.base.portal.BlockModPortal.class,
+                (net.divinerpg.blocks.base.portal.BlockModPortal) portal, "blockFrame");
+            int dim = ConfigurationHelper.wildwood;
+            WorldServer w = server.worldServerForDimension(dim);
+            // портал Divine построит при первом входе, дальше оба телепорта ищут его с соседней точки
+            placePig(new net.divinerpg.dimensions.base.DivineTeleporter(w, dim, portal, frame), w, -3000, 3000, null);
+            double[] a = new double[3], b = new double[3];
+            long t0 = System.nanoTime();
+            placePig(new net.divinerpg.dimensions.base.DivineTeleporter(w, dim, portal, frame), w, -2997, 3002, a);
+            long divine = System.nanoTime() - t0;
+            t0 = System.nanoTime();
+            placePig(new com.divinerpgextended.portal.FastTeleporter(w, dim, portal, frame), w, -2997, 3002, b);
+            long fast = System.nanoTime() - t0;
+            check(java.util.Arrays.equals(a, b), "Divine поставил в " + java.util.Arrays.toString(a) + ", быстрый в "
+                + java.util.Arrays.toString(b));
+            check(fast * 3 < divine, "быстрый " + fast / 1000000 + " мс, Divine " + divine / 1000000 + " мс");
+            return "та же точка у портала; поиск " + divine / 1000000 + " > " + fast / 1000000 + " мс";
         });
         t("Сервер", "Ковёр у порога кика", () -> {
             e.onGround = true;
