@@ -65,7 +65,6 @@ public class CommonProxy {
             .bus()
             .register(perks);
         MinecraftForge.EVENT_BUS.register(new BossTracker());
-        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.TwilightSky());
         MinecraftForge.EVENT_BUS.register(new BossDamage());
         MinecraftForge.EVENT_BUS.register(new BossLoot());
         MinecraftForge.EVENT_BUS.register(new ProgressSpawns());

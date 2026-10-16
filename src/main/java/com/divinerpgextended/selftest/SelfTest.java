@@ -1481,29 +1481,11 @@ public class SelfTest {
             check(hover == 0, "высота падения на ковре " + hover);
             return "пока ковёр держит, накопленная высота падения (12) сбрасывается - урон считается от ковра";
         });
-        t("Сумеречные миры", "Эдем и Вайлдвуд без неба", () -> {
+        t("Сумеречные миры", "Небо Эдема и Вайлдвуда", () -> {
             WorldServer eden = server.worldServerForDimension(ConfigurationHelper.eden);
             WorldServer wild = server.worldServerForDimension(ConfigurationHelper.wildwood);
-            check(eden.provider.hasNoSky && wild.provider.hasNoSky, "небо: Эдем " + !eden.provider.hasNoSky + ", Вайлдвуд " + !wild.provider.hasNoSky);
-            float dark = eden.provider.lightBrightnessTable[0];
-            check(dark >= 0.4F, "нижняя яркость Эдема " + dark);
-            // враждебный моб под открытым небом - нет, под крышей - можно
-            int x = 5000, z = 5000;
-            eden.getChunkFromBlockCoords(x, z);
-            int top = eden.getHeightValue(x, z) + 1;
-            net.minecraft.entity.monster.EntityZombie zz = new net.minecraft.entity.monster.EntityZombie(eden);
-            zz.setPosition(x + 0.5, top, z + 0.5);
-            net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn open = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(
-                zz, eden, x + 0.5F, top, z + 0.5F);
-            MinecraftForge.EVENT_BUS.post(open);
-            eden.setBlock(x, top + 3, z, Blocks.stone);
-            net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn roof = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(
-                zz, eden, x + 0.5F, top, z + 0.5F);
-            MinecraftForge.EVENT_BUS.post(roof);
-            eden.setBlockToAir(x, top + 3, z);
-            check(open.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.DENY
-                && roof.getResult() != cpw.mods.fml.common.eventhandler.Event.Result.DENY, "под небом " + open.getResult() + ", под крышей " + roof.getResult());
-            return "небесного света нет, яркость не ниже " + dark + "; враждебные под открытым небом не спавнятся, под крышей - как обычно";
+            check(!eden.provider.hasNoSky && !wild.provider.hasNoSky, "небо выключено: Эдем " + eden.provider.hasNoSky + ", Вайлдвуд " + wild.provider.hasNoSky);
+            return "небесный свет на месте (тени и темнота как в оригинале)";
         });
         t("Сумеречные миры", "Быстрый поиск портала", () -> {
             net.minecraft.block.Block portal = net.divinerpg.utils.blocks.TwilightBlocks.wildwoodPortal;

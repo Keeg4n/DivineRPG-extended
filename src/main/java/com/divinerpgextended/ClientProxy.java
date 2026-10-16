@@ -50,6 +50,9 @@ public class ClientProxy extends CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(new com.divinerpgextended.client.ArcanaText());
+        FMLCommonHandler.instance()
+            .bus()
+            .register(new com.divinerpgextended.client.TwilightRelight());
         com.divinerpgextended.debug.DebugClient debugClient = new com.divinerpgextended.debug.DebugClient();
         MinecraftForge.EVENT_BUS.register(debugClient);
         FMLCommonHandler.instance()
