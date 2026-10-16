@@ -36,10 +36,21 @@ public class WorldGenOuterLairs implements IWorldGenerator {
     /** Гнездовье Айрако - одно на мир, на этом расстоянии от центра Энда. */
     public static final int AYERACO_DIST = 120;
 
-    /** Мир логова (как в конфиге Divine); логово строится только в Аду / Энде. */
+    /**
+     * Мир логова (как в конфиге Divine); логово строится только в Аду / Энде. Настройки миров боссов есть только с
+     * Divine 1.4.2 - в 1.4.1.5 их нет, там миры зашиты: Смотритель и скорчеры - Ад, орда Айрако - Энд.
+     */
     public static int dim(int type) {
-        return type == WATCHER ? ConfigurationHelper.theWatcherDim : type == SCORCHERS ? ConfigurationHelper.kingOfScorchersDim
-            : ConfigurationHelper.ayeracoHordeDim;
+        return type == WATCHER ? option("theWatcherDim", -1) : type == SCORCHERS ? option("kingOfScorchersDim", -1)
+            : option("ayeracoHordeDim", 1);
+    }
+
+    private static int option(String name, int fallback) {
+        try {
+            return ConfigurationHelper.class.getField(name).getInt(null);
+        } catch (Throwable t) {
+            return fallback;
+        }
     }
 
     /** Логово есть: мир этого типа - Ад (для Смотрителя и скорчеров) или Энд (для Айрако), и логова включены. */
