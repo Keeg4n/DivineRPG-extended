@@ -164,7 +164,7 @@ public class DoubleJump {
         s.hoverRun = hovering ? s.hoverRun + 1 : 0;
         s.wingRun = rising ? s.wingRun + 1 : 0;
         if (s.hoverRun == 5) com.divinerpgextended.debug.Debug.note(p, "Ковёр: парение, запас "
-            + (carpet == UNLIMITED ? "без предела" : (s.carpetLeft + 5) / 20.0 + " с из " + carpet / 20.0));
+            + (carpet == UNLIMITED ? "без предела" : s.carpetLeft / 20.0 + " с из " + carpet / 20.0));
         if (s.wingRun == 3) com.divinerpgextended.debug.Debug.note(p, "Крылья сна: взлёт с y " + (int) p.posY + ", запас " + (s.wingLeft + 3) + " тиков");
         if (p.ticksExisted % 10 != 0) return;
         int a = allowed(p);
@@ -309,7 +309,11 @@ public class DoubleJump {
             for (Object o : mc.theWorld.playerEntities) {
                 EntityPlayer p = (EntityPlayer) o;
                 boolean on;
-                if (p == mc.thePlayer) on = p.ticksExisted - selfCarpet <= 1 && !grounded(p);
+                if (p == mc.thePlayer) {
+                    // после смены мира или перезахода тики игрока идут заново с нуля - старая отметка в будущем не считается
+                    int d = p.ticksExisted - selfCarpet;
+                    on = d >= 0 && d <= 1 && !grounded(p);
+                }
                 else {
                     Long t = CARPETS.get(p.getEntityId());
                     on = t != null && now - t < 2000 && !p.onGround;
