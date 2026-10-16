@@ -41,6 +41,8 @@ public class Config {
     public static int nestSpacing = 640;
     /** Боссов вызывают только в их логовах (алтари, круг); выключить - вызов где угодно, как в Divine. */
     public static boolean summonOnlyInLairs = true;
+    /** Постройки сумеречных миров: 1 на N чанков (0 - нет). */
+    public static int twilightRuinsRarity = 30, twilightDungeonRarity = 40, twilightBridgeRarity = 3;
     /** Логово Карцинуса: 1 на N океанских чанков; снежное подземелье: 1 на N заснеженных чанков (0 - выключить). */
     public static int carcinusShoreRarity = 40, snowDungeonRarity = 200;
 
@@ -123,6 +125,12 @@ public class Config {
             "Сколько снежинок нужно для призыва Ледяного Колосса на алтаре Ледяного Трона");
         nestSpacing = cfg.getInt("nestSpacing", "worldgen", nestSpacing, 0, 100000,
             "Логова боссов сумеречных миров (гнёзда Великих кадиллионов, Демонический круг Мортума): одно на квадрат N x N блоков в каждом мире, над островами на высоте 140 (0 - не генерировать). Меньше 256 не ставить");
+        twilightRuinsRarity = cfg.getInt("twilightRuinsRarity", "worldgen", twilightRuinsRarity, 0, 100000,
+            "Руины с наградой на островах сумеречных миров: в среднем 1 на N чанков (0 - не генерировать)");
+        twilightDungeonRarity = cfg.getInt("twilightDungeonRarity", "worldgen", twilightDungeonRarity, 0, 100000,
+            "Подземелья в толще крупных островов сумеречных миров (спавнер, сундук): в среднем 1 на N чанков (0 - не генерировать)");
+        twilightBridgeRarity = cfg.getInt("twilightBridgeRarity", "worldgen", twilightBridgeRarity, 0, 100000,
+            "Мосты между близкими островами сумеречных миров (пролёт 4-14 блоков): пробовать в 1 из N чанков, ставится только если рядом есть пропасть подходящей ширины (0 - не генерировать)");
         summonOnlyInLairs = cfg.getBoolean("summonOnlyInLairs", b, summonOnlyInLairs,
             "Боссов вызывают только в их логовах: зов кадиллиона - на алтаре гнезда, кристаллы Мортума - в Демоническом круге, Таинственные часы - на алтаре гробницы. false - где угодно, как в Divine");
         throneSpacing = cfg.getInt("throneSpacing", "worldgen", throneSpacing, 0, 100000,

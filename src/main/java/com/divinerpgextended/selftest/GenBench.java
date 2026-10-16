@@ -140,6 +140,9 @@ public class GenBench {
                 n++;
             }
         double terrain = (System.nanoTime() - t0) / 1e6 / n;
+        int ruins0 = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.ruins,
+            dung0 = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.dungeons,
+            br0 = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.bridges;
         int before = cps.loadedChunks.size();
         t0 = System.nanoTime();
         for (int x = -R; x <= R; x++)
@@ -220,6 +223,10 @@ public class GenBench {
                 return b.getValue() - a.getValue();
             }
         });
+        GAPS.add(String.format("%-10s построек: руин %d, подземелий %d, мостов %d на %d чанков", name,
+            com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.ruins - ruins0,
+            com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.dungeons - dung0,
+            com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.bridges - br0, (2 * R + 7) * (2 * R + 7)));
         GAPS.add(String.format("%-10s изменений %6d, затронуто пар (заселение, загруженный чанк) %5d на %d новых чанков: %s", name, changes, pairs.size(),
             (2 * R + 7) * (2 * R + 7) - (2 * R + 1) * (2 * R + 1), top.subList(0, Math.min(6, top.size()))));
         // цена пересылки чанка целиком: размер пакета и время сборки (сжатие)

@@ -1671,6 +1671,70 @@ public class SelfTest {
             check(Math.abs(x - 4000.5) < 0.1 && y > 140, "босс в " + x + ", " + y);
             return "босс, ушедший за край логова, вернулся в центр";
         });
+        t("Логова", "Руины", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
+            int x = 9000, y = 100, z = 9000;
+            w.getChunkFromBlockCoords(x, z);
+            for (int i = -2; i < 12; i++) for (int kk = -2; kk < 12; kk++) {
+                for (int h = y - 3; h < y; h++) w.setBlock(x + i, h, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone);
+                w.setBlock(x + i, y, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodGrass);
+                for (int h = y + 1; h < y + 10; h++) w.setBlockToAir(x + i, h, z + kk);
+            }
+            boolean built = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.ruin(w, new java.util.Random(5),
+                com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD, x, z);
+            net.minecraft.tileentity.TileEntity te = w.getTileEntity(x + 4, y + 1, z + 4);
+            int stacks = 0;
+            if (te instanceof net.minecraft.tileentity.TileEntityChest)
+                for (int i = 0; i < 27; i++) if (((net.minecraft.tileentity.TileEntityChest) te).getStackInSlot(i) != null) stacks++;
+            java.util.List<?> guards = w.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class,
+                net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 1, y, z - 1, x + 10, y + 4, z + 10));
+            for (Object o : guards) ((net.minecraft.entity.Entity) o).setDead();
+            check(built && stacks >= 4 && guards.size() >= 2, "построено " + built + ", в сундуке стопок " + stacks + ", стражи " + guards.size());
+            return "руины на ровном острове Вайлдвуда: сундук (" + stacks + " стопок), стража " + guards.size();
+        });
+        t("Логова", "Подземелье в острове", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            int x = 9100, z = 9100, top = 100;
+            w.getChunkFromBlockCoords(x, z);
+            for (int i = -2; i < 12; i++) for (int kk = -2; kk < 12; kk++) {
+                for (int h = top - 20; h < top; h++) w.setBlock(x + i, h, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone);
+                w.setBlock(x + i, top, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.apalachiaGrass);
+                for (int h = top + 1; h < top + 4; h++) w.setBlockToAir(x + i, h, z + kk);
+            }
+            boolean built = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.dungeon(w, new java.util.Random(7),
+                com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA, x, z, x + 23);
+            int floor = top - 10;
+            net.minecraft.tileentity.TileEntity sp = w.getTileEntity(x + 4, floor, z + 4);
+            String mob = sp instanceof net.minecraft.tileentity.TileEntityMobSpawner
+                ? ((net.minecraft.tileentity.TileEntityMobSpawner) sp).func_145881_a().getEntityNameToSpawn() : null;
+            boolean chest = w.getTileEntity(x + 7, floor, z + 1) instanceof net.minecraft.tileentity.TileEntityChest;
+            boolean ladder = w.getBlock(x + 1, floor + 6, z + 7) == Blocks.ladder && w.isAirBlock(x + 4, floor + 2, z + 4);
+            check(built && mob != null && chest && ladder, "построено " + built + ", спавнер " + mob + ", сундук " + chest + ", лестница " + ladder);
+            return "комната в толще острова Апалачии: спавнер (" + mob + "), сундук, лестница наверх";
+        });
+        t("Логова", "Мост через пропасть", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            int x0 = 9208, z0 = 9208, y = 100; // область заселения чанка (575, 575)
+            w.getChunkFromBlockCoords(x0, z0);
+            w.getChunkFromBlockCoords(x0 + 16, z0 + 16);
+            for (int x = x0 - 8; x < x0 + 24; x++) for (int z = z0 - 8; z < z0 + 24; z++) {
+                for (int h = 1; h < 140; h++) w.setBlockToAir(x, h, z);
+                boolean island = x < x0 + 4 || x > x0 + 13; // пропасть 10 блоков вдоль X
+                if (island) {
+                    for (int h = y - 4; h < y; h++) w.setBlock(x, h, z, net.divinerpg.utils.blocks.TwilightBlocks.edenDirt);
+                    w.setBlock(x, y, z, net.divinerpg.utils.blocks.TwilightBlocks.edenGrass);
+                }
+            }
+            java.util.Random rr = new java.util.Random(3);
+            boolean built = false;
+            for (int i = 0; i < 5 && !built; i++) built = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.bridge(w, rr,
+                com.divinerpgextended.world.twilight.TwilightWorld.EDEN, x0, z0);
+            int planks = 0;
+            for (int x = x0 + 4; x <= x0 + 13; x++) for (int h = y - 4; h <= y + 1; h++)
+                if (w.getBlock(x, h, z0 + 8) == net.divinerpg.utils.blocks.TwilightBlocks.edenPlanks) planks++;
+            check(built && planks >= 7, "мост " + built + ", досок над пропастью " + planks);
+            return "мост из досок Эдема через пропасть в 10 блоков (" + planks + " досок пролёта)";
+        });
         t("Логова", "Карта к гнезду", () -> {
             int dim = ConfigurationHelper.eden;
             TestPlayer v = player(dim, "TestNestMap", 100, 150, 100);
