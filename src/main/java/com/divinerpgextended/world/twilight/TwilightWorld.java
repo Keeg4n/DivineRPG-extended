@@ -91,6 +91,16 @@ public enum TwilightWorld {
         }
     }
 
+    public Block ore() {
+        switch (this) {
+            case EDEN: return TwilightBlocks.edenOre;
+            case WILDWOOD: return TwilightBlocks.wildwoodOre;
+            case APALACHIA: return TwilightBlocks.apalachiaOre;
+            case SKYTHERN: return TwilightBlocks.skythernOre;
+            default: return TwilightBlocks.mortumOre;
+        }
+    }
+
     /** Блок из камней мира (edenBlock и т.п.). */
     public Block gemBlock() {
         switch (this) {

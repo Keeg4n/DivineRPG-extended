@@ -98,7 +98,7 @@ public class WorldGenNests implements IWorldGenerator {
 
     // ---------------------------------------------------------------- общее
 
-    static final int STONE = 1, DIRT = 2, GRASS = 3, LOG = 4, LEAVES = 5, PLANKS = 6, GEM = 7, GLOW = 8, ALTAR = 9, WATER = 10;
+    static final int STONE = 1, DIRT = 2, GRASS = 3, LOG = 4, LEAVES = 5, PLANKS = 6, GEM = 7, GLOW = 8, ALTAR = 9, WATER = 10, ORE = 11;
 
     static Block palette(TwilightWorld w, int code) {
         switch (code) {
@@ -111,6 +111,7 @@ public class WorldGenNests implements IWorldGenerator {
             case GEM: return w.gemBlock();
             case GLOW: return Blocks.glowstone;
             case ALTAR: return ModBlocks.nestAltar;
+            case ORE: return w.ore();
             default: return Blocks.air;
         }
     }
@@ -153,6 +154,8 @@ public class WorldGenNests implements IWorldGenerator {
 
         private final TwilightWorld w;
         private final int salt;
+        /** С какой стороны кусок оторван от земли (отвесный скол). */
+        private final double torn;
         private static final int TREES = 6, TRUNK_RING = 24, CANOPY_R = 13, CANOPY_H = 6;
         private final double[] tx = new double[TREES], tz = new double[TREES];
         private final int[] th = new int[TREES];
@@ -160,6 +163,7 @@ public class WorldGenNests implements IWorldGenerator {
         Nest(TwilightWorld w, int cx, int cz) {
             this.w = w;
             salt = hash(cx, cz) % 1000;
+            torn = salt / 1000.0 * Math.PI * 2;
             for (int i = 0; i < TREES; i++) {
                 double a = Math.PI * 2 * i / TREES + (hash(i, salt) % 100) / 100.0 * 0.5;
                 double rr = TRUNK_RING + hash(salt, i) % 4 - 1;
@@ -198,15 +202,31 @@ public class WorldGenNests implements IWorldGenerator {
             boolean any = false;
             if (r <= rOut) {
                 any = true;
-                // остров, сужающийся книзу
-                double edge = 1 - r / rOut;
-                double depth = 20 * (1 - Math.pow(r / rOut, 1.3)) + noise(dx, dz, 5, 23 + salt) * 6 * Math.sqrt(edge);
+                // низ - кусок земли, вырванный из мира: глубокий рваный камень с прожилками земли и вкраплениями руды;
+                // с одной стороны отвесный скол (оторвано сбоку), с остальных сужается; длинные сосульки и наплывы
+                double t = r / rOut, ang = Math.atan2(dz, dx);
+                double side = Math.max(0, Math.cos(ang - torn));
+                side = side * side;
+                double base = 30 * (1 - Math.pow(t, 1.5)), cliff = 27 * (1 - Math.pow(t, 5));
+                double depth = base + (cliff - base) * side + noise(dx, dz, 6, 23 + salt) * 9 * Math.sqrt(1 - t)
+                    + noise(dx, dz, 2, 37 + salt) * 3;
                 int bottom = TOP - 1 - (int) depth;
-                for (int y = bottom; y < TOP; y++) put(col, y, y >= TOP - 2 || hash(dx * 31 + y, dz) % 10 < 3 ? DIRT : STONE, 0);
+                for (int y = bottom; y < TOP; y++) {
+                    int k = hash(dx * 31 + y, dz - y * 7 + salt) % 100;
+                    int code = y >= TOP - 3 ? DIRT : k < 18 ? DIRT : k < 21 ? ORE : STONE;
+                    put(col, y, code, 0);
+                }
                 put(col, TOP, GRASS, 0);
                 for (int y = TOP + 1; y <= TOP + 60; y++) put(col, y, AIR, 0);
                 int h = hash(dx + salt, dz);
-                if (r < rOut - 5 && h % 31 == 0) for (int y = bottom - 1 - h / 31 % 4; y < bottom; y++) put(col, y, STONE, 0);
+                double drip = noise(dx, dz, 3, 99 + salt);
+                if (drip > 0.74 && t < 0.9) {
+                    int len = (int) ((drip - 0.74) * 50) + 2; // широкие наплывы
+                    for (int y = bottom - len; y < bottom; y++) put(col, y, STONE, 0);
+                } else if (t < 0.92 && h % 11 == 0) {
+                    int len = 2 + h / 11 % 9; // сосульки
+                    for (int y = bottom - len; y < bottom; y++) put(col, y, STONE, 0);
+                }
                 // поляна: каменное кольцо-дорожка, колоннада, родник, помост с алтарём
                 if (r > 11.5 && r < 13.5 && hash(dz, dx) % 4 != 0) put(col, TOP, STONE, 0);
                 double colDist = ringDist(dx, dz, 15, 8, Math.PI / 8 + salt % 7 * 0.1);
@@ -238,7 +258,7 @@ public class WorldGenNests implements IWorldGenerator {
                 double len = Math.sqrt(tx[i] * tx[i] + tz[i] * tz[i]), ix = -tx[i] / len, iz = -tz[i] / len;
                 double baseD = Math.sqrt((dx - tx[i]) * (dx - tx[i]) + (dz - tz[i]) * (dz - tz[i]));
                 if (baseD > CANOPY_R + 10) continue;
-                for (int y = TOP - 14 - 15; y <= top + CANOPY_H + 4; y++) {
+                for (int y = TOP - 30 - 18; y <= top + CANOPY_H + 4; y++) {
                     double lean = Math.max(0, y - TOP) / (double) th[i] * 5; // к вершине ствол уходит на 5 блоков к центру
                     double cx = tx[i] + ix * lean, cz = tz[i] + iz * lean;
                     double ddx = dx - cx, ddz = dz - cz, d = Math.sqrt(ddx * ddx + ddz * ddz);
@@ -250,12 +270,12 @@ public class WorldGenNests implements IWorldGenerator {
                             double ridge = Math.abs(Math.cos(2 * (ang - salt % 10 * 0.1)));
                             rad += (TOP + 6 - y) * 0.9 * ridge * ridge;
                         }
-                        if (y <= TOP && y >= TOP - 14 && d <= 2.8) { put(col, y, LOG, 0); any = true; continue; }
-                        if (y < TOP - 14) {
+                        if (y <= TOP && y >= TOP - 30 && d <= 2.8) { put(col, y, LOG, 0); any = true; continue; }
+                        if (y < TOP - 30) {
                             // корень вниз сужается к концу
-                            int root = 6 + hash(i, salt) % 10;
-                            double rr = 1.9 * (1 - (TOP - 14 - y) / (double) (root + 2));
-                            if (y >= TOP - 14 - root && d <= Math.max(0.6, rr)) { put(col, y, LOG, 0); any = true; }
+                            int root = 8 + hash(i, salt) % 10; // вырванные корни торчат из-под камня
+                            double rr = 1.9 * (1 - (TOP - 30 - y) / (double) (root + 2));
+                            if (y >= TOP - 30 - root && d <= Math.max(0.6, rr)) { put(col, y, LOG, 0); any = true; }
                             continue;
                         }
                         if (y > TOP && d <= rad) { put(col, y, LOG, 0); any = true; continue; }

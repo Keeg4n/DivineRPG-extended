@@ -314,7 +314,7 @@ public class SelfTest {
     private static void dump(WorldServer w, int cx, int top, int cz, int r, String name) {
         try {
             java.io.PrintWriter out = new java.io.PrintWriter(new File(MinecraftServer.getServer().getFile("logs"), name + ".txt"), "UTF-8");
-            for (int x = cx - r; x <= cx + r; x++) for (int z = cz - r; z <= cz + r; z++) for (int y = top - 40; y <= top + 62; y++) {
+            for (int x = cx - r; x <= cx + r; x++) for (int z = cz - r; z <= cz + r; z++) for (int y = top - 70; y <= top + 62; y++) {
                 net.minecraft.block.Block b = w.getBlock(x, y, z);
                 if (b.getMaterial() == net.minecraft.block.material.Material.air) continue;
                 out.println((x - cx) + " " + (y - top) + " " + (z - cz) + " " + net.minecraft.block.Block.blockRegistry.getNameForObject(b) + " "
