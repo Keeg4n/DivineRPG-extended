@@ -73,6 +73,7 @@ public class ItemTrinket extends Item {
         Trinket t = of(s);
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.trinket." + t.key() + ".desc"));
         list.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.trinket.how"));
+        list.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.trinket.ask"));
     }
 
     /** ПКМ вещью в руке - надеть в первый свободный открытый слот аксессуаров. */

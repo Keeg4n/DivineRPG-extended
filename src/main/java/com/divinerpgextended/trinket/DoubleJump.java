@@ -303,6 +303,17 @@ public class DoubleJump {
 
         private int used, carpetLeft, wingLeft;
         private boolean wasDown, airborne;
+        /** Кто сейчас стоит на ковре (по последнему кадру) - им не перебирать ногами. */
+        private final java.util.Set<Integer> CARPET_NOW = new java.util.HashSet<Integer>();
+
+        /** На ковре стоят, а не бегут: гасим размах ног перед отрисовкой игрока. */
+        @SubscribeEvent
+        public void onRenderPlayer(net.minecraftforge.client.event.RenderPlayerEvent.Pre e) {
+            if (!CARPET_NOW.contains(e.entityPlayer.getEntityId())) return;
+            e.entityPlayer.limbSwingAmount = 0;
+            e.entityPlayer.prevLimbSwingAmount = 0;
+        }
+
         /** Тик, когда свой игрок последний раз держался на ковре (свой ковёр рисуем сразу, не ждём сервер). */
         private int selfCarpet = -100;
 
@@ -328,6 +339,8 @@ public class DoubleJump {
                     on = t != null && now - t < 2000 && !p.onGround;
                 }
                 if (on) drawCarpet(p, e.partialTicks);
+                if (on) CARPET_NOW.add(p.getEntityId());
+                else CARPET_NOW.remove(p.getEntityId());
             }
         }
 
@@ -404,6 +417,8 @@ public class DoubleJump {
                 clientAllowed = clientCarpet = clientWing = 0;
                 return;
             }
+            // запас ковра приходит с сервера раз в полсекунды - после смены мира не верим старому
+            if (!twilight(p.dimension)) clientCarpet = 0;
             boolean down = mc.gameSettings.keyBindJump.getIsKeyPressed();
             // обычный прыжок с земли отрывает игрока в тот же тик, что и нажатие - прыжком в воздухе считается
             // только нажатие, когда игрок был в воздухе уже на прошлом тике

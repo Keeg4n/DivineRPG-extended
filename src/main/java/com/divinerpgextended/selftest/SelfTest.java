@@ -1336,6 +1336,18 @@ public class SelfTest {
             return "админ забрал, окно владельца пустое - медаль одна";
         });
 
+        t("Аксессуары", "Ваттикус рассказывает", () -> {
+            reset(p);
+            net.divinerpg.entities.arcana.EntityVatticus vat = new net.divinerpg.entities.arcana.EntityVatticus(ow);
+            hold(p, trinket(Trinket.MAGIC_CARPET));
+            p.setSneaking(true);
+            p.chat.clear();
+            MinecraftForge.EVENT_BUS.post(new EntityInteractEvent(p, vat));
+            p.setSneaking(false);
+            hold(p, null);
+            check(p.heard("dre.trinket.magic_carpet.lore"), "нет рассказа о ковре, чат: " + p.chat);
+            return "присел и ПКМ по Ваттикусу с ковром в руке - подробный рассказ о ковре";
+        });
         // ---- торговля ----
         t("Аксессуары", "У торговцев", () -> {
             reset(p);

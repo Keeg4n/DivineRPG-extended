@@ -31,7 +31,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
  * Лорд Ваттикус - знаток мира. Присесть и ПКМ: подсказка "что дальше" по убитым боссам, совет на стороне и
- * исследование мага. Исследование - принести материалы; за каждое +25 к максимуму арканы навсегда (8 исследований,
+ * исследование мага; с аксессуаром в руке - подробный рассказ о нём. Исследование - принести материалы; за каждое +25 к максимуму арканы навсегда (8 исследований,
  * 200 -> 400). Максимум работает через {@link ArcanaHooks}.
  */
 public class Vatticus {
@@ -96,6 +96,12 @@ public class Vatticus {
         if (!(e.target instanceof EntityVatticus) || !p.isSneaking()) return;
         e.setCanceled(true);
         if (p.worldObj.isRemote) return;
+        // с аксессуаром в руке - рассказывает о нём (подсказка на самой вещи короткая, остальное игрок узнаёт у него)
+        net.minecraft.item.ItemStack held = p.getHeldItem();
+        if (held != null && held.getItem() == com.divinerpgextended.registry.ModItems.trinket) {
+            say(p, EnumChatFormatting.GOLD, "dre.trinket." + com.divinerpgextended.trinket.ItemTrinket.of(held).key() + ".lore");
+            return;
+        }
         int done = ArcanaHooks.tasks(p);
         Object[][] t = task(done);
         if (t != null && has(p, t)) {
