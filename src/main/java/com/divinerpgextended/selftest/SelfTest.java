@@ -783,8 +783,37 @@ public class SelfTest {
         vw.spawnEntityInWorld(z);
         final DamageSource mob = DamageSource.causeMobDamage(z);
         t("Ветея - кошмар", "Вещи не забираются", () -> {
-            check(!ConfigurationHelper.vetheaInventory, "отдельный инвентарь Divine включён");
+            check(!com.divinerpgextended.vethea.VetheaStash.divineSwap(), "отдельный инвентарь Divine включён");
             return "отдельный инвентарь Divine выключен аддоном";
+        });
+        t("Ветея - кошмар", "Обмен инвентаря без настройки", () -> {
+            // байты классов Divine как в jar: патч должен найти обмен и в 1.4.2.3, и в 1.4.1.5 (там настройки нет)
+            for (String c : new String[] { "BlockNightmareBed", "BlockVetheaPortal" }) {
+                String res = "/net/divinerpg/blocks/vethea/" + c + ".class";
+                java.io.InputStream in = net.divinerpg.utils.config.ConfigurationHelper.class.getResourceAsStream(res);
+                check(in != null, "нет " + res);
+                byte[] raw = org.apache.commons.io.IOUtils.toByteArray(in);
+                in.close();
+                byte[] out = new com.divinerpgextended.asm.VetheaSwapTransformer().transform(c,
+                    "net.divinerpg.blocks.vethea." + c, raw);
+                check(out != raw, c + ": обмен инвентаря не найден");
+            }
+            // заблокированный обмен: инвентарь не сохраняется в копию, не чистится и не подменяется
+            TestPlayer w = player(0, "TestSwap", 40, 70, 40);
+            w.inventory.setInventorySlotContents(3, new ItemStack(Items.diamond, 5));
+            NBTTagList copy = com.divinerpgextended.asm.VetheaSwapHooks.write(w.inventory, new NBTTagList());
+            int cleared = com.divinerpgextended.asm.VetheaSwapHooks.clear(w.inventory, null, -1);
+            NBTTagList other = new NBTTagList();
+            NBTTagCompound dirt = new NBTTagCompound();
+            new ItemStack(Blocks.dirt).writeToNBT(dirt);
+            dirt.setByte("Slot", (byte) 3);
+            other.appendTag(dirt);
+            com.divinerpgextended.asm.VetheaSwapHooks.read(w.inventory, other);
+            ItemStack left = w.inventory.getStackInSlot(3);
+            check(com.divinerpgextended.asm.VetheaSwapHooks.blocked && copy.tagCount() == 0 && cleared == 0 && left != null
+                && left.getItem() == Items.diamond && left.stackSize == 5, "копия " + copy.tagCount() + ", очищено " + cleared
+                    + ", в слоте " + left);
+            return "патч нашёл обмен инвентаря в кровати и портале, заблокированный обмен ничего не трогает";
         });
         t("Ветея - кошмар", "Чужое оружие лечит", () -> {
             reset(v);

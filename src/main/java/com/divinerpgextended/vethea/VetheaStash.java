@@ -33,11 +33,37 @@ public class VetheaStash {
     private static final Logger LOG = LogManager.getLogger("divinerpgextended");
     private static final String STASH = "dre_stash";
 
-    public static void disableDivineSwap() {
-        if (Config.vetheaNightmare && ConfigurationHelper.vetheaInventory) {
-            ConfigurationHelper.vetheaInventory = false;
-            LOG.info("Ветея: отдельный инвентарь Divine выключен - при кошмаре чужие вещи работают наоборот");
+    /** Настройка vetheaInventory есть только с Divine 1.4.2: в 1.4.1.5 обмен инвентаря включён всегда. */
+    private static final java.lang.reflect.Field SWAP_OPTION = swapOption();
+
+    private static java.lang.reflect.Field swapOption() {
+        try {
+            return ConfigurationHelper.class.getField("vetheaInventory");
+        } catch (Throwable t) {
+            return null;
         }
+    }
+
+    /** Будет ли Divine менять инвентарь при входе в Ветею и выходе из неё. */
+    public static boolean divineSwap() {
+        if (com.divinerpgextended.asm.VetheaSwapHooks.blocked) return false;
+        try {
+            return SWAP_OPTION == null || SWAP_OPTION.getBoolean(null);
+        } catch (Throwable t) {
+            return true;
+        }
+    }
+
+    public static void disableDivineSwap() {
+        if (!Config.vetheaNightmare) return;
+        com.divinerpgextended.asm.VetheaSwapHooks.blocked = true;
+        try {
+            if (SWAP_OPTION != null) SWAP_OPTION.setBoolean(null, false);
+        } catch (Throwable t) {
+            LOG.warn("Ветея: не удалось выключить настройку vetheaInventory", t);
+        }
+        LOG.info("Ветея: отдельный инвентарь Divine выключен{} - при кошмаре чужие вещи работают наоборот",
+            SWAP_OPTION == null ? " (Divine без настройки vetheaInventory, обмен выключен патчем)" : "");
     }
 
     private static void say(EntityPlayer p, String key, Object... args) {
@@ -62,7 +88,7 @@ public class VetheaStash {
 
     /** Перенести запертую копию Divine в очередь выдачи (один раз), обе копии Divine убрать. */
     private static void migrate(EntityPlayer p) {
-        if (ConfigurationHelper.vetheaInventory) return; // отдельный инвентарь включён намеренно - не вмешиваемся
+        if (divineSwap()) return; // отдельный инвентарь включён намеренно - не вмешиваемся
         NBTTagCompound d = p.getEntityData();
         if (!d.hasKey(EntityPlayer.PERSISTED_NBT_TAG)) return;
         NBTTagCompound ps = d.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);

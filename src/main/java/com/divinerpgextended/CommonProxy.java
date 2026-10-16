@@ -272,7 +272,7 @@ public class CommonProxy {
             " c ", 'c', VanillaItemsOther.bluefireStone, 'i', Blocks.iron_block, 'E', ModItems.watcherEye);
 
         com.divinerpgextended.vethea.VetheaStash.disableDivineSwap();
-        if (Config.warnVetheaInventory && net.divinerpg.utils.config.ConfigurationHelper.vetheaInventory) {
+        if (Config.warnVetheaInventory && com.divinerpgextended.vethea.VetheaStash.divineSwap()) {
             DivineRPGExtended.LOG.warn(
                 "В конфиге Divine включён отдельный инвентарь Vethea (Vethea Inventory = true). "
                     + "Для прогрессии DivineRPG Extended его нужно выключить.");
