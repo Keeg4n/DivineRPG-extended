@@ -17,9 +17,9 @@ import cpw.mods.fml.common.IWorldGenerator;
  * Логова боссов сумеречных миров - висят над островами на своём клочке земли, место вычисляется из сида (одно на
  * квадрат nestSpacing x nestSpacing в каждом мире).
  * <ul>
- * <li>Гнездо Великого кадиллиона (Эдем, Вайлдвуд, Апалачия, Скайтерн): чаша из земли мира с корнями снизу, плетёный
- * борт из брёвен с четырьмя проходами, кольцо деревянных клыков, светящееся кольцо в полу, помост с алтарём на севере.
- * Зов кадиллиона работает только на этом алтаре; босс встаёт в центре гнезда.</li>
+ * <li>Заповедная роща Великого кадиллиона (Эдем, Вайлдвуд, Апалачия, Скайтерн): остров с шестью гигантскими деревьями
+ * мира, под сводом крон - поляна с колоннадой древнего святилища, родником и помостом с алтарём на севере. Зов
+ * кадиллиона работает только на этом алтаре; босс встаёт в центре поляны.</li>
  * <li>Демонический круг (Мортум): каменная площадка с кольцами из демонического камня, шесть обелисков со светом.
  * Кристаллы сумеречных боссов работают только внутри круга.</li>
  * </ul>
@@ -28,7 +28,9 @@ public class WorldGenNests implements IWorldGenerator {
 
     /** Верхний блок пола (стоишь на высоте TOP + 1). */
     public static final int TOP = 140;
-    public static final int NEST_R = 26, CIRCLE_R = 22;
+    public static final int NEST_R = 34, CIRCLE_R = 22;
+    /** Кроны рощи выходят за край острова. */
+    static final int CANOPY_REACH = 12;
     /** Алтарь гнезда: от центра на ALTAR_DZ к северу, на помосте (TOP + 2). */
     public static final int ALTAR_DZ = 10;
     /** Внутри круга (по горизонтали) кристаллы Мортума работают. */
@@ -37,7 +39,7 @@ public class WorldGenNests implements IWorldGenerator {
     // ---------------------------------------------------------------- место
 
     public static int radius(int dim) {
-        return TwilightWorld.of(dim) == TwilightWorld.MORTUM ? CIRCLE_R : NEST_R;
+        return TwilightWorld.of(dim) == TwilightWorld.MORTUM ? CIRCLE_R : NEST_R + CANOPY_REACH;
     }
 
     /** Центр логова в области (rx, rz) мира dim или null, если логова выключены. */
@@ -85,18 +87,18 @@ public class WorldGenNests implements IWorldGenerator {
         int[] c = nearest(world.getSeed(), world.provider.dimensionId, x0 + 8, z0 + 8);
         int r = radius(world.provider.dimensionId);
         if (c == null || Math.abs(c[0] - (x0 + 8)) > r + 16 || Math.abs(c[2] - (z0 + 8)) > r + 16) return;
-        ColumnStructure s = shape(tw);
+        ColumnStructure s = shape(tw, c);
         s.buildSlice(world, c[0], c[2], x0, z0);
         s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, TOP + 1, TOP + 24);
     }
 
-    public static ColumnStructure shape(TwilightWorld tw) {
-        return tw == TwilightWorld.MORTUM ? new Circle() : new Nest(tw);
+    public static ColumnStructure shape(TwilightWorld tw, int[] c) {
+        return tw == TwilightWorld.MORTUM ? new Circle() : new Nest(tw, c[0], c[2]);
     }
 
     // ---------------------------------------------------------------- общее
 
-    static final int STONE = 1, DIRT = 2, GRASS = 3, LOG = 4, LEAVES = 5, PLANKS = 6, GEM = 7, GLOW = 8, ALTAR = 9;
+    static final int STONE = 1, DIRT = 2, GRASS = 3, LOG = 4, LEAVES = 5, PLANKS = 6, GEM = 7, GLOW = 8, ALTAR = 9, WATER = 10;
 
     static Block palette(TwilightWorld w, int code) {
         switch (code) {
@@ -142,18 +144,34 @@ public class WorldGenNests implements IWorldGenerator {
 
     // ---------------------------------------------------------------- гнездо
 
+    /**
+     * Заповедная роща Великого кадиллиона: остров с шестью гигантскими деревьями мира по кругу (видно издалека), под
+     * сводом их крон - поляна с обломками колоннады древнего святилища, обвитыми корнями, родником и помостом с
+     * алтарём. Под островом свисают корни деревьев.
+     */
     static class Nest extends ColumnStructure {
 
         private final TwilightWorld w;
-        /** Ветки, торчащие из вала наружу и вверх. */
-        private static final int TWIGS = 14;
+        private final int salt;
+        private static final int TREES = 6, TRUNK_RING = 24, CANOPY_R = 13, CANOPY_H = 6;
+        private final double[] tx = new double[TREES], tz = new double[TREES];
+        private final int[] th = new int[TREES];
 
-        Nest(TwilightWorld w) {
+        Nest(TwilightWorld w, int cx, int cz) {
             this.w = w;
+            salt = hash(cx, cz) % 1000;
+            for (int i = 0; i < TREES; i++) {
+                double a = Math.PI * 2 * i / TREES + (hash(i, salt) % 100) / 100.0 * 0.5;
+                double rr = TRUNK_RING + hash(salt, i) % 4 - 1;
+                tx[i] = Math.cos(a) * rr;
+                tz[i] = Math.sin(a) * rr;
+                th[i] = 36 + hash(i * 7, salt) % 15;
+            }
         }
 
         @Override
         protected Block block(int code, int meta) {
+            if (code == WATER) return Blocks.water;
             return palette(w, code);
         }
 
@@ -173,85 +191,98 @@ public class WorldGenNests implements IWorldGenerator {
             return (a + (b - a) * fx) * (1 - fz) + (c + (d - c) * fx) * fz;
         }
 
-        /** Бревно вдоль касательной к кругу: мета 4 - вдоль X, 8 - вдоль Z. */
-        private static int tangent(int dx, int dz) {
-            return Math.abs(dz) > Math.abs(dx) ? 4 : 8;
-        }
-
         @Override
         protected boolean column(int dx, int dz, int[] col) {
             double r = Math.sqrt(dx * dx + dz * dz);
-            double rOut = NEST_R - 1 + noise(dx, dz, 7, 11) * 3, rIn = rOut - 6;
+            double rOut = NEST_R - 1 + noise(dx, dz, 7, 11 + salt) * 3;
             boolean any = false;
             if (r <= rOut) {
                 any = true;
-                // низ - неровный остров: земля под полом, глубже камень с землёй, каменные сосульки и редкие корни
-                // к краю остров сходит на нет: и толщина, и шум затухают (без отвесной стенки)
+                // остров, сужающийся книзу
                 double edge = 1 - r / rOut;
-                double depth = 16 * (1 - Math.pow(r / rOut, 1.3)) + noise(dx, dz, 5, 23) * 6 * Math.sqrt(edge);
+                double depth = 20 * (1 - Math.pow(r / rOut, 1.3)) + noise(dx, dz, 5, 23 + salt) * 6 * Math.sqrt(edge);
                 int bottom = TOP - 1 - (int) depth;
-                for (int y = bottom; y < TOP; y++) {
-                    boolean dirt = y >= TOP - 2 || hash(dx * 31 + y, dz) % 10 < 3;
-                    put(col, y, dirt ? DIRT : STONE, 0);
+                for (int y = bottom; y < TOP; y++) put(col, y, y >= TOP - 2 || hash(dx * 31 + y, dz) % 10 < 3 ? DIRT : STONE, 0);
+                put(col, TOP, GRASS, 0);
+                for (int y = TOP + 1; y <= TOP + 60; y++) put(col, y, AIR, 0);
+                int h = hash(dx + salt, dz);
+                if (r < rOut - 5 && h % 31 == 0) for (int y = bottom - 1 - h / 31 % 4; y < bottom; y++) put(col, y, STONE, 0);
+                // поляна: каменное кольцо-дорожка, колоннада, родник, помост с алтарём
+                if (r > 11.5 && r < 13.5 && hash(dz, dx) % 4 != 0) put(col, TOP, STONE, 0);
+                double colDist = ringDist(dx, dz, 15, 8, Math.PI / 8 + salt % 7 * 0.1);
+                if (colDist < 1.0) {
+                    int k = (int) Math.round((Math.atan2(dz, dx) + Math.PI) / (Math.PI * 2 / 8)) % 8;
+                    int ch = 3 + hash(k, salt) % 8; // обломаны по-разному
+                    for (int y = TOP + 1; y <= TOP + ch; y++) put(col, y, STONE, 0);
+                    if (ch >= 8) put(col, TOP + ch + 1, GEM, 0);
+                } else if (colDist < 1.9) {
+                    int k = (int) Math.round((Math.atan2(dz, dx) + Math.PI) / (Math.PI * 2 / 8)) % 8;
+                    // корни обвивают колонну с одной стороны
+                    if (hash(dx, dz + salt) % 3 == 0) for (int y = TOP + 1; y <= TOP + 2 + hash(k, 3) % 4; y++) put(col, y, LOG, 0);
+                    else if (hash(dz, dx + salt) % 5 == 0) put(col, TOP + 1, STONE, 0); // обломок
                 }
-                int h = hash(dx, dz);
-                if (r < rOut - 5 && h % 29 == 0) {
-                    int len = 1 + h / 29 % 4;
-                    for (int y = bottom - len; y < bottom; y++) put(col, y, STONE, 0);
-                } else if (r < rOut - 6 && h % 53 == 0) {
-                    int len = 3 + h / 53 % 6;
-                    for (int y = bottom - len; y < bottom; y++) put(col, y, LOG, 0);
-                }
-                for (int y = TOP + 1; y <= TOP + 24; y++) put(col, y, AIR, 0);
-                if (r < rIn) {
-                    // пол: трава, подстилка из листвы, кладка яиц, помост с алтарём, немного света
-                    put(col, TOP, GRASS, 0);
-                    if (hash(dz, dx) % 7 == 0 && r > 4) put(col, TOP + 1, LEAVES, 0);
-                    if (ringDist(dx, dz, 9, 6, Math.PI / 6) < 0.5) put(col, TOP, GLOW, 0);
-                    // кладка: пять "яиц" у центра
-                    double egg = ringDist(dx, dz, 3, 5, 0.3);
-                    if (egg < 0.8) {
-                        put(col, TOP + 1, GEM, 0);
-                        put(col, TOP + 2, GEM, 0);
-                    } else if (egg < 1.6) {
-                        put(col, TOP + 1, GEM, 0);
-                    }
-                    if (r < 1.2) put(col, TOP, GLOW, 0);
-                } else {
-                    // вал, сплетённый из лежащих брёвен, листвы и досок; выше всего посередине
-                    double t = (r - rIn) / (rOut - rIn);
-                    double ang = (Math.toDegrees(Math.atan2(dz, dx)) + 360) % 90;
-                    boolean gate = ang < 5 || ang > 85;
-                    int lip = gate ? 1 : (int) Math.round(5.5 * Math.sin(Math.PI * Math.pow(t, 0.8)) + noise(dx, dz, 3, 41) * 2 - 0.5);
-                    put(col, TOP, LOG, tangent(dx, dz));
-                    for (int y = TOP + 1; y <= TOP + lip; y++) {
-                        int k = hash(dx * 7 + y, dz * 13 - y) % 20;
-                        if (k < 11) put(col, y, LOG, tangent(dx, dz));
-                        else if (k < 17) put(col, y, LEAVES, 0);
-                        else put(col, y, PLANKS, 0);
-                    }
-                    if (!gate && lip > 0 && hash(dz, dx + 5) % 3 == 0) put(col, TOP + lip + 1, LEAVES, 0);
-                    if (gate) put(col, TOP, PLANKS, 0);
-                }
-                // помост с алтарём на севере
+                double sp = Math.sqrt(dx * dx + (dz - 7) * (dz - 7));
+                if (sp < 2.3) put(col, TOP, WATER, 0);
+                else if (sp < 3.3) put(col, TOP, STONE, 0);
+                if (sp < 3.3) put(col, TOP - 1, STONE, 0);
                 double ad = Math.sqrt(dx * dx + (dz + ALTAR_DZ) * (dz + ALTAR_DZ));
                 if (ad <= 2.5) put(col, TOP + 1, GEM, 0);
-                if (ad <= 1.5) put(col, TOP + 1, PLANKS, 0);
                 if (dx == 0 && dz == -ALTAR_DZ) put(col, TOP + 2, ALTAR, 0);
+                if (r < 1.2) put(col, TOP, GLOW, 0);
+                if (r > 6 && r < 30 && hash(dx * 3, dz * 5 + salt) % 97 == 0) put(col, TOP, GLOW, 0);
             }
-            // ветки: из вала наружу и вверх, на концах листва
-            for (int i = 0; i < TWIGS; i++) {
-                double a = Math.PI * 2 * i / TWIGS + (hash(i, 77) % 100) / 100.0 * 0.35;
-                double ca = Math.cos(a), sa = Math.sin(a);
-                double bx = ca * (NEST_R - 3), bz = sa * (NEST_R - 3);
-                double along = (dx - bx) * ca + (dz - bz) * sa, across = Math.abs(-(dx - bx) * sa + (dz - bz) * ca);
-                int len = 6 + hash(i, 13) % 5;
-                if (along < 0 || along > len || across > 0.75) continue;
-                any = true;
-                int y = TOP + 3 + (int) Math.round(along * (0.45 + hash(i, 5) % 30 / 100.0));
-                put(col, y, LOG, Math.abs(ca) > Math.abs(sa) ? 4 : 8);
-                if (along > len - 1.5) {
-                    put(col, y + 1, LEAVES, 0);
+            // деревья: стволы клонятся к поляне, у основания корни-подпорки, под островом - корни вниз;
+            // кроны широкие и плоские, сдвинуты к центру - смыкаются в рваный свод над поляной
+            for (int i = 0; i < TREES; i++) {
+                int top = TOP + th[i];
+                double len = Math.sqrt(tx[i] * tx[i] + tz[i] * tz[i]), ix = -tx[i] / len, iz = -tz[i] / len;
+                double baseD = Math.sqrt((dx - tx[i]) * (dx - tx[i]) + (dz - tz[i]) * (dz - tz[i]));
+                if (baseD > CANOPY_R + 10) continue;
+                for (int y = TOP - 14 - 15; y <= top + CANOPY_H + 4; y++) {
+                    double lean = Math.max(0, y - TOP) / (double) th[i] * 5; // к вершине ствол уходит на 5 блоков к центру
+                    double cx = tx[i] + ix * lean, cz = tz[i] + iz * lean;
+                    double ddx = dx - cx, ddz = dz - cz, d = Math.sqrt(ddx * ddx + ddz * ddz);
+                    if (y <= top + 2) {
+                        double rad = 2.8;
+                        if (y > TOP && y <= TOP + 5) {
+                            // корни-подпорки по диагоналям, ниже - шире
+                            double ang = Math.atan2(ddz, ddx);
+                            double ridge = Math.abs(Math.cos(2 * (ang - salt % 10 * 0.1)));
+                            rad += (TOP + 6 - y) * 0.9 * ridge * ridge;
+                        }
+                        if (y <= TOP && y >= TOP - 14 && d <= 2.8) { put(col, y, LOG, 0); any = true; continue; }
+                        if (y < TOP - 14) {
+                            // корень вниз сужается к концу
+                            int root = 6 + hash(i, salt) % 10;
+                            double rr = 1.9 * (1 - (TOP - 14 - y) / (double) (root + 2));
+                            if (y >= TOP - 14 - root && d <= Math.max(0.6, rr)) { put(col, y, LOG, 0); any = true; }
+                            continue;
+                        }
+                        if (y > TOP && d <= rad) { put(col, y, LOG, 0); any = true; continue; }
+                    }
+                    // ветки на двух уровнях, наклонены вверх, по четырём сторонам
+                    for (int lvl = 0; lvl < 2; lvl++) {
+                        int by = top - 6 + lvl * 4;
+                        for (int k = 0; k < 4; k++) {
+                            double ba = Math.PI / 2 * k + lvl * Math.PI / 4 + salt % 10 * 0.2;
+                            double bx = Math.cos(ba), bz = Math.sin(ba);
+                            double along = ddx * bx + ddz * bz, across = Math.abs(-ddx * bz + ddz * bx);
+                            if (along >= 2 && along <= 8 && across < 0.7 && y == by + (int) (along * 0.4)) {
+                                put(col, y, LOG, Math.abs(bx) > Math.abs(bz) ? 4 : 8);
+                                any = true;
+                            }
+                        }
+                    }
+                    if (y < top - CANOPY_H + 2 || col[y * 2] == LOG) continue;
+                    // крона: основной плоский ярус, сдвинутый к центру рощи, и малый верхний
+                    double mx = dx - (cx + ix * 4), mz = dz - (cz + iz * 4);
+                    double e1 = (mx * mx + mz * mz) / (double) (CANOPY_R * CANOPY_R) + ((y - top) / 5.0) * ((y - top) / 5.0);
+                    double e2 = (ddx * ddx + ddz * ddz) / 36.0 + ((y - top - 6) / 4.0) * ((y - top - 6) / 4.0);
+                    double e = Math.min(e1, e2);
+                    if (e > 1) continue;
+                    if (e > 0.7 && hash(dx * 7 + y, dz * 3 - y + salt) % 4 == 0) continue; // рваный край
+                    put(col, y, hash(dx + y * 13, dz + salt) % 71 == 0 ? GLOW : LEAVES, 0);
+                    any = true;
                 }
             }
             return any;

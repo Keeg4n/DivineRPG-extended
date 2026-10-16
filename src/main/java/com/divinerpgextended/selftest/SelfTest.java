@@ -314,7 +314,7 @@ public class SelfTest {
     private static void dump(WorldServer w, int cx, int top, int cz, int r, String name) {
         try {
             java.io.PrintWriter out = new java.io.PrintWriter(new File(MinecraftServer.getServer().getFile("logs"), name + ".txt"), "UTF-8");
-            for (int x = cx - r; x <= cx + r; x++) for (int z = cz - r; z <= cz + r; z++) for (int y = top - 30; y <= top + 16; y++) {
+            for (int x = cx - r; x <= cx + r; x++) for (int z = cz - r; z <= cz + r; z++) for (int y = top - 40; y <= top + 62; y++) {
                 net.minecraft.block.Block b = w.getBlock(x, y, z);
                 if (b.getMaterial() == net.minecraft.block.material.Material.air) continue;
                 out.println((x - cx) + " " + (y - top) + " " + (z - cz) + " " + net.minecraft.block.Block.blockRegistry.getNameForObject(b) + " "
@@ -1619,7 +1619,7 @@ public class SelfTest {
                 eden.getPlayerManager().removePlayer(v);
             }
         });
-        t("Логова", "Гнездо Великого кадиллиона", () -> {
+        t("Логова", "Заповедная роща", () -> {
             int dim = ConfigurationHelper.eden;
             WorldServer w = server.worldServerForDimension(dim);
             int[] c = com.divinerpgextended.world.twilight.WorldGenNests.nearest(w.getSeed(), dim, 0, 0);
@@ -1628,7 +1628,7 @@ public class SelfTest {
             int az = c[2] - com.divinerpgextended.world.twilight.WorldGenNests.ALTAR_DZ;
             net.minecraft.block.Block altar = w.getBlock(c[0], top + 2, az), mid = w.getBlock(c[0], top, c[2]);
             boolean clear = w.isAirBlock(c[0], top + 5, c[2]) && w.isAirBlock(c[0] + 5, top + 3, c[2] + 5);
-            dump(w, c[0], top, c[2], 34, "nest-eden");
+            dump(w, c[0], top, c[2], 48, "nest-eden");
             check(altar == com.divinerpgextended.registry.ModBlocks.nestAltar && mid == Blocks.glowstone && clear,
                 "в " + c[0] + "," + c[2] + ": алтарь " + altar.getUnlocalizedName() + ", центр " + mid.getUnlocalizedName() + ", над полом пусто " + clear);
             // алтарь принимает Зов Эдема и ставит кадиллиона в центр гнезда
@@ -1640,7 +1640,7 @@ public class SelfTest {
             ItemStack left = v.getHeldItem();
             for (Object o : bosses) ((net.minecraft.entity.Entity) o).setDead();
             check(bosses.size() == 1 && (left == null || left.stackSize == 0), "кадиллионов в центре " + bosses.size() + ", зов в руке " + left);
-            return "гнездо в " + c[0] + "," + c[2] + " на высоте " + top + ": алтарь на помосте, свет в центре; Зов на алтаре - кадиллион в центре";
+            return "роща в " + c[0] + "," + c[2] + " на высоте " + top + ": алтарь у святилища, свет в центре поляны; Зов на алтаре - кадиллион в центре";
         });
         t("Логова", "Зов мимо алтаря", () -> {
             int dim = ConfigurationHelper.eden;
@@ -1825,14 +1825,14 @@ public class SelfTest {
             check(nest && in == null && "dre.chat.summon_lair_2".equals(out), "гнездовье " + nest + ", внутри " + in + ", снаружи " + out);
             return "гнездовье в Энде в " + c[0] + "," + c[2] + " (" + (int) Math.sqrt(c[0] * c[0] + c[2] * c[2]) + " блоков от центра); рог только там";
         });
-        t("Логова", "Карта к гнезду", () -> {
+        t("Логова", "Карта к роще", () -> {
             int dim = ConfigurationHelper.eden;
             TestPlayer v = player(dim, "TestNestMap", 100, 150, 100);
             ItemStack map = new ItemStack(com.divinerpgextended.registry.ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.NEST);
             v.chat.clear();
             map.getItem().onItemRightClick(map, server.worldServerForDimension(dim), v);
             check(v.heard("dre.chat.map_found_nest"), "чат " + v.chat);
-            return "карта в Эдеме показывает ближайшее гнездо";
+            return "карта в Эдеме показывает ближайшую рощу";
         });
         t("Сумеречные миры", "Быстрый поиск портала", () -> {
             net.minecraft.block.Block portal = net.divinerpg.utils.blocks.TwilightBlocks.wildwoodPortal;

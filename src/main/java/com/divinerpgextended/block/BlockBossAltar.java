@@ -107,7 +107,7 @@ public class BlockBossAltar extends Block {
         boss.setVariant(w.ordinal());
         boss.setLocationAndAngles(x + 0.5, y - 1, z + 0.5 + com.divinerpgextended.world.twilight.WorldGenNests.ALTAR_DZ, 0, 0);
         com.divinerpgextended.boss.LairSummons.leash(boss, x, y - 1, z + com.divinerpgextended.world.twilight.WorldGenNests.ALTAR_DZ,
-            com.divinerpgextended.world.twilight.WorldGenNests.NEST_R - 4);
+            20);
         world.spawnEntityInWorld(boss);
         world.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, "mob.wither.spawn", 0.6F, 0.8F);
         com.divinerpgextended.audit.Audit.log(player, "Summon", "Великий кадиллион (" + w.key() + ") на алтаре гнезда");
