@@ -56,15 +56,35 @@ public class AccessoryButton {
     public void onInit(GuiScreenEvent.InitGuiEvent.Post e) {
         boolean inv = e.gui instanceof GuiInventory, creative = e.gui instanceof GuiContainerCreative;
         if (!inv && !creative) return;
-        // настоящие координаты окна (с эффектами зелий ванильный инвентарь сдвигается вправо)
+        button = new StarButton(0, 0);
+        place(e.gui);
+        e.buttonList.add(button);
+    }
+
+    /**
+     * По настоящим координатам окна: с эффектами зелий ванильный инвентарь сдвигается вправо, а NEI после
+     * инициализации возвращает его на место (эффекты выносит на свою панель) - поэтому пересчёт перед каждой отрисовкой.
+     */
+    private void place(net.minecraft.client.gui.GuiScreen gui) {
+        net.minecraft.client.gui.inventory.GuiContainer c = (net.minecraft.client.gui.inventory.GuiContainer) gui;
         int left = cpw.mods.fml.relauncher.ReflectionHelper.getPrivateValue(net.minecraft.client.gui.inventory.GuiContainer.class,
-            (net.minecraft.client.gui.inventory.GuiContainer) e.gui, "guiLeft", "field_147003_i");
+            c, "guiLeft", "field_147003_i");
         int top = cpw.mods.fml.relauncher.ReflectionHelper.getPrivateValue(net.minecraft.client.gui.inventory.GuiContainer.class,
-            (net.minecraft.client.gui.inventory.GuiContainer) e.gui, "guiTop", "field_147009_r");
+            c, "guiTop", "field_147009_r");
         // обычный инвентарь: внутри окна, под слотом результата крафта (там пусто и NEI не перекрывает);
         // творческий: свободного места внутри нет - слева снаружи
-        button = inv ? new StarButton(left + 143, top + 59) : new StarButton(left - SIZE - 2, top + 4);
-        e.buttonList.add(button);
+        if (gui instanceof GuiInventory) {
+            button.xPosition = left + 143;
+            button.yPosition = top + 59;
+        } else {
+            button.xPosition = left - SIZE - 2;
+            button.yPosition = top + 4;
+        }
+    }
+
+    @SubscribeEvent
+    public void onDrawPre(GuiScreenEvent.DrawScreenEvent.Pre e) {
+        if (button != null && (e.gui instanceof GuiInventory || e.gui instanceof GuiContainerCreative)) place(e.gui);
     }
 
     @SubscribeEvent
