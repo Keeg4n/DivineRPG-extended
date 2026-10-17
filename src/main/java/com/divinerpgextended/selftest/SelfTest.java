@@ -1927,6 +1927,33 @@ public class SelfTest {
                 && b == com.divinerpgextended.boss.Boss.CADILLION_WILDWOOD, "Дикий лес " + made + ", Эдем " + eden + ", босс " + b);
             return "Зов Дикого леса вызывает Древнего голема (засчитывается как страж Дикого леса), Зов Эдема - кадиллиона";
         });
+        t("Логова", "Король-воин", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            loadAround(w, 9970, 9970, 2);
+            TestPlayer kv = player(ConfigurationHelper.apalachia, "TestKing", 9970, 100, 9964);
+            com.divinerpgextended.entity.EntityWarriorKing king = new com.divinerpgextended.entity.EntityWarriorKing(w);
+            king.setPosition(9970.5, 100, 9970.5);
+            w.spawnEntityInWorld(king);
+            String log = "";
+            float hp0 = king.getMaxHealth();
+            for (int r = 0; r < 3; r++) {
+                king.hurtResistantTime = 0;
+                king.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(kv), 100000);
+                log += "встреча " + (r + 1) + ": колено " + king.kneeling() + ", жив " + (king.getHealth() > 0) + "; ";
+                if (r < 2) {
+                    king.hurtResistantTime = 0;
+                    boolean hurt = king.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(kv), 5);
+                    log += "на колене урон " + hurt + "; ";
+                    for (int i = 0; i < com.divinerpgextended.entity.EntityWarriorKing.KNEEL + 2; i++) king.onLivingUpdate();
+                }
+            }
+            boolean dead = king.getHealth() <= 0;
+            float hp3 = king.getMaxHealth();
+            king.setDead();
+            check(dead && hp3 > hp0 * 1.9F && log.contains("встреча 1: колено 100") && log.contains("встреча 2: колено 100") && !log.contains("урон true"),
+                log + "здоровье 1-й " + hp0 + ", 3-й " + hp3 + ", убит " + dead);
+            return "Король-воин дважды встаёт на колено (неуязвим) и поднимается сильнее (здоровье x" + (hp3 / hp0) + "), третья победа - смерть";
+        });
         t("Логова", "Скол рога", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9940, 9940, 1);

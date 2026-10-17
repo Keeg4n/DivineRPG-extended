@@ -25,7 +25,7 @@ public enum Boss {
     JUNGLE_DRAMCRYX(EntityJungleDramcryx.class, -1),
     CADILLION_EDEN(EntityGreatCadillion.class, 0),
     CADILLION_WILDWOOD(com.divinerpgextended.entity.EntityAncientGolem.class, -1), // страж рощи Дикого леса - Древний голем
-    CADILLION_APALACHIA(EntityGreatCadillion.class, 2),
+    CADILLION_APALACHIA(com.divinerpgextended.entity.EntityWarriorKing.class, -1), // страж рощи Апалачии - Король-воин
     CADILLION_SKYTHERN(EntityGreatCadillion.class, 3),
     TWILIGHT_DEMON(EntityTwilightDemon.class, -1),
     KAROT(EntityKarot.class, -1),

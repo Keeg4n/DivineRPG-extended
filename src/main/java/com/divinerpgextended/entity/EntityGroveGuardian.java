@@ -123,9 +123,10 @@ public abstract class EntityGroveGuardian extends EntityMob implements IBossDisp
         entityDropItem(new ItemStack(world().soul(), 4 + rand.nextInt(5 + looting)), 0.5F);
     }
 
-    /** Страж нужного мира для алтаря рощи и Зова: Эдем - Великий кадиллион, Дикий лес - Древний голем, дальше пока кадиллион. */
+    /** Страж нужного мира для алтаря рощи и Зова: Эдем - Великий кадиллион, Дикий лес - Древний голем, Апалачия - Король-воин, дальше пока кадиллион. */
     public static EntityLiving create(World world, CadillionWorld w) {
         if (w == CadillionWorld.WILDWOOD) return new EntityAncientGolem(world);
+        if (w == CadillionWorld.APALACHIA) return new EntityWarriorKing(world);
         EntityGreatCadillion c = new EntityGreatCadillion(world);
         c.setVariant(w.ordinal());
         return c;
