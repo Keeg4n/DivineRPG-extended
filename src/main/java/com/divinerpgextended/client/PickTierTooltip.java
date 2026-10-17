@@ -25,6 +25,8 @@ public class PickTierTooltip {
                     e.toolTip.add(Math.min(1, e.toolTip.size()), EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.set_perk." + w.key()));
             }
         }
+        int rk = com.divinerpgextended.perk.RangedRoles.kind(e.itemStack);
+        if (rk > 0) e.toolTip.add(Math.min(1, e.toolTip.size()), EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.ranged_role." + rk));
         int t = MiningTiers.tier(e.itemStack);
         if (t < 0 || !Config.miningTiers) return;
         String stone = StatCollector.translateToLocal("dre.world." + TwilightWorld.values()[Math.min(t, 4)].key());

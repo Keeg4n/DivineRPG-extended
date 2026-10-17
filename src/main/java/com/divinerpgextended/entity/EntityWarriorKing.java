@@ -100,9 +100,19 @@ public class EntityWarriorKing extends EntityGroveGuardian {
         setHealth(getMaxHealth());
     }
 
+    /** Замах волны сейчас (слайсер его сбивает). */
+    public boolean windingUp() {
+        return windup >= 0;
+    }
+
     @Override
     public boolean attackEntityFrom(DamageSource src, float amount) {
         if (kneeling() > 0 && src != DamageSource.outOfWorld) return false;
+        if (windup >= 0 && com.divinerpgextended.perk.RangedRoles.kind(src.getSourceOfDamage()) == com.divinerpgextended.perk.RangedRoles.SLICER) {
+            windup = -1; // замах сбит - волны не будет
+            worldObj.playSoundAtEntity(this, "random.anvil_land", 1.0F, 1.8F);
+            com.divinerpgextended.debug.Debug.noteNear(this, 40, "Король: замах сбит слайсером");
+        }
         return super.attackEntityFrom(src, amount);
     }
 

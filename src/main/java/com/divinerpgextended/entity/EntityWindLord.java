@@ -105,6 +105,29 @@ public class EntityWindLord extends EntityGroveGuardian {
         }
     }
 
+    /** Заряд тотемов от фазера издалека: копится выстрелами, тает со временем. */
+    private final float[] remote = new float[4];
+    public static final float REMOTE_HIT = 12, REMOTE_DECAY = 0.5F;
+
+    /** Снаряд фазера попал в тотем: подзарядка; набралось CHARGE - тотем загорается. */
+    public void remoteCharge(int x, int y, int z) {
+        for (int i = 0; i < 4; i++) {
+            int[] t = totem(i);
+            if (t[0] != x || t[1] != y || t[2] != z) continue;
+            remote[i] += REMOTE_HIT;
+            ((WorldServer) worldObj).func_147487_a("magicCrit", x + 0.5, y + 1, z + 0.5, 12, 0.3, 0.3, 0.3, 0.1);
+            worldObj.playSoundEffect(x + 0.5, y + 1, z + 0.5, "random.orb", 0.6F, 1.6F);
+            if (remote[i] >= CHARGE) {
+                remote[i] = 0;
+                lightTotem(x, y, z);
+            }
+        }
+    }
+
+    public float remoteProgress(int i) {
+        return remote[i];
+    }
+
     /** Игрок начал заряжать тотем (клик по нему). */
     public void startCharge(int x, int y, int z, EntityPlayer p) {
         chargeX = x;
@@ -147,6 +170,7 @@ public class EntityWindLord extends EntityGroveGuardian {
         motionY += (ty - posY) * 0.04;
         if (ticksExisted % 3 == 0) ws.func_147487_a("cloud", posX, posY, posZ, 2, 0.4, 0.1, 0.4, 0.01);
         tickCharge(ws);
+        for (int i = 0; i < 4; i++) remote[i] = Math.max(0, remote[i] - REMOTE_DECAY);
         EntityLivingBase t = getAttackTarget();
         if (t == null || !t.isEntityAlive()) {
             EntityPlayer p = worldObj.getClosestVulnerablePlayerToEntity(this, 40);
@@ -187,7 +211,12 @@ public class EntityWindLord extends EntityGroveGuardian {
         ws.func_147487_a("magicCrit", chargeX + 0.5, chargeY + 1 + up * 2, chargeZ + 0.5, 4, 0.3, 0.2, 0.3, 0.05);
         if (chargeTime < CHARGE) return;
         chargeTime = -1;
-        worldObj.setBlockMetadataWithNotify(chargeX, chargeY, chargeZ, 1, 3);
+        lightTotem(chargeX, chargeY, chargeZ);
+    }
+
+    /** Тотем загорелся: молния в Повелителя на четверть здоровья (четвёртый - добивает). */
+    private void lightTotem(int x, int y, int z) {
+        worldObj.setBlockMetadataWithNotify(x, y, z, 1, 3);
         // молния бьёт в Повелителя: вспышка и гром для всех, урон - своим источником
         worldObj.addWeatherEffect(new EntityLightningBolt(worldObj, posX, posY, posZ));
         int lit = litTotems();

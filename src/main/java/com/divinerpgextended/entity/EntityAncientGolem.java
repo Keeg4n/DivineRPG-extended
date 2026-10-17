@@ -40,6 +40,11 @@ public class EntityAncientGolem extends EntityGroveGuardian {
     public static final float[] SHARE = { 0.2F, 0.2F, 0.25F, 0.35F };
     public static final float TRACKER_BONUS = 1.5F;
     public static final double EXTRA_HP = 200;
+    public static final float PHASER_BONUS = 2.0F;
+    /** Замах лианы (тиков): в это время слайсер её перерезает. */
+    public static final int LASH_WINDUP = 15;
+    private EntityPlayer lashTarget;
+    private int lashWindup;
     public static final float SCALE = 2.2F;
     private static final int DW_BROKEN = 21, DW_FIRST = 22;
     /** Модель: ширина корпуса и плеч, высота ног (доля роста). */
@@ -153,6 +158,9 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         if (src.getEntity() instanceof EntityPlayer && com.divinerpgextended.perk.HomeArmor.wears((EntityPlayer) src.getEntity(), TwilightWorld.WILDWOOD, false))
             amount *= TRACKER_BONUS;
         answerArcher(src);
+        int rk = com.divinerpgextended.perk.RangedRoles.kind(src.getSourceOfDamage());
+        if (rk == com.divinerpgextended.perk.RangedRoles.PHASER) amount *= PHASER_BONUS; // пробой по частям
+        if (rk == com.divinerpgextended.perk.RangedRoles.SLICER && lashTarget != null) cutVine();
         amount = Math.min(amount, partHp[part]);
         float before = getHealth();
         boolean ok = super.attackEntityFrom(src, amount);
@@ -211,6 +219,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
             return;
         }
         springs();
+        lashTick();
         if (answerTimer > 0) answerTimer--;
         if (stagger > 0) {
             stagger--;
@@ -365,9 +374,46 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         worldObj.playSoundAtEntity(this, "mob.irongolem.throw", 2.0F, 0.3F);
     }
 
-    /** Лиана: хлещет цель издалека, подтягивает к голему и опутывает (замедление). */
+    /** Лиана: замах {@link #LASH_WINDUP} тиков (тянется зелёная дорожка), потом удар. */
     private void lash(EntityPlayer p) {
-        if (p == null || p.getDistanceToEntity(this) < 4) return;
+        if (p == null || p.getDistanceToEntity(this) < 4 || lashTarget != null) return;
+        lashTarget = p;
+        lashWindup = LASH_WINDUP;
+        worldObj.playSoundAtEntity(this, "dig.grass", 2.0F, 0.4F);
+    }
+
+    /** Слайсер перерезал лиану на замахе. */
+    private void cutVine() {
+        lashTarget = null;
+        lashWindup = 0;
+        worldObj.playSoundAtEntity(this, "mob.sheep.shear", 2.0F, 0.8F);
+        ((WorldServer) worldObj).func_147487_a("slime", posX, posY + height * 0.6, posZ, 20, 1, 0.5, 1, 0.1);
+        com.divinerpgextended.debug.Debug.noteNear(this, 40, "Голем: лиана перерезана");
+    }
+
+    public boolean lashing() {
+        return lashTarget != null;
+    }
+
+    private void lashTick() {
+        if (lashTarget == null) return;
+        EntityPlayer p = lashTarget;
+        if (!p.isEntityAlive() || p.worldObj != worldObj) {
+            lashTarget = null;
+            return;
+        }
+        WorldServer ws = (WorldServer) worldObj;
+        double k = 1 - lashWindup / (double) LASH_WINDUP; // лиана дотягивается
+        ws.func_147487_a("slime", posX + (p.posX - posX) * k, posY + height * 0.6 + (p.posY + 1 - posY - height * 0.6) * k,
+            posZ + (p.posZ - posZ) * k, 3, 0.1, 0.1, 0.1, 0);
+        if (--lashWindup > 0) return;
+        lashTarget = null;
+        lashHit(p);
+    }
+
+    /** Удар лианы: бьёт, подтягивает к голему и опутывает (замедление). */
+    private void lashHit(EntityPlayer p) {
+        if (p.getDistanceToEntity(this) < 4) return;
         p.attackEntityFrom(DamageSource.causeMobDamage(this), (float) getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue() * 0.5F);
         double dx = posX - p.posX, dz = posZ - p.posZ, d = Math.max(1, Math.sqrt(dx * dx + dz * dz));
         p.motionX += dx / d * 1.1;

@@ -920,3 +920,6 @@ tile.dre.worldLamp.wildwood.name=Wildwood Lamp
 tile.dre.worldLamp.apalachia.name=Apalachia Lamp
 tile.dre.worldLamp.skythern.name=Skythern Lamp
 tile.dre.worldLamp.mortum.name=Mortum Lamp
+dre.tooltip.ranged_role.1=Buckshot: 5 shots in a fan, x2 to boss minions
+dre.tooltip.ranged_role.2=Pierce: through up to 3 targets, x2 to golem parts, charges wind totems from afar
+dre.tooltip.ranged_role.3=Ricochet up to 3 targets; cuts the golem's vine, breaks the King's windup

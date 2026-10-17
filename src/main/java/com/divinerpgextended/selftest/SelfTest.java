@@ -2322,14 +2322,116 @@ public class SelfTest {
             ar2.setPosition(g4.posX + 1.6, g4.posY + 1, g4.posZ); // в ногу
             av.motionX = 0;
             g4.attackEntityFrom(net.minecraft.util.DamageSource.causeArrowDamage(ar2, av), 5);
-            double pull = av.motionX; // голем западнее - тянет на -x
-            av.motionX = 0;
+            boolean windup = g4.lashing();
             g4.hurtResistantTime = 0;
-            g4.attackEntityFrom(net.minecraft.util.DamageSource.causeArrowDamage(ar2, av), 5);
-            double again = av.motionX; // сразу второй раз - перезарядка
+            g4.attackEntityFrom(net.minecraft.util.DamageSource.causeArrowDamage(ar2, av), 5); // сразу второй раз - перезарядка, лиана одна
+            for (int i = 0; i <= com.divinerpgextended.entity.EntityAncientGolem.LASH_WINDUP; i++) {
+                av.setPositionAndUpdate(9636.5, 100, 9640.5);
+                g4.onLivingUpdate();
+            }
+            double pull = av.motionX; // голем западнее - тянет на -x
             g4.setDead();
-            check(pull < -0.5 && again == 0, "рывок к голему " + pull + ", повторно сразу " + again);
-            return "стрела издалека - лиана подтягивает стрелка к голему (не чаще раза в 3 с)";
+            check(windup && pull < -0.5, "замах лианы " + windup + ", рывок к голему " + pull);
+            return "стрела издалека - замах лианы 0.75 с, потом рывок стрелка к голему (не чаще раза в 3 с)";
+        });
+        t("Логова", "Слайсер режет лиану", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
+            loadAround(w, 9620, 9680, 2);
+            TestPlayer sv5 = join(player(ConfigurationHelper.wildwood, "TestSlicer", 9636.5, 100, 9680.5), true);
+            com.divinerpgextended.entity.EntityAncientGolem g5 = new com.divinerpgextended.entity.EntityAncientGolem(w);
+            g5.setPosition(9620.5, 100, 9680.5);
+            w.spawnEntityInWorld(g5);
+            net.minecraft.entity.projectile.EntityArrow ar3 = new net.minecraft.entity.projectile.EntityArrow(w);
+            ar3.setPosition(g5.posX + 1.6, g5.posY + 1, g5.posZ);
+            g5.attackEntityFrom(net.minecraft.util.DamageSource.causeArrowDamage(ar3, sv5), 5); // замах лианы
+            boolean wind = g5.lashing();
+            // попадание слайсером (снаряд с меткой роли)
+            net.minecraft.entity.projectile.EntityArrow sl = new net.minecraft.entity.projectile.EntityArrow(w);
+            sl.setPosition(g5.posX + 1.6, g5.posY + 1, g5.posZ);
+            sl.getEntityData().setInteger(com.divinerpgextended.perk.RangedRoles.KIND, com.divinerpgextended.perk.RangedRoles.SLICER);
+            g5.hurtResistantTime = 0;
+            g5.attackEntityFrom(net.minecraft.util.DamageSource.causeThrownDamage(sl, sv5), 5);
+            boolean cut = !g5.lashing();
+            for (int i = 0; i <= com.divinerpgextended.entity.EntityAncientGolem.LASH_WINDUP; i++) {
+                sv5.setPositionAndUpdate(9636.5, 100, 9680.5);
+                sv5.motionX = 0;
+                g5.onLivingUpdate();
+            }
+            double pulled = sv5.motionX;
+            g5.setDead();
+            check(wind && cut && pulled > -0.5, "замах " + wind + ", перерезана " + cut + ", рывок " + pulled);
+            return "слайсер на замахе лианы перерезает её - рывка нет";
+        });
+        t("Логова", "Блиц: дробь", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            loadAround(w, 9500, 9700, 1);
+            TestPlayer bv2 = join(player(ConfigurationHelper.eden, "TestBlitz", 9500.5, 120, 9700.5), true);
+            bv2.setCurrentItemOrArmor(0, new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz));
+            net.divinerpg.entities.vanilla.projectile.EntityShooterBullet shot = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, bv2, 10,
+                "divinerpg:textures/projectiles/blitzEden.png");
+            w.spawnEntityInWorld(shot);
+            int pellets = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, bv2.boundingBox.expand(4, 4, 4)).size();
+            for (Object o : w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, bv2.boundingBox.expand(8, 8, 8)))
+                ((net.minecraft.entity.Entity) o).setDead();
+            // дробина по подручному босса - x2 к половине урона
+            net.minecraft.entity.monster.EntityZombie add = new net.minecraft.entity.monster.EntityZombie(w);
+            add.getEntityData().setInteger(com.divinerpgextended.entity.EntityGroveGuardian.ADD_TAG, 1);
+            net.minecraft.entity.projectile.EntityArrow pel = new net.minecraft.entity.projectile.EntityArrow(w);
+            pel.getEntityData().setInteger(com.divinerpgextended.perk.RangedRoles.KIND, com.divinerpgextended.perk.RangedRoles.BLITZ);
+            net.minecraftforge.event.entity.living.LivingHurtEvent h1 = new net.minecraftforge.event.entity.living.LivingHurtEvent(add,
+                net.minecraft.util.DamageSource.causeThrownDamage(pel, bv2), 10);
+            MinecraftForge.EVENT_BUS.post(h1);
+            net.minecraft.entity.monster.EntityZombie plain = new net.minecraft.entity.monster.EntityZombie(w);
+            net.minecraftforge.event.entity.living.LivingHurtEvent h2 = new net.minecraftforge.event.entity.living.LivingHurtEvent(plain,
+                net.minecraft.util.DamageSource.causeThrownDamage(pel, bv2), 10);
+            MinecraftForge.EVENT_BUS.post(h2);
+            bv2.setCurrentItemOrArmor(0, null);
+            check(pellets == com.divinerpgextended.perk.RangedRoles.PELLETS && Math.abs(h1.ammount - 10) < 0.01 && Math.abs(h2.ammount - 5) < 0.01,
+                "снарядов " + pellets + ", по подручному " + h1.ammount + ", по обычному " + h2.ammount);
+            return "выстрел блица - 5 снарядов веером; дробина по обычному мобу 50%, по подручному босса 100%";
+        });
+        t("Логова", "Фазер: пробой и тотем", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.skythern);
+            loadAround(w, 9520, 9720, 2);
+            TestPlayer pv = join(player(ConfigurationHelper.skythern, "TestPhaser", 9510.5, 120, 9720.5), true);
+            // пробой: попадание снаряда фазера в моба - снаряд-продолжение за его спиной
+            net.divinerpg.entities.vanilla.projectile.EntityShooterBullet ph = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, pv, 10,
+                "divinerpg:textures/projectiles/phaserSkythern.png");
+            ph.getEntityData().setInteger(com.divinerpgextended.perk.RangedRoles.KIND, com.divinerpgextended.perk.RangedRoles.PHASER);
+            ph.setPosition(9514, 121, 9720.5);
+            ph.motionX = 1.5;
+            ph.motionY = ph.motionZ = 0;
+            net.minecraft.entity.monster.EntityZombie zp = new net.minecraft.entity.monster.EntityZombie(w);
+            zp.setPosition(9515.5, 120, 9720.5);
+            int before = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, zp.boundingBox.expand(6, 4, 6)).size();
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(zp, net.minecraft.util.DamageSource.causeThrownDamage(ph, pv), 10));
+            java.util.List<?> after = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, zp.boundingBox.expand(6, 4, 6));
+            boolean behind = false;
+            for (Object o : after) {
+                net.minecraft.entity.Entity b = (net.minecraft.entity.Entity) o;
+                if (b.posX > zp.posX && b.motionX > 1) behind = true;
+                b.setDead();
+            }
+            // подзарядка тотема издалека
+            com.divinerpgextended.entity.EntityWindLord wl = new com.divinerpgextended.entity.EntityWindLord(w);
+            wl.setPosition(9520.5, 120, 9720.5);
+            w.spawnEntityInWorld(wl);
+            wl.placeTotems();
+            int[] tt = wl.totem(0);
+            int shots = 0;
+            while (w.getBlockMetadata(tt[0], tt[1], tt[2]) == 0 && shots < 20) {
+                wl.remoteCharge(tt[0], tt[1], tt[2]);
+                shots++;
+            }
+            boolean lit = w.getBlockMetadata(tt[0], tt[1], tt[2]) == 1;
+            float hp = wl.getHealth() / wl.getMaxHealth();
+            for (int i = 0; i < 4; i++) {
+                int[] t2 = wl.totem(i);
+                w.setBlockToAir(t2[0], t2[1], t2[2]);
+            }
+            wl.setDead();
+            check(behind && lit && shots == 5 && hp < 0.8F, "снаряд за спиной " + behind + " (было " + before + ", стало " + after.size() + "), тотем зажжён " + lit + " за " + shots + " попаданий, здоровье " + hp);
+            return "фазер пробивает моба насквозь (летит дальше); 5 быстрых попаданий в тотем зажигают его издалека";
         });
         t("Логова", "Король: прыжок ввысь", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
