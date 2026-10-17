@@ -2587,6 +2587,56 @@ public class SelfTest {
                 "поставлено " + placed + ", опора " + meta + ", осталось " + left);
             return "рельсы Апалачии Divine в руке ставятся рельсами аддона на стену (опора - камень с запада)";
         });
+        t("Прохождение", "Рельсы как в игре: пол и стена", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            loadAround(w, 9580, 9860, 1);
+            int x0 = 9580, y0 = 100, z0 = 9860;
+            for (int x = x0 - 2; x <= x0 + 8; x++) for (int y = y0 - 1; y <= y0 + 8; y++) for (int z = z0 - 2; z <= z0 + 2; z++)
+                w.setBlock(x, y, z, y == y0 - 1 || x == x0 + 6 ? Blocks.stone : Blocks.air); // пол и стена на востоке
+            TestPlayer rv = join(player(ConfigurationHelper.apalachia, "TestRailPlay", x0 + 0.5, y0, z0 + 0.5), true);
+            rv.rotationYaw = -90; // смотрит на восток
+            ItemStack rails = new ItemStack(com.divinerpgextended.registry.ModBlocks.skyRail, 64);
+            // по полу: клик по верху блоков пола
+            rv.rotationPitch = 60;
+            for (int x = x0; x <= x0 + 5; x++) rails.getItem().onItemUse(rails, rv, w, x, y0 - 1, z0, 1, 0.5F, 1F, 0.5F);
+            // по стене: клик по западной грани стены (сторона 4), смотрит прямо - как игрок
+            rv.rotationPitch = 0;
+            for (int y = y0 + 1; y <= y0 + 5; y++) rails.getItem().onItemUse(rails, rv, w, x0 + 6, y, z0, 4, 0F, 0.5F, 0.5F);
+            int floor = 0, wall = 0;
+            for (int x = x0; x <= x0 + 5; x++) if (w.getBlock(x, y0, z0) == com.divinerpgextended.registry.ModBlocks.skyRail) floor++;
+            for (int y = y0 + 1; y <= y0 + 5; y++)
+                if (w.getBlock(x0 + 5, y, z0) == com.divinerpgextended.registry.ModBlocks.skyRail
+                    && (w.getBlockMetadata(x0 + 5, y, z0) & 7) == net.minecraftforge.common.util.ForgeDirection.EAST.ordinal()) wall++;
+            // соединения: рельс на полу у стены смотрит к стене (на восток), рельс на стене - вертикальный
+            net.minecraftforge.common.util.ForgeDirection[] lf = com.divinerpgextended.block.BlockSkyRail.links(w, x0 + 5, y0, z0);
+            net.minecraftforge.common.util.ForgeDirection[] lw = com.divinerpgextended.block.BlockSkyRail.links(w, x0 + 5, y0 + 3, z0);
+            boolean linkFloor = java.util.Arrays.asList(lf).contains(net.minecraftforge.common.util.ForgeDirection.WEST)
+                && java.util.Arrays.asList(lf).contains(net.minecraftforge.common.util.ForgeDirection.UP) == false
+                && lf.length == 2;
+            boolean linkWall = java.util.Arrays.asList(lw).contains(net.minecraftforge.common.util.ForgeDirection.UP)
+                && java.util.Arrays.asList(lw).contains(net.minecraftforge.common.util.ForgeDirection.DOWN);
+            // вагонетка предметом, посадка кликом
+            ItemStack cartItem = new ItemStack(com.divinerpgextended.registry.ModItems.skyCart);
+            cartItem.getItem().onItemUse(cartItem, rv, w, x0, y0, z0, 1, 0.5F, 0.1F, 0.5F);
+            java.util.List<?> carts = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntitySkyCart.class,
+                net.minecraft.util.AxisAlignedBB.getBoundingBox(x0 - 1, y0 - 1, z0 - 1, x0 + 2, y0 + 2, z0 + 2));
+            int topY = 0;
+            if (carts.size() == 1) {
+                com.divinerpgextended.entity.EntitySkyCart c = (com.divinerpgextended.entity.EntitySkyCart) carts.get(0);
+                c.interactFirst(rv);
+                for (int i = 0; i < 60; i++) {
+                    c.onUpdate();
+                    topY = Math.max(topY, c.railPos()[1]);
+                }
+                rv.mountEntity(null);
+                c.setDead();
+            }
+            for (int x = x0 - 2; x <= x0 + 8; x++) for (int y = y0 - 1; y <= y0 + 8; y++) for (int z = z0 - 2; z <= z0 + 2; z++) w.setBlockToAir(x, y, z);
+            check(floor == 6 && wall == 5 && linkWall && carts.size() == 1 && topY == y0 + 5,
+                "на полу " + floor + ", на стене " + wall + ", у стены связи " + java.util.Arrays.toString(lf) + ", на стене " + java.util.Arrays.toString(lw)
+                    + ", вагонеток " + carts.size() + ", поднялась до " + (topY - y0));
+            return "рельсы ставятся предметом на пол и на стену, у стены поворачивают вверх; вагонетка предметом, посадка кликом - доезжает до верха стены";
+        });
         t("Логова", "Король: прыжок ввысь", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9650, 9650, 3);

@@ -13,7 +13,10 @@ import cpw.mods.fml.client.registry.ISimpleBlockRenderingHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Рельсы Апалачии: плоская текстура рельса у грани опоры (с обеих сторон), повёрнутая вдоль или поперёк. */
+/**
+ * Рельсы Апалачии: плоская текстура у грани опоры (с обеих сторон), сама соединяется с соседями
+ * ({@link BlockSkyRail#links}): прямой рельс - вдоль соседа, два соседа под углом - поворот.
+ */
 @SideOnly(Side.CLIENT)
 public class RenderSkyRail implements ISimpleBlockRenderingHandler {
 
@@ -25,27 +28,31 @@ public class RenderSkyRail implements ISimpleBlockRenderingHandler {
     @Override
     public boolean renderWorldBlock(IBlockAccess w, int x, int y, int z, Block block, int modelId, RenderBlocks rb) {
         int meta = w.getBlockMetadata(x, y, z);
-        IIcon icon = rb.hasOverrideBlockTexture() ? rb.overrideBlockTexture : block.getIcon(0, 0);
+        ForgeDirection n = BlockSkyRail.support(meta);
+        ForgeDirection[] links = BlockSkyRail.links(w, x, y, z);
+        ForgeDirection a, b; // текстура: +u к a, +v к b
+        boolean turn = false;
+        if (links.length >= 2 && links[0] != links[1].getOpposite()) {
+            a = links[0];
+            b = links[1];
+            turn = true;
+        } else {
+            ForgeDirection along = links.length > 0 ? links[0] : BlockSkyRail.defaultAxis(meta);
+            b = along;
+            a = along.getRotation(n); // поперёк, в той же плоскости
+        }
+        IIcon icon = rb.hasOverrideBlockTexture() ? rb.overrideBlockTexture : turn ? BlockSkyRail.turnedIcon : block.getIcon(0, 0);
         Tessellator t = Tessellator.instance;
         t.setBrightness(block.getMixedBrightnessForBlock(w, x, y, z));
         t.setColorOpaque_F(1, 1, 1);
-        double u0 = icon.getMinU(), u1 = icon.getMaxU(), v0 = icon.getMinV(), v1 = icon.getMaxV();
-        boolean across = BlockSkyRail.across(meta);
-        // четыре угла плоскости в локальных координатах (a, b) от 0 до 1; uv поворачиваем для "поперёк"
-        double[][] uv = across ? new double[][] { { u0, v1 }, { u0, v0 }, { u1, v0 }, { u1, v1 } } : new double[][] { { u0, v0 }, { u1, v0 }, { u1, v1 }, { u0, v1 } };
-        double[][] p = new double[4][];
-        ForgeDirection sup = BlockSkyRail.support(meta);
+        double cx = x + 0.5 + n.offsetX * (0.5 - LIFT), cy = y + 0.5 + n.offsetY * (0.5 - LIFT), cz = z + 0.5 + n.offsetZ * (0.5 - LIFT);
         double[][] ab = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } };
+        double[][] p = new double[4][];
+        double[][] uv = new double[4][];
         for (int i = 0; i < 4; i++) {
-            double a = ab[i][0], b = ab[i][1];
-            switch (sup) {
-                case UP: p[i] = new double[] { x + a, y + 1 - LIFT, z + b }; break;
-                case NORTH: p[i] = new double[] { x + a, y + b, z + LIFT }; break;
-                case SOUTH: p[i] = new double[] { x + a, y + b, z + 1 - LIFT }; break;
-                case WEST: p[i] = new double[] { x + LIFT, y + b, z + a }; break;
-                case EAST: p[i] = new double[] { x + 1 - LIFT, y + b, z + a }; break;
-                default: p[i] = new double[] { x + a, y + LIFT, z + b };
-            }
+            double ka = ab[i][0] - 0.5, kb = ab[i][1] - 0.5;
+            p[i] = new double[] { cx + a.offsetX * ka + b.offsetX * kb, cy + a.offsetY * ka + b.offsetY * kb, cz + a.offsetZ * ka + b.offsetZ * kb };
+            uv[i] = new double[] { icon.getInterpolatedU(ab[i][0] * 16), icon.getInterpolatedV(ab[i][1] * 16) };
         }
         for (int i = 0; i < 4; i++) t.addVertexWithUV(p[i][0], p[i][1], p[i][2], uv[i][0], uv[i][1]);
         for (int i = 3; i >= 0; i--) t.addVertexWithUV(p[i][0], p[i][1], p[i][2], uv[i][0], uv[i][1]);

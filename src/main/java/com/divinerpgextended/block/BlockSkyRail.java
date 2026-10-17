@@ -18,6 +18,49 @@ import net.minecraftforge.common.util.ForgeDirection;
 public class BlockSkyRail extends Block {
 
     public static int renderId = -1;
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    public static net.minecraft.util.IIcon turnedIcon;
+
+    @Override
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    public void registerBlockIcons(net.minecraft.client.renderer.texture.IIconRegister reg) {
+        super.registerBlockIcons(reg);
+        turnedIcon = reg.registerIcon("divinerpgextended:sky_rail_turned");
+    }
+
+    /**
+     * Куда рельс соединён (направления в плоскости его грани): соседние рельсы в плоскости и, если сосед стоит на
+     * перпендикулярной грани (рельс на полу, а над ним - на стене), - в сторону опоры того соседа.
+     */
+    public static ForgeDirection[] links(IBlockAccess w, int x, int y, int z) {
+        ForgeDirection n = support(w.getBlockMetadata(x, y, z));
+        java.util.List<ForgeDirection> out = new java.util.ArrayList<ForgeDirection>();
+        for (ForgeDirection d : ForgeDirection.VALID_DIRECTIONS) {
+            if (d == n || d == n.getOpposite()) continue;
+            if (w.getBlock(x + d.offsetX, y + d.offsetY, z + d.offsetZ) instanceof BlockSkyRail && !out.contains(d)) out.add(d);
+        }
+        ForgeDirection away = n.getOpposite();
+        int ax = x + away.offsetX, ay = y + away.offsetY, az = z + away.offsetZ;
+        if (w.getBlock(ax, ay, az) instanceof BlockSkyRail) {
+            ForgeDirection s2 = support(w.getBlockMetadata(ax, ay, az));
+            if (s2 != n && s2 != away && !out.contains(s2)) out.add(s2);
+        }
+        // если прямой ряд, первым - тот, что дал ось; для поворота - два перпендикулярных
+        if (out.size() > 2) {
+            for (int i = 0; i < out.size(); i++) for (int j = i + 1; j < out.size(); j++) if (out.get(i) == out.get(j).getOpposite())
+                return new ForgeDirection[] { out.get(i), out.get(j) };
+        }
+        return out.toArray(new ForgeDirection[out.size()]);
+    }
+
+    /** Ось по метаданным, когда соседей нет: бит "поперёк" и грань опоры. */
+    public static ForgeDirection defaultAxis(int meta) {
+        ForgeDirection n = support(meta);
+        boolean ac = across(meta);
+        if (n == ForgeDirection.DOWN || n == ForgeDirection.UP) return ac ? ForgeDirection.EAST : ForgeDirection.SOUTH;
+        if (!ac) return ForgeDirection.UP;
+        return n == ForgeDirection.NORTH || n == ForgeDirection.SOUTH ? ForgeDirection.EAST : ForgeDirection.SOUTH;
+    }
 
     public BlockSkyRail() {
         super(Material.circuits);

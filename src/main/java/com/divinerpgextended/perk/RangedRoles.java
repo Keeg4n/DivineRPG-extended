@@ -222,11 +222,22 @@ public class RangedRoles {
         }
     }
 
-    /** Копия снаряда Divine (через NBT - класс, текстура, урон, стрелок) с новым курсом и поколением. */
+    /**
+     * Копия снаряда Divine (через NBT - текстура, урон, стрелок) с новым курсом и поколением. Создаётся тем же классом
+     * напрямую, а не через реестр сущностей: снаряд с частицами (блиц) мог не находиться по имени - боковая дробь не появлялась.
+     */
     public static Entity spawnClone(Entity src, double x, double y, double z, double mx, double my, double mz, int gen) {
         NBTTagCompound tag = new NBTTagCompound();
-        if (!src.writeToNBTOptional(tag)) return null;
-        Entity c = EntityList.createEntityFromNBT(tag, src.worldObj);
+        src.writeToNBT(tag);
+        tag.removeTag("UUIDMost");
+        tag.removeTag("UUIDLeast");
+        Entity c;
+        try {
+            c = src.getClass().getConstructor(World.class).newInstance(src.worldObj);
+            c.readFromNBT(tag);
+        } catch (Exception ex) {
+            c = EntityList.createEntityFromNBT(tag, src.worldObj);
+        }
         if (c == null) return null;
         c.setPosition(x, y, z);
         c.motionX = mx;

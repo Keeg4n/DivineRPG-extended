@@ -18,13 +18,15 @@ public class ItemSkyCart extends Item {
     public ItemSkyCart() {
         setMaxStackSize(1);
         setUnlocalizedName("dre.skyCart");
-        setTextureName("minecart_normal");
+        setTextureName("divinerpgextended:sky_cart");
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
     }
 
     @Override
     public boolean onItemUse(ItemStack s, EntityPlayer p, World w, int x, int y, int z, int side, float hx, float hy, float hz) {
-        if (w.getBlock(x, y, z) != ModBlocks.skyRail) return false;
+        if (w.getBlock(x, y, z) == net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails) {
+            if (!w.isRemote) w.setBlock(x, y, z, ModBlocks.skyRail, 0, 3); // старые рельсы Divine - в рельсы аддона (на полу)
+        } else if (w.getBlock(x, y, z) != ModBlocks.skyRail) return false;
         if (!w.isRemote) {
             w.spawnEntityInWorld(new EntitySkyCart(w, x, y, z, p.rotationYaw));
             if (!p.capabilities.isCreativeMode) s.stackSize--;
