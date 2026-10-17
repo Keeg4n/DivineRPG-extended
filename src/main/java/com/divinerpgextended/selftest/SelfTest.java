@@ -2502,6 +2502,32 @@ public class SelfTest {
                 "дробь без неуязвимости " + pellets + ", фазер без пыли молчит " + dry + ", с пылью стреляет " + shot + " (пыли осталось " + dustLeft + "), колчан дал стрелу " + arrow + ", без колчана стрела убрана " + gone);
             return "дробины блица бьют одну цель все; фазер тратит пыль Эдема (без неё молчит); бездонный колчан держит стрелу для лука, снял - стрелы нет";
         });
+        t("Прохождение", "Бонусы колчанов", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            TestPlayer kv = join(player(ConfigurationHelper.eden, "TestQuiverBonus", 9482.5, 120, 9810.5), true);
+            net.minecraft.entity.monster.EntityZombie zb = new net.minecraft.entity.monster.EntityZombie(w);
+            net.minecraft.entity.projectile.EntityArrow ar = new net.minecraft.entity.projectile.EntityArrow(w, kv, 1.0F);
+            float[] got = new float[2];
+            for (int i = 0; i < 2; i++) {
+                Accessories.of(kv).setInventorySlotContents(0, i == 1 ? trinket(Trinket.ENDLESS_QUIVER) : null);
+                net.minecraftforge.event.entity.living.LivingHurtEvent h = new net.minecraftforge.event.entity.living.LivingHurtEvent(zb,
+                    net.minecraft.util.DamageSource.causeArrowDamage(ar, kv), 10);
+                MinecraftForge.EVENT_BUS.post(h);
+                got[i] = h.ammount;
+            }
+            // подсумок: фазер +15%
+            Accessories.of(kv).setInventorySlotContents(0, trinket(Trinket.DUST_POUCH));
+            net.divinerpg.entities.vanilla.projectile.EntityShooterBullet pb = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, kv, 10, "divinerpg:textures/projectiles/phaserEden.png");
+            pb.getEntityData().setInteger(com.divinerpgextended.perk.RangedRoles.KIND, com.divinerpgextended.perk.RangedRoles.PHASER);
+            pb.getEntityData().setInteger(com.divinerpgextended.perk.RangedRoles.GEN, com.divinerpgextended.perk.RangedRoles.PIERCE); // без продолжения
+            net.minecraftforge.event.entity.living.LivingHurtEvent hp = new net.minecraftforge.event.entity.living.LivingHurtEvent(zb,
+                net.minecraft.util.DamageSource.causeThrownDamage(pb, kv), 10);
+            MinecraftForge.EVENT_BUS.post(hp);
+            Accessories.of(kv).setInventorySlotContents(0, null);
+            check(Math.abs(got[0] - 10) < 0.01 && Math.abs(got[1] - 11) < 0.01 && Math.abs(hp.ammount - 11.5) < 0.01,
+                "стрела без колчана " + got[0] + ", с колчаном " + got[1] + ", фазер с подсумком " + hp.ammount);
+            return "колчан: стрелы +10%; подсумок: фазер +15%";
+        });
         t("Прохождение", "Рельсы Divine ставятся на стену", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9560, 9820, 1);

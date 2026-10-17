@@ -39,6 +39,8 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * Колчаны-аксессуары (как в Террарии) дают бесконечные боеприпасы своему виду: бездонный колчан - лукам, подсумок пыли -
  * блицам и фазерам, перевязь метателя - слайсерам. Пока колчан надет и оружие в руке, в инвентаре держится один
  * помеченный боеприпас ({@link #QUIVER_TAG}); выстрел его тратит - появляется снова. Снял колчан - метка пропадает.
+ * Чтобы колчан носили не только ради удобства: колчан +10% урона стрелами, подсумок +15% урона блица и фазера,
+ * перевязь +1 цель рикошета.
  */
 public class RangedRoles {
 
@@ -46,6 +48,8 @@ public class RangedRoles {
     public static final int BLITZ = 1, PHASER = 2, SLICER = 3;
     public static final int PELLETS = 5, PIERCE = 3, RICOCHET = 3;
     public static final float PELLET_DMG = 0.5F, ADD_BONUS = 2.0F;
+    /** Боевые бонусы колчанов: стрелы +10%, блиц и фазер +15%, слайсер +1 цель рикошета. */
+    public static final float QUIVER_DMG = 1.10F, POUCH_DMG = 1.15F;
     private static final double SPREAD = 9; // градусов между дробинами
 
     /** Летящие слайсеры - для подзарядки тотемов. */
@@ -212,8 +216,17 @@ public class RangedRoles {
     public void onHurt(LivingHurtEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
         Entity b = e.source.getSourceOfDamage();
+        if (b instanceof net.minecraft.entity.projectile.EntityArrow && kind(b) == 0) {
+            Entity sh = ((net.minecraft.entity.projectile.EntityArrow) b).shootingEntity;
+            if (sh instanceof EntityPlayer && wears((EntityPlayer) sh, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER)) e.ammount *= QUIVER_DMG;
+            return;
+        }
         int k = kind(b);
         if (k == 0) return;
+        EntityLivingBase owner = b instanceof EntityShooterBullet ? ((EntityShooterBullet) b).getThrower() : null;
+        boolean pouch = owner instanceof EntityPlayer && wears((EntityPlayer) owner, com.divinerpgextended.trinket.Trinket.DUST_POUCH);
+        boolean sling = owner instanceof EntityPlayer && wears((EntityPlayer) owner, com.divinerpgextended.trinket.Trinket.SLICER_SLING);
+        if (pouch && (k == BLITZ || k == PHASER)) e.ammount *= POUCH_DMG;
         EntityLivingBase victim = e.entityLiving;
         int gen = b.getEntityData().getInteger(GEN);
         switch (k) {
@@ -231,7 +244,7 @@ public class RangedRoles {
                 }
                 break;
             default: // слайсер: рикошет в ближайшего другого врага
-                if (gen + 1 < RICOCHET) {
+                if (gen + 1 < RICOCHET + (sling ? 1 : 0)) {
                     EntityLivingBase next = nearestFoe(victim, 8);
                     if (next != null) {
                         double dx = next.posX - victim.posX, dy = next.posY + next.height / 2 - (victim.posY + victim.height / 2), dz = next.posZ - victim.posZ;
