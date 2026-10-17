@@ -2001,6 +2001,19 @@ public class SelfTest {
                 "отбрасывание " + kb + " (снят сет " + kbOff + "), отражено " + reflected + ", вампиризм " + healed);
             return "Апалачия: не отбрасывает, около 20% урона (после защиты дома) вернулось зомби; Мортум: удар на 10 лечит на " + healed;
         });
+        t("Броня", "Лесной следопыт", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
+            loadAround(w, 9580, 9580, 1);
+            TestPlayer fv = player(ConfigurationHelper.wildwood, "TestTracker", 9580.5, 100, 9580.5);
+            for (int h = 99; h < 104; h++) w.setBlockToAir(9580, h, 9580);
+            w.setBlock(9580, 99, 9580, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodGrass);
+            boolean onGrass = com.divinerpgextended.perk.SetPerks.inNature(fv);
+            w.setBlock(9580, 101, 9580, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodLeaves);
+            boolean inLeaves = com.divinerpgextended.perk.SetPerks.inNature(fv);
+            w.setBlockToAir(9580, 101, 9580);
+            check(!onGrass && inLeaves, "на траве лечит " + onGrass + ", голова в листве " + inLeaves);
+            return "сет Дикого леса лечит только с головой в листве (и под водой - Divine), на траве - нет";
+        });
         t("Броня", "Ковёр Хозяина ветров", () -> {
             TestPlayer kv = player(ConfigurationHelper.skythern, "TestSkyCarpet", 9930, 120, 9930);
             Item[] sky = com.divinerpgextended.world.twilight.TwilightWorld.SKYTHERN.armor();

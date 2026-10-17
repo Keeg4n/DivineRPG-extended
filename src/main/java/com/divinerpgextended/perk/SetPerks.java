@@ -2,7 +2,6 @@ package com.divinerpgextended.perk;
 
 import java.util.UUID;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
@@ -22,7 +21,8 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * Перки полных сетов сумеречных миров (сверх эффектов Divine):
  * <ul>
  * <li>Эдем, Солнечный шахтёр: x4 к сумеречной руде (Divine); киркой откалывает рог оглушённому кадиллиону Эдема;</li>
- * <li>Дикий лес, Лесной следопыт: регенерация не только в воде, но и на траве и в листве;</li>
+ * <li>Дикий лес, Лесной следопыт: регенерация под водой (Divine, только с головой в воде) и в листве - когда голова в
+ * кроне;</li>
  * <li>Апалачия, Каменная стена: не отбрасывает, {@link #REFLECT} ближнего урона возвращается атакующему;</li>
  * <li>Скайтерн, Хозяин ветров: ковёр летит вверх и вниз по взгляду, запас ковра вдвое больше
  * ({@link com.divinerpgextended.trinket.DoubleJump});</li>
@@ -55,15 +55,14 @@ public class SetPerks {
         AttributeModifier cur = kb.getModifier(STEADY);
         if (wall && cur == null) kb.applyModifier(new AttributeModifier(STEADY, "dre.stone_wall", 1.0, 0));
         else if (!wall && cur != null) kb.removeModifier(cur);
-        // Лесной следопыт: раз в 2 с полсердца, если стоит на траве или в листве (в воде лечит Divine)
+        // Лесной следопыт: раз в 2 с полсердца, если голова в листве (под водой лечит Divine); трава не лечит - её везде много
         if (p.ticksExisted % 40 == 0 && p.getHealth() < p.getMaxHealth() && wears(p, TwilightWorld.WILDWOOD) && inNature(p)) p.heal(1.0F);
     }
 
-    private static boolean inNature(EntityPlayer p) {
-        int x = MathHelper.floor_double(p.posX), y = MathHelper.floor_double(p.boundingBox.minY), z = MathHelper.floor_double(p.posZ);
-        Block under = p.worldObj.getBlock(x, y - 1, z), feet = p.worldObj.getBlock(x, y, z), head = p.worldObj.getBlock(x, y + 1, z);
-        return under.getMaterial() == Material.grass || under.getMaterial() == Material.leaves || feet.getMaterial() == Material.leaves
-            || head.getMaterial() == Material.leaves || feet.getMaterial() == Material.plants || feet.getMaterial() == Material.vine;
+    /** Голова игрока внутри листвы (в кроне). */
+    public static boolean inNature(EntityPlayer p) {
+        int x = MathHelper.floor_double(p.posX), y = MathHelper.floor_double(p.posY + p.getEyeHeight()), z = MathHelper.floor_double(p.posZ);
+        return p.worldObj.getBlock(x, y, z).getMaterial() == Material.leaves;
     }
 
     @SubscribeEvent
