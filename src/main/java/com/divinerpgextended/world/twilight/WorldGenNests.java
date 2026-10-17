@@ -336,6 +336,34 @@ public class WorldGenNests implements IWorldGenerator {
         }
     }
 
+    /** Контур острова арены: крупные лопасти и мелкая рваность, чтобы край не был ровным кругом. */
+    static double outline(int dx, int dz, double R, int salt) {
+        return R + (Nest.noise(dx, dz, 11, 19 + salt) - 0.5) * 12 + Nest.noise(dx, dz, 4, 53 + salt) * 4;
+    }
+
+    /**
+     * Край острова: от rIn до обрыва земля полого спускается неровными уступами, по краю - каменные выступы и
+     * осыпи. Переписывает верх столбца (до TOP) поверх tornBase; true - столбец в зоне края (постройкам там не место).
+     */
+    static boolean slope(int dx, int dz, double r, double rIn, double rOut, int salt, int[] col, int grass) {
+        if (r <= rIn) return false;
+        double e = Math.min(1, (r - rIn) / Math.max(1, rOut - rIn));
+        // уступы: спуск ступенями по 1-2 блока, высота ступени плавает по шуму
+        double drop = Math.pow(e, 1.4) * 7 + Nest.noise(dx, dz, 5, 61 + salt) * 3 * e;
+        int top = TOP - (int) Math.round(drop);
+        for (int y = top + 1; y <= TOP; y++) ColumnStructure.put(col, y, ColumnStructure.AIR, 0);
+        ColumnStructure.put(col, top, grass, 0);
+        // каменные выступы и осыпи на склоне
+        double rock = Nest.noise(dx, dz, 3, 71 + salt);
+        if (rock > 0.74) {
+            int hgt = 1 + (int) ((rock - 0.74) * 14);
+            for (int y = top; y <= top + hgt; y++) ColumnStructure.put(col, y, STONE, 0);
+        } else if (e > 0.75 && ColumnStructure.hash(dx * 5 + salt, dz) % 6 == 0) {
+            ColumnStructure.put(col, top, STONE, 0); // осыпь у обрыва
+        }
+        return true;
+    }
+
     /** Родники капища Древнего голема: 4 штуки на радиусе SPRING_R по диагоналям. */
     public static final int SPRING_R = 7;
 
@@ -483,11 +511,12 @@ public class WorldGenNests implements IWorldGenerator {
         @Override
         protected boolean column(int dx, int dz, int[] col) {
             double r = Math.sqrt(dx * dx + dz * dz);
-            double rOut = R_ISLAND + Nest.noise(dx, dz, 7, 19 + salt) * 4;
+            double rOut = outline(dx, dz, R_ISLAND + 2, salt);
             if (r > rOut) return false;
             tornBase(dx, dz, r, rOut, torn, salt, col, 1.5);
             put(col, TOP, GRASS, 0);
             for (int y = TOP + 1; y <= TOP + 40; y++) put(col, y, AIR, 0);
+            if (slope(dx, dz, r, PALISADE + 2.5, rOut, salt, col, GRASS)) return true; // за частоколом - склон к обрыву
             int h = hash(dx + salt, dz);
             // курган: земляные ярусы с травой сверху, бревенчатые лестницы по сторонам света
             int m = Math.max(Math.abs(dx), Math.abs(dz));
@@ -605,14 +634,15 @@ public class WorldGenNests implements IWorldGenerator {
         @Override
         protected boolean column(int dx, int dz, int[] col) {
             double r = Math.sqrt(dx * dx + dz * dz);
-            double rOut = R_ISLAND + Nest.noise(dx, dz, 6, 17 + salt) * 3;
+            double rOut = outline(dx, dz, R_ISLAND + 2, salt);
             if (r > rOut) return false;
             tornBase(dx, dz, r, rOut, torn, salt, col, 1.3);
             for (int y = TOP + 1; y <= TOP + COL_H + 8; y++) put(col, y, AIR, 0);
             // колодец к небу над колоннадой: верхние пласты Скайтерна пробиты, в храм падает свет
             if (r < PERI - 2) for (int y = TOP + COL_H + 9; y <= TOP + 100; y++) put(col, y, AIR, 0);
             if (r > STYLO + 1.5) {
-                put(col, TOP, GRASS, 0); // терраса
+                put(col, TOP, GRASS, 0); // терраса, дальше склон к обрыву
+                slope(dx, dz, r, STYLO + 4, rOut, salt, col, GRASS);
                 return true;
             }
             // стилобат: мрамор, кольца узора, кайма и ступень по краю
