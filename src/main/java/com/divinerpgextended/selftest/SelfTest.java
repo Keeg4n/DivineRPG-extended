@@ -1963,6 +1963,27 @@ public class SelfTest {
                 && lit[0] && !lit[1], "камни врат " + gates + ", портал из камней врат " + lit[0] + ", из блоков Эдема " + lit[1]);
             return "8 блоков Эдема + сердце стража - 12 камней врат; часы II зажигают портал в Дикий лес из камней врат, из блоков Эдема - нет";
         });
+        t("Прогрессия", "Уровни кирок", () -> {
+            TestPlayer mv = player(ConfigurationHelper.wildwood, "TestMiner", 9800, 100, 9800);
+            Item divine = net.divinerpg.utils.items.VanillaItemsTools.divinePickaxe, eden = net.divinerpg.utils.items.TwilightItemsTools.edenPickaxe,
+                wild = net.divinerpg.utils.items.TwilightItemsTools.wildwoodPickaxe;
+            Object[][] cases = { // кирка, блок, можно ли ломать в Диком лесу
+                { divine, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone, false }, { eden, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone, true },
+                { eden, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodOre, false }, { wild, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodOre, true },
+                { wild, net.divinerpg.utils.blocks.TwilightBlocks.edenOre, true }, { divine, net.divinerpg.utils.blocks.TwilightBlocks.edenOre, false },
+                { null, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodDirt, true } };
+            String bad = "";
+            for (Object[] c : cases) {
+                mv.setCurrentItemOrArmor(0, c[0] == null ? null : new ItemStack((Item) c[0]));
+                net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed ev = new net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed(mv,
+                    (Block) c[1], 0, 1.0F, 9800, 99, 9800);
+                MinecraftForge.EVENT_BUS.post(ev);
+                if ((ev.newSpeed > 0) != (Boolean) c[2]) bad += (c[0] == null ? "рука" : ((Item) c[0]).getUnlocalizedName()) + " / " + ((Block) c[1]).getUnlocalizedName() + "; ";
+            }
+            mv.setCurrentItemOrArmor(0, null);
+            check(bad.isEmpty(), "не так: " + bad);
+            return "в Диком лесу камень берёт кирка Эдема (божественная - нет), руду Дикого леса - только его кирка, руду Эдема - она же; землю - рука";
+        });
         t("Логова", "Торговля странника", () -> {
             net.minecraft.village.MerchantRecipeList l = com.divinerpgextended.entity.EntityWanderer.trades(com.divinerpgextended.world.twilight.TwilightWorld.EDEN);
             boolean pointless = false, torches = false, swap = false;

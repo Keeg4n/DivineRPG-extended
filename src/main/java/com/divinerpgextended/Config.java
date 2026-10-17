@@ -43,7 +43,7 @@ public class Config {
     public static int netherLairSpacing = 384;
     /** Боссов вызывают только в их логовах (алтари, круг); выключить - вызов где угодно, как в Divine. */
     public static boolean summonOnlyInLairs = true;
-    public static boolean worldCrafts = true, gateStones = true;
+    public static boolean worldCrafts = true, gateStones = true, miningTiers = true;
     /** Постройки сумеречных миров: 1 на N чанков (0 - нет). */
     public static int twilightRuinsRarity = 30, twilightDungeonRarity = 40, twilightBridgeRarity = 3, twilightCampRarity = 45;
     /** Логово Карцинуса: 1 на N океанских чанков; снежное подземелье: 1 на N заснеженных чанков (0 - выключить). */
@@ -142,6 +142,8 @@ public class Config {
             "Боссов вызывают только в их логовах: зов кадиллиона - на алтаре гнезда, кристаллы Мортума - в Демоническом круге, Таинственные часы - на алтаре гробницы. false - где угодно, как в Divine");
         worldCrafts = cfg.getBoolean("worldCrafts", b, worldCrafts,
             "Крафты сумеречных миров цепочкой: вещь мира = вещь прошлого мира + куски + материал мобов, рукояти из палок мира; палки, факелы и стрелы миров. false - рецепты Divine");
+        miningTiers = cfg.getBoolean("miningTiers", b, miningTiers,
+            "Уровни кирок: руду сумеречного мира ломает только кирка этого мира или выше, сумеречный камень - кирка прошлого мира или выше (в Эдеме - божественная)");
         gateStones = cfg.getBoolean("gateStones", b, gateStones,
             "Рамки порталов Дикого леса..Мортума - камни врат из сердца стража (трофей Великого кадиллиона) вместо блоков камней прошлого мира. Старые рамки из блоков камней перестанут работать");
         throneSpacing = cfg.getInt("throneSpacing", "worldgen", throneSpacing, 0, 100000,
