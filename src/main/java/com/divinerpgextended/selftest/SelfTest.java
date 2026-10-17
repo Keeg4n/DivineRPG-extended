@@ -2066,6 +2066,32 @@ public class SelfTest {
                 + "; Карот бьёт голого " + out[0] + ", в алмазе " + out[1] + ", сила для трофеев " + power);
             return "голый игрок: Карот без брони и бьёт кулаком (" + out[0] + "); в алмазе с мечом: держит удар (10 > " + in[1] + ") и бьёт как меч (" + out[1] + "), трофеев больше";
         });
+        t("Ветея - кошмар", "Королева улья: выжить", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.vethea);
+            loadAround(w, 9000, 9000, 2);
+            TestPlayer hq = join(player(ConfigurationHelper.vethea, "TestHive", 9000, 120, 8994), true);
+            net.divinerpg.entities.vethea.EntityHiveQueen queen = new net.divinerpg.entities.vethea.EntityHiveQueen(w);
+            queen.setPosition(9000.5, 120, 9000.5);
+            w.spawnEntityInWorld(queen);
+            boolean hit = queen.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(hq), 1000);
+            String log = "удар " + hit;
+            int total = com.divinerpgextended.vethea.HiveTimer.DURATION;
+            for (int i = 0; i < total / 2; i++) MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(queen));
+            float half = queen.getHealth() / queen.getMaxHealth();
+            log += ", на половине " + half;
+            hq.setPositionAndUpdate(9000, 120, 9060); // ушёл - сначала
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(queen));
+            boolean reset = com.divinerpgextended.vethea.HiveTimer.left(queen) == 0 && queen.getHealth() == queen.getMaxHealth();
+            log += ", сброс " + reset;
+            hq.setPositionAndUpdate(9000, 120, 8994);
+            for (int i = 0; i < total + 2 && queen.getHealth() > 0; i++) MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(queen));
+            boolean dead = queen.getHealth() <= 0;
+            queen.setDead();
+            for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(8980, 100, 8980, 9020, 140, 9020)))
+                if (!(o instanceof EntityPlayer)) ((net.minecraft.entity.Entity) o).setDead();
+            check(!hit && Math.abs(half - 0.5F) < 0.02F && reset && dead, log + ", пробуждение " + dead);
+            return "Королеву не ранить; её полоска тает за 90 с (на половине " + half + "), ушёл с арены - отсчёт сначала, выжил - Королева погибает";
+        });
         t("Логова", "Скол рога", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9940, 9940, 1);
