@@ -228,6 +228,11 @@ public class VetheaFloors {
         return 0;
     }
 
+    /** Ветея пройдена: Леди Луна побеждена (её подарок получен). */
+    public static boolean dreamDone(EntityPlayer p) {
+        return (persisted(p).getInteger(GIFT_DONE) & 1 << Gift.LADY_LUNA.ordinal()) != 0;
+    }
+
     private static NBTTagCompound persisted(EntityPlayer p) {
         NBTTagCompound d = p.getEntityData();
         if (!d.hasKey(EntityPlayer.PERSISTED_NBT_TAG)) d.setTag(EntityPlayer.PERSISTED_NBT_TAG, new NBTTagCompound());

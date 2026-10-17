@@ -91,9 +91,12 @@ public class DoubleJump {
 
     /** Запас ковра в тиках: 0 - не работает, {@link #UNLIMITED} - без предела. */
     public static int carpetTicks(EntityPlayer p) {
-        if (!twilight(p.dimension) || !Accessories.wears(p, Trinket.MAGIC_CARPET)) return 0;
+        if (!Accessories.wears(p, Trinket.MAGIC_CARPET) || p.dimension == ConfigurationHelper.vethea) return 0;
         if (!p.worldObj.isRemote && com.divinerpgextended.boss.ArenaCalm.carpetBlocked(p)) return 0; // в бою с боссом ковёр не летает
-        if (BossProgress.has(p, Boss.TWILIGHT_DEMON)) return UNLIMITED;
+        boolean demon = BossProgress.has(p, Boss.TWILIGHT_DEMON);
+        // вне сумеречных миров ковёр еле держит (3 с), пока не пройдены сумеречные миры (Демон сумерек) - тогда 10 с
+        if (!twilight(p.dimension)) return demon ? OUTSIDE_FREE : OUTSIDE;
+        if (demon) return UNLIMITED;
         // по миру: в первых трёх пропасти между островами - там ковёр нужнее всего; в Скайтерне важнее высота,
         // в Мортуме пропастей почти нет
         int d = p.dimension;
@@ -116,9 +119,12 @@ public class DoubleJump {
 
     static final double SKY_SPEED = 0.3;
 
-    /** Запас взлёта крыльев сна (только в Ветее), тиков. */
+    /** Ковёр вне сумеречных миров (тиков): до победы над Демоном сумерек и после. */
+    public static final int OUTSIDE = 60, OUTSIDE_FREE = 200;
+
+    /** Запас взлёта крыльев сна, тиков: в Ветее всегда, в остальных мирах - когда Ветея пройдена (Леди Луна). */
     public static int wingTicks(EntityPlayer p) {
-        if (p.dimension != ConfigurationHelper.vethea) return 0;
+        if (p.dimension != ConfigurationHelper.vethea && !com.divinerpgextended.vethea.VetheaFloors.dreamDone(p)) return 0;
         return WING_TICKS[com.divinerpgextended.vethea.VetheaFloors.wingTier(p)];
     }
 
@@ -435,8 +441,8 @@ public class DoubleJump {
                 clientAllowed = clientCarpet = clientWing = 0;
                 return;
             }
-            // запас ковра приходит с сервера раз в полсекунды - после смены мира не верим старому
-            if (!twilight(p.dimension)) clientCarpet = 0;
+            // запас ковра приходит с сервера раз в полсекунды - в Ветее ковра нет
+            if (p.dimension == ConfigurationHelper.vethea) clientCarpet = 0;
             boolean down = mc.gameSettings.keyBindJump.getIsKeyPressed();
             // обычный прыжок с земли отрывает игрока в тот же тик, что и нажатие - прыжком в воздухе считается
             // только нажатие, когда игрок был в воздухе уже на прошлом тике

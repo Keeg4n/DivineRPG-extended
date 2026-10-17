@@ -793,9 +793,18 @@ public class SelfTest {
                     BossProgress.revoke(w, Boss.TWILIGHT_DEMON);
                 }
             }
-            check(v[0] == 200 && v[1] == 200 && v[2] == 160 && v[3] == 100 && v[4] == 60 && v[5] == -1,
-                "тиков: " + v[0] + "/" + v[1] + "/" + v[2] + "/" + v[3] + "/" + v[4] + ", с демоном " + v[5]);
-            return "по миру: Эдем 10 с, Вайлдвуд 10, Апалачия 8, Скайтерн 5, Мортум 3; после демона - без предела";
+            TestPlayer ov = player(0, "TestCarpetOver", 0, 100, 0);
+            Accessories.of(ov).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            int over = DoubleJump.carpetTicks(ov);
+            BossProgress.grant(ov, Boss.TWILIGHT_DEMON);
+            int overDemon = DoubleJump.carpetTicks(ov);
+            BossProgress.revoke(ov, Boss.TWILIGHT_DEMON);
+            TestPlayer vv = player(ConfigurationHelper.vethea, "TestCarpetDream", 0, 100, 0);
+            Accessories.of(vv).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            int dream = DoubleJump.carpetTicks(vv);
+            check(v[0] == 200 && v[1] == 200 && v[2] == 160 && v[3] == 100 && v[4] == 60 && v[5] == -1 && over == 60 && overDemon == 200 && dream == 0,
+                "тиков: " + v[0] + "/" + v[1] + "/" + v[2] + "/" + v[3] + "/" + v[4] + ", с демоном " + v[5] + "; обычный мир " + over + ", с демоном " + overDemon + ", Ветея " + dream);
+            return "по миру: Эдем 10 с, Вайлдвуд 10, Апалачия 8, Скайтерн 5, Мортум 3; после демона - без предела; обычный мир 3 с (после демона 10), в Ветее нет";
         });
         t("Сумеречные миры", "Отозвать Сумеречного демона", () -> {
             TestPlayer e = player(ConfigurationHelper.eden, "TestEden", 0, 100, 0);
@@ -808,12 +817,12 @@ public class SelfTest {
             check(a == -1 && b == 200, "с демоном " + a + ", после revoke " + b);
             return "без предела > 10 с";
         });
-        t("Сумеречные миры", "Только в Сумеречных", () -> {
+        t("Сумеречные миры", "Вне Сумеречных слабый", () -> {
             TestPlayer o = player(0, "TestOver", 0, 100, 0);
             Accessories.of(o).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
             int c = DoubleJump.carpetTicks(o);
-            check(c == 0, "в обычном мире запас ковра " + c);
-            return "в обычном мире ковёр не работает";
+            check(c == DoubleJump.OUTSIDE, "в обычном мире запас ковра " + c);
+            return "в обычном мире ковёр держит только 3 с";
         });
         t("Сумеречные миры", "Сумеречные миры", () -> {
             TestPlayer e = player(ConfigurationHelper.eden, "TestEden", 0, 100, 0);
@@ -1470,7 +1479,7 @@ public class SelfTest {
         // ---- Сумеречные миры: ковёр на сервере ----
         final TestPlayer e = player(ConfigurationHelper.eden, "TestCarpet", 0, 150, 0);
         t("Сумеречные миры", "Откуда", () -> {
-            check(com.divinerpgextended.trinket.AccessorySources.forBoss(Boss.CADILLION_EDEN) == Trinket.MAGIC_CARPET, "за кадиллиона Эдема не ковёр");
+            check(com.divinerpgextended.trinket.AccessorySources.extraForBoss(Boss.ANCIENT_ENTITY) == Trinket.MAGIC_CARPET, "за кадиллиона Эдема не ковёр");
             return "Великий кадиллион Эдема даёт ковёр (первая победа наверняка, дальше 10%)";
         });
         t("Сумеречные миры", "Заряд только на земле", () -> {
@@ -2611,13 +2620,29 @@ public class SelfTest {
             WorldServer w = server.worldServerForDimension(dim);
             int[] c = com.divinerpgextended.world.twilight.WorldGenNests.nearest(w.getSeed(), dim, 0, 0);
             loadAround(w, c[0], c[2], 4);
-            int top = com.divinerpgextended.world.twilight.WorldGenNests.TOP;
-            boolean floor = w.getBlock(c[0], top, c[2]) == net.divinerpg.utils.blocks.TwilightBlocks.mortumBlock && w.isAirBlock(c[0], top + 3, c[2]);
+            int top = com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP;
+            // круг - в пещере под бедроковым потолком: пол, зал над ним, выше свод
+            boolean floor = w.getBlock(c[0], top, c[2]) == net.divinerpg.utils.blocks.TwilightBlocks.mortumBlock && w.isAirBlock(c[0], top + 3, c[2])
+                && w.isAirBlock(c[0], top + 20, c[2]) && top + 30 < 123 && c[1] == top;
+            dump(w, c[0], top, c[2], 34, "circle-mortum");
             TestPlayer v = player(dim, "TestCircle", c[0], top + 1, c[2]);
             String inside = com.divinerpgextended.boss.LairSummons.refusal(v, net.divinerpg.utils.items.TwilightItemsOther.twilightDemonCrystal, c[0] + 3, top, c[2] + 2);
             String outside = com.divinerpgextended.boss.LairSummons.refusal(v, net.divinerpg.utils.items.TwilightItemsOther.twilightDemonCrystal, c[0] + 60, 60, c[2]);
             check(floor && inside == null && "dre.chat.summon_circle".equals(outside), "пол " + floor + ", внутри " + inside + ", снаружи " + outside);
             return "круг в " + c[0] + "," + c[2] + " построен; кристалл внутри круга работает, снаружи - отказ";
+        });
+        t("Логова", "Мортум: земля в пещере", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            loadAround(w, 9450, 9450, 1);
+            int sx2 = 9450, sz2 = 9450;
+            for (int y = 95; y <= 127; y++) w.setBlock(sx2, y, sz2, Blocks.air);
+            for (int y = 123; y <= 127; y++) w.setBlock(sx2, y, sz2, Blocks.bedrock);
+            for (int y = 115; y < 123; y++) w.setBlock(sx2, y, sz2, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone);
+            w.setBlock(sx2, 99, sz2, net.divinerpg.utils.blocks.TwilightBlocks.mortumGrass);
+            int found = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.surface(w, com.divinerpgextended.world.twilight.TwilightWorld.MORTUM, sx2, sz2);
+            for (int y = 95; y <= 127; y++) w.setBlock(sx2, y, sz2, Blocks.air);
+            check(found == 99, "найдена земля на " + found + " (потолок - камень 115-122 и бедрок 123-127, пол пещеры - трава на 99)");
+            return "в Мортуме постройки ищут пол пещеры, а не камень под бедроковым потолком";
         });
         t("Логова", "Часы только у гробницы", () -> {
             String r = com.divinerpgextended.boss.LairSummons.refusal(p, net.divinerpg.utils.items.VanillaItemsOther.mysteriousClock, 0, 64, 0);

@@ -72,10 +72,12 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
     }
 
     /** Верхний блок земли острова в столбце или -1. */
-    static int surface(World w, TwilightWorld tw, int x, int z) {
-        for (int y = 135; y > 4; y--) {
+    public static int surface(World w, TwilightWorld tw, int x, int z) {
+        // Мортум - пещера под бедроковым потолком (как Ад): земля - только та, над которой воздух, начиная ниже потолка
+        boolean cave = tw == TwilightWorld.MORTUM;
+        for (int y = cave ? 118 : 135; y > 4; y--) {
             Block b = w.getBlock(x, y, z);
-            if (ground(tw, b)) return y;
+            if (ground(tw, b) && (!cave || w.isAirBlock(x, y + 1, z) && w.isAirBlock(x, y + 2, z))) return y;
         }
         return -1;
     }

@@ -51,7 +51,10 @@ public class BossTracker {
         for (Object o : MinecraftServer.getServer()
             .getConfigurationManager().playerEntityList) {
             EntityPlayerMP player = (EntityPlayerMP) o;
-            if (ids.contains(player.getUniqueID())) com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.forBoss(boss));
+            if (ids.contains(player.getUniqueID())) {
+                com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.forBoss(boss));
+                com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.extraForBoss(boss));
+            }
             if (ids.contains(player.getUniqueID()) && BossProgress.grant(player, boss)) {
                 ProgressSync.send(player);
                 com.divinerpgextended.DreAchievements.give(player, com.divinerpgextended.DreAchievements.forBoss(boss));

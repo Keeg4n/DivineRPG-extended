@@ -67,7 +67,7 @@ public class LairSummons {
             || e.entity instanceof net.divinerpg.entities.vanilla.EntityAyeraco)) return;
         if (WorldGenNests.inCircle(e.world, e.entity.posX, e.entity.posY, e.entity.posZ)) {
             int[] c = WorldGenNests.nearest(e.world.getSeed(), e.world.provider.dimensionId, e.entity.posX, e.entity.posZ);
-            leash(e.entity, c[0], WorldGenNests.TOP + 1, c[2], WorldGenNests.CIRCLE_R - 2);
+            leash(e.entity, c[0], WorldGenNests.MORTUM_TOP + 1, c[2], WorldGenNests.CIRCLE_R - 2);
             return;
         }
         for (int type = 0; type < 3; type++) {

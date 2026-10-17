@@ -79,9 +79,13 @@ public class AccessorySources {
             case KING_OF_SCORCHERS: return Trinket.BLUE_FLAME;
             case DRAMIX: return Trinket.DRAMIX_SEAL;
             case PARASECTA: return Trinket.PARASECTA_STING;
-            case CADILLION_EDEN: return Trinket.MAGIC_CARPET;
             default: return null;
         }
+    }
+
+    /** Второй аксессуар за босса: ковёр-самолёт - с Древней сущности, к первому сумеречному миру. */
+    public static Trinket extraForBoss(Boss b) {
+        return b == Boss.ANCIENT_ENTITY ? Trinket.MAGIC_CARPET : null;
     }
 
     /** Аксессуар за босса: первый раз (для этого игрока) - наверняка, дальше 10%. */

@@ -48,7 +48,11 @@ public class EntityWarriorKing extends EntityGroveGuardian {
         super(world);
         setSize(1.4F, 4.2F);
         tasks.addTask(2, new EntityAIAttackOnCollide(this, EntityPlayer.class, 1.0D, false));
-        setCurrentItemOrArmor(0, new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.apalachiaBlade));
+        // клинок только для вида: пустой список модификаторов - урон клинка к урону Короля не прибавляется
+        ItemStack blade = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.apalachiaBlade);
+        blade.setTagCompound(new NBTTagCompound());
+        blade.getTagCompound().setTag("AttributeModifiers", new net.minecraft.nbt.NBTTagList());
+        setCurrentItemOrArmor(0, blade);
         applyRound(0);
     }
 

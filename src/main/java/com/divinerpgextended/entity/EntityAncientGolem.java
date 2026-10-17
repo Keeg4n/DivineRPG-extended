@@ -39,6 +39,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
     /** Доли здоровья частей: руки, ноги, ядро. */
     public static final float[] SHARE = { 0.2F, 0.2F, 0.25F, 0.35F };
     public static final float TRACKER_BONUS = 1.5F;
+    public static final double EXTRA_HP = 200;
     public static final float SCALE = 2.2F;
     private static final int DW_BROKEN = 21, DW_FIRST = 22;
     /** Модель: ширина корпуса и плеч, высота ног (доля роста). */
@@ -82,6 +83,8 @@ public class EntityAncientGolem extends EntityGroveGuardian {
     protected void applyEntityAttributes() {
         super.applyEntityAttributes();
         getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.3D);
+        // крепче стража мира: частей много, а убить его должно быть не быстрее кадиллиона
+        getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(getEntityAttribute(SharedMonsterAttributes.maxHealth).getBaseValue() + EXTRA_HP);
     }
 
     public boolean broken(int part) {

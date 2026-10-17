@@ -28,6 +28,13 @@ public class WorldGenNests implements IWorldGenerator {
 
     /** Верхний блок пола (стоишь на высоте TOP + 1). */
     public static final int TOP = 140;
+    /** Мортум - пещерный мир высотой 128 с бедроковым потолком (как Ад): Демонический круг стоит в зале внутри пещеры. */
+    public static final int MORTUM_TOP = 72;
+
+    /** Высота пола арены в этом измерении. */
+    public static int top(int dim) {
+        return TwilightWorld.of(dim) == TwilightWorld.MORTUM ? MORTUM_TOP : TOP;
+    }
     public static final int NEST_R = 34, CIRCLE_R = 22;
     /** Кроны рощи выходят за край острова. */
     static final int CANOPY_REACH = 12;
@@ -48,7 +55,7 @@ public class WorldGenNests implements IWorldGenerator {
         if (g <= 0) return null;
         Random r = new Random(seed ^ (rx * 341873128712L + rz * 132897987541L) ^ (dim * 0x9E3779B97F4A7C15L) ^ 0x4E35L);
         int margin = Math.min(g / 3, NEST_R + 40);
-        return new int[] { rx * g + margin + r.nextInt(Math.max(1, g - 2 * margin)), TOP,
+        return new int[] { rx * g + margin + r.nextInt(Math.max(1, g - 2 * margin)), top(dim),
             rz * g + margin + r.nextInt(Math.max(1, g - 2 * margin)) };
     }
 
@@ -76,7 +83,7 @@ public class WorldGenNests implements IWorldGenerator {
         int[] c = nearest(w.getSeed(), w.provider.dimensionId, x, z);
         if (c == null) return false;
         double dx = x - c[0] - 0.5, dz = z - c[2] - 0.5;
-        return dx * dx + dz * dz <= CIRCLE_ZONE * CIRCLE_ZONE && Math.abs(y - (TOP + 1)) <= 8;
+        return dx * dx + dz * dz <= CIRCLE_ZONE * CIRCLE_ZONE && Math.abs(y - (MORTUM_TOP + 1)) <= 8;
     }
 
     @Override
@@ -89,7 +96,8 @@ public class WorldGenNests implements IWorldGenerator {
         if (c == null || Math.abs(c[0] - (x0 + 8)) > r + 16 || Math.abs(c[2] - (z0 + 8)) > r + 16) return;
         ColumnStructure s = shape(tw, c);
         s.buildSlice(world, c[0], c[2], x0, z0);
-        s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, TOP + 1, TOP + 100);
+        int top = top(world.provider.dimensionId);
+        s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, top + 1, Math.min(250, top + 100));
     }
 
     public static ColumnStructure shape(TwilightWorld tw, int[] c) {
@@ -127,6 +135,10 @@ public class WorldGenNests implements IWorldGenerator {
 
     /** Чаша под полом: земля мира сверху, камень ниже, глубже к центру; редкие свисающие корни. */
     static void bowl(int dx, int dz, double r, double R, int[] col, boolean roots) {
+        bowl(dx, dz, r, R, col, roots, TOP);
+    }
+
+    static void bowl(int dx, int dz, double r, double R, int[] col, boolean roots, int TOP) {
         int bottom = TOP - 2 - (int) (13 * Math.sqrt(Math.max(0, 1 - (r / R) * (r / R))));
         for (int y = bottom; y <= TOP - 3; y++) ColumnStructure.put(col, y, STONE, 0);
         ColumnStructure.put(col, TOP - 2, DIRT, 0);
@@ -690,6 +702,11 @@ public class WorldGenNests implements IWorldGenerator {
 
     static class Circle extends ColumnStructure {
 
+        /** Пол круга - в пещере Мортума. */
+        static final int TOP = MORTUM_TOP;
+        /** Зал над кругом: купол радиусом HALL_R и высотой HALL_H. */
+        static final int HALL_R = CIRCLE_R + 6, HALL_H = 26;
+
         @Override
         protected int metaOf(int code, int meta) {
             return code == GLOW ? TwilightWorld.MORTUM.lampMeta() : meta;
@@ -708,11 +725,19 @@ public class WorldGenNests implements IWorldGenerator {
         @Override
         protected boolean column(int dx, int dz, int[] col) {
             double r = Math.sqrt(dx * dx + dz * dz), R = CIRCLE_R;
-            if (r > R + 0.5) return false;
-            bowl(dx, dz, r, R, col, false);
+            if (r > HALL_R + 0.5) return false;
+            // зал-купол: выше к центру, по краю - пол пещеры поднят каменным уступом
+            int dome = (int) (HALL_H * Math.sqrt(Math.max(0, 1 - (r / (HALL_R + 1)) * (r / (HALL_R + 1))))) + 4;
+            for (int y = TOP + 1; y <= TOP + dome; y++) put(col, y, AIR, 0);
+            put(col, TOP + dome + 1, STONE, 0); // свод
+            if (r > R + 0.5) {
+                put(col, TOP, STONE, 0);
+                for (int y = TOP - 4; y < TOP; y++) put(col, y, STONE, 0);
+                return true;
+            }
+            bowl(dx, dz, r, R, col, false, TOP);
             int ri = (int) r;
             put(col, TOP, ri % 4 == 0 || r < 2.5 ? GEM : STONE, 0);
-            for (int y = TOP + 1; y <= TOP + 24; y++) put(col, y, AIR, 0);
             if (r >= R - 1.5 && !gate(dx, dz)) {
                 put(col, TOP + 1, STONE, 0);
                 if (hash(dx, dz) % 3 != 0) put(col, TOP + 2, STONE, 0);
