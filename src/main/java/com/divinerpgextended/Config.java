@@ -104,7 +104,7 @@ public class Config {
         twilightDemonRequiredTier = cfg.getInt("twilightDemonRequiredTier", "bosses", twilightDemonRequiredTier, 0, 9,
             "Требуемая ступень брони против Сумеречного демона");
         karotRequiredTier = cfg.getInt("karotRequiredTier", "bosses", karotRequiredTier, 0, 9,
-            "Требуемая ступень брони против Карота");
+            "Не используется с 0.61.0: Карот - зеркало, его сила зависит от оружия и брони игрока, а не от ступени");
         underTierMultiplier = cfg.get("bosses", "underTierMultiplier", underTierMultiplier,
             "Во сколько раз растёт урон босса за каждую ступень брони ниже требуемой (1 - выключить)").getDouble();
         String b = "bosses";

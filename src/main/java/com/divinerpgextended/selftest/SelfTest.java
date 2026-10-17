@@ -1990,6 +1990,82 @@ public class SelfTest {
             check(immune && dead && log.contains("зарядка false") && log.contains("тотем 3 true горит 3") && log.contains("тотем 4 true горит 0"), "неуязвим " + immune + "; " + log + "убит " + dead);
             return "оружие Повелителя не берёт; 4 тотема на разной высоте, зарядка сбрасывается, если отойти; каждый заряженный - молния на четверть здоровья, четвёртый добивает, тотемы убираются";
         });
+        t("Логова", "Демон сумерек: дилемма", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            loadAround(w, 9990, 9990, 1);
+            TestPlayer dv = player(ConfigurationHelper.mortum, "TestDemon", 9990, 100, 9984);
+            String log = "";
+            boolean[] left = new boolean[2];
+            for (int run = 0; run < 2; run++) { // 0 - уйти после 1-й фазы, 1 - отказаться и дожать
+                net.divinerpg.entities.twilight.EntityTwilightDemon dm = new net.divinerpg.entities.twilight.EntityTwilightDemon(w);
+                dm.setPosition(9990.5, 100, 9990.5);
+                w.spawnEntityInWorld(dm);
+                dm.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(dv), 1);
+                dm.setHealth(dm.getMaxHealth() * 0.6F);
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(dm));
+                int offer = com.divinerpgextended.boss.MortumBosses.offerLeft(dm);
+                if (run == 1) {
+                    dm.hurtResistantTime = 0;
+                    float hp = dm.getHealth();
+                    dm.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(dv), 10);
+                    log += "отказ: фаза " + com.divinerpgextended.boss.MortumBosses.phase(dm) + ", урон по предложению " + (hp - dm.getHealth()) + "; ";
+                    dm.setHealth(dm.getMaxHealth() * 0.3F);
+                    MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(dm));
+                    offer = com.divinerpgextended.boss.MortumBosses.offerLeft(dm);
+                }
+                int n = 0;
+                while (!dm.isDead && n++ < com.divinerpgextended.boss.MortumBosses.OFFER + 5)
+                    MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(dm));
+                left[run] = dm.isDead;
+                log += "заход " + (run + 1) + ": предложение " + offer + ", ушёл " + dm.isDead + "; ";
+                dm.setDead();
+            }
+            // трофеи ухода: души Мортума (после 2-й фазы ещё оружие халита)
+            int souls = 0, halite = 0;
+            for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(9980, 90, 9980, 10000, 110, 10000))) {
+                ItemStack it = ((net.minecraft.entity.item.EntityItem) o).getEntityItem();
+                if (it.getItem() == net.divinerpg.utils.items.TwilightItemsOther.mortumSoul) souls += it.stackSize;
+                if (it.getItem() == net.divinerpg.utils.items.TwilightItemsWeapons.haliteBlitz || it.getItem() == net.divinerpg.utils.items.TwilightItemsWeapons.haliteBow) halite++;
+                ((net.minecraft.entity.Entity) o).setDead();
+            }
+            boolean granted = souls == 6 + 10 && halite == 1;
+            check(left[0] && left[1] && granted && log.contains("отказ: фаза 1, урон по предложению 0.0") && log.contains("предложение 200"),
+                log + "душ " + souls + ", оружия халита " + halite);
+            return "на 2/3 Демон замирает и предлагает уйти: не трогать - уходит с трофеями фазы (6 душ); ударить - удар не проходит, фаза 2, на 1/3 новое предложение, уход - 10 душ и оружие халита";
+        });
+        t("Логова", "Карот: зеркало", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            loadAround(w, 9995, 9995, 1);
+            TestPlayer mv = player(ConfigurationHelper.mortum, "TestMirror", 9995, 100, 9990);
+            net.divinerpg.entities.twilight.EntityKarot kr = new net.divinerpg.entities.twilight.EntityKarot(w);
+            kr.setPosition(9995.5, 100, 9995.5);
+            w.spawnEntityInWorld(kr);
+            kr.setAttackTarget(mv);
+            float[] in = new float[2], out = new float[2];
+            for (int run = 0; run < 2; run++) {
+                if (run == 1) {
+                    mv.setCurrentItemOrArmor(0, new ItemStack(Items.diamond_sword));
+                    armor(mv, Items.diamond_helmet, Items.diamond_chestplate, Items.diamond_leggings, Items.diamond_boots);
+                }
+                kr.ticksExisted = 10 * (run + 1);
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(kr));
+                net.minecraftforge.event.entity.living.LivingHurtEvent hit = new net.minecraftforge.event.entity.living.LivingHurtEvent(kr,
+                    net.minecraft.util.DamageSource.causePlayerDamage(mv), 10);
+                MinecraftForge.EVENT_BUS.post(hit);
+                in[run] = hit.ammount;
+                net.minecraftforge.event.entity.living.LivingHurtEvent back = new net.minecraftforge.event.entity.living.LivingHurtEvent(mv,
+                    net.minecraft.util.DamageSource.causeMobDamage(kr), 10);
+                MinecraftForge.EVENT_BUS.post(back);
+                out[run] = back.ammount;
+            }
+            float power = kr.getEntityData().getFloat(com.divinerpgextended.boss.MortumBosses.MAX_POWER);
+            kr.setDead();
+            mv.setCurrentItemOrArmor(0, null);
+            armor(mv, null, null, null, null);
+            check(in[0] == 10 && in[1] < 5 && out[0] < out[1] && power > 1.0, "по голому Кароту " + in[0] + ", по Кароту в алмазе " + in[1]
+                + "; Карот бьёт голого " + out[0] + ", в алмазе " + out[1] + ", сила для трофеев " + power);
+            return "голый игрок: Карот без брони и бьёт кулаком (" + out[0] + "); в алмазе с мечом: держит удар (10 > " + in[1] + ") и бьёт как меч (" + out[1] + "), трофеев больше";
+        });
         t("Логова", "Скол рога", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9940, 9940, 1);

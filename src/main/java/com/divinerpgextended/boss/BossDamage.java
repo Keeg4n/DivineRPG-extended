@@ -28,8 +28,8 @@ public class BossDamage {
             }
             case TWILIGHT_DEMON:
                 return Config.twilightDemonRequiredTier;
-            case KAROT:
-                return Config.karotRequiredTier;
+            case KAROT: // Карот - зеркало: силу задаёт снаряжение игрока, а не ступень брони
+                return -1;
             default:
                 return -1;
         }
