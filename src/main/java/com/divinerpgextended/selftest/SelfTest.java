@@ -1954,6 +1954,42 @@ public class SelfTest {
                 log + "здоровье 1-й " + hp0 + ", 3-й " + hp3 + ", убит " + dead);
             return "Король-воин дважды встаёт на колено (неуязвим) и поднимается сильнее (здоровье x" + (hp3 / hp0) + "), третья победа - смерть";
         });
+        t("Логова", "Повелитель ветров", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.skythern);
+            loadAround(w, 9980, 9980, 3);
+            for (int i = -16; i <= 16; i++) for (int wk = -16; wk <= 16; wk++) for (int h = 99; h < 125; h++) w.setBlockToAir(9980 + i, h, 9980 + wk);
+            TestPlayer wv = player(ConfigurationHelper.skythern, "TestWind", 9980, 100, 9975);
+            com.divinerpgextended.entity.EntityWindLord lord = new com.divinerpgextended.entity.EntityWindLord(w);
+            lord.setPosition(9980.5, 100, 9980.5);
+            w.spawnEntityInWorld(lord);
+            lord.placeTotems();
+            boolean immune = !lord.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(wv), 1000);
+            String log = "";
+            for (int i = 0; i < 4; i++) {
+                int[] tt = lord.totem(i);
+                boolean isTotem = w.getBlock(tt[0], tt[1], tt[2]) == com.divinerpgextended.registry.ModBlocks.windTotem;
+                wv.setPositionAndUpdate(tt[0] + 1.5, tt[1], tt[2] + 0.5);
+                w.getBlock(tt[0], tt[1], tt[2]).onBlockActivated(w, tt[0], tt[1], tt[2], wv, 1, 0.5F, 1F, 0.5F);
+                if (i == 0) { // отошёл - зарядка сбрасывается
+                    wv.setPositionAndUpdate(tt[0] + 8.5, tt[1], tt[2] + 0.5);
+                    for (int wk = 0; wk < 5; wk++) lord.onLivingUpdate();
+                    log += "сдуло: зарядка " + lord.charging() + "; ";
+                    wv.setPositionAndUpdate(tt[0] + 1.5, tt[1], tt[2] + 0.5);
+                    w.getBlock(tt[0], tt[1], tt[2]).onBlockActivated(w, tt[0], tt[1], tt[2], wv, 1, 0.5F, 1F, 0.5F);
+                }
+                for (int wk = 0; wk <= com.divinerpgextended.entity.EntityWindLord.CHARGE + 1; wk++) {
+                    wv.setPositionAndUpdate(tt[0] + 1.5, tt[1], tt[2] + 0.5); // порывы - стоим на месте
+                    wv.motionX = wv.motionZ = 0;
+                    lord.onLivingUpdate();
+                }
+                log += "тотем " + (i + 1) + " " + isTotem + " горит " + lord.litTotems() + ", здоровье " + (int) lord.getHealth() + "; ";
+            }
+            boolean dead = lord.getHealth() <= 0;
+            lord.setDead();
+            for (int i = -16; i <= 16; i++) for (int wk = -16; wk <= 16; wk++) for (int h = 99; h < 125; h++) w.setBlockToAir(9980 + i, h, 9980 + wk);
+            check(immune && dead && log.contains("зарядка false") && log.contains("тотем 3 true горит 3") && log.contains("тотем 4 true горит 0"), "неуязвим " + immune + "; " + log + "убит " + dead);
+            return "оружие Повелителя не берёт; 4 тотема на разной высоте, зарядка сбрасывается, если отойти; каждый заряженный - молния на четверть здоровья, четвёртый добивает, тотемы убираются";
+        });
         t("Логова", "Скол рога", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9940, 9940, 1);
