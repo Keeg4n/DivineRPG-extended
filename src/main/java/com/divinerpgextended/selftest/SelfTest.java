@@ -1696,6 +1696,108 @@ public class SelfTest {
             check(altar && column && open && clouds == 4 && ladders == 4 && lords.size() == 1 && totems == 4, log + ", повелителей " + lords.size() + ", тотемов на облаках " + totems);
             return "храм в " + c[0] + "," + c[2] + ": колоннада, алтарь, 4 постамента с лестницами и облаками; Зов - Повелитель, тотемы встают на облака";
         });
+        t("Логова", "Капище и родники", () -> {
+            int dim = ConfigurationHelper.wildwood;
+            WorldServer w = server.worldServerForDimension(dim);
+            int[] c = com.divinerpgextended.world.twilight.WorldGenNests.nearest(w.getSeed(), dim, 0, 0);
+            loadAround(w, c[0], c[2], 4);
+            int top = com.divinerpgextended.world.twilight.WorldGenNests.TOP;
+            int az = c[2] - com.divinerpgextended.world.twilight.WorldGenNests.ALTAR_DZ;
+            boolean altar = w.getBlock(c[0], top + 2, az) == com.divinerpgextended.registry.ModBlocks.nestAltar;
+            int waters = 0;
+            for (int i = 0; i < 4; i++) {
+                int[] sp = com.divinerpgextended.world.twilight.WorldGenNests.spring(i);
+                if (w.getBlock(c[0] + sp[0], top, c[2] + sp[1]).getMaterial() == net.minecraft.block.material.Material.water) waters++;
+            }
+            int mossy = 0;
+            for (int i = -24; i <= 24; i++) for (int k2 = -24; k2 <= 24; k2++)
+                if (w.getBlock(c[0] + i, top + 3, c[2] + k2) == Blocks.mossy_cobblestone) mossy++;
+            dump(w, c[0], top, c[2], 36, "henge-wildwood");
+            // вызов: голем на привязи, игрок в сете Дикого леса стоит в роднике
+            TestPlayer v = player(dim, "TestHenge", c[0], top + 1, az + 2);
+            hold(v, new ItemStack(com.divinerpgextended.registry.ModItems.cadillionCall, 1, 1));
+            w.getBlock(c[0], top + 2, az).onBlockActivated(w, c[0], top + 2, az, v, 1, 0.5F, 0.5F, 0.5F);
+            java.util.List<?> gl = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityAncientGolem.class,
+                net.minecraft.util.AxisAlignedBB.getBoundingBox(c[0] - 6, top - 2, c[2] - 6, c[0] + 6, top + 12, c[2] + 6));
+            String log = "алтарь " + altar + ", родников " + waters + ", мшистых камней на высоте 3: " + mossy + ", големов " + gl.size();
+            float healed = 0;
+            double up = 0;
+            boolean asleep = false;
+            if (gl.size() == 1) {
+                com.divinerpgextended.entity.EntityAncientGolem g3 = (com.divinerpgextended.entity.EntityAncientGolem) gl.get(0);
+                int[] sp = com.divinerpgextended.world.twilight.WorldGenNests.spring(0);
+                TestPlayer sv3 = join(player(dim, "TestSpring", c[0] + sp[0] + 0.5, top, c[2] + sp[1] + 0.5), true);
+                Item[] wild = com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD.armor();
+                armor(sv3, wild[0], wild[1], wild[2], wild[3]);
+                sv3.setHealth(8);
+                for (int i = 0; i <= com.divinerpgextended.entity.EntityAncientGolem.SPRING_STAY && up == 0; i++) {
+                    sv3.setPosition(c[0] + sp[0] + 0.5, top, c[2] + sp[1] + 0.5);
+                    sv3.handleWaterMovement();
+                    g3.onLivingUpdate();
+                    if (sv3.motionY > 1) up = sv3.motionY;
+                }
+                healed = sv3.getHealth() - 8;
+                asleep = !g3.springAwake(0);
+                armor(sv3, null, null, null, null);
+                sv3.setHealth(20);
+                g3.setDead();
+            }
+            check(altar && waters == 4 && mossy > 20 && gl.size() == 1 && healed >= 4 && up > 1 && asleep,
+                log + ", вылечил " + healed + ", гейзер " + up + ", родник уснул " + asleep);
+            return "капище: алтарь, менгиры и укрытия из мшистого камня, 4 родника; в сете Дикого леса родник лечит (+" + healed + "), через 1.5 с гейзер выкидывает, родник засыпает";
+        });
+        t("Логова", "Колизей и ярусы", () -> {
+            int dim = ConfigurationHelper.apalachia;
+            WorldServer w = server.worldServerForDimension(dim);
+            int[] c = com.divinerpgextended.world.twilight.WorldGenNests.nearest(w.getSeed(), dim, 0, 0);
+            loadAround(w, c[0], c[2], 4);
+            int top = com.divinerpgextended.world.twilight.WorldGenNests.TOP;
+            int az = c[2] - com.divinerpgextended.world.twilight.WorldGenNests.altarDz(com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA);
+            boolean altar = w.getBlock(c[0], top + 2, az) == com.divinerpgextended.registry.ModBlocks.nestAltar;
+            boolean summit = w.getBlock(c[0], top + 8, c[2]) == Blocks.stonebrick && w.isAirBlock(c[0], top + 9, c[2]);
+            boolean stairs = w.getBlock(c[0] + 12, top + 4, c[2]) == Blocks.stone_brick_stairs;
+            boolean stands = w.getBlock(c[0] + 30, top + 5, c[2] + 6) == Blocks.stonebrick;
+            dump(w, c[0], top, c[2], 36, "colosseum-apalachia");
+            TestPlayer v = player(dim, "TestColosseum", c[0], top + 1, az + 2);
+            hold(v, new ItemStack(com.divinerpgextended.registry.ModItems.cadillionCall, 1, 2));
+            w.getBlock(c[0], top + 2, az).onBlockActivated(w, c[0], top + 2, az, v, 1, 0.5F, 0.5F, 0.5F);
+            java.util.List<?> kl = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityWarriorKing.class,
+                net.minecraft.util.AxisAlignedBB.getBoundingBox(c[0] - 6, top - 2, az - 2, c[0] + 6, top + 12, az + 8));
+            String log = "алтарь " + altar + ", вершина " + summit + ", лестница " + stairs + ", трибуны " + stands + ", королей у алтаря " + kl.size();
+            double y2 = 0;
+            if (kl.size() == 1) {
+                com.divinerpgextended.entity.EntityWarriorKing k3 = (com.divinerpgextended.entity.EntityWarriorKing) kl.get(0);
+                k3.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(v), 100000);
+                for (int i = 0; i < com.divinerpgextended.entity.EntityWarriorKing.KNEEL + 2; i++) k3.onLivingUpdate();
+                y2 = k3.posY - (top + 1);
+                k3.setDead();
+            }
+            check(altar && summit && stairs && stands && kl.size() == 1 && Math.abs(y2 - 4) < 0.6, log + ", 2-я встреча на высоте " + y2);
+            return "колизей: трибуны, пирамида в 3 яруса с лестницами, алтарь на полу; Король у алтаря, 2-ю встречу начинает на ярусе +4";
+        });
+        t("Логова", "Глыба крошит укрытие", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
+            loadAround(w, 9550, 9550, 1);
+            w.setBlock(9550, 100, 9550, Blocks.mossy_cobblestone);
+            w.setBlock(9551, 100, 9550, Blocks.stone);
+            com.divinerpgextended.entity.EntityBoulder b = new com.divinerpgextended.entity.EntityBoulder(w);
+            b.setPosition(9550.5, 100.5, 9550.5);
+            net.minecraft.util.MovingObjectPosition mop = new net.minecraft.util.MovingObjectPosition(9550, 100, 9550, 1,
+                net.minecraft.util.Vec3.createVectorHelper(9550.5, 101, 9550.5));
+            try {
+                java.lang.reflect.Method m = net.minecraft.entity.projectile.EntityThrowable.class.getDeclaredMethod("func_70184_a", net.minecraft.util.MovingObjectPosition.class);
+                m.setAccessible(true);
+                m.invoke(b, mop);
+            } catch (NoSuchMethodException nsm) {
+                java.lang.reflect.Method m = net.minecraft.entity.projectile.EntityThrowable.class.getDeclaredMethod("onImpact", net.minecraft.util.MovingObjectPosition.class);
+                m.setAccessible(true);
+                m.invoke(b, mop);
+            }
+            boolean gone = w.isAirBlock(9550, 100, 9550), stoneKept = w.getBlock(9551, 100, 9550) == Blocks.stone;
+            w.setBlockToAir(9551, 100, 9550);
+            check(gone && stoneKept, "мшистый камень разбит " + gone + ", обычный камень цел " + stoneKept);
+            return "глыба голема крошит мшистые камни-укрытия, обычный камень не трогает";
+        });
         t("Логова", "Бой с кадиллионом", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             int x = 9500, y = 100, z = 9500;

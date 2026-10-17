@@ -48,6 +48,12 @@ public class EntityAncientGolem extends EntityGroveGuardian {
     private int stompTimer = 120, lashTimer = 80, packTimer = 160, lastPunch = -100, stagger;
     private int boulderTimer = 60, leapTimer = 100, pullTimer = 200;
     private boolean leaping;
+    /** Родники капища: когда каждый снова проснётся (время мира) и кто сколько в нём стоит. */
+    private final long[] springWake = new long[4];
+    private final java.util.Map<Integer, Integer> inSpring = new java.util.HashMap<Integer, Integer>();
+    /** Сколько можно стоять в роднике до гейзера, сколько он спит после, лечение (Лесной следопыт) раз в 5 тиков. */
+    public static final int SPRING_STAY = 30, SPRING_SLEEP = 400;
+    public static final float SPRING_HEAL = 1.0F;
     private long clangHint = -1000;
 
     public EntityAncientGolem(World world) {
@@ -197,6 +203,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
             if (broken(LEGS) && height > 5) setSize(3.4F, 4.4F);
             return;
         }
+        springs();
         if (stagger > 0) {
             stagger--;
             motionX = motionZ = 0;
@@ -263,6 +270,54 @@ public class EntityAncientGolem extends EntityGroveGuardian {
             p.motionY = 0.9;
             p.velocityChanged = true;
         }
+    }
+
+    /**
+     * Родники капища: стоящего в воде родника Лесной следопыт лечит; через {@link #SPRING_STAY} тиков бьёт гейзер и
+     * выкидывает любого, родник засыпает на {@link #SPRING_SLEEP}.
+     */
+    private void springs() {
+        int[] home = com.divinerpgextended.boss.LairSummons.home(this);
+        if (home == null) return;
+        long now = worldObj.getTotalWorldTime();
+        WorldServer ws = (WorldServer) worldObj;
+        java.util.Set<Integer> seen = new java.util.HashSet<Integer>();
+        for (int i = 0; i < 4; i++) {
+            int[] s = com.divinerpgextended.world.twilight.WorldGenNests.spring(i);
+            double sx = home[0] + s[0] + 0.5, sz = home[2] + s[1] + 0.5, sy = home[1] - 0.5;
+            boolean awake = now >= springWake[i];
+            if (awake && ticksExisted % 10 == 0) ws.func_147487_a("splash", sx, sy + 0.6, sz, 6, 0.6, 0.1, 0.6, 0);
+            for (EntityPlayer p : players(30)) {
+                double dx = p.posX - sx, dz = p.posZ - sz;
+                if (dx * dx + dz * dz > 2.6 || Math.abs(p.posY - sy) > 1.5 || !p.isInWater() || !awake) continue;
+                seen.add(p.getEntityId());
+                Integer t0 = inSpring.get(p.getEntityId());
+                int t = t0 == null ? 0 : t0 + 1;
+                inSpring.put(p.getEntityId(), t);
+                if (t % 5 == 0 && com.divinerpgextended.perk.HomeArmor.wears(p, TwilightWorld.WILDWOOD, false)) {
+                    p.heal(SPRING_HEAL);
+                    ws.func_147487_a("heart", p.posX, p.posY + 1.8, p.posZ, 1, 0.3, 0.2, 0.3, 0);
+                }
+                if (t >= SPRING_STAY) {
+                    p.motionY = 1.3;
+                    p.motionX = dx * 0.4;
+                    p.motionZ = dz * 0.4;
+                    p.velocityChanged = true;
+                    p.fallDistance = 0;
+                    springWake[i] = now + SPRING_SLEEP;
+                    inSpring.remove(p.getEntityId());
+                    worldObj.playSoundEffect(sx, sy + 1, sz, "random.splash", 2.0F, 0.6F);
+                    ws.func_147487_a("splash", sx, sy + 1, sz, 60, 0.5, 2.0, 0.5, 0.3);
+                    ws.func_147487_a("cloud", sx, sy + 1, sz, 20, 0.4, 1.5, 0.4, 0.05);
+                }
+            }
+        }
+        inSpring.keySet().retainAll(seen);
+    }
+
+    /** Родник спит (для тестов и подсказок). */
+    public boolean springAwake(int i) {
+        return worldObj.getTotalWorldTime() >= springWake[i];
     }
 
     /** Вырвать глыбу из земли и швырнуть дугой в цель. */

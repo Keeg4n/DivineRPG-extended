@@ -94,6 +94,8 @@ public class WorldGenNests implements IWorldGenerator {
 
     public static ColumnStructure shape(TwilightWorld tw, int[] c) {
         if (tw == TwilightWorld.SKYTHERN) return new Temple(c[0], c[2]);
+        if (tw == TwilightWorld.WILDWOOD) return new Henge(c[0], c[2]);
+        if (tw == TwilightWorld.APALACHIA) return new Colosseum(c[0], c[2]);
         return tw == TwilightWorld.MORTUM ? new Circle() : new Nest(tw, c[0], c[2]);
     }
 
@@ -308,6 +310,186 @@ public class WorldGenNests implements IWorldGenerator {
             }
             return any;
         }
+    }
+
+    // ---------------------------------------------------------------- общее для арен
+
+    /** Каменный клин-основание острова арены и пустота над ним. */
+    static void islandBase(int dx, int dz, double r, double rOut, int salt, int[] col) {
+        double t = r / rOut;
+        int bottom = TOP - 3 - (int) (22 * Math.sqrt(Math.max(0, 1 - t * t)) + Nest.noise(dx, dz, 4, 29 + salt) * 6);
+        for (int y = bottom; y <= TOP - 2; y++) ColumnStructure.put(col, y, ColumnStructure.hash(dx * 17 + y, dz + salt) % 100 < 12 ? DIRT : STONE, 0);
+        ColumnStructure.put(col, TOP - 1, DIRT, 0);
+        for (int y = TOP + 1; y <= TOP + 40; y++) ColumnStructure.put(col, y, ColumnStructure.AIR, 0);
+    }
+
+    /** Родники капища Древнего голема: 4 штуки на радиусе SPRING_R по диагоналям. */
+    public static final int SPRING_R = 8;
+
+    public static int[] spring(int i) {
+        double a = Math.PI / 4 + Math.PI / 2 * i;
+        return new int[] { (int) Math.round(Math.cos(a) * SPRING_R), (int) Math.round(Math.sin(a) * SPRING_R) };
+    }
+
+    // ---------------------------------------------------------------- капище (Дикий лес)
+
+    /**
+     * Капище Дикого леса - арена Древнего голема: остров с кольцом из двенадцати мшистых менгиров (часть соединена
+     * перекладинами), шестью низкими камнями-укрытиями внутри (их разбивают глыбы голема), четырьмя родниками
+     * ({@link #spring}) и алтарём; на вершинах менгиров - факелы Дикого леса, по краю - корни.
+     */
+    static class Henge extends ColumnStructure {
+
+        static final int MOSSY = 30, BRICK = 31, TORCH = 33;
+        static final int R_ISLAND = 32, RING = 22, MENHIRS = 12, COVER_R = 14, COVERS = 6;
+        private final int salt;
+
+        Henge(int cx, int cz) {
+            salt = hash(cx, cz) % 1000;
+        }
+
+        @Override
+        protected Block block(int code, int meta) {
+            switch (code) {
+                case MOSSY: return Blocks.mossy_cobblestone;
+                case BRICK: return Blocks.stonebrick;
+                case TORCH: return ModBlocks.worldTorch[TwilightWorld.WILDWOOD.ordinal()];
+                case WATER: return Blocks.water;
+                default: return palette(TwilightWorld.WILDWOOD, code);
+            }
+        }
+
+        @Override
+        protected boolean lit(Block b) {
+            return b == ModBlocks.worldTorch[TwilightWorld.WILDWOOD.ordinal()] || b == ModBlocks.nestAltar;
+        }
+
+        @Override
+        protected boolean column(int dx, int dz, int[] col) {
+            double r = Math.sqrt(dx * dx + dz * dz);
+            double rOut = R_ISLAND + Nest.noise(dx, dz, 6, 13 + salt) * 3;
+            if (r > rOut) return false;
+            islandBase(dx, dz, r, rOut, salt, col);
+            // земля мира с пятнами мха и каменной тропой по кольцу
+            int h = hash(dx + salt, dz);
+            put(col, TOP, Nest.noise(dx, dz, 3, 41 + salt) > 0.72 ? MOSSY : GRASS, 0);
+            if (Math.abs(r - 18) < 1.0 && h % 3 != 0) put(col, TOP, BRICK, h % 2 == 0 ? 1 : 2);
+            // внешнее кольцо менгиров с перекладинами
+            int k = (int) Math.round((Math.atan2(dz, dx) + Math.PI) / (Math.PI * 2 / MENHIRS)) % MENHIRS;
+            int mh = 6 + hash(k, salt) % 4;
+            double md = ringDist(dx, dz, RING, MENHIRS, 0);
+            if (md < 1.3) {
+                for (int y = TOP + 1; y <= TOP + mh; y++) put(col, y, hash(dx * 3 + y, dz + salt) % 3 == 0 ? BRICK : MOSSY, hash(y, k) % 3 == 0 ? 1 : 0);
+                if (md < 0.5) put(col, TOP + mh + 1, TORCH, 5);
+            }
+            if (k % 2 == 0 && Math.abs(r - RING) < 1.0) {
+                // перекладина над парой: от этого менгира до следующего по дуге
+                double a = (Math.atan2(dz, dx) + Math.PI) / (Math.PI * 2 / MENHIRS);
+                double frac = a - Math.floor(a);
+                int base = (int) Math.floor(a) % MENHIRS;
+                if (base % 2 == 0 && frac > 0.05 && frac < 0.95) {
+                    int lh = 6 + Math.min(hash(base, salt) % 4, hash((base + 1) % MENHIRS, salt) % 4);
+                    put(col, TOP + lh + 1, MOSSY, 0);
+                }
+            }
+            // внутренние камни-укрытия (низкие, их разбивают глыбы)
+            if (ringDist(dx, dz, COVER_R, COVERS, Math.PI / COVERS) < 1.4) {
+                int ch = 3 + hash(dx, dz + salt) % 2;
+                for (int y = TOP + 1; y <= TOP + ch; y++) put(col, y, MOSSY, 0);
+            }
+            // родники: вода в мшистой оправе
+            for (int i = 0; i < 4; i++) {
+                int[] s = spring(i);
+                double sd = Math.sqrt((dx - s[0]) * (dx - s[0]) + (dz - s[1]) * (dz - s[1]));
+                if (sd < 1.6) {
+                    put(col, TOP, WATER, 0);
+                    put(col, TOP - 1, MOSSY, 0);
+                } else if (sd < 2.6) put(col, TOP, MOSSY, 0);
+            }
+            // помост с алтарём
+            double ad = Math.sqrt(dx * dx + (dz + ALTAR_DZ) * (dz + ALTAR_DZ));
+            if (ad <= 2.5) put(col, TOP + 1, BRICK, 3);
+            if (dx == 0 && dz == -ALTAR_DZ) put(col, TOP + 2, ALTAR, 0);
+            // корни по краю острова
+            if (r > 26 && r < rOut - 1 && Nest.noise(dx, dz, 4, 77 + salt) > 0.7) put(col, TOP + 1, LOG, 0);
+            return true;
+        }
+    }
+
+    // ---------------------------------------------------------------- колизей (Апалачия)
+
+    /**
+     * Колизей на вершине Апалачии - арена Короля-воина: круглая площадка, кольцо трибун с четырьмя проходами и в центре
+     * ступенчатая пирамида в три яруса ({@link #TIER_R}, {@link #TIER_H}) с лестницами на все стороны. Каждую новую
+     * встречу Король начинает ярусом выше; бортов нет - волна сбрасывает на ярус ниже.
+     */
+    static class Colosseum extends ColumnStructure {
+
+        static final int BRICK = 31, STAIRS = 32;
+        static final int R_ISLAND = 33, STANDS_IN = 25, STANDS_OUT = 31;
+        private final int salt;
+
+        Colosseum(int cx, int cz) {
+            salt = hash(cx, cz) % 1000;
+        }
+
+        @Override
+        protected Block block(int code, int meta) {
+            switch (code) {
+                case BRICK: return Blocks.stonebrick;
+                case STAIRS: return Blocks.stone_brick_stairs;
+                default: return palette(TwilightWorld.APALACHIA, code);
+            }
+        }
+
+        @Override
+        protected boolean lit(Block b) {
+            return b == Blocks.glowstone || b == ModBlocks.nestAltar;
+        }
+
+        @Override
+        protected boolean column(int dx, int dz, int[] col) {
+            double r = Math.sqrt(dx * dx + dz * dz);
+            double rOut = R_ISLAND + Nest.noise(dx, dz, 6, 19 + salt) * 2;
+            if (r > rOut) return false;
+            islandBase(dx, dz, r, rOut, salt, col);
+            int h = hash(dx + salt, dz);
+            put(col, TOP, r < STANDS_IN ? BRICK : GRASS, r < STANDS_IN ? (h % 7 == 0 ? 2 : h % 5 == 0 ? 1 : 0) : 0);
+            // трибуны: ступени вверх наружу, проходы по сторонам света
+            if (r >= STANDS_IN && r <= STANDS_OUT && !gate(dx, dz)) {
+                int lvl = Math.min(6, (int) ((r - STANDS_IN) * 1.2) + 1);
+                for (int y = TOP + 1; y <= TOP + lvl; y++) put(col, y, BRICK, 0);
+                if (r > STANDS_OUT - 1) for (int y = TOP + lvl + 1; y <= TOP + lvl + 2; y++) if (h % 4 != 0) put(col, y, BRICK, 2);
+            }
+            // пирамида: ярусы и лестницы по сторонам света
+            int tier = 0;
+            for (int i = 1; i < TIER_R.length; i++) if (Math.max(Math.abs(dx), Math.abs(dz)) <= TIER_R[i]) tier = i;
+            if (tier > 0) for (int y = TOP + 1; y <= TOP + TIER_H[tier]; y++) put(col, y, BRICK, y == TOP + TIER_H[tier] ? 3 : 0);
+            for (int i = 1; i < TIER_R.length; i++) {
+                // ступени перед гранью яруса i (по одной оси, ширина 3)
+                int edge = TIER_R[i] + 1, rise = TIER_H[i] - TIER_H[i - 1];
+                for (int s = 0; s < rise; s++) {
+                    int dist = edge + s, y = TOP + TIER_H[i] - s;
+                    if (Math.abs(dz) <= 1 && Math.abs(dx) == dist) put(col, y, STAIRS, dx > 0 ? 1 : 0);
+                    if (Math.abs(dx) <= 1 && Math.abs(dz) == dist) put(col, y, STAIRS, dz > 0 ? 3 : 2);
+                }
+            }
+            // свет по краю арены
+            if (Math.abs(r - (STANDS_IN - 1.5)) < 0.5 && h % 9 == 0) put(col, TOP, GLOW, 0);
+            // помост с алтарём (за пирамидой, на полу)
+            double ad = Math.sqrt(dx * dx + (dz + ALTAR_DZ + 6) * (dz + ALTAR_DZ + 6));
+            if (ad <= 2.5) put(col, TOP + 1, BRICK, 3);
+            if (dx == 0 && dz == -ALTAR_DZ - 6) put(col, TOP + 2, ALTAR, 0);
+            return true;
+        }
+    }
+
+    /** Ярусы пирамиды колизея: полуширина и высота над полом (0 - пол арены). */
+    public static final int[] TIER_R = { 22, 11, 6 }, TIER_H = { 0, 4, 8 };
+
+    /** Сдвиг алтаря от центра к северу: в колизее дальше (центр занят пирамидой). */
+    public static int altarDz(TwilightWorld w) {
+        return w == TwilightWorld.APALACHIA ? ALTAR_DZ + 6 : ALTAR_DZ;
     }
 
     // ---------------------------------------------------------------- храм ветров (Скайтерн)

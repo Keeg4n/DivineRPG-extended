@@ -12,7 +12,7 @@ import net.minecraft.world.WorldServer;
 
 /**
  * Глыба земли, которую Древний голем вырывает из острова и швыряет: летит дугой, при падении разбивается - урон и
- * отброс всем в {@link #RADIUS} блоках. Блоков не ставит.
+ * отброс всем в {@link #RADIUS} блоках. Блоков не ставит; мшистые камни (укрытия капища) рядом с местом удара крошит.
  */
 public class EntityBoulder extends EntityThrowable {
 
@@ -38,7 +38,7 @@ public class EntityBoulder extends EntityThrowable {
     @Override
     protected void onImpact(MovingObjectPosition mop) {
         if (worldObj.isRemote) return;
-        if (mop.entityHit == getThrower()) return;
+        if (mop.entityHit != null && mop.entityHit == getThrower()) return;
         WorldServer ws = (WorldServer) worldObj;
         int dirt = net.minecraft.block.Block.getIdFromBlock(net.divinerpg.utils.blocks.TwilightBlocks.wildwoodDirt);
         ws.func_147487_a("blockcrack_" + dirt + "_0", posX, posY + 0.5, posZ, 40, 0.8, 0.5, 0.8, 0.2);
@@ -54,6 +54,12 @@ public class EntityBoulder extends EntityThrowable {
             p.motionZ += dz / d * 0.6;
             p.motionY += 0.3;
             p.velocityChanged = true;
+        }
+        // глыба крошит мшистые камни-укрытия капища
+        int bx = (int) Math.floor(posX), by = (int) Math.floor(posY), bz = (int) Math.floor(posZ);
+        for (int x = bx - 1; x <= bx + 1; x++) for (int y = by - 1; y <= by + 2; y++) for (int z = bz - 1; z <= bz + 1; z++) {
+            if (worldObj.getBlock(x, y, z) != net.minecraft.init.Blocks.mossy_cobblestone) continue;
+            worldObj.func_147480_a(x, y, z, false); // разрушить без выпадения, с частицами
         }
         setDead();
     }

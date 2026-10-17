@@ -26,7 +26,7 @@ import com.divinerpgextended.world.CadillionWorld;
  * туда (успей отойти);</li>
  * <li>+ свита: големы и кадиллионы Апалачии.</li>
  * </ol>
- * Трофеи - только после третьей победы.
+ * Трофеи - только после третьей победы. В колизее каждая следующая встреча начинается ярусом выше на пирамиде.
  */
 public class EntityWarriorKing extends EntityGroveGuardian {
 
@@ -132,6 +132,7 @@ public class EntityWarriorKing extends EntityGroveGuardian {
             dataWatcher.updateObject(DW_KNEEL, Integer.valueOf(kneel - 1));
             if (kneel == 1) {
                 applyRound(round() + 1);
+                climbTier();
                 dashTimer = 60;
                 waveTimer = 100;
                 retinueTimer = 40;
@@ -186,6 +187,18 @@ public class EntityWarriorKing extends EntityGroveGuardian {
             }
             worldObj.playSoundAtEntity(this, "mob.wither.idle", 1.0F, 1.6F);
         }
+    }
+
+    /** В колизее новая встреча начинается ярусом выше: прыжок на вершину яруса пирамиды. */
+    private void climbTier() {
+        int[] home = com.divinerpgextended.boss.LairSummons.home(this);
+        int r = round();
+        if (home == null || r >= com.divinerpgextended.world.twilight.WorldGenNests.TIER_H.length) return;
+        int y = home[1] + com.divinerpgextended.world.twilight.WorldGenNests.TIER_H[r];
+        if (worldObj.getBlock(home[0], y - 1, home[2]) != net.minecraft.init.Blocks.stonebrick) return; // не колизей
+        ((WorldServer) worldObj).func_147487_a("largeexplode", posX, posY + 1, posZ, 2, 0.5, 0.5, 0.5, 0);
+        setPositionAndUpdate(home[0] + 0.5, y, home[2] + 0.5);
+        worldObj.playSoundAtEntity(this, "mob.enderdragon.wings", 2.0F, 0.8F);
     }
 
     /** Прыжок за спину цели: дугой через неё, при приземлении - круговой удар клинком. */
