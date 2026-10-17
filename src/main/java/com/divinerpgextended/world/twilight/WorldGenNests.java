@@ -89,13 +89,13 @@ public class WorldGenNests implements IWorldGenerator {
         if (c == null || Math.abs(c[0] - (x0 + 8)) > r + 16 || Math.abs(c[2] - (z0 + 8)) > r + 16) return;
         ColumnStructure s = shape(tw, c);
         s.buildSlice(world, c[0], c[2], x0, z0);
-        s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, TOP + 1, TOP + 24);
+        s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, TOP + 1, TOP + 100);
     }
 
     public static ColumnStructure shape(TwilightWorld tw, int[] c) {
         if (tw == TwilightWorld.SKYTHERN) return new Temple(c[0], c[2]);
         if (tw == TwilightWorld.WILDWOOD) return new Henge(c[0], c[2]);
-        if (tw == TwilightWorld.APALACHIA) return new Colosseum(c[0], c[2]);
+        if (tw == TwilightWorld.APALACHIA) return new Mound(c[0], c[2]);
         return tw == TwilightWorld.MORTUM ? new Circle() : new Nest(tw, c[0], c[2]);
     }
 
@@ -161,10 +161,10 @@ public class WorldGenNests implements IWorldGenerator {
      */
     static class Nest extends ColumnStructure {
 
-        private final TwilightWorld w;
-        private final int salt;
+        protected final TwilightWorld w;
+        protected final int salt;
         /** С какой стороны кусок оторван от земли (отвесный скол). */
-        private final double torn;
+        protected final double torn;
         private static final int TREES = 6, TRUNK_RING = 24, CANOPY_R = 13, CANOPY_H = 6;
         private final double[] tx = new double[TREES], tz = new double[TREES];
         private final int[] th = new int[TREES];
@@ -209,6 +209,33 @@ public class WorldGenNests implements IWorldGenerator {
             return (a + (b - a) * fx) * (1 - fz) + (c + (d - c) * fx) * fz;
         }
 
+        /** Поляна под кронами: каменное кольцо-дорожка, колоннада, родник, помост с алтарём, свет. */
+        protected void glade(int dx, int dz, double r, int[] col) {
+            // поляна: каменное кольцо-дорожка, колоннада, родник, помост с алтарём
+            if (r > 11.5 && r < 13.5 && hash(dz, dx) % 4 != 0) put(col, TOP, STONE, 0);
+            double colDist = ringDist(dx, dz, 15, 8, Math.PI / 8 + salt % 7 * 0.1);
+            if (colDist < 1.0) {
+                int k = (int) Math.round((Math.atan2(dz, dx) + Math.PI) / (Math.PI * 2 / 8)) % 8;
+                int ch = 3 + hash(k, salt) % 8; // обломаны по-разному
+                for (int y = TOP + 1; y <= TOP + ch; y++) put(col, y, STONE, 0);
+                if (ch >= 8) put(col, TOP + ch + 1, GEM, 0);
+            } else if (colDist < 1.9) {
+                int k = (int) Math.round((Math.atan2(dz, dx) + Math.PI) / (Math.PI * 2 / 8)) % 8;
+                // корни обвивают колонну с одной стороны
+                if (hash(dx, dz + salt) % 3 == 0) for (int y = TOP + 1; y <= TOP + 2 + hash(k, 3) % 4; y++) put(col, y, LOG, 0);
+                else if (hash(dz, dx + salt) % 5 == 0) put(col, TOP + 1, STONE, 0); // обломок
+            }
+            double sp = Math.sqrt(dx * dx + (dz - 7) * (dz - 7));
+            if (sp < 2.3) put(col, TOP, WATER, 0);
+            else if (sp < 3.3) put(col, TOP, STONE, 0);
+            if (sp < 3.3) put(col, TOP - 1, STONE, 0);
+            double ad = Math.sqrt(dx * dx + (dz + ALTAR_DZ) * (dz + ALTAR_DZ));
+            if (ad <= 2.5) put(col, TOP + 1, GEM, 0);
+            if (dx == 0 && dz == -ALTAR_DZ) put(col, TOP + 2, ALTAR, 0);
+            if (r < 1.2) put(col, TOP, GLOW, 0);
+            if (r > 6 && r < 30 && hash(dx * 3, dz * 5 + salt) % 97 == 0) put(col, TOP, GLOW, 0);
+        }
+
         @Override
         protected boolean column(int dx, int dz, int[] col) {
             double r = Math.sqrt(dx * dx + dz * dz);
@@ -216,54 +243,10 @@ public class WorldGenNests implements IWorldGenerator {
             boolean any = false;
             if (r <= rOut) {
                 any = true;
-                // низ - кусок земли, вырванный из мира: глубокий рваный камень с прожилками земли и вкраплениями руды;
-                // с одной стороны отвесный скол (оторвано сбоку), с остальных сужается; длинные сосульки и наплывы
-                double t = r / rOut, ang = Math.atan2(dz, dx);
-                double side = Math.max(0, Math.cos(ang - torn));
-                side = side * side;
-                double base = 30 * (1 - Math.pow(t, 1.5)), cliff = 27 * (1 - Math.pow(t, 5));
-                double depth = base + (cliff - base) * side + noise(dx, dz, 6, 23 + salt) * 9 * Math.sqrt(1 - t)
-                    + noise(dx, dz, 2, 37 + salt) * 3;
-                int bottom = TOP - 1 - (int) depth;
-                for (int y = bottom; y < TOP; y++) {
-                    int k = hash(dx * 31 + y, dz - y * 7 + salt) % 100;
-                    int code = y >= TOP - 3 ? DIRT : k < 18 ? DIRT : k < 21 ? ORE : STONE;
-                    put(col, y, code, 0);
-                }
+                tornBase(dx, dz, r, rOut, torn, salt, col, 1.0);
                 put(col, TOP, GRASS, 0);
                 for (int y = TOP + 1; y <= TOP + 60; y++) put(col, y, AIR, 0);
-                int h = hash(dx + salt, dz);
-                double drip = noise(dx, dz, 3, 99 + salt);
-                if (drip > 0.74 && t < 0.9) {
-                    int len = (int) ((drip - 0.74) * 50) + 2; // широкие наплывы
-                    for (int y = bottom - len; y < bottom; y++) put(col, y, STONE, 0);
-                } else if (t < 0.92 && h % 11 == 0) {
-                    int len = 2 + h / 11 % 9; // сосульки
-                    for (int y = bottom - len; y < bottom; y++) put(col, y, STONE, 0);
-                }
-                // поляна: каменное кольцо-дорожка, колоннада, родник, помост с алтарём
-                if (r > 11.5 && r < 13.5 && hash(dz, dx) % 4 != 0) put(col, TOP, STONE, 0);
-                double colDist = ringDist(dx, dz, 15, 8, Math.PI / 8 + salt % 7 * 0.1);
-                if (colDist < 1.0) {
-                    int k = (int) Math.round((Math.atan2(dz, dx) + Math.PI) / (Math.PI * 2 / 8)) % 8;
-                    int ch = 3 + hash(k, salt) % 8; // обломаны по-разному
-                    for (int y = TOP + 1; y <= TOP + ch; y++) put(col, y, STONE, 0);
-                    if (ch >= 8) put(col, TOP + ch + 1, GEM, 0);
-                } else if (colDist < 1.9) {
-                    int k = (int) Math.round((Math.atan2(dz, dx) + Math.PI) / (Math.PI * 2 / 8)) % 8;
-                    // корни обвивают колонну с одной стороны
-                    if (hash(dx, dz + salt) % 3 == 0) for (int y = TOP + 1; y <= TOP + 2 + hash(k, 3) % 4; y++) put(col, y, LOG, 0);
-                    else if (hash(dz, dx + salt) % 5 == 0) put(col, TOP + 1, STONE, 0); // обломок
-                }
-                double sp = Math.sqrt(dx * dx + (dz - 7) * (dz - 7));
-                if (sp < 2.3) put(col, TOP, WATER, 0);
-                else if (sp < 3.3) put(col, TOP, STONE, 0);
-                if (sp < 3.3) put(col, TOP - 1, STONE, 0);
-                double ad = Math.sqrt(dx * dx + (dz + ALTAR_DZ) * (dz + ALTAR_DZ));
-                if (ad <= 2.5) put(col, TOP + 1, GEM, 0);
-                if (dx == 0 && dz == -ALTAR_DZ) put(col, TOP + 2, ALTAR, 0);
-                if (r < 1.2) put(col, TOP, GLOW, 0);
-                if (r > 6 && r < 30 && hash(dx * 3, dz * 5 + salt) % 97 == 0) put(col, TOP, GLOW, 0);
+                glade(dx, dz, r, col);
             }
             // деревья: стволы клонятся к поляне, у основания корни-подпорки, под островом - корни вниз;
             // кроны широкие и плоские, сдвинуты к центру - смыкаются в рваный свод над поляной
@@ -325,43 +308,67 @@ public class WorldGenNests implements IWorldGenerator {
 
     // ---------------------------------------------------------------- общее для арен
 
-    /** Каменный клин-основание острова арены и пустота над ним. */
-    static void islandBase(int dx, int dz, double r, double rOut, int salt, int[] col) {
-        double t = r / rOut;
-        int bottom = TOP - 3 - (int) (22 * Math.sqrt(Math.max(0, 1 - t * t)) + Nest.noise(dx, dz, 4, 29 + salt) * 6);
-        for (int y = bottom; y <= TOP - 2; y++) ColumnStructure.put(col, y, ColumnStructure.hash(dx * 17 + y, dz + salt) % 100 < 12 ? DIRT : STONE, 0);
-        ColumnStructure.put(col, TOP - 1, DIRT, 0);
-        for (int y = TOP + 1; y <= TOP + 40; y++) ColumnStructure.put(col, y, ColumnStructure.AIR, 0);
+    /**
+     * Низ острова - кусок земли, вырванный из мира (как у рощи Эдема): глубокий рваный камень с прожилками земли и
+     * вкраплениями руды; с одной стороны (torn) отвесный скол, с остальных сужается; длинные сосульки и наплывы. Кладёт
+     * до TOP - 1 включительно; scale - глубина (1 - как у рощи).
+     */
+    static void tornBase(int dx, int dz, double r, double rOut, double torn, int salt, int[] col, double scale) {
+        double t = Math.min(1, r / rOut), ang = Math.atan2(dz, dx);
+        double side = Math.max(0, Math.cos(ang - torn));
+        side = side * side;
+        double base = 30 * (1 - Math.pow(t, 1.5)), cliff = 27 * (1 - Math.pow(t, 5));
+        double depth = (base + (cliff - base) * side + Nest.noise(dx, dz, 6, 23 + salt) * 9 * Math.sqrt(1 - t)
+            + Nest.noise(dx, dz, 2, 37 + salt) * 3) * scale;
+        int bottom = TOP - 1 - (int) depth;
+        for (int y = bottom; y < TOP; y++) {
+            int k = ColumnStructure.hash(dx * 31 + y, dz - y * 7 + salt) % 100;
+            ColumnStructure.put(col, y, y >= TOP - 3 ? DIRT : k < 18 ? DIRT : k < 21 ? ORE : STONE, 0);
+        }
+        int h = ColumnStructure.hash(dx + salt, dz);
+        double drip = Nest.noise(dx, dz, 3, 99 + salt);
+        if (drip > 0.74 && t < 0.9) {
+            int len = (int) (((drip - 0.74) * 50 + 2) * scale); // широкие наплывы
+            for (int y = bottom - len; y < bottom; y++) ColumnStructure.put(col, y, STONE, 0);
+        } else if (t < 0.92 && h % 11 == 0) {
+            int len = (int) ((2 + h / 11 % 9) * scale); // сосульки
+            for (int y = bottom - len; y < bottom; y++) ColumnStructure.put(col, y, STONE, 0);
+        }
     }
 
     /** Родники капища Древнего голема: 4 штуки на радиусе SPRING_R по диагоналям. */
-    public static final int SPRING_R = 8;
+    public static final int SPRING_R = 7;
 
     public static int[] spring(int i) {
         double a = Math.PI / 4 + Math.PI / 2 * i;
         return new int[] { (int) Math.round(Math.cos(a) * SPRING_R), (int) Math.round(Math.sin(a) * SPRING_R) };
     }
 
+    /** Радиус привязи стража рощи: на кургане Апалачии арена шире (частокол дальше). */
+    public static int leashRadius(TwilightWorld w) {
+        return w == TwilightWorld.APALACHIA ? 28 : 20;
+    }
+
+    /** Сдвиг алтаря от центра к северу: на кургане дальше (центр занят курганом). */
+    public static int altarDz(TwilightWorld w) {
+        return w == TwilightWorld.APALACHIA ? MOUND_ALTAR : ALTAR_DZ;
+    }
+
     // ---------------------------------------------------------------- капище (Дикий лес)
 
     /**
-     * Капище Дикого леса - арена Древнего голема: остров с кольцом из двенадцати мшистых менгиров (часть соединена
-     * перекладинами), шестью низкими камнями-укрытиями внутри (их разбивают глыбы голема), четырьмя родниками
-     * ({@link #spring}) и алтарём; на вершинах менгиров - факелы Дикого леса, по краю - корни.
+     * Капище Дикого леса - арена Древнего голема: роща Дикого леса (вырванный из земли остров, шесть гигантских деревьев,
+     * свод крон), а на поляне вместо колоннады - кольцо из десяти высоких мшистых менгиров с перекладинами и факелами Дикого
+     * леса, шесть низких камней-укрытий (их крошат глыбы голема), четыре родника ({@link #spring}), каменная тропа и
+     * алтарь.
      */
-    static class Henge extends ColumnStructure {
+    static class Henge extends Nest {
 
         static final int MOSSY = 30, BRICK = 31, TORCH = 33;
-        static final int R_ISLAND = 32, RING = 22, MENHIRS = 12, COVER_R = 14, COVERS = 6;
-        private final int salt;
+        static final int RING = 17, MENHIRS = 10, COVER_R = 11, COVERS = 6;
 
         Henge(int cx, int cz) {
-            salt = hash(cx, cz) % 1000;
-        }
-
-        @Override
-        protected int metaOf(int code, int meta) {
-            return code == GLOW ? TwilightWorld.WILDWOOD.lampMeta() : meta;
+            super(TwilightWorld.WILDWOOD, cx, cz);
         }
 
         @Override
@@ -370,53 +377,50 @@ public class WorldGenNests implements IWorldGenerator {
                 case MOSSY: return Blocks.mossy_cobblestone;
                 case BRICK: return Blocks.stonebrick;
                 case TORCH: return ModBlocks.worldTorch[TwilightWorld.WILDWOOD.ordinal()];
-                case WATER: return Blocks.water;
-                default: return palette(TwilightWorld.WILDWOOD, code);
+                default: return super.block(code, meta);
             }
         }
 
         @Override
         protected boolean lit(Block b) {
-            return b == ModBlocks.worldTorch[TwilightWorld.WILDWOOD.ordinal()] || b == ModBlocks.nestAltar;
+            return b == ModBlocks.worldTorch[TwilightWorld.WILDWOOD.ordinal()] || super.lit(b);
+        }
+
+        private int menhirH(int k) {
+            return 8 + hash(k, salt) % 5;
         }
 
         @Override
-        protected boolean column(int dx, int dz, int[] col) {
-            double r = Math.sqrt(dx * dx + dz * dz);
-            double rOut = R_ISLAND + Nest.noise(dx, dz, 6, 13 + salt) * 3;
-            if (r > rOut) return false;
-            islandBase(dx, dz, r, rOut, salt, col);
-            // земля мира с пятнами мха и каменной тропой по кольцу
+        protected void glade(int dx, int dz, double r, int[] col) {
             int h = hash(dx + salt, dz);
-            put(col, TOP, Nest.noise(dx, dz, 3, 41 + salt) > 0.72 ? MOSSY : GRASS, 0);
-            if (Math.abs(r - 18) < 1.0 && h % 3 != 0) put(col, TOP, BRICK, h % 2 == 0 ? 1 : 2);
-            // внешнее кольцо менгиров с перекладинами
-            int k = (int) Math.round((Math.atan2(dz, dx) + Math.PI) / (Math.PI * 2 / MENHIRS)) % MENHIRS;
-            int mh = 6 + hash(k, salt) % 4;
+            // мох пятнами и каменная тропа по кругу
+            if (Nest.noise(dx, dz, 3, 41 + salt) > 0.72) put(col, TOP, MOSSY, 0);
+            if (Math.abs(r - 13.5) < 0.9 && h % 3 != 0) put(col, TOP, BRICK, h % 2 == 0 ? 1 : 2);
+            // кольцо менгиров с перекладинами над парами
+            double step = Math.PI * 2 / MENHIRS, a = Math.atan2(dz, dx) + Math.PI;
+            int k = (int) Math.round(a / step) % MENHIRS;
             double md = ringDist(dx, dz, RING, MENHIRS, 0);
-            if (md < 1.3) {
+            if (md < 1.5) {
+                int mh = menhirH(k);
                 for (int y = TOP + 1; y <= TOP + mh; y++) put(col, y, hash(dx * 3 + y, dz + salt) % 3 == 0 ? BRICK : MOSSY, hash(y, k) % 3 == 0 ? 1 : 0);
-                if (md < 0.5) put(col, TOP + mh + 1, TORCH, 5);
+                if (md < 0.6) put(col, TOP + mh + 1, TORCH, 5);
             }
-            if (k % 2 == 0 && Math.abs(r - RING) < 1.0) {
-                // перекладина над парой: от этого менгира до следующего по дуге
-                double a = (Math.atan2(dz, dx) + Math.PI) / (Math.PI * 2 / MENHIRS);
-                double frac = a - Math.floor(a);
-                int base = (int) Math.floor(a) % MENHIRS;
-                if (base % 2 == 0 && frac > 0.05 && frac < 0.95) {
-                    int lh = 6 + Math.min(hash(base, salt) % 4, hash((base + 1) % MENHIRS, salt) % 4);
-                    put(col, TOP + lh + 1, MOSSY, 0);
-                }
+            int base = (int) Math.floor(a / step) % MENHIRS;
+            double frac = a / step - Math.floor(a / step);
+            if (base % 2 == 0 && Math.abs(r - RING) < 1.1 && frac > 0.04 && frac < 0.96) {
+                int lh = Math.min(menhirH(base), menhirH((base + 1) % MENHIRS));
+                put(col, TOP + lh, MOSSY, 0);
+                put(col, TOP + lh + 1, MOSSY, 0);
             }
-            // внутренние камни-укрытия (низкие, их разбивают глыбы)
-            if (ringDist(dx, dz, COVER_R, COVERS, Math.PI / COVERS) < 1.4) {
+            // камни-укрытия
+            if (ringDist(dx, dz, COVER_R, COVERS, 0) < 1.5) {
                 int ch = 3 + hash(dx, dz + salt) % 2;
                 for (int y = TOP + 1; y <= TOP + ch; y++) put(col, y, MOSSY, 0);
             }
-            // родники: вода в мшистой оправе
+            // родники в мшистой оправе
             for (int i = 0; i < 4; i++) {
-                int[] s = spring(i);
-                double sd = Math.sqrt((dx - s[0]) * (dx - s[0]) + (dz - s[1]) * (dz - s[1]));
+                int[] sp = spring(i);
+                double sd = Math.sqrt((dx - sp[0]) * (dx - sp[0]) + (dz - sp[1]) * (dz - sp[1]));
                 if (sd < 1.6) {
                     put(col, TOP, WATER, 0);
                     put(col, TOP - 1, MOSSY, 0);
@@ -426,41 +430,49 @@ public class WorldGenNests implements IWorldGenerator {
             double ad = Math.sqrt(dx * dx + (dz + ALTAR_DZ) * (dz + ALTAR_DZ));
             if (ad <= 2.5) put(col, TOP + 1, BRICK, 3);
             if (dx == 0 && dz == -ALTAR_DZ) put(col, TOP + 2, ALTAR, 0);
-            // корни по краю острова
-            if (r > 26 && r < rOut - 1 && Nest.noise(dx, dz, 4, 77 + salt) > 0.7) put(col, TOP + 1, LOG, 0);
-            return true;
         }
     }
 
-    // ---------------------------------------------------------------- колизей (Апалачия)
+    // ---------------------------------------------------------------- священная гора (Апалачия)
+
+    /** Курган: ярусы (полуширина квадрата и высота верха над полом); 0 - пол арены. */
+    public static final int[] TIER_R = { 0, 13, 8 }, TIER_H = { 0, 5, 10 };
+    public static final int MOUND_ALTAR = 20;
 
     /**
-     * Колизей на вершине Апалачии - арена Короля-воина: круглая площадка, кольцо трибун с четырьмя проходами и в центре
-     * ступенчатая пирамида в три яруса ({@link #TIER_R}, {@link #TIER_H}) с лестницами на все стороны. Каждую новую
-     * встречу Король начинает ярусом выше; бортов нет - волна сбрасывает на ярус ниже.
+     * Священная гора Апалачии - арена Короля-воина (по мотивам курганов индейцев Аппалачей): большой остров-вершина,
+     * вырванный из земли, с глубоким скальным низом; в центре ступенчатый земляной курган с плоским верхом и
+     * бревенчатыми лестницами на все стороны (каждую новую встречу Король начинает ярусом выше), вокруг тотемные столбы,
+     * костровища, хижины-вигвамы и частокол из брёвен с воротами и четырьмя вышками.
      */
-    static class Colosseum extends ColumnStructure {
+    static class Mound extends ColumnStructure {
 
-        static final int BRICK = 31, STAIRS = 32;
-        static final int R_ISLAND = 33, STANDS_IN = 25, STANDS_OUT = 31;
+        static final int STAIRS = 40, FENCE = 41, WOOL = 42, LAMP = 43, BRICK = 44;
+        static final int R_ISLAND = 44, PALISADE = 37, TOTEM_R = 21, TOTEMS = 8, HUT_R = 30, HUTS = 6;
+        private final TwilightWorld w = TwilightWorld.APALACHIA;
         private final int salt;
+        private final double torn;
 
-        Colosseum(int cx, int cz) {
+        Mound(int cx, int cz) {
             salt = hash(cx, cz) % 1000;
-        }
-
-        @Override
-        protected int metaOf(int code, int meta) {
-            return code == GLOW ? TwilightWorld.APALACHIA.lampMeta() : meta;
+            torn = salt / 1000.0 * Math.PI * 2;
         }
 
         @Override
         protected Block block(int code, int meta) {
             switch (code) {
+                case STAIRS: return TwilightBlocks.apalachiaStairs;
+                case FENCE: return Blocks.fence;
+                case WOOL: return Blocks.wool;
+                case LAMP: return w.lamp();
                 case BRICK: return Blocks.stonebrick;
-                case STAIRS: return Blocks.stone_brick_stairs;
-                default: return palette(TwilightWorld.APALACHIA, code);
+                default: return palette(w, code);
             }
+        }
+
+        @Override
+        protected int metaOf(int code, int meta) {
+            return code == LAMP || code == GLOW ? w.lampMeta() : meta;
         }
 
         @Override
@@ -471,70 +483,102 @@ public class WorldGenNests implements IWorldGenerator {
         @Override
         protected boolean column(int dx, int dz, int[] col) {
             double r = Math.sqrt(dx * dx + dz * dz);
-            double rOut = R_ISLAND + Nest.noise(dx, dz, 6, 19 + salt) * 2;
+            double rOut = R_ISLAND + Nest.noise(dx, dz, 7, 19 + salt) * 4;
             if (r > rOut) return false;
-            islandBase(dx, dz, r, rOut, salt, col);
+            tornBase(dx, dz, r, rOut, torn, salt, col, 1.5);
+            put(col, TOP, GRASS, 0);
+            for (int y = TOP + 1; y <= TOP + 40; y++) put(col, y, AIR, 0);
             int h = hash(dx + salt, dz);
-            put(col, TOP, r < STANDS_IN ? BRICK : GRASS, r < STANDS_IN ? (h % 7 == 0 ? 2 : h % 5 == 0 ? 1 : 0) : 0);
-            // трибуны: ступени вверх наружу, проходы по сторонам света
-            if (r >= STANDS_IN && r <= STANDS_OUT && !gate(dx, dz)) {
-                int lvl = Math.min(6, (int) ((r - STANDS_IN) * 1.2) + 1);
-                for (int y = TOP + 1; y <= TOP + lvl; y++) put(col, y, BRICK, 0);
-                if (r > STANDS_OUT - 1) for (int y = TOP + lvl + 1; y <= TOP + lvl + 2; y++) if (h % 4 != 0) put(col, y, BRICK, 2);
-            }
-            // пирамида: ярусы и лестницы по сторонам света
+            // курган: земляные ярусы с травой сверху, бревенчатые лестницы по сторонам света
+            int m = Math.max(Math.abs(dx), Math.abs(dz));
             int tier = 0;
-            for (int i = 1; i < TIER_R.length; i++) if (Math.max(Math.abs(dx), Math.abs(dz)) <= TIER_R[i]) tier = i;
-            if (tier > 0) for (int y = TOP + 1; y <= TOP + TIER_H[tier]; y++) put(col, y, BRICK, y == TOP + TIER_H[tier] ? 3 : 0);
+            for (int i = 1; i < TIER_R.length; i++) if (m <= TIER_R[i]) tier = i;
+            for (int y = TOP + 1; y <= TOP + TIER_H[tier]; y++) put(col, y, y == TOP + TIER_H[tier] ? GRASS : DIRT, 0);
+            if (tier == TIER_R.length - 1 && m == TIER_R[tier] && h % 3 == 0) put(col, TOP + TIER_H[tier] + 1, FENCE, 0); // ограда вершины
             for (int i = 1; i < TIER_R.length; i++) {
-                // ступени перед гранью яруса i (по одной оси, ширина 3)
-                int edge = TIER_R[i] + 1, rise = TIER_H[i] - TIER_H[i - 1];
-                for (int s = 0; s < rise; s++) {
-                    int dist = edge + s, y = TOP + TIER_H[i] - s;
+                int rise = TIER_H[i] - TIER_H[i - 1];
+                for (int st = 0; st < rise; st++) {
+                    int dist = TIER_R[i] + 1 + st, y = TOP + TIER_H[i] - st;
                     if (Math.abs(dz) <= 1 && Math.abs(dx) == dist) put(col, y, STAIRS, dx > 0 ? 1 : 0);
                     if (Math.abs(dx) <= 1 && Math.abs(dz) == dist) put(col, y, STAIRS, dz > 0 ? 3 : 2);
                 }
             }
-            // свет по краю арены
-            if (Math.abs(r - (STANDS_IN - 1.5)) < 0.5 && h % 9 == 0) put(col, TOP, GLOW, 0);
-            // помост с алтарём (за пирамидой, на полу)
-            double ad = Math.sqrt(dx * dx + (dz + ALTAR_DZ + 6) * (dz + ALTAR_DZ + 6));
+            // костровище на вершине и четыре у подножия
+            if (m <= 1 && tier == TIER_R.length - 1) put(col, TOP + TIER_H[tier], m == 0 ? LAMP : STONE, 0);
+            for (int i = 0; i < 4; i++) {
+                double fa = Math.PI / 4 + Math.PI / 2 * i;
+                double fd = Math.sqrt(Math.pow(dx - Math.cos(fa) * 17, 2) + Math.pow(dz - Math.sin(fa) * 17, 2));
+                if (fd < 0.7) put(col, TOP, LAMP, 0);
+                else if (fd < 1.8) put(col, TOP + 1, STONE, 0);
+            }
+            // тотемные столбы: бревно с "лицами" из камней мира и крыльями из досок наверху
+            double td = ringDist(dx, dz, TOTEM_R, TOTEMS, Math.PI / TOTEMS);
+            int tk = (int) Math.round((Math.atan2(dz, dx) - Math.PI / TOTEMS) / (Math.PI * 2 / TOTEMS));
+            int th = 10 + hash(tk & 7, salt) % 5;
+            if (td < 0.7) {
+                for (int y = TOP + 1; y <= TOP + th; y++) put(col, y, (y - TOP) % 4 == 3 ? GEM : LOG, 0);
+                put(col, TOP + th + 1, GEM, 0);
+            } else if (td < 1.8 && Math.abs(r - TOTEM_R) < 0.6) {
+                put(col, TOP + th - 1, PLANKS, 0); // крылья
+            }
+            // хижины-вигвамы: конусы из шкур (шерсть) на каркасе
+            double hd = ringDist(dx, dz, HUT_R, HUTS, Math.PI / HUTS + 0.2);
+            if (hd < 3.2 && !gate(dx, dz)) {
+                int hh = (int) Math.round(6 - hd * 1.6);
+                for (int y = TOP + 1; y <= TOP + hh; y++) {
+                    boolean shell = hd > 3.2 - 1.0 - (y - TOP) * 0.45;
+                    if (shell || y == TOP + hh) put(col, y, WOOL, (hash(y, dx + dz) % 3 == 0) ? 12 : 1); // коричневая/оранжевая
+                }
+                if (hd < 0.6) put(col, TOP + hh + 1, FENCE, 0); // шесты
+            }
+            // частокол: брёвна в ряд, заострённые верхушки, ворота по сторонам света
+            if (Math.abs(r - PALISADE) < 0.8 && !gate(dx, dz)) {
+                int ph = 5 + h % 2;
+                for (int y = TOP + 1; y <= TOP + ph; y++) put(col, y, LOG, 0);
+                put(col, TOP + ph + 1, FENCE, 0);
+            }
+            // вышки на диагоналях частокола
+            for (int i = 0; i < 4; i++) {
+                double va = Math.PI / 4 + Math.PI / 2 * i;
+                int vx = (int) Math.round(Math.cos(va) * PALISADE), vz = (int) Math.round(Math.sin(va) * PALISADE);
+                int ox = Math.abs(dx - vx), oz = Math.abs(dz - vz);
+                if (ox <= 2 && oz <= 2) {
+                    boolean corner = ox == 2 && oz == 2;
+                    if (corner) for (int y = TOP + 1; y <= TOP + 12; y++) put(col, y, LOG, 0);
+                    put(col, TOP + 9, PLANKS, 0); // площадка
+                    if ((ox == 2 || oz == 2) && !corner) put(col, TOP + 10, FENCE, 0);
+                    put(col, TOP + 13, PLANKS, 0); // крыша
+                    if (ox == 0 && oz == 0) put(col, TOP + 10, LAMP, 0);
+                }
+            }
+            // помост с алтарём у северных ворот кургана
+            double ad = Math.sqrt(dx * dx + (dz + MOUND_ALTAR) * (dz + MOUND_ALTAR));
             if (ad <= 2.5) put(col, TOP + 1, BRICK, 3);
-            if (dx == 0 && dz == -ALTAR_DZ - 6) put(col, TOP + 2, ALTAR, 0);
+            if (dx == 0 && dz == -MOUND_ALTAR) put(col, TOP + 2, ALTAR, 0);
             return true;
         }
-    }
-
-    /** Ярусы пирамиды колизея: полуширина и высота над полом (0 - пол арены). */
-    public static final int[] TIER_R = { 22, 11, 6 }, TIER_H = { 0, 4, 8 };
-
-    /** Сдвиг алтаря от центра к северу: в колизее дальше (центр занят пирамидой). */
-    public static int altarDz(TwilightWorld w) {
-        return w == TwilightWorld.APALACHIA ? ALTAR_DZ + 6 : ALTAR_DZ;
     }
 
     // ---------------------------------------------------------------- храм ветров (Скайтерн)
 
     /**
-     * Храм ветров Скайтерна - арена Повелителя ветров вместо рощи: парящий остров с мраморным стилобатом, кольцом из
-     * шестнадцати высоких колонн под общим антаблементом (без крыши - бой под небом), алтарём на помосте у северной
-     * стороны и четырьмя колоннами-постаментами для ветряных тотемов на разной высоте
+     * Храм ветров Скайтерна - арена Повелителя ветров вместо рощи: вырванный из земли остров (как у рощи Эдема), мраморный
+     * стилобат, кольцо из шестнадцати толстых колонн высотой с деревья Эдема под общим антаблементом (без крыши - бой под
+     * небом), алтарь на помосте у северной стороны и четыре колонны-постамента для ветряных тотемов на разной высоте
      * ({@link com.divinerpgextended.entity.EntityWindLord#HEIGHTS}), с лестницей по внешней грани и облачной площадкой
-     * сверху. Вокруг стилобата - травяная терраса, чтобы порыв не сразу скидывал с острова.
+     * сверху. Вокруг стилобата - травяная терраса, чтобы порыв не сразу скидывал с острова. Над колоннадой верхние
+     * пласты мира пробиты колодцем к небу.
      */
     static class Temple extends ColumnStructure {
 
         static final int MARBLE = 20, LADDER = 21, CLOUD = 22, SLAB = 23;
-        static final int R_ISLAND = 32, STYLO = 25, PERI = 21, COLS = 16, COL_H = 15;
+        static final int R_ISLAND = 40, STYLO = 31, PERI = 26, COLS = 16, COL_H = 32;
         private final int salt;
+        private final double torn;
 
         Temple(int cx, int cz) {
             salt = hash(cx, cz) % 1000;
-        }
-
-        @Override
-        protected int metaOf(int code, int meta) {
-            return code == GLOW ? TwilightWorld.SKYTHERN.lampMeta() : meta;
+            torn = salt / 1000.0 * Math.PI * 2;
         }
 
         @Override
@@ -549,6 +593,11 @@ public class WorldGenNests implements IWorldGenerator {
         }
 
         @Override
+        protected int metaOf(int code, int meta) {
+            return code == GLOW ? TwilightWorld.SKYTHERN.lampMeta() : meta;
+        }
+
+        @Override
         protected boolean lit(Block b) {
             return isLamp(b) || b == ModBlocks.nestAltar;
         }
@@ -558,31 +607,32 @@ public class WorldGenNests implements IWorldGenerator {
             double r = Math.sqrt(dx * dx + dz * dz);
             double rOut = R_ISLAND + Nest.noise(dx, dz, 6, 17 + salt) * 3;
             if (r > rOut) return false;
-            // основание: каменный клин вниз, рваный по краю
-            double t = r / rOut;
-            int bottom = TOP - 3 - (int) (22 * Math.sqrt(Math.max(0, 1 - t * t)) + Nest.noise(dx, dz, 4, 29 + salt) * 6);
-            for (int y = bottom; y <= TOP - 2; y++) put(col, y, hash(dx * 17 + y, dz + salt) % 100 < 12 ? DIRT : STONE, 0);
-            put(col, TOP - 1, DIRT, 0);
-            for (int y = TOP + 1; y <= TOP + 40; y++) put(col, y, AIR, 0);
+            tornBase(dx, dz, r, rOut, torn, salt, col, 1.3);
+            for (int y = TOP + 1; y <= TOP + COL_H + 8; y++) put(col, y, AIR, 0);
+            // колодец к небу над колоннадой: верхние пласты Скайтерна пробиты, в храм падает свет
+            if (r < PERI - 2) for (int y = TOP + COL_H + 9; y <= TOP + 100; y++) put(col, y, AIR, 0);
             if (r > STYLO + 1.5) {
                 put(col, TOP, GRASS, 0); // терраса
                 return true;
             }
-            // стилобат: мрамор, кольца узора и кайма из резного мрамора
-            boolean border = r > STYLO - 0.5 || Math.abs(r - 9) < 0.5 || Math.abs(r - 17) < 0.5;
+            // стилобат: мрамор, кольца узора, кайма и ступень по краю
+            boolean border = r > STYLO - 0.5 || Math.abs(r - 10) < 0.5 || Math.abs(r - 20) < 0.5;
             put(col, TOP, MARBLE, border ? 1 : 0);
-            if (r < 1.2 || ringDist(dx, dz, 9, 8, Math.PI / 8) < 0.6) put(col, TOP, GLOW, 0);
-            if (r > STYLO - 0.5) put(col, TOP + 1, SLAB, 7); // низкая ступень по краю
-            // колоннада: база, ствол из столбового мрамора, капитель, сверху общий антаблемент
+            if (r < 1.2 || ringDist(dx, dz, 10, 8, Math.PI / 8) < 0.6) put(col, TOP, GLOW, 0);
+            if (r > STYLO - 0.5) put(col, TOP + 1, SLAB, 7);
+            // колоннада: база, толстый ствол из столбового мрамора, капитель, сверху антаблемент
             double cd = ringDist(dx, dz, PERI, COLS, 0);
-            if (cd < 1.8) put(col, TOP + 1, MARBLE, 1);
-            if (cd < 1.25) for (int y = TOP + 2; y < TOP + COL_H; y++) put(col, y, MARBLE, 2);
-            if (cd < 1.8) put(col, TOP + COL_H, MARBLE, 1);
-            if (Math.abs(r - PERI) < 1.6) {
+            if (cd < 3.0) put(col, TOP + 1, MARBLE, 1);
+            if (cd < 2.6) put(col, TOP + 2, MARBLE, 1);
+            if (cd < 2.1) for (int y = TOP + 3; y < TOP + COL_H - 1; y++) put(col, y, MARBLE, 2);
+            if (cd < 2.6) put(col, TOP + COL_H - 1, MARBLE, 1);
+            if (cd < 3.0) put(col, TOP + COL_H, MARBLE, 1);
+            if (Math.abs(r - PERI) < 2.6) {
                 put(col, TOP + COL_H + 1, MARBLE, 0);
-                put(col, TOP + COL_H + 2, MARBLE, ((int) Math.round(Math.atan2(dz, dx) * 20)) % 3 == 0 ? 1 : 0); // фриз
+                put(col, TOP + COL_H + 2, MARBLE, ((int) Math.round(Math.atan2(dz, dx) * 24)) % 3 == 0 ? 1 : 0); // фриз
+                put(col, TOP + COL_H + 3, MARBLE, 0);
             }
-            if (Math.abs(r - PERI) < 2.3) put(col, TOP + COL_H + 3, SLAB, 7); // карниз
+            if (Math.abs(r - PERI) < 3.4) put(col, TOP + COL_H + 4, SLAB, 7); // карниз
             // помост с алтарём к северу
             double ad = Math.sqrt(dx * dx + (dz + ALTAR_DZ) * (dz + ALTAR_DZ));
             if (ad <= 2.5) put(col, TOP + 1, MARBLE, 1);
@@ -592,15 +642,14 @@ public class WorldGenNests implements IWorldGenerator {
                 double a = Math.PI / 4 + Math.PI / 2 * i;
                 int px = (int) Math.round(Math.cos(a) * com.divinerpgextended.entity.EntityWindLord.TOTEM_R);
                 int pz = (int) Math.round(Math.sin(a) * com.divinerpgextended.entity.EntityWindLord.TOTEM_R);
-                int h = com.divinerpgextended.entity.EntityWindLord.HEIGHTS[i];
+                int ph = com.divinerpgextended.entity.EntityWindLord.HEIGHTS[i];
                 int sx = px > 0 ? 1 : -1;
                 int ox = dx - px, oz = dz - pz;
                 if (Math.abs(ox) <= 1 && Math.abs(oz) <= 1) {
-                    for (int y = TOP + 1; y < TOP + h; y++) put(col, y, MARBLE, 2);
-                    put(col, TOP + h, CLOUD, 0);
+                    for (int y = TOP + 1; y < TOP + ph; y++) put(col, y, MARBLE, 2);
+                    put(col, TOP + ph, CLOUD, 0);
                 } else if (ox == 2 * sx && oz == 0) {
-                    // лестница к внешней грани постамента (висит на блоке ближе к центру постамента)
-                    for (int y = TOP + 1; y < TOP + h; y++) put(col, y, LADDER, sx > 0 ? 5 : 4);
+                    for (int y = TOP + 1; y < TOP + ph; y++) put(col, y, LADDER, sx > 0 ? 5 : 4);
                 }
             }
             return true;

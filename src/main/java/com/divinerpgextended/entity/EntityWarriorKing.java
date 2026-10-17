@@ -26,7 +26,7 @@ import com.divinerpgextended.world.CadillionWorld;
  * туда (успей отойти);</li>
  * <li>+ свита: големы и кадиллионы Апалачии.</li>
  * </ol>
- * Трофеи - только после третьей победы. В колизее каждая следующая встреча начинается ярусом выше на пирамиде.
+ * Трофеи - только после третьей победы. На священной горе каждая следующая встреча начинается ярусом выше на кургане.
  */
 public class EntityWarriorKing extends EntityGroveGuardian {
 
@@ -189,15 +189,15 @@ public class EntityWarriorKing extends EntityGroveGuardian {
         }
     }
 
-    /** В колизее новая встреча начинается ярусом выше: прыжок на вершину яруса пирамиды. */
+    /** На священной горе новая встреча начинается ярусом выше: прыжок на верх яруса кургана. */
     private void climbTier() {
         int[] home = com.divinerpgextended.boss.LairSummons.home(this);
         int r = round();
         if (home == null || r >= com.divinerpgextended.world.twilight.WorldGenNests.TIER_H.length) return;
         int y = home[1] + com.divinerpgextended.world.twilight.WorldGenNests.TIER_H[r];
-        if (worldObj.getBlock(home[0], y - 1, home[2]) != net.minecraft.init.Blocks.stonebrick) return; // не колизей
+        if (worldObj.isAirBlock(home[0] + 3, y - 1, home[2])) return; // не курган - ярусов нет
         ((WorldServer) worldObj).func_147487_a("largeexplode", posX, posY + 1, posZ, 2, 0.5, 0.5, 0.5, 0);
-        setPositionAndUpdate(home[0] + 0.5, y, home[2] + 0.5);
+        setPositionAndUpdate(home[0] + 3.5, y, home[2] + 0.5); // центр вершины - костровище
         worldObj.playSoundAtEntity(this, "mob.enderdragon.wings", 2.0F, 0.8F);
     }
 

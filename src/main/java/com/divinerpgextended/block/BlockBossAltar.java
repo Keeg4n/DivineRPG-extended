@@ -106,10 +106,10 @@ public class BlockBossAltar extends Block {
         net.minecraft.entity.EntityLiving boss = com.divinerpgextended.entity.EntityGroveGuardian.create(world, w);
         com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.values()[w.ordinal()];
         int dzOff = com.divinerpgextended.world.twilight.WorldGenNests.altarDz(tw);
-        // в колизее центр занят пирамидой - Король встаёт на пол перед алтарём
-        int spawnDz = tw == com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA ? 3 : dzOff;
-        boss.setLocationAndAngles(x + 0.5, y - 1, z + 0.5 + spawnDz, 0, 0);
-        com.divinerpgextended.boss.LairSummons.leash(boss, x, y - 1, z + dzOff, 20);
+        // на кургане центр занят курганом - Король встаёт на пол сбоку от алтаря, мимо лестницы
+        boolean mound = tw == com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA;
+        boss.setLocationAndAngles(x + 0.5 + (mound ? 4 : 0), y - 1, z + 0.5 + (mound ? 3 : dzOff), 0, 0);
+        com.divinerpgextended.boss.LairSummons.leash(boss, x, y - 1, z + dzOff, com.divinerpgextended.world.twilight.WorldGenNests.leashRadius(tw));
         world.spawnEntityInWorld(boss);
         world.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, "mob.wither.spawn", 0.6F, 0.8F);
         com.divinerpgextended.audit.Audit.log(player, "Summon", "Страж рощи (" + w.key() + ") на алтаре гнезда");

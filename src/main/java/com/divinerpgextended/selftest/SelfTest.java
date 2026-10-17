@@ -1662,19 +1662,20 @@ public class SelfTest {
             int az = c[2] - com.divinerpgextended.world.twilight.WorldGenNests.ALTAR_DZ;
             String log = "";
             boolean altar = w.getBlock(c[0], top + 2, az) == com.divinerpgextended.registry.ModBlocks.nestAltar;
-            boolean column = w.getBlock(c[0] + 21, top + 8, c[2]) == Blocks.quartz_block;
+            boolean column = w.getBlock(c[0] + 26, top + 20, c[2]) == Blocks.quartz_block;
             boolean open = w.isAirBlock(c[0], top + 10, c[2]);
             int clouds = 0, ladders = 0;
             for (int i = 0; i < 4; i++) {
                 double a = Math.PI / 4 + Math.PI / 2 * i;
-                int px = c[0] + (int) Math.round(Math.cos(a) * 13), pz = c[2] + (int) Math.round(Math.sin(a) * 13);
+                int px = c[0] + (int) Math.round(Math.cos(a) * com.divinerpgextended.entity.EntityWindLord.TOTEM_R),
+                    pz = c[2] + (int) Math.round(Math.sin(a) * com.divinerpgextended.entity.EntityWindLord.TOTEM_R);
                 int h = com.divinerpgextended.entity.EntityWindLord.HEIGHTS[i];
                 if (w.getBlock(px, top + h, pz) == com.divinerpgextended.registry.ModBlocks.cloud) clouds++;
                 int lsx = px > c[0] ? 1 : -1;
                 if (w.getBlock(px + 2 * lsx, top + 1, pz) == Blocks.ladder && w.getBlock(px + 2 * lsx, top + h - 1, pz) == Blocks.ladder) ladders++;
             }
             log = "алтарь " + altar + ", колонна " + column + ", над центром пусто " + open + ", облачных площадок " + clouds + ", лестниц " + ladders;
-            dump(w, c[0], top, c[2], 36, "temple-skythern");
+            dump(w, c[0], top, c[2], 46, "temple-skythern");
             // Зов на алтаре - Повелитель ветров, тотемы встают на площадки
             TestPlayer v = player(dim, "TestTemple", c[0], top + 1, az + 2);
             hold(v, new ItemStack(com.divinerpgextended.registry.ModItems.cadillionCall, 1, 3));
@@ -1712,7 +1713,7 @@ public class SelfTest {
             int mossy = 0;
             for (int i = -24; i <= 24; i++) for (int k2 = -24; k2 <= 24; k2++)
                 if (w.getBlock(c[0] + i, top + 3, c[2] + k2) == Blocks.mossy_cobblestone) mossy++;
-            dump(w, c[0], top, c[2], 36, "henge-wildwood");
+            dump(w, c[0], top, c[2], 48, "henge-wildwood");
             // вызов: голем на привязи, игрок в сете Дикого леса стоит в роднике
             TestPlayer v = player(dim, "TestHenge", c[0], top + 1, az + 2);
             hold(v, new ItemStack(com.divinerpgextended.registry.ModItems.cadillionCall, 1, 1));
@@ -1746,7 +1747,7 @@ public class SelfTest {
                 log + ", вылечил " + healed + ", гейзер " + up + ", родник уснул " + asleep);
             return "капище: алтарь, менгиры и укрытия из мшистого камня, 4 родника; в сете Дикого леса родник лечит (+" + healed + "), через 1.5 с гейзер выкидывает, родник засыпает";
         });
-        t("Логова", "Колизей и ярусы", () -> {
+        t("Логова", "Священная гора и ярусы", () -> {
             int dim = ConfigurationHelper.apalachia;
             WorldServer w = server.worldServerForDimension(dim);
             int[] c = com.divinerpgextended.world.twilight.WorldGenNests.nearest(w.getSeed(), dim, 0, 0);
@@ -1754,16 +1755,17 @@ public class SelfTest {
             int top = com.divinerpgextended.world.twilight.WorldGenNests.TOP;
             int az = c[2] - com.divinerpgextended.world.twilight.WorldGenNests.altarDz(com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA);
             boolean altar = w.getBlock(c[0], top + 2, az) == com.divinerpgextended.registry.ModBlocks.nestAltar;
-            boolean summit = w.getBlock(c[0], top + 8, c[2]) == Blocks.stonebrick && w.isAirBlock(c[0], top + 9, c[2]);
-            boolean stairs = w.getBlock(c[0] + 12, top + 4, c[2]) == Blocks.stone_brick_stairs;
-            boolean stands = w.getBlock(c[0] + 30, top + 5, c[2] + 6) == Blocks.stonebrick;
-            dump(w, c[0], top, c[2], 36, "colosseum-apalachia");
+            boolean summit = w.getBlock(c[0] + 3, top + 10, c[2]) == net.divinerpg.utils.blocks.TwilightBlocks.apalachiaGrass && w.isAirBlock(c[0] + 3, top + 11, c[2]);
+            boolean stairs = w.getBlock(c[0] + 14, top + 5, c[2]) == net.divinerpg.utils.blocks.TwilightBlocks.apalachiaStairs;
+            boolean stands = w.getBlock(c[0] + 32, top + 3, c[2] + 18) == net.divinerpg.utils.blocks.TwilightBlocks.apalachiaLogs
+                || w.getBlock(c[0] + 32, top + 3, c[2] + 19) == net.divinerpg.utils.blocks.TwilightBlocks.apalachiaLogs;
+            dump(w, c[0], top, c[2], 48, "mound-apalachia");
             TestPlayer v = player(dim, "TestColosseum", c[0], top + 1, az + 2);
             hold(v, new ItemStack(com.divinerpgextended.registry.ModItems.cadillionCall, 1, 2));
             w.getBlock(c[0], top + 2, az).onBlockActivated(w, c[0], top + 2, az, v, 1, 0.5F, 0.5F, 0.5F);
             java.util.List<?> kl = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityWarriorKing.class,
-                net.minecraft.util.AxisAlignedBB.getBoundingBox(c[0] - 6, top - 2, az - 2, c[0] + 6, top + 12, az + 8));
-            String log = "алтарь " + altar + ", вершина " + summit + ", лестница " + stairs + ", трибуны " + stands + ", королей у алтаря " + kl.size();
+                net.minecraft.util.AxisAlignedBB.getBoundingBox(c[0] - 6, top - 2, az - 2, c[0] + 8, top + 12, az + 8));
+            String log = "алтарь " + altar + ", вершина " + summit + ", лестница " + stairs + ", частокол " + stands + ", королей у алтаря " + kl.size();
             double y2 = 0;
             if (kl.size() == 1) {
                 com.divinerpgextended.entity.EntityWarriorKing k3 = (com.divinerpgextended.entity.EntityWarriorKing) kl.get(0);
@@ -1772,8 +1774,8 @@ public class SelfTest {
                 y2 = k3.posY - (top + 1);
                 k3.setDead();
             }
-            check(altar && summit && stairs && stands && kl.size() == 1 && Math.abs(y2 - 4) < 0.6, log + ", 2-я встреча на высоте " + y2);
-            return "колизей: трибуны, пирамида в 3 яруса с лестницами, алтарь на полу; Король у алтаря, 2-ю встречу начинает на ярусе +4";
+            check(altar && summit && stairs && stands && kl.size() == 1 && Math.abs(y2 - 5) < 0.6, log + ", 2-я встреча на высоте " + y2);
+            return "священная гора: курган в 3 уровня с лестницами, частокол, алтарь на полу; Король у алтаря, 2-ю встречу начинает на ярусе +5";
         });
         t("Логова", "Глыба крошит укрытие", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
@@ -2286,6 +2288,26 @@ public class SelfTest {
             g2.setDead();
             check(boulders > 0, "глыб за 6.5 с при цели в 18 блоках: " + boulders);
             return "цель держится в 18 блоках - голем вырывает и швыряет глыбу";
+        });
+        t("Логова", "Голем против лучника", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
+            loadAround(w, 9620, 9640, 2);
+            TestPlayer av = join(player(ConfigurationHelper.wildwood, "TestArcher", 9636.5, 100, 9640.5), true);
+            com.divinerpgextended.entity.EntityAncientGolem g4 = new com.divinerpgextended.entity.EntityAncientGolem(w);
+            g4.setPosition(9620.5, 100, 9640.5);
+            w.spawnEntityInWorld(g4);
+            net.minecraft.entity.projectile.EntityArrow ar2 = new net.minecraft.entity.projectile.EntityArrow(w);
+            ar2.setPosition(g4.posX + 1.6, g4.posY + 1, g4.posZ); // в ногу
+            av.motionX = 0;
+            g4.attackEntityFrom(net.minecraft.util.DamageSource.causeArrowDamage(ar2, av), 5);
+            double pull = av.motionX; // голем западнее - тянет на -x
+            av.motionX = 0;
+            g4.hurtResistantTime = 0;
+            g4.attackEntityFrom(net.minecraft.util.DamageSource.causeArrowDamage(ar2, av), 5);
+            double again = av.motionX; // сразу второй раз - перезарядка
+            g4.setDead();
+            check(pull < -0.5 && again == 0, "рывок к голему " + pull + ", повторно сразу " + again);
+            return "стрела издалека - лиана подтягивает стрелка к голему (не чаще раза в 3 с)";
         });
         t("Логова", "Король: прыжок ввысь", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);

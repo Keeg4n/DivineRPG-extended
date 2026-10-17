@@ -26,8 +26,8 @@ import com.divinerpgextended.world.CadillionWorld;
  */
 public class EntityWindLord extends EntityGroveGuardian {
 
-    public static final int[] HEIGHTS = { 5, 9, 13, 17 };
-    public static final int TOTEM_R = 13, CHARGE = 60, HOVER = 8, MAX_ADDS = 5;
+    public static final int[] HEIGHTS = { 6, 12, 18, 24 };
+    public static final int TOTEM_R = 15, CHARGE = 60, HOVER = 12, MAX_ADDS = 5;
     public static final float SCALE = 2.5F;
     /** Свой урон: только от молнии тотема. */
     public static final DamageSource TOTEM = new DamageSource("dreWindTotem").setDamageBypassesArmor();

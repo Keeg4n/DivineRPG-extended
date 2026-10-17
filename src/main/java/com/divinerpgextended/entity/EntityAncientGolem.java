@@ -46,7 +46,10 @@ public class EntityAncientGolem extends EntityGroveGuardian {
 
     private final float[] partHp = new float[4];
     private int stompTimer = 120, lashTimer = 80, packTimer = 160, lastPunch = -100, stagger;
-    private int boulderTimer = 60, leapTimer = 100, pullTimer = 200;
+    private int boulderTimer = 60, leapTimer = 100, pullTimer = 200, answerTimer;
+    /** Ответ стрелку: дальше этого - лиана подтягивает, перезарядка ответа (тики). */
+    public static final double ARCHER_DIST = 6;
+    public static final int ANSWER_CD = 60;
     private boolean leaping;
     /** Родники капища: когда каждый снова проснётся (время мира) и кто сколько в нём стоит. */
     private final long[] springWake = new long[4];
@@ -146,6 +149,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         }
         if (src.getEntity() instanceof EntityPlayer && com.divinerpgextended.perk.HomeArmor.wears((EntityPlayer) src.getEntity(), TwilightWorld.WILDWOOD, false))
             amount *= TRACKER_BONUS;
+        answerArcher(src);
         amount = Math.min(amount, partHp[part]);
         float before = getHealth();
         boolean ok = super.attackEntityFrom(src, amount);
@@ -178,7 +182,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         ((WorldServer) worldObj).func_147487_a("blockcrack_" + logId + "_0", posX, y, posZ, 60, 1.2, 0.8, 1.2, 0.2);
         if (part == LEGS) {
             setSize(3.4F, 4.4F); // осел на корпус
-            getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.12D);
+            getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.2D);
         }
         if (coreOpen()) worldObj.playSoundAtEntity(this, "mob.zombie.woodbreak", 2.0F, 0.5F);
         // шатается 2 с: видно, что что-то отвалилось
@@ -204,6 +208,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
             return;
         }
         springs();
+        if (answerTimer > 0) answerTimer--;
         if (stagger > 0) {
             stagger--;
             motionX = motionZ = 0;
@@ -320,6 +325,18 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         return worldObj.getTotalWorldTime() >= springWake[i];
     }
 
+    /** Стрелок издалека получает ответ: лиана подтягивает его к голему (или глыба, если лиане не дотянуться). */
+    private void answerArcher(DamageSource src) {
+        if (!src.isProjectile() || !(src.getEntity() instanceof EntityPlayer) || answerTimer > 0) return;
+        EntityPlayer p = (EntityPlayer) src.getEntity();
+        double d = p.getDistanceToEntity(this);
+        if (d < ARCHER_DIST) return;
+        answerTimer = ANSWER_CD;
+        setAttackTarget(p);
+        if (d < 24 || (broken(ARM_R) && broken(ARM_L))) lash(p);
+        else throwBoulder(p);
+    }
+
     /** Вырвать глыбу из земли и швырнуть дугой в цель. */
     private void throwBoulder(EntityLivingBase t) {
         EntityBoulder b = new EntityBoulder(worldObj, this, (float) getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue() * 0.7F);
@@ -416,7 +433,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         if (tag.hasKey("Part0")) for (int i = 0; i < 4; i++) partHp[i] = tag.getFloat("Part" + i);
         if (broken(LEGS)) {
             setSize(3.4F, 4.4F);
-            getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.12D);
+            getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.2D);
         }
     }
 }
