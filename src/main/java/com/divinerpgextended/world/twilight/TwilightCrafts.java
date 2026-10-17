@@ -90,7 +90,7 @@ public final class TwilightCrafts {
     }
 
     /** Вещи перед Эдемом: божественная броня, меч и инструменты верхнего мира, ванильный лук; фазера и блица нет. */
-    private static Item[] prevArmor(TwilightWorld w) {
+    public static Item[] prevArmor(TwilightWorld w) {
         if (w == TwilightWorld.EDEN) return new Item[] { VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots };
         return TwilightWorld.values()[w.ordinal() - 1].armor();
     }

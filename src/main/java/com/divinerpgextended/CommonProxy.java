@@ -68,6 +68,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.LairSummons());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.HomeArmor());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.MiningTiers());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.TwilightOreBonus());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.TwilightDrops());
         com.divinerpgextended.perk.HomingArrows homing = new com.divinerpgextended.perk.HomingArrows();
         MinecraftForge.EVENT_BUS.register(homing);

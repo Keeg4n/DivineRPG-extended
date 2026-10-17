@@ -11,9 +11,10 @@ import com.divinerpgextended.world.twilight.TwilightWorld;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Броня дома: полный сет сумеречного мира в своём мире (Эдем в Эдеме, Вайлдвуд в Вайлдвуде...) снижает урон от мобов
- * на {@link #CUT}, закалённый ({@link com.divinerpgextended.item.TemperRecipe}) - на {@link #TEMPERED_CUT} и защищает от
- * приёма кадиллиона своего мира. Ради неё сет мира стоит собрать и закалить, прежде чем лезть к его боссу.
+ * Броня дома: сет сумеречного мира в своём мире (Эдем в Эдеме, Вайлдвуд в Вайлдвуде...) снижает урон от мобов - полный
+ * на {@link #CUT}, закалённый ({@link com.divinerpgextended.item.TemperRecipe}) - на {@link #TEMPERED_CUT}; считается по
+ * частям (четверть за часть). Сет прошлого мира цепочки (в Эдеме - божественный) даёт полуступень - вдвое меньше.
+ * Полный закалённый сет защищает от приёма кадиллиона своего мира.
  */
 public class HomeArmor {
 
@@ -28,6 +29,22 @@ public class HomeArmor {
             if (tempered && !com.divinerpgextended.item.TemperRecipe.tempered(s)) return false;
         }
         return true;
+    }
+
+    /** Насколько броня снижает урон мобов в этом мире: части своего мира и, вдвое слабее, прошлого мира цепочки. */
+    public static float cut(EntityPlayer p) {
+        TwilightWorld tw = TwilightWorld.of(p.dimension);
+        if (tw == null) return 0;
+        Item[] own = tw.armor(), prev = com.divinerpgextended.world.twilight.TwilightCrafts.prevArmor(tw);
+        float c = 0;
+        for (int i = 0; i < 4; i++) {
+            ItemStack s = p.getCurrentArmor(3 - i);
+            if (s == null) continue;
+            float part = (com.divinerpgextended.item.TemperRecipe.tempered(s) ? TEMPERED_CUT : CUT) / 4;
+            if (s.getItem() == own[i]) c += part;
+            else if (s.getItem() == prev[i]) c += part / 2;
+        }
+        return c;
     }
 
     public static boolean atHome(EntityPlayer p) {
@@ -69,8 +86,8 @@ public class HomeArmor {
             return;
         }
         if (!(e.source.getEntity() instanceof EntityLivingBase) || e.source.getEntity() instanceof EntityPlayer) return;
-        if (!atHome(p)) return;
-        float cut = wears(p, TwilightWorld.of(p.dimension), true) ? TEMPERED_CUT : CUT;
+        float cut = cut(p);
+        if (cut <= 0) return;
         e.ammount *= 1 - cut;
         com.divinerpgextended.debug.Debug.note(e.entityLiving, "Броня дома: урон мобов x" + (1 - cut));
     }

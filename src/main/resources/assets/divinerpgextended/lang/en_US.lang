@@ -894,3 +894,4 @@ dre.tooltip.guardian_heart=Great Cadillion trophy. Surround with 8 world gem blo
 dre.chat.gate_incomplete=The frame is not complete: a 4 x 5 rectangle of gate stones without corners, empty inside.
 dre.tooltip.pick_tier=Mines ore: %s, stone: up to %s
 dre.tooltip.pick_stone=Mines %s stone, not twilight ores
+dre.tooltip.ore_piece=More fragments from twilight ore (per piece)

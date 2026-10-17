@@ -1808,8 +1808,42 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(ev);
             armor(v, null, null, null, null);
             armor(o, null, null, null, null);
-            check(home && !away && Math.abs(ev.ammount - 7) < 0.6, "дома " + home + ", в чужом мире " + away + ", урон моба 10 > " + ev.ammount);
-            return "сет Эдема в Эдеме: урон мобов x0.7; в другом мире бонуса нет";
+            // полуступени: божественный сет в Эдеме - вдвое слабее родного; смешанный - по частям
+            armor(v, VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots);
+            float divine = com.divinerpgextended.perk.HomeArmor.cut(v);
+            armor(v, net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots);
+            float mixed = com.divinerpgextended.perk.HomeArmor.cut(v);
+            armor(o, net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet, net.divinerpg.utils.items.TwilightItemsArmor.edenChestplate,
+                net.divinerpg.utils.items.TwilightItemsArmor.edenLeggings, net.divinerpg.utils.items.TwilightItemsArmor.edenBoots);
+            float edenInWild = com.divinerpgextended.perk.HomeArmor.cut(o);
+            armor(v, null, null, null, null);
+            armor(o, null, null, null, null);
+            check(home && !away && Math.abs(ev.ammount - 7) < 0.6 && Math.abs(divine - 0.15F) < 0.01 && Math.abs(mixed - 0.1875F) < 0.01
+                && Math.abs(edenInWild - 0.15F) < 0.01, "дома " + home + ", в чужом мире " + away + ", урон моба 10 > " + ev.ammount
+                + "; божественный в Эдеме " + divine + ", шлем Эдема + божественный " + mixed + ", Эдем в Диком лесу " + edenInWild);
+            return "сет Эдема в Эдеме: урон мобов x0.7; божественный в Эдеме и Эдема в Диком лесу - x0.85 (полуступень); смешанный - по частям";
+        });
+        t("Броня", "Руда по частям", () -> {
+            TestPlayer ov = player(ConfigurationHelper.wildwood, "TestOreBonus", 9910, 100, 9910);
+            Item[] wild = com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD.armor(), eden = com.divinerpgextended.world.twilight.TwilightWorld.EDEN.armor();
+            Item[][] sets = { { null, null, null, null }, { eden[0], wild[1], wild[2], wild[3] }, eden, { wild[0], null, null, null } };
+            float[] avg = new float[sets.length];
+            for (int si = 0; si < sets.length; si++) {
+                armor(ov, sets[si][0], sets[si][1], sets[si][2], sets[si][3]);
+                int total = 0;
+                for (int i = 0; i < 200; i++) {
+                    java.util.ArrayList<ItemStack> drops = new java.util.ArrayList<ItemStack>();
+                    drops.add(new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.wildwoodFragments));
+                    MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent(9910, 99, 9910, ov.worldObj,
+                        net.divinerpg.utils.blocks.TwilightBlocks.wildwoodOre, 0, 0, 1.0F, drops, ov, false));
+                    total += drops.size();
+                }
+                avg[si] = total / 200F;
+            }
+            armor(ov, null, null, null, null);
+            check(Math.abs(avg[0] - 1) < 0.01 && Math.abs(avg[1] - 4) < 0.01 && Math.abs(avg[2] - 4) < 0.01 && avg[3] > 1.5 && avg[3] < 2.0,
+                "без брони " + avg[0] + ", шлем Эдема + Дикий лес " + avg[1] + ", сет Эдема " + avg[2] + ", один шлем " + avg[3]);
+            return "осколков с руды: без брони 1, смешанный сет 4, сет Эдема 4 (как в Divine), одна часть ~1.75";
         });
         t("Прохождение", "Материалы с мобов", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
