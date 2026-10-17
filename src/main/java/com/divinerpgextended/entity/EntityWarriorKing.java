@@ -20,9 +20,10 @@ import com.divinerpgextended.world.CadillionWorld;
  * Король-воин Апалачии, страж рощи - босс-эскалация: три встречи подряд. Упав, он не умирает, а встаёт на колено
  * (неуязвим, {@link #KNEEL} тиков) и поднимается сильнее:
  * <ol>
- * <li>дуэль: клинок и выпад к цели;</li>
+ * <li>дуэль: клинок, выпад к цели и прыжок за спину с ударом;</li>
  * <li>+ ударная волна: замах, потом кольцо отбрасывает всех рядом далеко в сторону - с острова можно слететь
- * (Каменная стена, сет Апалачии, держит на месте);</li>
+ * (Каменная стена, сет Апалачии, держит на месте); прыжок ввысь - зависает над целью, на земле метка, потом обрушивается
+ * туда (успей отойти);</li>
  * <li>+ свита: големы и кадиллионы Апалачии.</li>
  * </ol>
  * Трофеи - только после третьей победы.
@@ -36,6 +37,12 @@ public class EntityWarriorKing extends EntityGroveGuardian {
     private static final int DW_ROUND = 21, DW_KNEEL = 22;
 
     private int dashTimer = 80, waveTimer = 140, windup = -1, retinueTimer = 60, lastSlash = -100;
+    private int behindTimer = 120, slamTimer = 200, slamState, slamHold;
+    private boolean behindLeap;
+    private double markX, markY, markZ;
+    /** Прыжок ввысь: подъём, зависание, удар. */
+    public static final int SLAM_UP = 1, SLAM_HOLD = 2, SLAM_DOWN = 3, HOLD_TICKS = 30;
+    public static final double SLAM_R = 3.5;
 
     public EntityWarriorKing(World world) {
         super(world);
@@ -66,6 +73,10 @@ public class EntityWarriorKing extends EntityGroveGuardian {
     /** Номер встречи: 0, 1, 2. */
     public int round() {
         return dataWatcher.getWatchableObjectByte(DW_ROUND);
+    }
+
+    public int slamState() {
+        return slamState;
     }
 
     /** Сколько ещё стоит на колене (0 - сражается). */
@@ -99,6 +110,8 @@ public class EntityWarriorKing extends EntityGroveGuardian {
             dataWatcher.updateObject(DW_KNEEL, Integer.valueOf(KNEEL));
             getNavigator().clearPathEntity();
             windup = -1;
+            slamState = 0;
+            behindLeap = false;
             worldObj.playSoundAtEntity(this, "random.anvil_land", 1.5F, 0.4F);
             com.divinerpgextended.debug.Debug.note(this, "Король-воин: колено после встречи " + (round() + 1));
             return;
@@ -128,6 +141,14 @@ public class EntityWarriorKing extends EntityGroveGuardian {
             return;
         }
         EntityLivingBase t = getAttackTarget();
+        if (slamState > 0) {
+            slamTick(ws, t);
+            return;
+        }
+        if (behindLeap && onGround && motionY <= 0) { // приземлился за спиной - сразу удар
+            behindLeap = false;
+            sweep(3.5, 1.0F, 0.4);
+        }
         if (t == null) return;
         if (windup >= 0) { // замах перед волной: стоит, клинок вверх
             motionX = motionZ = 0;
@@ -137,6 +158,19 @@ public class EntityWarriorKing extends EntityGroveGuardian {
             return;
         }
         if (--dashTimer <= 0 && getDistanceToEntity(t) > 4 && getDistanceToEntity(t) < 16) dash(t);
+        if (--behindTimer <= 0 && getDistanceToEntity(t) < 10 && onGround) {
+            behindTimer = 160 + rand.nextInt(60);
+            leapBehind(t);
+        }
+        if (round() >= 1 && --slamTimer <= 0 && onGround) {
+            slamTimer = 260 + rand.nextInt(80);
+            slamState = SLAM_UP;
+            motionX = motionZ = 0;
+            motionY = 1.5;
+            velocityChanged = true;
+            worldObj.playSoundAtEntity(this, "mob.enderdragon.wings", 2.0F, 0.6F);
+            return;
+        }
         if (round() >= 1 && --waveTimer <= 0) {
             windup = 20;
             waveTimer = 180 + rand.nextInt(60);
@@ -151,6 +185,78 @@ public class EntityWarriorKing extends EntityGroveGuardian {
                 summon(k, 5);
             }
             worldObj.playSoundAtEntity(this, "mob.wither.idle", 1.0F, 1.6F);
+        }
+    }
+
+    /** Прыжок за спину цели: дугой через неё, при приземлении - круговой удар клинком. */
+    private void leapBehind(EntityLivingBase t) {
+        net.minecraft.util.Vec3 look = t.getLookVec();
+        double lx = look.xCoord, lz = look.zCoord, ll = Math.max(0.01, Math.sqrt(lx * lx + lz * lz));
+        double bx = t.posX - lx / ll * 3, bz = t.posZ - lz / ll * 3;
+        double dx = bx - posX, dz = bz - posZ;
+        motionX = dx / 18;
+        motionZ = dz / 18;
+        motionY = 0.85;
+        velocityChanged = true;
+        behindLeap = true;
+        worldObj.playSoundAtEntity(this, "mob.enderdragon.wings", 1.5F, 1.5F);
+    }
+
+    /** Удар по всем вокруг (после прыжков). */
+    private void sweep(double r, float mult, double up) {
+        swingItem();
+        float dmg = (float) getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue() * mult;
+        @SuppressWarnings("unchecked")
+        List<EntityPlayer> near = worldObj.getEntitiesWithinAABB(EntityPlayer.class, boundingBox.expand(r, 2, r));
+        for (EntityPlayer p : near) {
+            double dx = p.posX - posX, dz = p.posZ - posZ;
+            if (dx * dx + dz * dz > r * r) continue;
+            p.attackEntityFrom(DamageSource.causeMobDamage(this), dmg);
+            p.motionY += up;
+            p.velocityChanged = true;
+        }
+        worldObj.playSoundAtEntity(this, "mob.irongolem.hit", 2.0F, 0.6F);
+    }
+
+    /** Прыжок ввысь: на вершине зависает и отмечает место цели, потом падает туда. */
+    private void slamTick(WorldServer ws, EntityLivingBase t) {
+        getNavigator().clearPathEntity();
+        switch (slamState) {
+            case SLAM_UP:
+                if (motionY > 0.05) return;
+                slamState = SLAM_HOLD;
+                slamHold = HOLD_TICKS;
+                if (t != null) {
+                    markX = t.posX;
+                    markY = t.posY;
+                    markZ = t.posZ;
+                } else {
+                    markX = posX;
+                    markY = posY - 8;
+                    markZ = posZ;
+                }
+                worldObj.playSoundAtEntity(this, "mob.wither.idle", 1.5F, 1.4F);
+                return;
+            case SLAM_HOLD:
+                motionX = motionZ = 0;
+                motionY = 0.08; // висит
+                for (int i = 0; i < 12; i++) {
+                    double a = Math.PI * 2 * i / 12 + slamHold * 0.1;
+                    ws.func_147487_a("reddust", markX + Math.cos(a) * SLAM_R, markY + 0.2, markZ + Math.sin(a) * SLAM_R, 1, 0, 0, 0, 0);
+                }
+                ws.func_147487_a("witchMagic", markX, markY + 0.3, markZ, 3, 0.3, 0, 0.3, 0);
+                if (--slamHold > 0) return;
+                setPosition(markX, posY, markZ);
+                motionY = -2.2;
+                velocityChanged = true;
+                slamState = SLAM_DOWN;
+                return;
+            default:
+                if (!onGround) return;
+                slamState = 0;
+                ws.func_147487_a("largeexplode", posX, posY + 0.5, posZ, 4, 1.5, 0.2, 1.5, 0);
+                worldObj.playSoundAtEntity(this, "random.explode", 2.0F, 0.6F);
+                sweep(SLAM_R, 1.5F, 0.8);
         }
     }
 
@@ -189,7 +295,7 @@ public class EntityWarriorKing extends EntityGroveGuardian {
 
     @Override
     public boolean attackEntityAsMob(Entity target) {
-        if (kneeling() > 0 || windup >= 0 || ticksExisted - lastSlash < 20) return false;
+        if (kneeling() > 0 || windup >= 0 || slamState > 0 || ticksExisted - lastSlash < 20) return false;
         double dx = target.posX - posX, dz = target.posZ - posZ;
         if (dx * dx + dz * dz > 4.0 * 4.0) return false;
         lastSlash = ticksExisted;

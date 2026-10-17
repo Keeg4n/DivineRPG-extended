@@ -93,6 +93,7 @@ public class WorldGenNests implements IWorldGenerator {
     }
 
     public static ColumnStructure shape(TwilightWorld tw, int[] c) {
+        if (tw == TwilightWorld.SKYTHERN) return new Temple(c[0], c[2]);
         return tw == TwilightWorld.MORTUM ? new Circle() : new Nest(tw, c[0], c[2]);
     }
 
@@ -306,6 +307,95 @@ public class WorldGenNests implements IWorldGenerator {
                 }
             }
             return any;
+        }
+    }
+
+    // ---------------------------------------------------------------- храм ветров (Скайтерн)
+
+    /**
+     * Храм ветров Скайтерна - арена Повелителя ветров вместо рощи: парящий остров с мраморным стилобатом, кольцом из
+     * шестнадцати высоких колонн под общим антаблементом (без крыши - бой под небом), алтарём на помосте у северной
+     * стороны и четырьмя колоннами-постаментами для ветряных тотемов на разной высоте
+     * ({@link com.divinerpgextended.entity.EntityWindLord#HEIGHTS}), с лестницей по внешней грани и облачной площадкой
+     * сверху. Вокруг стилобата - травяная терраса, чтобы порыв не сразу скидывал с острова.
+     */
+    static class Temple extends ColumnStructure {
+
+        static final int MARBLE = 20, LADDER = 21, CLOUD = 22, SLAB = 23;
+        static final int R_ISLAND = 32, STYLO = 25, PERI = 21, COLS = 16, COL_H = 15;
+        private final int salt;
+
+        Temple(int cx, int cz) {
+            salt = hash(cx, cz) % 1000;
+        }
+
+        @Override
+        protected Block block(int code, int meta) {
+            switch (code) {
+                case MARBLE: return Blocks.quartz_block;
+                case LADDER: return Blocks.ladder;
+                case CLOUD: return ModBlocks.cloud;
+                case SLAB: return Blocks.stone_slab;
+                default: return palette(TwilightWorld.SKYTHERN, code);
+            }
+        }
+
+        @Override
+        protected boolean lit(Block b) {
+            return b == Blocks.glowstone || b == ModBlocks.nestAltar;
+        }
+
+        @Override
+        protected boolean column(int dx, int dz, int[] col) {
+            double r = Math.sqrt(dx * dx + dz * dz);
+            double rOut = R_ISLAND + Nest.noise(dx, dz, 6, 17 + salt) * 3;
+            if (r > rOut) return false;
+            // основание: каменный клин вниз, рваный по краю
+            double t = r / rOut;
+            int bottom = TOP - 3 - (int) (22 * Math.sqrt(Math.max(0, 1 - t * t)) + Nest.noise(dx, dz, 4, 29 + salt) * 6);
+            for (int y = bottom; y <= TOP - 2; y++) put(col, y, hash(dx * 17 + y, dz + salt) % 100 < 12 ? DIRT : STONE, 0);
+            put(col, TOP - 1, DIRT, 0);
+            for (int y = TOP + 1; y <= TOP + 40; y++) put(col, y, AIR, 0);
+            if (r > STYLO + 1.5) {
+                put(col, TOP, GRASS, 0); // терраса
+                return true;
+            }
+            // стилобат: мрамор, кольца узора и кайма из резного мрамора
+            boolean border = r > STYLO - 0.5 || Math.abs(r - 9) < 0.5 || Math.abs(r - 17) < 0.5;
+            put(col, TOP, MARBLE, border ? 1 : 0);
+            if (r < 1.2 || ringDist(dx, dz, 9, 8, Math.PI / 8) < 0.6) put(col, TOP, GLOW, 0);
+            if (r > STYLO - 0.5) put(col, TOP + 1, SLAB, 7); // низкая ступень по краю
+            // колоннада: база, ствол из столбового мрамора, капитель, сверху общий антаблемент
+            double cd = ringDist(dx, dz, PERI, COLS, 0);
+            if (cd < 1.8) put(col, TOP + 1, MARBLE, 1);
+            if (cd < 1.25) for (int y = TOP + 2; y < TOP + COL_H; y++) put(col, y, MARBLE, 2);
+            if (cd < 1.8) put(col, TOP + COL_H, MARBLE, 1);
+            if (Math.abs(r - PERI) < 1.6) {
+                put(col, TOP + COL_H + 1, MARBLE, 0);
+                put(col, TOP + COL_H + 2, MARBLE, ((int) Math.round(Math.atan2(dz, dx) * 20)) % 3 == 0 ? 1 : 0); // фриз
+            }
+            if (Math.abs(r - PERI) < 2.3) put(col, TOP + COL_H + 3, SLAB, 7); // карниз
+            // помост с алтарём к северу
+            double ad = Math.sqrt(dx * dx + (dz + ALTAR_DZ) * (dz + ALTAR_DZ));
+            if (ad <= 2.5) put(col, TOP + 1, MARBLE, 1);
+            if (dx == 0 && dz == -ALTAR_DZ) put(col, TOP + 2, ALTAR, 0);
+            // постаменты тотемов: 3x3 мрамор, лестница снаружи, облачная площадка сверху
+            for (int i = 0; i < 4; i++) {
+                double a = Math.PI / 4 + Math.PI / 2 * i;
+                int px = (int) Math.round(Math.cos(a) * com.divinerpgextended.entity.EntityWindLord.TOTEM_R);
+                int pz = (int) Math.round(Math.sin(a) * com.divinerpgextended.entity.EntityWindLord.TOTEM_R);
+                int h = com.divinerpgextended.entity.EntityWindLord.HEIGHTS[i];
+                int sx = px > 0 ? 1 : -1;
+                int ox = dx - px, oz = dz - pz;
+                if (Math.abs(ox) <= 1 && Math.abs(oz) <= 1) {
+                    for (int y = TOP + 1; y < TOP + h; y++) put(col, y, MARBLE, 2);
+                    put(col, TOP + h, CLOUD, 0);
+                } else if (ox == 2 * sx && oz == 0) {
+                    // лестница к внешней грани постамента (висит на блоке ближе к центру постамента)
+                    for (int y = TOP + 1; y < TOP + h; y++) put(col, y, LADDER, sx > 0 ? 5 : 4);
+                }
+            }
+            return true;
         }
     }
 

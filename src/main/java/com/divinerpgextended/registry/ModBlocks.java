@@ -39,6 +39,7 @@ public final class ModBlocks {
     /** Камни врат по номеру CadillionWorld: рамка портала в следующий мир. */
     public static final Block[] gateStone = new Block[4];
     public static Block windTotem;
+    public static Block cloud;
     private static final int[] TORCH_COLOR = { 0xFFD84A, 0x5AA8FF, 0xC070FF, 0xE8ECF4, 0xE04040 };
 
     private ModBlocks() {}
@@ -81,6 +82,8 @@ public final class ModBlocks {
             worldTorch[w.ordinal()] = new com.divinerpgextended.block.BlockWorldTorch(w, TORCH_COLOR[w.ordinal()]);
             GameRegistry.registerBlock(worldTorch[w.ordinal()], "worldTorch_" + w.key());
         }
+        cloud = new com.divinerpgextended.block.BlockCloud();
+        GameRegistry.registerBlock(cloud, "cloud");
         windTotem = new com.divinerpgextended.block.BlockWindTotem();
         GameRegistry.registerBlock(windTotem, "windTotem");
         for (com.divinerpgextended.world.CadillionWorld w : com.divinerpgextended.world.CadillionWorld.values()) {

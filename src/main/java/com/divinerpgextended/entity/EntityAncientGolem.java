@@ -29,7 +29,9 @@ import com.divinerpgextended.world.twilight.TwilightWorld;
  * <li>ноги - топот (волна подбрасывает рядом); без ног голем ползает и зовёт Вереков.</li>
  * </ul>
  * Что сломано первым, то решает последнюю фазу (ядро): первыми руки - лиановая буря по всем на поляне, первыми ноги -
- * стая Вереков. Лесной следопыт (сет Дикого леса) видит суставы - по частям урон x{@link #TRACKER_BONUS}.
+ * стая Вереков. Чтобы не быть грушей: пока есть руки, вырывает и швыряет глыбы ({@link EntityBoulder}) в тех, кто
+ * держится на расстоянии; пока есть ноги, прыжком сокращает дистанцию (с топотом при приземлении); далёкую цель
+ * подтягивает лианой. Лесной следопыт (сет Дикого леса) видит суставы - по частям урон x{@link #TRACKER_BONUS}.
  */
 public class EntityAncientGolem extends EntityGroveGuardian {
 
@@ -44,6 +46,8 @@ public class EntityAncientGolem extends EntityGroveGuardian {
 
     private final float[] partHp = new float[4];
     private int stompTimer = 120, lashTimer = 80, packTimer = 160, lastPunch = -100, stagger;
+    private int boulderTimer = 60, leapTimer = 100, pullTimer = 200;
+    private boolean leaping;
     private long clangHint = -1000;
 
     public EntityAncientGolem(World world) {
@@ -68,7 +72,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
     @Override
     protected void applyEntityAttributes() {
         super.applyEntityAttributes();
-        getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.24D);
+        getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.3D);
     }
 
     public boolean broken(int part) {
@@ -206,6 +210,24 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         if (coreOpen() && ticksExisted % 10 == 0)
             ((WorldServer) worldObj).func_147487_a("happyVillager", posX, posY + height * 0.6, posZ, 8, 0.6, 0.6, 0.6, 0);
         if (t == null) return;
+        if (leaping && onGround && motionY <= 0) { // приземлился после прыжка
+            leaping = false;
+            stomp();
+        }
+        double dist = getDistanceToEntity(t);
+        boolean anyArm = !broken(ARM_R) || !broken(ARM_L);
+        if (anyArm && --boulderTimer <= 0 && dist > 6 && dist < 30 && canEntityBeSeen(t)) {
+            boulderTimer = broken(LEGS) ? 70 : 110;
+            throwBoulder(t);
+        }
+        if (!broken(LEGS) && --leapTimer <= 0 && dist > 10 && onGround) {
+            leapTimer = 180 + rand.nextInt(60);
+            leap(t);
+        }
+        if (anyArm && --pullTimer <= 0 && dist > 14) {
+            pullTimer = 240;
+            lash((EntityPlayer) (t instanceof EntityPlayer ? t : null));
+        }
         if (!broken(LEGS) && --stompTimer <= 0) stomp();
         boolean noArms = broken(ARM_R) && broken(ARM_L);
         if (noArms && --lashTimer <= 0) {
@@ -243,9 +265,34 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         }
     }
 
+    /** Вырвать глыбу из земли и швырнуть дугой в цель. */
+    private void throwBoulder(EntityLivingBase t) {
+        EntityBoulder b = new EntityBoulder(worldObj, this, (float) getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue() * 0.7F);
+        b.setPosition(posX, posY + height * 0.75, posZ);
+        double dx = t.posX - b.posX, dz = t.posZ - b.posZ, dy = t.posY + 0.5 - b.posY, d = Math.sqrt(dx * dx + dz * dz);
+        b.setThrowableHeading(dx, dy + d * 0.35, dz, (float) (0.9 + d * 0.035), 2.0F);
+        worldObj.spawnEntityInWorld(b);
+        int dirt = net.minecraft.block.Block.getIdFromBlock(net.divinerpg.utils.blocks.TwilightBlocks.wildwoodDirt);
+        ((WorldServer) worldObj).func_147487_a("blockcrack_" + dirt + "_0", posX, posY + 0.3, posZ, 30, 1.5, 0.2, 1.5, 0.2);
+        worldObj.playSoundAtEntity(this, "dig.gravel", 2.0F, 0.5F);
+        worldObj.playSoundAtEntity(this, "mob.irongolem.throw", 2.0F, 0.5F);
+    }
+
+    /** Прыжок к цели (приземление - топот). */
+    private void leap(EntityLivingBase t) {
+        double dx = t.posX - posX, dz = t.posZ - posZ, d = Math.sqrt(dx * dx + dz * dz);
+        double speed = Math.min(1.6, d / 14);
+        motionX = dx / d * speed;
+        motionZ = dz / d * speed;
+        motionY = 0.85;
+        velocityChanged = true;
+        leaping = true;
+        worldObj.playSoundAtEntity(this, "mob.irongolem.throw", 2.0F, 0.3F);
+    }
+
     /** Лиана: хлещет цель издалека, подтягивает к голему и опутывает (замедление). */
     private void lash(EntityPlayer p) {
-        if (p.getDistanceToEntity(this) < 4) return;
+        if (p == null || p.getDistanceToEntity(this) < 4) return;
         p.attackEntityFrom(DamageSource.causeMobDamage(this), (float) getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue() * 0.5F);
         double dx = posX - p.posX, dz = posZ - p.posZ, d = Math.max(1, Math.sqrt(dx * dx + dz * dz));
         p.motionX += dx / d * 1.1;

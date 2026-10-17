@@ -101,10 +101,15 @@ public abstract class EntityGroveGuardian extends EntityMob implements IBossDisp
 
     /** Позвать подручного рядом с собой (с меткой), null - не нашлось места. */
     public EntityLiving summon(Class<? extends EntityLiving> kind, double radius) {
+        double a = rand.nextDouble() * Math.PI * 2;
+        return summonAt(kind, posX + Math.cos(a) * radius, posY + 0.5, posZ + Math.sin(a) * radius);
+    }
+
+    /** Позвать подручного в точку (с меткой), null - не нашлось места. */
+    public EntityLiving summonAt(Class<? extends EntityLiving> kind, double x, double y, double z) {
         try {
             EntityLiving m = kind.getConstructor(World.class).newInstance(worldObj);
-            double a = rand.nextDouble() * Math.PI * 2;
-            m.setLocationAndAngles(posX + Math.cos(a) * radius, posY + 0.5, posZ + Math.sin(a) * radius, rand.nextFloat() * 360, 0);
+            m.setLocationAndAngles(x, y, z, rand.nextFloat() * 360, 0);
             if (!worldObj.getCollidingBoundingBoxes(m, m.boundingBox).isEmpty()) return null;
             m.setAttackTarget(getAttackTarget());
             m.getEntityData().setInteger(ADD_TAG, getEntityId());

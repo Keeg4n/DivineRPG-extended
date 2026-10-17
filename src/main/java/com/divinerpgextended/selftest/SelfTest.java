@@ -1653,6 +1653,49 @@ public class SelfTest {
             check(bosses.size() == 1 && (left == null || left.stackSize == 0), "кадиллионов в центре " + bosses.size() + ", зов в руке " + left);
             return "роща в " + c[0] + "," + c[2] + " на высоте " + top + ": алтарь у святилища, свет в центре поляны; Зов на алтаре - кадиллион в центре";
         });
+        t("Логова", "Храм ветров", () -> {
+            int dim = ConfigurationHelper.skythern;
+            WorldServer w = server.worldServerForDimension(dim);
+            int[] c = com.divinerpgextended.world.twilight.WorldGenNests.nearest(w.getSeed(), dim, 0, 0);
+            loadAround(w, c[0], c[2], 4);
+            int top = com.divinerpgextended.world.twilight.WorldGenNests.TOP;
+            int az = c[2] - com.divinerpgextended.world.twilight.WorldGenNests.ALTAR_DZ;
+            String log = "";
+            boolean altar = w.getBlock(c[0], top + 2, az) == com.divinerpgextended.registry.ModBlocks.nestAltar;
+            boolean column = w.getBlock(c[0] + 21, top + 8, c[2]) == Blocks.quartz_block;
+            boolean open = w.isAirBlock(c[0], top + 10, c[2]);
+            int clouds = 0, ladders = 0;
+            for (int i = 0; i < 4; i++) {
+                double a = Math.PI / 4 + Math.PI / 2 * i;
+                int px = c[0] + (int) Math.round(Math.cos(a) * 13), pz = c[2] + (int) Math.round(Math.sin(a) * 13);
+                int h = com.divinerpgextended.entity.EntityWindLord.HEIGHTS[i];
+                if (w.getBlock(px, top + h, pz) == com.divinerpgextended.registry.ModBlocks.cloud) clouds++;
+                int lsx = px > c[0] ? 1 : -1;
+                if (w.getBlock(px + 2 * lsx, top + 1, pz) == Blocks.ladder && w.getBlock(px + 2 * lsx, top + h - 1, pz) == Blocks.ladder) ladders++;
+            }
+            log = "алтарь " + altar + ", колонна " + column + ", над центром пусто " + open + ", облачных площадок " + clouds + ", лестниц " + ladders;
+            dump(w, c[0], top, c[2], 36, "temple-skythern");
+            // Зов на алтаре - Повелитель ветров, тотемы встают на площадки
+            TestPlayer v = player(dim, "TestTemple", c[0], top + 1, az + 2);
+            hold(v, new ItemStack(com.divinerpgextended.registry.ModItems.cadillionCall, 1, 3));
+            w.getBlock(c[0], top + 2, az).onBlockActivated(w, c[0], top + 2, az, v, 1, 0.5F, 0.5F, 0.5F);
+            java.util.List<?> lords = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityWindLord.class,
+                net.minecraft.util.AxisAlignedBB.getBoundingBox(c[0] - 6, top - 2, c[2] - 16, c[0] + 6, top + 12, c[2] + 6));
+            int totems = 0;
+            for (Object o : lords) {
+                com.divinerpgextended.entity.EntityWindLord l = (com.divinerpgextended.entity.EntityWindLord) o;
+                l.placeTotems();
+                for (int i = 0; i < 4; i++) {
+                    int[] tt = l.totem(i);
+                    if (w.getBlock(tt[0], tt[1], tt[2]) == com.divinerpgextended.registry.ModBlocks.windTotem
+                        && w.getBlock(tt[0], tt[1] - 1, tt[2]) == com.divinerpgextended.registry.ModBlocks.cloud) totems++;
+                    w.setBlockToAir(tt[0], tt[1], tt[2]);
+                }
+                l.setDead();
+            }
+            check(altar && column && open && clouds == 4 && ladders == 4 && lords.size() == 1 && totems == 4, log + ", повелителей " + lords.size() + ", тотемов на облаках " + totems);
+            return "храм в " + c[0] + "," + c[2] + ": колоннада, алтарь, 4 постамента с лестницами и облаками; Зов - Повелитель, тотемы встают на облака";
+        });
         t("Логова", "Бой с кадиллионом", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             int x = 9500, y = 100, z = 9500;
@@ -2119,6 +2162,64 @@ public class SelfTest {
             ag.setDead();
             check(cleared && denied && inFight == 0 && outside > 0, "расчищено " + cleared + ", спавн в бою запрещён " + denied + ", ковёр в бою " + inFight + ", вне арены " + outside);
             return "вызов босса расчищает поляну, пока он жив - мобы на арене не спавнятся; ковёр в бою не работает, за ареной работает";
+        });
+        t("Логова", "Голем швыряет глыбы", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
+            loadAround(w, 9600, 9600, 2);
+            for (int i = -4; i <= 24; i++) for (int k2 = -4; k2 <= 4; k2++) {
+                w.setBlock(9600 + i, 99, 9600 + k2, Blocks.stone);
+                for (int h = 100; h < 112; h++) w.setBlockToAir(9600 + i, h, 9600 + k2);
+            }
+            TestPlayer bv = join(player(ConfigurationHelper.wildwood, "TestBoulder", 9618.5, 100, 9600.5), true);
+            com.divinerpgextended.entity.EntityAncientGolem g2 = new com.divinerpgextended.entity.EntityAncientGolem(w);
+            g2.setPosition(9600.5, 100, 9600.5);
+            w.spawnEntityInWorld(g2);
+            g2.setAttackTarget(bv);
+            int boulders = 0;
+            for (int i = 0; i < 130 && boulders == 0; i++) {
+                g2.onLivingUpdate();
+                boulders = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityBoulder.class, g2.boundingBox.expand(6, 6, 6)).size();
+            }
+            for (Object o : w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityBoulder.class, g2.boundingBox.expand(40, 20, 40))) ((net.minecraft.entity.Entity) o).setDead();
+            g2.setDead();
+            check(boulders > 0, "глыб за 6.5 с при цели в 18 блоках: " + boulders);
+            return "цель держится в 18 блоках - голем вырывает и швыряет глыбу";
+        });
+        t("Логова", "Король: прыжок ввысь", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            loadAround(w, 9650, 9650, 3);
+            for (int i = -24; i <= 24; i++) for (int k2 = -24; k2 <= 24; k2++) {
+                w.setBlock(9650 + i, 99, 9650 + k2, Blocks.stone);
+                for (int h = 100; h < 130; h++) w.setBlockToAir(9650 + i, h, 9650 + k2);
+            }
+            TestPlayer sv2 = join(player(ConfigurationHelper.apalachia, "TestSlam", 9655.5, 100, 9650.5), true);
+            com.divinerpgextended.entity.EntityWarriorKing kk = new com.divinerpgextended.entity.EntityWarriorKing(w);
+            kk.setPosition(9650.5, 100, 9650.5);
+            w.spawnEntityInWorld(kk);
+            // вторая встреча: прыжок ввысь доступен
+            kk.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(sv2), 100000);
+            for (int i = 0; i < com.divinerpgextended.entity.EntityWarriorKing.KNEEL + 2; i++) kk.onLivingUpdate();
+            sv2.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(100000); // смотрим на прыжок, а не на бой
+            sv2.setHealth(100000);
+            kk.setAttackTarget(sv2);
+            double maxY = kk.posY;
+            boolean held = false;
+            int states = 0;
+            String trace = "";
+            float hp = sv2.getHealth();
+            for (int i = 0; i < 400; i++) {
+                sv2.setPositionAndUpdate(9655.5, 100, 9650.5);
+                kk.onUpdate();
+                maxY = Math.max(maxY, kk.posY);
+                if (i % 50 == 0) trace += i + ":" + kk.round() + (kk.getAttackTarget() != null ? "t" : "-") + (kk.onGround ? "g" : "a") + kk.slamState() + " ";
+                if (kk.slamState() == com.divinerpgextended.entity.EntityWarriorKing.SLAM_HOLD) held = true;
+                if (kk.slamState() > 0) states |= 1 << kk.slamState();
+            }
+            kk.setDead();
+            sv2.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(20);
+            sv2.setHealth(20);
+            check(maxY > 105 && held, trace + "; высшая точка " + (maxY - 100) + " над полом, зависал " + held + ", здоровье игрока " + hp + " > " + sv2.getHealth());
+            return "со 2-й встречи Король прыгает ввысь на " + (int) (maxY - 100) + " блоков, зависает над меткой и обрушивается";
         });
         t("Логова", "Скол рога", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);

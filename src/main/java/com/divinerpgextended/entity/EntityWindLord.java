@@ -18,7 +18,8 @@ import com.divinerpgextended.world.CadillionWorld;
 
 /**
  * Повелитель ветров Скайтерна, страж рощи - босс-пазл. Сам неуязвим: парит над поляной, сдувает порывами, стреляет
- * и зовёт извергов. Вокруг на разной высоте ({@link #HEIGHTS}) появляются 4 ветряных тотема на облачных площадках.
+ * и зовёт подмогу на пол арены. Вокруг на разной высоте ({@link #HEIGHTS}) появляются 4 ветряных тотема на облачных
+ * площадках (в храме ветров - на постаментах с лестницей).
  * Тотем заряжается {@link #CHARGE} тиков, пока игрок стоит рядом (правый клик - начать): Повелитель бьёт порывами
  * именно его. Заряженный тотем бьёт Повелителя молнией на четверть здоровья; четыре тотема - конец. До высоких тотемов
  * удобно добраться ковром Хозяина ветров (сет Скайтерна).
@@ -26,7 +27,7 @@ import com.divinerpgextended.world.CadillionWorld;
 public class EntityWindLord extends EntityGroveGuardian {
 
     public static final int[] HEIGHTS = { 5, 9, 13, 17 };
-    public static final int TOTEM_R = 13, CHARGE = 60, HOVER = 8;
+    public static final int TOTEM_R = 13, CHARGE = 60, HOVER = 8, MAX_ADDS = 5;
     public static final float SCALE = 2.5F;
     /** Свой урон: только от молнии тотема. */
     public static final DamageSource TOTEM = new DamageSource("dreWindTotem").setDamageBypassesArmor();
@@ -80,7 +81,7 @@ public class EntityWindLord extends EntityGroveGuardian {
             int[] t = totem(i);
             for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
                 if (worldObj.isAirBlock(t[0] + dx, t[1] - 1, t[2] + dz) || worldObj.getBlock(t[0] + dx, t[1] - 1, t[2] + dz).isLeaves(worldObj, t[0] + dx, t[1] - 1, t[2] + dz))
-                    worldObj.setBlock(t[0] + dx, t[1] - 1, t[2] + dz, Blocks.wool, 0, 3);
+                    worldObj.setBlock(t[0] + dx, t[1] - 1, t[2] + dz, ModBlocks.cloud, 0, 3);
                 for (int h = 0; h <= 3; h++) if (!(dx == 0 && dz == 0 && h == 0)) worldObj.setBlockToAir(t[0] + dx, t[1] + h, t[2] + dz);
             }
             worldObj.setBlock(t[0], t[1], t[2], ModBlocks.windTotem, 0, 3);
@@ -162,8 +163,13 @@ public class EntityWindLord extends EntityGroveGuardian {
             shoot(t);
         }
         if (--fiendTimer <= 0) {
-            fiendTimer = 400;
-            for (int i = 0; i < 2 && addsAlive() < 3; i++) summon(net.divinerpg.entities.twilight.EntitySkythernFiend.class, 6);
+            // снизу - ближний бой: големы и изверги Скайтерна на полу арены, до MAX_ADDS
+            fiendTimer = 300;
+            for (int i = 0; i < 3 && addsAlive() < MAX_ADDS; i++) {
+                double a = rand.nextDouble() * Math.PI * 2, d = 4 + rand.nextDouble() * 8;
+                summonAt(i == 0 ? net.divinerpg.entities.twilight.EntitySkythernFiend.class : net.divinerpg.entities.twilight.EntitySkythernGolem.class,
+                    cx + 0.5 + Math.cos(a) * d, cy + 0.2, cz + 0.5 + Math.sin(a) * d);
+            }
         }
     }
 
