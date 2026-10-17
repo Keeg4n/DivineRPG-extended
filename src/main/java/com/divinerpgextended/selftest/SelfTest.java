@@ -2466,6 +2466,61 @@ public class SelfTest {
             check(wall && ceiling && back, "по стене " + wall + ", по потолку " + ceiling + ", вернулась на старт " + back + " за " + ticks + " тиков");
             return "вагонетка Апалачии объехала кольцо пол - стена - потолок - стена и вернулась (" + ticks + " тиков)";
         });
+        t("Прохождение", "Дробь, пыль фазера, колчаны", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            loadAround(w, 9480, 9800, 1);
+            TestPlayer qv = join(player(ConfigurationHelper.eden, "TestQuiver", 9480.5, 120, 9800.5), true);
+            // дробь: неуязвимость после первой дробины не мешает следующим
+            net.minecraft.entity.monster.EntityZombie zq = new net.minecraft.entity.monster.EntityZombie(w);
+            zq.hurtResistantTime = 20;
+            net.minecraft.entity.projectile.EntityArrow pl = new net.minecraft.entity.projectile.EntityArrow(w);
+            pl.getEntityData().setInteger(com.divinerpgextended.perk.RangedRoles.KIND, com.divinerpgextended.perk.RangedRoles.BLITZ);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(zq, net.minecraft.util.DamageSource.causeThrownDamage(pl, qv), 5));
+            boolean pellets = zq.hurtResistantTime == 0;
+            // фазер без пыли не стреляет, с пылью - тратит одну
+            qv.setCurrentItemOrArmor(0, new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenPhaser));
+            net.divinerpg.entities.vanilla.projectile.EntityShooterBullet s1 = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, qv, 10, "divinerpg:textures/projectiles/phaserEden.png");
+            boolean dry = !w.spawnEntityInWorld(s1);
+            qv.inventory.setInventorySlotContents(5, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.edenDust, 3));
+            net.divinerpg.entities.vanilla.projectile.EntityShooterBullet s2 = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, qv, 10, "divinerpg:textures/projectiles/phaserEden.png");
+            boolean shot = w.spawnEntityInWorld(s2);
+            int dustLeft = qv.inventory.getStackInSlot(5) == null ? 0 : qv.inventory.getStackInSlot(5).stackSize;
+            s2.setDead();
+            qv.inventory.setInventorySlotContents(5, null);
+            // колчан: лук Эдема в руке, стрел нет - появляется одна помеченная; колчан снят - пропадает
+            qv.setCurrentItemOrArmor(0, new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBow));
+            Accessories.of(qv).setInventorySlotContents(0, trinket(Trinket.ENDLESS_QUIVER));
+            qv.ticksExisted = 2;
+            FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, qv));
+            boolean arrow = qv.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsWeapons.edenArrow);
+            Accessories.of(qv).setInventorySlotContents(0, null);
+            qv.ticksExisted = 4;
+            FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, qv));
+            boolean gone = !qv.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsWeapons.edenArrow);
+            qv.setCurrentItemOrArmor(0, null);
+            check(pellets && dry && shot && dustLeft == 2 && arrow && gone,
+                "дробь без неуязвимости " + pellets + ", фазер без пыли молчит " + dry + ", с пылью стреляет " + shot + " (пыли осталось " + dustLeft + "), колчан дал стрелу " + arrow + ", без колчана стрела убрана " + gone);
+            return "дробины блица бьют одну цель все; фазер тратит пыль Эдема (без неё молчит); бездонный колчан держит стрелу для лука, снял - стрелы нет";
+        });
+        t("Прохождение", "Рельсы Divine ставятся на стену", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            loadAround(w, 9560, 9820, 1);
+            w.setBlock(9560, 100, 9820, Blocks.stone);
+            w.setBlockToAir(9561, 100, 9820);
+            TestPlayer rv = player(ConfigurationHelper.apalachia, "TestRailSwap", 9562.5, 100, 9820.5);
+            hold(rv, new ItemStack(net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails, 4));
+            net.minecraftforge.event.entity.player.PlayerInteractEvent ev = new net.minecraftforge.event.entity.player.PlayerInteractEvent(rv,
+                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, 9560, 100, 9820, 5, w); // восточная грань камня
+            MinecraftForge.EVENT_BUS.post(ev);
+            boolean placed = w.getBlock(9561, 100, 9820) == com.divinerpgextended.registry.ModBlocks.skyRail;
+            int meta = w.getBlockMetadata(9561, 100, 9820) & 7;
+            int left = rv.getHeldItem() == null ? 0 : rv.getHeldItem().stackSize;
+            w.setBlockToAir(9561, 100, 9820);
+            w.setBlockToAir(9560, 100, 9820);
+            check(placed && meta == net.minecraftforge.common.util.ForgeDirection.WEST.ordinal() && left == 3 && ev.isCanceled(),
+                "поставлено " + placed + ", опора " + meta + ", осталось " + left);
+            return "рельсы Апалачии Divine в руке ставятся рельсами аддона на стену (опора - камень с запада)";
+        });
         t("Логова", "Король: прыжок ввысь", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9650, 9650, 3);

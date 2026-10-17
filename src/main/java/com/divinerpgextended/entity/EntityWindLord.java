@@ -105,11 +105,11 @@ public class EntityWindLord extends EntityGroveGuardian {
         }
     }
 
-    /** Заряд тотемов от фазера издалека: копится выстрелами, тает со временем. */
+    /** Заряд тотемов от слайсеров издалека: копится попаданиями, тает со временем. */
     private final float[] remote = new float[4];
     public static final float REMOTE_HIT = 12, REMOTE_DECAY = 0.5F;
 
-    /** Снаряд фазера попал в тотем: подзарядка; набралось CHARGE - тотем загорается. */
+    /** Слайсер попал в тотем: подзарядка; набралось CHARGE - тотем загорается. */
     public void remoteCharge(int x, int y, int z) {
         for (int i = 0; i < 4; i++) {
             int[] t = totem(i);

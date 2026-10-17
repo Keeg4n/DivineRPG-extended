@@ -108,6 +108,7 @@ public final class TwilightCrafts {
     /** Убрать рецепты Divine и поставить свои. Вызывать в postInit (после рецептов Divine). */
     public static void postInit() {
         rails();
+        quivers();
         if (Config.worldCrafts) {
             sticks();
             for (TwilightWorld w : TwilightWorld.values()) world(w);
@@ -116,7 +117,34 @@ public final class TwilightCrafts {
         if (Config.gateStones) gates();
     }
 
+    /** Рельсы Divine в руке ставятся как рельсы аддона (на пол, стену, потолок) - их уже могли накопать или взять в творческом. */
+    public static class DivineRailSwap {
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onUse(net.minecraftforge.event.entity.player.PlayerInteractEvent e) {
+            if (e.action != net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK) return;
+            ItemStack held = e.entityPlayer.getHeldItem();
+            if (held == null || held.getItem() != Item.getItemFromBlock(TwilightBlocks.apalachiaRails)) return;
+            e.setCanceled(true);
+            ItemStack tmp = new ItemStack(ModBlocks.skyRail);
+            if (tmp.getItem().onItemUse(tmp, e.entityPlayer, e.world, e.x, e.y, e.z, e.face, 0.5F, 0.5F, 0.5F) && tmp.stackSize == 0
+                && !e.entityPlayer.capabilities.isCreativeMode) held.stackSize--;
+        }
+    }
+
     /** Рельсы Апалачии (на пол, стены, потолок) вместо бесполезных рельсов Divine; вагонетка Апалачии к ним. */
+    /** Колчаны (Эдем): кожа и нить, боеприпасы своего вида и материал мобов Эдема. */
+    private static void quivers() {
+        Item tr = ModItems.trinket;
+        TwilightWorld e = TwilightWorld.EDEN;
+        GameRegistry.addRecipe(new ItemStack(tr, 1, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER.ordinal()), "LSL", "AFA", "LAL", 'L', Items.leather,
+            'S', Items.string, 'A', TwilightItemsWeapons.edenArrow, 'F', mat(e, 0));
+        GameRegistry.addRecipe(new ItemStack(tr, 1, com.divinerpgextended.trinket.Trinket.DUST_POUCH.ordinal()), "LSL", "DHD", "LDL", 'L', Items.leather,
+            'S', Items.string, 'D', e.dust(), 'H', mat(e, 1));
+        GameRegistry.addRecipe(new ItemStack(tr, 1, com.divinerpgextended.trinket.Trinket.SLICER_SLING.ordinal()), "LSL", "XRX", "LXL", 'L', Items.leather,
+            'S', Items.string, 'X', TwilightItemsWeapons.edenSlicer, 'R', mat(e, 2));
+    }
+
     private static void rails() {
         Item old = Item.getItemFromBlock(TwilightBlocks.apalachiaRails);
         remove(old);

@@ -31,10 +31,14 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * <li>лук - дальность и точность (без изменений);</li>
  * <li>блиц - дробовик: {@link #PELLETS} снарядов веером, каждый слабее ({@link #PELLET_DMG}), по подручным боссов x2 -
  * против толпы;</li>
- * <li>фазер - пробой: снаряд проходит насквозь до {@link #PIERCE} целей, по частям голема x2, издалека подзаряжает
- * ветряной тотем;</li>
- * <li>слайсер - рикошет до {@link #RICOCHET} целей подряд, перерезает лиану голема и сбивает замах Короля-воина.</li>
+ * <li>фазер - пробой: снаряд проходит насквозь до {@link #PIERCE} целей, по частям голема x2; тратит пыль своего мира
+ * (у Divine он бесконечный - слишком сильный);</li>
+ * <li>слайсер - рикошет до {@link #RICOCHET} целей подряд, перерезает лиану голема, сбивает замах Короля-воина и
+ * издалека заряжает ветряные тотемы (как снежки в кристаллы дракона).</li>
  * </ul>
+ * Колчаны-аксессуары (как в Террарии) дают бесконечные боеприпасы своему виду: бездонный колчан - лукам, подсумок пыли -
+ * блицам и фазерам, перевязь метателя - слайсерам. Пока колчан надет и оружие в руке, в инвентаре держится один
+ * помеченный боеприпас ({@link #QUIVER_TAG}); выстрел его тратит - появляется снова. Снял колчан - метка пропадает.
  */
 public class RangedRoles {
 
@@ -44,8 +48,9 @@ public class RangedRoles {
     public static final float PELLET_DMG = 0.5F, ADD_BONUS = 2.0F;
     private static final double SPREAD = 9; // градусов между дробинами
 
-    /** Летящие снаряды фазера - для подзарядки тотемов. */
-    private static final List<Entity> PHASER_SHOTS = new ArrayList<Entity>();
+    /** Летящие слайсеры - для подзарядки тотемов. */
+    private static final List<Entity> TOTEM_SHOTS = new ArrayList<Entity>();
+    public static final String QUIVER_TAG = "dreQuiver";
 
     public static int kind(ItemStack held) {
         if (held == null) return 0;
@@ -58,6 +63,81 @@ public class RangedRoles {
         if (i == TwilightItemsWeapons.edenSlicer || i == TwilightItemsWeapons.wildwoodSlicer || i == TwilightItemsWeapons.apalachiaSlicer
             || i == TwilightItemsWeapons.skythernSlicer || i == TwilightItemsWeapons.mortumSlicer) return SLICER;
         return 0;
+    }
+
+    public static boolean wears(EntityPlayer p, com.divinerpgextended.trinket.Trinket t) {
+        return com.divinerpgextended.accessory.Accessories.wears(p, t);
+    }
+
+    /** Пыль мира, которую тратит этот фазер. */
+    public static Item phaserDust(Item phaser) {
+        for (TwilightWorld w : TwilightWorld.values()) if (TwilightCrafts.weapons(w)[2] == phaser) return w.dust();
+        return null;
+    }
+
+    /** Дробь блица бьёт по одной цели вся: неуязвимость после попадания для неё не действует. */
+    @SubscribeEvent
+    public void onAttack(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
+        if (!e.entityLiving.worldObj.isRemote && kind(e.source.getSourceOfDamage()) == BLITZ) e.entityLiving.hurtResistantTime = 0;
+    }
+
+    /** Боеприпас, нужный оружию в руке, и колчан для него (null - не наш случай). */
+    private static Object[] ammoFor(ItemStack held) {
+        if (held == null) return null;
+        Item i = held.getItem();
+        if (i instanceof net.divinerpg.items.base.ItemModBow) {
+            Item a = field(net.divinerpg.items.base.ItemModBow.class, i, "arrow");
+            return a == null ? null : new Object[] { a, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER };
+        }
+        // ванильный лук - после луков Divine (они от него наследуются)
+        if (i instanceof net.minecraft.item.ItemBow) return new Object[] { net.minecraft.init.Items.arrow, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER };
+        if (kind(held) == BLITZ) {
+            Item a = field(net.divinerpg.items.base.ItemProjectileShooter.class, i, "ammo");
+            return a == null ? null : new Object[] { a, com.divinerpgextended.trinket.Trinket.DUST_POUCH };
+        }
+        return null;
+    }
+
+    private static Item field(Class<?> c, Object o, String name) {
+        try {
+            java.lang.reflect.Field f = c.getDeclaredField(name);
+            f.setAccessible(true);
+            Object v = f.get(o);
+            return v instanceof Item ? (Item) v : null;
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    /** Колчан: держит один помеченный боеприпас, пока надет и оружие его вида в руке; иначе метку убирает. */
+    @SubscribeEvent
+    public void onPlayerTick(TickEvent.PlayerTickEvent e) {
+        if (e.phase != TickEvent.Phase.END || e.player.worldObj.isRemote || e.player.ticksExisted % 2 != 0) return;
+        EntityPlayer p = e.player;
+        Object[] need = ammoFor(p.getHeldItem());
+        Item keep = null;
+        if (need != null && wears(p, (com.divinerpgextended.trinket.Trinket) need[1])) {
+            keep = (Item) need[0];
+            if (!p.inventory.hasItem(keep)) {
+                ItemStack a = new ItemStack(keep);
+                a.setTagCompound(new NBTTagCompound());
+                a.getTagCompound().setBoolean(QUIVER_TAG, true);
+                p.inventory.addItemStackToInventory(a);
+            }
+        }
+        for (int i = 0; i < p.inventory.mainInventory.length; i++) {
+            ItemStack s = p.inventory.mainInventory[i];
+            if (s != null && s.hasTagCompound() && s.getTagCompound().getBoolean(QUIVER_TAG) && s.getItem() != keep) p.inventory.mainInventory[i] = null;
+        }
+    }
+
+    /** Стрелы из колчана не подбираются обратно (иначе колчан - ферма стрел). */
+    @SubscribeEvent
+    public void onArrow(EntityJoinWorldEvent e) {
+        if (e.world.isRemote || !(e.entity instanceof net.minecraft.entity.projectile.EntityArrow)) return;
+        net.minecraft.entity.projectile.EntityArrow a = (net.minecraft.entity.projectile.EntityArrow) e.entity;
+        if (a.shootingEntity instanceof EntityPlayer && wears((EntityPlayer) a.shootingEntity, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER)
+            && a.canBePickedUp == 1) a.canBePickedUp = 2;
     }
 
     public static int kind(Entity bullet) {
@@ -76,15 +156,31 @@ public class RangedRoles {
         Entity b = e.entity;
         NBTTagCompound d = b.getEntityData();
         if (d.hasKey(KIND)) {
-            if (d.getInteger(KIND) == PHASER) PHASER_SHOTS.add(b);
+            if (d.getInteger(KIND) == SLICER) TOTEM_SHOTS.add(b);
             return;
         }
         EntityLivingBase thrower = ((EntityShooterBullet) b).getThrower();
         if (!(thrower instanceof EntityPlayer)) return;
-        int k = kind(((EntityPlayer) thrower).getHeldItem());
+        EntityPlayer pl = (EntityPlayer) thrower;
+        ItemStack held = pl.getHeldItem();
+        int k = kind(held);
         if (k == 0) return;
+        if (k == PHASER && !pl.capabilities.isCreativeMode && !wears(pl, com.divinerpgextended.trinket.Trinket.DUST_POUCH)) {
+            // фазер тратит пыль своего мира; нет пыли - выстрела нет
+            Item dust = phaserDust(held.getItem());
+            if (dust != null && !pl.inventory.consumeInventoryItem(dust)) {
+                e.setCanceled(true);
+                pl.worldObj.playSoundAtEntity(pl, "random.click", 1.0F, 1.6F);
+                return;
+            }
+        }
+        if (k == SLICER && wears(pl, com.divinerpgextended.trinket.Trinket.SLICER_SLING) && !pl.capabilities.isCreativeMode) {
+            // перевязь: брошенный слайсер возвращается в руку
+            if (held.stackSize < held.getMaxStackSize()) held.stackSize++;
+            else pl.inventory.addItemStackToInventory(new ItemStack(held.getItem()));
+        }
         d.setInteger(KIND, k);
-        if (k == PHASER) PHASER_SHOTS.add(b);
+        if (k == SLICER) TOTEM_SHOTS.add(b);
         if (k == BLITZ) {
             // дробь: ещё PELLETS - 1 снарядов веером по горизонтали
             for (int i = 1; i < PELLETS; i++) {
@@ -163,11 +259,11 @@ public class RangedRoles {
         return best;
     }
 
-    /** Снаряды фазера рядом с ветряным тотемом подзаряжают его. */
+    /** Слайсеры рядом с ветряным тотемом подзаряжают его. */
     @SubscribeEvent
     public void onTick(TickEvent.WorldTickEvent e) {
-        if (e.phase != TickEvent.Phase.END || e.world.isRemote || PHASER_SHOTS.isEmpty()) return;
-        for (Iterator<Entity> it = PHASER_SHOTS.iterator(); it.hasNext();) {
+        if (e.phase != TickEvent.Phase.END || e.world.isRemote || TOTEM_SHOTS.isEmpty()) return;
+        for (Iterator<Entity> it = TOTEM_SHOTS.iterator(); it.hasNext();) {
             Entity b = it.next();
             if (b.isDead) {
                 it.remove();
