@@ -12,18 +12,18 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Подсказки цепочки: у кирки - какую руду и камень она берёт; у сумеречной брони - бонус к руде за часть. */
+/** Подсказки цепочки: у кирки - какую руду и камень она берёт; у сумеречной брони - перк полного сета. */
 @SideOnly(Side.CLIENT)
 public class PickTierTooltip {
 
     @SubscribeEvent
     public void onTooltip(ItemTooltipEvent e) {
-        if (Config.worldCrafts && e.itemStack.getItem() instanceof net.minecraft.item.ItemArmor) {
+        if (e.itemStack.getItem() instanceof net.minecraft.item.ItemArmor) {
             int slot = ((net.minecraft.item.ItemArmor) e.itemStack.getItem()).armorType;
-            // у сета Эдема бонус к руде уже написан в подсказке Divine
-            if (com.divinerpgextended.perk.TwilightOreBonus.isTwilightArmor(e.itemStack.getItem(), slot)
-                && TwilightWorld.EDEN.armor()[slot] != e.itemStack.getItem())
-                e.toolTip.add(Math.min(1, e.toolTip.size()), EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.ore_piece"));
+            for (TwilightWorld w : TwilightWorld.values()) {
+                if (slot < 4 && w.armor()[slot] == e.itemStack.getItem())
+                    e.toolTip.add(Math.min(1, e.toolTip.size()), EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.set_perk." + w.key()));
+            }
         }
         int t = MiningTiers.tier(e.itemStack);
         if (t < 0 || !Config.miningTiers) return;

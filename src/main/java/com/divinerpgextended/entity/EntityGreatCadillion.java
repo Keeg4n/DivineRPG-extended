@@ -48,6 +48,8 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
     private int chargeState = IDLE, stateTimer, chargeCooldown = 120, lastAttack = -100;
     private double chargeX, chargeZ;
     private boolean chargeHit;
+    /** Рог отколот (Солнечный шахтёр киркой по оглушённому кадиллиону Эдема): таранов больше нет. */
+    private boolean hornBroken;
     /** Подкрепление: мобы его мира (в том числе летучие Кори), раз в ~15 с боя, живых не больше 4. */
     private int addsTimer = 200;
     public static final int MAX_ADDS = 4;
@@ -163,7 +165,7 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
         WorldServer ws = (WorldServer) worldObj;
         switch (chargeState) {
             case IDLE:
-                if (t == null || --chargeCooldown > 0) return;
+                if (t == null || hornBroken || --chargeCooldown > 0) return;
                 double d = getDistanceToEntity(t);
                 if (d < 5 || d > 20 || !canEntityBeSeen(t)) return;
                 chargeState = WINDUP;
@@ -285,7 +287,32 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
             if (p.ticksExisted % 20 == 0 || src.isProjectile()) p.addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.cadillion_out_of_lair"));
             return false;
         }
+        if (chargeState == STUNNED && !hornBroken && breaksHorn(src.getEntity())) {
+            hornBroken = true;
+            worldObj.playSoundAtEntity(this, "random.anvil_break", 2.0F, 0.6F);
+            ((WorldServer) worldObj).func_147487_a("blockcrack_" + net.minecraft.block.Block.getIdFromBlock(net.minecraft.init.Blocks.quartz_block) + "_0",
+                posX, posY + height, posZ, 40, 0.6, 0.4, 0.6, 0.2);
+            entityDropItem(new ItemStack(ModItems.twilightMaterial, 2,
+                com.divinerpgextended.world.twilight.TwilightMaterial.HORN_SHARD.ordinal()), height);
+            com.divinerpgextended.debug.Debug.note(this, "Рог кадиллиона отколот");
+            amount += getMaxHealth() * HORN_DAMAGE / 2; // ниже удваивается оглушением
+        }
         return super.attackEntityFrom(src, chargeState == STUNNED ? amount * 2 : amount);
+    }
+
+    /** Доля здоровья, которую снимает скол рога. */
+    public static final float HORN_DAMAGE = 0.15F;
+
+    public boolean hornBroken() {
+        return hornBroken;
+    }
+
+    /** Скол рога: кадиллион Эдема, удар киркой в полном сете Эдема (Солнечный шахтёр). */
+    private boolean breaksHorn(Entity e) {
+        if (world() != CadillionWorld.EDEN || !(e instanceof EntityPlayer)) return false;
+        EntityPlayer p = (EntityPlayer) e;
+        return p.getHeldItem() != null && p.getHeldItem().getItem() instanceof net.minecraft.item.ItemPickaxe
+            && com.divinerpgextended.perk.HomeArmor.wears(p, com.divinerpgextended.world.twilight.TwilightWorld.EDEN, false);
     }
 
     @Override
@@ -344,12 +371,14 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
     public void writeEntityToNBT(NBTTagCompound tag) {
         super.writeEntityToNBT(tag);
         tag.setByte("Variant", (byte) getVariant());
+        tag.setBoolean("HornBroken", hornBroken);
     }
 
     @Override
     public void readEntityFromNBT(NBTTagCompound tag) {
         super.readEntityFromNBT(tag);
         dataWatcher.updateObject(DW_VARIANT, Byte.valueOf(tag.getByte("Variant")));
+        hornBroken = tag.getBoolean("HornBroken");
     }
 
     /** Обычный удар: только вблизи, с перезарядкой, оглушённый и в таране не бьёт. */

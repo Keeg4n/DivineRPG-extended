@@ -96,11 +96,24 @@ public class DoubleJump {
         // по миру: в первых трёх пропасти между островами - там ковёр нужнее всего; в Скайтерне важнее высота,
         // в Мортуме пропастей почти нет
         int d = p.dimension;
-        if (d == ConfigurationHelper.eden || d == ConfigurationHelper.wildwood) return 200;
-        if (d == ConfigurationHelper.apalachia) return 160;
-        if (d == ConfigurationHelper.skythern) return 100;
-        return 60;
+        int t = d == ConfigurationHelper.eden || d == ConfigurationHelper.wildwood ? 200 : d == ConfigurationHelper.apalachia ? 160
+            : d == ConfigurationHelper.skythern ? 100 : 60;
+        return skyMaster(p) ? t * 2 : t; // Хозяин ветров: запас вдвое
     }
+
+    /** Полный сет Скайтерна (Хозяин ветров): ковёр летает вверх-вниз по взгляду. */
+    public static boolean skyMaster(EntityPlayer p) {
+        return com.divinerpgextended.perk.HomeArmor.wears(p, com.divinerpgextended.world.twilight.TwilightWorld.SKYTHERN, false);
+    }
+
+    /** Вертикальная скорость ковра Хозяина ветров: взгляд вверх-вниз при движении вперёд, присед - вниз. */
+    public static double skyLift(EntityPlayer p, boolean forward, boolean sneak) {
+        if (sneak) return -SKY_SPEED;
+        if (!forward || Math.abs(p.rotationPitch) < 15) return 0;
+        return Math.max(-SKY_SPEED, Math.min(SKY_SPEED, -p.rotationPitch / 60.0 * SKY_SPEED));
+    }
+
+    static final double SKY_SPEED = 0.3;
 
     /** Запас взлёта крыльев сна (только в Ветее), тиков. */
     public static int wingTicks(EntityPlayer p) {
@@ -145,7 +158,8 @@ public class DoubleJump {
             ReflectionHelper.setPrivateValue(NetHandlerPlayServer.class, p.playerNetServerHandler, 0, "floatingTickCount",
                 "field_147365_f");
             if (s.wingLeft == 0) com.divinerpgextended.debug.Debug.note(p, "Крылья сна: запас взлёта кончился на y " + (int) p.posY);
-        } else if (carpet != 0 && (carpet == UNLIMITED || s.carpetLeft > 0) && dy < 0.05 && dy > -0.1) {
+        } else if (carpet != 0 && (carpet == UNLIMITED || s.carpetLeft > 0)
+            && (skyMaster(p) ? dy < SKY_SPEED + 0.05 && dy > -SKY_SPEED - 0.05 : dy < 0.05 && dy > -0.1)) {
             // парит на ковре: сервер не должен принимать это за запрещённый полёт; высота падения считается от ковра,
             // а не от места, откуда начал падать до него
             hovering = true;
@@ -304,6 +318,8 @@ public class DoubleJump {
 
         private int used, carpetLeft, wingLeft;
         private boolean wasDown, airborne;
+        /** В этом полёте уже встал на ковёр (для Хозяина ветров: дальше ковёр может и подниматься). */
+        private boolean carpetOn;
         /** Кто сейчас стоит на ковре (по последнему кадру) - им не перебирать ногами. */
         private final java.util.Set<Integer> CARPET_NOW = new java.util.HashSet<Integer>();
 
@@ -429,6 +445,7 @@ public class DoubleJump {
             airborne = !grounded(p);
             if (!airborne) {
                 used = 0;
+                carpetOn = false;
                 carpetLeft = clientCarpet;
                 wingLeft = clientWing;
                 return;
@@ -458,8 +475,10 @@ public class DoubleJump {
                 return;
             }
             // ковёр: прыжок зажат, игрок уже не поднимается - держим высоту
-            if (down && p.motionY <= 0 && clientCarpet != 0 && (clientCarpet == UNLIMITED || carpetLeft > 0)) {
-                p.motionY = 0;
+            boolean sky = skyMaster(p);
+            if (down && (p.motionY <= 0 || sky && carpetOn) && clientCarpet != 0 && (clientCarpet == UNLIMITED || carpetLeft > 0)) {
+                carpetOn = true;
+                p.motionY = sky ? skyLift(p, p.movementInput.moveForward > 0, p.movementInput.sneak) : 0;
                 p.fallDistance = 0;
                 selfCarpet = p.ticksExisted;
                 if (clientCarpet != UNLIMITED) carpetLeft--;

@@ -1823,27 +1823,75 @@ public class SelfTest {
                 + "; божественный в Эдеме " + divine + ", шлем Эдема + божественный " + mixed + ", Эдем в Диком лесу " + edenInWild);
             return "сет Эдема в Эдеме: урон мобов x0.7; божественный в Эдеме и Эдема в Диком лесу - x0.85 (полуступень); смешанный - по частям";
         });
-        t("Броня", "Руда по частям", () -> {
-            TestPlayer ov = player(ConfigurationHelper.wildwood, "TestOreBonus", 9910, 100, 9910);
-            Item[] wild = com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD.armor(), eden = com.divinerpgextended.world.twilight.TwilightWorld.EDEN.armor();
-            Item[][] sets = { { null, null, null, null }, { eden[0], wild[1], wild[2], wild[3] }, eden, { wild[0], null, null, null } };
-            float[] avg = new float[sets.length];
-            for (int si = 0; si < sets.length; si++) {
-                armor(ov, sets[si][0], sets[si][1], sets[si][2], sets[si][3]);
-                int total = 0;
-                for (int i = 0; i < 200; i++) {
-                    java.util.ArrayList<ItemStack> drops = new java.util.ArrayList<ItemStack>();
-                    drops.add(new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.wildwoodFragments));
-                    MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent(9910, 99, 9910, ov.worldObj,
-                        net.divinerpg.utils.blocks.TwilightBlocks.wildwoodOre, 0, 0, 1.0F, drops, ov, false));
-                    total += drops.size();
-                }
-                avg[si] = total / 200F;
-            }
-            armor(ov, null, null, null, null);
-            check(Math.abs(avg[0] - 1) < 0.01 && Math.abs(avg[1] - 4) < 0.01 && Math.abs(avg[2] - 4) < 0.01 && avg[3] > 1.5 && avg[3] < 2.0,
-                "без брони " + avg[0] + ", шлем Эдема + Дикий лес " + avg[1] + ", сет Эдема " + avg[2] + ", один шлем " + avg[3]);
-            return "осколков с руды: без брони 1, смешанный сет 4, сет Эдема 4 (как в Divine), одна часть ~1.75";
+        t("Броня", "Перки сетов", () -> {
+            TestPlayer sv = player(ConfigurationHelper.apalachia, "TestSetPerks", 9920, 100, 9920);
+            armor(sv, com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA.armor()[0], com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA.armor()[1],
+                com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA.armor()[2], com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA.armor()[3]);
+            sv.ticksExisted = 10;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sv));
+            double kb = sv.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.knockbackResistance).getAttributeValue();
+            net.minecraft.entity.monster.EntityZombie hitter = new net.minecraft.entity.monster.EntityZombie(sv.worldObj);
+            hitter.setPosition(sv.posX + 1, sv.posY, sv.posZ);
+            sv.worldObj.spawnEntityInWorld(hitter);
+            float hp0 = hitter.getHealth();
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(sv, net.minecraft.util.DamageSource.causeMobDamage(hitter), 10));
+            float reflected = hp0 - hitter.getHealth();
+            hitter.setDead();
+            // Мортум: вампиризм
+            Item[] mort = com.divinerpgextended.world.twilight.TwilightWorld.MORTUM.armor();
+            armor(sv, mort[0], mort[1], mort[2], mort[3]);
+            sv.setHealth(10);
+            net.minecraft.entity.monster.EntityZombie prey = new net.minecraft.entity.monster.EntityZombie(sv.worldObj);
+            prey.setPosition(sv.posX + 2, sv.posY, sv.posZ);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(prey, net.minecraft.util.DamageSource.causePlayerDamage(sv), 10));
+            float healed = sv.getHealth() - 10;
+            sv.ticksExisted = 20;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sv));
+            double kbOff = sv.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.knockbackResistance).getAttributeValue();
+            armor(sv, null, null, null, null);
+            sv.setHealth(sv.getMaxHealth());
+            check(kb >= 1 && kbOff < 1 && reflected > 1 && reflected <= 2 && healed >= 0.9 && healed <= 2.1,
+                "отбрасывание " + kb + " (снят сет " + kbOff + "), отражено " + reflected + ", вампиризм " + healed);
+            return "Апалачия: не отбрасывает, около 20% урона (после защиты дома) вернулось зомби; Мортум: удар на 10 лечит на " + healed;
+        });
+        t("Броня", "Ковёр Хозяина ветров", () -> {
+            TestPlayer kv = player(ConfigurationHelper.skythern, "TestSkyCarpet", 9930, 120, 9930);
+            Item[] sky = com.divinerpgextended.world.twilight.TwilightWorld.SKYTHERN.armor();
+            armor(kv, sky[0], sky[1], sky[2], sky[3]);
+            kv.rotationPitch = -60;
+            double up = com.divinerpgextended.trinket.DoubleJump.skyLift(kv, true, false);
+            kv.rotationPitch = 0;
+            double level = com.divinerpgextended.trinket.DoubleJump.skyLift(kv, true, false);
+            double down = com.divinerpgextended.trinket.DoubleJump.skyLift(kv, false, true);
+            boolean master = com.divinerpgextended.trinket.DoubleJump.skyMaster(kv);
+            armor(kv, null, null, null, null);
+            check(master && up > 0.25 && level == 0 && down < -0.25, "сет " + master + ", вверх " + up + ", ровно " + level + ", присед " + down);
+            return "в сете Скайтерна ковёр поднимается по взгляду вверх, держит высоту при ровном взгляде, присед - вниз";
+        });
+        t("Логова", "Скол рога", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            loadAround(w, 9940, 9940, 1);
+            TestPlayer hv = player(ConfigurationHelper.eden, "TestHorn", 9940, 100, 9940);
+            com.divinerpgextended.entity.EntityGreatCadillion boss = new com.divinerpgextended.entity.EntityGreatCadillion(w);
+            boss.setVariant(0);
+            boss.setPosition(9941, 100, 9940);
+            w.spawnEntityInWorld(boss);
+            boss.stun(80);
+            hv.setCurrentItemOrArmor(0, new ItemStack(Items.iron_pickaxe));
+            boss.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(hv), 2); // без сета Эдема - не откалывается
+            boolean plain = boss.hornBroken();
+            Item[] eden = com.divinerpgextended.world.twilight.TwilightWorld.EDEN.armor();
+            armor(hv, eden[0], eden[1], eden[2], eden[3]);
+            boss.hurtResistantTime = 0;
+            float hp = boss.getHealth();
+            boss.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(hv), 2);
+            float lost = hp - boss.getHealth();
+            boolean broken = boss.hornBroken();
+            boss.setDead();
+            armor(hv, null, null, null, null);
+            hv.setCurrentItemOrArmor(0, null);
+            check(!plain && broken && lost > boss.getMaxHealth() * 0.14F, "без сета " + plain + ", в сете " + broken + ", снято " + lost + " из " + boss.getMaxHealth());
+            return "оглушённый кадиллион Эдема: кирка в сете Эдема откалывает рог (-" + (int) lost + " здоровья, таранов больше нет), без сета - нет";
         });
         t("Прохождение", "Материалы с мобов", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
