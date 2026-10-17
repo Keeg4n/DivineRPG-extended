@@ -6,7 +6,6 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ChatComponentTranslation;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.world.BlockEvent;
 
@@ -19,11 +18,11 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 /**
  * Уровни кирок сумеречных миров: 0 - божественная, 1 - Эдема ... 5 - Мортума. Руду мира ломает только кирка этого
  * мира или выше (первую кирку мира собирают из душ его мобов), сумеречный камень в мире - кирка прошлого мира или
- * выше (в Эдеме - божественная).
+ * выше (в Эдеме - божественная). Слабая кирка не ломает блок и звенит о него с искрами.
  */
 public class MiningTiers {
 
-    private static final String HINT = "dreMiningHint";
+    private static final String TINK = "dreMiningTink";
 
     /** Уровень кирки (-1 - не кирка цепочки). */
     public static int tier(ItemStack s) {
@@ -57,11 +56,15 @@ public class MiningTiers {
         e.newSpeed = 0;
         if (e.entityPlayer.worldObj.isRemote) return;
         long now = e.entityPlayer.worldObj.getTotalWorldTime();
-        if (now - e.entityPlayer.getEntityData().getLong(HINT) < 60) return;
-        e.entityPlayer.getEntityData().setLong(HINT, now);
-        int need = required(e.block, e.entityPlayer.dimension);
-        Item pick = need == 0 ? VanillaItemsTools.divinePickaxe : TwilightCrafts.tools(TwilightWorld.values()[need - 1])[0];
-        e.entityPlayer.addChatMessage(new ChatComponentTranslation("dre.chat.need_pick", new ItemStack(pick).getDisplayName()));
+        if (now - e.entityPlayer.getEntityData().getLong(TINK) < 5) return;
+        e.entityPlayer.getEntityData().setLong(TINK, now);
+        // без текста: кирка звенит о слишком твёрдый блок и высекает искры
+        double x = e.x + 0.5, y = e.y + 0.5, z = e.z + 0.5;
+        double dx = e.entityPlayer.posX - x, dy = e.entityPlayer.posY + e.entityPlayer.getEyeHeight() - y, dz = e.entityPlayer.posZ - z;
+        double d = Math.max(0.01, Math.sqrt(dx * dx + dy * dy + dz * dz));
+        x += dx / d * 0.6; y += dy / d * 0.6; z += dz / d * 0.6; // искры на грани блока со стороны игрока
+        e.entityPlayer.worldObj.playSoundEffect(x, y, z, "random.anvil_land", 0.25F, 1.8F + e.entityPlayer.worldObj.rand.nextFloat() * 0.2F);
+        ((net.minecraft.world.WorldServer) e.entityPlayer.worldObj).func_147487_a("crit", x, y, z, 4, 0.3, 0.3, 0.3, 0.15);
     }
 
     /** Подстраховка: мгновенная ломка (зачарования, эффекты) тоже не проходит. */
