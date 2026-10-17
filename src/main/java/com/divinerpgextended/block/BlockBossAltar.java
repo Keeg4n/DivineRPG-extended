@@ -92,7 +92,7 @@ public class BlockBossAltar extends Block {
         }
         if (w == null) return true;
         net.minecraft.util.AxisAlignedBB area = net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 48, y - 24, z - 48, x + 48, y + 24, z + 48);
-        if (!world.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityGreatCadillion.class, area).isEmpty()) {
+        if (!world.getEntitiesWithinAABB(net.minecraft.entity.boss.IBossDisplayData.class, area).isEmpty()) {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.altar_busy"));
             return true;
         }
@@ -103,14 +103,13 @@ public class BlockBossAltar extends Block {
             return true;
         }
         if (!player.capabilities.isCreativeMode) held.stackSize--;
-        com.divinerpgextended.entity.EntityGreatCadillion boss = new com.divinerpgextended.entity.EntityGreatCadillion(world);
-        boss.setVariant(w.ordinal());
+        net.minecraft.entity.EntityLiving boss = com.divinerpgextended.entity.EntityGroveGuardian.create(world, w);
         boss.setLocationAndAngles(x + 0.5, y - 1, z + 0.5 + com.divinerpgextended.world.twilight.WorldGenNests.ALTAR_DZ, 0, 0);
         com.divinerpgextended.boss.LairSummons.leash(boss, x, y - 1, z + com.divinerpgextended.world.twilight.WorldGenNests.ALTAR_DZ,
             20);
         world.spawnEntityInWorld(boss);
         world.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, "mob.wither.spawn", 0.6F, 0.8F);
-        com.divinerpgextended.audit.Audit.log(player, "Summon", "Великий кадиллион (" + w.key() + ") на алтаре гнезда");
+        com.divinerpgextended.audit.Audit.log(player, "Summon", "Страж рощи (" + w.key() + ") на алтаре гнезда");
         return true;
     }
 

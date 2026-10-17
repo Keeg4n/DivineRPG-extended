@@ -24,7 +24,7 @@ public enum Boss {
     KING_OF_SCORCHERS(EntityKingOfScorchers.class, -1),
     JUNGLE_DRAMCRYX(EntityJungleDramcryx.class, -1),
     CADILLION_EDEN(EntityGreatCadillion.class, 0),
-    CADILLION_WILDWOOD(EntityGreatCadillion.class, 1),
+    CADILLION_WILDWOOD(com.divinerpgextended.entity.EntityAncientGolem.class, -1), // страж рощи Дикого леса - Древний голем
     CADILLION_APALACHIA(EntityGreatCadillion.class, 2),
     CADILLION_SKYTHERN(EntityGreatCadillion.class, 3),
     TWILIGHT_DEMON(EntityTwilightDemon.class, -1),

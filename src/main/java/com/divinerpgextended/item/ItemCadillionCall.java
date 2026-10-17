@@ -61,9 +61,8 @@ public class ItemCadillionCall extends Item {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.call_at_nest"));
             return true;
         }
-        EntityGreatCadillion boss = new EntityGreatCadillion(world);
+        net.minecraft.entity.EntityLiving boss = com.divinerpgextended.entity.EntityGroveGuardian.create(world, w);
         boss.setLocationAndAngles(x + 0.5, y + 1, z + 0.5, player.rotationYaw, 0);
-        boss.setVariant(w.ordinal());
         if (!world.getCollidingBoundingBoxes(boss, boss.boundingBox)
             .isEmpty()) {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.call_no_space"));

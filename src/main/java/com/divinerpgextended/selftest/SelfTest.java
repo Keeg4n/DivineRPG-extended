@@ -1868,6 +1868,65 @@ public class SelfTest {
             check(master && up > 0.25 && level == 0 && down < -0.25, "сет " + master + ", вверх " + up + ", ровно " + level + ", присед " + down);
             return "в сете Скайтерна ковёр поднимается по взгляду вверх, держит высоту при ровном взгляде, присед - вниз";
         });
+        t("Логова", "Древний голем", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
+            loadAround(w, 9960, 9960, 2);
+            TestPlayer gv = player(ConfigurationHelper.wildwood, "TestGolem", 9960, 100, 9950);
+            com.divinerpgextended.entity.EntityAncientGolem gol = new com.divinerpgextended.entity.EntityAncientGolem(w);
+            gol.setPosition(9960.5, 100, 9960.5);
+            gol.rotationYaw = gol.renderYawOffset = 0; // смотрит на +z: правая рука на -x
+            w.spawnEntityInWorld(gol);
+            String log = "";
+            // стрела в корпус (центр, на высоте груди) - звенит
+            net.minecraft.entity.projectile.EntityArrow ar = new net.minecraft.entity.projectile.EntityArrow(w);
+            ar.setPosition(gol.posX, gol.posY + gol.height * 0.7, gol.posZ - 1.6);
+            boolean core = gol.attackEntityFrom(net.minecraft.util.DamageSource.causeArrowDamage(ar, gv), 50);
+            log += "корпус " + core;
+            // ноги
+            int n = 0;
+            while (!gol.broken(com.divinerpgextended.entity.EntityAncientGolem.LEGS) && n++ < 100) {
+                gol.hurtResistantTime = 0;
+                ar.setPosition(gol.posX, gol.posY + 0.5, gol.posZ - 1.6);
+                gol.attackEntityFrom(net.minecraft.util.DamageSource.causeArrowDamage(ar, gv), 40);
+            }
+            int first = gol.firstBroken();
+            float h = gol.height;
+            // правая рука на -x, левая на +x
+            n = 0;
+            while (!gol.broken(com.divinerpgextended.entity.EntityAncientGolem.ARM_R) && n++ < 100) {
+                gol.hurtResistantTime = 0;
+                ar.setPosition(gol.posX - 1.6, gol.posY + gol.height * 0.6, gol.posZ);
+                gol.attackEntityFrom(net.minecraft.util.DamageSource.causeArrowDamage(ar, gv), 40);
+            }
+            boolean leftWhole = !gol.broken(com.divinerpgextended.entity.EntityAncientGolem.ARM_L);
+            n = 0;
+            while (!gol.broken(com.divinerpgextended.entity.EntityAncientGolem.ARM_L) && n++ < 100) {
+                gol.hurtResistantTime = 0;
+                ar.setPosition(gol.posX + 1.6, gol.posY + gol.height * 0.6, gol.posZ);
+                gol.attackEntityFrom(net.minecraft.util.DamageSource.causeArrowDamage(ar, gv), 40);
+            }
+            boolean open = gol.coreOpen();
+            n = 0;
+            while (!gol.isDead && gol.getHealth() > 0 && n++ < 200) {
+                gol.hurtResistantTime = 0;
+                ar.setPosition(gol.posX, gol.posY + gol.height * 0.6, gol.posZ - 1.6);
+                gol.attackEntityFrom(net.minecraft.util.DamageSource.causeArrowDamage(ar, gv), 40);
+            }
+            boolean dead = gol.getHealth() <= 0;
+            gol.setDead();
+            check(!core && first == com.divinerpgextended.entity.EntityAncientGolem.LEGS && h < 5 && leftWhole && open && dead,
+                log + ", первой отбита " + first + ", рост без ног " + h + ", левая цела после правой " + leftWhole + ", ядро " + open + ", убит " + dead);
+            return "корпус звенит, пока целы руки и ноги; ноги, правая и левая руки отбиваются по месту попадания; без ног голем оседает; потом открывается ядро и голем погибает";
+        });
+        t("Логова", "Голем на алтаре", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
+            net.minecraft.entity.EntityLiving made = com.divinerpgextended.entity.EntityGroveGuardian.create(w, com.divinerpgextended.world.CadillionWorld.WILDWOOD);
+            net.minecraft.entity.EntityLiving eden = com.divinerpgextended.entity.EntityGroveGuardian.create(w, com.divinerpgextended.world.CadillionWorld.EDEN);
+            com.divinerpgextended.boss.Boss b = com.divinerpgextended.boss.Boss.of(made);
+            check(made instanceof com.divinerpgextended.entity.EntityAncientGolem && eden instanceof com.divinerpgextended.entity.EntityGreatCadillion
+                && b == com.divinerpgextended.boss.Boss.CADILLION_WILDWOOD, "Дикий лес " + made + ", Эдем " + eden + ", босс " + b);
+            return "Зов Дикого леса вызывает Древнего голема (засчитывается как страж Дикого леса), Зов Эдема - кадиллиона";
+        });
         t("Логова", "Скол рога", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9940, 9940, 1);
