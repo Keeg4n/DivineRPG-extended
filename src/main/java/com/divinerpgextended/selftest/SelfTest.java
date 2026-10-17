@@ -1888,6 +1888,94 @@ public class SelfTest {
             check(!blind && Math.abs(ev.ammount - 5) < 0.6, "ослепление осталось " + blind + ", урон моба 10 > " + ev.ammount);
             return "закалённый сет Эдема снимает ослепление, урон мобов дома x0.5";
         });
+        t("Прогрессия", "Палки мира", () -> {
+            net.minecraft.inventory.InventoryCrafting cg = grid();
+            cg.setInventorySlotContents(0, new ItemStack(net.divinerpg.utils.blocks.TwilightBlocks.edenPlanks));
+            cg.setInventorySlotContents(3, new ItemStack(net.divinerpg.utils.blocks.TwilightBlocks.edenPlanks));
+            ItemStack st = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, server.worldServers[0]);
+            net.minecraft.inventory.InventoryCrafting tg = grid();
+            tg.setInventorySlotContents(1, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.edenDust));
+            tg.setInventorySlotContents(4, com.divinerpgextended.world.twilight.TwilightCrafts.stick(com.divinerpgextended.world.twilight.WorldWood.EDEN));
+            ItemStack torch = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(tg, server.worldServers[0]);
+            boolean ore = false;
+            for (int id : net.minecraftforge.oredict.OreDictionary.getOreIDs(com.divinerpgextended.world.twilight.TwilightCrafts.stick(com.divinerpgextended.world.twilight.WorldWood.EDEN)))
+                if ("stickWood".equals(net.minecraftforge.oredict.OreDictionary.getOreName(id))) ore = true;
+            check(st != null && st.getItem() == com.divinerpgextended.registry.ModItems.worldStick && st.getItemDamage() == com.divinerpgextended.world.twilight.WorldWood.EDEN.ordinal()
+                && st.stackSize == 4 && torch != null && torch.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.worldTorch[0]) && ore,
+                "из досок Эдема " + st + ", факел " + torch + ", stickWood " + ore);
+            return "2 доски Эдема - 4 палки Эдема (не ванильные), пыль Эдема на палке - 4 факела Эдема; палка мира годится как обычная";
+        });
+        t("Прогрессия", "Цепочка крафтов", () -> {
+            Item chunk = net.divinerpg.utils.items.TwilightItemsOther.wildwoodChunk;
+            ItemStack horn = com.divinerpgextended.world.twilight.TwilightCrafts.mat(com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD,
+                com.divinerpgextended.world.twilight.TwilightCrafts.ARMOR_MAT);
+            ItemStack worn = new ItemStack(net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet);
+            worn.setItemDamage(worn.getMaxDamage() / 2); // изношенный шлем прошлого мира тоже годится
+            net.minecraft.inventory.InventoryCrafting cg = grid();
+            ItemStack[] lay = { new ItemStack(chunk), horn, new ItemStack(chunk), new ItemStack(chunk), worn, new ItemStack(chunk) };
+            for (int i = 0; i < 6; i++) cg.setInventorySlotContents(i, lay[i]);
+            ItemStack helm = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, server.worldServers[0]);
+            net.minecraft.inventory.InventoryCrafting old = grid(); // рецепт Divine: 5 кусков
+            for (int i : new int[] { 0, 1, 2, 3, 5 }) old.setInventorySlotContents(i, new ItemStack(chunk));
+            ItemStack oldHelm = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(old, server.worldServers[0]);
+            // клинок Эдема: божественный меч + кусок Эдема + 2 солнечных пера + палка Эдема
+            net.minecraft.inventory.InventoryCrafting b = grid();
+            ItemStack feather = com.divinerpgextended.world.twilight.TwilightCrafts.mat(com.divinerpgextended.world.twilight.TwilightWorld.EDEN,
+                com.divinerpgextended.world.twilight.TwilightCrafts.WEAPON_MAT);
+            b.setInventorySlotContents(1, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.edenChunk));
+            b.setInventorySlotContents(3, feather.copy());
+            b.setInventorySlotContents(4, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.divineSword));
+            b.setInventorySlotContents(5, feather.copy());
+            b.setInventorySlotContents(7, com.divinerpgextended.world.twilight.TwilightCrafts.stick(com.divinerpgextended.world.twilight.WorldWood.EDEN));
+            ItemStack blade = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(b, server.worldServers[0]);
+            b.setInventorySlotContents(7, new ItemStack(Items.stick));
+            ItemStack plainStick = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(b, server.worldServers[0]);
+            check(helm != null && helm.getItem() == net.divinerpg.utils.items.TwilightItemsArmor.wildwoodHelmet && oldHelm == null
+                && blade != null && blade.getItem() == net.divinerpg.utils.items.TwilightItemsWeapons.edenBlade && plainStick == null,
+                "шлем Дикого леса " + helm + ", старый рецепт " + oldHelm + ", клинок Эдема " + blade + ", на обычной палке " + plainStick);
+            return "шлем Дикого леса = шлем Эдема + 4 куска + лунный рог; 5 кусков больше не крафтят; клинок Эдема из божественного меча на палке Эдема (обычная не подходит)";
+        });
+        t("Прогрессия", "Камни врат", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            net.minecraft.inventory.InventoryCrafting cg = grid();
+            for (int i = 0; i < 9; i++) cg.setInventorySlotContents(i, i == 4 ? new ItemStack(com.divinerpgextended.registry.ModItems.guardianHeart, 1, 0)
+                : new ItemStack(net.divinerpg.utils.blocks.TwilightBlocks.edenBlock));
+            ItemStack gates = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, server.worldServers[0]);
+            int gx = 9700, gy = 100, gz = 9700;
+            loadAround(w, gx, gz, 1);
+            TestPlayer v = player(ConfigurationHelper.eden, "TestGate", gx + 2, gy, gz + 2);
+            ItemStack clock = com.divinerpgextended.item.ItemWandererClock.withTier(com.divinerpgextended.registry.ModItems.wandererClock, 2);
+            boolean[] lit = new boolean[2];
+            Block[] frames = { com.divinerpgextended.registry.ModBlocks.gateStone[0], net.divinerpg.utils.blocks.TwilightBlocks.edenBlock };
+            for (int f = 0; f < 2; f++) {
+                for (int i = -1; i <= 4; i++) for (int h = -1; h <= 5; h++) w.setBlockToAir(gx + i, gy + h, gz);
+                for (int i = 0; i < 4; i++) for (int h = 0; h < 5; h++) {
+                    boolean corner = (i == 0 || i == 3) && (h == 0 || h == 4);
+                    boolean edge = i == 0 || i == 3 || h == 0 || h == 4;
+                    if (edge && !corner) w.setBlock(gx + i, gy + h, gz, frames[f]);
+                }
+                clock.getItem().onItemUse(clock, v, w, gx + 1, gy, gz, 1, 0.5F, 1F, 0.5F);
+                lit[f] = w.getBlock(gx + 1, gy + 1, gz) == net.divinerpg.utils.blocks.TwilightBlocks.wildwoodPortal
+                    && w.getBlock(gx + 2, gy + 3, gz) == net.divinerpg.utils.blocks.TwilightBlocks.wildwoodPortal;
+            }
+            for (int i = -1; i <= 4; i++) for (int h = -1; h <= 5; h++) w.setBlockToAir(gx + i, gy + h, gz);
+            check(gates != null && gates.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.gateStone[0]) && gates.stackSize == 12
+                && lit[0] && !lit[1], "камни врат " + gates + ", портал из камней врат " + lit[0] + ", из блоков Эдема " + lit[1]);
+            return "8 блоков Эдема + сердце стража - 12 камней врат; часы II зажигают портал в Дикий лес из камней врат, из блоков Эдема - нет";
+        });
+        t("Логова", "Торговля странника", () -> {
+            net.minecraft.village.MerchantRecipeList l = com.divinerpgextended.entity.EntityWanderer.trades(com.divinerpgextended.world.twilight.TwilightWorld.EDEN);
+            boolean pointless = false, torches = false, swap = false;
+            for (Object o : l) {
+                net.minecraft.village.MerchantRecipe r = (net.minecraft.village.MerchantRecipe) o;
+                Item in = r.getItemToBuy().getItem(), out = r.getItemToSell().getItem();
+                if (in == net.divinerpg.utils.items.TwilightItemsOther.edenFragments || in == net.divinerpg.utils.items.TwilightItemsOther.edenSoul) pointless = true;
+                if (out == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.worldTorch[0])) torches = true;
+                if (in == com.divinerpgextended.registry.ModItems.twilightMaterial && out == in) swap = true;
+            }
+            check(!pointless && torches && swap, "обмен осколков/душ " + pointless + ", факелы " + torches + ", обмен материалов " + swap + ", сделок " + l.size());
+            return "Странник Эдема: " + l.size() + " сделок - карта, факелы, стрелы, саженцы, обмен материалов, еда, лечение; осколки и души на камни больше не меняет";
+        });
         t("Логова", "Зов мимо алтаря", () -> {
             int dim = ConfigurationHelper.eden;
             WorldServer w = server.worldServerForDimension(dim);
@@ -2005,7 +2093,7 @@ public class SelfTest {
             String where = "";
             for (int x = x0 - 8; x < x0 + 24 && where.isEmpty(); x++) for (int zz = z0 - 8; zz < z0 + 24 && where.isEmpty(); zz++)
                 for (int h = 60; h < 140; h++) if (w.getBlock(x, h, zz) == net.divinerpg.utils.blocks.TwilightBlocks.edenPlanks) { where = (x - x0) + "," + h + "," + (zz - z0); break; }
-            check(built && planks >= 7 && lamps > 0, "мост " + built + ", досок над пропастью " + planks + ", фонарей " + lamps + ", первая доска (от x0,z0) " + where);
+            check(built && planks >= 7 && lamps == 0, "мост " + built + ", досок над пропастью " + planks + ", глоустоуна " + lamps + ", первая доска (от x0,z0) " + where);
             return "мост из досок Эдема через пропасть в 10 блоков (" + planks + " досок пролёта)";
         });
         t("Логова", "Лагерь странника", () -> {

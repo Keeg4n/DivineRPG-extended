@@ -286,10 +286,7 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
                 if (q != 0 && !gone) {
                     boolean post = (i - a) % 4 == 0;
                     w.setBlock(x, y + 1, z, post ? log : Blocks.fence, 0, 2);
-                    if (post) {
-                        w.setBlock(x, y + 2, z, Blocks.fence, 0, 2);
-                        if ((i - a) % 8 == 0) w.setBlock(x, y + 3, z, Blocks.glowstone, 0, 2); // фонарь
-                    }
+                    if (post) w.setBlock(x, y + 2, z, Blocks.fence, 0, 2);
                 }
             }
         }

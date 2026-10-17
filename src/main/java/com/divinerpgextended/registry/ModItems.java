@@ -63,6 +63,8 @@ public final class ModItems {
     public static Item furnaceModule;
     public static Item trinket;
     public static Item petCarrier;
+    public static Item worldStick;
+    public static Item guardianHeart;
 
     private ModItems() {}
 
@@ -129,6 +131,11 @@ public final class ModItems {
         GameRegistry.registerItem(trinket, "trinket");
         petCarrier = new com.divinerpgextended.arcana.ItemPetCarrier();
         GameRegistry.registerItem(petCarrier, "petCarrier");
+        worldStick = new com.divinerpgextended.item.ItemWorldStick();
+        GameRegistry.registerItem(worldStick, "worldStick");
+        net.minecraftforge.oredict.OreDictionary.registerOre("stickWood", new net.minecraft.item.ItemStack(worldStick, 1, net.minecraftforge.oredict.OreDictionary.WILDCARD_VALUE));
+        guardianHeart = new com.divinerpgextended.item.ItemGuardianHeart();
+        GameRegistry.registerItem(guardianHeart, "guardianHeart");
 
         EntityRegistry.registerModEntity(EntityGreatCadillion.class, "GreatCadillion", 0, DivineRPGExtended.instance,
             80, 3, true);

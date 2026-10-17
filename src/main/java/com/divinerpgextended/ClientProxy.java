@@ -60,6 +60,7 @@ public class ClientProxy extends CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(debugClient);
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWanderer.class, new com.divinerpgextended.client.RenderWanderer());
         RenderingRegistry.registerEntityRenderingHandler(EntityGreatCadillion.class, new RenderGreatCadillion());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.fishing.EntityDreHook.class,
             new com.divinerpgextended.client.RenderDreHook());

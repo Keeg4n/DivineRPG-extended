@@ -34,6 +34,11 @@ public final class ModBlocks {
     public static Block tombAltar;
     public static Block nestAltar;
     public static Block trapFloor;
+    /** Факелы сумеречных миров по номеру TwilightWorld. */
+    public static final Block[] worldTorch = new Block[5];
+    /** Камни врат по номеру CadillionWorld: рамка портала в следующий мир. */
+    public static final Block[] gateStone = new Block[4];
+    private static final int[] TORCH_COLOR = { 0xFFD84A, 0x5AA8FF, 0xC070FF, 0xE8ECF4, 0xE04040 };
 
     private ModBlocks() {}
 
@@ -71,5 +76,13 @@ public final class ModBlocks {
         GameRegistry.registerBlock(nestAltar, "nestAltar");
         trapFloor = new BlockTrapFloor();
         GameRegistry.registerBlock(trapFloor, "trapFloor");
+        for (com.divinerpgextended.world.twilight.TwilightWorld w : com.divinerpgextended.world.twilight.TwilightWorld.values()) {
+            worldTorch[w.ordinal()] = new com.divinerpgextended.block.BlockWorldTorch(w, TORCH_COLOR[w.ordinal()]);
+            GameRegistry.registerBlock(worldTorch[w.ordinal()], "worldTorch_" + w.key());
+        }
+        for (com.divinerpgextended.world.CadillionWorld w : com.divinerpgextended.world.CadillionWorld.values()) {
+            gateStone[w.ordinal()] = new com.divinerpgextended.block.BlockGateStone(w);
+            GameRegistry.registerBlock(gateStone[w.ordinal()], "gateStone_" + w.key());
+        }
     }
 }

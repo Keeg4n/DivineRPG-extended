@@ -47,6 +47,10 @@ public class ItemWandererClock extends Item {
     /** Какой уровень часов нужен, чтобы поджечь портал из этого блока (0 - не портальный блок). */
     private static int requiredTier(Block block) {
         if (block == VanillaBlocks.divineRock) return 1;
+        if (com.divinerpgextended.Config.gateStones) {
+            for (int i = 0; i < 4; i++) if (block == com.divinerpgextended.registry.ModBlocks.gateStone[i]) return i + 2;
+            return 0;
+        }
         if (block == TwilightBlocks.edenBlock) return 2;
         if (block == TwilightBlocks.wildwoodBlock) return 3;
         if (block == TwilightBlocks.apalachiaBlock) return 4;
@@ -68,7 +72,17 @@ public class ItemWandererClock extends Item {
             }
             return true;
         }
-        world.setBlock(x, y + 1, z, TwilightBlocks.blueFire);
+        net.divinerpg.blocks.base.portal.BlockModPortal portal = com.divinerpgextended.Config.gateStones
+            ? com.divinerpgextended.world.twilight.TwilightCrafts.portalOf(world.getBlock(x, y, z)) : null;
+        if (portal == null) {
+            world.setBlock(x, y + 1, z, TwilightBlocks.blueFire);
+            return true;
+        }
+        // камни врат синий огонь Divine не знает - портал зажигаем сами
+        if (!world.isRemote) {
+            if (portal.tryCreatePortal(world, x, y + 1, z)) world.playSoundEffect(x + 0.5, y + 1.5, z + 0.5, "portal.trigger", 0.6F, 1.2F);
+            else player.addChatMessage(new ChatComponentTranslation("dre.chat.gate_incomplete"));
+        }
         return true;
     }
 

@@ -335,6 +335,7 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
     @Override
     protected void dropFewItems(boolean byPlayer, int looting) {
         entityDropItem(new ItemStack(ModItems.timeGear, 1, getVariant()), 0.5F);
+        entityDropItem(new ItemStack(ModItems.guardianHeart, 1, getVariant()), 0.5F); // камни врат в следующий мир
         int souls = 4 + rand.nextInt(5 + looting);
         entityDropItem(new ItemStack(world().soul(), souls), 0.5F);
     }

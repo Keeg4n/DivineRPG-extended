@@ -142,6 +142,37 @@ public enum TwilightWorld {
         }
     }
 
+    /** Пыль мира (из его цветов): огонь в факелах мира. */
+    public Item dust() {
+        switch (this) {
+            case EDEN: return TwilightItemsOther.edenDust;
+            case WILDWOOD: return TwilightItemsOther.wildwoodDust;
+            case APALACHIA: return TwilightItemsOther.apalachiaDust;
+            case SKYTHERN: return TwilightItemsOther.skythernDust;
+            default: return TwilightItemsOther.mortumDust;
+        }
+    }
+
+    public Block sapling() {
+        switch (this) {
+            case EDEN: return TwilightBlocks.edenSapling;
+            case WILDWOOD: return TwilightBlocks.wildwoodSapling;
+            case APALACHIA: return TwilightBlocks.apalachiaSapling;
+            case SKYTHERN: return TwilightBlocks.skythernSapling;
+            default: return TwilightBlocks.mortumSapling;
+        }
+    }
+
+    /** Стрелы мира Divine (есть у Эдема, Дикого леса и Мортума) или null. */
+    public Item arrow() {
+        switch (this) {
+            case EDEN: return net.divinerpg.utils.items.TwilightItemsWeapons.edenArrow;
+            case WILDWOOD: return net.divinerpg.utils.items.TwilightItemsWeapons.wildwoodArrow;
+            case MORTUM: return net.divinerpg.utils.items.TwilightItemsWeapons.furyArrow;
+            default: return null;
+        }
+    }
+
     /** Мобы, которые горят на солнце: для стражи под открытым небом и подручных босса не годятся. */
     public static boolean burnsInSun(Class<?> c) {
         return c == net.divinerpg.entities.twilight.EntityGreenfeet.class || c == net.divinerpg.entities.twilight.EntityApalachiaWarrior.class;

@@ -214,7 +214,7 @@ public class CommonProxy {
         // руда инея плавится в слиток только в угольной печи Iceika (ванильную печь глушит RimeSmelting); кирка инея
         GameRegistry.addSmelting(ModBlocks.rimeOre, new ItemStack(ModItems.rimeIngot), 1.0F);
         GameRegistry.addRecipe(new ItemStack(ModItems.rimePick), "III", " S ", " S ", 'I', ModItems.rimeIngot, 'S',
-            Items.stick);
+            com.divinerpgextended.world.twilight.TwilightCrafts.stick(com.divinerpgextended.world.twilight.WorldWood.FROZEN));
 
         // Карта к Древней гробнице: бумага в резном песчанике
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, 3), "SSS", "SPS", "SSS", 'S', new ItemStack(Blocks.sandstone,
@@ -240,7 +240,7 @@ public class CommonProxy {
 
         // Ледоруб: ледяные камни (падают с Фростов в снежной пещере) на палках
         GameRegistry.addRecipe(new ItemStack(ModItems.icePick), "III", " S ", " S ", 'I', IceikaItems.iceStone,
-            'S', Items.stick);
+            'S', com.divinerpgextended.world.twilight.TwilightCrafts.stick(com.divinerpgextended.world.twilight.WorldWood.FROZEN));
 
         // Зов великого кадиллиона: души мира, камень мира, рог (у Скайтерна - эссенция) с мобов мира и печать святилища
         // из подземелья острова - до босса не дойти без исследования мира
@@ -304,6 +304,8 @@ public class CommonProxy {
         removeRecipes(Item.getItemFromBlock(net.divinerpg.utils.blocks.ArcanaBlocks.arcanaPortalFrame));
         GameRegistry.addRecipe(new ItemStack(net.divinerpg.utils.blocks.ArcanaBlocks.arcanaPortalFrame, 12), " c ", "iEi",
             " c ", 'c', VanillaItemsOther.bluefireStone, 'i', Blocks.iron_block, 'E', ModItems.watcherEye);
+
+        com.divinerpgextended.world.twilight.TwilightCrafts.postInit();
 
         com.divinerpgextended.vethea.VetheaStash.disableDivineSwap();
         if (Config.warnVetheaInventory && com.divinerpgextended.vethea.VetheaStash.divineSwap()) {
