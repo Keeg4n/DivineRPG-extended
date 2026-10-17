@@ -2433,6 +2433,39 @@ public class SelfTest {
             check(behind && lit && shots == 5 && hp < 0.8F, "снаряд за спиной " + behind + " (было " + before + ", стало " + after.size() + "), тотем зажжён " + lit + " за " + shots + " попаданий, здоровье " + hp);
             return "фазер пробивает моба насквозь (летит дальше); 5 быстрых попаданий в тотем зажигают его издалека";
         });
+        t("Прохождение", "Рельсы на стенах и потолке", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            loadAround(w, 9540, 9760, 1);
+            int x0 = 9540, y0 = 100, z0 = 9760;
+            // коробка 6 x 6 в плоскости XY: пол, стены, потолок из камня; внутри кольцо рельсов
+            for (int x = x0 - 1; x <= x0 + 6; x++) for (int y = y0 - 1; y <= y0 + 6; y++) for (int z = z0 - 1; z <= z0 + 1; z++)
+                w.setBlock(x, y, z, x == x0 - 1 || x == x0 + 6 || y == y0 - 1 || y == y0 + 6 || z != z0 ? Blocks.stone : Blocks.air);
+            int[][] ring = new int[20][];
+            int n = 0;
+            for (int x = x0; x <= x0 + 5; x++) ring[n++] = new int[] { x, y0, 0 };          // пол (опора снизу)
+            for (int y = y0 + 1; y <= y0 + 5; y++) ring[n++] = new int[] { x0 + 5, y, 5 };  // правая стена (опора на востоке)
+            for (int x = x0 + 4; x >= x0; x--) ring[n++] = new int[] { x, y0 + 5, 1 };      // потолок (опора сверху)
+            for (int y = y0 + 4; y >= y0 + 1; y--) ring[n++] = new int[] { x0, y, 4 };      // левая стена (опора на западе)
+            for (int i = 0; i < n; i++) w.setBlock(ring[i][0], ring[i][1], z0, com.divinerpgextended.registry.ModBlocks.skyRail, ring[i][2], 3);
+            TestPlayer rp = join(player(ConfigurationHelper.apalachia, "TestRail", x0 + 0.5, y0, z0 + 0.5), true);
+            com.divinerpgextended.entity.EntitySkyCart cart = new com.divinerpgextended.entity.EntitySkyCart(w, x0, y0, z0, -90); // лицом на восток
+            w.spawnEntityInWorld(cart);
+            rp.mountEntity(cart);
+            boolean ceiling = false, wall = false, back = false;
+            int ticks = 0;
+            for (; ticks < 200; ticks++) {
+                cart.onUpdate();
+                int[] rpos = cart.railPos();
+                if (rpos[1] == y0 + 5) ceiling = true;
+                if (rpos[0] == x0 + 5 && rpos[1] > y0 && rpos[1] < y0 + 5) wall = true;
+                if (ceiling && rpos[0] == x0 && rpos[1] == y0 && ticks > 10) { back = true; break; }
+            }
+            rp.mountEntity(null);
+            cart.setDead();
+            for (int x = x0 - 1; x <= x0 + 6; x++) for (int y = y0 - 1; y <= y0 + 6; y++) for (int z = z0 - 1; z <= z0 + 1; z++) w.setBlockToAir(x, y, z);
+            check(wall && ceiling && back, "по стене " + wall + ", по потолку " + ceiling + ", вернулась на старт " + back + " за " + ticks + " тиков");
+            return "вагонетка Апалачии объехала кольцо пол - стена - потолок - стена и вернулась (" + ticks + " тиков)";
+        });
         t("Логова", "Король: прыжок ввысь", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9650, 9650, 3);

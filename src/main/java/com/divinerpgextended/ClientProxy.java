@@ -67,6 +67,9 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWarriorKing.class, new com.divinerpgextended.client.RenderWarriorKing());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWindLord.class, new com.divinerpgextended.client.RenderWindLord());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityBoulder.class, new com.divinerpgextended.client.RenderBoulder());
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntitySkyCart.class, new com.divinerpgextended.client.RenderSkyCart());
+        com.divinerpgextended.block.BlockSkyRail.renderId = RenderingRegistry.getNextAvailableRenderId();
+        RenderingRegistry.registerBlockHandler(new com.divinerpgextended.client.RenderSkyRail());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.fishing.EntityDreHook.class,
             new com.divinerpgextended.client.RenderDreHook());
         // Карцинус - Король крабов, увеличенный в 4 раза

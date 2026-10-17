@@ -65,6 +65,7 @@ public final class ModItems {
     public static Item petCarrier;
     public static Item worldStick;
     public static Item guardianHeart;
+    public static Item skyCart;
 
     private ModItems() {}
 
@@ -136,6 +137,8 @@ public final class ModItems {
         net.minecraftforge.oredict.OreDictionary.registerOre("stickWood", new net.minecraft.item.ItemStack(worldStick, 1, net.minecraftforge.oredict.OreDictionary.WILDCARD_VALUE));
         guardianHeart = new com.divinerpgextended.item.ItemGuardianHeart();
         GameRegistry.registerItem(guardianHeart, "guardianHeart");
+        skyCart = new com.divinerpgextended.item.ItemSkyCart();
+        GameRegistry.registerItem(skyCart, "skyCart");
 
         EntityRegistry.registerModEntity(EntityGreatCadillion.class, "GreatCadillion", 0, DivineRPGExtended.instance,
             80, 3, true);
@@ -157,5 +160,6 @@ public final class ModItems {
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWarriorKing.class, "WarriorKing", 12, DivineRPGExtended.instance, 96, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWindLord.class, "WindLord", 13, DivineRPGExtended.instance, 112, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityBoulder.class, "Boulder", 14, DivineRPGExtended.instance, 64, 5, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntitySkyCart.class, "SkyCart", 15, DivineRPGExtended.instance, 80, 1, true);
     }
 }

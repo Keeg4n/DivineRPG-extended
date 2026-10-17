@@ -107,12 +107,24 @@ public final class TwilightCrafts {
 
     /** Убрать рецепты Divine и поставить свои. Вызывать в postInit (после рецептов Divine). */
     public static void postInit() {
+        rails();
         if (Config.worldCrafts) {
             sticks();
             for (TwilightWorld w : TwilightWorld.values()) world(w);
             divineTier();
         }
         if (Config.gateStones) gates();
+    }
+
+    /** Рельсы Апалачии (на пол, стены, потолок) вместо бесполезных рельсов Divine; вагонетка Апалачии к ним. */
+    private static void rails() {
+        Item old = Item.getItemFromBlock(TwilightBlocks.apalachiaRails);
+        remove(old);
+        GameRegistry.addRecipe(new ItemStack(ModBlocks.skyRail, 16), "F F", "FSF", "F F", 'F', net.divinerpg.utils.items.TwilightItemsOther.apalachiaFragments, 'S',
+            stick(WorldWood.APALACHIA));
+        GameRegistry.addShapelessRecipe(new ItemStack(ModBlocks.skyRail), old); // старые рельсы Divine - в новые
+        GameRegistry.addShapelessRecipe(new ItemStack(ModItems.skyCart), Items.minecart, net.divinerpg.utils.items.TwilightItemsOther.apalachiaGem,
+            net.divinerpg.utils.items.TwilightItemsOther.apalachiaGem);
     }
 
     private static void sticks() {
