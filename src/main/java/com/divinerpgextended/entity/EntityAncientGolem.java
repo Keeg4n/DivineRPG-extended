@@ -43,7 +43,8 @@ public class EntityAncientGolem extends EntityGroveGuardian {
     private static final double SIDE = 1.0, LEG_SHARE = 0.33;
 
     private final float[] partHp = new float[4];
-    private int stompTimer = 120, lashTimer = 80, packTimer = 160, lastPunch = -100;
+    private int stompTimer = 120, lashTimer = 80, packTimer = 160, lastPunch = -100, stagger;
+    private long clangHint = -1000;
 
     public EntityAncientGolem(World world) {
         super(world);
@@ -130,7 +131,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         if (coreOpen()) part = CORE;
         else if (part == CORE || broken(part)) {
             // корпус закрыт - удар звенит; по уже отбитой части - ничего
-            if (part == CORE) clang(hit);
+            if (part == CORE) clang(hit, src.getEntity());
             return false;
         }
         if (src.getEntity() instanceof EntityPlayer && com.divinerpgextended.perk.HomeArmor.wears((EntityPlayer) src.getEntity(), TwilightWorld.WILDWOOD, false))
@@ -146,8 +147,12 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         return ok;
     }
 
-    private void clang(Vec3 at) {
+    private void clang(Vec3 at, Entity who) {
         worldObj.playSoundAtEntity(this, "random.anvil_land", 0.6F, 1.6F);
+        if (who instanceof EntityPlayer && worldObj.getTotalWorldTime() - clangHint > 200) { // не чаще раза в 10 с
+            clangHint = worldObj.getTotalWorldTime();
+            ((EntityPlayer) who).addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.golem_clang"));
+        }
         if (at != null) ((WorldServer) worldObj).func_147487_a("crit", at.xCoord, at.yCoord, at.zCoord, 6, 0.2, 0.2, 0.2, 0.2);
     }
 
@@ -166,7 +171,17 @@ public class EntityAncientGolem extends EntityGroveGuardian {
             getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.12D);
         }
         if (coreOpen()) worldObj.playSoundAtEntity(this, "mob.zombie.woodbreak", 2.0F, 0.5F);
-        com.divinerpgextended.debug.Debug.note(this, "Голем: отбита часть " + part + (coreOpen() ? ", ядро открыто" : ""));
+        // шатается 2 с: видно, что что-то отвалилось
+        stagger = 40;
+        String key = coreOpen() ? "dre.chat.golem_core" : part == LEGS ? "dre.chat.golem_legs"
+            : broken(ARM_R) && broken(ARM_L) ? "dre.chat.golem_arms" : part == ARM_R ? "dre.chat.golem_arm_r" : "dre.chat.golem_arm_l";
+        for (EntityPlayer p : players(30)) {
+            net.minecraft.util.ChatComponentTranslation m = new net.minecraft.util.ChatComponentTranslation(key);
+            m.getChatStyle().setColor(net.minecraft.util.EnumChatFormatting.GREEN);
+            p.addChatMessage(m);
+        }
+        String[] names = { "правая рука", "левая рука", "ноги" };
+        com.divinerpgextended.debug.Debug.noteNear(this, 40, "Голем: отбита " + names[part] + ", здоровье " + (int) getHealth() + (coreOpen() ? ", ядро открыто" : ""));
     }
 
     // ---------------- атаки ----------------
@@ -176,6 +191,15 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         super.onLivingUpdate();
         if (worldObj.isRemote) {
             if (broken(LEGS) && height > 5) setSize(3.4F, 4.4F);
+            return;
+        }
+        if (stagger > 0) {
+            stagger--;
+            motionX = motionZ = 0;
+            getNavigator().clearPathEntity();
+            rotationYaw += (rand.nextFloat() - 0.5F) * 10; // качается
+            if (stagger % 4 == 0) ((WorldServer) worldObj).func_147487_a("blockcrack_"
+                + net.minecraft.block.Block.getIdFromBlock(net.divinerpg.utils.blocks.TwilightBlocks.wildwoodLogs) + "_0", posX, posY + height * 0.5, posZ, 10, 1, 1, 1, 0.1);
             return;
         }
         EntityLivingBase t = getAttackTarget();
@@ -241,7 +265,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
     /** Кулак: только живой рукой со стороны цели (или любой живой), с перезарядкой. */
     @Override
     public boolean attackEntityAsMob(Entity target) {
-        if (broken(ARM_R) && broken(ARM_L)) return false;
+        if (stagger > 0 || broken(ARM_R) && broken(ARM_L)) return false;
         if (ticksExisted - lastPunch < 30) return false;
         double dx = target.posX - posX, dz = target.posZ - posZ;
         if (dx * dx + dz * dz > 5.0 * 5.0) return false;

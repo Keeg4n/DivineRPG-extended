@@ -2092,6 +2092,34 @@ public class SelfTest {
             check(!hit && Math.abs(half - 0.5F) < 0.02F && reset && dead, log + ", пробуждение " + dead);
             return "Королеву не ранить; её полоска тает за 90 с (на половине " + half + "), ушёл с арены - отсчёт сначала, выжил - Королева погибает";
         });
+        t("Логова", "Покой арены", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
+            loadAround(w, 9700, 9800, 2);
+            net.minecraft.entity.monster.EntityZombie wild = new net.minecraft.entity.monster.EntityZombie(w);
+            wild.setPosition(9705.5, 101, 9800.5);
+            w.spawnEntityInWorld(wild);
+            com.divinerpgextended.entity.EntityAncientGolem ag = new com.divinerpgextended.entity.EntityAncientGolem(w);
+            ag.setPosition(9700.5, 101, 9800.5);
+            com.divinerpgextended.boss.LairSummons.leash(ag, 9700, 101, 9800, 20); // вызов: поляна расчищается
+            w.spawnEntityInWorld(ag);
+            boolean cleared = wild.isDead;
+            ag.ticksExisted = 20;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(ag));
+            net.minecraft.entity.monster.EntityZombie late = new net.minecraft.entity.monster.EntityZombie(w);
+            late.setPosition(9710.5, 101, 9800.5);
+            net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn cs = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(late, w, 9710.5F, 101, 9800.5F);
+            MinecraftForge.EVENT_BUS.post(cs);
+            boolean denied = cs.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.DENY;
+            TestPlayer cp = player(ConfigurationHelper.wildwood, "TestArenaCarpet", 9705, 101, 9800);
+            Accessories.of(cp).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            int inFight = com.divinerpgextended.trinket.DoubleJump.carpetTicks(cp);
+            cp.setPosition(9800, 101, 9800);
+            int outside = com.divinerpgextended.trinket.DoubleJump.carpetTicks(cp);
+            Accessories.of(cp).setInventorySlotContents(0, null);
+            ag.setDead();
+            check(cleared && denied && inFight == 0 && outside > 0, "расчищено " + cleared + ", спавн в бою запрещён " + denied + ", ковёр в бою " + inFight + ", вне арены " + outside);
+            return "вызов босса расчищает поляну, пока он жив - мобы на арене не спавнятся; ковёр в бою не работает, за ареной работает";
+        });
         t("Логова", "Скол рога", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9940, 9940, 1);

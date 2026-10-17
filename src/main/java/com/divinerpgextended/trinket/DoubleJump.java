@@ -92,6 +92,7 @@ public class DoubleJump {
     /** Запас ковра в тиках: 0 - не работает, {@link #UNLIMITED} - без предела. */
     public static int carpetTicks(EntityPlayer p) {
         if (!twilight(p.dimension) || !Accessories.wears(p, Trinket.MAGIC_CARPET)) return 0;
+        if (!p.worldObj.isRemote && com.divinerpgextended.boss.ArenaCalm.carpetBlocked(p)) return 0; // в бою с боссом ковёр не летает
         if (BossProgress.has(p, Boss.TWILIGHT_DEMON)) return UNLIMITED;
         // по миру: в первых трёх пропасти между островами - там ковёр нужнее всего; в Скайтерне важнее высота,
         // в Мортуме пропастей почти нет

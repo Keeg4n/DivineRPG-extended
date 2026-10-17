@@ -65,6 +65,13 @@ public final class Debug {
     }
 
     /** Сработала механика аддона: прицепится к текущему удару или уйдёт отладчику отдельной строкой. */
+    /** Заметка о мобе (боссе) - в лог игрокам рядом. */
+    public static void noteNear(Entity mob, double r, String text) {
+        if (ON.isEmpty() || mob == null || mob.worldObj.isRemote) return;
+        for (Object o : mob.worldObj.getEntitiesWithinAABB(net.minecraft.entity.player.EntityPlayer.class, mob.boundingBox.expand(r, r, r)))
+            DebugEvents.note((Entity) o, text);
+    }
+
     public static void note(Entity who, String text) {
         if (ON.isEmpty() || who == null || who.worldObj.isRemote) return;
         DebugEvents.note(who, text);

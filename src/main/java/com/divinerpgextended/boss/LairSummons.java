@@ -55,6 +55,7 @@ public class LairSummons {
 
     /** Босс вызван в логове над пропастью: не уходит за край (center, радиус, пол). */
     public static void leash(net.minecraft.entity.Entity boss, int cx, int floorY, int cz, int radius) {
+        if (!boss.worldObj.isRemote) ArenaCalm.clear(boss.worldObj, cx, floorY, cz, radius);
         boss.getEntityData().setIntArray(HOME, new int[] { cx, floorY, cz, radius });
     }
 
@@ -83,6 +84,7 @@ public class LairSummons {
         if (m.worldObj.isRemote || m.ticksExisted % 2 != 0) return;
         int[] h = m.getEntityData().getIntArray(HOME);
         if (h.length != 4) return;
+        if (m.ticksExisted % 20 == 0 && m.isEntityAlive()) ArenaCalm.mark(m, h);
         double dx = m.posX - h[0] - 0.5, dz = m.posZ - h[2] - 0.5, d = Math.sqrt(dx * dx + dz * dz);
         if (d <= h[3] && m.posY >= h[1] - 2) return;
         if (d <= h[3] + 6 && m.posY >= h[1] - 2) {
