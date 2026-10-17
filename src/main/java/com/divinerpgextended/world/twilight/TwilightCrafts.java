@@ -108,7 +108,6 @@ public final class TwilightCrafts {
     /** Убрать рецепты Divine и поставить свои. Вызывать в postInit (после рецептов Divine). */
     public static void postInit() {
         rails();
-        quivers();
         if (Config.worldCrafts) {
             sticks();
             for (TwilightWorld w : TwilightWorld.values()) world(w);
@@ -133,18 +132,6 @@ public final class TwilightCrafts {
     }
 
     /** Рельсы Апалачии (на пол, стены, потолок) вместо бесполезных рельсов Divine; вагонетка Апалачии к ним. */
-    /** Колчаны (Эдем): кожа и нить, боеприпасы своего вида и материал мобов Эдема. */
-    private static void quivers() {
-        Item tr = ModItems.trinket;
-        TwilightWorld e = TwilightWorld.EDEN;
-        GameRegistry.addRecipe(new ItemStack(tr, 1, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER.ordinal()), "LSL", "AFA", "LAL", 'L', Items.leather,
-            'S', Items.string, 'A', TwilightItemsWeapons.edenArrow, 'F', mat(e, 0));
-        GameRegistry.addRecipe(new ItemStack(tr, 1, com.divinerpgextended.trinket.Trinket.DUST_POUCH.ordinal()), "LSL", "DHD", "LDL", 'L', Items.leather,
-            'S', Items.string, 'D', e.dust(), 'H', mat(e, 1));
-        GameRegistry.addRecipe(new ItemStack(tr, 1, com.divinerpgextended.trinket.Trinket.SLICER_SLING.ordinal()), "LSL", "XRX", "LXL", 'L', Items.leather,
-            'S', Items.string, 'X', TwilightItemsWeapons.edenSlicer, 'R', mat(e, 2));
-    }
-
     private static void rails() {
         Item old = Item.getItemFromBlock(TwilightBlocks.apalachiaRails);
         remove(old);

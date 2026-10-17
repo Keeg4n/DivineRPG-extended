@@ -36,7 +36,8 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * <li>слайсер - рикошет до {@link #RICOCHET} целей подряд, перерезает лиану голема, сбивает замах Короля-воина и
  * издалека заряжает ветряные тотемы (как снежки в кристаллы дракона).</li>
  * </ul>
- * Колчаны-аксессуары (как в Террарии) дают бесконечные боеприпасы своему виду: бездонный колчан - лукам, подсумок пыли -
+ * Колчаны-аксессуары (как в Террарии; падают со стрелков - {@link #DROP_CHANCE}: лучники - колчан (Вечный лучник - наверняка), маг - подсумок, колдун -
+ * перевязь) дают бесконечные боеприпасы своему виду: бездонный колчан - лукам, подсумок пыли -
  * блицам и фазерам, перевязь метателя - слайсерам. Пока колчан надет и оружие в руке, в инвентаре держится один
  * помеченный боеприпас ({@link #QUIVER_TAG}); выстрел его тратит - появляется снова. Снял колчан - метка пропадает.
  * Чтобы колчан носили не только ради удобства: колчан +10% урона стрелами, подсумок +15% урона блица и фазера,
@@ -111,6 +112,31 @@ public class RangedRoles {
         } catch (Exception ex) {
             return null;
         }
+    }
+
+    public static final float DROP_CHANCE = 0.10F, DROP_LOOTING = 0.02F;
+
+    /** Какой колчан падает с этого моба (null - никакой). */
+    public static com.divinerpgextended.trinket.Trinket quiverOf(Entity e) {
+        if (e instanceof net.divinerpg.entities.twilight.EntityEternalArcher || e instanceof net.divinerpg.entities.twilight.EntityApalachiaArcher
+            || e instanceof net.divinerpg.entities.twilight.EntityMortumArcher
+            || e instanceof net.divinerpg.entities.twilight.EntitySunArcher || e instanceof net.divinerpg.entities.iceika.EntityFrostArcher)
+            return com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER; // Скайтерна и сумеречный - наследники лучника Апалачии
+        if (e instanceof net.divinerpg.entities.twilight.EntityMage) return com.divinerpgextended.trinket.Trinket.DUST_POUCH;
+        if (e instanceof net.divinerpg.entities.twilight.EntitySorcerer) return com.divinerpgextended.trinket.Trinket.SLICER_SLING;
+        return null;
+    }
+
+    /** Колчаны не крафтятся - падают со стрелков, убитых игроком. */
+    @SubscribeEvent
+    public void onDrops(net.minecraftforge.event.entity.living.LivingDropsEvent e) {
+        if (e.entityLiving.worldObj.isRemote || !e.recentlyHit || !(e.source.getEntity() instanceof EntityPlayer)) return;
+        com.divinerpgextended.trinket.Trinket t = quiverOf(e.entityLiving);
+        // с Вечного лучника (босс) - всегда, с остальных стрелков - по шансу
+        boolean boss = e.entityLiving instanceof net.divinerpg.entities.twilight.EntityEternalArcher;
+        if (t == null || !boss && e.entityLiving.worldObj.rand.nextFloat() >= DROP_CHANCE + DROP_LOOTING * e.lootingLevel) return;
+        e.drops.add(new net.minecraft.entity.item.EntityItem(e.entityLiving.worldObj, e.entityLiving.posX, e.entityLiving.posY + 0.5, e.entityLiving.posZ,
+            new ItemStack(com.divinerpgextended.registry.ModItems.trinket, 1, t.ordinal())));
     }
 
     /** Колчан: держит один помеченный боеприпас, пока надет и оружие его вида в руке; иначе метку убирает. */

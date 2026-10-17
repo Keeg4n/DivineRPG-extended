@@ -2528,6 +2528,46 @@ public class SelfTest {
                 "стрела без колчана " + got[0] + ", с колчаном " + got[1] + ", фазер с подсумком " + hp.ammount);
             return "колчан: стрелы +10%; подсумок: фазер +15%";
         });
+        t("Прохождение", "Колчаны со стрелков", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            TestPlayer dv2 = player(ConfigurationHelper.eden, "TestQuiverDrop", 9484.5, 120, 9820.5);
+            net.divinerpg.entities.twilight.EntitySunArcher arch = new net.divinerpg.entities.twilight.EntitySunArcher(w);
+            net.divinerpg.entities.twilight.EntitySkythernArcher sky = new net.divinerpg.entities.twilight.EntitySkythernArcher(w);
+            int got = 0, other = 0;
+            for (int i = 0; i < 500; i++) {
+                java.util.ArrayList<net.minecraft.entity.item.EntityItem> drops = new java.util.ArrayList<net.minecraft.entity.item.EntityItem>();
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(arch, net.minecraft.util.DamageSource.causePlayerDamage(dv2), drops, 0, true, 0));
+                for (net.minecraft.entity.item.EntityItem d : drops) {
+                    ItemStack it = d.getEntityItem();
+                    if (it.getItem() == com.divinerpgextended.registry.ModItems.trinket) {
+                        if (it.getItemDamage() == Trinket.ENDLESS_QUIVER.ordinal()) got++;
+                        else other++;
+                    }
+                }
+            }
+            net.minecraft.inventory.InventoryCrafting cg = grid();
+            cg.setInventorySlotContents(0, new ItemStack(Items.leather));
+            cg.setInventorySlotContents(1, new ItemStack(Items.string));
+            cg.setInventorySlotContents(2, new ItemStack(Items.leather));
+            cg.setInventorySlotContents(3, new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenArrow));
+            cg.setInventorySlotContents(4, com.divinerpgextended.world.twilight.TwilightCrafts.mat(com.divinerpgextended.world.twilight.TwilightWorld.EDEN, 0));
+            cg.setInventorySlotContents(5, new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenArrow));
+            cg.setInventorySlotContents(6, new ItemStack(Items.leather));
+            cg.setInventorySlotContents(7, new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenArrow));
+            cg.setInventorySlotContents(8, new ItemStack(Items.leather));
+            ItemStack craft = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, server.worldServers[0]);
+            boolean skyQuiver = com.divinerpgextended.perk.RangedRoles.quiverOf(sky) == Trinket.ENDLESS_QUIVER;
+            net.divinerpg.entities.twilight.EntityEternalArcher eternal = new net.divinerpg.entities.twilight.EntityEternalArcher(w);
+            int bossGot = 0;
+            for (int i = 0; i < 20; i++) {
+                java.util.ArrayList<net.minecraft.entity.item.EntityItem> bd = new java.util.ArrayList<net.minecraft.entity.item.EntityItem>();
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(eternal, net.minecraft.util.DamageSource.causePlayerDamage(dv2), bd, 0, true, 0));
+                for (net.minecraft.entity.item.EntityItem d : bd) if (d.getEntityItem().getItem() == com.divinerpgextended.registry.ModItems.trinket) bossGot++;
+            }
+            check(got > 25 && got < 80 && other == 0 && craft == null && skyQuiver && bossGot == 20,
+                "колчанов с 500 солнечных лучников " + got + ", чужих " + other + ", крафт " + craft + ", лучник Скайтерна " + skyQuiver + ", с Вечного лучника " + bossGot + " из 20");
+            return "колчан падает с лучников (~10%: " + got + " из 500), с Вечного лучника всегда, не крафтится";
+        });
         t("Прохождение", "Рельсы Divine ставятся на стену", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9560, 9820, 1);
