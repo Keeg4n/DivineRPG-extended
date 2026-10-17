@@ -916,3 +916,7 @@ dre.chat.golem_arm_l=The golem's left arm broke off!
 dre.chat.golem_arms=Both arms are gone - now the golem lashes vines from afar and pulls you in.
 dre.chat.golem_legs=The golem's legs are shattered - it collapsed on its body, crawls and calls Vereks.
 dre.chat.golem_core=The golem's core is open - strike the body!
+tile.dre.worldLamp.wildwood.name=Wildwood Lamp
+tile.dre.worldLamp.apalachia.name=Apalachia Lamp
+tile.dre.worldLamp.skythern.name=Skythern Lamp
+tile.dre.worldLamp.mortum.name=Mortum Lamp

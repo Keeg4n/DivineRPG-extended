@@ -119,7 +119,7 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
                 for (int y = 1; y <= h; y++) w.setBlock(x + px, base + y, z + pz, stone, 0, 2);
             }
         }
-        w.setBlock(x + 4, base, z + 2, Blocks.glowstone, 0, 2);
+        w.setBlock(x + 4, base, z + 2, tw.lamp(), tw.lampMeta(), 2);
         chest(w, r, x + 4, base + 1, z + 4, TwilightLoot.ruins(tw), 5 + r.nextInt(3));
         // стража
         int guards = 2 + r.nextInt(2);
@@ -146,8 +146,8 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
                 else w.setBlock(x + i, y, z + k, Blocks.air, 0, 2);
             }
         }
-        w.setBlock(x + 1, floor + 4, z + 1, Blocks.glowstone, 0, 2);
-        w.setBlock(x + 7, floor + 4, z + 7, Blocks.glowstone, 0, 2);
+        w.setBlock(x + 1, floor + 4, z + 1, tw.lamp(), tw.lampMeta(), 2);
+        w.setBlock(x + 7, floor + 4, z + 7, tw.lamp(), tw.lampMeta(), 2);
         // спавнер моба мира
         w.setBlock(x + 4, floor, z + 4, Blocks.mob_spawner, 0, 2);
         if (w.getTileEntity(x + 4, floor, z + 4) instanceof TileEntityMobSpawner) {

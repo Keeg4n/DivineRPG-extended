@@ -27,6 +27,11 @@ public abstract class ColumnStructure {
     /** Заполнить col[y * 2] = код, col[y * 2 + 1] = мета; false - столбец не входит в постройку. */
     protected abstract boolean column(int dx, int dz, int[] col);
 
+    /** Мета блока по коду (лампы Divine - один блок на много метаданных). */
+    protected int metaOf(int code, int meta) {
+        return meta;
+    }
+
     /** Блоки, после которых нужно пересчитать свет (светятся). */
     protected boolean lit(Block b) {
         return b.getLightValue() > 0;
@@ -62,6 +67,7 @@ public abstract class ColumnStructure {
                     if (code == KEEP) continue;
                     int meta = col[y * 2 + 1];
                     Block b = code == AIR ? Blocks.air : block(code, meta);
+                    if (code != AIR) meta = metaOf(code, meta);
                     if (w.getBlock(x, y, z).hasTileEntity(w.getBlockMetadata(x, y, z))) w.removeTileEntity(x, y, z);
                     ExtendedBlockStorage s = arr[y >> 4];
                     if (s == null) {

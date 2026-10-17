@@ -121,7 +121,7 @@ public class WorldGenOuterLairs implements IWorldGenerator {
     private static Block block(int code) {
         switch (code) {
             case BRICK: return Blocks.nether_brick;
-            case GLOW: return Blocks.glowstone;
+            case GLOW: return net.divinerpg.utils.blocks.VanillaBlocks.lamp1;
             case LAVA: return Blocks.lava;
             case OBSIDIAN: return Blocks.obsidian;
             case END_STONE: return Blocks.end_stone;
@@ -153,12 +153,18 @@ public class WorldGenOuterLairs implements IWorldGenerator {
 
         @Override
         protected Block block(int code, int meta) {
+            if (code == GLOW && type == WATCHER) return net.divinerpg.utils.blocks.VanillaBlocks.lamp2;
             return WorldGenOuterLairs.block(code);
         }
 
         @Override
+        protected int metaOf(int code, int meta) {
+            return code == GLOW ? (type == WATCHER ? 6 : 2) : meta;
+        }
+
+        @Override
         protected boolean lit(Block b) {
-            return b == Blocks.glowstone || b == Blocks.lava;
+            return b == net.divinerpg.utils.blocks.VanillaBlocks.lamp1 || b == net.divinerpg.utils.blocks.VanillaBlocks.lamp2 || b == Blocks.lava;
         }
 
         @Override
@@ -228,8 +234,13 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         }
 
         @Override
+        protected int metaOf(int code, int meta) {
+            return code == GLOW ? 8 : meta;
+        }
+
+        @Override
         protected boolean lit(Block b) {
-            return b == Blocks.glowstone;
+            return b == net.divinerpg.utils.blocks.VanillaBlocks.lamp1;
         }
 
         @Override

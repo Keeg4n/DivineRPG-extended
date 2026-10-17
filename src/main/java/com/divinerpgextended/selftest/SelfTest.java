@@ -1640,7 +1640,7 @@ public class SelfTest {
             net.minecraft.block.Block altar = w.getBlock(c[0], top + 2, az), mid = w.getBlock(c[0], top, c[2]);
             boolean clear = w.isAirBlock(c[0], top + 5, c[2]) && w.isAirBlock(c[0] + 5, top + 3, c[2] + 5);
             dump(w, c[0], top, c[2], 48, "nest-eden");
-            check(altar == com.divinerpgextended.registry.ModBlocks.nestAltar && mid == Blocks.glowstone && clear,
+            check(altar == com.divinerpgextended.registry.ModBlocks.nestAltar && mid == net.divinerpg.utils.blocks.VanillaBlocks.lamp1 && w.getBlockMetadata(c[0], top, c[2]) == 7 && clear,
                 "в " + c[0] + "," + c[2] + ": алтарь " + altar.getUnlocalizedName() + ", центр " + mid.getUnlocalizedName() + ", над полом пусто " + clear);
             // алтарь принимает Зов Эдема и ставит кадиллиона в центр гнезда
             TestPlayer v = player(dim, "TestNest", c[0], top + 1, az + 2);
@@ -2534,6 +2534,29 @@ public class SelfTest {
             check(!pointless && torches && swap, "обмен осколков/душ " + pointless + ", факелы " + torches + ", обмен материалов " + swap + ", сделок " + l.size());
             return "Странник Эдема: " + l.size() + " сделок - карта, факелы, стрелы, саженцы, обмен материалов, еда, лечение; осколки и души на камни больше не меняет";
         });
+        t("Прогрессия", "Лампы миров", () -> {
+            net.minecraft.inventory.InventoryCrafting lg = grid();
+            for (int i = 0; i < 9; i++) lg.setInventorySlotContents(i, new ItemStack(i == 4 ? net.divinerpg.utils.items.TwilightItemsOther.mortumFragments : Items.iron_ingot));
+            ItemStack lamp = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(lg, server.worldServers[0]);
+            // руины Мортума освещены лампой Мортума
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            loadAround(w, 9400, 9400, 1);
+            for (int i = -2; i < 12; i++) for (int k2 = -2; k2 < 12; k2++) {
+                for (int h = 95; h < 99; h++) w.setBlock(9400 + i, h, 9400 + k2, Blocks.stone);
+                w.setBlock(9400 + i, 99, 9400 + k2, net.divinerpg.utils.blocks.TwilightBlocks.mortumGrass);
+                for (int h = 100; h < 137; h++) w.setBlockToAir(9400 + i, h, 9400 + k2);
+            }
+            com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.ruin(w, new java.util.Random(1), com.divinerpgextended.world.twilight.TwilightWorld.MORTUM, 9400, 9400);
+            int lamps = 0, glow = 0;
+            for (int i = -2; i < 12; i++) for (int k2 = -2; k2 < 12; k2++) for (int h = 95; h < 112; h++) {
+                net.minecraft.block.Block b = w.getBlock(9400 + i, h, 9400 + k2);
+                if (b == com.divinerpgextended.registry.ModBlocks.worldLamp[com.divinerpgextended.world.twilight.TwilightWorld.MORTUM.ordinal()]) lamps++;
+                if (b == Blocks.glowstone) glow++;
+            }
+            check(lamp != null && lamp.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.worldLamp[4]) && lamps > 0 && glow == 0,
+                "рецепт " + lamp + ", ламп Мортума в руинах " + lamps + ", глоустоуна " + glow);
+            return "железо вокруг осколка Мортума - лампа Мортума; руины освещены лампой своего мира, глоустоуна нет";
+        });
         t("Логова", "Зов мимо алтаря", () -> {
             int dim = ConfigurationHelper.eden;
             WorldServer w = server.worldServerForDimension(dim);
@@ -2647,7 +2670,7 @@ public class SelfTest {
             for (int x = x0 + 4; x <= x0 + 13; x++) for (int h = y - 4; h <= y + 1; h++)
                 if (w.getBlock(x, h, z0 + 8) == net.divinerpg.utils.blocks.TwilightBlocks.edenPlanks) planks++;
             for (int x = x0 - 6; x <= x0 + 22; x++) for (int h = y - 6; h <= y + 6; h++) for (int zz = z0 + 7; zz <= z0 + 9; zz++)
-                if (w.getBlock(x, h, zz) == Blocks.glowstone) lamps++;
+                if (w.getBlock(x, h, zz) == Blocks.glowstone || w.getBlock(x, h, zz).getLightValue() > 0) lamps++;
             String where = "";
             for (int x = x0 - 8; x < x0 + 24 && where.isEmpty(); x++) for (int zz = z0 - 8; zz < z0 + 24 && where.isEmpty(); zz++)
                 for (int h = 60; h < 140; h++) if (w.getBlock(x, h, zz) == net.divinerpg.utils.blocks.TwilightBlocks.edenPlanks) { where = (x - x0) + "," + h + "," + (zz - z0); break; }
@@ -2692,7 +2715,7 @@ public class SelfTest {
             int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
             loadAround(w, c[0], c[2], 3);
             int f = com.divinerpgextended.world.WorldGenOuterLairs.FLOOR[type], R = com.divinerpgextended.world.WorldGenOuterLairs.RADIUS[type];
-            boolean hall = w.getBlock(c[0], f, c[2]) == Blocks.glowstone && w.isAirBlock(c[0] + 4, f + 6, c[2] + 4)
+            boolean hall = w.getBlock(c[0], f, c[2]) == net.divinerpg.utils.blocks.VanillaBlocks.lamp2 && w.getBlockMetadata(c[0], f, c[2]) == 6 && w.isAirBlock(c[0] + 4, f + 6, c[2] + 4)
                 && w.isAirBlock(c[0] + R + 4, f + 2, c[2]);
             TestPlayer v = player(-1, "TestWatcher", c[0], f + 1, c[2]);
             net.minecraft.item.Item call = net.divinerpg.utils.items.VanillaItemsOther.callWatcher;
@@ -2719,7 +2742,7 @@ public class SelfTest {
             int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
             loadAround(w, c[0], c[2], 3);
             int f = com.divinerpgextended.world.WorldGenOuterLairs.FLOOR[type];
-            boolean nest = w.getBlock(c[0], f, c[2]) == Blocks.glowstone && w.isAirBlock(c[0] + 2, f + 4, c[2] + 2);
+            boolean nest = w.getBlock(c[0], f, c[2]) == net.divinerpg.utils.blocks.VanillaBlocks.lamp1 && w.getBlockMetadata(c[0], f, c[2]) == 8 && w.isAirBlock(c[0] + 2, f + 4, c[2] + 2);
             TestPlayer v = player(1, "TestAerie", c[0], f + 1, c[2]);
             net.minecraft.item.Item horn = net.divinerpg.utils.items.VanillaItemsOther.hordeHorn;
             String in = com.divinerpgextended.boss.LairSummons.refusal(v, horn, c[0] + 2, f, c[2] + 3);

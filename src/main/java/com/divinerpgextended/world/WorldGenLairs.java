@@ -626,7 +626,7 @@ public class WorldGenLairs implements IWorldGenerator {
                 int y = yb + 2 + dy, x = ax + 1;
                 while (c.has(x, y, bossZ + dz)) x++;
                 boolean frame = Math.abs(dz) == 2 || dy == 0 || dy == 3;
-                set(world, x, y, bossZ + dz, frame ? IceikaBlocks.icyBricks : Blocks.glowstone);
+                set(world, x, y, bossZ + dz, frame ? IceikaBlocks.icyBricks : IceikaBlocks.workshopLamp);
             }
         }
 

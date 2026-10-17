@@ -112,11 +112,17 @@ public class WorldGenNests implements IWorldGenerator {
             case LEAVES: return w.leaves();
             case PLANKS: return w.planks();
             case GEM: return w.gemBlock();
-            case GLOW: return Blocks.glowstone;
+            case GLOW: return w.lamp();
             case ALTAR: return ModBlocks.nestAltar;
             case ORE: return w.ore();
             default: return Blocks.air;
         }
+    }
+
+    /** Лампа любого сумеречного мира (для пересчёта света вокруг). */
+    static boolean isLamp(Block b) {
+        for (TwilightWorld w : TwilightWorld.values()) if (w.isLamp(b)) return true;
+        return false;
     }
 
     /** Чаша под полом: земля мира сверху, камень ниже, глубже к центру; редкие свисающие корни. */
@@ -177,6 +183,11 @@ public class WorldGenNests implements IWorldGenerator {
         }
 
         @Override
+        protected int metaOf(int code, int meta) {
+            return code == GLOW ? w.lampMeta() : meta;
+        }
+
+        @Override
         protected Block block(int code, int meta) {
             if (code == WATER) return Blocks.water;
             return palette(w, code);
@@ -184,7 +195,7 @@ public class WorldGenNests implements IWorldGenerator {
 
         @Override
         protected boolean lit(Block b) {
-            return b == Blocks.glowstone || b == ModBlocks.nestAltar;
+            return isLamp(b) || b == ModBlocks.nestAltar;
         }
 
         /** Плавный шум 0..1 по ячейкам cell (билинейный по хэшам углов). */
@@ -349,6 +360,11 @@ public class WorldGenNests implements IWorldGenerator {
         }
 
         @Override
+        protected int metaOf(int code, int meta) {
+            return code == GLOW ? TwilightWorld.WILDWOOD.lampMeta() : meta;
+        }
+
+        @Override
         protected Block block(int code, int meta) {
             switch (code) {
                 case MOSSY: return Blocks.mossy_cobblestone;
@@ -434,6 +450,11 @@ public class WorldGenNests implements IWorldGenerator {
         }
 
         @Override
+        protected int metaOf(int code, int meta) {
+            return code == GLOW ? TwilightWorld.APALACHIA.lampMeta() : meta;
+        }
+
+        @Override
         protected Block block(int code, int meta) {
             switch (code) {
                 case BRICK: return Blocks.stonebrick;
@@ -444,7 +465,7 @@ public class WorldGenNests implements IWorldGenerator {
 
         @Override
         protected boolean lit(Block b) {
-            return b == Blocks.glowstone || b == ModBlocks.nestAltar;
+            return isLamp(b) || b == ModBlocks.nestAltar;
         }
 
         @Override
@@ -512,6 +533,11 @@ public class WorldGenNests implements IWorldGenerator {
         }
 
         @Override
+        protected int metaOf(int code, int meta) {
+            return code == GLOW ? TwilightWorld.SKYTHERN.lampMeta() : meta;
+        }
+
+        @Override
         protected Block block(int code, int meta) {
             switch (code) {
                 case MARBLE: return Blocks.quartz_block;
@@ -524,7 +550,7 @@ public class WorldGenNests implements IWorldGenerator {
 
         @Override
         protected boolean lit(Block b) {
-            return b == Blocks.glowstone || b == ModBlocks.nestAltar;
+            return isLamp(b) || b == ModBlocks.nestAltar;
         }
 
         @Override
@@ -586,13 +612,18 @@ public class WorldGenNests implements IWorldGenerator {
     static class Circle extends ColumnStructure {
 
         @Override
+        protected int metaOf(int code, int meta) {
+            return code == GLOW ? TwilightWorld.MORTUM.lampMeta() : meta;
+        }
+
+        @Override
         protected Block block(int code, int meta) {
             return palette(TwilightWorld.MORTUM, code);
         }
 
         @Override
         protected boolean lit(Block b) {
-            return b == Blocks.glowstone;
+            return isLamp(b);
         }
 
         @Override

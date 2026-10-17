@@ -142,6 +142,19 @@ public enum TwilightWorld {
         }
     }
 
+    /** Лампа мира: у Эдема - лампа Divine (lamp1, мета {@link #lampMeta}), у остальных - лампы аддона. */
+    public Block lamp() {
+        return this == EDEN ? net.divinerpg.utils.blocks.VanillaBlocks.lamp1 : com.divinerpgextended.registry.ModBlocks.worldLamp[ordinal()];
+    }
+
+    public int lampMeta() {
+        return this == EDEN ? 7 : 0;
+    }
+
+    public boolean isLamp(Block b) {
+        return b == lamp();
+    }
+
     /** Пыль мира (из его цветов): огонь в факелах мира. */
     public Item dust() {
         switch (this) {

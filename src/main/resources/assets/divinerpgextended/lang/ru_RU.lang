@@ -983,3 +983,7 @@ dre.chat.golem_arm_l=Левая рука голема отломилась!
 dre.chat.golem_arms=Обе руки отбиты - теперь голем хлещет лианами издалека и подтягивает к себе.
 dre.chat.golem_legs=Ноги голема разбиты - он рухнул на корпус, ползёт и зовёт Вереков.
 dre.chat.golem_core=Ядро голема открыто - бей в корпус!
+tile.dre.worldLamp.wildwood.name=Лампа Дикого леса
+tile.dre.worldLamp.apalachia.name=Лампа Апалачии
+tile.dre.worldLamp.skythern.name=Лампа Скайтерна
+tile.dre.worldLamp.mortum.name=Лампа Мортума

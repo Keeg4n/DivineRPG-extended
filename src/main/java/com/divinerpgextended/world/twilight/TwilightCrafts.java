@@ -124,6 +124,8 @@ public final class TwilightCrafts {
             list.add(0, r);
         }
         for (TwilightWorld w : TwilightWorld.values()) {
+            if (ModBlocks.worldLamp[w.ordinal()] != null)
+                GameRegistry.addRecipe(new ItemStack(ModBlocks.worldLamp[w.ordinal()]), "III", "IFI", "III", 'I', Items.iron_ingot, 'F', w.fragments());
             GameRegistry.addRecipe(new ItemStack(ModBlocks.worldTorch[w.ordinal()], 4), "D", "S", 'D', w.dust(), 'S', stick(WorldWood.of(w)));
             if (w.arrow() != null) {
                 remove(w.arrow());
