@@ -3467,6 +3467,63 @@ public class SelfTest {
             }
             return "построено и сброшено для рендера: " + n;
         });
+        t("Логова", "Демон сумерек: бой по этажам башни", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            int cx = 30000, cz = 30000; // башня построена тестом рендера
+            loadAround(w, cx, cz, 3);
+            int top = com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TOP;
+            net.divinerpg.entities.twilight.EntityTwilightDemon dm = new net.divinerpg.entities.twilight.EntityTwilightDemon(w);
+            dm.setLocationAndAngles(cx + 0.5, top + 1, cz + 4.5, 0, 0);
+            w.spawnEntityInWorld(dm);
+            com.divinerpgextended.boss.LairSummons.leash(dm, cx, top + 1, cz, 20);
+            dm.getEntityData().setIntArray(com.divinerpgextended.boss.MortumBosses.SPIRE, new int[] { cx, cz });
+            TestPlayer tp = join(player(ConfigurationHelper.mortum, "TestSpire", cx + 0.5, top + 1, cz + 6.5), true);
+            dm.setHealth(dm.getMaxHealth() * 0.84F);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(dm));
+            int st1 = dm.getEntityData().getInteger(com.divinerpgextended.boss.MortumBosses.STAGE);
+            int fl1 = com.divinerpgextended.boss.MortumBosses.floorOf(1);
+            boolean inHall = st1 == 1 && Math.abs(dm.posY - (fl1 + 1)) < 0.01 && w.getCollidingBoundingBoxes(dm, dm.boundingBox).isEmpty();
+            // со двора не достать
+            net.minecraftforge.event.entity.living.LivingAttackEvent a1 = new net.minecraftforge.event.entity.living.LivingAttackEvent(dm, DamageSource.causePlayerDamage(tp), 5);
+            MinecraftForge.EVENT_BUS.post(a1);
+            boolean farSafe = a1.isCanceled();
+            // на этаже - достать
+            tp.setPositionAndUpdate(dm.posX + 2, fl1 + 1, dm.posZ);
+            net.minecraftforge.event.entity.living.LivingAttackEvent a2 = new net.minecraftforge.event.entity.living.LivingAttackEvent(dm, DamageSource.causePlayerDamage(tp), 5);
+            MinecraftForge.EVENT_BUS.post(a2);
+            boolean nearHit = !a2.isCanceled();
+            // остальные этажи: каждый ход - этаж выше, место свободное
+            StringBuilder floors = new StringBuilder();
+            boolean free = true;
+            dm.setHealth(dm.getMaxHealth() * 0.2F);
+            for (int i = 0; i < 8; i++) {
+                dm.getEntityData().setInteger(com.divinerpgextended.boss.MortumBosses.OFFER_LEFT, 0);
+                dm.getEntityData().setInteger(com.divinerpgextended.boss.MortumBosses.PHASE, 2);
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(dm));
+                free &= w.getCollidingBoundingBoxes(dm, dm.boundingBox).isEmpty();
+                floors.append((int) dm.posY).append(' ');
+            }
+            int st = dm.getEntityData().getInteger(com.divinerpgextended.boss.MortumBosses.STAGE);
+            int[] f = com.divinerpgextended.world.twilight.MortumArenas.crownFocus();
+            boolean lit = w.getBlock(cx + f[0], f[1], cz + f[2]) == com.divinerpgextended.world.twilight.MortumArenas.focusBlock();
+            int flc = com.divinerpgextended.boss.MortumBosses.floorOf(st);
+            tp.setPositionAndUpdate(dm.posX - 2, flc + 1, dm.posZ);
+            net.minecraftforge.event.entity.living.LivingAttackEvent a3 = new net.minecraftforge.event.entity.living.LivingAttackEvent(dm, DamageSource.causePlayerDamage(tp), 5);
+            MinecraftForge.EVENT_BUS.post(a3);
+            boolean focusSafe = a3.isCanceled();
+            w.setBlockToAir(cx + f[0], f[1], cz + f[2]);
+            net.minecraftforge.event.entity.living.LivingAttackEvent a4 = new net.minecraftforge.event.entity.living.LivingAttackEvent(dm, DamageSource.causePlayerDamage(tp), 5);
+            MinecraftForge.EVENT_BUS.post(a4);
+            boolean broken = !a4.isCanceled();
+            // в коронном зале фокус и Демон под одной крышей: потолок над этажом есть
+            int[] home = com.divinerpgextended.boss.LairSummons.home(dm);
+            dm.setDead();
+            tp.inventory.clearInventory(null, -1);
+            check(inHall && farSafe && nearHit && st == com.divinerpgextended.boss.MortumBosses.STAGE_AT.length && free && lit && focusSafe && broken && home != null && home[1] == flc + 1,
+                "зал: этаж " + st1 + " y " + (int) dm.posY + " ок " + inHall + "; со двора неуязвим " + farSafe + ", на этаже бьётся " + nearHit + "; этажи " + floors + "до " + st + ", места свободны " + free
+                    + "; фокус горит " + lit + ", пока горит - неуязвим " + focusSafe + ", разбит - бьётся " + broken);
+            return "Демон уходит в башню на 85% и поднимается по этажу каждые 12% до коронного зала; не на его этаже его не достать; в короне держит фокус - разбил, бей";
+        });
         t("Логова", "РЕНДЕР карта Леты", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int bx = 40000, bz = 40000, size = 192;

@@ -50,7 +50,16 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 public class MortumBosses {
 
     public static final String PHASE = "drePhase", OFFER_LEFT = "dreOffer", MIRROR_W = "dreMirrorW", MIRROR_A = "dreMirrorA",
-        MAX_POWER = "dreMirrorMax";
+        MAX_POWER = "dreMirrorMax", STAGE = "dreStage", SPIRE = "dreSpire", FOCUS_OUT = "dreFocusOut", HINT = "dreHint";
+    /**
+     * Бой в башне: на этих долях здоровья Демон уходит этажом выше (двор - зал - библиотека - лаборатория - покои - верхний
+     * этаж - коронный зал); этажи от пола площадки.
+     */
+    public static final float[] STAGE_AT = { 0.85F, 0.72F, 0.60F, 0.48F, 0.36F, 0.24F };
+    public static final int[] STAGE_FLOOR = { 0, 7, 14, 21, 28, 35 };
+    /** Фокус в короне разбит - через столько тиков Демон зажигает его снова. */
+    public static final int FOCUS_RELIGHT = 600;
+    public static final float GUST = 1.4F;
     public static final int OFFER = 200;
     public static final float NON_PHASER = 0.1F, RUNE_DMG = 10;
     public static final int SPELL = 80, RUNE_FUSE = 30, RUNES = 3, BOLTS = 3;
@@ -91,20 +100,29 @@ public class MortumBosses {
         }
         int phase = tag.getInteger(PHASE);
         float f = d.getHealth() / d.getMaxHealth();
+        int stage = tag.getInteger(STAGE);
+        int[] sp = spire(d);
+        if (sp != null && stage < STAGE_AT.length && f <= STAGE_AT[stage]) {
+            climb(d, stage + 1);
+            return;
+        }
         if (phase == 0 && f <= 2 / 3F || phase == 1 && f <= 1 / 3F) {
             tag.setInteger(OFFER_LEFT, OFFER);
             say(d, "dre.chat.demon_offer");
             d.worldObj.playSoundAtEntity(d, "mob.wither.idle", 2.0F, 0.5F);
             return;
         }
+        if (sp != null && stage == STAGE_AT.length) crownTick(d, sp);
         EntityPlayer target = d.worldObj.getClosestVulnerablePlayerToEntity(d, 40);
         if (target != null && d.ticksExisted % SPELL == 0) {
             int spell = d.ticksExisted / SPELL % 2;
             if (spell == 0) runes(d, target);
-            else blink(d, target);
+            else blink(d, target, BOLTS + (stage >= 2 ? 2 : 0));
         }
-        if (phase >= 1 && d.ticksExisted % 300 == 0) summon(d, net.divinerpg.entities.twilight.EntityMortumDemon.class, phase >= 2 ? 3 : 2);
-        if (phase >= 2 && d.ticksExisted % 200 == 0) {
+        if ((phase >= 1 || stage >= 1) && d.ticksExisted % 300 == 0) summon(d, net.divinerpg.entities.twilight.EntityMortumDemon.class, phase >= 2 || stage >= 5 ? 3 : 2);
+        if (stage >= 3 && d.ticksExisted % 200 == 100) fumes(d);
+        if (stage >= 4 && d.ticksExisted % 240 == 60) gust(d);
+        if ((phase >= 2 || stage >= 5) && d.ticksExisted % 200 == 0) {
             for (EntityPlayer p : players(d, 30)) p.addPotionEffect(new PotionEffect(Potion.blindness.id, 70, 0));
             d.worldObj.playSoundAtEntity(d, "mob.wither.ambient", 2.0F, 0.4F);
             summon(d, net.divinerpg.entities.twilight.EntitySoulSpider.class, 5);
@@ -123,14 +141,152 @@ public class MortumBosses {
         return n;
     }
 
+    // ---------------- башня: бой по этажам
+
+    /** Центр арены-башни {x, z} (null - Демон вызван не на башне). Запоминается при первом ходе на арене. */
+    public static int[] spire(EntityTwilightDemon d) {
+        NBTTagCompound tag = d.getEntityData();
+        int[] s = tag.getIntArray(SPIRE);
+        if (s.length == 2) return s;
+        int[] h = LairSummons.home(d);
+        if (h == null || tag.getInteger(STAGE) > 0 || com.divinerpgextended.world.twilight.TwilightWorld.of(d.worldObj.provider.dimensionId) != com.divinerpgextended.world.twilight.TwilightWorld.MORTUM)
+            return null;
+        if (com.divinerpgextended.world.twilight.MortumArenas.typeAt(d.worldObj, h) != com.divinerpgextended.world.twilight.MortumArenas.Type.DEMON) return null;
+        s = new int[] { h[0], h[2] };
+        tag.setIntArray(SPIRE, s);
+        return s;
+    }
+
+    /** Пол этажа боя (stage 1..6) в мире. */
+    public static int floorOf(int stage) {
+        return com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TOP + STAGE_FLOOR[stage - 1];
+    }
+
+    /** Игрок на этаже Демона: внутри башни и между полом и потолком этажа. */
+    public static boolean onFloor(EntityTwilightDemon d, EntityPlayer p) {
+        int stage = d.getEntityData().getInteger(STAGE);
+        int[] sp = d.getEntityData().getIntArray(SPIRE);
+        if (stage <= 0 || sp.length != 2) return true;
+        double tx = sp[0] + com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TX + 0.5, tz = sp[1] + com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TZ + 0.5;
+        double dx = p.posX - tx, dz = p.posZ - tz;
+        int fl = floorOf(stage);
+        return dx * dx + dz * dz <= (com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TR + 0.5) * (com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TR + 0.5)
+            && p.posY >= fl && p.posY <= fl + 7;
+    }
+
+    /** Подняться на этаж stage: дым, перенос на свободное место этажа, привязь к этажу, слово игрокам. */
+    public static boolean climb(EntityTwilightDemon d, int stage) {
+        int[] sp = spire(d);
+        if (sp == null) return false;
+        NBTTagCompound tag = d.getEntityData();
+        tag.setInteger(STAGE, stage);
+        WorldServer ws = (WorldServer) d.worldObj;
+        ws.func_147487_a("largesmoke", d.posX, d.posY + 2, d.posZ, 60, 1.2, 2, 1.2, 0.05);
+        int tx = sp[0] + com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TX, tz = sp[1] + com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TZ;
+        int fl = floorOf(stage);
+        int[][] spots = { { 0, 3 }, { 0, -3 }, { 3, 0 }, { -3, 0 }, { 2, 2 }, { -2, -2 }, { 0, 0 } };
+        int[] at = spots[0];
+        double ox = d.posX, oy = d.posY, oz = d.posZ;
+        for (int[] s : spots) {
+            d.setPosition(tx + s[0] + 0.5, fl + 1, tz + s[1] + 0.5);
+            if (d.worldObj.getCollidingBoundingBoxes(d, d.boundingBox).isEmpty()) {
+                at = s;
+                break;
+            }
+        }
+        d.setPosition(ox, oy, oz);
+        d.motionX = d.motionY = d.motionZ = 0;
+        d.fallDistance = 0;
+        d.getNavigator().clearPathEntity();
+        d.setPositionAndUpdate(tx + at[0] + 0.5, fl + 1, tz + at[1] + 0.5);
+        LairSummons.leash(d, tx + at[0], fl + 1, tz + at[1], com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TR - 1);
+        ws.func_147487_a("portal", d.posX, d.posY + 2, d.posZ, 60, 1, 2, 1, 0.6);
+        d.worldObj.playSoundAtEntity(d, "mob.endermen.portal", 2.0F, 0.4F);
+        if (stage == STAGE_AT.length) {
+            relight(d, sp);
+            say(d, "dre.chat.demon_crown");
+        } else say(d, stage == 1 ? "dre.chat.demon_tower" : "dre.chat.demon_climb");
+        return true;
+    }
+
+    static boolean focusLit(net.minecraft.world.World w, int[] sp) {
+        int[] f = com.divinerpgextended.world.twilight.MortumArenas.crownFocus();
+        return w.getBlock(sp[0] + f[0], f[1], sp[1] + f[2]) == com.divinerpgextended.world.twilight.MortumArenas.focusBlock();
+    }
+
+    /** Зажечь главный фокус на пьедестале коронного зала. */
+    public static void relight(EntityTwilightDemon d, int[] sp) {
+        int[] f = com.divinerpgextended.world.twilight.MortumArenas.crownFocus();
+        d.worldObj.setBlock(sp[0] + f[0], f[1], sp[1] + f[2], com.divinerpgextended.world.twilight.MortumArenas.focusBlock(), 0, 3);
+        d.getEntityData().setInteger(FOCUS_OUT, 0);
+        ((WorldServer) d.worldObj).func_147487_a("witchMagic", sp[0] + f[0] + 0.5, f[1] + 0.5, sp[1] + f[2] + 0.5, 40, 0.5, 0.5, 0.5, 0.1);
+    }
+
+    /** Коронный зал: от горящего фокуса к Демону тянется нить; разбитый фокус Демон через FOCUS_RELIGHT тиков зажигает снова. */
+    private void crownTick(EntityTwilightDemon d, int[] sp) {
+        NBTTagCompound tag = d.getEntityData();
+        int[] f = com.divinerpgextended.world.twilight.MortumArenas.crownFocus();
+        double fx = sp[0] + f[0] + 0.5, fy = f[1] + 0.5, fz = sp[1] + f[2] + 0.5;
+        if (focusLit(d.worldObj, sp)) {
+            if (d.ticksExisted % 4 == 0) {
+                WorldServer ws = (WorldServer) d.worldObj;
+                for (int i = 1; i < 6; i++) {
+                    double k = i / 6.0;
+                    ws.func_147487_a("witchMagic", fx + (d.posX - fx) * k, fy + (d.posY + 2 - fy) * k, fz + (d.posZ - fz) * k, 1, 0, 0, 0, 0);
+                }
+            }
+            return;
+        }
+        int out = tag.getInteger(FOCUS_OUT) + 1;
+        tag.setInteger(FOCUS_OUT, out);
+        if (out == 1) say(d, "dre.chat.demon_focus_broken");
+        if (out >= FOCUS_RELIGHT) {
+            relight(d, sp);
+            say(d, "dre.chat.demon_focus_relit");
+            d.worldObj.playSoundAtEntity(d, "mob.wither.idle", 2.0F, 0.6F);
+        }
+    }
+
+    /** Ядовитые пары (лаборатория и выше): яд и тошнота тем, кто рядом. */
+    public static int fumes(EntityTwilightDemon d) {
+        int n = 0;
+        ((WorldServer) d.worldObj).func_147487_a("mobSpell", d.posX, d.posY + 1, d.posZ, 80, 3.5, 1.2, 3.5, 0.5);
+        for (EntityPlayer p : players(d, 7)) {
+            p.addPotionEffect(new PotionEffect(Potion.poison.id, 80, 0));
+            p.addPotionEffect(new PotionEffect(Potion.confusion.id, 100, 0));
+            n++;
+        }
+        d.worldObj.playSoundAtEntity(d, "mob.witch.idle", 1.5F, 0.5F);
+        return n;
+    }
+
+    /** Порыв (покои и выше): отбрасывает от Демона и вверх - к окнам и лестнице. */
+    public static int gust(EntityTwilightDemon d) {
+        int n = 0;
+        ((WorldServer) d.worldObj).func_147487_a("cloud", d.posX, d.posY + 1, d.posZ, 60, 2.5, 0.8, 2.5, 0.3);
+        for (EntityPlayer p : players(d, 8)) {
+            double dx = p.posX - d.posX, dz = p.posZ - d.posZ, l = Math.max(0.5, Math.sqrt(dx * dx + dz * dz));
+            p.addVelocity(dx / l * GUST, 0.45, dz / l * GUST);
+            p.velocityChanged = true;
+            n++;
+        }
+        d.worldObj.playSoundAtEntity(d, "mob.enderdragon.wings", 2.0F, 0.6F);
+        return n;
+    }
+
     /** Блинк: на случайное место двора (в пределах привязи) и три теневых снаряда в цель. */
     public static int blink(EntityTwilightDemon d, EntityLivingBase t) {
+        return blink(d, t, BOLTS);
+    }
+
+    /** Блинк с bolts теневыми снарядами веером. */
+    public static int blink(EntityTwilightDemon d, EntityLivingBase t, int bolts) {
         int[] h = LairSummons.home(d);
         WorldServer ws = (WorldServer) d.worldObj;
         ws.func_147487_a("largesmoke", d.posX, d.posY + 1.5, d.posZ, 30, 0.6, 1, 0.6, 0.02);
         if (h != null) {
             for (int a = 0; a < 8; a++) {
-                double ang = d.getRNG().nextDouble() * Math.PI * 2, r = 6 + d.getRNG().nextDouble() * (h[3] - 8);
+                double ang = d.getRNG().nextDouble() * Math.PI * 2, r = Math.min(6, h[3] - 2) + d.getRNG().nextDouble() * Math.max(0, h[3] - 8);
                 double x = h[0] + 0.5 + Math.cos(ang) * r, z = h[2] + 0.5 + Math.sin(ang) * r;
                 double ox = d.posX, oy = d.posY, oz = d.posZ;
                 d.setPosition(x, h[1], z);
@@ -143,10 +299,10 @@ public class MortumBosses {
         }
         d.worldObj.playSoundAtEntity(d, "mob.endermen.portal", 1.5F, 0.5F);
         int n = 0;
-        for (int i = 0; i < BOLTS; i++) {
+        for (int i = 0; i < bolts; i++) {
             com.divinerpgextended.entity.EntityShadowBolt b = new com.divinerpgextended.entity.EntityShadowBolt(d.worldObj, d);
             double dx = t.posX - d.posX, dy = t.posY + t.height / 2 - (d.posY + d.getEyeHeight()), dz = t.posZ - d.posZ;
-            double ang = Math.toRadians((i - 1) * 8);
+            double ang = Math.toRadians((i - (bolts - 1) / 2.0) * 8);
             double rx = dx * Math.cos(ang) - dz * Math.sin(ang), rz = dx * Math.sin(ang) + dz * Math.cos(ang);
             b.setThrowableHeading(rx, dy, rz, 1.3F, 0);
             if (d.worldObj.spawnEntityInWorld(b)) n++;
@@ -243,11 +399,33 @@ public class MortumBosses {
         }
     }
 
-    /** Удар во время предложения - отказ: бой продолжается, фаза растёт. Сам удар не проходит. */
+    /**
+     * В башне: Демона не достать, пока стоишь не на его этаже (снаружи, в окна, с лестницы); в коронном зале - пока горит
+     * главный фокус. Удар во время предложения - отказ: бой продолжается, фаза растёт. Сам удар не проходит.
+     */
     @SubscribeEvent
     public void onAttack(LivingAttackEvent e) {
         if (!(e.entityLiving instanceof EntityTwilightDemon) || e.entityLiving.worldObj.isRemote) return;
+        EntityTwilightDemon dm = (EntityTwilightDemon) e.entityLiving;
         NBTTagCompound tag = e.entityLiving.getEntityData();
+        int stage = tag.getInteger(STAGE);
+        int[] sp = tag.getIntArray(SPIRE);
+        if (stage > 0 && sp.length == 2 && e.source != DamageSource.outOfWorld && tag.getInteger(OFFER_LEFT) <= 0) {
+            EntityPlayer by = e.source.getEntity() instanceof EntityPlayer ? (EntityPlayer) e.source.getEntity() : null;
+            String why = by != null && !onFloor(dm, by) ? "dre.chat.demon_floor" : stage == STAGE_AT.length && focusLit(dm.worldObj, sp) ? "dre.chat.demon_focus" : null;
+            if (why != null) {
+                e.setCanceled(true);
+                ((WorldServer) dm.worldObj).func_147487_a("witchMagic", dm.posX, dm.posY + 2, dm.posZ, 12, 0.6, 1, 0.6, 0.05);
+                long now = dm.worldObj.getTotalWorldTime();
+                if (by != null && now - tag.getLong(HINT) > 100) {
+                    tag.setLong(HINT, now);
+                    ChatComponentTranslation m = new ChatComponentTranslation(why);
+                    m.getChatStyle().setColor(EnumChatFormatting.DARK_PURPLE).setItalic(true);
+                    by.addChatMessage(m);
+                }
+                return;
+            }
+        }
         if (tag.getInteger(OFFER_LEFT) <= 0) return;
         e.setCanceled(true);
         if (!(e.source.getEntity() instanceof EntityPlayer)) return;

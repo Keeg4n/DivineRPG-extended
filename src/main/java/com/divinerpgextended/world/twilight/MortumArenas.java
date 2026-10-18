@@ -120,6 +120,19 @@ public final class MortumArenas {
         return t == Type.ARCHER ? new int[] { 0, Gallery.DAIS_H, -(Gallery.HZ - 3) } : null;
     }
 
+    /** Башня Демона для боя (от центра арены): центр башни, радиус, пол площадки, этажи боя, коронный зал. */
+    public static final int SPIRE_TX = Spire.TX, SPIRE_TZ = Spire.TZ, SPIRE_TR = Spire.TR, SPIRE_TOP = Spire.TOP, SPIRE_CROWN = Spire.CROWN;
+
+    /** Главный фокус силы Демона: блок на пьедестале коронного зала {dx, y, dz} от центра арены. */
+    public static int[] crownFocus() {
+        return new int[] { Spire.TX, Spire.TOP + Spire.CROWN + 2, Spire.TZ };
+    }
+
+    /** Чем светится фокус. */
+    public static net.minecraft.block.Block focusBlock() {
+        return Blocks.glowstone;
+    }
+
     /** Алтари арены: {dx, y, dz} (у близнецов - по одному на помосте каждого брата). */
     public static List<int[]> altars(Type t) {
         List<int[]> l = new ArrayList<int[]>();
