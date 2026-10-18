@@ -65,7 +65,7 @@ public final class ModItems {
     public static Item petCarrier;
     public static Item worldStick;
     public static Item guardianHeart;
-    public static Item skyCart, apalachiaRails, arcanaRails;
+    public static Item skyCart, apalachiaRails, arcanaRails, gondola;
 
     private ModItems() {}
 
@@ -141,6 +141,8 @@ public final class ModItems {
         GameRegistry.registerItem(skyCart, "skyCart");
         apalachiaRails = new com.divinerpgextended.item.ItemApalachiaRails(false);
         GameRegistry.registerItem(apalachiaRails, "apalachiaRails");
+        gondola = new com.divinerpgextended.item.ItemGondola();
+        GameRegistry.registerItem(gondola, "gondola");
         arcanaRails = new com.divinerpgextended.item.ItemApalachiaRails(true);
         GameRegistry.registerItem(arcanaRails, "arcanaRails");
 
@@ -161,6 +163,8 @@ public final class ModItems {
         EntityRegistry.registerModEntity(EntityDreHook.class, "DreHook", 9, DivineRPGExtended.instance, 64, 5, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWanderer.class, "Wanderer", 10, DivineRPGExtended.instance, 80, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityCharon.class, "Charon", 16, DivineRPGExtended.instance, 80, 3, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityGondola.class, "Gondola", 17, DivineRPGExtended.instance, 80, 3, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityShadowBolt.class, "ShadowBolt", 18, DivineRPGExtended.instance, 64, 5, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityAncientGolem.class, "AncientGolem", 11, DivineRPGExtended.instance, 96, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWarriorKing.class, "WarriorKing", 12, DivineRPGExtended.instance, 96, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWindLord.class, "WindLord", 13, DivineRPGExtended.instance, 112, 3, true);

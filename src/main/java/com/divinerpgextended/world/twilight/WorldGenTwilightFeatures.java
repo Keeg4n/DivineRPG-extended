@@ -41,16 +41,16 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         int x0 = chunkX * 16 + 8, z0 = chunkZ * 16 + 8;
         // своё зерно на чанк: постройки не зависят от порядка генерации
         Random r = new Random(world.getSeed() ^ chunkX * 341873128712L ^ chunkZ * 132897987541L ^ 0x7A1L);
+        boolean mortum = tw == TwilightWorld.MORTUM;
+        if (mortum) { // река течёт и мимо арен (на самих аренах её нет)
+            int river = MortumWorld.lethe(world, tw, x0, z0);
+            if (river > 4) MortumWorld.dock(world, r, tw, x0, z0);
+        }
         if (nearLair(world, x0 + 8, z0 + 8)) return;
         boolean built = false;
         // острова неровные и дырявые: каждой постройке - четыре места в области заселения
         int[][] spots = { { 0, 0 }, { 7, 0 }, { 0, 7 }, { 7, 7 } };
-        boolean mortum = tw == TwilightWorld.MORTUM;
-        if (mortum) {
-            int river = MortumWorld.lethe(world, tw, x0, z0);
-            if (river > 6 && r.nextInt(5) == 0) MortumWorld.dock(world, r, tw, x0, z0);
-            MortumWorld.bones(world, r, tw, x0, z0);
-        }
+        if (mortum) MortumWorld.bones(world, r, tw, x0, z0);
         if (Config.twilightRuinsRarity > 0 && r.nextInt(Config.twilightRuinsRarity) == 0) {
             if (mortum) for (int[] o : spots) built = built || MortumWorld.crypt(world, r, tw, x0 + o[0], z0 + o[1]);
             else for (int[] o : spots) if (!built && (built = ruin(world, r, tw, x0 + o[0], z0 + o[1]))) ruins++;

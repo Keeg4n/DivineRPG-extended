@@ -64,6 +64,9 @@ public class ClientProxy extends CommonProxy {
             .register(debugClient);
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWanderer.class, new com.divinerpgextended.client.RenderWanderer());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityCharon.class, new com.divinerpgextended.client.RenderCharon());
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityGondola.class, new com.divinerpgextended.client.RenderGondola());
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityShadowBolt.class,
+            new net.minecraft.client.renderer.entity.RenderSnowball(net.minecraft.init.Items.ender_eye));
         RenderingRegistry.registerEntityRenderingHandler(EntityGreatCadillion.class, new RenderGreatCadillion());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityAncientGolem.class, new com.divinerpgextended.client.RenderAncientGolem());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWarriorKing.class, new com.divinerpgextended.client.RenderWarriorKing());

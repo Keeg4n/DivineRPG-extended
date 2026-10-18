@@ -61,8 +61,10 @@ public class EntityWanderer extends EntityVillager {
     public static MerchantRecipeList trades(TwilightWorld w) {
         MerchantRecipeList l = new MerchantRecipeList();
         Item gem = w.gem();
-        l.add(new MerchantRecipe(new ItemStack(gem, 2), new ItemStack(ModItems.lairMap, 1,
-            w == TwilightWorld.MORTUM ? ItemLairMap.CIRCLE : ItemLairMap.NEST)));
+        if (w == TwilightWorld.MORTUM) { // карта к каждой арене Мортума
+            for (com.divinerpgextended.world.twilight.MortumArenas.Type t : com.divinerpgextended.world.twilight.MortumArenas.Type.values())
+                l.add(new MerchantRecipe(new ItemStack(gem, 2), new ItemStack(ModItems.lairMap, 1, ItemLairMap.arenaMap(t))));
+        } else l.add(new MerchantRecipe(new ItemStack(gem, 2), new ItemStack(ModItems.lairMap, 1, ItemLairMap.NEST)));
         l.add(new MerchantRecipe(new ItemStack(gem, 1), new ItemStack(ModBlocks.worldTorch[w.ordinal()], 8)));
         if (w.arrow() != null) l.add(new MerchantRecipe(new ItemStack(gem, 1), new ItemStack(w.arrow(), 16)));
         l.add(new MerchantRecipe(new ItemStack(gem, 1), new ItemStack(w.sapling(), 2)));

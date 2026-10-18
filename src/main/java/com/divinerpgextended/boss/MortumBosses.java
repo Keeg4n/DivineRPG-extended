@@ -35,7 +35,10 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 /**
  * Боссы Демонического круга Мортума:
  * <ul>
- * <li>Демон сумерек - дилемма. Три фазы; на 2/3 и 1/3 здоровья он замирает ({@link #OFFER} тиков, неуязвим) и
+ * <li>Демон сумерек - маг. Пробить его можно только фазером (остальное - x{@link #NON_PHASER}); рядом с ним у луков рвётся
+ * тетива. Вместо снарядов Divine (тошнота) - заклинания по очереди каждые {@link #SPELL} тиков: руны под ногами цели
+ * взрываются через {@link #RUNE_FUSE} тиков (уходи), "блинк" - переносится по двору и бьёт тремя теневыми снарядами.
+ * Дилемма: три фазы; на 2/3 и 1/3 здоровья он замирает ({@link #OFFER} тиков, неуязвим) и
  * предлагает разойтись. Не трогать - уходит во тьму: победа засчитана, но трофеи только этой фазы. Ударить - бой
  * продолжается, и он злее: во 2-й фазе стреляет чаще и зовёт демонов, в 3-й - тьма (слепота) и толпа. Полная победа -
  * все трофеи.</li>
@@ -49,6 +52,10 @@ public class MortumBosses {
     public static final String PHASE = "drePhase", OFFER_LEFT = "dreOffer", MIRROR_W = "dreMirrorW", MIRROR_A = "dreMirrorA",
         MAX_POWER = "dreMirrorMax";
     public static final int OFFER = 200;
+    public static final float NON_PHASER = 0.1F, RUNE_DMG = 10;
+    public static final int SPELL = 80, RUNE_FUSE = 30, RUNES = 3, BOLTS = 3;
+    /** Руны на взводе: {мир, x, y, z, тик взрыва, демон}. */
+    private static final List<Object[]> RUNE_LIST = new java.util.ArrayList<Object[]>();
     /** Оружие с таким уроном - Карот бьёт в полную силу Divine; кулак - в 0.2, топовое оружие - до x3. */
     public static final float MIRROR_REF = 10F;
 
@@ -90,13 +97,109 @@ public class MortumBosses {
             d.worldObj.playSoundAtEntity(d, "mob.wither.idle", 2.0F, 0.5F);
             return;
         }
-        if (phase >= 1 && d.ticksExisted % 100 == 0) setShooting(d, 60); // стреляет вдвое чаще
+        EntityPlayer target = d.worldObj.getClosestVulnerablePlayerToEntity(d, 40);
+        if (target != null && d.ticksExisted % SPELL == 0) {
+            int spell = d.ticksExisted / SPELL % 2;
+            if (spell == 0) runes(d, target);
+            else blink(d, target);
+        }
         if (phase >= 1 && d.ticksExisted % 300 == 0) summon(d, net.divinerpg.entities.twilight.EntityMortumDemon.class, phase >= 2 ? 3 : 2);
         if (phase >= 2 && d.ticksExisted % 200 == 0) {
             for (EntityPlayer p : players(d, 30)) p.addPotionEffect(new PotionEffect(Potion.blindness.id, 70, 0));
             d.worldObj.playSoundAtEntity(d, "mob.wither.ambient", 2.0F, 0.4F);
             summon(d, net.divinerpg.entities.twilight.EntitySoulSpider.class, 5);
         }
+    }
+
+    /** Руны вокруг цели: светятся RUNE_FUSE тиков, потом взрываются (урон и подброс тем, кто рядом; блоки целы). */
+    public static int runes(EntityTwilightDemon d, EntityLivingBase t) {
+        int n = 0;
+        for (int i = 0; i < RUNES; i++) {
+            double x = i == 0 ? t.posX : t.posX + (d.getRNG().nextDouble() - 0.5) * 7, z = i == 0 ? t.posZ : t.posZ + (d.getRNG().nextDouble() - 0.5) * 7;
+            RUNE_LIST.add(new Object[] { d.worldObj, x, t.posY, z, d.worldObj.getTotalWorldTime() + RUNE_FUSE, d });
+            n++;
+        }
+        d.worldObj.playSoundAtEntity(t, "mob.wither.idle", 0.7F, 1.6F);
+        return n;
+    }
+
+    /** Блинк: на случайное место двора (в пределах привязи) и три теневых снаряда в цель. */
+    public static int blink(EntityTwilightDemon d, EntityLivingBase t) {
+        int[] h = LairSummons.home(d);
+        WorldServer ws = (WorldServer) d.worldObj;
+        ws.func_147487_a("largesmoke", d.posX, d.posY + 1.5, d.posZ, 30, 0.6, 1, 0.6, 0.02);
+        if (h != null) {
+            for (int a = 0; a < 8; a++) {
+                double ang = d.getRNG().nextDouble() * Math.PI * 2, r = 6 + d.getRNG().nextDouble() * (h[3] - 8);
+                double x = h[0] + 0.5 + Math.cos(ang) * r, z = h[2] + 0.5 + Math.sin(ang) * r;
+                double ox = d.posX, oy = d.posY, oz = d.posZ;
+                d.setPosition(x, h[1], z);
+                if (d.worldObj.getCollidingBoundingBoxes(d, d.boundingBox).isEmpty()) {
+                    d.setPositionAndUpdate(x, h[1], z);
+                    break;
+                }
+                d.setPosition(ox, oy, oz);
+            }
+        }
+        d.worldObj.playSoundAtEntity(d, "mob.endermen.portal", 1.5F, 0.5F);
+        int n = 0;
+        for (int i = 0; i < BOLTS; i++) {
+            com.divinerpgextended.entity.EntityShadowBolt b = new com.divinerpgextended.entity.EntityShadowBolt(d.worldObj, d);
+            double dx = t.posX - d.posX, dy = t.posY + t.height / 2 - (d.posY + d.getEyeHeight()), dz = t.posZ - d.posZ;
+            double ang = Math.toRadians((i - 1) * 8);
+            double rx = dx * Math.cos(ang) - dz * Math.sin(ang), rz = dx * Math.sin(ang) + dz * Math.cos(ang);
+            b.setThrowableHeading(rx, dy, rz, 1.3F, 0);
+            if (d.worldObj.spawnEntityInWorld(b)) n++;
+        }
+        return n;
+    }
+
+    /** Руны: искры на взводе, взрыв по сроку. */
+    @SubscribeEvent
+    public void onWorldTick(cpw.mods.fml.common.gameevent.TickEvent.WorldTickEvent e) {
+        if (e.phase != cpw.mods.fml.common.gameevent.TickEvent.Phase.END || e.world.isRemote || RUNE_LIST.isEmpty()) return;
+        long now = e.world.getTotalWorldTime();
+        for (java.util.Iterator<Object[]> it = RUNE_LIST.iterator(); it.hasNext();) {
+            Object[] r = it.next();
+            if (r[0] != e.world) continue;
+            double x = (Double) r[1], y = (Double) r[2], z = (Double) r[3];
+            WorldServer ws = (WorldServer) e.world;
+            if (now < (Long) r[4]) {
+                if (now % 4 == 0) ws.func_147487_a("witchMagic", x, y + 0.1, z, 12, 0.9, 0.02, 0.9, 0);
+                continue;
+            }
+            it.remove();
+            ws.func_147487_a("largeexplode", x, y + 0.5, z, 3, 0.5, 0.2, 0.5, 0);
+            e.world.playSoundEffect(x, y, z, "random.explode", 1.0F, 1.3F);
+            Entity src = (Entity) r[5];
+            for (EntityPlayer p : players(e.world, x, y, z, 2.2)) {
+                p.attackEntityFrom(DamageSource.causeIndirectMagicDamage(src, src), RUNE_DMG);
+                p.addVelocity(0, 0.7, 0);
+                p.velocityChanged = true;
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<EntityPlayer> players(net.minecraft.world.World w, double x, double y, double z, double r) {
+        return w.getEntitiesWithinAABB(EntityPlayer.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(x - r, y - 1, z - r, x + r, y + 3, z + r));
+    }
+
+    /** Снаряды Divine (тошнота) Демону не нужны - у него заклинания. */
+    @SubscribeEvent
+    public void onJoin(net.minecraftforge.event.entity.EntityJoinWorldEvent e) {
+        if (!e.world.isRemote && e.entity instanceof net.divinerpg.entities.twilight.projectile.EntityTwilightDemonShot) e.setCanceled(true);
+    }
+
+    /** Рядом с Демоном у луков рвётся тетива. */
+    @SubscribeEvent
+    public void onLoose(net.minecraftforge.event.entity.player.ArrowLooseEvent e) {
+        EntityPlayer p = e.entityPlayer;
+        if (p.worldObj.isRemote) return;
+        if (p.worldObj.getEntitiesWithinAABB(EntityTwilightDemon.class, p.boundingBox.expand(40, 20, 40)).isEmpty()) return;
+        e.setCanceled(true);
+        p.worldObj.playSoundAtEntity(p, "random.break", 0.8F, 1.4F);
+        ((WorldServer) p.worldObj).func_147487_a("witchMagic", p.posX, p.posY + 1.2, p.posZ, 10, 0.3, 0.3, 0.3, 0.05);
     }
 
     private static void setShooting(EntityTwilightDemon d, int v) {
@@ -160,25 +263,24 @@ public class MortumBosses {
         say(d, "dre.chat.demon_leave");
         ((WorldServer) d.worldObj).func_147487_a("largesmoke", d.posX, d.posY + 2, d.posZ, 60, 1.5, 2, 1.5, 0.05);
         d.entityDropItem(new ItemStack(TwilightItemsOther.mortumSoul, 6 + phase * 4), 1);
-        if (phase >= 1) d.entityDropItem(new ItemStack(d.worldObj.rand.nextBoolean() ? TwilightItemsWeapons.haliteBlitz : TwilightItemsWeapons.haliteBow), 1);
         EntityPlayer near = d.worldObj.getClosestPlayerToEntity(d, 40);
         MinecraftForge.EVENT_BUS.post(new LivingDeathEvent(d, near != null ? DamageSource.causePlayerDamage(near) : DamageSource.generic));
         d.setDead();
     }
 
-    /** Полная победа (3-я фаза): оба оружия халита, статуя и больше душ. */
+    /** Халитовое оружие с Демона не падает (его делают, а не выбивают). Полная победа (3-я фаза) - статуя и больше душ. */
     @SubscribeEvent
     public void onDrops(LivingDropsEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
-        if (e.entityLiving instanceof EntityTwilightDemon && phase(e.entityLiving) >= 2) {
-            boolean blitz = false, bow = false;
-            for (EntityItem it : e.drops) {
-                if (it.getEntityItem().getItem() == TwilightItemsWeapons.haliteBlitz) blitz = true;
-                if (it.getEntityItem().getItem() == TwilightItemsWeapons.haliteBow) bow = true;
+        if (e.entityLiving instanceof EntityTwilightDemon) {
+            for (java.util.Iterator<EntityItem> it = e.drops.iterator(); it.hasNext();) {
+                net.minecraft.item.Item i = it.next().getEntityItem().getItem();
+                if (i == TwilightItemsWeapons.haliteBlitz || i == TwilightItemsWeapons.haliteBow || i == TwilightItemsWeapons.halitePhaser) it.remove();
             }
-            if (!blitz) drop(e, new ItemStack(TwilightItemsWeapons.haliteBlitz));
-            if (!bow) drop(e, new ItemStack(TwilightItemsWeapons.haliteBow));
-            drop(e, new ItemStack(TwilightItemsOther.mortumSoul, 16));
+            if (phase(e.entityLiving) >= 2) {
+                drop(e, new ItemStack(TwilightItemsOther.mortumSoul, 16));
+                drop(e, new ItemStack(net.minecraft.item.Item.getItemFromBlock(net.divinerpg.utils.blocks.VanillaBlocks.twilightDemonStatue)));
+            }
         }
         if (e.entityLiving instanceof EntityKarot) {
             float power = e.entityLiving.getEntityData().getFloat(MAX_POWER);
@@ -227,10 +329,15 @@ public class MortumBosses {
         tag.setFloat(MAX_POWER, Math.max(tag.getFloat(MAX_POWER), power(w, a)));
     }
 
-    /** Карот бьёт как оружие игрока и держит удар как его броня. */
+    /** Карот бьёт как оружие игрока и держит удар как его броня. Демона сумерек пробивает только фазер. */
     @SubscribeEvent
     public void onHurt(LivingHurtEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
+        if (e.entityLiving instanceof EntityTwilightDemon && e.source != DamageSource.outOfWorld
+            && com.divinerpgextended.perk.RangedRoles.kind(e.source.getSourceOfDamage()) != com.divinerpgextended.perk.RangedRoles.PHASER) {
+            e.ammount *= NON_PHASER;
+            ((WorldServer) e.entityLiving.worldObj).func_147487_a("witchMagic", e.entityLiving.posX, e.entityLiving.posY + 1.5, e.entityLiving.posZ, 8, 0.5, 0.8, 0.5, 0.05);
+        }
         Entity src = e.source.getEntity();
         if (src instanceof EntityKarot && src.getEntityData().hasKey(MIRROR_W)) {
             e.ammount *= Math.max(0.2F, Math.min(3.0F, src.getEntityData().getFloat(MIRROR_W) / MIRROR_REF));

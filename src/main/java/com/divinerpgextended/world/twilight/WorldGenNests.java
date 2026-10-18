@@ -29,7 +29,7 @@ public class WorldGenNests implements IWorldGenerator {
     /** Верхний блок пола (стоишь на высоте TOP + 1). */
     public static final int TOP = 140;
     /** Мортум - пещерный мир высотой 128 с бедроковым потолком (как Ад): Демонический круг стоит в зале внутри пещеры. */
-    public static final int MORTUM_TOP = 72;
+    public static final int MORTUM_TOP = MortumWorld.LEVEL + 4;
 
     /** Высота пола арены в этом измерении. */
     public static int top(int dim) {
@@ -65,8 +65,56 @@ public class WorldGenNests implements IWorldGenerator {
         if (g <= 0) return null;
         Random r = new Random(seed ^ (rx * 341873128712L + rz * 132897987541L) ^ (dim * 0x9E3779B97F4A7C15L) ^ 0x4E35L);
         int margin = Math.min(g / 3, NEST_R + 40);
-        return new int[] { rx * g + margin + r.nextInt(Math.max(1, g - 2 * margin)), top(dim),
-            rz * g + margin + r.nextInt(Math.max(1, g - 2 * margin)) };
+        int x = rx * g + margin + r.nextInt(Math.max(1, g - 2 * margin)), z = rz * g + margin + r.nextInt(Math.max(1, g - 2 * margin));
+        if (TwilightWorld.of(dim) == TwilightWorld.MORTUM) {
+            int[] near = nearRiver(seed, x, z, rx * g + margin, rz * g + margin, rx * g + g - margin, rz * g + g - margin);
+            if (near != null) {
+                x = near[0];
+                z = near[1];
+            }
+        }
+        return new int[] { x, top(dim), z };
+    }
+
+    private static final java.util.Map<Long, int[]> RIVER_SPOT = new java.util.concurrent.ConcurrentHashMap<Long, int[]>();
+
+    /**
+     * Арена Мортума - у Леты: ближайшая к (x, z) точка реки в квадрате, от неё на 38 блоков вбок туда, где сама арена не на
+     * реке. null - реки поблизости нет (арена остаётся где была).
+     */
+    static int[] nearRiver(long seed, int x, int z, int x0, int z0, int x1, int z1) {
+        long key = seed ^ (long) x * 0x9E3779B1L ^ (long) z * 0x85EBCA6BL;
+        int[] cached = RIVER_SPOT.get(key);
+        if (cached != null) return cached.length == 0 ? null : cached;
+        int[] best = null;
+        long bd = Long.MAX_VALUE;
+        for (int i = -96; i <= 96; i += 4) for (int k = -96; k <= 96; k += 4) {
+            if (!MortumWorld.river(seed, x + i, z + k)) continue;
+            long d = (long) i * i + (long) k * k;
+            if (d < bd) {
+                bd = d;
+                best = new int[] { x + i, z + k };
+            }
+        }
+        int[] spot = null;
+        if (best != null) {
+            int[][] dirs = { { 38, 0 }, { -38, 0 }, { 0, 38 }, { 0, -38 }, { 27, 27 }, { -27, 27 }, { 27, -27 }, { -27, -27 } };
+            for (int[] o : dirs) {
+                int cx = best[0] + o[0], cz = best[1] + o[1];
+                if (cx < x0 || cz < z0 || cx > x1 || cz > z1) continue;
+                boolean dry = true;
+                for (int a = 0; a < 16 && dry; a++) {
+                    double ang = a * Math.PI / 8;
+                    if (MortumWorld.river(seed, cx + (int) (Math.cos(ang) * 30), cz + (int) (Math.sin(ang) * 30))) dry = false;
+                }
+                if (dry && !MortumWorld.river(seed, cx, cz)) {
+                    spot = new int[] { cx, cz };
+                    break;
+                }
+            }
+        }
+        RIVER_SPOT.put(key, spot == null ? new int[0] : spot);
+        return spot;
     }
 
     /** Ближайшее к точке логово этого мира (своя и соседние области). */

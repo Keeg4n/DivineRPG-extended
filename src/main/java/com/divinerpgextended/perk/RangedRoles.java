@@ -50,6 +50,8 @@ public class RangedRoles {
     /** Дробь живёт столько тиков (дальность ~10 блоков); от отброса дробью остаётся доля KNOCK_KEEP, боссов не отбрасывает. */
     public static final int BLITZ_LIFE = 7;
     public static final double KNOCK_KEEP = 0.3;
+    /** Боковые дробины по боссу: доля урона (иначе пять дробин в упор выносили босса, а сет Мортума лечил за каждую). */
+    public static final float BOSS_SIDE = 0.3F;
     private static final List<Entity> BLITZ_SHOTS = new ArrayList<Entity>();
     /** Скорость жертвы до первой дробины за тик: в конце тика отброс урезается. */
     private static final java.util.Map<EntityLivingBase, double[]> KNOCK = new java.util.HashMap<EntityLivingBase, double[]>();
@@ -69,6 +71,8 @@ public class RangedRoles {
             if (i == wp[3]) return BLITZ;
             if (i == wp[2]) return PHASER;
         }
+        if (i == TwilightItemsWeapons.haliteBlitz) return BLITZ; // халитовое - с Демона сумерек, не из крафта миров
+        if (i == TwilightItemsWeapons.halitePhaser) return PHASER;
         if (i == TwilightItemsWeapons.edenSlicer || i == TwilightItemsWeapons.wildwoodSlicer || i == TwilightItemsWeapons.apalachiaSlicer
             || i == TwilightItemsWeapons.skythernSlicer || i == TwilightItemsWeapons.mortumSlicer) return SLICER;
         return 0;
@@ -105,6 +109,11 @@ public class RangedRoles {
         if (v.worldObj.isRemote || kind(e.source.getSourceOfDamage()) != BLITZ) return;
         v.hurtResistantTime = 0;
         if (!KNOCK.containsKey(v)) KNOCK.put(v, new double[] { v.motionX, v.motionY, v.motionZ });
+    }
+
+    /** Боковая дробина блица (копия): вампиризм и прочие "за попадание" считаем только с центральной. */
+    public static boolean sidePellet(Entity bullet) {
+        return bullet != null && kind(bullet) == BLITZ && bullet.getEntityData().getInteger(GEN) > 0;
     }
 
     static boolean boss(Entity e) {
@@ -430,7 +439,7 @@ public class RangedRoles {
         int gen = b.getEntityData().getInteger(GEN);
         switch (k) {
             case BLITZ:
-                e.ammount *= PELLET_DMG * (bossAdd(victim) ? ADD_BONUS : 1);
+                e.ammount *= PELLET_DMG * (bossAdd(victim) ? ADD_BONUS : 1) * (gen > 0 && boss(victim) ? BOSS_SIDE : 1);
                 break;
             case PHASER:
                 // пробой: снаряд летит дальше за спину цели

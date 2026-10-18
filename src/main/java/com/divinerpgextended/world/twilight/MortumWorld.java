@@ -21,7 +21,9 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 /**
  * Особенность Мортума - мир мёртвых:
  * <ul>
- * <li>Лета, река забвения: багровая, вьётся только по самым низинам пещеры (ниже {@link #LOW}). Вошёл - слетают все эффекты (и яды, и бафы), мобы на {@link #FORGET}
+ * <li>Лета, река забвения: багровая, широкая и глубокая, гладь на одной высоте {@link #LEVEL} по всему Мортуму - течёт по
+ * низинам, прорезая себе русло; на возвышенности не поднимается. Плыть по ней без ладьи Харона - души утопленников тянут
+ * на дно и грызут ({@link #BITE} в секунду); обычная лодка в Лете за пару секунд разъедается. Вошёл - слетают все эффекты (и яды, и бафы), мобы на {@link #FORGET}
  * тиков теряют тебя из виду; пока стоишь в реке - утекает опыт ({@link #DRAIN} очков в секунду). Переправа - у Харона.</li>
  * <li>Склепы с саркофагами, останки гигантов (череп наполовину в земле - внутри сундук, грудная клетка), редкие черепа и
  * одинокие надгробия ({@link WorldGenTwilightFeatures}).</li>
@@ -30,14 +32,22 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 public class MortumWorld {
 
     public static final int FORGET = 100, DRAIN = 3;
-    /** Лета течёт только по низинам: дно пещеры не выше этой высоты. */
-    public static final int LOW = 34;
+    /** Гладь Леты по всему Мортуму; русло прорезает землю не выше LEVEL + CUT; глубина до DEEP. */
+    public static final int LEVEL = 32, CUT = 14, DEEP = 5;
+    /** Ширина русла и берега (в долях шума: русло ~10 блоков). */
+    static final double WIDTH = 0.11, BANK = 0.15;
+    /** Без ладьи: урон в секунду, тяга вниз за тик; обычная лодка разъедается за BOAT_ROT тиков. */
+    public static final float BITE = 3;
+    public static final double PULL = 0.04;
+    public static final int BOAT_ROT = 60;
+    public static final net.minecraft.util.DamageSource LETHE = new net.minecraft.util.DamageSource("dre.lethe").setDamageBypassesArmor().setMagicDamage();
     static final String LAST = "dreLethe", FORGOT = "dreForgot";
     /** Для автотеста и замеров: столбцов реки с запуска. */
     public static int letheColumns, crypts, skulls, docks;
 
-    /** Игрок в Лете (вызывается каждый тик, пока касается реки). */
+    /** Игрок в Лете (вызывается каждый тик, пока касается реки). В ладье Харона Лета его не трогает. */
     public static void inLethe(EntityPlayer p) {
+        if (p.ridingEntity instanceof com.divinerpgextended.entity.EntityGondola) return;
         NBTTagCompound d = p.getEntityData();
         long now = p.worldObj.getTotalWorldTime(), last = d.getLong(LAST);
         if (now == last) return; // уже за этот тик (несколько блоков реки)
@@ -50,7 +60,31 @@ public class MortumWorld {
         }
         d.setLong(LAST, now);
         d.setLong(FORGOT, Math.max(d.getLong(FORGOT), now + 40)); // пока в реке - не помнят
-        if (now % 20 == 0 && !p.capabilities.isCreativeMode) drainXp(p, DRAIN);
+        if (p.capabilities.isCreativeMode) return;
+        // души утопленников: тянут на дно, грызут, опыт утекает
+        p.motionY -= PULL;
+        p.addPotionEffect(new net.minecraft.potion.PotionEffect(net.minecraft.potion.Potion.moveSlowdown.id, 30, 1));
+        if (now % 20 == 0) {
+            drainXp(p, DRAIN);
+            p.attackEntityFrom(LETHE, BITE);
+            ((WorldServer) p.worldObj).func_147487_a("reddust", p.posX, p.posY + 0.3, p.posZ, 12, 0.5, 0.2, 0.5, 0);
+        }
+    }
+
+    /** Обычная лодка в Лете разъедается за BOAT_ROT тиков (ладья Харона - нет). */
+    public static void boatInLethe(net.minecraft.entity.item.EntityBoat b) {
+        if (b instanceof com.divinerpgextended.entity.EntityGondola || b.isDead) return;
+        NBTTagCompound d = b.getEntityData();
+        long now = b.worldObj.getTotalWorldTime();
+        if (d.getLong(LAST) == now) return;
+        d.setLong(LAST, now);
+        int rot = d.getInteger("dreRot") + 1;
+        d.setInteger("dreRot", rot);
+        if (rot % 10 == 0) ((WorldServer) b.worldObj).func_147487_a("smoke", b.posX, b.posY + 0.4, b.posZ, 8, 0.4, 0.1, 0.4, 0.01);
+        if (rot < BOAT_ROT) return;
+        b.worldObj.playSoundAtEntity(b, "random.fizz", 1.0F, 0.6F);
+        if (b.riddenByEntity != null) b.riddenByEntity.mountEntity(null);
+        b.setDead();
     }
 
     public static boolean forgotten(EntityPlayer p) {
@@ -110,34 +144,49 @@ public class MortumWorld {
         return (h & 0xffffff) / (double) 0x7fffff - 1;
     }
 
-    /** Русло Леты: где шум пересекает ноль - узкая извилистая лента. */
-    public static boolean river(long seed, int x, int z) {
-        double n = noise(seed, x, z, 72) + 0.35 * noise(seed ^ 0x55, x, z, 23);
-        return Math.abs(n) < 0.05;
+    /** Шум русла: река там, где он близок к нулю (извилистая лента, как ванильные реки). */
+    static double riverNoise(long seed, int x, int z) {
+        return noise(seed, x, z, 96) + 0.35 * noise(seed ^ 0x55, x, z, 29);
     }
 
-    /** Река в области заселения [x0, x0 + 16): заменяет дно пещеры на два блока Леты, где берега держат. */
+    /** Русло Леты (без учёта высоты земли). */
+    public static boolean river(long seed, int x, int z) {
+        return Math.abs(riverNoise(seed, x, z)) < WIDTH;
+    }
+
+    /**
+     * Река в области заселения [x0, x0 + 16): в русле - Лета от дна (глубже к середине) до глади LEVEL, выше - вырезано до
+     * земли (русло прорезает холмы до LEVEL + CUT); на берегу низина поднята валом до глади, чтобы река не висела стенкой.
+     * Там, где земля выше, реки нет. На аренах Мортума реки нет.
+     */
     static int lethe(World w, TwilightWorld tw, int x0, int z0) {
         int n = 0;
         long seed = w.getSeed();
         for (int x = x0; x < x0 + 16; x++) for (int z = z0; z < z0 + 16; z++) {
-            if (!river(seed, x, z)) continue;
-            int y = WorldGenTwilightFeatures.surface(w, tw, x, z);
-            if (y < 6 || y > LOW) continue;
-            boolean banks = true; // соседи вне русла не ниже уровня реки - иначе она висела бы стенкой
-            int[][] nb = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
-            for (int[] o : nb) {
-                if (river(seed, x + o[0], z + o[1])) continue;
-                Block b = w.getBlock(x + o[0], y, z + o[1]);
-                if (!b.isOpaqueCube()) banks = false;
+            double a = Math.abs(riverNoise(seed, x, z));
+            if (a >= BANK || onArena(w, x, z)) continue;
+            int s = WorldGenTwilightFeatures.surface(w, tw, x, z);
+            if (s < 6 || s > LEVEL + CUT) continue;
+            if (a >= WIDTH) { // берег
+                for (int y = s + 1; y <= LEVEL; y++) w.setBlock(x, y, z, y == LEVEL ? tw.grass() : tw.dirt(), 0, 2);
+                continue;
             }
-            if (!banks) continue;
-            w.setBlock(x, y, z, ModBlocks.lethe, 0, 2);
-            w.setBlock(x, y - 1, z, ModBlocks.lethe, 0, 2);
+            int bed = LEVEL - 1 - (int) Math.round((1 - a / WIDTH) * (DEEP - 1));
+            for (int y = s + 1; y <= bed; y++) w.setBlock(x, y, z, tw.dirt(), 0, 2); // низина глубже дна - подсыпать
+            for (int y = bed + 1; y <= LEVEL; y++) w.setBlock(x, y, z, ModBlocks.lethe, 0, 2);
+            for (int y = LEVEL + 1; y <= Math.max(s, LEVEL) + 3; y++) if (!w.isAirBlock(x, y, z)) w.setBlock(x, y, z, net.minecraft.init.Blocks.air, 0, 2);
             n++;
         }
         letheColumns += n;
         return n;
+    }
+
+    /** Точка на арене Мортума (с запасом): там нет ни реки, ни мелких построек. */
+    static boolean onArena(World w, int x, int z) {
+        int[] c = WorldGenNests.nearest(w.getSeed(), w.provider.dimensionId, x, z);
+        if (c == null) return false;
+        double dx = x - c[0], dz = z - c[2];
+        return dx * dx + dz * dz < (WorldGenNests.MORTUM_R + 2) * (WorldGenNests.MORTUM_R + 2);
     }
 
     /** Череп на полу (скелет, случайный поворот). */
@@ -219,14 +268,24 @@ public class MortumWorld {
         return true;
     }
 
+    /** Харон - один на квадрат DOCK_CELL x DOCK_CELL чанков: пристань только в выбранном (из сида) чанке квадрата. */
+    public static final int DOCK_CELL = 7;
+
+    public static boolean dockChunk(long seed, int cx, int cz) {
+        int qx = Math.floorDiv(cx, DOCK_CELL), qz = Math.floorDiv(cz, DOCK_CELL);
+        Random q = new Random(seed ^ qx * 341873128712L ^ qz * 132897987541L ^ 0xC4A0L);
+        return Math.floorMod(cx, DOCK_CELL) == q.nextInt(DOCK_CELL) && Math.floorMod(cz, DOCK_CELL) == q.nextInt(DOCK_CELL);
+    }
+
     /** Пристань Харона на берегу Леты (в области заселения): помост 3 x 3, фонарь и сам Харон; false - берега нет. */
     static boolean dock(World w, Random r, TwilightWorld tw, int x0, int z0) {
         long seed = w.getSeed();
+        if (!dockChunk(seed, x0 >> 4, z0 >> 4)) return false;
         for (int t = 0; t < 24; t++) {
             int x = x0 + 1 + r.nextInt(14), z = z0 + 1 + r.nextInt(14);
             if (river(seed, x, z) || !(river(seed, x + 2, z) || river(seed, x - 2, z) || river(seed, x, z + 2) || river(seed, x, z - 2))) continue;
             int y = WorldGenTwilightFeatures.surface(w, tw, x, z);
-            if (y < 6 || y > LOW + 2 || !w.isAirBlock(x, y + 3, z)) continue;
+            if (y < 6 || y > LEVEL + 3 || !w.isAirBlock(x, y + 3, z)) continue;
             for (int i = -1; i <= 1; i++) for (int k = -1; k <= 1; k++) {
                 if (w.getBlock(x + i, y, z + k) == ModBlocks.lethe) continue;
                 w.setBlock(x + i, y, z + k, tw.planks(), 0, 2);

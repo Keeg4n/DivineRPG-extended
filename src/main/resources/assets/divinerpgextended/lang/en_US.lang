@@ -954,7 +954,7 @@ tile.dre.lethe.name=Lethe
 fluid.dre_lethe=Lethe
 dre.charon.says=Charon: %s
 dre.charon.none=No river leads to such an arena near here.
-dre.charon.hello=Show me the crystal of the one you seek - I will tell you where its arena lies.
+dre.charon.hello=Show me the crystal of the one you seek - I will tell you where its arena lies. Or %s souls - and the barge is yours.
 dre.charon.way.demon=The Demonic Circle lies to the %s, about %s blocks. Do not look back.
 dre.charon.way.twins=The Hall of Twins lies to the %s, about %s blocks. Kill them together, or not at all.
 dre.charon.way.karot=The Hall of Mirrors lies to the %s, about %s blocks. He will be what you are.
@@ -969,3 +969,24 @@ dre.dir.s=south
 dre.dir.sw=south-west
 dre.dir.w=west
 dre.dir.nw=north-west
+item.dre.lairMap.twins.name=Map to the Hall of Twins
+dre.chat.map_found_twins=Hall of Twins: %d blocks to the %s (floor at y=%d), coordinates %d, %d.
+dre.chat.map_none_twins=No such arena nearby.
+item.dre.lairMap.karot.name=Map to the Hall of Mirrors
+dre.chat.map_found_karot=Hall of Mirrors: %d blocks to the %s (floor at y=%d), coordinates %d, %d.
+dre.chat.map_none_karot=No such arena nearby.
+item.dre.lairMap.archer.name=Map to the Gallery
+dre.chat.map_found_archer=Gallery: %d blocks to the %s (floor at y=%d), coordinates %d, %d.
+dre.chat.map_none_archer=No such arena nearby.
+item.dre.lairMap.fiend.name=Map to the Graveyard
+dre.chat.map_found_fiend=Graveyard: %d blocks to the %s (floor at y=%d), coordinates %d, %d.
+dre.chat.map_none_fiend=No such arena nearby.
+item.dre.lairMap.vamacheron.name=Map to the Bone Pit
+dre.chat.map_found_vamacheron=Bone Pit: %d blocks to the %s (floor at y=%d), coordinates %d, %d.
+dre.chat.map_none_vamacheron=No such arena nearby.
+item.dre.gondola.name=Charon's Barge
+dre.tooltip.gondola=A boat of black wood: Lethe does not eat it and does not touch the one inside. Sold by Charon
+entity.divinerpgextended.Gondola.name=Charon's Barge
+death.attack.dre.lethe=%1$s was dragged under by the drowned souls of Lethe
+dre.charon.price=A barge costs %s souls of Mortum.
+dre.charon.sold=Take it. Lethe will not touch you in it - nor will the drowned.

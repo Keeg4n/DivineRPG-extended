@@ -887,7 +887,7 @@ dre.chat.map_mortum=Эта карта работает только в Морт�
 dre.chat.map_none_nest=Заповедных рощ в этом мире нет (выключены в конфиге).
 dre.chat.map_none_circle=Демонического круга нет (выключен в конфиге).
 dre.chat.map_found_nest=Заповедная роща Великого кадиллиона: %d блоков на %s, высоко над островами - гигантские деревья видно издалека (поляна на y=%d), координаты %d, %d.
-dre.chat.map_found_circle=Демонический круг: %d блоков на %s, над островами (пол на y=%d), координаты %d, %d.
+dre.chat.map_found_circle=Демонический круг: %d блоков на %s (пол на y=%d), координаты %d, %d.
 dre.chat.call_at_nest=Зов слышат только в заповедной роще: положите его на алтарь у святилища (путь укажет карта к роще).
 dre.chat.summon_circle=Кристалл откликнется только в Демоническом круге Мортума (путь укажет карта к кругу).
 dre.chat.summon_tomb=Таинственные часы заводят только на алтаре Древней гробницы под пирамидой пустыни.
@@ -1021,7 +1021,7 @@ tile.dre.lethe.name=Лета
 fluid.dre_lethe=Лета
 dre.charon.says=Харон: %s
 dre.charon.none=Поблизости ни одна река не ведёт к такой арене.
-dre.charon.hello=Покажи кристалл того, кого ищешь, - скажу, где его арена.
+dre.charon.hello=Покажи кристалл того, кого ищешь, - скажу, где его арена. Или %s душ - и ладья твоя.
 dre.charon.way.demon=Демонический круг - на %s, блоков %s. Не оглядывайся.
 dre.charon.way.twins=Зал близнецов - на %s, блоков %s. Убей их вместе - или не убьёшь вовсе.
 dre.charon.way.karot=Зеркальный зал - на %s, блоков %s. Он станет тем, кто ты есть.
@@ -1036,3 +1036,24 @@ dre.dir.s=юге
 dre.dir.sw=юго-западе
 dre.dir.w=западе
 dre.dir.nw=северо-западе
+item.dre.lairMap.twins.name=Карта к Залу близнецов
+dre.chat.map_found_twins=Зал близнецов: %d блоков на %s (пол на y=%d), координаты %d, %d.
+dre.chat.map_none_twins=Поблизости такой арены нет.
+item.dre.lairMap.karot.name=Карта к Зеркальному залу
+dre.chat.map_found_karot=Зеркальный зал: %d блоков на %s (пол на y=%d), координаты %d, %d.
+dre.chat.map_none_karot=Поблизости такой арены нет.
+item.dre.lairMap.archer.name=Карта к Галерее
+dre.chat.map_found_archer=Галерея: %d блоков на %s (пол на y=%d), координаты %d, %d.
+dre.chat.map_none_archer=Поблизости такой арены нет.
+item.dre.lairMap.fiend.name=Карта к Погосту
+dre.chat.map_found_fiend=Погост: %d блоков на %s (пол на y=%d), координаты %d, %d.
+dre.chat.map_none_fiend=Поблизости такой арены нет.
+item.dre.lairMap.vamacheron.name=Карта к Костяной яме
+dre.chat.map_found_vamacheron=Костяная яма: %d блоков на %s (пол на y=%d), координаты %d, %d.
+dre.chat.map_none_vamacheron=Поблизости такой арены нет.
+item.dre.gondola.name=Ладья Харона
+dre.tooltip.gondola=Лодка из чёрного дерева: Лета её не разъедает и не трогает сидящего в ней. Продаёт Харон
+entity.divinerpgextended.Gondola.name=Ладья Харона
+death.attack.dre.lethe=%1$s утянули на дно души Леты
+dre.charon.price=Ладья стоит %s душ Мортума.
+dre.charon.sold=Бери. В ней Лета тебя не тронет - и утопленники тоже.

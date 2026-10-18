@@ -35,6 +35,8 @@ public class AccessoryButton {
 
         @Override
         public void drawButton(Minecraft mc, int mx, int my) {
+            // место - по окну прямо сейчас: NEI двигает инвентарь (эффекты зелий) уже во время отрисовки - кнопка прыгала
+            if (mc.currentScreen != null) place(this, mc.currentScreen);
             if (!visible) return;
             field_146123_n = mx >= xPosition && my >= yPosition && mx < xPosition + width && my < yPosition + height;
             mc.getTextureManager().bindTexture(buttonTextures);
@@ -60,7 +62,7 @@ public class AccessoryButton {
         boolean inv = e.gui instanceof GuiInventory, creative = e.gui instanceof GuiContainerCreative;
         if (!inv && !creative) return;
         button = new StarButton(0, 0);
-        place(e.gui);
+        place(button, e.gui);
         e.buttonList.add(button);
     }
 
@@ -68,7 +70,11 @@ public class AccessoryButton {
      * По настоящим координатам окна: с эффектами зелий ванильный инвентарь сдвигается вправо, а NEI после
      * инициализации возвращает его на место (эффекты выносит на свою панель) - поэтому пересчёт перед каждой отрисовкой.
      */
-    private void place(net.minecraft.client.gui.GuiScreen gui) {
+    private static void place(StarButton button, net.minecraft.client.gui.GuiScreen gui) {
+        if (!(gui instanceof GuiInventory || gui instanceof GuiContainerCreative)) {
+            button.visible = false;
+            return;
+        }
         net.minecraft.client.gui.inventory.GuiContainer c = (net.minecraft.client.gui.inventory.GuiContainer) gui;
         int left = cpw.mods.fml.relauncher.ReflectionHelper.getPrivateValue(net.minecraft.client.gui.inventory.GuiContainer.class,
             c, "guiLeft", "field_147003_i");
@@ -88,7 +94,7 @@ public class AccessoryButton {
 
     @SubscribeEvent
     public void onDrawPre(GuiScreenEvent.DrawScreenEvent.Pre e) {
-        if (button != null && (e.gui instanceof GuiInventory || e.gui instanceof GuiContainerCreative)) place(e.gui);
+        if (button != null && (e.gui instanceof GuiInventory || e.gui instanceof GuiContainerCreative)) place(button, e.gui);
     }
 
     @SubscribeEvent

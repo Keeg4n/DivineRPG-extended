@@ -15,7 +15,7 @@ import net.minecraft.world.World;
  * Все - отдельные постройки на высоте {@link WorldGenNests#MORTUM_TOP} на своём фундаменте до земли, с расчищенным
  * местом вокруг и четырьмя проходами, если стоят в толще камня ({@link Building}).
  * <ul>
- * <li>Демонический круг - Демон сумерек (кольца, обелиски).</li>
+ * <li>Замок мага - Демон сумерек: стены, угловые башни, шпиль мага, во дворе ритуальный круг с обелисками.</li>
  * <li>Зал близнецов - Денсос и Рейвор: крепость из светлой и тёмной половин, разлом с мостами, помост брата в каждой.</li>
  * <li>Зеркальный зал - Карот: закрытое здание с контрфорсами, внутри стены из чёрных зеркал.</li>
  * <li>Галерея - Вечный лучник: аркада под двускатной кровлей, трон лучника на помосте, колонны-укрытия.</li>
@@ -133,7 +133,7 @@ public final class MortumArenas {
             case ARCHER: return new Gallery();
             case FIEND: return new Graveyard();
             case VAMACHERON: return new Pit();
-            default: return new WorldGenNests.Circle();
+            default: return new Castle();
         }
     }
 
@@ -156,9 +156,10 @@ public final class MortumArenas {
             return code == WorldGenNests.GLOW ? TwilightWorld.MORTUM.lampMeta() : meta;
         }
 
+        /** Фундамент - земля Мортума: арена стоит на холме, а не на сером столбе. */
         @Override
         protected Block foundation() {
-            return WorldGenNests.palette(TwilightWorld.MORTUM, WorldGenNests.STONE);
+            return WorldGenNests.palette(TwilightWorld.MORTUM, WorldGenNests.DIRT);
         }
 
         @Override
@@ -233,7 +234,7 @@ public final class MortumArenas {
                 return true;
             }
             put(col, TOP - 5, FOUNDATION, 0);
-            for (int y = TOP - 4; y < TOP; y++) put(col, y, WorldGenNests.STONE, 0);
+            for (int y = TOP - 4; y < TOP; y++) put(col, y, WorldGenNests.DIRT, 0);
             int c = clear(dx, dz);
             for (int y = TOP + 1; y <= TOP + c; y++) put(col, y, AIR, 0);
             build(dx, dz, col);
@@ -604,6 +605,94 @@ public final class MortumArenas {
                     boolean broken = rib == 8 && dz < 0 && y < base + 6; // одно ребро обломано
                     if (Math.abs(d - 13) < 0.6 && !broken) set(col, y, BONE);
                 }
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- Демон сумерек
+
+    /**
+     * Замок мага: квадратная стена из адского кирпича (2 блока, 10 высотой, зубцы, ворота с решёткой на юге), четыре
+     * круглые угловые башни с конусными кровлями; северо-западная - шпиль мага вдвое выше с багровым огнём на вершине.
+     * Во дворе - ритуальный круг Демона: кольца из обсидиана и камня Мортума, кольцо света, шесть обелисков, жаровни.
+     */
+    static class Castle extends Building {
+
+        static final int WALL = 23, WALL_H = 10, TOWER = 23, TOWER_R = 5, TOWER_H = 18, SPIRE_H = 32, COURT = 19;
+
+        @Override
+        boolean footprint(int dx, int dz) {
+            return Math.max(Math.abs(dx), Math.abs(dz)) <= WALL + TOWER_R;
+        }
+
+        @Override
+        int reach() {
+            return WALL + TOWER_R;
+        }
+
+        @Override
+        int clear(int dx, int dz) {
+            return dx < -WALL + TOWER_R && dz < -WALL + TOWER_R ? SPIRE_H + 8 : TOWER_H + 6;
+        }
+
+        @Override
+        void build(int dx, int dz, int[] col) {
+            int ax = Math.abs(dx), az = Math.abs(dz), m = Math.max(ax, az);
+            double r = Math.sqrt(dx * dx + dz * dz);
+            // угловые башни
+            double tr = Math.sqrt((ax - TOWER) * (ax - TOWER) + (az - TOWER) * (az - TOWER));
+            if (tr <= TOWER_R) {
+                boolean spire = dx < 0 && dz < 0;
+                int h = spire ? SPIRE_H : TOWER_H;
+                set(col, TOP, NETHER);
+                if (tr > TOWER_R - 1.3) { // стена башни, окна-светильники
+                    for (int y = TOP + 1; y <= TOP + h; y++) set(col, y, (y - TOP) % 6 == 4 && (ax + az) % 3 == 0 ? WorldGenNests.GLOW : NETHER);
+                    if ((ax * 3 + az) % 2 == 0) set(col, TOP + h + 1, NETHER); // зубцы
+                }
+                // конусная кровля
+                int cone = TOP + h + 1 + (int) Math.round((TOWER_R - tr) * (spire ? 2.4 : 1.4));
+                set(col, cone, OBSIDIAN);
+                if (tr < 0.8) {
+                    set(col, cone + 1, spire ? WorldGenNests.GEM : OBSIDIAN);
+                    if (spire) set(col, cone + 2, WorldGenNests.GLOW);
+                }
+                return;
+            }
+            // стена с зубцами и воротами
+            if (m >= WALL && m <= WALL + 1) {
+                set(col, TOP, NETHER);
+                boolean gate = dz > 0 && ax <= 1;
+                for (int y = TOP + 1; y <= TOP + WALL_H; y++) set(col, y, gate && y <= TOP + 4 ? AIR : (y - TOP) % 5 == 0 ? OBSIDIAN : NETHER);
+                if (gate) set(col, TOP + 4, BARS); // решётка ворот
+                if (m == WALL + 1 && (ax + az) % 2 == 0) set(col, TOP + WALL_H + 1, NETHER);
+                if (m == WALL && (ax + az) % 8 == 0 && !gate) set(col, TOP + WALL_H - 3, WorldGenNests.GLOW);
+                return;
+            }
+            if (m > WALL + 1) { // за стеной
+                set(col, TOP, worn(dx, dz));
+                return;
+            }
+            // двор
+            if (r > COURT) {
+                set(col, TOP, ((dx + dz) & 1) == 0 ? NETHER : OBSIDIAN);
+                if (WorldGenNests.ringDist(dx, dz, 21, 12, 0) < 0.5) {
+                    set(col, TOP + 1, FENCE);
+                    set(col, TOP + 2, WorldGenNests.GLOW); // жаровни
+                }
+                return;
+            }
+            int ri = (int) r;
+            set(col, TOP, r < 2.5 ? WorldGenNests.GEM : ri % 4 == 0 ? OBSIDIAN : ri % 4 == 2 ? WorldGenNests.GEM : WorldGenNests.STONE);
+            if (r < 0.7) set(col, TOP, WorldGenNests.GLOW);
+            if (WorldGenNests.ringDist(dx, dz, 6, 12, 0) < 0.5) set(col, TOP, WorldGenNests.GLOW);
+            // бортик круга с проходами
+            if (r > COURT - 0.6 && !(ax <= 1 || az <= 1)) set(col, TOP + 1, CHISEL);
+            // обелиски
+            double ob = WorldGenNests.ringDist(dx, dz, 15, 6, 0);
+            if (ob < 1.6) {
+                int oh = ob < 0.9 ? 9 : 6;
+                for (int y = TOP + 1; y <= TOP + oh; y++) set(col, y, ob < 0.9 ? OBSIDIAN : WorldGenNests.GEM);
+                if (ob < 0.9) set(col, TOP + oh + 1, WorldGenNests.GLOW);
             }
         }
     }

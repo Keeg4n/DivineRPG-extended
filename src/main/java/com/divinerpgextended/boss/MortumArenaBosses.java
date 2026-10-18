@@ -44,8 +44,9 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * <li>Вечный лучник - каждые {@link #VOLLEY} тиков залп веером ({@link #VOLLEY_ARROWS} стрел) с замахом в 1.5 секунды;
  * от залпа прячутся за колоннами галереи, но каждый залп обрушивает верх колонны у цели - укрытий всё меньше.</li>
  * <li>Пожиратель душ - каждые {@link #RAISE} тиков поднимает души из целых могил погоста рядом с собой ({@link #GRAVE_R}):
- * по душе из могилы, могила при этом рассыпается (надгробия можно ломать и самому). Пока его душа жива рядом с ним
- * ({@link #SOUL_R}), он неуязвим: уводи его туда, где могил не осталось.</li>
+ * по душе из могилы, могила при этом рассыпается. Пока жива хоть одна его душа ({@link #SOUL_R}), он неуязвим: уводи его
+ * туда, где могил не осталось. Свои пауки Divine у него на арене не появляются. Разбить надгробие можно, но дорого:
+ * он лечится ({@link #DESECRATE_HEAL}), из разбитой могилы сразу встаёт душа, разбившему - иссушение.</li>
  * <li>Вамачерон - рывок: замах {@link #WINDUP} тиков, потом несётся по прямой. Сбивает с ног; врезался в столб или стену -
  * оглушён на {@link #STUN} тиков и получает двойной урон.</li>
  * </ul>
@@ -57,7 +58,9 @@ public class MortumArenaBosses {
     public static final int REVIVE = 200;
     public static final String REVIVED = "dreRevived", SOUL = "dreFiendSoul", DASH = "dreDash", WIND = "dreWind", STUNNED = "dreStun";
     public static final int VOLLEY = 200, VOLLEY_WARN = 30, VOLLEY_ARROWS = 9, RAISE = 400, SOULS = 3, CHARGE = 160, WINDUP = 20, DASH_TICKS = 40, STUN = 60;
-    public static final int STEP = 160, STEP_WARN = 20, GRAVE_R = 14, SOUL_R = 20;
+    public static final int STEP = 160, STEP_WARN = 20, GRAVE_R = 14, SOUL_R = 40;
+    /** Разбил надгробие при живом Пожирателе: он лечится на эту долю, душа встаёт у разбившего, тому иссушение. */
+    public static final float DESECRATE_HEAL = 0.08F;
     public static final float VOLLEY_DMG = 6, DASH_DMG = 10, STEP_DMG = 8;
 
     /** Ждут воскрешения: {мир, класс, живой брат, тик мира}. */
@@ -312,7 +315,38 @@ public class MortumArenaBosses {
         return l;
     }
 
-    /** Пока его души живы рядом с ним, Пожиратель неуязвим. */
+    /** Живой Пожиратель на арене рядом (null - нет). */
+    static EntitySoulFiend fiendNear(World w, double x, double y, double z, double r) {
+        for (Object o : w.getEntitiesWithinAABB(EntitySoulFiend.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(x - r, y - r / 2, z - r, x + r, y + r / 2, z + r)))
+            if (((Entity) o).isEntityAlive() && arena((Entity) o)) return (EntitySoulFiend) o;
+        return null;
+    }
+
+    /** Свои пауки Пожирателя (Divine) на его арене не появляются - только души из могил. */
+    @SubscribeEvent
+    public void onJoin(net.minecraftforge.event.entity.EntityJoinWorldEvent e) {
+        if (e.world.isRemote || !(e.entity instanceof net.divinerpg.entities.twilight.EntitySoulSpider) || e.entity.getEntityData().hasKey(SOUL)) return;
+        if (fiendNear(e.world, e.entity.posX, e.entity.posY, e.entity.posZ, 40) != null) e.setCanceled(true);
+    }
+
+    /** Разбитое надгробие на погосте при живом Пожирателе: он лечится, из могилы встаёт душа, разбившему - иссушение. */
+    @SubscribeEvent
+    public void onBreak(net.minecraftforge.event.world.BlockEvent.BreakEvent e) {
+        if (e.world.isRemote || e.block != Blocks.stonebrick || e.blockMetadata != 3 || e.getPlayer() == null) return;
+        EntitySoulFiend f = fiendNear(e.world, e.x, e.y, e.z, 40);
+        if (f == null) return;
+        f.heal(f.getMaxHealth() * DESECRATE_HEAL);
+        e.getPlayer().addPotionEffect(new PotionEffect(Potion.wither.id, 100, 1));
+        net.divinerpg.entities.twilight.EntitySoulSpider s = new net.divinerpg.entities.twilight.EntitySoulSpider(e.world);
+        s.setLocationAndAngles(e.x + 0.5, e.y, e.z + 0.5, 0, 0);
+        s.getEntityData().setInteger(SOUL, f.getEntityId());
+        s.func_110163_bv();
+        e.world.spawnEntityInWorld(s);
+        ((WorldServer) e.world).func_147487_a("witchMagic", e.x + 0.5, e.y + 1, e.z + 0.5, 30, 0.4, 0.6, 0.4, 0.05);
+        e.world.playSoundEffect(e.x + 0.5, e.y + 0.5, e.z + 0.5, "mob.wither.hurt", 1.0F, 0.6F);
+    }
+
+    /** Пока жива хоть одна его душа, Пожиратель неуязвим. */
     @SubscribeEvent
     public void onAttack(LivingAttackEvent e) {
         EntityLivingBase v = e.entityLiving;

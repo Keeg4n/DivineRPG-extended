@@ -2189,7 +2189,7 @@ public class SelfTest {
                 log += "заход " + (run + 1) + ": предложение " + offer + ", ушёл " + dm.isDead + "; ";
                 dm.setDead();
             }
-            // трофеи ухода: души Мортума (после 2-й фазы ещё оружие халита)
+            // трофеи ухода: только души Мортума (халитовое оружие с Демона не падает)
             int souls = 0, halite = 0;
             for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(9980, 90, 9980, 10000, 110, 10000))) {
                 ItemStack it = ((net.minecraft.entity.item.EntityItem) o).getEntityItem();
@@ -2197,10 +2197,10 @@ public class SelfTest {
                 if (it.getItem() == net.divinerpg.utils.items.TwilightItemsWeapons.haliteBlitz || it.getItem() == net.divinerpg.utils.items.TwilightItemsWeapons.haliteBow) halite++;
                 ((net.minecraft.entity.Entity) o).setDead();
             }
-            boolean granted = souls == 6 + 10 && halite == 1;
+            boolean granted = souls == 6 + 10 && halite == 0;
             check(left[0] && left[1] && granted && log.contains("отказ: фаза 1, урон по предложению 0.0") && log.contains("предложение 200"),
                 log + "душ " + souls + ", оружия халита " + halite);
-            return "на 2/3 Демон замирает и предлагает уйти: не трогать - уходит с трофеями фазы (6 душ); ударить - удар не проходит, фаза 2, на 1/3 новое предложение, уход - 10 душ и оружие халита";
+            return "на 2/3 Демон замирает и предлагает уйти: не трогать - уходит с трофеями фазы (6 душ); ударить - удар не проходит, фаза 2, на 1/3 новое предложение, уход - 10 душ (оружия халита нет)";
         });
         t("Логова", "Карот: зеркало", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
@@ -3257,6 +3257,113 @@ public class SelfTest {
                 "череп " + skull + ": кости " + bone + ", сундук " + chest + ", полость " + airInside + ", в земле " + buried + "; рёбра " + ribs + ": кости " + rib + ", из них выше 4 блоков " + high);
             return "череп гиганта (" + bone + " блоков кости, наполовину в земле, внутри полость и сундук) и грудная клетка (" + rib + " блоков, рёбра дугами)";
         });
+        t("Логова", "Мортум 0.78: Демон-маг, ладья, Пожиратель, карты", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            int x0 = 9880, y0 = 90, z0 = 9880;
+            loadAround(w, x0, z0, 2);
+            for (int x = x0 - 14; x <= x0 + 14; x++) for (int z = z0 - 14; z <= z0 + 14; z++) for (int y = y0 - 3; y <= y0 + 10; y++)
+                w.setBlock(x, y, z, y < y0 ? Blocks.stone : Blocks.air);
+            TestPlayer dp = join(player(ConfigurationHelper.mortum, "TestDemonMage", x0 + 6.5, y0, z0 + 0.5), true);
+            // Демон: не-фазер - 10%, фазер - в полную; рядом рвётся тетива; руны взрываются; блинк - три снаряда
+            net.divinerpg.entities.twilight.EntityTwilightDemon dm = new net.divinerpg.entities.twilight.EntityTwilightDemon(w);
+            dm.setLocationAndAngles(x0 + 0.5, y0, z0 + 0.5, 0, 0);
+            w.spawnEntityInWorld(dm);
+            com.divinerpgextended.boss.LairSummons.leash(dm, x0, y0, z0, 12);
+            net.minecraftforge.event.entity.living.LivingHurtEvent arrow = new net.minecraftforge.event.entity.living.LivingHurtEvent(dm,
+                net.minecraft.util.DamageSource.causeArrowDamage(new net.minecraft.entity.projectile.EntityArrow(w), dp), 10);
+            MinecraftForge.EVENT_BUS.post(arrow);
+            net.minecraft.entity.projectile.EntityArrow ph = new net.minecraft.entity.projectile.EntityArrow(w);
+            ph.getEntityData().setInteger(com.divinerpgextended.perk.RangedRoles.KIND, com.divinerpgextended.perk.RangedRoles.PHASER);
+            net.minecraftforge.event.entity.living.LivingHurtEvent phaser = new net.minecraftforge.event.entity.living.LivingHurtEvent(dm,
+                net.minecraft.util.DamageSource.causeThrownDamage(ph, dp), 10);
+            MinecraftForge.EVENT_BUS.post(phaser);
+            boolean onlyPhaser = Math.abs(arrow.ammount - 1) < 0.01 && Math.abs(phaser.ammount - 10) < 0.01;
+            ItemStack bowS = new ItemStack(Items.bow);
+            net.minecraftforge.event.entity.player.ArrowLooseEvent loose = new net.minecraftforge.event.entity.player.ArrowLooseEvent(dp, bowS, 20);
+            MinecraftForge.EVENT_BUS.post(loose);
+            boolean snapped = loose.isCanceled();
+            int runes = com.divinerpgextended.boss.MortumBosses.runes(dm, dp);
+            float hpR = dp.getHealth();
+            dp.hurtResistantTime = 0;
+            server.worldServers[0].getWorldInfo().incrementTotalWorldTime(w.getTotalWorldTime() + com.divinerpgextended.boss.MortumBosses.RUNE_FUSE + 1);
+            FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.WorldTickEvent(cpw.mods.fml.relauncher.Side.SERVER, cpw.mods.fml.common.gameevent.TickEvent.Phase.END, w));
+            boolean exploded = dp.getHealth() < hpR;
+            dp.setHealth(dp.getMaxHealth());
+            int bolts = com.divinerpgextended.boss.MortumBosses.blink(dm, dp);
+            for (Object o : w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityShadowBolt.class, dp.boundingBox.expand(30, 10, 30))) ((net.minecraft.entity.Entity) o).setDead();
+            // халитовые блиц и фазер - как у миров
+            boolean halite = com.divinerpgextended.perk.RangedRoles.kind(new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.haliteBlitz)) == com.divinerpgextended.perk.RangedRoles.BLITZ
+                && com.divinerpgextended.perk.RangedRoles.kind(new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.halitePhaser)) == com.divinerpgextended.perk.RangedRoles.PHASER;
+            // боковая дробина по боссу - доля урона; от неё нет вампиризма сета Мортума
+            net.minecraft.entity.projectile.EntityArrow side = new net.minecraft.entity.projectile.EntityArrow(w);
+            side.getEntityData().setInteger(com.divinerpgextended.perk.RangedRoles.KIND, com.divinerpgextended.perk.RangedRoles.BLITZ);
+            side.getEntityData().setInteger(com.divinerpgextended.perk.RangedRoles.GEN, 1);
+            net.minecraftforge.event.entity.living.LivingHurtEvent sh = new net.minecraftforge.event.entity.living.LivingHurtEvent(dm, net.minecraft.util.DamageSource.causeThrownDamage(side, dp), 10);
+            MinecraftForge.EVENT_BUS.post(sh);
+            boolean sideWeak = Math.abs(sh.ammount - 10 * com.divinerpgextended.perk.RangedRoles.PELLET_DMG * com.divinerpgextended.perk.RangedRoles.BOSS_SIDE * com.divinerpgextended.boss.MortumBosses.NON_PHASER) < 0.01
+                && com.divinerpgextended.perk.RangedRoles.sidePellet(side);
+            dm.setDead();
+            // ладья: Харон продаёт за 12 душ; в ладье Лета не трогает; обычная лодка разъедается
+            com.divinerpgextended.entity.EntityCharon ch = new com.divinerpgextended.entity.EntityCharon(w);
+            ch.setLocationAndAngles(x0 - 3.5, y0, z0 - 3.5, 0, 0);
+            w.spawnEntityInWorld(ch);
+            dp.inventory.clearInventory(null, -1);
+            hold(dp, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.mortumSoul, 15));
+            ch.interact(dp);
+            boolean bought = dp.inventory.hasItem(com.divinerpgextended.registry.ModItems.gondola) && dp.getHeldItem() != null && dp.getHeldItem().stackSize == 3;
+            ch.setDead();
+            com.divinerpgextended.entity.EntityGondola gd = new com.divinerpgextended.entity.EntityGondola(w, x0 + 6.5, y0, z0 + 0.5);
+            w.spawnEntityInWorld(gd);
+            dp.mountEntity(gd);
+            float hpG = dp.getHealth();
+            server.worldServers[0].getWorldInfo().incrementTotalWorldTime((w.getTotalWorldTime() / 20 + 1) * 20);
+            com.divinerpgextended.world.twilight.MortumWorld.inLethe(dp);
+            boolean safe = dp.getHealth() == hpG;
+            dp.mountEntity(null);
+            gd.setDead();
+            dp.hurtResistantTime = 0;
+            server.worldServers[0].getWorldInfo().incrementTotalWorldTime((w.getTotalWorldTime() / 20 + 1) * 20 + 40);
+            com.divinerpgextended.world.twilight.MortumWorld.inLethe(dp);
+            boolean bitten = dp.getHealth() < hpG;
+            dp.setHealth(dp.getMaxHealth());
+            net.minecraft.entity.item.EntityBoat boat = new net.minecraft.entity.item.EntityBoat(w, x0 + 2.5, y0, z0 + 2.5);
+            w.spawnEntityInWorld(boat);
+            for (int i = 0; i < com.divinerpgextended.world.twilight.MortumWorld.BOAT_ROT + 2; i++) {
+                server.worldServers[0].getWorldInfo().incrementTotalWorldTime(w.getTotalWorldTime() + 1);
+                com.divinerpgextended.world.twilight.MortumWorld.boatInLethe(boat);
+            }
+            boolean rotted = boat.isDead;
+            // Пожиратель: свои пауки Divine у него не появляются; разбил надгробие - он лечится, встаёт душа, иссушение
+            net.divinerpg.entities.twilight.EntitySoulFiend sf = new net.divinerpg.entities.twilight.EntitySoulFiend(w);
+            sf.setLocationAndAngles(x0 + 0.5, y0, z0 + 0.5, 0, 0);
+            w.spawnEntityInWorld(sf);
+            com.divinerpgextended.boss.LairSummons.leash(sf, x0, y0, z0, 12);
+            net.divinerpg.entities.twilight.EntitySoulSpider wild = new net.divinerpg.entities.twilight.EntitySoulSpider(w);
+            wild.setLocationAndAngles(x0 + 3.5, y0, z0 + 0.5, 0, 0);
+            boolean noWild = !w.spawnEntityInWorld(wild);
+            sf.setHealth(sf.getMaxHealth() / 2);
+            float before = sf.getHealth();
+            w.setBlock(x0 + 2, y0, z0 + 2, Blocks.stonebrick, 3, 3);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.world.BlockEvent.BreakEvent(x0 + 2, y0, z0 + 2, w, Blocks.stonebrick, 3, dp));
+            boolean punished = sf.getHealth() > before && dp.isPotionActive(net.minecraft.potion.Potion.wither) && com.divinerpgextended.boss.MortumArenaBosses.souls(sf).size() == 1;
+            for (net.minecraft.entity.Entity s2 : com.divinerpgextended.boss.MortumArenaBosses.souls(sf)) s2.setDead();
+            sf.setDead();
+            dp.clearActivePotions();
+            // карты: у каждой арены своя; Харон - один на квадрат 7 x 7 чанков
+            boolean maps = true;
+            for (com.divinerpgextended.world.twilight.MortumArenas.Type t : com.divinerpgextended.world.twilight.MortumArenas.Type.values()) {
+                int meta = com.divinerpgextended.item.ItemLairMap.arenaMap(t);
+                maps &= new ItemStack(com.divinerpgextended.registry.ModItems.lairMap, 1, meta).getDisplayName().length() > 0;
+            }
+            int docks = 0;
+            for (int i = 0; i < 70; i++) for (int j = 0; j < 70; j++) if (com.divinerpgextended.world.twilight.MortumWorld.dockChunk(w.getSeed(), i, j)) docks++;
+            for (int x = x0 - 14; x <= x0 + 14; x++) for (int z = z0 - 14; z <= z0 + 14; z++) for (int y = y0 - 3; y <= y0 + 10; y++) w.setBlockToAir(x, y, z);
+            check(onlyPhaser && snapped && runes == 3 && exploded && bolts == 3 && halite && sideWeak && bought && safe && bitten && rotted && noWild && punished && maps && docks == 100,
+                "демон: только фазер " + onlyPhaser + " (стрела " + arrow.ammount + ", фазер " + phaser.ammount + "), тетива рвётся " + snapped + ", руны " + runes + " взорвались " + exploded
+                    + ", снарядов блинка " + bolts + "; халит " + halite + "; боковая дробина " + sh.ammount + "; ладья куплена " + bought + ", в ладье цел " + safe + ", вплавь грызут " + bitten
+                    + ", лодка разъелась " + rotted + "; пауков Divine нет " + noWild + ", надгробие наказано " + punished + "; карты " + maps + ", Харонов на 70x70 чанков " + docks);
+            return "Демона пробивает только фазер, луки рядом рвутся, руны взрываются, блинк с тремя снарядами; халитовое оружие - как у миров; ладья у Харона спасает от Леты, лодка разъедается; надгробия Пожирателя дорого бить; карты к каждой арене";
+        });
         t("Логова", "Мортум: Лета, Харон, склеп", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int x0 = 9760, y0 = 90, z0 = 9760;
@@ -3275,7 +3382,7 @@ public class SelfTest {
             int xpBefore = lp.experienceTotal;
             server.worldServers[0].getWorldInfo().incrementTotalWorldTime((w.getTotalWorldTime() / 20 + 1) * 20); // на тик слива опыта
             com.divinerpgextended.world.twilight.MortumWorld.inLethe(lp);
-            boolean cleared = lp.getActivePotionEffects().isEmpty();
+            boolean cleared = !lp.isPotionActive(net.minecraft.potion.Potion.poison) && !lp.isPotionActive(net.minecraft.potion.Potion.damageBoost); // замедление вешает сама Лета
             boolean forgot = zl.getAttackTarget() == null && com.divinerpgextended.world.twilight.MortumWorld.forgotten(lp);
             zl.setAttackTarget(lp);
             boolean ignored = zl.getAttackTarget() == null;
@@ -3311,7 +3418,7 @@ public class SelfTest {
             ch.setDead();
             lp.inventory.clearInventory(null, -1);
             for (int x = x0 - 8; x <= x0 + 16; x++) for (int z = z0 - 8; z <= z0 + 16; z++) for (int y = y0 - 2; y <= y0 + 10; y++) w.setBlockToAir(x, y, z);
-            check(cleared && forgot && ignored && drained && share > 0.02 && share < 0.15 && crypt && chest && ferried,
+            check(cleared && forgot && ignored && drained && share > 0.05 && share < 0.3 && crypt && chest && ferried,
                 "Лета: эффекты сняты " + cleared + ", моб забыл " + forgot + ", не берёт в цель " + ignored + ", опыт " + xpBefore + " > " + lp.experienceTotal
                     + "; русло " + String.format("%.1f%%", share * 100) + "; склеп " + crypt + ", саркофаг и спавнер " + chest + "; Харон: до зала " + String.format("%.0f", dist) + " на " + dir + ", душ " + left + " из 7, сказал " + said + ", подсказка верна " + ferried);
             return "Лета снимает эффекты, мобы забывают игрока, утекает опыт; русло - узкие ленты (" + String.format("%.1f%%", share * 100) + "); склеп с саркофагом; Харон по кристаллу говорит сторону и расстояние до арены босса, никуда не переносит";

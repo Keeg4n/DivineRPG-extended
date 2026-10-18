@@ -12,13 +12,13 @@ import com.divinerpgextended.world.twilight.MortumArenas;
 import com.divinerpgextended.world.twilight.TwilightWorld;
 
 /**
- * Харон - перевозчик на пристанях Леты, тёмная фигура в балахоне. Не торгует и не возит: покажи ему кристалл босса
- * Мортума - скажет, в какой стороне и как далеко арена этого босса, и пустит туда по воздуху дымный след. Без
- * кристалла - говорит, что ему показать.
+ * Харон - перевозчик на пристанях Леты, тёмная фигура в балахоне. Покажи ему кристалл босса Мортума - скажет, в какой
+ * стороне и как далеко арена этого босса, и пустит туда дымный след. Покажи {@link #GONDOLA} душ Мортума - продаст
+ * ладью (по Лете без неё не проплыть). Без того и другого - говорит, что ему показать.
  */
 public class EntityCharon extends EntityWanderer {
 
-    public static final int SEARCH = 8, TRAIL = 14;
+    public static final int SEARCH = 8, TRAIL = 14, GONDOLA = 12;
     private static final String[] DIRS = { "s", "sw", "w", "nw", "n", "ne", "e", "se" };
 
     public EntityCharon(World w) {
@@ -31,8 +31,20 @@ public class EntityCharon extends EntityWanderer {
         if (worldObj.isRemote) return true;
         ItemStack h = p.getHeldItem();
         MortumArenas.Type t = h == null ? null : MortumArenas.ofCrystal(h.getItem());
+        if (h != null && h.getItem() == net.divinerpg.utils.items.TwilightItemsOther.mortumSoul) {
+            if (h.stackSize < GONDOLA) {
+                say(p, "dre.charon.price", GONDOLA);
+                return true;
+            }
+            h.stackSize -= GONDOLA;
+            if (h.stackSize <= 0) p.inventory.setInventorySlotContents(p.inventory.currentItem, null);
+            if (!p.inventory.addItemStackToInventory(new ItemStack(com.divinerpgextended.registry.ModItems.gondola))) p.dropPlayerItemWithRandomChoice(new ItemStack(com.divinerpgextended.registry.ModItems.gondola), false);
+            say(p, "dre.charon.sold");
+            worldObj.playSoundAtEntity(this, "random.orb", 0.6F, 0.6F);
+            return true;
+        }
         if (t == null) {
-            say(p, "dre.charon.hello");
+            say(p, "dre.charon.hello", GONDOLA);
             return true;
         }
         int[] c = MortumArenas.nearestOf(worldObj, t, posX, posZ, SEARCH);

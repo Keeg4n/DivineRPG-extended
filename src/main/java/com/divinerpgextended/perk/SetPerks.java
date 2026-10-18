@@ -77,7 +77,7 @@ public class SetPerks {
         // Пожиратель тьмы: вампиризм
         if (e.source.getEntity() instanceof EntityPlayer && !(e.entityLiving instanceof EntityPlayer)) {
             EntityPlayer p = (EntityPlayer) e.source.getEntity();
-            if (wears(p, TwilightWorld.MORTUM)) p.heal(Math.min(e.ammount, e.entityLiving.getHealth()) * DRAIN * (dark(p) ? 2 : 1));
+            if (wears(p, TwilightWorld.MORTUM) && !com.divinerpgextended.perk.RangedRoles.sidePellet(e.source.getSourceOfDamage())) p.heal(Math.min(e.ammount, e.entityLiving.getHealth()) * DRAIN * (dark(p) ? 2 : 1));
         }
     }
 }

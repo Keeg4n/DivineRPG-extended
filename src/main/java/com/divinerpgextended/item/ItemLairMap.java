@@ -27,8 +27,22 @@ import cpw.mods.fml.relauncher.SideOnly;
  */
 public class ItemLairMap extends Item {
 
-    private static final String[] KEYS = { "carcinus", "snow", "throne", "tomb", "nest", "circle", "watcher", "scorchers", "ayeraco" };
-    private static final int[] COLORS = { 0x4FA3C8, 0xDDEEFF, 0x6FC8FF, 0xE8C060, 0x7FD15A, 0xB0302A, 0x7A2E4E, 0xF07A20, 0xD0C890 };
+    private static final String[] KEYS = { "carcinus", "snow", "throne", "tomb", "nest", "circle", "watcher", "scorchers", "ayeraco", "twins", "karot",
+        "archer", "fiend", "vamacheron" };
+    private static final int[] COLORS = { 0x4FA3C8, 0xDDEEFF, 0x6FC8FF, 0xE8C060, 0x7FD15A, 0xB0302A, 0x7A2E4E, 0xF07A20, 0xD0C890, 0xE0E0E0, 0x9050C0,
+        0xC09040, 0x50A070, 0xD8D0B8 };
+    /** Карты к аренам Мортума (кроме Демонического круга - CIRCLE): близнецы, Карот, лучник, Пожиратель, Вамачерон. */
+    public static final int ARENA = 9;
+
+    /** Мета карты к арене этого вида. */
+    public static int arenaMap(com.divinerpgextended.world.twilight.MortumArenas.Type t) {
+        return t == com.divinerpgextended.world.twilight.MortumArenas.Type.DEMON ? CIRCLE : ARENA + t.ordinal() - 1;
+    }
+
+    private static com.divinerpgextended.world.twilight.MortumArenas.Type arenaOf(int t) {
+        if (t == CIRCLE) return com.divinerpgextended.world.twilight.MortumArenas.Type.DEMON;
+        return t >= ARENA ? com.divinerpgextended.world.twilight.MortumArenas.Type.values()[t - ARENA + 1] : null;
+    }
     /** Мета карт к логовам Ада и Энда: Смотритель, Король скорчеров, орда Айрако. */
     public static final int WATCHER = 6, SCORCHERS = 7, AYERACO = 8;
     /** Мета карты к гнезду Великого кадиллиона (в его мире) и к Демоническому кругу (Мортум). */
@@ -63,7 +77,7 @@ public class ItemLairMap extends Item {
     public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
         if (world.isRemote) return stack;
         int t = type(stack);
-        if (t == NEST || t == CIRCLE) return twilight(stack, world, player, t);
+        if (t == NEST || t == CIRCLE || t >= ARENA) return twilight(stack, world, player, t);
         if (t >= WATCHER) return outer(world, player, t);
         // логова - в обычном мире, Ледяной Трон - в Iceika
         int dim = t == LairData.THRONE ? net.divinerpg.utils.config.ConfigurationHelper.iceika : 0;
@@ -104,18 +118,22 @@ public class ItemLairMap extends Item {
     /** Гнёзда и круг - из сида мира, карта знает их заранее (как Трон). */
     private static ItemStack twilight(ItemStack stack, World world, EntityPlayer player, int t) {
         com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.of(world.provider.dimensionId);
-        boolean ok = tw != null && (t == CIRCLE) == (tw == com.divinerpgextended.world.twilight.TwilightWorld.MORTUM);
+        com.divinerpgextended.world.twilight.MortumArenas.Type arena = arenaOf(t);
+        boolean ok = tw != null && (arena != null) == (tw == com.divinerpgextended.world.twilight.TwilightWorld.MORTUM);
         if (!ok) {
-            player.addChatMessage(new ChatComponentTranslation(t == CIRCLE ? "dre.chat.map_mortum" : "dre.chat.map_cadillion_world"));
+            player.addChatMessage(new ChatComponentTranslation(arena != null ? "dre.chat.map_mortum" : "dre.chat.map_cadillion_world"));
             return stack;
         }
-        int[] c = com.divinerpgextended.world.twilight.WorldGenNests.nearest(world.getSeed(), world.provider.dimensionId, player.posX, player.posZ);
+        // арены Мортума - каждая карта к своей (ближайшей арене этого вида)
+        int[] c = arena != null ? com.divinerpgextended.world.twilight.MortumArenas.nearestOf(world, arena, player.posX, player.posZ, 8)
+            : com.divinerpgextended.world.twilight.WorldGenNests.nearest(world.getSeed(), world.provider.dimensionId, player.posX, player.posZ);
         if (c == null) {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.map_none_" + KEYS[t]));
             return stack;
         }
+        int floor = arena != null ? com.divinerpgextended.world.twilight.MortumArenas.floorY(arena) + 1 : c[1] + 1;
         player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, c[0], c[2]),
-            direction(player, c[0], c[2]), c[1] + 1, c[0], c[2]));
+            direction(player, c[0], c[2]), floor, c[0], c[2]));
         return stack;
     }
 
@@ -203,6 +221,7 @@ public class ItemLairMap extends Item {
         list.add(new ItemStack(item, 1, WATCHER));
         list.add(new ItemStack(item, 1, SCORCHERS));
         list.add(new ItemStack(item, 1, AYERACO));
+        for (int i = ARENA; i < KEYS.length; i++) list.add(new ItemStack(item, 1, i));
     }
 
     @Override
