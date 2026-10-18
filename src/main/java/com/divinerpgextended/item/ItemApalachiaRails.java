@@ -2,7 +2,6 @@ package com.divinerpgextended.item;
 
 import java.util.List;
 
-import net.divinerpg.utils.blocks.TwilightBlocks;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
@@ -16,9 +15,9 @@ import com.divinerpgextended.block.BlockSkyRail;
 import com.divinerpgextended.registry.ModBlocks;
 
 /**
- * Рельсы Апалачии: на пол встают обычными рельсами Апалачии Divine (повороты, любые вагонетки), на стену и потолок -
- * навесными ({@link BlockSkyRail}); у подножия стены с рельсом - горкой. Не ItemBlock нарочно: клиент проверяет
- * ItemBlock рельсов Divine (нужен пол под рельсом) и клик по стене до сервера не доходил.
+ * Рельсы Апалачии: на пол встают обычными гнущимися рельсами ({@link com.divinerpgextended.block.BlockApalachiaRail}: повороты,
+ * наклоны, любые вагонетки), на стену и потолок - навесными ({@link BlockSkyRail}); у подножия стены с рельсом - горкой.
+ * Не ItemBlock нарочно: клиент проверяет ItemBlock напольного рельса (нужен пол под рельсом) и клик по стене до сервера не доходил.
  */
 public class ItemApalachiaRails extends Item {
 
@@ -34,10 +33,10 @@ public class ItemApalachiaRails extends Item {
         if (side == 1) {
             Block clicked = w.getBlock(x, y, z);
             int ty = clicked == Blocks.snow_layer || clicked.isReplaceable(w, x, y, z) ? y : y + 1;
-            // под рельсом на стене - горка (навесной на полу), иначе обычный рельс Divine
+            // под рельсом на стене - горка (навесной на полу), иначе гнущийся напольный рельс
             Block above = w.getBlock(x, ty + 1, z);
             boolean underWall = above instanceof BlockSkyRail && BlockSkyRail.support(w.getBlockMetadata(x, ty + 1, z)).offsetY == 0;
-            if (!underWall) place = TwilightBlocks.apalachiaRails;
+            if (!underWall) place = ModBlocks.apalachiaRail;
         }
         ItemStack tmp = new ItemStack(place);
         if (!tmp.getItem().onItemUse(tmp, p, w, x, y, z, side, hx, hy, hz)) return false;

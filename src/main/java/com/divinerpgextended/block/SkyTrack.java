@@ -9,7 +9,7 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.util.ForgeDirection;
 
 /**
- * Путь вагонетки Апалачии по рельсам (навесным и рельсам Апалачии Divine): соседи рельса, внутренние углы-горки
+ * Путь вагонетки Апалачии по рельсам (навесным и напольным - аддона и старым Divine): соседи рельса, внутренние углы-горки
  * (пол - стена, стена - потолок), точка касания колёс, нормаль и стык с соседом. Вагонетка едет по ломаной
  * "середина рельса - стык - середина следующего", на горке - по диагонали блока, как ванильная по рельсу на блок выше.
  */
@@ -21,8 +21,15 @@ public final class SkyTrack {
 
     private SkyTrack() {}
 
+    /** Напольный рельс: рельс Апалачии аддона (гнётся) или старый рельс Апалачии Divine (как золотой - не гнётся). */
     static boolean divine(Block b) {
-        return b == TwilightBlocks.apalachiaRails;
+        return b == TwilightBlocks.apalachiaRails || b == com.divinerpgextended.registry.ModBlocks.apalachiaRail;
+    }
+
+    /** Форма напольного рельса (0-9, как у ванильных): без бита "запитан" у рельсов Divine. */
+    private static int shapeMeta(IBlockAccess w, int x, int y, int z) {
+        Block b = w.getBlock(x, y, z);
+        return b instanceof net.minecraft.block.BlockRailBase ? ((net.minecraft.block.BlockRailBase) b).getBasicRailMetadata(w, null, x, y, z) : 0;
     }
 
     /** Грань опоры рельса: навесной - по мете, рельс Divine - пол; не рельс - UNKNOWN. */
@@ -36,7 +43,7 @@ public final class SkyTrack {
     /** Наклонный рельс Divine (мета 2-5, как у ванильных): куда поднимается; иначе UNKNOWN. */
     public static ForgeDirection ascending(IBlockAccess w, int x, int y, int z) {
         if (!divine(w.getBlock(x, y, z))) return NONE;
-        switch (w.getBlockMetadata(x, y, z)) {
+        switch (shapeMeta(w, x, y, z)) {
             case 2: return ForgeDirection.EAST;
             case 3: return ForgeDirection.WEST;
             case 4: return ForgeDirection.NORTH;
@@ -72,7 +79,7 @@ public final class SkyTrack {
         if (n == NONE) return out;
         if (divine(w.getBlock(x, y, z)) && corner(w, x, y, z) == NONE) {
             ForgeDirection asc = ascending(w, x, y, z);
-            for (ForgeDirection d : shape(w.getBlockMetadata(x, y, z))) {
+            for (ForgeDirection d : shape(shapeMeta(w, x, y, z))) {
                 int[][] tries = d == asc ? new int[][] { { 1 }, { 0 } } : new int[][] { { 0 }, { -1 }, { 1 } };
                 for (int[] t : tries) {
                     int dy = t[0];

@@ -81,6 +81,25 @@ public class RangedRoles {
         return null;
     }
 
+    /** Подсказка фазера: у Divine он "бесконечные боеприпасы", у нас тратит пыль своего мира (с подсумком - нет). */
+    @SubscribeEvent
+    public void onTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent e) {
+        if (e.itemStack == null || kind(e.itemStack) != PHASER) return;
+        Item dust = phaserDust(e.itemStack.getItem());
+        if (dust == null) return;
+        String inf, ammo;
+        try {
+            inf = net.divinerpg.utils.TooltipLocalizer.infiniteAmmo();
+            ammo = net.divinerpg.utils.TooltipLocalizer.ammo(dust);
+        } catch (Throwable ex) { // другая версия Divine
+            return;
+        }
+        int at = e.toolTip.indexOf(inf);
+        if (at < 0) return;
+        e.toolTip.set(at, ammo);
+        e.toolTip.add(at + 1, net.minecraft.util.EnumChatFormatting.GRAY + net.minecraft.util.StatCollector.translateToLocal("dre.tooltip.phaser_pouch"));
+    }
+
     /** Дробь блица бьёт по одной цели вся: неуязвимость после попадания для неё не действует. */
     @SubscribeEvent
     public void onAttack(net.minecraftforge.event.entity.living.LivingAttackEvent e) {

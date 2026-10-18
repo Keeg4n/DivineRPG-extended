@@ -36,6 +36,10 @@ public class EntitySkyCart extends Entity {
     private Entity lastRider;
     /** Клиент: нормаль на прошлом тике - для плавного поворота между тиками. */
     public float[] prevNormal = { 0, 1, 0 };
+    /** Клиент: куда подвести вагонетку (позиция с сервера), за сколько тиков; сглаженные нормаль и курс. */
+    private double lx, ly, lz;
+    private int lerp;
+    private float[] smoothN = { 0, 1, 0 }, smoothF = { 1, 0, 0 };
 
     public EntitySkyCart(World w) {
         super(w);
@@ -63,11 +67,20 @@ public class EntitySkyCart extends Entity {
         for (int i = 0; i < 6; i++) dataWatcher.addObject(DW_N + i, Float.valueOf(i == 1 ? 1 : 0));
     }
 
+    /** Нормаль пути; на клиенте - сглаженная вслед за позицией. */
     public float[] normal() {
+        return worldObj.isRemote ? smoothN.clone() : watchedNormal();
+    }
+
+    private float[] watchedNormal() {
         return new float[] { dataWatcher.getWatchableObjectFloat(DW_N), dataWatcher.getWatchableObjectFloat(DW_N + 1), dataWatcher.getWatchableObjectFloat(DW_N + 2) };
     }
 
     public float[] course() {
+        return worldObj.isRemote ? smoothF.clone() : watchedCourse();
+    }
+
+    private float[] watchedCourse() {
         return new float[] { dataWatcher.getWatchableObjectFloat(DW_F), dataWatcher.getWatchableObjectFloat(DW_F + 1), dataWatcher.getWatchableObjectFloat(DW_F + 2) };
     }
 
@@ -154,9 +167,11 @@ public class EntitySkyCart extends Entity {
 
     @Override
     public void onUpdate() {
-        if (worldObj.isRemote) prevNormal = normal();
         super.onUpdate();
-        if (worldObj.isRemote) return;
+        if (worldObj.isRemote) {
+            clientSmooth();
+            return;
+        }
         if (!placed) {
             cx = nx = (int) Math.floor(posX);
             cy = ny = (int) Math.floor(posY + 0.4);
@@ -231,14 +246,33 @@ public class EntitySkyCart extends Entity {
     }
 
     /**
-     * Клиент: позицию с сервера ставить как есть. Ванильная версия выталкивает сущность вверх из блоков, а вагонетка на
+     * Клиент: позицию с сервера не ставить сразу, а подводить за несколько тиков (как ванильная вагонетка) - иначе
+     * вагонетка дёргалась рывками. Ванильную версию не зовём: она выталкивает сущность вверх из блоков, а вагонетка на
      * стене и потолке прижата к ним - её подбрасывало на верх стены вместе с седоком.
      */
     @Override
     @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
     public void setPositionAndRotation2(double x, double y, double z, float yaw, float pitch, int steps) {
-        setPosition(x, y, z);
+        lx = x;
+        ly = y;
+        lz = z;
+        lerp = steps + 1;
         setRotation(yaw, pitch);
+    }
+
+    /** Клиент: шаг подвода к позиции с сервера; нормаль и курс догоняют свои значения с той же скоростью. */
+    private void clientSmooth() {
+        prevNormal = smoothN.clone();
+        float[] tn = watchedNormal(), tf = watchedCourse();
+        float k = lerp > 0 ? 1.0F / lerp : 1;
+        if (lerp > 0) {
+            setPosition(posX + (lx - posX) / lerp, posY + (ly - posY) / lerp, posZ + (lz - posZ) / lerp);
+            lerp--;
+        }
+        for (int i = 0; i < 3; i++) {
+            smoothN[i] += (tn[i] - smoothN[i]) * k;
+            smoothF[i] += (tf[i] - smoothF[i]) * k;
+        }
     }
 
     @Override

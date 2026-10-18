@@ -178,8 +178,8 @@ public class BlockSkyRail extends Block {
         return com.divinerpgextended.registry.ModItems.apalachiaRails;
     }
 
-    /** Путь вагонетки Апалачии: навесной рельс или рельс Апалачии Divine. */
+    /** Путь вагонетки Апалачии: навесной рельс или напольный рельс Апалачии (аддона или Divine). */
     public static boolean track(Block b) {
-        return b instanceof BlockSkyRail || b == net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails;
+        return b instanceof BlockSkyRail || SkyTrack.divine(b);
     }
 }

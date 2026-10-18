@@ -2530,6 +2530,17 @@ public class SelfTest {
                     + ", выстрел " + fired + ", Бесконечность снята " + gone + "; блиц с подсумком без пыли: снарядов " + blitzShots + ", пыли в инвентаре нет " + noDust);
             return "дробины блица бьют одну цель все; фазер тратит пыль Эдема (без неё молчит); с колчаном лук без стрел натягивается и стреляет, стрел в инвентаре нет; с подсумком блиц стреляет без пыли и ничего не кладёт";
         });
+        t("Прохождение", "Подсказка фазера: пыль вместо бесконечных", () -> {
+            TestPlayer tv = player(ConfigurationHelper.eden, "TestPhaserTip", 9486.5, 120, 9830.5);
+            ItemStack ph = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenPhaser);
+            java.util.ArrayList<String> tip = new java.util.ArrayList<String>();
+            tip.add(ph.getDisplayName());
+            tip.add(net.divinerpg.utils.TooltipLocalizer.infiniteAmmo());
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.ItemTooltipEvent(ph, tv, tip, false));
+            String ammo = net.divinerpg.utils.TooltipLocalizer.ammo(net.divinerpg.utils.items.TwilightItemsOther.edenDust);
+            check(!tip.contains(net.divinerpg.utils.TooltipLocalizer.infiniteAmmo()) && tip.contains(ammo) && tip.size() == 3, "подсказка " + tip);
+            return "у фазера вместо бесконечных боеприпасов - пыль своего мира и строка про подсумок";
+        });
         t("Прохождение", "Бонусы колчанов", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             TestPlayer kv = join(player(ConfigurationHelper.eden, "TestQuiverBonus", 9482.5, 120, 9810.5), true);
@@ -2614,7 +2625,13 @@ public class SelfTest {
             rv.rotationPitch = -60;
             for (int x = x0; x <= x0 + 4; x++) rails.getItem().onItemUse(rails, rv, w, x, y0 + 6, z0, 0, 0.5F, 0F, 0.5F); // потолок
             int floor = 0, wall = 0, ceil = 0;
-            for (int x = x0; x <= x0 + 4; x++) if (w.getBlock(x, y0, z0) == net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails) floor++;
+            for (int x = x0; x <= x0 + 4; x++) if (w.getBlock(x, y0, z0) == com.divinerpgextended.registry.ModBlocks.apalachiaRail) floor++;
+            // напольные гнутся: рельс на юг от x0 - угол у x0 становится поворотом
+            rv.rotationPitch = 60;
+            rails.getItem().onItemUse(rails, rv, w, x0, y0 - 1, z0 + 1, 1, 0.5F, 1F, 0.5F);
+            int bend = w.getBlockMetadata(x0, y0, z0);
+            boolean bent = bend >= 6 && bend <= 9;
+            w.setBlockToAir(x0, y0, z0 + 1);
             for (int y = y0 + 1; y <= y0 + 5; y++)
                 if (w.getBlock(x0 + 5, y, z0) == com.divinerpgextended.registry.ModBlocks.skyRail
                     && (w.getBlockMetadata(x0 + 5, y, z0) & 7) == net.minecraftforge.common.util.ForgeDirection.EAST.ordinal()) wall++;
@@ -2660,10 +2677,10 @@ public class SelfTest {
                 c.setDead();
             }
             for (int x = x0 - 2; x <= x0 + 8; x++) for (int y = y0 - 1; y <= y0 + 8; y++) for (int z = z0 - 2; z <= z0 + 2; z++) w.setBlockToAir(x, y, z);
-            check(floor == 5 && wall == 5 && ceil == 5 && ramps && sat && ceilEnd && home && jump < 0.5 && minNy < -0.99 && eyesFree,
-                "на полу " + floor + ", на стене " + wall + ", на потолке " + ceil + ", горки " + low + "/" + high + ", сел " + sat + ", до конца потолка " + ceilEnd
+            check(floor == 5 && bent && wall == 5 && ceil == 5 && ramps && sat && ceilEnd && home && jump < 0.5 && minNy < -0.99 && eyesFree,
+                "на полу " + floor + ", поворот " + bent + " (мета " + bend + "), на стене " + wall + ", на потолке " + ceil + ", горки " + low + "/" + high + ", сел " + sat + ", до конца потолка " + ceilEnd
                     + ", вернулась " + home + " за " + ticks + " тиков, скачок " + String.format("%.2f", jump) + ", вверх дном " + (minNy < -0.99) + ", глаза не в камне " + eyesFree);
-            return "рельсы Апалачии: пол - рельсы Divine, у стены горка, стена и потолок - навесные; вагонетка с седоком доезжает до конца потолка и возвращается без скачков";
+            return "рельсы Апалачии: пол - гнущиеся рельсы, у стены горка, стена и потолок - навесные; вагонетка с седоком доезжает до конца потолка и возвращается без скачков";
         });
         t("Прохождение", "Рельсы Апалачии на стену и в дроп", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
