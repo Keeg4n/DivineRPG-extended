@@ -3524,6 +3524,40 @@ public class SelfTest {
                     + "; фокус горит " + lit + ", пока горит - неуязвим " + focusSafe + ", разбит - бьётся " + broken);
             return "Демон уходит в башню на 85% и поднимается по этажу каждые 12% до коронного зала; не на его этаже его не достать; в короне держит фокус - разбил, бей";
         });
+        t("Логова", "Вечный лучник: бегуны, залп сквозь блоки, дождь стрел", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            int cx = 30000 + com.divinerpgextended.world.twilight.MortumArenas.Type.ARCHER.ordinal() * 160, cz = 30000; // галерея построена тестом рендера
+            loadAround(w, cx, cz, 3);
+            int top = com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP;
+            int hz = com.divinerpgextended.world.twilight.MortumArenas.GALLERY_HZ;
+            boolean roof = w.getBlock(cx - 5, top + 15, cz) == Blocks.nether_brick_stairs && w.getBlock(cx, top + 20, cz) == Blocks.obsidian;
+            net.divinerpg.entities.twilight.EntityEternalArcher ea = new net.divinerpg.entities.twilight.EntityEternalArcher(w);
+            ea.setLocationAndAngles(cx + 0.5, top + 4, cz - hz + 3.5, 0, 0);
+            w.spawnEntityInWorld(ea);
+            com.divinerpgextended.boss.LairSummons.leash(ea, cx, top + 1, cz, 26);
+            TestPlayer tp = join(player(ConfigurationHelper.mortum, "TestArcher", cx + 0.5, top + 1, cz + 8.5), true);
+            // стенка из булыжника поперёк галереи между лучником и целью
+            for (int x = cx - 4; x <= cx + 4; x++) for (int y = top + 1; y <= top + 9; y++) w.setBlock(x, y, cz - 4, Blocks.cobblestone);
+            int arrows = com.divinerpgextended.boss.MortumArenaBosses.volley(ea, tp);
+            for (int i = 0; i < 30; i++) {
+                for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, ea.boundingBox.expand(40, 20, 40))) ((net.minecraft.entity.Entity) o).onUpdate();
+                FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.WorldTickEvent(cpw.mods.fml.relauncher.Side.SERVER, cpw.mods.fml.common.gameevent.TickEvent.Phase.END, w));
+            }
+            int holes = 0;
+            for (int x = cx - 4; x <= cx + 4; x++) for (int y = top + 1; y <= top + 9; y++) if (w.getBlock(x, y, cz - 4) != Blocks.cobblestone) holes++;
+            for (int x = cx - 4; x <= cx + 4; x++) for (int y = top + 1; y <= top + 9; y++) w.setBlockToAir(x, y, cz - 4);
+            // бегуны: двое за раз, всего не больше трёх
+            int r1 = com.divinerpgextended.boss.MortumArenaBosses.runners(ea, tp), r2 = com.divinerpgextended.boss.MortumArenaBosses.runners(ea, tp);
+            // дождь стрел
+            int rain = com.divinerpgextended.boss.MortumArenaBosses.arrowsFall(w, ea, tp.posX, tp.posY, tp.posZ);
+            for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class, ea.boundingBox.expand(48, 20, 48)))
+                if (((net.minecraft.entity.Entity) o).getEntityData().hasKey(com.divinerpgextended.boss.MortumArenaBosses.ARCHER_ADD) || o == ea) ((net.minecraft.entity.Entity) o).setDead();
+            for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, ea.boundingBox.expand(48, 20, 48))) ((net.minecraft.entity.Entity) o).setDead();
+            tp.inventory.clearInventory(null, -1);
+            check(roof && arrows == com.divinerpgextended.boss.MortumArenaBosses.VOLLEY_ARROWS && holes > 0 && r1 == 2 && r2 == 1 && rain == com.divinerpgextended.boss.MortumArenaBosses.RAIN_ARROWS,
+                "кровля из ступеней с обсидиановым коньком " + roof + "; залп " + arrows + " стрел, пробито блоков в стенке " + holes + "; бегунов " + r1 + "+" + r2 + "; дождь " + rain + " стрел");
+            return "кровля галереи - ступени адского кирпича; залп пробивает стенку (" + holes + " блоков), бегуны до трёх, дождь стрел " + rain;
+        });
         t("Логова", "РЕНДЕР карта Леты", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int bx = 40000, bz = 40000, size = 192;

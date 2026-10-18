@@ -57,11 +57,18 @@ public class MortumArenaBosses {
     public static final float TWIN_SHIELD = 0.3F;
     public static final int REVIVE = 200;
     public static final String REVIVED = "dreRevived", SOUL = "dreFiendSoul", DASH = "dreDash", WIND = "dreWind", STUNNED = "dreStun";
-    public static final int VOLLEY = 200, VOLLEY_WARN = 30, VOLLEY_ARROWS = 9, RAISE = 400, SOULS = 3, CHARGE = 160, WINDUP = 20, DASH_TICKS = 40, STUN = 60;
+    public static final int VOLLEY = 160, VOLLEY_WARN = 30, VOLLEY_ARROWS = 9, RAISE = 400, SOULS = 3, CHARGE = 160, WINDUP = 20, DASH_TICKS = 40, STUN = 60;
     public static final int STEP = 160, STEP_WARN = 20, GRAVE_R = 14, SOUL_R = 40;
     /** Разбил надгробие при живом Пожирателе: он лечится на эту долю, душа встаёт у разбившего, тому иссушение. */
     public static final float DESECRATE_HEAL = 0.08F;
     public static final float VOLLEY_DMG = 6, DASH_DMG = 10, STEP_DMG = 8;
+    /** Лучник: бегуны по галерее (не больше RUNNERS, подкрепление раз в RUNNER_EVERY), дождь стрел раз в RAIN тиков. */
+    public static final int RUNNERS = 3, RUNNER_EVERY = 300, RAIN = 240, RAIN_WARN = 25, RAIN_ARROWS = 12, PIERCE_BLOCKS = 4;
+    public static final String ARCHER_ADD = "dreArcherAdd", PIERCED = "drePierced";
+    /** Стрелы залпа, пробивающие блоки: {стрела, центр галереи x, пол, z}. */
+    private static final List<Object[]> PIERCING = new ArrayList<Object[]>();
+    /** Дождь стрел на взводе: {мир, x, y, z, тик, лучник}. */
+    private static final List<Object[]> RAINS = new ArrayList<Object[]>();
 
     /** Ждут воскрешения: {мир, класс, живой брат, тик мира}. */
     private static final List<Object[]> REVIVES = new ArrayList<Object[]>();
@@ -121,15 +128,18 @@ public class MortumArenaBosses {
         b.addPotionEffect(new PotionEffect(Potion.moveSpeed.id, REVIVE + 20, 0));
     }
 
-    /** Поднятые братом - без трофеев (иначе ферма). */
+    /** Поднятые братом и бегуны лучника - без трофеев (иначе ферма). */
     @SubscribeEvent
     public void onDrops(LivingDropsEvent e) {
-        if (!e.entityLiving.worldObj.isRemote && e.entityLiving.getEntityData().getBoolean(REVIVED)) e.drops.clear();
+        if (!e.entityLiving.worldObj.isRemote && (e.entityLiving.getEntityData().getBoolean(REVIVED) || e.entityLiving.getEntityData().hasKey(ARCHER_ADD))) e.drops.clear();
     }
 
     @SubscribeEvent
     public void onWorldTick(TickEvent.WorldTickEvent e) {
-        if (e.phase != TickEvent.Phase.END || e.world.isRemote || REVIVES.isEmpty()) return;
+        if (e.phase != TickEvent.Phase.END || e.world.isRemote) return;
+        pierceTick(e.world);
+        rainTick(e.world);
+        if (REVIVES.isEmpty()) return;
         for (Iterator<Object[]> it = REVIVES.iterator(); it.hasNext();) {
             Object[] r = it.next();
             if (r[0] != e.world) continue;
@@ -224,9 +234,84 @@ public class MortumArenaBosses {
             ((WorldServer) a.worldObj).func_147487_a("crit", a.posX, a.posY + a.height, a.posZ, 30, 0.6, 0.4, 0.6, 0.2);
         }
         if (t == 0 && a.ticksExisted > 0) volley(a, p);
+        if (a.ticksExisted % RUNNER_EVERY == 40) runners(a, p);
+        if (a.ticksExisted % RAIN == RAIN / 2) rain(a, p);
     }
 
-    /** Залп веером в цель; потом рушит верх колонны-укрытия у цели. */
+    /** Бегуны: василиски Мортума выбегают из южного входа галереи и гонят цель - на месте не отсидеться. */
+    @SuppressWarnings("unchecked")
+    public static int runners(EntityLiving a, EntityLivingBase p) {
+        int[] h = LairSummons.home(a);
+        if (h == null) return 0;
+        int alive = 0;
+        for (Object o : a.worldObj.getEntitiesWithinAABB(EntityLiving.class, a.boundingBox.expand(48, 16, 48)))
+            if (((Entity) o).isEntityAlive() && ((Entity) o).getEntityData().getInteger(ARCHER_ADD) == a.getEntityId()) alive++;
+        int made = 0;
+        for (int i = 0; i < 2 && alive + made < RUNNERS; i++) {
+            net.divinerpg.entities.twilight.EntityBaslisk r = new net.divinerpg.entities.twilight.EntityBaslisk(a.worldObj);
+            double x = h[0] + 0.5 + (i == 0 ? -3 : 3), z = h[2] + 0.5 + MortumArenas.GALLERY_HZ - 3;
+            r.setLocationAndAngles(x, h[1], z, 180, 0);
+            if (!a.worldObj.getCollidingBoundingBoxes(r, r.boundingBox).isEmpty()) continue;
+            r.getEntityData().setInteger(ARCHER_ADD, a.getEntityId());
+            r.getEntityData().setBoolean("dreDemonAdd", true); // успокоение арены их не уносит
+            r.addPotionEffect(new PotionEffect(Potion.moveSpeed.id, 20 * 600, 1));
+            r.setAttackTarget(p);
+            if (a.worldObj.spawnEntityInWorld(r)) {
+                made++;
+                ((WorldServer) a.worldObj).func_147487_a("largesmoke", x, h[1] + 0.5, z, 15, 0.4, 0.4, 0.4, 0.02);
+            }
+        }
+        if (made > 0) a.worldObj.playSoundAtEntity(a, "mob.wolf.howl", 1.5F, 0.6F);
+        return made;
+    }
+
+    /** Дождь стрел: под ногами цели круг искр RAIN_WARN тиков, потом сверху падают RAIN_ARROWS стрел. */
+    public static void rain(EntityLiving a, EntityLivingBase p) {
+        RAINS.add(new Object[] { a.worldObj, p.posX, p.posY, p.posZ, a.worldObj.getTotalWorldTime() + RAIN_WARN, a });
+        a.worldObj.playSoundAtEntity(p, "random.bow", 1.0F, 0.3F);
+    }
+
+    private static void rainTick(World w) {
+        if (RAINS.isEmpty()) return;
+        long now = w.getTotalWorldTime();
+        for (Iterator<Object[]> it = RAINS.iterator(); it.hasNext();) {
+            Object[] r = it.next();
+            if (r[0] != w) continue;
+            double x = (Double) r[1], y = (Double) r[2], z = (Double) r[3];
+            if (now < (Long) r[4]) {
+                if (now % 3 == 0) for (int i = 0; i < 12; i++) {
+                    double ang = i * Math.PI / 6;
+                    ((WorldServer) w).func_147487_a("crit", x + Math.cos(ang) * 3, y + 0.1, z + Math.sin(ang) * 3, 1, 0, 0, 0, 0);
+                }
+                continue;
+            }
+            it.remove();
+            arrowsFall(w, (EntityLivingBase) r[5], x, y, z);
+        }
+    }
+
+    /** Стрелы падают на круг радиусом 3 из-под потолка (не выше 10 блоков). */
+    public static int arrowsFall(World w, EntityLivingBase a, double x, double y, double z) {
+        int n = 0;
+        java.util.Random rnd = w.rand;
+        for (int i = 0; i < RAIN_ARROWS; i++) {
+            double ang = rnd.nextDouble() * Math.PI * 2, rr = Math.sqrt(rnd.nextDouble()) * 3;
+            double ax = x + Math.cos(ang) * rr, az = z + Math.sin(ang) * rr;
+            int top = (int) Math.floor(y) + 1;
+            while (top < (int) y + 10 && w.isAirBlock((int) Math.floor(ax), top + 1, (int) Math.floor(az))) top++;
+            EntityArrow ar = new EntityArrow(w, ax, top, az);
+            ar.shootingEntity = a;
+            ar.motionX = ar.motionZ = 0;
+            ar.motionY = -1.6;
+            ar.setDamage(VOLLEY_DMG / 3);
+            ar.canBePickedUp = 0;
+            if (w.spawnEntityInWorld(ar)) n++;
+        }
+        w.playSoundEffect(x, y, z, "random.bow", 1.5F, 0.5F);
+        return n;
+    }
+
+    /** Залп веером в цель; стрелы пробивают блоки внутри галереи; потом рушит верх колонны-укрытия у цели. */
     public static int volley(EntityLiving a, EntityLivingBase p) {
         int n = 0;
         for (int i = 0; i < VOLLEY_ARROWS; i++) {
@@ -237,11 +322,48 @@ public class MortumArenaBosses {
             ar.motionZ = mz;
             ar.setDamage(VOLLEY_DMG / 1.8);
             ar.canBePickedUp = 0;
-            if (a.worldObj.spawnEntityInWorld(ar)) n++;
+            if (a.worldObj.spawnEntityInWorld(ar)) {
+                n++;
+                int[] h = LairSummons.home(a);
+                if (h != null) PIERCING.add(new Object[] { ar, h[0], h[1], h[2] });
+            }
         }
         a.worldObj.playSoundAtEntity(a, "random.bow", 2.0F, 0.8F);
         erode(a.worldObj, p);
         return n;
+    }
+
+    /** Блок можно пробить залпом: внутри стен галереи, выше пола, не алтарь и не неразрушимый. */
+    static boolean pierceable(World w, int x, int y, int z, int cx, int floor, int cz) {
+        if (Math.abs(x - cx) > MortumArenas.GALLERY_HX - 1 || Math.abs(z - cz) > MortumArenas.GALLERY_HZ - 1 || y < floor) return false;
+        net.minecraft.block.Block b = w.getBlock(x, y, z);
+        if (b.isAir(w, x, y, z) || b == com.divinerpgextended.registry.ModBlocks.arenaAltar || b.getMaterial().isLiquid()) return false;
+        return b.getBlockHardness(w, x, y, z) >= 0;
+    }
+
+    /** Стрелы залпа летят сквозь блоки: блок на пути следующего шага стрелы ломается (до PIERCE_BLOCKS на стрелу). */
+    public static int pierceTick(World w) {
+        int broken = 0;
+        for (Iterator<Object[]> it = PIERCING.iterator(); it.hasNext();) {
+            Object[] r = it.next();
+            EntityArrow ar = (EntityArrow) r[0];
+            if (ar.worldObj != w) continue;
+            double sp = ar.motionX * ar.motionX + ar.motionY * ar.motionY + ar.motionZ * ar.motionZ;
+            int done = ar.getEntityData().getInteger(PIERCED);
+            if (ar.isDead || ar.ticksExisted > 60 || sp < 0.04 || done >= PIERCE_BLOCKS) {
+                it.remove();
+                continue;
+            }
+            net.minecraft.util.Vec3 from = net.minecraft.util.Vec3.createVectorHelper(ar.posX, ar.posY, ar.posZ);
+            net.minecraft.util.Vec3 to = net.minecraft.util.Vec3.createVectorHelper(ar.posX + ar.motionX * 1.3, ar.posY + ar.motionY * 1.3, ar.posZ + ar.motionZ * 1.3);
+            net.minecraft.util.MovingObjectPosition hit = w.func_147447_a(from, to, false, true, false);
+            if (hit == null || hit.typeOfHit != net.minecraft.util.MovingObjectPosition.MovingObjectType.BLOCK) continue;
+            if (!pierceable(w, hit.blockX, hit.blockY, hit.blockZ, (Integer) r[1], (Integer) r[2], (Integer) r[3])) continue;
+            w.func_147480_a(hit.blockX, hit.blockY, hit.blockZ, false);
+            ar.getEntityData().setInteger(PIERCED, done + 1);
+            broken++;
+        }
+        return broken;
     }
 
     /** Верхний блок ближайшей к цели колонны (резной камень) обрушивается. */

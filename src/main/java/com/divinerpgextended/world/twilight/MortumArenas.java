@@ -90,6 +90,9 @@ public final class MortumArenas {
         return in && Math.abs(y - floorY(t) - 1) <= 8;
     }
 
+    /** Галерея лучника: половины по X и Z внутри стен (пробиваемое залпом - только внутри). */
+    public static final int GALLERY_HX = Gallery.HX, GALLERY_HZ = Gallery.HZ;
+
     static int halfX(Type t) {
         return t == Type.ARCHER ? Gallery.HX - 1 : Mirror.H - 1;
     }
@@ -173,6 +176,8 @@ public final class MortumArenas {
     /** Блоки Divine (Аркана и обычный мир): кирпичи, камни, лампы, шахматка, растения Мортума. */
     static final int DDBRICK = 70, DBRICK = 71, ABRICK = 72, ASTONE = 73, ATILE = 74, SSTONE = 75, DLAMP = 76, MILK = 77, DARK = 78, CHECKER = 79,
         MINI = 80, DIVBRICK = 81, VLAMP = 82, MPLANK = 83, BRAMBLE = 84, EYEPLANT = 85, GLOWBONE = 86;
+    /** Ступени из адского кирпича (мета - сторона, как у ванильных ступеней). */
+    static final int NSTAIR = 87;
 
     /**
      * Постройка арены в пещере Мортума: стоит на своём фундаменте до земли ({@link ColumnStructure#FOUNDATION}), над ней
@@ -223,6 +228,7 @@ public final class MortumArenas {
                 case DIVBRICK: return Blocks.nether_brick;
                 case VLAMP: return Blocks.glowstone;
                 case MPLANK: return net.divinerpg.utils.blocks.TwilightBlocks.mortumPlanks;
+                case NSTAIR: return Blocks.nether_brick_stairs;
                 case BRAMBLE: return net.divinerpg.utils.blocks.TwilightBlocks.demonBrambles;
                 case EYEPLANT: return net.divinerpg.utils.blocks.TwilightBlocks.eyePlant;
                 case GLOWBONE: return net.divinerpg.utils.blocks.TwilightBlocks.purpleGlowbone;
@@ -519,7 +525,7 @@ public final class MortumArenas {
 
         static final int HX = 11, HZ = 27, DAIS_H = 3, COL_H = 4, EAVE = 8;
 
-        /** Гамма Мортума: тёмный деградированный кирпич, пол - тёмный камень, кровля - доски Мортума; колонны-укрытия - резной камень (их рушат залпы). */
+        /** Гамма Мортума: стены - чёрный кирпич, кровля - ступени адского кирпича с обсидиановым коньком; колонны-укрытия - резной камень (их рушат залпы). */
         @Override
         int skin(int code) {
             switch (code) {
@@ -552,12 +558,12 @@ public final class MortumArenas {
 
         @Override
         int clear(int dx, int dz) {
-            return EAVE + 9;
+            return EAVE + HX + 6;
         }
 
-        /** Высота кровли над полом (скат от карниза к коньку). */
+        /** Высота кровли над полом: крутой скат (блок на блок) от карниза к коньку. */
         static int roof(int ax) {
-            return EAVE + (HX + 1 - ax) / 2;
+            return EAVE + (HX + 1 - ax);
         }
 
         static boolean cover(int dx, int dz) {
@@ -573,14 +579,26 @@ public final class MortumArenas {
         void build(int dx, int dz, int[] col) {
             int ax = Math.abs(dx), az = Math.abs(dz);
             int roofY = TOP + roof(ax);
-            set(col, roofY, MPLANK); // кровля из досок Мортума
-            if (ax == HX + 1) set(col, roofY - 1, SLAB_TOP); // карниз
+            // кровля: ступени адского кирпича скатом наружу, под ними второй слой; конёк - обсидиан с шипами
+            if (ax == 0) {
+                set(col, roofY, OBSIDIAN);
+                if (Math.floorMod(dz, 4) == 0) set(col, roofY + 1, FENCE);
+            } else {
+                put(col, roofY, NSTAIR, dx < 0 ? 0 : 1);
+                set(col, roofY - 1, NETHER);
+            }
+            if (ax == HX + 1) { // карниз с зубцами
+                put(col, roofY - 1, NSTAIR, (dx < 0 ? 0 : 1) | 4);
+                if (Math.floorMod(dz, 2) == 0) set(col, roofY + 1, NETHER);
+            }
             if (ax <= HX + 1 && az == HZ + 1) { // торцы: глухие до кровли, на юге - вход
                 set(col, TOP, BRICK);
                 boolean door = dz > 0 && ax <= 1;
                 for (int y = TOP + 1; y < roofY; y++) set(col, y, door && y <= TOP + 4 ? AIR : worn(dx, y * 3 + dz));
                 if (door) set(col, TOP + 5, CHISEL);
-                if (dz < 0 && ax <= 2 && roofY - TOP > 10) set(col, TOP + 9, WorldGenNests.GLOW); // окно над троном
+                if (ax <= 1) for (int y = TOP + 12; y <= TOP + 14; y++) set(col, y, WorldGenNests.GLOW); // окно-фонарь в щипце
+                if (ax == 0 && dz < 0) set(col, roofY + 1, OBSIDIAN); // шпиль над троном
+                if (ax == 0 && dz < 0) set(col, roofY + 2, FENCE);
                 return;
             }
             set(col, TOP, ax <= 1 ? NETHER : worn(dx, dz));
@@ -597,8 +615,8 @@ public final class MortumArenas {
             }
             // подвесные светильники по оси
             if (ax == 0 && Math.floorMod(dz, 6) == 3) {
-                set(col, roofY - 1, FENCE);
-                set(col, roofY - 2, WorldGenNests.GLOW);
+                for (int y = TOP + EAVE + 3; y < roofY; y++) set(col, y, FENCE);
+                set(col, TOP + EAVE + 2, WorldGenNests.GLOW);
             }
             // помост и трон у северного торца
             if (dz <= -(HZ - 5)) {
