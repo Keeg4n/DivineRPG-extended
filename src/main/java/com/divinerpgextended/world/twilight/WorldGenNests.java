@@ -50,7 +50,7 @@ public class WorldGenNests implements IWorldGenerator {
     }
 
     /** Арены Мортума с тоннелями занимают до MORTUM_R от центра. */
-    public static final int MORTUM_R = 44;
+    public static final int MORTUM_R = 52;
 
     /** Сторона квадрата, на который одно логово: в Мортуме вдвое меньше (шесть видов арен - ищутся ближе). */
     public static int spacing(int dim) {

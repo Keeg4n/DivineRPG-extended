@@ -21,7 +21,8 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 /**
  * Особенность Мортума - мир мёртвых:
  * <ul>
- * <li>Лета, река забвения: багровая, широкая и глубокая, течёт по рельефу в своём русле (на перепадах - пороги). Плыть по ней без ладьи Харона - души утопленников тянут
+ * <li>Лета, река забвения: багровая, по дну мира, как лава в Аду - гладь на одной высоте, русло прорезает дно, под
+ * холмами уходит в тоннель, со скал падают водопады. Плыть по ней без ладьи Харона - души утопленников тянут
  * на дно и грызут ({@link #BITE} в секунду); обычная лодка в Лете за пару секунд разъедается. Вошёл - слетают все эффекты (и яды, и бафы), мобы на {@link #FORGET}
  * тиков теряют тебя из виду; пока стоишь в реке - утекает опыт ({@link #DRAIN} очков в секунду). Переправа - у Харона.</li>
  * <li>Склепы с саркофагами, останки гигантов (череп наполовину в земле - внутри сундук, грудная клетка), редкие черепа и
@@ -31,8 +32,9 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 public class MortumWorld {
 
     public static final int FORGET = 100, DRAIN = 3;
-    /** Высота пола арен Мортума (LEVEL + 4); глубина реки до DEEP. */
-    public static final int LEVEL = 32, DEEP = 5;
+    /** Высота пола арен Мортума (LEVEL + 4); гладь Леты SEA (дно мира - 20..23), глубина русла до DEEP, над водой HEAD. */
+    public static final int LEVEL = 32, SEA = 19, DEEP = 5, HEAD = 3;
+    public static int waterfalls;
     /** Ширина русла (в долях шума: ~10 блоков). */
     static final double WIDTH = 0.11;
     /** Без ладьи: урон в секунду, тяга вниз за тик; обычная лодка разъедается за BOAT_ROT тиков. */
@@ -154,39 +156,67 @@ public class MortumWorld {
     }
 
     /**
-     * Река в области заселения [x0, x0 + 16) идёт по рельефу: гладь в каждом столбце русла - на 2 блока ниже самой низкой
-     * земли в квадрате 5 x 5 вокруг (поэтому вода никогда не выше берегов и не висит), ниже - Лета до дна (глубже к
-     * середине русла), выше - вырезано до неба пещеры. Где земля резко меняется - пороги. На аренах реки нет.
+     * Лета в области заселения [x0, x0 + 16), как лава в Аду: гладь на высоте {@link #SEA} по всему Мортуму, любая пустота
+     * не выше глади - Лета (вода всегда лежит в чаше рельефа и никогда не висит). Русло шумом прорезает дно мира: дно
+     * глубже к середине, над водой вырезано {@link #HEAD} блока - под холмами это тоннель, река уходит под землю и
+     * выходит дальше. Изредка со скалы над руслом падает водопад. На аренах реки нет.
      */
     static int lethe(World w, TwilightWorld tw, int x0, int z0) {
         int n = 0;
         long seed = w.getSeed();
-        int[][] sf = new int[20][20]; // поверхность до правок: x0-2 .. x0+17
-        boolean any = false;
-        for (int i = 0; i < 20; i++) for (int k = 0; k < 20; k++) {
-            sf[i][k] = -2;
-            if (Math.abs(riverNoise(seed, x0 - 2 + i, z0 - 2 + k)) < WIDTH + 0.03) any = true;
-        }
-        if (!any) return 0;
-        for (int i = 0; i < 20; i++) for (int k = 0; k < 20; k++) sf[i][k] = WorldGenTwilightFeatures.surface(w, tw, x0 - 2 + i, z0 - 2 + k);
+        int[] fall = null;
         for (int x = x0; x < x0 + 16; x++) for (int z = z0; z < z0 + 16; z++) {
+            if (onArena(w, x, z)) continue;
             double a = Math.abs(riverNoise(seed, x, z));
-            if (a >= WIDTH || onArena(w, x, z)) continue;
-            int s = sf[x - x0 + 2][z - z0 + 2];
-            if (s < 8) continue;
-            int low = s;
-            for (int i = -2; i <= 2; i++) for (int k = -2; k <= 2; k++) {
-                int v = sf[x - x0 + 2 + i][z - z0 + 2 + k];
-                if (v >= 0) low = Math.min(low, v);
+            if (a < WIDTH) { // русло
+                int bed = SEA - 1 - (int) Math.round((1 - a / WIDTH) * (DEEP - 1));
+                if (!w.getBlock(x, bed, z).isOpaqueCube()) w.setBlock(x, bed, z, tw.dirt(), 0, 2);
+                for (int y = bed + 1; y <= SEA; y++) w.setBlock(x, y, z, ModBlocks.lethe, 0, 2);
+                for (int y = SEA + 1; y <= SEA + HEAD; y++)
+                    if (!w.isAirBlock(x, y, z) && w.getBlock(x, y, z) != net.minecraft.init.Blocks.bedrock) w.setBlock(x, y, z, net.minecraft.init.Blocks.air, 0, 2);
+                if (soft(w, x, SEA + HEAD + 1, z)) w.setBlock(x, SEA + HEAD + 1, z, net.minecraft.init.Blocks.air, 0, 2); // куст без опоры
+                n++;
+                if (fall == null && a > WIDTH * 0.6) fall = new int[] { x, z };
             }
-            int level = low - 2, bed = level - 1 - (int) Math.round((1 - a / WIDTH) * (DEEP - 1));
-            if (!w.getBlock(x, bed, z).isOpaqueCube()) w.setBlock(x, bed, z, tw.dirt(), 0, 2);
-            for (int y = bed + 1; y <= level; y++) w.setBlock(x, y, z, ModBlocks.lethe, 0, 2);
-            for (int y = level + 1; y <= s + 2; y++) if (!w.isAirBlock(x, y, z)) w.setBlock(x, y, z, net.minecraft.init.Blocks.air, 0, 2);
-            n++;
+            // озёра: пустота и растения не выше глади - Лета, растения на самой глади убираются
+            for (int y = 6; y <= SEA; y++) if (w.isAirBlock(x, y, z) || soft(w, x, y, z)) w.setBlock(x, y, z, ModBlocks.lethe, 0, 2);
+            if (w.getBlock(x, SEA, z) == ModBlocks.lethe && soft(w, x, SEA + 1, z)) w.setBlock(x, SEA + 1, z, net.minecraft.init.Blocks.air, 0, 2);
         }
+        if (fall != null && new Random(seed ^ x0 * 31L ^ z0 * 17L).nextInt(3) == 0) waterfall(w, fall[0], fall[1]);
         letheColumns += n;
         return n;
+    }
+
+    /**
+     * Водопад: у края русла, где рядом поднимается скала (стена до SEA + 10 и выше, над руслом пусто), по стене стекает
+     * столб Леты от верха скалы до глади, наверху скалы - выемка с Летой.
+     */
+    static boolean waterfall(World w, int x, int z) {
+        int[][] nb = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+        for (int[] o : nb) {
+            int wx = x + o[0], wz = z + o[1];
+            if (river(w.getSeed(), wx, wz)) continue;
+            int top = SEA + 1;
+            while (top < 110 && w.getBlock(wx, top, wz).isOpaqueCube()) top++;
+            if (top - SEA < 10) continue;
+            boolean open = true;
+            for (int y = SEA + 1; y < top && open; y++) if (!w.isAirBlock(x, y, z) && w.getBlock(x, y, z) != ModBlocks.lethe) open = false;
+            if (!open) continue;
+            for (int y = SEA + 1; y < top; y++) w.setBlock(x, y, z, ModBlocks.lethe, 0, 2);
+            w.setBlock(wx, top - 1, wz, ModBlocks.lethe, 0, 2);
+            waterfalls++;
+            return true;
+        }
+        return false;
+    }
+
+    /** Трава, кусты, цветы, лианы, листва: то, что вода смывает (не Лета и не блоки с содержимым вроде черепов). */
+    public static boolean soft(World w, int x, int y, int z) {
+        Block b = w.getBlock(x, y, z);
+        if (b.isAir(w, x, y, z) || b == ModBlocks.lethe || b.hasTileEntity(w.getBlockMetadata(x, y, z)) || b.getMaterial().isLiquid()) return false;
+        net.minecraft.block.material.Material m = b.getMaterial();
+        return m == net.minecraft.block.material.Material.plants || m == net.minecraft.block.material.Material.vine
+            || m == net.minecraft.block.material.Material.leaves || m.isReplaceable();
     }
 
     /** Точка на арене Мортума (с запасом): там нет ни реки, ни мелких построек. */
@@ -292,8 +322,9 @@ public class MortumWorld {
         for (int t = 0; t < 24; t++) {
             int x = x0 + 1 + r.nextInt(14), z = z0 + 1 + r.nextInt(14);
             if (river(seed, x, z) || !(river(seed, x + 2, z) || river(seed, x - 2, z) || river(seed, x, z + 2) || river(seed, x, z - 2))) continue;
-            int y = WorldGenTwilightFeatures.surface(w, tw, x, z);
-            if (y < 6 || !w.isAirBlock(x, y + 3, z)) continue;
+            int y = SEA + 6; // берег у воды: верх земли чуть выше глади
+            while (y > SEA && w.isAirBlock(x, y, z)) y--;
+            if (y <= SEA || !w.isAirBlock(x, y + 1, z) || !w.isAirBlock(x, y + 3, z)) continue;
             for (int i = -1; i <= 1; i++) for (int k = -1; k <= 1; k++) {
                 if (w.getBlock(x + i, y, z + k) == ModBlocks.lethe) continue;
                 w.setBlock(x + i, y, z + k, tw.planks(), 0, 2);

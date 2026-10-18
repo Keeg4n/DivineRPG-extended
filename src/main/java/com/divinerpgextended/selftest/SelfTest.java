@@ -3402,6 +3402,57 @@ public class SelfTest {
                     + ", лодка разъелась " + rotted + "; пауков Divine нет " + noWild + ", надгробие наказано " + punished + "; карты " + maps + ", Харонов на 70x70 чанков " + docks);
             return "Демона пробивает только фазер, луки рядом рвутся, руны взрываются, блинк с тремя снарядами; халитовое оружие - как у миров; ладья у Харона спасает от Леты, лодка разъедается; надгробия Пожирателя дорого бить; карты к каждой арене";
         });
+        t("Логова", "РЕНДЕР арен Мортума на ровном дне", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            int n = 0;
+            for (com.divinerpgextended.world.twilight.MortumArenas.Type t : com.divinerpgextended.world.twilight.MortumArenas.Type.values()) {
+                int cx = 30000 + t.ordinal() * 160, cz = 30000;
+                loadAround(w, cx, cz, 4);
+                // ровное дно мира: земля до 20, выше воздух
+                for (int x = cx - 60; x <= cx + 60; x++) for (int z = cz - 60; z <= cz + 60; z++) for (int y = 2; y <= 122; y++) {
+                    net.minecraft.block.Block want = y <= 19 ? net.divinerpg.utils.blocks.TwilightBlocks.twilightStone : y == 20 ? net.divinerpg.utils.blocks.TwilightBlocks.mortumGrass : Blocks.air;
+                    if (w.getBlock(x, y, z) != want) w.setBlock(x, y, z, want, 0, 2);
+                }
+                com.divinerpgextended.world.twilight.ColumnStructure st = com.divinerpgextended.world.twilight.MortumArenas.shape(t);
+                for (int x0 = cx - 56; x0 < cx + 56; x0 += 16) for (int z0 = cz - 56; z0 < cz + 56; z0 += 16) st.buildSlice(w, cx, cz, x0, z0);
+                if (t == com.divinerpgextended.world.twilight.MortumArenas.Type.DEMON) dump(w, cx, 60, cz, 52, "render-demon-full");
+                dump(w, cx, com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP + 20, cz, 44, "render-" + t.key());
+                n++;
+            }
+            return "построено и сброшено для рендера: " + n;
+        });
+        t("Логова", "РЕНДЕР карта Леты", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            int bx = 40000, bz = 40000, size = 192;
+            loadAround(w, bx + size / 2, bz + size / 2, size / 32 + 1);
+            java.io.PrintWriter out = new java.io.PrintWriter(new File(MinecraftServer.getServer().getFile("logs"), "lethe-map.txt"), "UTF-8");
+            int open = 0, tunnel = 0, falls = 0;
+            for (int z = bz; z < bz + size; z++) {
+                StringBuilder row = new StringBuilder();
+                for (int x = bx; x < bx + size; x++) {
+                    int sea = com.divinerpgextended.world.twilight.MortumWorld.SEA;
+                    boolean lethe = w.getBlock(x, sea, z) == com.divinerpgextended.registry.ModBlocks.lethe;
+                    boolean fall = w.getBlock(x, sea + 6, z) == com.divinerpgextended.registry.ModBlocks.lethe;
+                    // верх земли нижнего яруса: первый непустой сверху начиная с 70
+                    int top = 70;
+                    while (top > 5 && w.isAirBlock(x, top, z)) top--;
+                    boolean covered = false;
+                    if (lethe) for (int y = sea + 4; y <= sea + 10; y++) if (!w.isAirBlock(x, y, z) && w.getBlock(x, y, z) != com.divinerpgextended.registry.ModBlocks.lethe) {
+                        covered = true;
+                        break;
+                    }
+                    char c;
+                    if (fall) { c = '*'; falls++; }
+                    else if (lethe && !covered) { c = '~'; open++; }
+                    else if (lethe) { c = 't'; tunnel++; }
+                    else c = (char) ('A' + Math.max(0, Math.min(25, (top - 10) / 3)));
+                    row.append(c);
+                }
+                out.println(row);
+            }
+            out.close();
+            return "карта Леты 192x192: открыто " + open + ", в тоннелях/под навесом " + tunnel + ", водопадов (столбцов) " + falls;
+        });
         t("Логова", "Мортум: русло Леты по рельефу", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             // река вдали от прочих тестов
@@ -3414,13 +3465,14 @@ public class SelfTest {
                     break search;
                 }
             loadAround(w, rx, rz, 4);
-            int lethe = 0, hanging = 0, spikes = 0, columns = 0;
+            int lethe = 0, hanging = 0, spikes = 0, columns = 0, plants = 0;
             for (int x = rx - 40; x <= rx + 40; x++) for (int z = rz - 40; z <= rz + 40; z++) {
                 boolean col = false;
                 for (int y = 8; y < 120; y++) {
                     if (w.getBlock(x, y, z) != com.divinerpgextended.registry.ModBlocks.lethe) continue;
                     lethe++;
                     col = true;
+                    if (com.divinerpgextended.world.twilight.MortumWorld.soft(w, x, y + 1, z)) plants++;
                     if (w.getBlock(x, y - 1, z) != com.divinerpgextended.registry.ModBlocks.lethe && !w.getBlock(x, y - 1, z).isOpaqueCube()) hanging++;
                     if (w.getBlock(x, y + 1, z) != com.divinerpgextended.registry.ModBlocks.lethe) { // гладь: не столб среди воздуха
                         int open = 0;
@@ -3432,9 +3484,9 @@ public class SelfTest {
                 if (col) columns++;
             }
             dump(w, rx, 40, rz, 34, "lethe-river");
-            check(columns > 100 && hanging == 0 && spikes < columns / 20,
-                "у " + rx + "," + rz + ": столбцов реки " + columns + ", блоков Леты " + lethe + ", с пустотой под собой " + hanging + ", одиночных столбов " + spikes);
-            return "Лета течёт руслом по рельефу: " + columns + " столбцов, под водой нет пустоты, висящих столбов нет";
+            check(columns > 100 && hanging == 0 && spikes < columns / 20 && plants == 0,
+                "у " + rx + "," + rz + ": столбцов реки " + columns + ", блоков Леты " + lethe + ", с пустотой под собой " + hanging + ", одиночных столбов " + spikes + ", растений на воде " + plants);
+            return "Лета течёт руслом по рельефу: " + columns + " столбцов, под водой нет пустоты, висящих столбов и растений на воде нет";
         });
         t("Логова", "Мортум: Лета, Харон, склеп", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
