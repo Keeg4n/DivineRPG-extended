@@ -3402,6 +3402,40 @@ public class SelfTest {
                     + ", лодка разъелась " + rotted + "; пауков Divine нет " + noWild + ", надгробие наказано " + punished + "; карты " + maps + ", Харонов на 70x70 чанков " + docks);
             return "Демона пробивает только фазер, луки рядом рвутся, руны взрываются, блинк с тремя снарядами; халитовое оружие - как у миров; ладья у Харона спасает от Леты, лодка разъедается; надгробия Пожирателя дорого бить; карты к каждой арене";
         });
+        t("Логова", "Мортум: русло Леты по рельефу", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            // река вдали от прочих тестов
+            int rx = 0, rz = 0;
+            search:
+            for (int x = 6000; x < 7000; x += 8) for (int z = 6000; z < 6200; z += 8)
+                if (com.divinerpgextended.world.twilight.MortumWorld.river(w.getSeed(), x, z)) {
+                    rx = x;
+                    rz = z;
+                    break search;
+                }
+            loadAround(w, rx, rz, 4);
+            int lethe = 0, hanging = 0, spikes = 0, columns = 0;
+            for (int x = rx - 40; x <= rx + 40; x++) for (int z = rz - 40; z <= rz + 40; z++) {
+                boolean col = false;
+                for (int y = 8; y < 120; y++) {
+                    if (w.getBlock(x, y, z) != com.divinerpgextended.registry.ModBlocks.lethe) continue;
+                    lethe++;
+                    col = true;
+                    if (w.getBlock(x, y - 1, z) != com.divinerpgextended.registry.ModBlocks.lethe && !w.getBlock(x, y - 1, z).isOpaqueCube()) hanging++;
+                    if (w.getBlock(x, y + 1, z) != com.divinerpgextended.registry.ModBlocks.lethe) { // гладь: не столб среди воздуха
+                        int open = 0;
+                        int[][] nb = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+                        for (int[] o : nb) if (w.isAirBlock(x + o[0], y, z + o[1]) && w.isAirBlock(x + o[0], y - 1, z + o[1])) open++;
+                        if (open == 4) spikes++;
+                    }
+                }
+                if (col) columns++;
+            }
+            dump(w, rx, 40, rz, 34, "lethe-river");
+            check(columns > 100 && hanging == 0 && spikes < columns / 20,
+                "у " + rx + "," + rz + ": столбцов реки " + columns + ", блоков Леты " + lethe + ", с пустотой под собой " + hanging + ", одиночных столбов " + spikes);
+            return "Лета течёт руслом по рельефу: " + columns + " столбцов, под водой нет пустоты, висящих столбов нет";
+        });
         t("Логова", "Мортум: Лета, Харон, склеп", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int x0 = 9760, y0 = 90, z0 = 9760;

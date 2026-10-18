@@ -21,8 +21,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 /**
  * Особенность Мортума - мир мёртвых:
  * <ul>
- * <li>Лета, река забвения: багровая, широкая и глубокая, гладь на одной высоте {@link #LEVEL} по всему Мортуму - течёт по
- * низинам, прорезая себе русло; на возвышенности не поднимается. Плыть по ней без ладьи Харона - души утопленников тянут
+ * <li>Лета, река забвения: багровая, широкая и глубокая, течёт по рельефу в своём русле (на перепадах - пороги). Плыть по ней без ладьи Харона - души утопленников тянут
  * на дно и грызут ({@link #BITE} в секунду); обычная лодка в Лете за пару секунд разъедается. Вошёл - слетают все эффекты (и яды, и бафы), мобы на {@link #FORGET}
  * тиков теряют тебя из виду; пока стоишь в реке - утекает опыт ({@link #DRAIN} очков в секунду). Переправа - у Харона.</li>
  * <li>Склепы с саркофагами, останки гигантов (череп наполовину в земле - внутри сундук, грудная клетка), редкие черепа и
@@ -32,10 +31,10 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 public class MortumWorld {
 
     public static final int FORGET = 100, DRAIN = 3;
-    /** Гладь Леты по всему Мортуму; русло прорезает землю не выше LEVEL + CUT; глубина до DEEP. */
-    public static final int LEVEL = 32, CUT = 14, DEEP = 5;
-    /** Ширина русла и берега (в долях шума: русло ~10 блоков). */
-    static final double WIDTH = 0.11, BANK = 0.15;
+    /** Высота пола арен Мортума (LEVEL + 4); глубина реки до DEEP. */
+    public static final int LEVEL = 32, DEEP = 5;
+    /** Ширина русла (в долях шума: ~10 блоков). */
+    static final double WIDTH = 0.11;
     /** Без ладьи: урон в секунду, тяга вниз за тик; обычная лодка разъедается за BOAT_ROT тиков. */
     public static final float BITE = 3;
     public static final double PULL = 0.04;
@@ -155,26 +154,35 @@ public class MortumWorld {
     }
 
     /**
-     * Река в области заселения [x0, x0 + 16): в русле - Лета от дна (глубже к середине) до глади LEVEL, выше - вырезано до
-     * земли (русло прорезает холмы до LEVEL + CUT); на берегу низина поднята валом до глади, чтобы река не висела стенкой.
-     * Там, где земля выше, реки нет. На аренах Мортума реки нет.
+     * Река в области заселения [x0, x0 + 16) идёт по рельефу: гладь в каждом столбце русла - на 2 блока ниже самой низкой
+     * земли в квадрате 5 x 5 вокруг (поэтому вода никогда не выше берегов и не висит), ниже - Лета до дна (глубже к
+     * середине русла), выше - вырезано до неба пещеры. Где земля резко меняется - пороги. На аренах реки нет.
      */
     static int lethe(World w, TwilightWorld tw, int x0, int z0) {
         int n = 0;
         long seed = w.getSeed();
+        int[][] sf = new int[20][20]; // поверхность до правок: x0-2 .. x0+17
+        boolean any = false;
+        for (int i = 0; i < 20; i++) for (int k = 0; k < 20; k++) {
+            sf[i][k] = -2;
+            if (Math.abs(riverNoise(seed, x0 - 2 + i, z0 - 2 + k)) < WIDTH + 0.03) any = true;
+        }
+        if (!any) return 0;
+        for (int i = 0; i < 20; i++) for (int k = 0; k < 20; k++) sf[i][k] = WorldGenTwilightFeatures.surface(w, tw, x0 - 2 + i, z0 - 2 + k);
         for (int x = x0; x < x0 + 16; x++) for (int z = z0; z < z0 + 16; z++) {
             double a = Math.abs(riverNoise(seed, x, z));
-            if (a >= BANK || onArena(w, x, z)) continue;
-            int s = WorldGenTwilightFeatures.surface(w, tw, x, z);
-            if (s < 6 || s > LEVEL + CUT) continue;
-            if (a >= WIDTH) { // берег
-                for (int y = s + 1; y <= LEVEL; y++) w.setBlock(x, y, z, y == LEVEL ? tw.grass() : tw.dirt(), 0, 2);
-                continue;
+            if (a >= WIDTH || onArena(w, x, z)) continue;
+            int s = sf[x - x0 + 2][z - z0 + 2];
+            if (s < 8) continue;
+            int low = s;
+            for (int i = -2; i <= 2; i++) for (int k = -2; k <= 2; k++) {
+                int v = sf[x - x0 + 2 + i][z - z0 + 2 + k];
+                if (v >= 0) low = Math.min(low, v);
             }
-            int bed = LEVEL - 1 - (int) Math.round((1 - a / WIDTH) * (DEEP - 1));
-            for (int y = s + 1; y <= bed; y++) w.setBlock(x, y, z, tw.dirt(), 0, 2); // низина глубже дна - подсыпать
-            for (int y = bed + 1; y <= LEVEL; y++) w.setBlock(x, y, z, ModBlocks.lethe, 0, 2);
-            for (int y = LEVEL + 1; y <= Math.max(s, LEVEL) + 3; y++) if (!w.isAirBlock(x, y, z)) w.setBlock(x, y, z, net.minecraft.init.Blocks.air, 0, 2);
+            int level = low - 2, bed = level - 1 - (int) Math.round((1 - a / WIDTH) * (DEEP - 1));
+            if (!w.getBlock(x, bed, z).isOpaqueCube()) w.setBlock(x, bed, z, tw.dirt(), 0, 2);
+            for (int y = bed + 1; y <= level; y++) w.setBlock(x, y, z, ModBlocks.lethe, 0, 2);
+            for (int y = level + 1; y <= s + 2; y++) if (!w.isAirBlock(x, y, z)) w.setBlock(x, y, z, net.minecraft.init.Blocks.air, 0, 2);
             n++;
         }
         letheColumns += n;
@@ -285,7 +293,7 @@ public class MortumWorld {
             int x = x0 + 1 + r.nextInt(14), z = z0 + 1 + r.nextInt(14);
             if (river(seed, x, z) || !(river(seed, x + 2, z) || river(seed, x - 2, z) || river(seed, x, z + 2) || river(seed, x, z - 2))) continue;
             int y = WorldGenTwilightFeatures.surface(w, tw, x, z);
-            if (y < 6 || y > LEVEL + 3 || !w.isAirBlock(x, y + 3, z)) continue;
+            if (y < 6 || !w.isAirBlock(x, y + 3, z)) continue;
             for (int i = -1; i <= 1; i++) for (int k = -1; k <= 1; k++) {
                 if (w.getBlock(x + i, y, z + k) == ModBlocks.lethe) continue;
                 w.setBlock(x + i, y, z + k, tw.planks(), 0, 2);

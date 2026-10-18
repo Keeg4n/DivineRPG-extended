@@ -255,11 +255,24 @@ public final class MortumArenas {
             return h == 0 ? MOSSY : h == 1 ? CRACKED : BRICK;
         }
 
+        /** Насколько столбец за краем постройки (по её форме); <= 0 - внутри. */
+        double outside(int dx, int dz) {
+            return Math.sqrt(dx * dx + dz * dz) - reach();
+        }
+
+        static final int SLOPE = 10;
+
         @Override
         protected boolean column(int dx, int dz, int[] col) {
             boolean in = footprint(dx, dz);
             int ax = Math.abs(dx), az = Math.abs(dz), far = Math.max(ax, az);
             boolean tunnel = !in && (ax <= 1 || az <= 1) && far <= reach() + TUNNEL;
+            double out = outside(dx, dz);
+            if (!in && !tunnel && out > 0 && out <= SLOPE) { // склон вокруг: насыпь вниз до земли, откос вверх
+                put(col, TOP - 1 - (int) (out * 1.3), FOUNDATION, 0);
+                for (int y = TOP + 1 + (int) (out * 1.5); y <= TOP + 30; y++) put(col, y, AIR, 0);
+                return true;
+            }
             if (!in && !tunnel) return false;
             if (!in) { // проход к постройке: только вырезать, пол - камень
                 put(col, TOP - 1, FOUNDATION, 0);
@@ -290,15 +303,15 @@ public final class MortumArenas {
 
         static final int R = 24, DAIS_X = 12;
 
-        /** Светлая половина - молочный камень Divine, тёмная - тёмный камень и тёмный деградированный кирпич. */
+        /** Гамма Мортума: светлая половина - камень и блок Мортума с лампами, тёмная - тёмный камень и тёмный деградированный кирпич. */
         @Override
         int skin(int code) {
             switch (code) {
-                case BONE: case PILLAR: return MILK;
-                case BONE_CHISEL: return ATILE;
+                case BONE: case PILLAR: case QSLAB: return WorldGenNests.STONE;
+                case BONE_CHISEL: return WorldGenNests.GEM;
                 case OBSIDIAN: return DARK;
                 case WorldGenNests.STONE: return DDBRICK;
-                case CHISEL: return ABRICK;
+                case CHISEL: return NETHER;
                 default: return code;
             }
         }
@@ -382,15 +395,15 @@ public final class MortumArenas {
 
         static final int H = 14, WALL = 8;
 
-        /** Древний кирпич и камень Арканы, пол - шахматка Divine, мозаика - древняя плитка. */
+        /** Гамма Мортума: стены - тёмный деградированный кирпич, колонны - адский кирпич, пол - шахматка из тёмного камня и блока Мортума. */
         @Override
         int skin(int code) {
             switch (code) {
-                case BRICK: case MOSSY: case CRACKED: return ABRICK;
-                case CHISEL: return ASTONE;
-                case BONE_CHISEL: return ATILE;
-                case PILLAR: return MILK;
-                case WorldGenNests.GLOW: return VLAMP;
+                case BRICK: case MOSSY: case CRACKED: return DDBRICK;
+                case CHISEL: return NETHER;
+                case BONE_CHISEL: return WorldGenNests.GEM;
+                case PILLAR: return DARK;
+                case CHECKER: return DARK;
                 default: return code;
             }
         }
@@ -398,6 +411,11 @@ public final class MortumArenas {
         @Override
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
             statue(w, cx, cz, x0, z0, 0, TOP + 1, -H + 2, net.divinerpg.utils.blocks.VanillaBlocks.karotStatue);
+        }
+
+        @Override
+        double outside(int dx, int dz) {
+            return Math.max(Math.abs(dx), Math.abs(dz)) - reach();
         }
 
         @Override
@@ -441,7 +459,7 @@ public final class MortumArenas {
             }
             // пол шахматкой, мозаика в центре
             double r = Math.sqrt(dx * dx + dz * dz);
-            set(col, TOP, r < 4 ? (r < 1.5 ? WorldGenNests.GEM : BONE_CHISEL) : CHECKER);
+            set(col, TOP, r < 4 ? (r < 1.5 ? WorldGenNests.GEM : BONE_CHISEL) : ((dx + dz) & 1) == 0 ? WorldGenNests.GEM : CHECKER);
             if (ax == 7 && az == 7) for (int y = TOP + 1; y <= TOP + WALL; y++) set(col, y, PILLAR);
             if (ax == 7 && az == 7) set(col, TOP + 1, BONE_CHISEL);
             // потолок с окнами-светильниками
@@ -461,13 +479,12 @@ public final class MortumArenas {
 
         static final int HX = 11, HZ = 27, DAIS_H = 3, COL_H = 4, EAVE = 8;
 
-        /** Мини-кирпич Divine, кровля - доски Мортума; колонны-укрытия - резной камень (их рушат залпы). */
+        /** Гамма Мортума: тёмный деградированный кирпич, пол - тёмный камень, кровля - доски Мортума; колонны-укрытия - резной камень (их рушат залпы). */
         @Override
         int skin(int code) {
             switch (code) {
-                case BRICK: case MOSSY: case CRACKED: return MINI;
+                case BRICK: case MOSSY: case CRACKED: return DDBRICK;
                 case SLAB_TOP: return MPLANK;
-                case WorldGenNests.GLOW: return DLAMP;
                 default: return code;
             }
         }
@@ -476,6 +493,11 @@ public final class MortumArenas {
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
             statue(w, cx, cz, x0, z0, -3, TOP + DAIS_H + 1, -HZ + 1, net.divinerpg.utils.blocks.VanillaBlocks.eternalArcherStatue);
             statue(w, cx, cz, x0, z0, 3, TOP + DAIS_H + 1, -HZ + 1, net.divinerpg.utils.blocks.VanillaBlocks.eternalArcherStatue);
+        }
+
+        @Override
+        double outside(int dx, int dz) {
+            return Math.max(Math.abs(dx) - (HX + 1), Math.abs(dz) - (HZ + 1));
         }
 
         @Override
@@ -566,7 +588,6 @@ public final class MortumArenas {
             switch (code) {
                 case BRICK: case MOSSY: case CRACKED: return DDBRICK;
                 case SLAB_TOP: return DARK;
-                case WorldGenNests.GLOW: return DLAMP;
                 default: return code;
             }
         }
@@ -663,7 +684,6 @@ public final class MortumArenas {
             switch (code) {
                 case BRICK: case MOSSY: case CRACKED: return DARK;
                 case CHISEL: return DDBRICK;
-                case WorldGenNests.GLOW: return DLAMP;
                 default: return code;
             }
         }
@@ -744,20 +764,14 @@ public final class MortumArenas {
 
         static final int WALL = 23, WALL_H = 10, TOWER = 23, TOWER_R = 5, TOWER_H = 18, SPIRE_H = 32, COURT = 19;
 
-        /**
-         * Тёмный деградированный кирпич Арканы - стены и башни, древний кирпич - пояса и бортик, тёмный камень - кровли и
-         * обелиски, камень душ - кольца круга, лампы подземелий Арканы - окна и жаровни.
-         */
+        /** Гамма Мортума: стены и башни - тёмный деградированный кирпич, пояса и бортик - адский кирпич, кровли и обелиски - тёмный камень. */
         @Override
         int skin(int code) {
             switch (code) {
                 case NETHER: return DDBRICK;
+                case CHISEL: return NETHER;
                 case OBSIDIAN: return DARK;
-                case CHISEL: return ABRICK;
-                case BRICK: case MOSSY: case CRACKED: return DBRICK;
-                case WorldGenNests.STONE: return ASTONE;
-                case WorldGenNests.GEM: return SSTONE;
-                case WorldGenNests.GLOW: return DLAMP;
+                case BRICK: case MOSSY: case CRACKED: return DARK;
                 default: return code;
             }
         }
@@ -765,6 +779,11 @@ public final class MortumArenas {
         @Override
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
             statue(w, cx, cz, x0, z0, 0, TOP + 1, -11, net.divinerpg.utils.blocks.VanillaBlocks.twilightDemonStatue);
+        }
+
+        @Override
+        double outside(int dx, int dz) {
+            return Math.max(Math.abs(dx), Math.abs(dz)) - reach();
         }
 
         @Override
