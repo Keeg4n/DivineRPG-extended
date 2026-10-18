@@ -142,7 +142,7 @@ public class DebugWatch {
         Accessories a = Accessories.of(p);
         for (int i = 0; i < a.getSizeInventory(); i++) {
             ItemStack s = a.getStackInSlot(i);
-            if (s != null) l.add(s.getDisplayName() + (i < a.unlocked ? "" : " (закрытый слот)"));
+            if (s != null) l.add(i >= Accessories.SIZE ? "боеприпасы: " + s.getDisplayName() + " x" + s.stackSize : s.getDisplayName() + (i < a.unlocked ? "" : " (закрытый слот)"));
         }
         return l;
     }

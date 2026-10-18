@@ -71,6 +71,12 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.MiningTiers());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.SetPerks());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.MortumBosses());
+        com.divinerpgextended.boss.MortumArenaBosses arenaBosses = new com.divinerpgextended.boss.MortumArenaBosses();
+        MinecraftForge.EVENT_BUS.register(arenaBosses);
+        com.divinerpgextended.world.twilight.MortumWorld mortum = new com.divinerpgextended.world.twilight.MortumWorld();
+        MinecraftForge.EVENT_BUS.register(mortum);
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(mortum);
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(arenaBosses);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.vethea.HiveTimer());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.ArenaCalm());
         com.divinerpgextended.perk.RangedRoles ranged = new com.divinerpgextended.perk.RangedRoles();

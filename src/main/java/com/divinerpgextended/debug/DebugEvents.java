@@ -372,9 +372,14 @@ public class DebugEvents {
         for (int i = 3; i >= 0; i--) b.append(' ').append(stack(p.inventory.armorItemInSlot(i)));
         Accessories a = Accessories.of(p);
         b.append(" | аксессуары");
-        for (int i = 0; i < a.getSizeInventory(); i++) {
+        for (int i = 0; i < Accessories.SIZE; i++) {
             ItemStack s = a.getStackInSlot(i);
             if (s != null) b.append(' ').append(i < a.unlocked ? "" : "(закрыт)").append(s.getDisplayName());
+        }
+        b.append(" | боеприпасы");
+        for (int i = Accessories.SIZE; i < Accessories.TOTAL; i++) {
+            ItemStack s = a.getStackInSlot(i);
+            if (s != null) b.append(' ').append(s.getDisplayName()).append(" x").append(s.stackSize);
         }
         if (p.capabilities.isFlying) b.append(" | летит");
         Debug.file(p, "state", "", b.toString());

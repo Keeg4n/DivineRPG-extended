@@ -21,12 +21,12 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * применение вне логова, клик по алтарю логова при этом работает (алтарь сам принимает предмет).
  * <ul>
  * <li>Кристаллы сумеречных боссов (Сумеречный демон, Карот, Вечный лучник, Денсос и Рейвор, Пожиратель душ,
- * Вамачерон) - только внутри Демонического круга Мортума.</li>
+ * Вамачерон) - только на своей арене Мортума ({@link com.divinerpgextended.world.twilight.MortumArenas}).</li>
  * <li>Таинственные часы (Древняя сущность) - только на алтаре гробницы.</li>
  * <li>Зов Смотрителя, Инфернальное пламя, Рог орды Айрако - только в своих логовах в Аду и Энде
  * ({@link WorldGenOuterLairs}).</li>
  * </ul>
- * Творческий режим не ограничен (админам для проверок).
+ * Правила одни для всех, и в творческом режиме тоже (иначе при проверках боссы оказывались где попало).
  */
 public class LairSummons {
 
@@ -35,12 +35,14 @@ public class LairSummons {
         if (e.action != PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK || e.world.isRemote || !Config.summonOnlyInLairs) return;
         EntityPlayer p = e.entityPlayer;
         ItemStack held = p.getHeldItem();
-        if (held == null || p.capabilities.isCreativeMode) return;
+        if (held == null) return;
         if (e.world.getBlock(e.x, e.y, e.z) instanceof BlockBossAltar) return; // алтарь решает сам
         String refuse = refusal(p, held.getItem(), e.x, e.y, e.z);
         if (refuse == null) return;
         e.useItem = Event.Result.DENY;
         p.addChatMessage(new ChatComponentTranslation(refuse));
+        ((net.minecraft.world.WorldServer) e.world).func_147487_a("smoke", e.x + 0.5, e.y + 1.2, e.z + 0.5, 12, 0.2, 0.2, 0.2, 0.02);
+        e.world.playSoundEffect(e.x + 0.5, e.y + 1, e.z + 0.5, "random.fizz", 0.6F, 1.4F); // кристалл гаснет
     }
 
     // ---------------------------------------------------------------- привязь к логову
@@ -59,16 +61,24 @@ public class LairSummons {
         boss.getEntityData().setIntArray(HOME, new int[] { cx, floorY, cz, radius });
     }
 
-    /** Боссы, вызванные кристаллом внутри Демонического круга, - на привязь к кругу. */
+    /** Боссы, вызванные кристаллом на арене Мортума, - на привязь к арене (лучник - сразу на свой помост). */
     @SubscribeEvent
     public void onJoin(net.minecraftforge.event.entity.EntityJoinWorldEvent e) {
         if (e.world.isRemote || !(e.entity instanceof net.minecraft.entity.EntityLiving) || e.entity.getEntityData().hasKey(HOME)) return;
         if (!(e.entity instanceof net.minecraft.entity.boss.IBossDisplayData || e.entity instanceof net.divinerpg.entities.base.EntityDivineRPGBoss
             || e.entity instanceof net.divinerpg.entities.vanilla.EntityAyeraco)) return;
-        if (WorldGenNests.inCircle(e.world, e.entity.posX, e.entity.posY, e.entity.posZ)) {
+        if (com.divinerpgextended.world.twilight.TwilightWorld.of(e.world.provider.dimensionId) == com.divinerpgextended.world.twilight.TwilightWorld.MORTUM) {
             int[] c = WorldGenNests.nearest(e.world.getSeed(), e.world.provider.dimensionId, e.entity.posX, e.entity.posZ);
-            leash(e.entity, c[0], WorldGenNests.MORTUM_TOP + 1, c[2], WorldGenNests.CIRCLE_R - 2);
-            return;
+            if (c != null) {
+                com.divinerpgextended.world.twilight.MortumArenas.Type t = com.divinerpgextended.world.twilight.MortumArenas.typeAt(e.world, c);
+                if (com.divinerpgextended.world.twilight.MortumArenas.inArena(e.world, t, e.entity.posX, e.entity.posY, e.entity.posZ)) {
+                    int floor = com.divinerpgextended.world.twilight.MortumArenas.floorY(t) + 1;
+                    leash(e.entity, c[0], floor, c[2], t.leash);
+                    int[] spot = com.divinerpgextended.world.twilight.MortumArenas.bossSpot(t);
+                    if (spot != null) e.entity.setPosition(c[0] + 0.5, floor + spot[1], c[2] + spot[2] + 0.5);
+                    return;
+                }
+            }
         }
         for (int type = 0; type < 3; type++) {
             if (!WorldGenOuterLairs.inside(e.world, type, e.entity.posX, e.entity.posY, e.entity.posZ)) continue;
@@ -104,7 +114,9 @@ public class LairSummons {
     /** Ключ отказа или null, если здесь вызывать можно. */
     public static String refusal(EntityPlayer p, Item item, int x, int y, int z) {
         if (item instanceof ItemTwilightSpawner) {
-            return WorldGenNests.inCircle(p.worldObj, x + 0.5, y + 1, z + 0.5) ? null : "dre.chat.summon_circle";
+            com.divinerpgextended.world.twilight.MortumArenas.Type t = com.divinerpgextended.world.twilight.MortumArenas.ofCrystal(item);
+            if (t == null) return WorldGenNests.inCircle(p.worldObj, x + 0.5, y + 1, z + 0.5) ? null : "dre.chat.summon_circle";
+            return com.divinerpgextended.world.twilight.MortumArenas.inArena(p.worldObj, t, x + 0.5, y + 1, z + 0.5) ? null : "dre.chat.summon_arena_" + t.key();
         }
         if (item == VanillaItemsOther.mysteriousClock) return "dre.chat.summon_tomb";
         int type = item instanceof net.divinerpg.items.vanilla.ItemCallOfTheWatcher ? WorldGenOuterLairs.WATCHER

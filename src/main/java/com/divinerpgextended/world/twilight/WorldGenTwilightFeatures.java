@@ -25,6 +25,8 @@ import cpw.mods.fml.common.IWorldGenerator;
  * мобов мира.</li>
  * <li>Подземелье в толще крупного острова: каменная комната со спавнером моба мира и сундуком, лестница наверх и
  * коридор к краю острова, если край рядом.</li>
+ * <li>Мортум - мир мёртвых ({@link MortumWorld}): вместо руин склепы, вместо мостов - река Лета с пристанями Харона,
+ * по дну пещеры черепа и надгробия.</li>
  * </ul>
  */
 public class WorldGenTwilightFeatures implements IWorldGenerator {
@@ -43,8 +45,15 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         boolean built = false;
         // острова неровные и дырявые: каждой постройке - четыре места в области заселения
         int[][] spots = { { 0, 0 }, { 7, 0 }, { 0, 7 }, { 7, 7 } };
+        boolean mortum = tw == TwilightWorld.MORTUM;
+        if (mortum) {
+            int river = MortumWorld.lethe(world, tw, x0, z0);
+            if (river > 6 && r.nextInt(5) == 0) MortumWorld.dock(world, r, tw, x0, z0);
+            MortumWorld.bones(world, r, tw, x0, z0);
+        }
         if (Config.twilightRuinsRarity > 0 && r.nextInt(Config.twilightRuinsRarity) == 0) {
-            for (int[] o : spots) if (!built && (built = ruin(world, r, tw, x0 + o[0], z0 + o[1]))) ruins++;
+            if (mortum) for (int[] o : spots) built = built || MortumWorld.crypt(world, r, tw, x0 + o[0], z0 + o[1]);
+            else for (int[] o : spots) if (!built && (built = ruin(world, r, tw, x0 + o[0], z0 + o[1]))) ruins++;
         } else if (Config.twilightCampRarity > 0 && r.nextInt(Config.twilightCampRarity) == 0) {
             for (int[] o : spots) if (!built && (built = camp(world, r, tw, x0 + o[0], z0 + o[1]))) camps++;
         } else if (Config.twilightDungeonRarity > 0 && r.nextInt(Config.twilightDungeonRarity) == 0) {

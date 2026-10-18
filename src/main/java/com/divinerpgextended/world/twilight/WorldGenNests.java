@@ -20,8 +20,8 @@ import cpw.mods.fml.common.IWorldGenerator;
  * <li>Заповедная роща Великого кадиллиона (Эдем, Вайлдвуд, Апалачия, Скайтерн): остров с шестью гигантскими деревьями
  * мира, под сводом крон - поляна с колоннадой древнего святилища, родником и помостом с алтарём на севере. Зов
  * кадиллиона работает только на этом алтаре; босс встаёт в центре поляны.</li>
- * <li>Демонический круг (Мортум): каменная площадка с кольцами из демонического камня, шесть обелисков со светом.
- * Кристаллы сумеречных боссов работают только внутри круга.</li>
+ * <li>Арены Мортума ({@link MortumArenas}): у каждого босса своя (Демонический круг - у Демона сумерек), кристалл
+ * работает только на своей. В Мортуме квадраты вдвое меньше - арен шесть видов.</li>
  * </ul>
  */
 public class WorldGenNests implements IWorldGenerator {
@@ -46,12 +46,22 @@ public class WorldGenNests implements IWorldGenerator {
     // ---------------------------------------------------------------- место
 
     public static int radius(int dim) {
-        return TwilightWorld.of(dim) == TwilightWorld.MORTUM ? CIRCLE_R : NEST_R + CANOPY_REACH;
+        return TwilightWorld.of(dim) == TwilightWorld.MORTUM ? MORTUM_R : NEST_R + CANOPY_REACH;
+    }
+
+    /** Арены Мортума с тоннелями занимают до MORTUM_R от центра. */
+    public static final int MORTUM_R = 44;
+
+    /** Сторона квадрата, на который одно логово: в Мортуме вдвое меньше (шесть видов арен - ищутся ближе). */
+    public static int spacing(int dim) {
+        int g = Config.nestSpacing;
+        if (g <= 0) return g;
+        return TwilightWorld.of(dim) == TwilightWorld.MORTUM ? Math.max(160, g / 2) : g;
     }
 
     /** Центр логова в области (rx, rz) мира dim или null, если логова выключены. */
     public static int[] center(long seed, int dim, int rx, int rz) {
-        int g = Config.nestSpacing;
+        int g = spacing(dim);
         if (g <= 0) return null;
         Random r = new Random(seed ^ (rx * 341873128712L + rz * 132897987541L) ^ (dim * 0x9E3779B97F4A7C15L) ^ 0x4E35L);
         int margin = Math.min(g / 3, NEST_R + 40);
@@ -61,7 +71,7 @@ public class WorldGenNests implements IWorldGenerator {
 
     /** Ближайшее к точке логово этого мира (своя и соседние области). */
     public static int[] nearest(long seed, int dim, double x, double z) {
-        int g = Config.nestSpacing;
+        int g = spacing(dim);
         if (g <= 0) return null;
         int rx = (int) Math.floor(x / g), rz = (int) Math.floor(z / g);
         int[] best = null;
@@ -77,13 +87,9 @@ public class WorldGenNests implements IWorldGenerator {
         return best;
     }
 
-    /** Точка внутри Демонического круга Мортума (там работают кристаллы). */
+    /** Точка внутри Демонического круга Мортума (там работает кристалл Демона сумерек). */
     public static boolean inCircle(World w, double x, double y, double z) {
-        if (TwilightWorld.of(w.provider.dimensionId) != TwilightWorld.MORTUM) return false;
-        int[] c = nearest(w.getSeed(), w.provider.dimensionId, x, z);
-        if (c == null) return false;
-        double dx = x - c[0] - 0.5, dz = z - c[2] - 0.5;
-        return dx * dx + dz * dz <= CIRCLE_ZONE * CIRCLE_ZONE && Math.abs(y - (MORTUM_TOP + 1)) <= 8;
+        return MortumArenas.inArena(w, MortumArenas.Type.DEMON, x, y, z);
     }
 
     @Override
@@ -94,7 +100,7 @@ public class WorldGenNests implements IWorldGenerator {
         int[] c = nearest(world.getSeed(), world.provider.dimensionId, x0 + 8, z0 + 8);
         int r = radius(world.provider.dimensionId);
         if (c == null || Math.abs(c[0] - (x0 + 8)) > r + 16 || Math.abs(c[2] - (z0 + 8)) > r + 16) return;
-        ColumnStructure s = shape(tw, c);
+        ColumnStructure s = tw == TwilightWorld.MORTUM ? MortumArenas.shape(MortumArenas.typeAt(world, c)) : shape(tw, c);
         s.buildSlice(world, c[0], c[2], x0, z0);
         int top = top(world.provider.dimensionId);
         s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, top + 1, Math.min(250, top + 100));

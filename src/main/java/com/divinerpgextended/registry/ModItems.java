@@ -160,6 +160,7 @@ public final class ModItems {
         EntityRegistry.registerModEntity(EntityIcicle.class, "Icicle", 8, DivineRPGExtended.instance, 64, 10, true);
         EntityRegistry.registerModEntity(EntityDreHook.class, "DreHook", 9, DivineRPGExtended.instance, 64, 5, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWanderer.class, "Wanderer", 10, DivineRPGExtended.instance, 80, 3, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityCharon.class, "Charon", 16, DivineRPGExtended.instance, 80, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityAncientGolem.class, "AncientGolem", 11, DivineRPGExtended.instance, 96, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWarriorKing.class, "WarriorKing", 12, DivineRPGExtended.instance, 96, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWindLord.class, "WindLord", 13, DivineRPGExtended.instance, 112, 3, true);

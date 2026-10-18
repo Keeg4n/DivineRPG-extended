@@ -40,7 +40,8 @@ public final class ModBlocks {
     public static final Block[] gateStone = new Block[4];
     public static Block windTotem;
     public static Block cloud;
-    public static Block skyRail, apalachiaRail, skyBoostRail;
+    public static Block skyRail, apalachiaRail, skyBoostRail, lethe;
+    public static net.minecraftforge.fluids.Fluid letheFluid;
     /** Лампы сумеречных миров по номеру TwilightWorld; [EDEN] пусто - у Эдема лампа Divine. */
     public static final Block[] worldLamp = new Block[5];
     private static final int[] TORCH_COLOR = { 0xFFD84A, 0x5AA8FF, 0xC070FF, 0xE8ECF4, 0xE04040 };
@@ -96,6 +97,12 @@ public final class ModBlocks {
         GameRegistry.registerBlock(apalachiaRail, "apalachiaRail");
         skyBoostRail = new com.divinerpgextended.block.BlockSkyBoostRail();
         GameRegistry.registerBlock(skyBoostRail, "skyBoostRail");
+        letheFluid = new net.minecraftforge.fluids.Fluid("dre_lethe").setLuminosity(4).setDensity(1100).setViscosity(1600);
+        net.minecraftforge.fluids.FluidRegistry.registerFluid(letheFluid);
+        letheFluid = net.minecraftforge.fluids.FluidRegistry.getFluid("dre_lethe");
+        lethe = new com.divinerpgextended.block.BlockLethe(letheFluid);
+        GameRegistry.registerBlock(lethe, "lethe");
+        if (letheFluid.getBlock() == null) letheFluid.setBlock(lethe);
         cloud = new com.divinerpgextended.block.BlockCloud();
         GameRegistry.registerBlock(cloud, "cloud");
         windTotem = new com.divinerpgextended.block.BlockWindTotem();
