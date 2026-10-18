@@ -2543,6 +2543,48 @@ public class SelfTest {
                     + ", выстрел " + fired + ", Бесконечность снята " + gone + "; блиц без пыли: снарядов " + blitzShots + ", пыли в инвентаре нет " + noDust);
             return "дробины блица бьют одну цель все; фазер и блиц бесконечные (без пыли стреляют, пыль не тратят и не кладут); с колчаном лук без стрел натягивается и стреляет, стрел в инвентаре нет";
         });
+        t("Прохождение", "Блиц: полный инвентарь и без отброса", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            loadAround(w, 9470, 9830, 2);
+            TestPlayer fv = join(player(ConfigurationHelper.eden, "TestBlitzFull", 9470.5, 120, 9830.5), true);
+            ItemStack bz = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz);
+            for (int i = 0; i < fv.inventory.mainInventory.length; i++) fv.inventory.mainInventory[i] = new ItemStack(Blocks.dirt, 64);
+            fv.inventory.currentItem = 0;
+            fv.inventory.mainInventory[0] = bz;
+            fv.inventory.mainInventory[35] = new ItemStack(Items.diamond, 7);
+            int before = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, fv.boundingBox.expand(6, 6, 6)).size();
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(fv,
+                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w));
+            try {
+                bz.getItem().onItemRightClick(bz, w, fv);
+            } catch (NullPointerException ex) {
+                // у тестового игрока нет сети
+            }
+            java.util.List<?> bl = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, fv.boundingBox.expand(6, 6, 6));
+            int shots = bl.size() - before;
+            for (Object o : bl) ((net.minecraft.entity.Entity) o).setDead();
+            FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, fv));
+            ItemStack back = fv.inventory.mainInventory[35];
+            boolean restored = back != null && back.getItem() == Items.diamond && back.stackSize == 7 && !fv.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsOther.edenDust);
+            int dirt = 0;
+            for (ItemStack it : fv.inventory.mainInventory) if (it != null && it.getItem() == Item.getItemFromBlock(Blocks.dirt)) dirt += it.stackSize;
+            // отброс: обычного моба дробь тоже не отбрасывает
+            net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w);
+            z.setLocationAndAngles(9474.5, 120, 9830.5, 0, 0);
+            w.spawnEntityInWorld(z);
+            z.motionX = z.motionY = z.motionZ = 0;
+            net.minecraft.entity.projectile.EntityArrow pk = new net.minecraft.entity.projectile.EntityArrow(w);
+            pk.getEntityData().setInteger(com.divinerpgextended.perk.RangedRoles.KIND, com.divinerpgextended.perk.RangedRoles.BLITZ);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(z, net.minecraft.util.DamageSource.causeThrownDamage(pk, fv), 5));
+            z.motionX = 2.0;
+            FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.WorldTickEvent(cpw.mods.fml.relauncher.Side.SERVER, cpw.mods.fml.common.gameevent.TickEvent.Phase.END, w));
+            boolean still = Math.abs(z.motionX) < 0.01;
+            z.setDead();
+            fv.inventory.clearInventory(null, -1);
+            check(shots == com.divinerpgextended.perk.RangedRoles.PELLETS && restored && dirt == 34 * 64 && still,
+                "снарядов при полном инвентаре " + shots + ", алмазы вернулись в ячейку " + restored + ", земли " + dirt + " из " + 34 * 64 + ", зомби не отброшен " + still);
+            return "блиц стреляет и при забитом инвентаре (ячейка одалживается на миг выстрела и возвращается), дробь никого не отбрасывает";
+        });
         t("Прохождение", "Подсказка блица: бесконечные боеприпасы", () -> {
             TestPlayer tv = player(ConfigurationHelper.eden, "TestBlitzTip", 9486.5, 120, 9830.5);
             ItemStack bt = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz);
@@ -3108,13 +3150,17 @@ public class SelfTest {
                     if (com.divinerpgextended.world.twilight.MortumArenas.ofCrystal(i) == t) own = i;
                     else if (other == null) other = i;
                 }
-                String in = com.divinerpgextended.boss.LairSummons.refusal(v, own, c[0] + 3, fy, c[2] + 3);
-                String wrong = com.divinerpgextended.boss.LairSummons.refusal(v, other, c[0] + 3, fy, c[2] + 3);
+                int[] al = com.divinerpgextended.world.twilight.MortumArenas.altars(t).get(0);
+                int ax = c[0] + al[0], ay = al[1], az = c[2] + al[2];
+                boolean altar = w.getBlock(ax, ay, az) == com.divinerpgextended.registry.ModBlocks.arenaAltar && w.isAirBlock(ax, ay + 1, az) && w.isAirBlock(ax, ay + 2, az);
+                String in = com.divinerpgextended.boss.LairSummons.refusal(v, own, ax, ay, az);
+                String wrong = com.divinerpgextended.boss.LairSummons.refusal(v, other, ax, ay, az);
+                String floorClick = com.divinerpgextended.boss.LairSummons.refusal(v, own, c[0] + 3, fy, c[2] + 3);
                 String out = com.divinerpgextended.boss.LairSummons.refusal(v, own, c[0] + 80, fy, c[2]);
                 int statues = 0;
-                for (int x = c[0] - 30; x <= c[0] + 30; x++) for (int z = c[2] - 30; z <= c[2] + 30; z++) for (int y = fy - 2; y <= fy + 12; y++)
+                for (int x = c[0] - 30; x <= c[0] + 30; x++) for (int z = c[2] - 30; z <= c[2] + 30; z++) for (int y = fy - 6; y <= fy + 12; y++)
                     if (w.getBlock(x, y, z) instanceof net.divinerpg.blocks.base.BlockStatue) statues++;
-                floor &= statues >= 1;
+                floor &= statues == 0 && altar && "dre.chat.summon_altar".equals(floorClick);
                 boolean good = floor && in == null && wrong != null && ("dre.chat.summon_arena_" + t.key()).equals(out);
                 ok &= good;
                 dump(w, c[0], com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP, c[2], 34, "arena-" + t.key());
@@ -3123,14 +3169,14 @@ public class SelfTest {
                 for (int y = com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP - 1; y > com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP - 30; y--)
                     if (w.isAirBlock(fx, y, fz)) gap++;
                 floor &= gap == 0;
-                sb.append(t.key()).append(good ? " ок" : " пол и статуи (" + statues + ") " + floor + " свой " + in + " чужой " + wrong + " снаружи " + out).append("; ");
+                sb.append(t.key()).append(good ? " ок" : " пол " + floor + " алтарь " + altar + " (над ним " + w.getBlock(ax, ay + 1, az).getUnlocalizedName() + "/" + w.getBlock(ax, ay + 2, az).getUnlocalizedName() + ", пол " + w.getBlock(c[0] + 3, fy, c[2] + 3).getUnlocalizedName() + "/" + w.getBlock(c[0] + 3, fy + 1, c[2] + 3).getUnlocalizedName() + "/" + w.getBlock(c[0] + 3, fy + 3, c[2] + 3).getUnlocalizedName() + ") статуй " + statues + " свой " + in + " чужой " + wrong + " мимо алтаря " + floorClick + " снаружи " + out).append("; ");
             }
             // соседние квадраты всегда разных видов
             boolean differ = true;
             for (int i = -5; i <= 5; i++) for (int j = -5; j <= 5; j++) for (int a = -1; a <= 1; a++) for (int b = -1; b <= 1; b++)
                 if ((a != 0 || b != 0) && com.divinerpgextended.world.twilight.MortumArenas.type(w.getSeed(), i, j) == com.divinerpgextended.world.twilight.MortumArenas.type(w.getSeed(), i + a, j + b)) differ = false;
             check(ok && differ, sb + "соседи разные " + differ);
-            return "у каждого из шести боссов Мортума своя арена; кристалл работает только на своей, чужой и снаружи - отказ; соседние арены разные";
+            return "у каждого из шести боссов Мортума своя арена с алтарём, статуй нет; кристалл работает только по алтарю своей арены, мимо алтаря, чужой и снаружи - отказ; соседние арены разные";
         });
         t("Логова", "Боссы арен Мортума: механики", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);

@@ -129,9 +129,57 @@ public final class Ammo {
         NBTTagCompound t = one.hasTagCompound() ? (NBTTagCompound) one.getTagCompound().copy() : new NBTTagCompound();
         t.setBoolean(TAG, true);
         one.setTagCompound(t);
-        if (p.inventory.addItemStackToInventory(one) && one.stackSize <= 0) return true;
-        putBack(p, strip(one)); // инвентарь полон - обратно в слот
+        if (give(p, one)) return true;
+        putBack(p, strip(one)); // положить некуда - обратно в слот
         return false;
+    }
+
+    static final String STASH = "dreAmmoStash";
+
+    /**
+     * Положить патрон на миг выстрела. Инвентарь полон - патрон кладётся в ячейку рюкзака, а её вещь откладывается в
+     * постоянные данные игрока (переживает выход и смерть) и в конце тика возвращается на место ({@link #unstash}).
+     */
+    public static boolean give(EntityPlayer p, ItemStack one) {
+        if (p.inventory.addItemStackToInventory(one) && one.stackSize <= 0) return true;
+        if (one.stackSize <= 0) return true;
+        NBTTagCompound pd = persisted(p);
+        if (pd.hasKey(STASH)) return false; // уже одолжена ячейка
+        ItemStack[] inv = p.inventory.mainInventory;
+        for (int i = inv.length - 1; i >= 0; i--) {
+            if (i == p.inventory.currentItem || inv[i] == null || marked(inv[i])) continue;
+            NBTTagCompound st = new NBTTagCompound();
+            st.setInteger("slot", i);
+            inv[i].writeToNBT(st);
+            pd.setTag(STASH, st);
+            inv[i] = one;
+            return true;
+        }
+        return false;
+    }
+
+    static boolean marked(ItemStack s) {
+        return s.hasTagCompound() && (s.getTagCompound().getBoolean(TAG) || s.getTagCompound().getBoolean(RangedRoles.QUIVER_TAG));
+    }
+
+    private static NBTTagCompound persisted(EntityPlayer p) {
+        NBTTagCompound data = p.getEntityData();
+        if (!data.hasKey(EntityPlayer.PERSISTED_NBT_TAG)) data.setTag(EntityPlayer.PERSISTED_NBT_TAG, new NBTTagCompound());
+        return data.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
+    }
+
+    /** Вернуть отложенную на выстрел вещь в её ячейку (занята - в любое место инвентаря, некуда - под ноги). */
+    public static void unstash(EntityPlayer p) {
+        NBTTagCompound pd = persisted(p);
+        if (!pd.hasKey(STASH)) return;
+        NBTTagCompound st = pd.getCompoundTag(STASH);
+        pd.removeTag(STASH);
+        ItemStack orig = ItemStack.loadItemStackFromNBT(st);
+        if (orig == null) return;
+        int i = st.getInteger("slot");
+        ItemStack[] inv = p.inventory.mainInventory;
+        if (i >= 0 && i < inv.length && inv[i] == null) inv[i] = orig;
+        else if (!p.inventory.addItemStackToInventory(orig) || orig.stackSize > 0) p.entityDropItem(orig, 0.5F);
     }
 
     private static ItemStack strip(ItemStack s) {
@@ -171,5 +219,6 @@ public final class Ammo {
             if (s == null || !s.hasTagCompound() || !s.getTagCompound().getBoolean(TAG)) continue;
             inv[i] = putBack(p, strip(s));
         }
+        unstash(p);
     }
 }

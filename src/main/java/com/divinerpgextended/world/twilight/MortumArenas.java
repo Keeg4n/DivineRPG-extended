@@ -120,6 +120,21 @@ public final class MortumArenas {
         return t == Type.ARCHER ? new int[] { 0, Gallery.DAIS_H, -(Gallery.HZ - 3) } : null;
     }
 
+    /** Алтари арены: {dx, y, dz} (у близнецов - по одному на помосте каждого брата). */
+    public static List<int[]> altars(Type t) {
+        List<int[]> l = new ArrayList<int[]>();
+        int top = WorldGenNests.MORTUM_TOP;
+        switch (t) {
+            case TWINS: l.add(new int[] { -Twins.DAIS_X, top + 2, -2 }); l.add(new int[] { Twins.DAIS_X, top + 2, -2 }); break;
+            case KAROT: l.add(new int[] { 0, top + 1, -Mirror.H + 2 }); break;
+            case ARCHER: l.add(new int[] { -3, top + Gallery.DAIS_H + 1, -Gallery.HZ + 1 }); l.add(new int[] { 3, top + Gallery.DAIS_H + 1, -Gallery.HZ + 1 }); break;
+            case FIEND: l.add(new int[] { 0, top + 1, -1 }); break;
+            case VAMACHERON: l.add(new int[] { 0, top - Pit.SINK + 1, 0 }); break;
+            default: l.add(new int[] { 0, Spire.TOP + 1, 0 });
+        }
+        return l;
+    }
+
     /** Могилы Погоста (смещения от центра): из них Пожиратель душ поднимает души. */
     public static List<int[]> graves() {
         List<int[]> l = new ArrayList<int[]>();
@@ -185,11 +200,11 @@ public final class MortumArenas {
                 case DBRICK: return Blocks.stonebrick;
                 case ABRICK: return Blocks.nether_brick;
                 case ASTONE: return Blocks.stonebrick;
-                case ATILE: return net.divinerpg.utils.blocks.VetheaBlocks.darkEverstone;
+                case ATILE: return Blocks.nether_brick;
                 case SSTONE: return Blocks.obsidian;
                 case DLAMP: return Blocks.glowstone;
                 case MILK: return Blocks.stonebrick;
-                case DARK: return net.divinerpg.utils.blocks.VetheaBlocks.darkEverstone;
+                case DARK: return Blocks.obsidian; // тёмный эверстоун Ветеи выглядел бедроком
                 case CHECKER: return Blocks.nether_brick;
                 case MINI: return Blocks.stonebrick;
                 case DIVBRICK: return Blocks.nether_brick;
@@ -241,9 +256,9 @@ public final class MortumArenas {
             return WorldGenNests.isLamp(b) || b.getLightValue() > 0;
         }
 
-        /** Статуя босса арены (Divine) лицом к югу. */
-        static void statue(World w, int cx, int cz, int x0, int z0, int dx, int y, int dz, Block statue) {
-            place(w, cx, cz, x0, z0, dx, y, dz, statue, 0);
+        /** Алтарь арены: сюда применяют кристалл босса (статуй боссов на аренах больше нет). */
+        static void altar(World w, int cx, int cz, int x0, int z0, int dx, int y, int dz) {
+            place(w, cx, cz, x0, z0, dx, y, dz, com.divinerpgextended.registry.ModBlocks.arenaAltar, 0);
         }
 
         /** Входит ли столбец в постройку (без проходов). */
@@ -285,9 +300,9 @@ public final class MortumArenas {
                 return true;
             }
             if (!in && !tunnel) return false;
-            if (!in) { // проход к постройке: только вырезать, пол - камень
+            if (!in) { // проход к постройке: только вырезать, пол - земля с травой
                 put(col, TOP - 1, FOUNDATION, 0);
-                put(col, TOP, WorldGenNests.STONE, 0);
+                put(col, TOP, WorldGenNests.GRASS, 0); // трава, как вокруг: без каменных дорожек
                 for (int y = TOP + 1; y <= TOP + 4; y++) put(col, y, AIR, 0);
                 return true;
             }
@@ -314,12 +329,13 @@ public final class MortumArenas {
 
         static final int R = 24, DAIS_X = 12;
 
-        /** Гамма Мортума: светлая половина - камень и блок Мортума с лампами, тёмная - тёмный камень и тёмный деградированный кирпич. */
+        /** Гамма Мортума: светлая половина - каменный кирпич (резной узор, плиты), тёмная - обсидиан и чёрный кирпич. */
         @Override
         int skin(int code) {
             switch (code) {
-                case BONE: case PILLAR: case QSLAB: return WorldGenNests.STONE;
-                case BONE_CHISEL: return WorldGenNests.GEM;
+                case BONE: case PILLAR: return BRICK;
+                case QSLAB: return SLAB;
+                case BONE_CHISEL: return CHISEL;
                 case OBSIDIAN: return DARK;
                 case WorldGenNests.STONE: return DDBRICK;
                 case CHISEL: return NETHER;
@@ -330,8 +346,8 @@ public final class MortumArenas {
         /** Статуи братьев у шпилей: Денсос - на светлом помосте, Рейвор - на тёмном. */
         @Override
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
-            statue(w, cx, cz, x0, z0, -DAIS_X, TOP + 2, -2, net.divinerpg.utils.blocks.VanillaBlocks.densosStatue);
-            statue(w, cx, cz, x0, z0, DAIS_X, TOP + 2, -2, net.divinerpg.utils.blocks.VanillaBlocks.reyvorStatue);
+            altar(w, cx, cz, x0, z0, -DAIS_X, TOP + 2, -2);
+            altar(w, cx, cz, x0, z0, DAIS_X, TOP + 2, -2);
         }
 
         @Override
@@ -379,7 +395,7 @@ public final class MortumArenas {
             }
             // пол: светлая половина - кварц с узором, тёмная - обсидиан и камень мира
             int ring = (int) r % 6;
-            if (light) set(col, TOP, ring == 0 ? BONE_CHISEL : hash(dx, dz) % 11 == 0 ? WorldGenNests.GLOW : BONE);
+            if (light) set(col, TOP, ring == 0 ? BONE_CHISEL : hash(dx, dz) % 9 == 0 ? CRACKED : BONE); // свет - только на колоннах
             else set(col, TOP, ring == 0 ? WorldGenNests.GEM : hash(dx, dz) % 3 == 0 ? OBSIDIAN : WorldGenNests.STONE);
             // кольцо колонн
             double cd = WorldGenNests.ringDist(dx, dz, 18, 10, Math.PI / 10);
@@ -421,7 +437,7 @@ public final class MortumArenas {
 
         @Override
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
-            statue(w, cx, cz, x0, z0, 0, TOP + 1, -H + 2, net.divinerpg.utils.blocks.VanillaBlocks.karotStatue);
+            altar(w, cx, cz, x0, z0, 0, TOP + 1, -H + 2);
         }
 
         @Override
@@ -502,8 +518,8 @@ public final class MortumArenas {
 
         @Override
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
-            statue(w, cx, cz, x0, z0, -3, TOP + DAIS_H + 1, -HZ + 1, net.divinerpg.utils.blocks.VanillaBlocks.eternalArcherStatue);
-            statue(w, cx, cz, x0, z0, 3, TOP + DAIS_H + 1, -HZ + 1, net.divinerpg.utils.blocks.VanillaBlocks.eternalArcherStatue);
+            altar(w, cx, cz, x0, z0, -3, TOP + DAIS_H + 1, -HZ + 1);
+            altar(w, cx, cz, x0, z0, 3, TOP + DAIS_H + 1, -HZ + 1);
         }
 
         @Override
@@ -605,7 +621,7 @@ public final class MortumArenas {
 
         @Override
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
-            statue(w, cx, cz, x0, z0, 0, TOP + 1, -1, net.divinerpg.utils.blocks.VanillaBlocks.soulFiendStatue);
+            altar(w, cx, cz, x0, z0, 0, TOP + 1, -1);
         }
 
         @Override
@@ -701,9 +717,7 @@ public final class MortumArenas {
 
         @Override
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
-            int dz = -(R - 3), dx = 5;
-            int tier = (int) ((Math.sqrt(dx * dx + dz * dz) - PIT - 1.5) / 2.2);
-            statue(w, cx, cz, x0, z0, dx, TOP + tier + 1, dz, net.divinerpg.utils.blocks.VanillaBlocks.vamacheronStatue);
+            altar(w, cx, cz, x0, z0, 0, TOP - SINK + 1, 0);
         }
         static final int[] RIBS = { -12, -8, -4, 0, 4, 8, 12 };
 
@@ -789,7 +803,7 @@ public final class MortumArenas {
 
         @Override
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
-            statue(w, cx, cz, x0, z0, 0, TOP + 1, -11, net.divinerpg.utils.blocks.VanillaBlocks.twilightDemonStatue);
+            altar(w, cx, cz, x0, z0, 0, TOP + 1, -11);
         }
 
         @Override
@@ -975,10 +989,10 @@ public final class MortumArenas {
             return -(int) Math.max(0, drop - ledge - pin);
         }
 
-        /** Камень утёса: тёмные трещины-прожилки по светлому камню Мортума. */
+        /** Порода утёса как у обрывов Мортума вокруг: земля с волнистыми пластами камня, без чужих крапин. */
         static int rock(int dx, int y, int dz) {
-            boolean crack = smooth(dx + y, dz - y, 3, 21) > 0.82;
-            return crack || hash(dx + y * 3, dz - y) % 6 == 0 ? DARK : WorldGenNests.STONE;
+            double band = (y + smooth(dx, dz, 9, 21) * 4) % 9;
+            return band < 2 ? WorldGenNests.STONE : WorldGenNests.DIRT;
         }
 
         /** Высота ступени винтовой лестницы в столбце кольца (от пола площадки), ближайшая к h. */
@@ -1023,13 +1037,13 @@ public final class MortumArenas {
                 for (int y = top + 1; y <= TOP + 10; y++) put(col, y, AIR, 0);
                 put(col, top - 4, FOUNDATION, 0);
                 for (int y = top - 3; y < top; y++) set(col, y, rock(dx, y, dz));
-                set(col, top, path ? GRAVEL : hash(dx, dz) % 7 == 0 ? WorldGenNests.GRASS : rock(dx, top, dz));
+                set(col, top, path ? GRAVEL : top - TOP > -3 || hash(dx, dz) % 3 != 0 ? WorldGenNests.GRASS : rock(dx, top, dz));
                 if (path && (int) r % 3 == 0) set(col, top, SLAB_TOP);
             } else { // площадка: ритуальный круг, под ней скала
                 put(col, TOP - 4, FOUNDATION, 0);
                 for (int y = TOP - 3; y < TOP; y++) set(col, y, rock(dx, y, dz));
                 int ri = (int) r;
-                set(col, TOP, r < 2.5 ? WorldGenNests.GEM : ri % 4 == 0 ? OBSIDIAN : ri % 4 == 2 ? WorldGenNests.GEM : WorldGenNests.STONE);
+                set(col, TOP, r < 2.5 ? WorldGenNests.GEM : ri % 4 == 0 ? OBSIDIAN : ri % 4 == 2 ? NETHER : worn(dx, dz));
                 if (r < 0.7 || WorldGenNests.ringDist(dx, dz, 6, 12, 0) < 0.5) set(col, TOP, WorldGenNests.GLOW);
                 double ob = WorldGenNests.ringDist(dx, dz, 11, 6, Math.PI / 6);
                 if (ob < 1.2 && td > TR + 2) {
@@ -1065,7 +1079,7 @@ public final class MortumArenas {
             double ang = Math.atan2(dz - TZ, dx - TX);
             int base = TOP + BASE;
             // контрфорсы: четыре ребра наискосок, от подножия сужаются к середине башни
-            double ribA = Math.abs(((ang + Math.PI / 4) % (Math.PI / 2) + Math.PI / 2) % (Math.PI / 2) - Math.PI / 4);
+            double ribA = Math.abs(((ang % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2) - Math.PI / 4); // ноль на диагоналях, двери свободны
             if (td > TR && td <= TR + 3.5 && ribA * td < 0.8) {
                 int h = (int) ((TR + 3.5 - td) / 3.5 * (BALCONY - BASE)) + base;
                 put(col, base - 1, FOUNDATION, 0);
@@ -1176,7 +1190,7 @@ public final class MortumArenas {
 
         @Override
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
-            statue(w, cx, cz, x0, z0, 0, TOP + 1, -COURT + 4, net.divinerpg.utils.blocks.VanillaBlocks.twilightDemonStatue);
+            altar(w, cx, cz, x0, z0, 0, TOP + 1, 0); // в центре ритуального круга
             // черепа на пиках вокруг площадки
             for (int i = 0; i < 10; i++) {
                 double a = i * Math.PI / 5 + 0.3;

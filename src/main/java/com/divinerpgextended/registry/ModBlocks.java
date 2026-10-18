@@ -33,6 +33,7 @@ public final class ModBlocks {
     public static Block rimeOre;
     public static Block tombAltar;
     public static Block nestAltar;
+    public static Block arenaAltar;
     public static Block trapFloor;
     /** Факелы сумеречных миров по номеру TwilightWorld. */
     public static final Block[] worldTorch = new Block[5];
@@ -80,6 +81,8 @@ public final class ModBlocks {
         GameRegistry.registerBlock(tombAltar, "tombAltar");
         nestAltar = new BlockBossAltar(BlockBossAltar.NEST);
         GameRegistry.registerBlock(nestAltar, "nestAltar");
+        arenaAltar = new com.divinerpgextended.block.BlockArenaAltar();
+        GameRegistry.registerBlock(arenaAltar, "arenaAltar");
         trapFloor = new BlockTrapFloor();
         GameRegistry.registerBlock(trapFloor, "trapFloor");
         for (com.divinerpgextended.world.twilight.TwilightWorld w : com.divinerpgextended.world.twilight.TwilightWorld.values()) {

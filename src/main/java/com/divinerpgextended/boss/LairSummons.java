@@ -116,7 +116,8 @@ public class LairSummons {
         if (item instanceof ItemTwilightSpawner) {
             com.divinerpgextended.world.twilight.MortumArenas.Type t = com.divinerpgextended.world.twilight.MortumArenas.ofCrystal(item);
             if (t == null) return WorldGenNests.inCircle(p.worldObj, x + 0.5, y + 1, z + 0.5) ? null : "dre.chat.summon_circle";
-            return com.divinerpgextended.world.twilight.MortumArenas.inArena(p.worldObj, t, x + 0.5, y + 1, z + 0.5) ? null : "dre.chat.summon_arena_" + t.key();
+            if (!com.divinerpgextended.world.twilight.MortumArenas.inArena(p.worldObj, t, x + 0.5, y + 1, z + 0.5)) return "dre.chat.summon_arena_" + t.key();
+            return p.worldObj.getBlock(x, y, z) == com.divinerpgextended.registry.ModBlocks.arenaAltar ? null : "dre.chat.summon_altar";
         }
         if (item == VanillaItemsOther.mysteriousClock) return "dre.chat.summon_tomb";
         int type = item instanceof net.divinerpg.items.vanilla.ItemCallOfTheWatcher ? WorldGenOuterLairs.WATCHER

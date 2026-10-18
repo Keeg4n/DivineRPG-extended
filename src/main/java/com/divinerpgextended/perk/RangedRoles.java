@@ -47,9 +47,9 @@ public class RangedRoles {
     public static final int BLITZ = 1, PHASER = 2, SLICER = 3;
     public static final int PELLETS = 5, PIERCE = 3, RICOCHET = 3;
     public static final float PELLET_DMG = 0.35F, ADD_BONUS = 2.0F;
-    /** Дробь живёт столько тиков (дальность ~10 блоков); от отброса дробью остаётся доля KNOCK_KEEP, боссов не отбрасывает. */
+    /** Дробь живёт столько тиков (дальность ~10 блоков); от отброса дробью остаётся доля KNOCK_KEEP - ноль: при такой скорострельности блиц не отбрасывает вовсе. */
     public static final int BLITZ_LIFE = 7;
-    public static final double KNOCK_KEEP = 0.3;
+    public static final double KNOCK_KEEP = 0;
     /** Боковые дробины по боссу: доля урона (иначе пять дробин в упор выносили босса, а сет Мортума лечил за каждую). */
     public static final float BOSS_SIDE = 0.3F;
     private static final List<Entity> BLITZ_SHOTS = new ArrayList<Entity>();
@@ -187,7 +187,7 @@ public class RangedRoles {
             ItemStack s = new ItemStack(a);
             s.setTagCompound(new NBTTagCompound());
             s.getTagCompound().setBoolean(QUIVER_TAG, true);
-            p.inventory.addItemStackToInventory(s);
+            Ammo.give(p, s); // полный инвентарь - на миг выстрела занимает ячейку рюкзака
             return;
         }
         Ammo.lend(p, a);

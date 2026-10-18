@@ -172,9 +172,11 @@ public class MortumWorld {
                 int bed = SEA - 1 - (int) Math.round((1 - a / WIDTH) * (DEEP - 1));
                 if (!w.getBlock(x, bed, z).isOpaqueCube()) w.setBlock(x, bed, z, tw.dirt(), 0, 2);
                 for (int y = bed + 1; y <= SEA; y++) w.setBlock(x, y, z, ModBlocks.lethe, 0, 2);
-                for (int y = SEA + 1; y <= SEA + HEAD; y++)
+                // свод тоннеля: выше к середине русла, неровный (плавный шум), а не плоский потолок
+                int head = HEAD + (int) Math.round((1 - a / WIDTH) * 3 + MortumArenas.Spire.smooth(x, z, 4, 31) * 2.5 - 0.6);
+                for (int y = SEA + 1; y <= SEA + head; y++)
                     if (!w.isAirBlock(x, y, z) && w.getBlock(x, y, z) != net.minecraft.init.Blocks.bedrock) w.setBlock(x, y, z, net.minecraft.init.Blocks.air, 0, 2);
-                if (soft(w, x, SEA + HEAD + 1, z)) w.setBlock(x, SEA + HEAD + 1, z, net.minecraft.init.Blocks.air, 0, 2); // куст без опоры
+                if (soft(w, x, SEA + head + 1, z)) w.setBlock(x, SEA + head + 1, z, net.minecraft.init.Blocks.air, 0, 2); // куст без опоры
                 n++;
                 if (fall == null && a > WIDTH * 0.6) fall = new int[] { x, z };
             }

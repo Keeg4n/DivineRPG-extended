@@ -142,7 +142,7 @@ public abstract class ColumnStructure {
                 if (!column(x - cx, z - cz, col)) continue;
                 for (int y = yFrom; y <= yTo; y++) {
                     if (col[y * 2] != AIR || w.isAirBlock(x, y, z)) continue;
-                    if (w.getBlock(x, y, z).hasTileEntity(w.getBlockMetadata(x, y, z))) continue; // статуи и сундуки постройки ({@link #decorate})
+                    if (w.getBlock(x, y, z).hasTileEntity(w.getBlockMetadata(x, y, z)) || w.getBlock(x, y, z) == com.divinerpgextended.registry.ModBlocks.arenaAltar) continue; // сундуки и алтари постройки ({@link #decorate})
                     w.removeTileEntity(x, y, z);
                     w.setBlock(x, y, z, Blocks.air, 0, 2);
                 }
