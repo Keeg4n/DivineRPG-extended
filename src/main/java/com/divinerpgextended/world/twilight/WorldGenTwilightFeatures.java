@@ -51,7 +51,8 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
             for (int[] o : spots) if (!built && (built = dungeon(world, r, tw, x0 + o[0], z0 + o[1], x0 + 23))) dungeons++;
         }
         // мосты: у построек - всегда пробуем (мост издалека подсказывает, что рядом что-то есть), в остальных местах редко
-        if (Config.twilightBridgeRarity > 0 && (built || r.nextInt(Config.twilightBridgeRarity) == 0)) {
+        // в Мортуме мостов нет: пещера мёртвых, деревянный мост там чужой
+        if (tw != TwilightWorld.MORTUM && Config.twilightBridgeRarity > 0 && (built || r.nextInt(Config.twilightBridgeRarity) == 0)) {
             if (bridge(world, r, tw, x0, z0)) bridges++;
         }
     }

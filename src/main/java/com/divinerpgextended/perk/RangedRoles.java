@@ -30,19 +30,15 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * <ul>
  * <li>лук - дальность и точность (без изменений);</li>
  * <li>блиц - дробовик: {@link #PELLETS} снарядов веером, каждый слабее ({@link #PELLET_DMG}), по подручным боссов x2 -
- * против толпы;</li>
- * <li>фазер - пробой: снаряд проходит насквозь до {@link #PIERCE} целей, по частям голема x2; тратит пыль своего мира
- * (у Divine он бесконечный - слишком сильный);</li>
+ * против толпы; боеприпасы бесконечные (у Divine он тратит пыль - пыль подкладываем на миг выстрела, {@link #QUIVER_TAG});</li>
+ * <li>фазер - пробой: снаряд проходит насквозь до {@link #PIERCE} целей, по частям голема x2; бесконечный, как у Divine;</li>
  * <li>слайсер - рикошет до {@link #RICOCHET} целей подряд, перерезает лиану голема, сбивает замах Короля-воина и
  * издалека заряжает ветряные тотемы (как снежки в кристаллы дракона).</li>
  * </ul>
  * Колчаны-аксессуары (как в Террарии; падают со стрелков - {@link #DROP_CHANCE}: лучники - колчан (Вечный лучник - наверняка), маг - подсумок, колдун -
- * перевязь) дают бесконечные боеприпасы своему виду: бездонный колчан - лукам, подсумок пыли -
- * блицам и фазерам, перевязь метателя - слайсерам. Колчан: лук натягивается и стреляет без стрел, ничего не кладя в
- * инвентарь (клиенту о колчане говорит {@link QuiverSync}). Подсумок: фазер не тратит пыль, блицу пыль подкладывается
- * на миг выстрела ({@link #QUIVER_TAG}) и тут же им тратится - в инвентаре её не видно.
- * Чтобы колчан носили не только ради удобства: колчан +10% урона стрелами, подсумок +15% урона блица и фазера,
- * перевязь +1 цель рикошета.
+ * перевязь): бездонный колчан - бесконечные стрелы лукам (лук натягивается и стреляет без стрел, ничего не кладя в
+ * инвентарь; клиенту о колчане говорит {@link QuiverSync}) и +10% урона стрелами; подсумок пыли - +15% урона блица и
+ * фазера (они и так бесконечные); перевязь метателя - слайсер возвращается в руку, +1 цель рикошета.
  */
 public class RangedRoles {
 
@@ -75,17 +71,11 @@ public class RangedRoles {
         return com.divinerpgextended.accessory.Accessories.wears(p, t);
     }
 
-    /** Пыль мира, которую тратит этот фазер. */
-    public static Item phaserDust(Item phaser) {
-        for (TwilightWorld w : TwilightWorld.values()) if (TwilightCrafts.weapons(w)[2] == phaser) return w.dust();
-        return null;
-    }
-
-    /** Подсказка фазера: у Divine он "бесконечные боеприпасы", у нас тратит пыль своего мира (с подсумком - нет). */
+    /** Подсказка блица: у Divine "боеприпасы: пыль", у нас он бесконечный. */
     @SubscribeEvent
     public void onTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent e) {
-        if (e.itemStack == null || kind(e.itemStack) != PHASER) return;
-        Item dust = phaserDust(e.itemStack.getItem());
+        if (e.itemStack == null || kind(e.itemStack) != BLITZ) return;
+        Item dust = Ammo.divineAmmo(e.itemStack);
         if (dust == null) return;
         String inf, ammo;
         try {
@@ -94,10 +84,8 @@ public class RangedRoles {
         } catch (Throwable ex) { // другая версия Divine
             return;
         }
-        int at = e.toolTip.indexOf(inf);
-        if (at < 0) return;
-        e.toolTip.set(at, ammo);
-        e.toolTip.add(at + 1, net.minecraft.util.EnumChatFormatting.GRAY + net.minecraft.util.StatCollector.translateToLocal("dre.tooltip.phaser_pouch"));
+        int at = e.toolTip.indexOf(ammo);
+        if (at >= 0) e.toolTip.set(at, inf);
     }
 
     /** Дробь блица бьёт по одной цели вся: неуязвимость после попадания для неё не действует. */
@@ -134,7 +122,7 @@ public class RangedRoles {
     /**
      * Стрелковое оружие Divine (блиц, пушки, La Vekor): стреляет, только если патрон есть в инвентаре, и сразу его тратит, а
      * события перед выстрелом нет. Поэтому на клик (до выстрела), если в инвентаре патрона нет, подкладываем один:
-     * блицу с подсумком пыли - бесплатный ({@link #QUIVER_TAG}, не выстрелил - убирается), иначе - из слотов боеприпасов
+     * блицу - бесплатный, он бесконечный ({@link #QUIVER_TAG}, не выстрелил - убирается), иначе - из слотов боеприпасов
      * ({@link Ammo#lend}, не выстрелил - возвращается). Луки и фазер - отдельно.
      */
     @SubscribeEvent
@@ -143,9 +131,9 @@ public class RangedRoles {
         EntityPlayer p = e.entityPlayer;
         ItemStack held = p.getHeldItem();
         if (held == null || held.getItem() instanceof net.minecraft.item.ItemBow || kind(held) == PHASER || p.capabilities.isCreativeMode) return;
-        Item a = Ammo.of(held);
+        Item a = kind(held) == BLITZ ? Ammo.divineAmmo(held) : Ammo.of(held);
         if (a == null || p.inventory.hasItem(a)) return;
-        if (kind(held) == BLITZ && wears(p, com.divinerpgextended.trinket.Trinket.DUST_POUCH)) {
+        if (kind(held) == BLITZ) {
             ItemStack s = new ItemStack(a);
             s.setTagCompound(new NBTTagCompound());
             s.getTagCompound().setBoolean(QUIVER_TAG, true);
@@ -328,15 +316,6 @@ public class RangedRoles {
         ItemStack held = pl.getHeldItem();
         int k = kind(held);
         if (k == 0) return;
-        if (k == PHASER && !pl.capabilities.isCreativeMode && !wears(pl, com.divinerpgextended.trinket.Trinket.DUST_POUCH)) {
-            // фазер тратит пыль своего мира; нет пыли - выстрела нет
-            Item dust = phaserDust(held.getItem());
-            if (dust != null && !pl.inventory.consumeInventoryItem(dust) && !Ammo.takeOne(pl, dust)) { // инвентарь, потом слоты боеприпасов
-                e.setCanceled(true);
-                pl.worldObj.playSoundAtEntity(pl, "random.click", 1.0F, 1.6F);
-                return;
-            }
-        }
         if (k == SLICER && wears(pl, com.divinerpgextended.trinket.Trinket.SLICER_SLING) && !pl.capabilities.isCreativeMode) {
             // перевязь: брошенный слайсер возвращается в руку
             if (held.stackSize < held.getMaxStackSize()) held.stackSize++;

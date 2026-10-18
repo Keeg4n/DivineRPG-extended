@@ -2479,10 +2479,11 @@ public class SelfTest {
             pl.getEntityData().setInteger(com.divinerpgextended.perk.RangedRoles.KIND, com.divinerpgextended.perk.RangedRoles.BLITZ);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(zq, net.minecraft.util.DamageSource.causeThrownDamage(pl, qv), 5));
             boolean pellets = zq.hurtResistantTime == 0;
-            // фазер без пыли не стреляет, с пылью - тратит одну
+            // фазер бесконечный: без пыли стреляет, пыль не тратит
             qv.setCurrentItemOrArmor(0, new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenPhaser));
             net.divinerpg.entities.vanilla.projectile.EntityShooterBullet s1 = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, qv, 10, "divinerpg:textures/projectiles/phaserEden.png");
-            boolean dry = !w.spawnEntityInWorld(s1);
+            boolean dry = w.spawnEntityInWorld(s1);
+            s1.setDead();
             qv.inventory.setInventorySlotContents(5, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.edenDust, 3));
             net.divinerpg.entities.vanilla.projectile.EntityShooterBullet s2 = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, qv, 10, "divinerpg:textures/projectiles/phaserEden.png");
             boolean shot = w.spawnEntityInWorld(s2);
@@ -2506,8 +2507,7 @@ public class SelfTest {
             boolean arrow = drawn && fired && !qv.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsWeapons.edenArrow);
             boolean gone = net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(net.minecraft.enchantment.Enchantment.infinity.effectId, bow) == 0
                 && (bow.getTagCompound() == null || !bow.getTagCompound().hasKey("ench"));
-            // подсумок: блиц без пыли стреляет, пыль в инвентаре не остаётся
-            Accessories.of(qv).setInventorySlotContents(0, trinket(Trinket.DUST_POUCH));
+            // блиц бесконечный: без пыли и без подсумка стреляет, пыль в инвентаре не остаётся
             ItemStack bz = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz);
             qv.setCurrentItemOrArmor(0, bz);
             int bulletsBefore = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, qv.boundingBox.expand(6, 6, 6)).size();
@@ -2525,21 +2525,21 @@ public class SelfTest {
             boolean noDust = !qv.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsOther.edenDust);
             Accessories.of(qv).setInventorySlotContents(0, null);
             qv.setCurrentItemOrArmor(0, null);
-            check(pellets && dry && shot && dustLeft == 2 && arrow && gone && blitzShots == com.divinerpgextended.perk.RangedRoles.PELLETS && noDust,
-                "дробь без неуязвимости " + pellets + ", фазер без пыли молчит " + dry + ", с пылью стреляет " + shot + " (пыли осталось " + dustLeft + "), колчан: натянут " + drawn
-                    + ", выстрел " + fired + ", Бесконечность снята " + gone + "; блиц с подсумком без пыли: снарядов " + blitzShots + ", пыли в инвентаре нет " + noDust);
-            return "дробины блица бьют одну цель все; фазер тратит пыль Эдема (без неё молчит); с колчаном лук без стрел натягивается и стреляет, стрел в инвентаре нет; с подсумком блиц стреляет без пыли и ничего не кладёт";
+            check(pellets && dry && shot && dustLeft == 3 && arrow && gone && blitzShots == com.divinerpgextended.perk.RangedRoles.PELLETS && noDust,
+                "дробь без неуязвимости " + pellets + ", фазер без пыли стреляет " + dry + ", с пылью " + shot + " (пыли осталось " + dustLeft + " из 3), колчан: натянут " + drawn
+                    + ", выстрел " + fired + ", Бесконечность снята " + gone + "; блиц без пыли: снарядов " + blitzShots + ", пыли в инвентаре нет " + noDust);
+            return "дробины блица бьют одну цель все; фазер и блиц бесконечные (без пыли стреляют, пыль не тратят и не кладут); с колчаном лук без стрел натягивается и стреляет, стрел в инвентаре нет";
         });
-        t("Прохождение", "Подсказка фазера: пыль вместо бесконечных", () -> {
-            TestPlayer tv = player(ConfigurationHelper.eden, "TestPhaserTip", 9486.5, 120, 9830.5);
-            ItemStack ph = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenPhaser);
+        t("Прохождение", "Подсказка блица: бесконечные боеприпасы", () -> {
+            TestPlayer tv = player(ConfigurationHelper.eden, "TestBlitzTip", 9486.5, 120, 9830.5);
+            ItemStack bt = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz);
+            String ammo = net.divinerpg.utils.TooltipLocalizer.ammo(com.divinerpgextended.perk.Ammo.divineAmmo(bt));
             java.util.ArrayList<String> tip = new java.util.ArrayList<String>();
-            tip.add(ph.getDisplayName());
-            tip.add(net.divinerpg.utils.TooltipLocalizer.infiniteAmmo());
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.ItemTooltipEvent(ph, tv, tip, false));
-            String ammo = net.divinerpg.utils.TooltipLocalizer.ammo(net.divinerpg.utils.items.TwilightItemsOther.edenDust);
-            check(!tip.contains(net.divinerpg.utils.TooltipLocalizer.infiniteAmmo()) && tip.contains(ammo) && tip.size() == 3, "подсказка " + tip);
-            return "у фазера вместо бесконечных боеприпасов - пыль своего мира и строка про подсумок";
+            tip.add(bt.getDisplayName());
+            tip.add(ammo);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.ItemTooltipEvent(bt, tv, tip, false));
+            check(!tip.contains(ammo) && tip.contains(net.divinerpg.utils.TooltipLocalizer.infiniteAmmo()) && tip.size() == 2, "подсказка " + tip);
+            return "у блица вместо пыли - бесконечные боеприпасы, как у фазера";
         });
         t("Прохождение", "Слоты боеприпасов", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
@@ -2547,7 +2547,7 @@ public class SelfTest {
             TestPlayer av = join(player(ConfigurationHelper.eden, "TestAmmo", 9488.5, 120, 9840.5), true);
             Accessories acc = Accessories.of(av);
             int A = Accessories.SIZE;
-            boolean valid = acc.canPlace(A, new ItemStack(Items.arrow)) && acc.canPlace(A, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.edenDust))
+            boolean valid = acc.canPlace(A, new ItemStack(Items.arrow)) && acc.canPlace(A, new ItemStack(net.divinerpg.utils.items.VanillaItemsOther.corruptedBullet))
                 && !acc.canPlace(A, new ItemStack(Items.diamond_sword)) && !acc.canPlace(0, new ItemStack(Items.arrow));
             // лук: стрелы только в слоте - натягивается, стреляет, в слоте на одну меньше, в инвентаре пусто
             acc.setInventorySlotContents(A, new ItemStack(Items.arrow, 5));
@@ -2566,41 +2566,31 @@ public class SelfTest {
             int arrows = acc.getStackInSlot(A) == null ? 0 : acc.getStackInSlot(A).stackSize;
             boolean bowOk = drawn && fired && arrows == 4 && !av.inventory.hasItem(Items.arrow);
             acc.setInventorySlotContents(A, null);
-            // блиц без подсумка: пыль из слота на каждый выстрел; одолженная и не потраченная - вернулась в слот
-            acc.setInventorySlotContents(A + 1, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.edenDust, 4));
-            ItemStack bz = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz);
-            av.setCurrentItemOrArmor(0, bz);
-            int shots = 0;
-            for (int k2 = 0; k2 < 2; k2++) {
-                int b0 = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, av.boundingBox.expand(6, 6, 6)).size();
-                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(av,
-                    net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w));
-                try {
-                    bz.getItem().onItemRightClick(bz, w, av);
-                } catch (NullPointerException ex) {
-                    // Divine после выстрела шлёт инвентарь по сети - у тестового игрока сети нет
-                }
-                java.util.List<?> bl = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, av.boundingBox.expand(6, 6, 6));
-                if (bl.size() > b0) shots++;
-                for (Object o : bl) ((net.minecraft.entity.Entity) o).setDead();
-                com.divinerpgextended.perk.Ammo.settle(av);
+            // пушка Corrupted Cannon: пуля из слота; одолженная и не потраченная - вернулась в слот
+            net.minecraft.item.Item bullet = net.divinerpg.utils.items.VanillaItemsOther.corruptedBullet;
+            acc.setInventorySlotContents(A + 1, new ItemStack(bullet, 4));
+            ItemStack cn = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.corruptedCannon);
+            av.setCurrentItemOrArmor(0, cn);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(av,
+                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w));
+            try {
+                cn.getItem().onItemRightClick(cn, w, av);
+            } catch (NullPointerException ex) {
+                // Divine после выстрела шлёт инвентарь по сети - у тестового игрока сети нет
             }
-            com.divinerpgextended.perk.Ammo.lend(av, net.divinerpg.utils.items.TwilightItemsOther.edenDust);
-            boolean lent = av.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsOther.edenDust);
+            for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.Entity.class, av.boundingBox.expand(6, 6, 6))) if (o != av) ((net.minecraft.entity.Entity) o).setDead();
             com.divinerpgextended.perk.Ammo.settle(av);
-            int dust = acc.getStackInSlot(A + 1) == null ? 0 : acc.getStackInSlot(A + 1).stackSize;
-            boolean blitzOk = shots == 2 && lent && dust == 2 && !av.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsOther.edenDust);
-            // фазер: пыль из слота
-            av.setCurrentItemOrArmor(0, new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenPhaser));
-            net.divinerpg.entities.vanilla.projectile.EntityShooterBullet ps = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, av, 10,
-                "divinerpg:textures/projectiles/phaserEden.png");
-            boolean phaserOk = w.spawnEntityInWorld(ps) && acc.getStackInSlot(A + 1) != null && acc.getStackInSlot(A + 1).stackSize == 1; // было 2
-            ps.setDead();
+            int afterShot = acc.getStackInSlot(A + 1) == null ? 0 : acc.getStackInSlot(A + 1).stackSize;
+            com.divinerpgextended.perk.Ammo.lend(av, bullet);
+            boolean lent = av.inventory.hasItem(bullet);
+            com.divinerpgextended.perk.Ammo.settle(av);
+            int bullets = acc.getStackInSlot(A + 1) == null ? 0 : acc.getStackInSlot(A + 1).stackSize;
+            boolean cannonOk = afterShot == 3 && lent && bullets == 3 && !av.inventory.hasItem(bullet);
             acc.setInventorySlotContents(A + 1, null);
             av.setCurrentItemOrArmor(0, null);
-            check(valid && bowOk && blitzOk && phaserOk, "что кладётся " + valid + ", лук: натянут " + drawn + ", выстрел " + fired + ", стрел в слоте " + arrows
-                + "; блиц: выстрелов " + shots + " из 2, одолжена " + lent + ", пыли в слоте " + dust + "; фазер из слота " + phaserOk);
-            return "в слоты боеприпасов кладутся только боеприпасы; лук, блиц и фазер берут из них, когда в инвентаре нет; не потраченное возвращается в слот";
+            check(valid && bowOk && cannonOk, "что кладётся " + valid + ", лук: натянут " + drawn + ", выстрел " + fired + ", стрел в слоте " + arrows
+                + "; пушка: после выстрела пуль " + afterShot + " из 4, одолжена " + lent + ", после возврата " + bullets);
+            return "в слоты боеприпасов кладутся только боеприпасы; лук и пушка берут из них, когда в инвентаре нет; не потраченное возвращается в слот";
         });
         t("Прохождение", "Вагонетка Апалачии: рельсы арканы и обычные", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);

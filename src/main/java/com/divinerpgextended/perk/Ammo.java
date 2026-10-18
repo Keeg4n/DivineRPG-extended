@@ -33,8 +33,8 @@ public final class Ammo {
     public static Item of(ItemStack held) {
         if (held == null) return null;
         Item i = held.getItem();
-        Item dust = RangedRoles.phaserDust(i);
-        if (dust != null) return dust;
+        int k = RangedRoles.kind(held);
+        if (k == RangedRoles.BLITZ || k == RangedRoles.PHASER) return null; // бесконечные
         if (i instanceof net.divinerpg.items.base.ItemModBow) return field(net.divinerpg.items.base.ItemModBow.class, i, "arrow");
         if (i instanceof ItemBow) return Items.arrow;
         if (i instanceof net.divinerpg.items.base.ItemProjectileShooter) return field(net.divinerpg.items.base.ItemProjectileShooter.class, i, "ammo");
@@ -42,6 +42,12 @@ public final class Ammo {
         if (cn.endsWith(".ItemLaVekor")) return net.divinerpg.utils.items.ArcanaItems.grenade;
         if (cn.endsWith(".ItemCorruptedCannon")) return net.divinerpg.utils.items.VanillaItemsOther.corruptedBullet;
         return null;
+    }
+
+    /** Что тратит стрелок Divine по своей задумке (у блица - пыль), без наших поправок. */
+    public static Item divineAmmo(ItemStack held) {
+        if (held == null || !(held.getItem() instanceof net.divinerpg.items.base.ItemProjectileShooter)) return null;
+        return field(net.divinerpg.items.base.ItemProjectileShooter.class, held.getItem(), "ammo");
     }
 
     private static Item field(Class<?> c, Object o, String name) {
@@ -113,11 +119,6 @@ public final class Ammo {
             return one;
         }
         return null;
-    }
-
-    /** Потратить одну штуку прямо из слотов (фазер). */
-    public static boolean takeOne(EntityPlayer p, Item a) {
-        return a != null && !p.worldObj.isRemote && takeFromSlots(p, a) != null;
     }
 
     /** Перед выстрелом: одна штука из слотов - в инвентарь с меткой (оружие её тут же потратит). */

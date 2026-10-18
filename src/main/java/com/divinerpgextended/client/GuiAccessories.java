@@ -92,7 +92,8 @@ public class GuiAccessories extends GuiContainer {
                 && mc.thePlayer.inventory.getItemStack() == null) {
                 List<String> tip = new ArrayList<String>();
                 tip.add(StatCollector.translateToLocal("dre.accessories.ammo"));
-                tip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.accessories.ammo_hint"));
+                for (Object line : fontRendererObj.listFormattedStringToWidth(StatCollector.translateToLocal("dre.accessories.ammo_hint"), 160))
+                    tip.add(EnumChatFormatting.GRAY + (String) line); // одной строкой подсказка уезжала за край экрана
                 drawHoveringText(tip, mx, my, fontRendererObj);
             }
         }
