@@ -37,11 +37,15 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * (у них есть дом логова - {@link LairSummons#home}).
  * <ul>
  * <li>Денсос и Рейвор - близнецы. Рядом друг с другом ({@link #TWIN_NEAR}) прикрывают друг друга: урон x{@link #TWIN_SHIELD}
- * - их надо развести. Убил одного - через {@link #REVIVE} тиков живой брат его поднимает (с половиной здоровья, без
+ * - их надо развести. По очереди каждые {@link #STEP} тиков один шагает сквозь тень за спину цели и бьёт
+ * ({@link #STEP_DMG}; Денсос ослепляет, Рейвор замедляет), за секунду до шага у ног цели дым. Убил одного - живой
+ * впадает в ярость (сила II, скорость) и через {@link #REVIVE} тиков поднимает брата (с половиной здоровья, без
  * трофеев): добивать обоих почти одновременно.</li>
  * <li>Вечный лучник - каждые {@link #VOLLEY} тиков залп веером ({@link #VOLLEY_ARROWS} стрел) с замахом в 1.5 секунды;
  * от залпа прячутся за колоннами галереи, но каждый залп обрушивает верх колонны у цели - укрытий всё меньше.</li>
- * <li>Пожиратель душ - каждые {@link #RAISE} тиков поднимает души из могил погоста; пока хоть одна жива, он неуязвим.</li>
+ * <li>Пожиратель душ - каждые {@link #RAISE} тиков поднимает души из целых могил погоста рядом с собой ({@link #GRAVE_R}):
+ * по душе из могилы, могила при этом рассыпается (надгробия можно ломать и самому). Пока его душа жива рядом с ним
+ * ({@link #SOUL_R}), он неуязвим: уводи его туда, где могил не осталось.</li>
  * <li>Вамачерон - рывок: замах {@link #WINDUP} тиков, потом несётся по прямой. Сбивает с ног; врезался в столб или стену -
  * оглушён на {@link #STUN} тиков и получает двойной урон.</li>
  * </ul>
@@ -52,8 +56,9 @@ public class MortumArenaBosses {
     public static final float TWIN_SHIELD = 0.3F;
     public static final int REVIVE = 200;
     public static final String REVIVED = "dreRevived", SOUL = "dreFiendSoul", DASH = "dreDash", WIND = "dreWind", STUNNED = "dreStun";
-    public static final int VOLLEY = 200, VOLLEY_WARN = 30, VOLLEY_ARROWS = 9, RAISE = 300, SOULS = 3, CHARGE = 160, WINDUP = 20, DASH_TICKS = 40, STUN = 60;
-    public static final float VOLLEY_DMG = 6, DASH_DMG = 10;
+    public static final int VOLLEY = 200, VOLLEY_WARN = 30, VOLLEY_ARROWS = 9, RAISE = 400, SOULS = 3, CHARGE = 160, WINDUP = 20, DASH_TICKS = 40, STUN = 60;
+    public static final int STEP = 160, STEP_WARN = 20, GRAVE_R = 14, SOUL_R = 20;
+    public static final float VOLLEY_DMG = 6, DASH_DMG = 10, STEP_DMG = 8;
 
     /** Ждут воскрешения: {мир, класс, живой брат, тик мира}. */
     private static final List<Object[]> REVIVES = new ArrayList<Object[]>();
@@ -108,6 +113,9 @@ public class MortumArenaBosses {
         if (b == null) return; // второй уже мёртв - победа
         REVIVES.add(new Object[] { v.worldObj, v.getClass(), b, v.worldObj.getTotalWorldTime() + REVIVE });
         v.worldObj.playSoundAtEntity(b, "mob.wither.idle", 1.5F, 0.6F);
+        // ярость живого до воскрешения брата
+        b.addPotionEffect(new PotionEffect(Potion.damageBoost.id, REVIVE + 20, 1));
+        b.addPotionEffect(new PotionEffect(Potion.moveSpeed.id, REVIVE + 20, 0));
     }
 
     /** Поднятые братом - без трофеев (иначе ферма). */
@@ -157,7 +165,8 @@ public class MortumArenaBosses {
     public void onUpdate(LivingEvent.LivingUpdateEvent e) {
         EntityLivingBase m = e.entityLiving;
         if (m.worldObj.isRemote || !arena(m)) return;
-        if (m instanceof EntityEternalArcher) archer((EntityLiving) m);
+        if (twin(m)) twinTick((EntityLiving) m);
+        else if (m instanceof EntityEternalArcher) archer((EntityLiving) m);
         else if (m instanceof EntitySoulFiend) fiend((EntityLiving) m);
         else if (m instanceof EntityVamacheron) vamacheron((EntityLiving) m);
     }
@@ -165,6 +174,40 @@ public class MortumArenaBosses {
     static EntityPlayer target(EntityLiving m, double r) {
         if (m.getAttackTarget() instanceof EntityPlayer) return (EntityPlayer) m.getAttackTarget();
         return m.worldObj.getClosestVulnerablePlayerToEntity(m, r);
+    }
+
+    // ---------------- близнецы: шаг сквозь тень
+
+    private void twinTick(EntityLiving t) {
+        int k = (t.ticksExisted + (t instanceof EntityDensos ? 0 : STEP / 2)) % STEP; // по очереди
+        EntityPlayer p = target(t, 32);
+        if (p == null || t.ticksExisted < STEP / 2) return;
+        if (k == STEP - STEP_WARN) {
+            ((WorldServer) t.worldObj).func_147487_a("largesmoke", p.posX, p.posY + 0.1, p.posZ, 20, 0.4, 0.05, 0.4, 0.01);
+            t.worldObj.playSoundAtEntity(p, "mob.endermen.stare", 0.8F, t instanceof EntityDensos ? 1.4F : 0.7F);
+        }
+        if (k == 0) step(t, p);
+    }
+
+    /** Шаг сквозь тень: за спину цели (2 блока), удар; Денсос ослепляет, Рейвор замедляет. false - за спиной стена. */
+    public static boolean step(EntityLiving t, EntityLivingBase p) {
+        double yaw = Math.toRadians(p.rotationYaw);
+        double x = p.posX + Math.sin(yaw) * 2, z = p.posZ - Math.cos(yaw) * 2; // взгляд игрока - (-sin, cos)
+        double ox = t.posX, oy = t.posY, oz = t.posZ;
+        t.setPosition(x, p.posY, z);
+        if (!t.worldObj.getCollidingBoundingBoxes(t, t.boundingBox).isEmpty()) {
+            t.setPosition(ox, oy, oz);
+            return false;
+        }
+        ((WorldServer) t.worldObj).func_147487_a("portal", ox, oy + 1, oz, 30, 0.5, 1, 0.5, 0.5);
+        t.setPositionAndUpdate(x, p.posY, z);
+        t.rotationYaw = t.rotationYawHead = (float) Math.toDegrees(Math.atan2(-(p.posX - x), p.posZ - z));
+        t.setAttackTarget(p);
+        t.worldObj.playSoundAtEntity(t, "mob.endermen.portal", 1.2F, t instanceof EntityDensos ? 1.3F : 0.6F);
+        p.attackEntityFrom(DamageSource.causeMobDamage(t), STEP_DMG);
+        if (t instanceof EntityDensos) p.addPotionEffect(new PotionEffect(Potion.blindness.id, 50, 0));
+        else p.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 70, 1));
+        return true;
     }
 
     // ---------------- Вечный лучник
@@ -224,15 +267,30 @@ public class MortumArenaBosses {
         raise(f);
     }
 
-    /** Поднять души из ближайших к боссу могил погоста (не больше SOULS живых). */
+    /** Надгробие могилы цело (резной камень на месте) - из неё ещё можно поднять душу. */
+    public static boolean graveIntact(World w, int[] h, int[] g) {
+        int x = h[0] + g[0], y = h[1], z = h[2] + g[1] + 1;
+        return w.getBlock(x, y, z) == Blocks.stonebrick && w.getBlockMetadata(x, y, z) == 3;
+    }
+
+    /**
+     * Поднять души из целых могил рядом с боссом (не больше SOULS живых): по душе из могилы, надгробие рассыпается -
+     * второй раз из этой могилы не встанут.
+     */
     public static int raise(EntityLiving f) {
         int[] h = LairSummons.home(f);
         if (h == null) return 0;
         int alive = souls(f).size(), made = 0;
-        List<int[]> graves = MortumArenas.graves();
+        List<int[]> graves = new ArrayList<int[]>();
+        for (int[] g : MortumArenas.graves()) {
+            double dx = h[0] + g[0] + 0.5 - f.posX, dz = h[2] + g[1] + 0.5 - f.posZ;
+            if (dx * dx + dz * dz <= GRAVE_R * GRAVE_R && graveIntact(f.worldObj, h, g)) graves.add(g);
+        }
         java.util.Collections.shuffle(graves, f.getRNG());
         for (int[] g : graves) {
             if (alive + made >= SOULS) break;
+            f.worldObj.func_147480_a(h[0] + g[0], h[1] + 1, h[2] + g[1] + 1, false); // плита надгробия
+            f.worldObj.func_147480_a(h[0] + g[0], h[1], h[2] + g[1] + 1, false); // камень надгробия
             net.divinerpg.entities.twilight.EntitySoulSpider s = new net.divinerpg.entities.twilight.EntitySoulSpider(f.worldObj);
             s.setLocationAndAngles(h[0] + g[0] + 0.5, h[1], h[2] + g[1] + 0.5, f.getRNG().nextFloat() * 360, 0);
             s.getEntityData().setInteger(SOUL, f.getEntityId());
@@ -249,12 +307,12 @@ public class MortumArenaBosses {
     @SuppressWarnings("unchecked")
     public static List<Entity> souls(EntityLiving f) {
         List<Entity> l = new ArrayList<Entity>();
-        for (Object o : f.worldObj.getEntitiesWithinAABB(EntityLiving.class, f.boundingBox.expand(48, 16, 48)))
+        for (Object o : f.worldObj.getEntitiesWithinAABB(EntityLiving.class, f.boundingBox.expand(SOUL_R, 12, SOUL_R)))
             if (((Entity) o).isEntityAlive() && ((Entity) o).getEntityData().getInteger(SOUL) == f.getEntityId()) l.add((Entity) o);
         return l;
     }
 
-    /** Пока его души живы, Пожиратель неуязвим. */
+    /** Пока его души живы рядом с ним, Пожиратель неуязвим. */
     @SubscribeEvent
     public void onAttack(LivingAttackEvent e) {
         EntityLivingBase v = e.entityLiving;

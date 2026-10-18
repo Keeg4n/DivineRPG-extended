@@ -1,8 +1,6 @@
 package com.divinerpgextended.entity;
 
-import net.divinerpg.utils.items.TwilightItemsOther;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.EnumChatFormatting;
@@ -14,12 +12,14 @@ import com.divinerpgextended.world.twilight.MortumArenas;
 import com.divinerpgextended.world.twilight.TwilightWorld;
 
 /**
- * Харон - перевозчик на пристанях Леты. Не торгует: покажи ему кристалл босса Мортума и заплати {@link #FARE} душ
- * Мортума - перевезёт к ближайшей арене этого босса (по Лете, мимо мобов). Без кристалла - говорит, что берёт и куда возит.
+ * Харон - перевозчик на пристанях Леты, тёмная фигура в балахоне. Не торгует и не возит: покажи ему кристалл босса
+ * Мортума - скажет, в какой стороне и как далеко арена этого босса, и пустит туда по воздуху дымный след. Без
+ * кристалла - говорит, что ему показать.
  */
 public class EntityCharon extends EntityWanderer {
 
-    public static final int FARE = 5, SEARCH = 8;
+    public static final int SEARCH = 8, TRAIL = 14;
+    private static final String[] DIRS = { "s", "sw", "w", "nw", "n", "ne", "e", "se" };
 
     public EntityCharon(World w) {
         super(w);
@@ -32,11 +32,7 @@ public class EntityCharon extends EntityWanderer {
         ItemStack h = p.getHeldItem();
         MortumArenas.Type t = h == null ? null : MortumArenas.ofCrystal(h.getItem());
         if (t == null) {
-            say(p, "dre.charon.hello", FARE);
-            return true;
-        }
-        if (!p.capabilities.isCreativeMode && souls(p) < FARE) {
-            say(p, "dre.charon.fare", FARE);
+            say(p, "dre.charon.hello");
             return true;
         }
         int[] c = MortumArenas.nearestOf(worldObj, t, posX, posZ, SEARCH);
@@ -44,29 +40,23 @@ public class EntityCharon extends EntityWanderer {
             say(p, "dre.charon.none");
             return true;
         }
-        if (!p.capabilities.isCreativeMode) for (int i = 0; i < FARE; i++) p.inventory.consumeInventoryItem(TwilightItemsOther.mortumSoul);
-        say(p, "dre.charon.go." + t.key());
-        ferry(p, c, t);
+        double dx = c[0] + 0.5 - p.posX, dz = c[2] + 0.5 - p.posZ, dist = Math.sqrt(dx * dx + dz * dz);
+        say(p, "dre.charon.way." + t.key(), new ChatComponentTranslation("dre.dir." + direction(dx, dz)), (int) Math.round(dist / 10) * 10);
+        trail((WorldServer) worldObj, p, dx / Math.max(1, dist), dz / Math.max(1, dist));
         return true;
     }
 
-    private static int souls(EntityPlayer p) {
-        int n = 0;
-        for (ItemStack s : p.inventory.mainInventory) if (s != null && s.getItem() == TwilightItemsOther.mortumSoul) n += s.stackSize;
-        return n;
+    /** Сторона света к точке (8 румбов): ключ s, sw, w, nw, n, ne, e, se. */
+    public static String direction(double dx, double dz) {
+        double yaw = Math.toDegrees(Math.atan2(-dx, dz)); // 0 - юг (+Z), 90 - запад, 180 - север, -90 - восток
+        int i = (int) Math.floor(((yaw + 360) % 360 + 22.5) / 45) % 8;
+        return DIRS[i];
     }
 
-    /** На арену: прогрузить её чанки (чтобы зал уже был вырезан) и поставить у южного края зала. */
-    public static double[] ferry(EntityPlayer p, int[] c, MortumArenas.Type t) {
-        WorldServer w = (WorldServer) p.worldObj;
-        for (int i = -3; i <= 3; i++) for (int k = -3; k <= 3; k++) w.theChunkProviderServer.loadChunk((c[0] >> 4) + i, (c[2] >> 4) + k);
-        double x = c[0] + 0.5, y = MortumArenas.floorY(t) + 1, z = c[2] + t.zone - 4 + 0.5;
-        w.func_147487_a("portal", p.posX, p.posY + 1, p.posZ, 40, 0.5, 1, 0.5, 0.5);
-        p.fallDistance = 0;
-        if (p instanceof EntityPlayerMP) ((EntityPlayerMP) p).setPositionAndUpdate(x, y, z);
-        else p.setPosition(x, y, z);
-        w.playSoundEffect(x, y, z, "mob.endermen.portal", 1.0F, 0.6F);
-        return new double[] { x, y, z };
+    /** Дымный след от игрока в сторону арены. */
+    private static void trail(WorldServer w, EntityPlayer p, double nx, double nz) {
+        for (int i = 2; i <= TRAIL; i++) w.func_147487_a("witchMagic", p.posX + nx * i, p.posY + 1.2, p.posZ + nz * i, 4, 0.1, 0.1, 0.1, 0.01);
+        w.playSoundAtEntity(p, "ambient.cave.cave", 0.7F, 0.6F);
     }
 
     private void say(EntityPlayer p, String key, Object... args) {
@@ -78,5 +68,16 @@ public class EntityCharon extends EntityWanderer {
     @Override
     public String getCommandSenderName() {
         return hasCustomNameTag() ? getCustomNameTag() : StatCollector.translateToLocal("entity.divinerpgextended.Charon.name");
+    }
+
+    /** Харон молчит. */
+    @Override
+    protected String getHurtSound() {
+        return null;
+    }
+
+    @Override
+    protected String getDeathSound() {
+        return null;
     }
 }

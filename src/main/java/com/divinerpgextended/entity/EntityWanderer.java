@@ -77,13 +77,33 @@ public class EntityWanderer extends EntityVillager {
         return l;
     }
 
-    /** Сделка не кончается: после обмена сразу снова доступна. */
+    /** Сделка не кончается: после обмена сразу снова доступна. Звенит монетой, а не голосом жителя. */
     @Override
     public void useRecipe(MerchantRecipe r) {
         r.incrementToolUses();
         r.func_82783_a(1);
-        playSound("mob.villager.yes", getSoundVolume(), getSoundPitch());
+        playSound("random.orb", 0.5F, 0.8F + rand.nextFloat() * 0.3F);
     }
+
+    // странник - не житель деревни: без "хмм" жителя
+    @Override
+    protected String getLivingSound() {
+        return null;
+    }
+
+    @Override
+    protected String getHurtSound() {
+        return "game.neutral.hurt";
+    }
+
+    @Override
+    protected String getDeathSound() {
+        return "game.neutral.die";
+    }
+
+    /** Житель ворчит, когда в окне торговли кладут предмет, - странник нет. */
+    @Override
+    public void func_110297_a_(ItemStack s) {}
 
     @Override
     public EntityVillager createChild(EntityAgeable other) {

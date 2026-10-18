@@ -30,7 +30,8 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * <ul>
  * <li>лук - дальность и точность (без изменений);</li>
  * <li>блиц - дробовик: {@link #PELLETS} снарядов веером, каждый слабее ({@link #PELLET_DMG}), по подручным боссов x2 -
- * против толпы; боеприпасы бесконечные (у Divine он тратит пыль - пыль подкладываем на миг выстрела, {@link #QUIVER_TAG});</li>
+ * против толпы, но вблизи: дробь летит {@link #BLITZ_LIFE} тиков (~10 блоков), отброс от неё слабый, боссов не сносит;
+ * боеприпасы бесконечные (у Divine он тратит пыль - пыль подкладываем на миг выстрела, {@link #QUIVER_TAG});</li>
  * <li>фазер - пробой: снаряд проходит насквозь до {@link #PIERCE} целей, по частям голема x2; бесконечный, как у Divine;</li>
  * <li>слайсер - рикошет до {@link #RICOCHET} целей подряд, перерезает лиану голема, сбивает замах Короля-воина и
  * издалека заряжает ветряные тотемы (как снежки в кристаллы дракона).</li>
@@ -45,7 +46,13 @@ public class RangedRoles {
     public static final String KIND = "dreRanged", GEN = "dreRangedGen";
     public static final int BLITZ = 1, PHASER = 2, SLICER = 3;
     public static final int PELLETS = 5, PIERCE = 3, RICOCHET = 3;
-    public static final float PELLET_DMG = 0.5F, ADD_BONUS = 2.0F;
+    public static final float PELLET_DMG = 0.35F, ADD_BONUS = 2.0F;
+    /** Дробь живёт столько тиков (дальность ~10 блоков); от отброса дробью остаётся доля KNOCK_KEEP, боссов не отбрасывает. */
+    public static final int BLITZ_LIFE = 7;
+    public static final double KNOCK_KEEP = 0.3;
+    private static final List<Entity> BLITZ_SHOTS = new ArrayList<Entity>();
+    /** Скорость жертвы до первой дробины за тик: в конце тика отброс урезается. */
+    private static final java.util.Map<EntityLivingBase, double[]> KNOCK = new java.util.HashMap<EntityLivingBase, double[]>();
     /** Боевые бонусы колчанов: стрелы +10%, блиц и фазер +15%, слайсер +1 цель рикошета. */
     public static final float QUIVER_DMG = 1.10F, POUCH_DMG = 1.15F;
     private static final double SPREAD = 9; // градусов между дробинами
@@ -88,10 +95,44 @@ public class RangedRoles {
         if (at >= 0) e.toolTip.set(at, inf);
     }
 
-    /** Дробь блица бьёт по одной цели вся: неуязвимость после попадания для неё не действует. */
+    /**
+     * Дробь блица бьёт по одной цели вся: неуязвимость после попадания для неё не действует. Но отброс от пяти дробин
+     * складывался и сносил даже боссов с арены - запоминаем скорость до первой дробины, в конце тика урезаем отброс.
+     */
     @SubscribeEvent
     public void onAttack(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
-        if (!e.entityLiving.worldObj.isRemote && kind(e.source.getSourceOfDamage()) == BLITZ) e.entityLiving.hurtResistantTime = 0;
+        EntityLivingBase v = e.entityLiving;
+        if (v.worldObj.isRemote || kind(e.source.getSourceOfDamage()) != BLITZ) return;
+        v.hurtResistantTime = 0;
+        if (!KNOCK.containsKey(v)) KNOCK.put(v, new double[] { v.motionX, v.motionY, v.motionZ });
+    }
+
+    static boolean boss(Entity e) {
+        return e instanceof net.minecraft.entity.boss.IBossDisplayData || e instanceof net.divinerpg.entities.base.EntityDivineRPGBoss;
+    }
+
+    /** Конец тика: дробь старше BLITZ_LIFE исчезает; отброс дробью - KNOCK_KEEP от набранного (боссам - ноль). */
+    @SubscribeEvent
+    public void onBlitzTick(TickEvent.WorldTickEvent e) {
+        if (e.phase != TickEvent.Phase.END || e.world.isRemote) return;
+        for (Iterator<Entity> it = BLITZ_SHOTS.iterator(); it.hasNext();) {
+            Entity b = it.next();
+            if (b.worldObj != e.world) continue;
+            if (!b.isDead && b.ticksExisted >= BLITZ_LIFE) b.setDead();
+            if (b.isDead) it.remove();
+        }
+        for (Iterator<java.util.Map.Entry<EntityLivingBase, double[]>> it = KNOCK.entrySet().iterator(); it.hasNext();) {
+            java.util.Map.Entry<EntityLivingBase, double[]> en = it.next();
+            EntityLivingBase v = en.getKey();
+            if (v.worldObj != e.world) continue;
+            it.remove();
+            double[] m = en.getValue();
+            double keep = boss(v) ? 0 : KNOCK_KEEP;
+            v.motionX = m[0] + (v.motionX - m[0]) * keep;
+            v.motionY = m[1] + (v.motionY - m[1]) * keep;
+            v.motionZ = m[2] + (v.motionZ - m[2]) * keep;
+            v.velocityChanged = true;
+        }
     }
 
     public static final float DROP_CHANCE = 0.10F, DROP_LOOTING = 0.02F;
@@ -308,6 +349,7 @@ public class RangedRoles {
         NBTTagCompound d = b.getEntityData();
         if (d.hasKey(KIND)) {
             if (d.getInteger(KIND) == SLICER) TOTEM_SHOTS.add(b);
+            if (d.getInteger(KIND) == BLITZ) BLITZ_SHOTS.add(b);
             return;
         }
         EntityLivingBase thrower = ((EntityShooterBullet) b).getThrower();
@@ -324,6 +366,7 @@ public class RangedRoles {
         d.setInteger(KIND, k);
         if (k == SLICER) TOTEM_SHOTS.add(b);
         if (k == BLITZ) {
+            BLITZ_SHOTS.add(b);
             // дробь: ещё PELLETS - 1 снарядов веером по горизонтали
             for (int i = 1; i < PELLETS; i++) {
                 double ang = Math.toRadians(SPREAD * ((i + 1) / 2) * (i % 2 == 0 ? 1 : -1));

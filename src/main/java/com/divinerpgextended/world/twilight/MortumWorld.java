@@ -21,7 +21,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 /**
  * Особенность Мортума - мир мёртвых:
  * <ul>
- * <li>Лета, река забвения: вьётся по дну пещеры. Вошёл - слетают все эффекты (и яды, и бафы), мобы на {@link #FORGET}
+ * <li>Лета, река забвения: багровая, вьётся только по самым низинам пещеры (ниже {@link #LOW}). Вошёл - слетают все эффекты (и яды, и бафы), мобы на {@link #FORGET}
  * тиков теряют тебя из виду; пока стоишь в реке - утекает опыт ({@link #DRAIN} очков в секунду). Переправа - у Харона.</li>
  * <li>Склепы с саркофагами, разбросанные черепа и одинокие надгробия ({@link WorldGenTwilightFeatures}).</li>
  * </ul>
@@ -29,6 +29,8 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 public class MortumWorld {
 
     public static final int FORGET = 100, DRAIN = 3;
+    /** Лета течёт только по низинам: дно пещеры не выше этой высоты. */
+    public static final int LOW = 34;
     static final String LAST = "dreLethe", FORGOT = "dreForgot";
     /** Для автотеста и замеров: столбцов реки с запуска. */
     public static int letheColumns, crypts, skulls, docks;
@@ -120,7 +122,7 @@ public class MortumWorld {
         for (int x = x0; x < x0 + 16; x++) for (int z = z0; z < z0 + 16; z++) {
             if (!river(seed, x, z)) continue;
             int y = WorldGenTwilightFeatures.surface(w, tw, x, z);
-            if (y < 6) continue;
+            if (y < 6 || y > LOW) continue;
             boolean banks = true; // соседи вне русла не ниже уровня реки - иначе она висела бы стенкой
             int[][] nb = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
             for (int[] o : nb) {
@@ -220,7 +222,7 @@ public class MortumWorld {
             int x = x0 + 1 + r.nextInt(14), z = z0 + 1 + r.nextInt(14);
             if (river(seed, x, z) || !(river(seed, x + 2, z) || river(seed, x - 2, z) || river(seed, x, z + 2) || river(seed, x, z - 2))) continue;
             int y = WorldGenTwilightFeatures.surface(w, tw, x, z);
-            if (y < 6 || !w.isAirBlock(x, y + 3, z)) continue;
+            if (y < 6 || y > LOW + 2 || !w.isAirBlock(x, y + 3, z)) continue;
             for (int i = -1; i <= 1; i++) for (int k = -1; k <= 1; k++) {
                 if (w.getBlock(x + i, y, z + k) == ModBlocks.lethe) continue;
                 w.setBlock(x + i, y, z + k, tw.planks(), 0, 2);
