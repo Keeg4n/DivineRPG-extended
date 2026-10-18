@@ -24,11 +24,10 @@ public class ItemSkyCart extends Item {
 
     @Override
     public boolean onItemUse(ItemStack s, EntityPlayer p, World w, int x, int y, int z, int side, float hx, float hy, float hz) {
-        if (w.getBlock(x, y, z) == net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails) {
-            if (!w.isRemote) w.setBlock(x, y, z, ModBlocks.skyRail, 0, 3); // старые рельсы Divine - в рельсы аддона (на полу)
-        } else if (w.getBlock(x, y, z) != ModBlocks.skyRail) return false;
+        if (!com.divinerpgextended.block.BlockSkyRail.track(w.getBlock(x, y, z))) return false;
         if (!w.isRemote) {
             w.spawnEntityInWorld(new EntitySkyCart(w, x, y, z, p.rotationYaw));
+            com.divinerpgextended.debug.Debug.note(p, "Вагонетка Апалачии поставлена на " + x + " " + y + " " + z);
             if (!p.capabilities.isCreativeMode) s.stackSize--;
         }
         return true;

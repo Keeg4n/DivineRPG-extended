@@ -90,12 +90,6 @@ public class RangedRoles {
     private static Object[] ammoFor(ItemStack held) {
         if (held == null) return null;
         Item i = held.getItem();
-        if (i instanceof net.divinerpg.items.base.ItemModBow) {
-            Item a = field(net.divinerpg.items.base.ItemModBow.class, i, "arrow");
-            return a == null ? null : new Object[] { a, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER };
-        }
-        // ванильный лук - после луков Divine (они от него наследуются)
-        if (i instanceof net.minecraft.item.ItemBow) return new Object[] { net.minecraft.init.Items.arrow, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER };
         if (kind(held) == BLITZ) {
             Item a = field(net.divinerpg.items.base.ItemProjectileShooter.class, i, "ammo");
             return a == null ? null : new Object[] { a, com.divinerpgextended.trinket.Trinket.DUST_POUCH };
@@ -161,6 +155,52 @@ public class RangedRoles {
         }
     }
 
+    public static final String TMP_INF = "dreTmpInfinity";
+    private static final int INFINITY = net.minecraft.enchantment.Enchantment.infinity.effectId;
+
+    /** Колчан: лук (ванильный и Divine) натягивается и стреляет как с Бесконечностью - стрелы не нужны и не тратятся. */
+    @SubscribeEvent
+    public void onNock(net.minecraftforge.event.entity.player.ArrowNockEvent e) {
+        lendInfinity(e.entityPlayer, e.result);
+    }
+
+    @SubscribeEvent
+    public void onLoose(net.minecraftforge.event.entity.player.ArrowLooseEvent e) {
+        lendInfinity(e.entityPlayer, e.bow);
+    }
+
+    /** Повесить на лук временную Бесконечность (снимается, когда лук отпущен). */
+    public static void lendInfinity(EntityPlayer p, ItemStack bow) {
+        if (bow == null || !wears(p, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER)) return;
+        if (net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(INFINITY, bow) > 0) return;
+        bow.addEnchantment(net.minecraft.enchantment.Enchantment.infinity, 1);
+        bow.getTagCompound().setBoolean(TMP_INF, true);
+    }
+
+    /** Снять временную Бесконечность с лука, который больше не натягивают. */
+    public static void returnInfinity(ItemStack bow) {
+        if (bow == null || !bow.hasTagCompound() || !bow.getTagCompound().getBoolean(TMP_INF)) return;
+        bow.getTagCompound().removeTag(TMP_INF);
+        net.minecraft.nbt.NBTTagList ench = bow.getEnchantmentTagList();
+        if (ench != null) {
+            for (int i = 0; i < ench.tagCount(); i++) if (ench.getCompoundTagAt(i).getShort("id") == INFINITY) {
+                ench.removeTag(i);
+                break;
+            }
+            if (ench.tagCount() == 0) bow.getTagCompound().removeTag("ench");
+        }
+    }
+
+    @SubscribeEvent
+    public void onBowTick(TickEvent.PlayerTickEvent e) {
+        if (e.phase != TickEvent.Phase.END) return;
+        EntityPlayer p = e.player;
+        for (int i = 0; i < p.inventory.mainInventory.length; i++) {
+            ItemStack s = p.inventory.mainInventory[i];
+            if (s != null && !(p.isUsingItem() && s == p.getHeldItem())) returnInfinity(s); // натягиваемый лук не трогаем
+        }
+    }
+
     /** Стрелы из колчана не подбираются обратно (иначе колчан - ферма стрел). */
     @SubscribeEvent
     public void onArrow(EntityJoinWorldEvent e) {
@@ -216,8 +256,9 @@ public class RangedRoles {
             for (int i = 1; i < PELLETS; i++) {
                 double ang = Math.toRadians(SPREAD * ((i + 1) / 2) * (i % 2 == 0 ? 1 : -1));
                 double c = Math.cos(ang), s = Math.sin(ang);
-                spawnClone(b, b.posX, b.posY, b.posZ, b.motionX * c - b.motionZ * s, b.motionY + (e.world.rand.nextDouble() - 0.5) * 0.08,
-                    b.motionX * s + b.motionZ * c, 1);
+                double mx = b.motionX * c - b.motionZ * s, mz = b.motionX * s + b.motionZ * c;
+                // чуть впереди стрелка, чтобы дробина не начинала путь внутри него
+                spawnClone(b, b.posX + mx * 0.6, b.posY + b.motionY * 0.6, b.posZ + mz * 0.6, mx, b.motionY + (e.world.rand.nextDouble() - 0.5) * 0.08, mz, 1);
             }
         }
     }
@@ -239,6 +280,12 @@ public class RangedRoles {
             c = EntityList.createEntityFromNBT(tag, src.worldObj);
         }
         if (c == null) return null;
+        // стрелок: без него копия била самого стрелка (появлялась в нём) и не считалась его выстрелом
+        if (src instanceof net.minecraft.entity.projectile.EntityThrowable && c instanceof net.minecraft.entity.projectile.EntityThrowable) {
+            EntityLivingBase owner = ((net.minecraft.entity.projectile.EntityThrowable) src).getThrower();
+            if (owner != null) cpw.mods.fml.relauncher.ReflectionHelper.setPrivateValue(net.minecraft.entity.projectile.EntityThrowable.class,
+                (net.minecraft.entity.projectile.EntityThrowable) c, owner, "thrower", "field_70192_c");
+        }
         c.setPosition(x, y, z);
         c.motionX = mx;
         c.motionY = my;

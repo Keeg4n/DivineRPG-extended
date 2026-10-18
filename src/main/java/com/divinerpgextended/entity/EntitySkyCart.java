@@ -35,6 +35,7 @@ public class EntitySkyCart extends Entity {
         super(w);
         setSize(0.98F, 0.7F);
         preventEntitySpawning = true;
+        noClip = true; // едет вплотную к стене и потолку
     }
 
     public EntitySkyCart(World w, int x, int y, int z, float yaw) {
@@ -63,7 +64,7 @@ public class EntitySkyCart extends Entity {
     }
 
     private boolean rail(int x, int y, int z) {
-        return worldObj.getBlock(x, y, z) == ModBlocks.skyRail;
+        return BlockSkyRail.track(worldObj.getBlock(x, y, z));
     }
 
     /** Следующий рельс: прямо, иначе поворот на соседний (не назад); start - можно развернуться сразу. */
@@ -73,6 +74,15 @@ public class EntitySkyCart extends Entity {
             ny = cy + dy;
             nz = cz + dz;
             return true;
+        }
+        // подъём и спуск по наклонным рельсам Divine: вперёд и на блок выше или ниже
+        if (dy == 0) for (int up = 1; up >= -1; up -= 2) {
+            if (rail(cx + dx, cy + up, cz + dz)) {
+                nx = cx + dx;
+                ny = cy + up;
+                nz = cz + dz;
+                return true;
+            }
         }
         for (int[] d : DIRS) {
             if (d[0] == -dx && d[1] == -dy && d[2] == -dz && !start) continue;
@@ -106,7 +116,7 @@ public class EntitySkyCart extends Entity {
     /** Позиция между центрами рельсов, прижата к опоре. */
     private void updatePos() {
         double px = cx + 0.5 + (nx - cx) * t, py = cy + 0.5 + (ny - cy) * t, pz = cz + 0.5 + (nz - cz) * t;
-        ForgeDirection sup = rail(cx, cy, cz) ? BlockSkyRail.support(worldObj.getBlockMetadata(cx, cy, cz)) : ForgeDirection.DOWN;
+        ForgeDirection sup = worldObj.getBlock(cx, cy, cz) instanceof BlockSkyRail ? BlockSkyRail.support(worldObj.getBlockMetadata(cx, cy, cz)) : ForgeDirection.DOWN;
         if (!worldObj.isRemote) dataWatcher.updateObject(DW_FACE, Byte.valueOf((byte) sup.ordinal()));
         px += sup.offsetX * 0.3;
         py += sup.offsetY * 0.3 - 0.35;
@@ -126,6 +136,7 @@ public class EntitySkyCart extends Entity {
             pickNext(true);
         }
         if (!rail(cx, cy, cz)) { // рельс убрали - вагонетка выпадает предметом
+            com.divinerpgextended.debug.Debug.noteNear(this, 32, "Вагонетка Апалачии: под ней нет рельса (" + cx + " " + cy + " " + cz + ") - выпала предметом");
             dropAsItem();
             return;
         }
@@ -142,6 +153,7 @@ public class EntitySkyCart extends Entity {
                 cz = nz;
                 if (!pickNext(false)) {
                     t = 0;
+                    com.divinerpgextended.debug.Debug.noteNear(this, 32, "Вагонетка Апалачии: тупик в " + cx + " " + cy + " " + cz);
                     break;
                 }
             }
@@ -169,6 +181,17 @@ public class EntitySkyCart extends Entity {
         else e.setPosition(x, y, z);
     }
 
+    /**
+     * Клиент: позицию с сервера ставить как есть. Ванильная версия выталкивает сущность вверх из блоков, а вагонетка на
+     * стене и потолке прижата к ним - её подбрасывало на верх стены вместе с седоком.
+     */
+    @Override
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    public void setPositionAndRotation2(double x, double y, double z, float yaw, float pitch, int steps) {
+        setPosition(x, y, z);
+        setRotation(yaw, pitch);
+    }
+
     @Override
     public double getMountedYOffset() {
         return 0.35;
@@ -182,7 +205,11 @@ public class EntitySkyCart extends Entity {
     @Override
     public boolean interactFirst(EntityPlayer p) {
         if (riddenByEntity != null && riddenByEntity != p) return true;
-        if (!worldObj.isRemote) p.mountEntity(riddenByEntity == p ? null : this);
+        if (!worldObj.isRemote) {
+            p.mountEntity(riddenByEntity == p ? null : this);
+            com.divinerpgextended.debug.Debug.note(p, "Вагонетка Апалачии: " + (riddenByEntity == p ? "сел" : "слез") + " на " + cx + " " + cy + " " + cz
+                + ", дальше " + nx + " " + ny + " " + nz);
+        }
         return true;
     }
 

@@ -11,7 +11,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
 /**
- * Рельсы Апалачии: крепятся к любой грани - полу, стене, потолку (мета 0-5 - грань опоры: 0 снизу, 1 сверху, 2-5 -
+ * Навесные рельсы Апалачии: ставятся рельсами Апалачии Divine на стену или потолок (на пол - обычные рельсы Divine) (мета 0-5 - грань опоры: 0 снизу, 1 сверху, 2-5 -
  * север, юг, запад, восток; бит 8 - поперёк). По ним ездит вагонетка Апалачии ({@link com.divinerpgextended.entity.EntitySkyCart})
  * и сама поворачивает на стыках, так что можно замкнуть кольцо пол - стена - потолок - стена.
  */
@@ -37,7 +37,7 @@ public class BlockSkyRail extends Block {
         java.util.List<ForgeDirection> out = new java.util.ArrayList<ForgeDirection>();
         for (ForgeDirection d : ForgeDirection.VALID_DIRECTIONS) {
             if (d == n || d == n.getOpposite()) continue;
-            if (w.getBlock(x + d.offsetX, y + d.offsetY, z + d.offsetZ) instanceof BlockSkyRail && !out.contains(d)) out.add(d);
+            if (track(w.getBlock(x + d.offsetX, y + d.offsetY, z + d.offsetZ)) && !out.contains(d)) out.add(d);
         }
         ForgeDirection away = n.getOpposite();
         int ax = x + away.offsetX, ay = y + away.offsetY, az = z + away.offsetZ;
@@ -158,5 +158,16 @@ public class BlockSkyRail extends Block {
     @Override
     public int damageDropped(int meta) {
         return 0;
+    }
+
+    /** Ломается в рельсы Апалачии Divine: из них же и ставится. */
+    @Override
+    public net.minecraft.item.Item getItemDropped(int meta, java.util.Random r, int fortune) {
+        return net.minecraft.item.Item.getItemFromBlock(net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails);
+    }
+
+    /** Путь вагонетки Апалачии: навесной рельс или рельс Апалачии Divine. */
+    public static boolean track(Block b) {
+        return b instanceof BlockSkyRail || b == net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails;
     }
 }
