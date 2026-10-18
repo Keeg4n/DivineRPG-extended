@@ -20,6 +20,16 @@ public abstract class ColumnStructure {
 
     /** Код "столбец здесь не трогаем" и "воздух". */
     public static final int KEEP = -1, AIR = 0;
+    /**
+     * Фундамент: с этой высоты вниз, пока под ним пусто (воздух, жидкость, растения), кладётся {@link #foundation()} - до
+     * {@link #FOUNDATION_DEPTH} блоков. Постройка стоит на земле, а не висит над пещерой.
+     */
+    public static final int FOUNDATION = -2, FOUNDATION_DEPTH = 48;
+
+    /** Чем заполнять фундамент. */
+    protected Block foundation() {
+        return Blocks.stone;
+    }
 
     /** Блок и мета по коду (коды > 0 - свои у каждой постройки). */
     protected abstract Block block(int code, int meta);
@@ -65,6 +75,18 @@ public abstract class ColumnStructure {
                 for (int y = 1; y < 255; y++) {
                     int code = col[y * 2];
                     if (code == KEEP) continue;
+                    if (code == FOUNDATION) {
+                        Block f = foundation();
+                        for (int yy = y; yy > Math.max(1, y - FOUNDATION_DEPTH); yy--) {
+                            Block was = w.getBlock(x, yy, z);
+                            if (!(was.isAir(w, x, yy, z) || was.getMaterial().isLiquid() || was.getMaterial().isReplaceable() || !was.isOpaqueCube())) break;
+                            ExtendedBlockStorage fs = arr[yy >> 4];
+                            if (fs == null) fs = arr[yy >> 4] = new ExtendedBlockStorage(yy >> 4 << 4, !w.provider.hasNoSky);
+                            fs.func_150818_a(x & 15, yy & 15, z & 15, f);
+                            fs.setExtBlockMetadata(x & 15, yy & 15, z & 15, 0);
+                        }
+                        continue;
+                    }
                     int meta = col[y * 2 + 1];
                     Block b = code == AIR ? Blocks.air : block(code, meta);
                     if (code != AIR) meta = metaOf(code, meta);

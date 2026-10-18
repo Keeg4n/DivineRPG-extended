@@ -3113,8 +3113,12 @@ public class SelfTest {
                 String out = com.divinerpgextended.boss.LairSummons.refusal(v, own, c[0] + 80, fy, c[2]);
                 boolean good = floor && in == null && wrong != null && ("dre.chat.summon_arena_" + t.key()).equals(out);
                 ok &= good;
-                if (t == com.divinerpgextended.world.twilight.MortumArenas.Type.ARCHER) dump(w, c[0], fy, c[2], 34, "arena-archer");
-                if (t == com.divinerpgextended.world.twilight.MortumArenas.Type.VAMACHERON) dump(w, c[0], fy, c[2], 34, "arena-pit");
+                dump(w, c[0], com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP, c[2], 34, "arena-" + t.key());
+                // стоит на фундаменте: под полом у края нет пустоты до земли
+                int fx = c[0] + 10, fz = c[2] + 2, gap = 0;
+                for (int y = com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP - 1; y > com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP - 30; y--)
+                    if (w.isAirBlock(fx, y, fz)) gap++;
+                floor &= gap == 0;
                 sb.append(t.key()).append(good ? " ок" : " пол " + floor + " свой " + in + " чужой " + wrong + " снаружи " + out).append("; ");
             }
             // соседние квадраты всегда разных видов
@@ -3223,6 +3227,35 @@ public class SelfTest {
                 "близнецы: прикрытие " + shield + ", в очереди " + queued + ", после " + com.divinerpgextended.boss.MortumArenaBosses.pending() + ", Денсосов рядом " + w.getEntitiesWithinAABB(net.divinerpg.entities.twilight.EntityDensos.class, re.boundingBox.expand(30, 10, 30)).size() + ", поднят " + revived + ", без трофеев " + noLoot + "; шаг за спину " + stepped + "; пожиратель: надгробий " + stones + ", душ " + raised + ", целых осталось " + intact + ", неуязвим " + guarded + ", потом уязвим " + open
                     + "; вамачерон: оглушён на тике " + stunAt + ", урон " + vh.ammount + "; лучник: стрел " + arrows + ", колонна осыпалась " + eroded);
             return "близнецы прикрывают друг друга, шагают за спину и поднимают брата (без трофеев); Пожиратель поднимает души только из целых могил рядом, могила рассыпается, пока души живы - неуязвим; Вамачерон оглушается о стену (урон x2); лучник бьёт залпом и рушит укрытия";
+        });
+        t("Логова", "Мортум: останки гигантов", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            int x0 = 9820, y0 = 60, z0 = 9820;
+            loadAround(w, x0, z0, 2);
+            for (int x = x0 - 12; x <= x0 + 12; x++) for (int z = z0 - 12; z <= z0 + 12; z++) for (int y = y0 - 6; y <= 120; y++)
+                w.setBlock(x, y, z, y < y0 ? net.divinerpg.utils.blocks.TwilightBlocks.mortumGrass : Blocks.air);
+            java.util.Random rr = new java.util.Random(3);
+            boolean skull = com.divinerpgextended.world.twilight.MortumWorld.giantSkull(w, rr, com.divinerpgextended.world.twilight.TwilightWorld.MORTUM, x0, z0);
+            int bone = 0, chest = 0, airInside = 0;
+            for (int x = x0 - 7; x <= x0 + 7; x++) for (int z = z0 - 7; z <= z0 + 7; z++) for (int y = y0 - 6; y <= y0 + 9; y++) {
+                if (w.getBlock(x, y, z) == Blocks.quartz_block) bone++;
+                if (w.getBlock(x, y, z) == Blocks.chest) chest++;
+                if (Math.abs(x - x0) <= 2 && Math.abs(z - z0) <= 2 && y >= y0 && y <= y0 + 3 && w.isAirBlock(x, y, z)) airInside++;
+            }
+            boolean buried = w.getBlock(x0, y0 - 2, z0) != Blocks.air; // низ черепа в земле
+            for (int x = x0 - 12; x <= x0 + 12; x++) for (int z = z0 - 12; z <= z0 + 12; z++) for (int y = y0 - 6; y <= 120; y++)
+                w.setBlock(x, y, z, y < y0 ? net.divinerpg.utils.blocks.TwilightBlocks.mortumGrass : Blocks.air);
+            boolean ribs = com.divinerpgextended.world.twilight.MortumWorld.giantRibs(w, rr, com.divinerpgextended.world.twilight.TwilightWorld.MORTUM, x0, z0);
+            int rib = 0, high = 0;
+            for (int x = x0 - 9; x <= x0 + 9; x++) for (int z = z0 - 9; z <= z0 + 9; z++) for (int y = y0 - 1; y <= y0 + 8; y++)
+                if (w.getBlock(x, y, z) == Blocks.quartz_block) {
+                    rib++;
+                    if (y >= y0 + 4) high++;
+                }
+            for (int x = x0 - 12; x <= x0 + 12; x++) for (int z = z0 - 12; z <= z0 + 12; z++) for (int y = y0 - 6; y <= 120; y++) w.setBlockToAir(x, y, z);
+            check(skull && bone > 120 && chest == 1 && airInside > 5 && buried && ribs && rib > 60 && high > 10,
+                "череп " + skull + ": кости " + bone + ", сундук " + chest + ", полость " + airInside + ", в земле " + buried + "; рёбра " + ribs + ": кости " + rib + ", из них выше 4 блоков " + high);
+            return "череп гиганта (" + bone + " блоков кости, наполовину в земле, внутри полость и сундук) и грудная клетка (" + rib + " блоков, рёбра дугами)";
         });
         t("Логова", "Мортум: Лета, Харон, склеп", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);

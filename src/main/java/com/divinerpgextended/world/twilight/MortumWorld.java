@@ -23,7 +23,8 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * <ul>
  * <li>Лета, река забвения: багровая, вьётся только по самым низинам пещеры (ниже {@link #LOW}). Вошёл - слетают все эффекты (и яды, и бафы), мобы на {@link #FORGET}
  * тиков теряют тебя из виду; пока стоишь в реке - утекает опыт ({@link #DRAIN} очков в секунду). Переправа - у Харона.</li>
- * <li>Склепы с саркофагами, разбросанные черепа и одинокие надгробия ({@link WorldGenTwilightFeatures}).</li>
+ * <li>Склепы с саркофагами, останки гигантов (череп наполовину в земле - внутри сундук, грудная клетка), редкие черепа и
+ * одинокие надгробия ({@link WorldGenTwilightFeatures}).</li>
  * </ul>
  */
 public class MortumWorld {
@@ -152,9 +153,12 @@ public class MortumWorld {
         return true;
     }
 
-    /** Черепа и изредка надгробие на дне пещеры в области заселения. */
+    /** Останки гигантов (изредка), черепа и одинокие надгробия на дне пещеры в области заселения. */
     static void bones(World w, Random r, TwilightWorld tw, int x0, int z0) {
-        int n = r.nextInt(4);
+        int roll = r.nextInt(14);
+        if (roll == 0) giantSkull(w, r, tw, x0 + 5 + r.nextInt(6), z0 + 5 + r.nextInt(6));
+        else if (roll == 1) giantRibs(w, r, tw, x0 + 6 + r.nextInt(4), z0 + 6 + r.nextInt(4));
+        int n = r.nextInt(3) == 0 ? 1 : 0;
         for (int i = 0; i < n; i++) {
             int x = x0 + r.nextInt(16), z = z0 + r.nextInt(16), y = WorldGenTwilightFeatures.surface(w, tw, x, z);
             if (y > 0 && w.getBlock(x, y, z) != ModBlocks.lethe) skull(w, r, x, y + 1, z);
@@ -236,5 +240,95 @@ public class MortumWorld {
             return true;
         }
         return false;
+    }
+
+    // ---------------------------------------------------------------- останки гигантов
+
+    public static int giantSkulls, giantRibs;
+
+    private static void bone(World w, int x, int y, int z, int meta) {
+        if (y > 1 && y < 250) w.setBlock(x, y, z, Blocks.quartz_block, meta, 2);
+    }
+
+    /** Ровно ли под останками: разброс поверхности в квадрате 2r+1 не больше 4. */
+    private static int flatGround(World w, TwilightWorld tw, int cx, int cz, int r) {
+        int lo = 999, hi = -1;
+        for (int i = -r; i <= r; i += 2) for (int k = -r; k <= r; k += 2) {
+            int y = WorldGenTwilightFeatures.surface(w, tw, cx + i, cz + k);
+            if (y < 0) return -1;
+            lo = Math.min(lo, y);
+            hi = Math.max(hi, y);
+        }
+        return hi - lo <= 4 ? WorldGenTwilightFeatures.surface(w, tw, cx, cz) : -1;
+    }
+
+    /**
+     * Череп гиганта: кварцевая скорлупа-эллипсоид (5 x 4 x 5) лицом в случайную сторону, наклонён носом в землю и наполовину
+     * в ней. Глазницы и нос - дыры (в глазницу можно пролезть), снизу верхняя челюсть с зубами. Внутри полость, на дне -
+     * сундук с добычей Мортума.
+     */
+    public static boolean giantSkull(World w, Random r, TwilightWorld tw, int cx, int cz) {
+        int g = flatGround(w, tw, cx, cz, 6);
+        if (g < 6 || g > 110) return false;
+        double yaw = r.nextInt(4) * Math.PI / 2 + (r.nextDouble() - 0.5) * 0.6, tilt = Math.toRadians(18 + r.nextInt(18));
+        double cy = g + 1.5, a = 5, b = 4, c = 5;
+        double cyw = Math.cos(yaw), syw = Math.sin(yaw), ct = Math.cos(tilt), st = Math.sin(tilt);
+        for (int x = -7; x <= 7; x++) for (int y = -7; y <= 7; y++) for (int z = -7; z <= 7; z++) {
+            // мир -> лицо черепа: поворот обратно по рысканью, потом по наклону (нос вниз)
+            double lx = x * cyw + z * syw, lz0 = -x * syw + z * cyw;
+            double ly = y * ct - lz0 * st, lz = y * st + lz0 * ct;
+            int wx = cx + x, wy = (int) Math.round(cy + y), wz = cz + z;
+            double q = (lx / a) * (lx / a) + (ly / b) * (ly / b) + (lz / c) * (lz / c);
+            boolean eye = Math.min(dist(lx, ly, lz, 2, 0.8, 4.2), dist(lx, ly, lz, -2, 0.8, 4.2)) < 1.6;
+            boolean nose = dist(lx, ly, lz, 0, -1.3, 4.6) < 1.0;
+            boolean jaw = ly >= -4.2 && ly <= -2.4 && (lx / 3.2) * (lx / 3.2) + ((lz - 2.6) / 3.0) * ((lz - 2.6) / 3.0) <= 1;
+            boolean tooth = ly < -4.2 && ly >= -5.4 && Math.abs((lx / 3.2) * (lx / 3.2) + ((lz - 2.6) / 3.0) * ((lz - 2.6) / 3.0) - 0.8) < 0.25
+                && ((int) Math.floor(lx + 10) % 2 == 0);
+            if (q <= 1 && q >= 0.5 && !eye && !nose) bone(w, wx, wy, wz, (Math.abs(lx) < 0.5 && ly > 1) ? 1 : 0); // шов по темени - резной
+            else if (q < 0.5 || (q <= 1 && (eye || nose))) {
+                if (wy > g) w.setBlock(wx, wy, wz, Blocks.air, 0, 2); // полость и дыры - выше земли
+            } else if (jaw || tooth) bone(w, wx, wy, wz, 0);
+        }
+        // сундук на дне полости
+        int sy = g + 1;
+        while (sy < g + 4 && !w.isAirBlock(cx, sy, cz)) sy++;
+        if (w.isAirBlock(cx, sy, cz)) WorldGenTwilightFeatures.chest(w, r, cx, sy, cz, TwilightLoot.dungeon(tw), 4 + r.nextInt(3));
+        giantSkulls++;
+        return true;
+    }
+
+    private static double dist(double x, double y, double z, double px, double py, double pz) {
+        return Math.sqrt((x - px) * (x - px) + (y - py) * (y - py) + (z - pz) * (z - pz));
+    }
+
+    /**
+     * Грудная клетка гиганта: хребет из позвонков лежит на земле (наполовину в ней), над ним дугами пять пар рёбер; одно-два
+     * обломаны, вся клетка чуть завалена набок.
+     */
+    public static boolean giantRibs(World w, Random r, TwilightWorld tw, int cx, int cz) {
+        int g = flatGround(w, tw, cx, cz, 7);
+        if (g < 6 || g > 110) return false;
+        boolean alongX = r.nextBoolean();
+        double roll = (r.nextDouble() - 0.5) * 0.5;
+        int broken = r.nextInt(5), broken2 = r.nextInt(3) == 0 ? r.nextInt(5) : -1;
+        // позвонки: столб лёжа вдоль хребта, через один - отросток вверх
+        for (int s = -8; s <= 8; s++) {
+            int x = cx + (alongX ? s : 0), z = cz + (alongX ? 0 : s);
+            bone(w, x, g, z, alongX ? 3 : 4);
+            if (Math.floorMod(s, 2) == 0 && Math.abs(s) < 8) bone(w, x, g + 1, z, 0);
+        }
+        int pair = 0;
+        for (int s = -6; s <= 6; s += 3, pair++) {
+            for (double t = 0.1 * Math.PI; t <= 0.92 * Math.PI; t += 0.035) {
+                if ((pair == broken || pair == broken2) && t > 0.55 * Math.PI) break; // обломано
+                double side = 6.5 * Math.cos(t), up = 6.2 * Math.sin(t);
+                // завал набок: поворот дуги вокруг хребта
+                double sd = side * Math.cos(roll) - up * Math.sin(roll), u = side * Math.sin(roll) + up * Math.cos(roll);
+                int x = cx + (alongX ? s : (int) Math.round(sd)), z = cz + (alongX ? (int) Math.round(sd) : s), y = g + (int) Math.round(u);
+                if (y >= g) bone(w, x, y, z, 0);
+            }
+        }
+        giantRibs++;
+        return true;
     }
 }

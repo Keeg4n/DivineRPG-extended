@@ -729,13 +729,18 @@ public class WorldGenNests implements IWorldGenerator {
         }
 
         @Override
+        protected Block foundation() {
+            return palette(TwilightWorld.MORTUM, STONE);
+        }
+
+        @Override
         protected boolean column(int dx, int dz, int[] col) {
             double r = Math.sqrt(dx * dx + dz * dz), R = CIRCLE_R;
             if (r > HALL_R + 0.5) return false;
             // зал-купол: выше к центру, по краю - пол пещеры поднят каменным уступом
-            int dome = (int) (HALL_H * Math.sqrt(Math.max(0, 1 - (r / (HALL_R + 1)) * (r / (HALL_R + 1))))) + 4;
-            for (int y = TOP + 1; y <= TOP + dome; y++) put(col, y, AIR, 0);
-            put(col, TOP + dome + 1, STONE, 0); // свод
+            // расчищено над кругом (без свода: Мортум - открытые пещеры, свод висел бы зонтом); стоит на фундаменте до земли
+            for (int y = TOP + 1; y <= TOP + 14; y++) put(col, y, AIR, 0);
+            put(col, TOP - 5, FOUNDATION, 0);
             if (r > R + 0.5) {
                 put(col, TOP, STONE, 0);
                 for (int y = TOP - 4; y < TOP; y++) put(col, y, STONE, 0);

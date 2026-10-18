@@ -12,14 +12,15 @@ import net.minecraft.world.World;
 /**
  * Арены боссов Мортума: у каждого кристалла - своя, вызвать босса можно только на ней. В каждом квадрате Мортума
  * ({@link WorldGenNests#spacing}) одна арена, тип из сида и координат квадрата так, что соседние квадраты всегда разные.
- * Все - залы-купола в пещере на высоте {@link WorldGenNests#MORTUM_TOP} с четырьмя тоннелями наружу.
+ * Все - отдельные постройки на высоте {@link WorldGenNests#MORTUM_TOP} на своём фундаменте до земли, с расчищенным
+ * местом вокруг и четырьмя проходами, если стоят в толще камня ({@link Building}).
  * <ul>
  * <li>Демонический круг - Демон сумерек (кольца, обелиски).</li>
- * <li>Зал близнецов - Денсос и Рейвор: светлая и тёмная половины, по помосту в каждой.</li>
- * <li>Зеркальный зал - Карот: квадратный зал со стенами-зеркалами.</li>
- * <li>Галерея - Вечный лучник: длинный зал, лучник на помосте в конце, ряды колонн-укрытий.</li>
- * <li>Погост - Пожиратель душ: могилы рядами, из них он поднимает души.</li>
- * <li>Костяная яма - Вамачерон: просевший пол и кольцо костяных столбов, о которые он разбивается в рывке.</li>
+ * <li>Зал близнецов - Денсос и Рейвор: крепость из светлой и тёмной половин, разлом с мостами, помост брата в каждой.</li>
+ * <li>Зеркальный зал - Карот: закрытое здание с контрфорсами, внутри стены из чёрных зеркал.</li>
+ * <li>Галерея - Вечный лучник: аркада под двускатной кровлей, трон лучника на помосте, колонны-укрытия.</li>
+ * <li>Погост - Пожиратель душ: кладбище за оградой, дорожки, могилы рядами, мавзолей в центре.</li>
+ * <li>Костяная яма - Вамачерон: амфитеатр с ямой, трибунами и костяными столбами под грудной клеткой гиганта.</li>
  * </ul>
  */
 public final class MortumArenas {
@@ -136,12 +137,17 @@ public final class MortumArenas {
         }
     }
 
-    // ---------------------------------------------------------------- общее для залов
+    // ---------------------------------------------------------------- общее для построек
 
-    static final int BRICK = 50, CHISEL = 51, BONE = 52, MIRROR = 53, OBSIDIAN = 54, SLAB = 55;
+    static final int BRICK = 50, CHISEL = 51, BONE = 52, MIRROR = 53, OBSIDIAN = 54, SLAB = 55, MOSSY = 56, CRACKED = 57, PILLAR = 58, FENCE = 59,
+        GRAVEL = 60, SOUL = 61, BONE_CHISEL = 62, SLAB_TOP = 63, NETHER = 64, QSLAB = 65, BARS = 66;
 
-    /** Зал-купол в пещере: пол на TOP, купол радиусом hallR, 4 тоннеля наружу (3 x 4) длиной TUNNEL. */
-    abstract static class Hall extends ColumnStructure {
+    /**
+     * Постройка арены в пещере Мортума: стоит на своём фундаменте до земли ({@link ColumnStructure#FOUNDATION}), над ней
+     * расчищено место (без каменного купола - Мортум почти весь из открытых пещер, купол висел бы зонтом), к ней ведут
+     * четыре прохода через скалу, если она в толще камня.
+     */
+    abstract static class Building extends ColumnStructure {
 
         static final int TOP = WorldGenNests.MORTUM_TOP, TUNNEL = 12;
 
@@ -151,15 +157,47 @@ public final class MortumArenas {
         }
 
         @Override
+        protected Block foundation() {
+            return WorldGenNests.palette(TwilightWorld.MORTUM, WorldGenNests.STONE);
+        }
+
+        @Override
         protected Block block(int code, int meta) {
             switch (code) {
-                case BRICK: case CHISEL: return Blocks.stonebrick;
-                case BONE: return Blocks.quartz_block;
-                case MIRROR: return Blocks.glass;
+                case BRICK: case CHISEL: case MOSSY: case CRACKED: return Blocks.stonebrick;
+                case BONE: case PILLAR: case BONE_CHISEL: return Blocks.quartz_block;
+                case MIRROR: return Blocks.stained_glass;
                 case OBSIDIAN: return Blocks.obsidian;
-                case SLAB: return Blocks.stone_slab;
+                case SLAB: case SLAB_TOP: return Blocks.stone_slab;
+                case QSLAB: return Blocks.stone_slab;
+                case FENCE: return Blocks.nether_brick_fence;
+                case GRAVEL: return Blocks.gravel;
+                case SOUL: return Blocks.soul_sand;
+                case NETHER: return Blocks.nether_brick;
+                case BARS: return Blocks.iron_bars;
                 default: return WorldGenNests.palette(TwilightWorld.MORTUM, code);
             }
+        }
+
+        /** Мета по коду: резной/мшистый/треснувший кирпич, кварцевый столб, чёрное стекло, плиты. */
+        static int meta(int code) {
+            switch (code) {
+                case CHISEL: return 3;
+                case MOSSY: return 1;
+                case CRACKED: return 2;
+                case PILLAR: return 2;
+                case BONE_CHISEL: return 1;
+                case MIRROR: return 15;
+                case SLAB: return 5;
+                case SLAB_TOP: return 13;
+                case QSLAB: return 7;
+                default: return 0;
+            }
+        }
+
+        /** Положить код с его метой. */
+        static void set(int[] col, int y, int code) {
+            put(col, y, code, meta(code));
         }
 
         @Override
@@ -167,116 +205,209 @@ public final class MortumArenas {
             return WorldGenNests.isLamp(b);
         }
 
-        /** Радиус зала (купол), высота купола, высота свода над полом в центре. */
-        abstract int hallR();
+        /** Входит ли столбец в постройку (без проходов). */
+        abstract boolean footprint(int dx, int dz);
 
-        int domeH() {
-            return 18;
+        /** Сколько воздуха расчистить над полом (выше - как было). */
+        abstract int clear(int dx, int dz);
+
+        /** Сама постройка в столбце: пол на TOP, всё выше. */
+        abstract void build(int dx, int dz, int[] col);
+
+        /** Пол: старый кирпич с мхом и трещинами. */
+        static int worn(int dx, int dz) {
+            int h = hash(dx, dz) % 9;
+            return h == 0 ? MOSSY : h == 1 ? CRACKED : BRICK;
         }
-
-        /** Пол и убранство внутри зала (воздух над полом уже вырезан). */
-        abstract void inside(int dx, int dz, double r, int[] col);
 
         @Override
         protected boolean column(int dx, int dz, int[] col) {
-            double r = Math.sqrt(dx * dx + dz * dz);
-            int R = hallR();
-            boolean tunnel = (Math.abs(dx) <= 1 || Math.abs(dz) <= 1) && r <= R + TUNNEL;
-            if (r > R + 0.5 && !tunnel) return false;
-            if (r > R + 0.5) { // тоннель: пол, 4 воздуха, свод
+            boolean in = footprint(dx, dz);
+            int ax = Math.abs(dx), az = Math.abs(dz), far = Math.max(ax, az);
+            boolean tunnel = !in && (ax <= 1 || az <= 1) && far <= reach() + TUNNEL;
+            if (!in && !tunnel) return false;
+            if (!in) { // проход к постройке: только вырезать, пол - камень
+                put(col, TOP - 1, FOUNDATION, 0);
                 put(col, TOP, WorldGenNests.STONE, 0);
                 for (int y = TOP + 1; y <= TOP + 4; y++) put(col, y, AIR, 0);
-                put(col, TOP + 5, WorldGenNests.STONE, 0);
                 return true;
             }
-            int dome = (int) (domeH() * Math.sqrt(Math.max(0, 1 - (r / (R + 1)) * (r / (R + 1))))) + 5;
-            for (int y = TOP + 1; y <= TOP + dome; y++) put(col, y, AIR, 0);
-            put(col, TOP + dome + 1, WorldGenNests.STONE, 0); // свод
-            for (int y = TOP - 4; y <= TOP; y++) put(col, y, WorldGenNests.STONE, 0); // фундамент
-            inside(dx, dz, r, col);
+            put(col, TOP - 5, FOUNDATION, 0);
+            for (int y = TOP - 4; y < TOP; y++) put(col, y, WorldGenNests.STONE, 0);
+            int c = clear(dx, dz);
+            for (int y = TOP + 1; y <= TOP + c; y++) put(col, y, AIR, 0);
+            build(dx, dz, col);
             return true;
         }
+
+        /** Докуда от центра доходит постройка (для проходов). */
+        abstract int reach();
     }
 
     // ---------------------------------------------------------------- Денсос и Рейвор
 
-    /** Зал близнецов: запад - светлый (камень мира, светильники), восток - тёмный (обсидиан); по помосту в каждой половине. */
-    static class Twins extends Hall {
+    /**
+     * Зал близнецов: круглая площадка-крепость с зубчатой стеной. Запад - светлый (кварц, светильники, кварцевые столбы),
+     * восток - тёмный (обсидиан, камень Мортума, обсидиановые шпили). Между половинами - разлом с душевным песком на дне и
+     * тремя мостами. В каждой половине помост с шпилем - место брата.
+     */
+    static class Twins extends Building {
 
         static final int R = 24, DAIS_X = 12;
 
         @Override
-        int hallR() {
-            return R + 2;
+        boolean footprint(int dx, int dz) {
+            return dx * dx + dz * dz <= (R + 1) * (R + 1);
         }
 
         @Override
-        void inside(int dx, int dz, double r, int[] col) {
+        int reach() {
+            return R + 1;
+        }
+
+        @Override
+        int clear(int dx, int dz) {
+            return 14;
+        }
+
+        @Override
+        void build(int dx, int dz, int[] col) {
+            double r = Math.sqrt(dx * dx + dz * dz);
             boolean light = dx < 0;
-            if (r > R) {
-                put(col, TOP + 1, BRICK, 0); // бортик
+            int wall = light ? BONE : OBSIDIAN;
+            if (r > R - 1.5) { // стена с зубцами; ворота с севера и юга
+                set(col, TOP, light ? BONE : OBSIDIAN);
+                boolean gate = Math.abs(dx) <= 1;
+                if (!gate) {
+                    for (int y = TOP + 1; y <= TOP + 4; y++) set(col, y, wall);
+                    if ((int) Math.round(Math.atan2(dz, dx) * R) % 2 == 0) set(col, TOP + 5, wall);
+                } else set(col, TOP + 5, CHISEL); // перемычка ворот
                 return;
             }
-            put(col, TOP, light ? (hash(dx, dz) % 5 == 0 ? WorldGenNests.GLOW : WorldGenNests.GEM) : (hash(dx, dz) % 3 == 0 ? OBSIDIAN : WorldGenNests.STONE), 0);
-            // граница половин: низкая стена с проходами
-            if (dx == 0 && Math.abs(dz) > 3 && Math.abs(dz) % 6 != 0) put(col, TOP + 1, CHISEL, 3);
-            // помосты: круг радиусом 3 на высоту 1
+            // разлом между половинами
+            if (Math.abs(dx) <= 1) {
+                boolean bridge = Math.abs(dz) <= 1 || Math.abs(Math.abs(dz) - 12) <= 1;
+                if (bridge) {
+                    set(col, TOP, SLAB_TOP);
+                    if (Math.abs(dz) % 12 == 2 || Math.abs(dz) % 12 == 10) set(col, TOP + 1, FENCE);
+                } else {
+                    put(col, TOP, AIR, 0);
+                    put(col, TOP - 1, AIR, 0);
+                    put(col, TOP - 2, AIR, 0);
+                    set(col, TOP - 3, SOUL);
+                }
+                return;
+            }
+            // пол: светлая половина - кварц с узором, тёмная - обсидиан и камень мира
+            int ring = (int) r % 6;
+            if (light) set(col, TOP, ring == 0 ? BONE_CHISEL : hash(dx, dz) % 11 == 0 ? WorldGenNests.GLOW : BONE);
+            else set(col, TOP, ring == 0 ? WorldGenNests.GEM : hash(dx, dz) % 3 == 0 ? OBSIDIAN : WorldGenNests.STONE);
+            // кольцо колонн
+            double cd = WorldGenNests.ringDist(dx, dz, 18, 10, Math.PI / 10);
+            if (cd < 0.8) {
+                for (int y = TOP + 1; y <= TOP + 7; y++) set(col, y, light ? PILLAR : OBSIDIAN);
+                set(col, TOP + 8, light ? WorldGenNests.GLOW : WorldGenNests.GEM);
+            }
+            // помост брата со шпилем
             double d = Math.sqrt((Math.abs(dx) - DAIS_X) * (Math.abs(dx) - DAIS_X) + dz * dz);
-            if (d < 3.5) put(col, TOP + 1, light ? WorldGenNests.GEM : OBSIDIAN, 0);
-            if (d < 0.5) put(col, TOP + 2, light ? WorldGenNests.GLOW : OBSIDIAN, 0);
+            if (d < 4.5) set(col, TOP + 1, light ? QSLAB : SLAB);
+            if (d < 3.5) set(col, TOP + 1, light ? BONE : OBSIDIAN);
+            if (d < 0.8) for (int y = TOP + 2; y <= TOP + (light ? 5 : 10); y++) set(col, y, light ? PILLAR : OBSIDIAN);
+            if (d < 0.8) set(col, TOP + (light ? 6 : 11), light ? WorldGenNests.GLOW : WorldGenNests.GEM);
         }
     }
 
     // ---------------------------------------------------------------- Карот
 
-    /** Зеркальный зал: квадрат, стены из зеркал (стекло) между колоннами, пол шахматкой. */
-    static class Mirror extends Hall {
+    /**
+     * Зеркальный зал: закрытое здание - снаружи стены из кирпича с контрфорсами и зубчатой крышей, внутри стены из чёрного
+     * стекла-зеркал между резными колоннами, четыре колонны до потолка, мозаика в центре, свет из окон в потолке.
+     */
+    static class Mirror extends Building {
 
-        static final int H = 14, WALL = 7;
+        static final int H = 14, WALL = 8;
 
         @Override
-        int hallR() {
-            return 21; // квадрат H целиком внутри купола
+        boolean footprint(int dx, int dz) {
+            return Math.abs(dx) <= H + 2 && Math.abs(dz) <= H + 2;
         }
 
         @Override
-        void inside(int dx, int dz, double r, int[] col) {
-            int ax = Math.abs(dx), az = Math.abs(dz);
-            if (ax > H || az > H) { // вне квадрата - камень до свода зала (зал квадратный), кроме тоннелей
-                for (int y = TOP + 1; y <= TOP + WALL + 1; y++) put(col, y, WorldGenNests.STONE, 0);
-                if (ax <= 1 || az <= 1) for (int y = TOP + 1; y <= TOP + 4; y++) put(col, y, AIR, 0);
+        int reach() {
+            return H + 2;
+        }
+
+        @Override
+        int clear(int dx, int dz) {
+            return WALL + 4;
+        }
+
+        @Override
+        void build(int dx, int dz, int[] col) {
+            int ax = Math.abs(dx), az = Math.abs(dz), m = Math.max(ax, az), lo = Math.min(ax, az);
+            boolean door = lo <= 1 && m >= H;
+            if (m > H + 1) { // контрфорсы снаружи
+                set(col, TOP, BRICK);
+                if (lo % 5 == 2 && lo < H) for (int y = TOP + 1; y <= TOP + WALL - 2; y++) set(col, y, CHISEL);
                 return;
             }
-            put(col, TOP, (dx + dz & 1) == 0 ? WorldGenNests.GEM : WorldGenNests.STONE, 0);
-            if (ax == H || az == H) {
-                boolean pillar = (ax == H ? az : ax) % 4 == 0;
-                for (int y = TOP + 1; y <= TOP + WALL; y++) put(col, y, pillar ? CHISEL : MIRROR, pillar ? 3 : 0);
-                if (pillar) put(col, TOP + WALL + 1, WorldGenNests.GLOW, 0);
-                // проходы к тоннелям
-                if ((ax == H && az <= 1) || (az == H && ax <= 1)) for (int y = TOP + 1; y <= TOP + 4; y++) put(col, y, AIR, 0);
+            if (m == H + 1) { // внешняя стена
+                set(col, TOP, BRICK);
+                for (int y = TOP + 1; y <= TOP + WALL + 1; y++) set(col, y, door && y <= TOP + 4 ? AIR : worn(dx, y * 7 + dz));
+                if (door) set(col, TOP + 5, CHISEL);
+                if ((ax + az) % 2 == 0) set(col, TOP + WALL + 2, BRICK); // зубцы
+                return;
             }
-            if (ax == 7 && az == 7) put(col, TOP, WorldGenNests.GLOW, 0);
+            if (m == H) { // зеркала между колоннами
+                set(col, TOP, BRICK);
+                boolean pillar = lo % 4 == 0;
+                for (int y = TOP + 1; y <= TOP + WALL; y++) set(col, y, door && y <= TOP + 4 ? AIR : pillar ? CHISEL : MIRROR);
+                if (pillar && !door) set(col, TOP + WALL - 1, WorldGenNests.GLOW);
+                set(col, TOP + WALL + 1, BRICK);
+                return;
+            }
+            // пол шахматкой, мозаика в центре
+            double r = Math.sqrt(dx * dx + dz * dz);
+            set(col, TOP, r < 4 ? (r < 1.5 ? WorldGenNests.GEM : BONE_CHISEL) : ((dx + dz) & 1) == 0 ? WorldGenNests.GEM : BRICK);
+            if (ax == 7 && az == 7) for (int y = TOP + 1; y <= TOP + WALL; y++) set(col, y, PILLAR);
+            if (ax == 7 && az == 7) set(col, TOP + 1, BONE_CHISEL);
+            // потолок с окнами-светильниками
+            set(col, TOP + WALL + 1, ax % 5 == 0 && az % 5 == 0 ? WorldGenNests.GLOW : BRICK);
+            if ((ax + az) % 2 == 1 && m == H - 1) set(col, TOP + WALL + 2, BRICK);
         }
     }
 
     // ---------------------------------------------------------------- Вечный лучник
 
-    /** Галерея: прямоугольник HX x HZ (вдоль Z), лучник на помосте у северного торца, колонны-укрытия рядами. */
-    static class Gallery extends Hall {
+    /**
+     * Галерея: длинная аркада вдоль Z с двускатной кровлей - по бокам столбы и арки (видно пещеру), под кровлей подвесные
+     * светильники, ковровая дорожка из адского кирпича к трону лучника на помосте у северного торца; ряды колонн-укрытий
+     * из резного кирпича (их рушат залпы).
+     */
+    static class Gallery extends Building {
 
-        static final int HX = 11, HZ = 27, DAIS_H = 3, COL_H = 4;
+        static final int HX = 11, HZ = 27, DAIS_H = 3, COL_H = 4, EAVE = 8;
 
         @Override
-        int hallR() {
-            return 30;
+        boolean footprint(int dx, int dz) {
+            return Math.abs(dx) <= HX + 1 && Math.abs(dz) <= HZ + 1;
         }
 
         @Override
-        int domeH() {
-            return 14;
+        int reach() {
+            return HZ + 1;
         }
 
-        /** Колонна-укрытие 2 x 2 (из резного камня - его рушат залпы). */
+        @Override
+        int clear(int dx, int dz) {
+            return EAVE + 9;
+        }
+
+        /** Высота кровли над полом (скат от карниза к коньку). */
+        static int roof(int ax) {
+            return EAVE + (HX + 1 - ax) / 2;
+        }
+
         static boolean cover(int dx, int dz) {
             int[] rows = { -14, -7, 0, 7, 14 };
             for (int i = 0; i < rows.length; i++) {
@@ -287,74 +418,152 @@ public final class MortumArenas {
         }
 
         @Override
-        void inside(int dx, int dz, double r, int[] col) {
+        void build(int dx, int dz, int[] col) {
             int ax = Math.abs(dx), az = Math.abs(dz);
-            if (ax > HX || az > HZ) {
-                for (int y = TOP + 1; y <= TOP + 8; y++) put(col, y, WorldGenNests.STONE, 0);
-                if (az <= 1 || ax <= 1) for (int y = TOP + 1; y <= TOP + 4; y++) put(col, y, AIR, 0); // тоннели
+            int roofY = TOP + roof(ax);
+            set(col, roofY, BRICK); // кровля
+            if (ax == HX + 1) set(col, roofY - 1, SLAB_TOP); // карниз
+            if (ax <= HX + 1 && az == HZ + 1) { // торцы: глухие до кровли, на юге - вход
+                set(col, TOP, BRICK);
+                boolean door = dz > 0 && ax <= 1;
+                for (int y = TOP + 1; y < roofY; y++) set(col, y, door && y <= TOP + 4 ? AIR : worn(dx, y * 3 + dz));
+                if (door) set(col, TOP + 5, CHISEL);
+                if (dz < 0 && ax <= 2 && roofY - TOP > 10) set(col, TOP + 9, WorldGenNests.GLOW); // окно над троном
                 return;
             }
-            put(col, TOP, az % 6 == 0 && ax == HX - 1 ? WorldGenNests.GLOW : BRICK, 0);
-            if (ax == HX) for (int y = TOP + 1; y <= TOP + 3; y++) put(col, y, BRICK, 0);
-            if (ax == HX && az % 6 == 3) put(col, TOP + 3, WorldGenNests.GLOW, 0);
-            // помост лучника у северного торца
-            if (dz <= -(HZ - 5)) {
-                for (int y = TOP + 1; y <= TOP + DAIS_H; y++) put(col, y, dz == -(HZ - 5) && ax <= 2 ? SLAB : BRICK, 0);
-                if (dz == -(HZ - 5) && ax <= 2) for (int y = TOP + 1; y < TOP + DAIS_H; y++) put(col, y, BRICK, 0);
+            set(col, TOP, ax <= 1 ? NETHER : worn(dx, dz));
+            if (ax == HX + 1 || ax == HX) { // аркада: столбы через 4, между ними арки
+                boolean pier = Math.floorMod(dz, 4) == 0;
+                if (ax == HX + 1) {
+                    for (int y = TOP + 1; y < roofY; y++) {
+                        boolean arch = !pier && y <= TOP + 5 - (Math.floorMod(dz, 4) == 2 ? 0 : 1) + 1;
+                        set(col, y, pier ? CHISEL : arch ? AIR : BRICK);
+                    }
+                    if (pier) set(col, TOP + EAVE - 2, WorldGenNests.GLOW);
+                }
+                return;
             }
-            if (cover(dx, dz)) for (int y = TOP + 1; y <= TOP + COL_H; y++) put(col, y, CHISEL, 3);
+            // подвесные светильники по оси
+            if (ax == 0 && Math.floorMod(dz, 6) == 3) {
+                set(col, roofY - 1, FENCE);
+                set(col, roofY - 2, WorldGenNests.GLOW);
+            }
+            // помост и трон у северного торца
+            if (dz <= -(HZ - 5)) {
+                boolean step = dz == -(HZ - 5);
+                for (int y = TOP + 1; y <= TOP + DAIS_H; y++) set(col, y, step && y == TOP + DAIS_H ? SLAB : BRICK);
+                if (dz == -HZ && ax <= 2) for (int y = TOP + DAIS_H + 1; y <= TOP + DAIS_H + (ax == 0 ? 5 : 3); y++) set(col, y, ax == 0 ? CHISEL : BRICK);
+                if (dz == -HZ + 1 && ax <= 1) set(col, TOP + DAIS_H + 1, ax == 0 ? SLAB : AIR);
+            }
+            if (cover(dx, dz)) for (int y = TOP + 1; y <= TOP + COL_H; y++) set(col, y, CHISEL);
         }
     }
 
     // ---------------------------------------------------------------- Пожиратель душ
 
-    /** Погост: земля Мортума, ряды могил (надгробие + холмик), сухие деревья, тусклый свет. */
-    static class Graveyard extends Hall {
+    /**
+     * Погост: кладбище за оградой из адского кирпича на кирпичном цоколе (на столбах - фонари), ворота с юга, дорожки из
+     * гравия крестом и по кругу, могилы рядами (холмик + надгробие из резного камня с плитой), сухие деревья с ветками,
+     * пятна душевного песка, в центре - мавзолей с пирамидальной крышей.
+     */
+    static class Graveyard extends Building {
 
-        static final int R = 24;
+        static final int R = 24, MAUS = 4;
 
         @Override
-        int hallR() {
-            return R + 2;
+        boolean footprint(int dx, int dz) {
+            return dx * dx + dz * dz <= (R + 1) * (R + 1);
         }
 
-        /** Холмик могилы (сюда встаёт поднятая душа). */
+        @Override
+        int reach() {
+            return R + 1;
+        }
+
+        @Override
+        int clear(int dx, int dz) {
+            return 10;
+        }
+
+        static boolean path(int dx, int dz) {
+            double r = Math.sqrt(dx * dx + dz * dz);
+            return Math.abs(dx) <= 1 || Math.abs(dz) <= 1 || Math.abs(r - 13) < 0.8;
+        }
+
+        /** Холмик могилы (сюда встаёт поднятая душа); надгробие - на блок южнее. */
         static boolean grave(int dx, int dz) {
             double r = Math.sqrt(dx * dx + dz * dz);
-            return r > 6 && r < 19 && Math.floorMod(dx, 5) == 0 && Math.floorMod(dz, 4) == 1;
+            return r > 6.5 && r < 20 && Math.floorMod(dx, 4) == 2 && Math.floorMod(dz, 4) == 0 && !path(dx, dz) && !path(dx, dz + 1);
         }
 
         @Override
-        void inside(int dx, int dz, double r, int[] col) {
-            if (r > R) {
-                put(col, TOP + 1, WorldGenNests.STONE, 0);
-                if (hash(dx, dz) % 2 == 0) put(col, TOP + 2, WorldGenNests.STONE, 0);
+        void build(int dx, int dz, int[] col) {
+            double r = Math.sqrt(dx * dx + dz * dz);
+            int ax = Math.abs(dx), az = Math.abs(dz);
+            if (r > R - 0.5) { // ограда
+                set(col, TOP, BRICK);
+                boolean gate = dz > 0 && ax <= 1;
+                set(col, TOP + 1, gate ? AIR : BRICK);
+                boolean post = Math.round(Math.atan2(dz, dx) * R) % 6 == 0;
+                if (!gate) {
+                    set(col, TOP + 2, post ? BRICK : FENCE);
+                    set(col, TOP + 3, post ? WorldGenNests.GLOW : FENCE);
+                }
+                if (gate) set(col, TOP + 5, CHISEL);
+                if (dz > 0 && ax == 2 && r > R - 0.5) for (int y = TOP + 1; y <= TOP + 5; y++) set(col, y, CHISEL); // столбы ворот
                 return;
             }
-            put(col, TOP - 1, WorldGenNests.DIRT, 0);
-            put(col, TOP, WorldGenNests.GRASS, 0);
-            if (grave(dx, dz)) put(col, TOP, WorldGenNests.DIRT, 0);
-            if (grave(dx, dz - 1)) { // надгробие к северу от холмика
-                put(col, TOP + 1, CHISEL, 3);
-                put(col, TOP + 2, SLAB, 5);
+            // мавзолей
+            if (ax <= MAUS && az <= MAUS) {
+                set(col, TOP, BRICK);
+                boolean wallX = ax == MAUS, wallZ = az == MAUS, door = dz == MAUS && ax <= 1;
+                if (wallX || wallZ) for (int y = TOP + 1; y <= TOP + 4; y++) set(col, y, door && y <= TOP + 3 ? AIR : (ax == MAUS && az == MAUS ? CHISEL : worn(dx, y + dz)));
+                int roof = TOP + 5 + (MAUS - Math.max(ax, az)); // пирамида
+                set(col, roof, Math.max(ax, az) == 0 ? WorldGenNests.GEM : SLAB_TOP);
+                if (ax == 0 && az == 0) set(col, TOP + 1, WorldGenNests.GLOW);
+                return;
             }
-            if (r < 2.5) put(col, TOP, WorldGenNests.GEM, 0);
-            if (r < 0.5) put(col, TOP + 1, WorldGenNests.GLOW, 0);
-            // сухие деревья
-            if (WorldGenNests.ringDist(dx, dz, 21, 5, 0.3) < 0.6) for (int y = TOP + 1; y <= TOP + 5; y++) put(col, y, WorldGenNests.LOG, 0);
+            // земля, дорожки, пятна душевного песка
+            set(col, TOP - 1, WorldGenNests.DIRT);
+            if (path(dx, dz)) set(col, TOP, GRAVEL);
+            else set(col, TOP, hash(dx, dz) % 23 == 0 ? SOUL : WorldGenNests.GRASS);
+            if (grave(dx, dz)) set(col, TOP, WorldGenNests.DIRT);
+            if (grave(dx, dz - 1)) { // надгробие
+                set(col, TOP + 1, CHISEL);
+                set(col, TOP + 2, SLAB);
+            }
+            // сухие деревья: ствол и ветки
+            double td = WorldGenNests.ringDist(dx, dz, 20, 6, 0.4);
+            if (td < 0.6) for (int y = TOP + 1; y <= TOP + 6; y++) set(col, y, WorldGenNests.LOG);
+            else if (td < 1.6 && hash(dx, dz) % 2 == 0) put(col, TOP + 4 + hash(dz, dx) % 2, WorldGenNests.LOG, 4 + 4 * (hash(dx, dz) % 2));
         }
     }
 
     // ---------------------------------------------------------------- Вамачерон
 
-    /** Костяная яма: пол просел на SINK, к краю - склоны; кольцо костяных столбов 2 x 2. */
-    static class Pit extends Hall {
+    /**
+     * Костяная яма - амфитеатр: яма (пол на SINK ниже) с костяными столбами и разбросанными костями, отвесная стена ямы со
+     * спусками с севера и юга, ступени-трибуны вокруг, внешняя стена с арками. Над ямой - грудная клетка гиганта:
+     * хребет поперёк и рёбра-дуги из кварца.
+     */
+    static class Pit extends Building {
 
-        static final int R = 26, SINK = 3, RING = 15, PILLARS = 8, PILLAR_H = 7;
+        static final int R = 28, PIT = 14, SINK = 4, RING = 9, PILLARS = 6, PILLAR_H = 6;
+        static final int[] RIBS = { -12, -8, -4, 0, 4, 8, 12 };
 
         @Override
-        int hallR() {
-            return R + 2;
+        boolean footprint(int dx, int dz) {
+            return dx * dx + dz * dz <= (R + 1) * (R + 1);
+        }
+
+        @Override
+        int reach() {
+            return R + 1;
+        }
+
+        @Override
+        int clear(int dx, int dz) {
+            return 18;
         }
 
         static boolean pillar(int dx, int dz) {
@@ -362,15 +571,40 @@ public final class MortumArenas {
         }
 
         @Override
-        void inside(int dx, int dz, double r, int[] col) {
-            // яма: глубже к центру, по краю на уровне пола
-            int sink = r > R - 3 ? Math.max(0, (int) (SINK * (R - r) / 3)) : SINK;
-            int floor = TOP - sink;
-            for (int y = floor + 1; y <= TOP; y++) put(col, y, AIR, 0);
-            put(col, floor, hash(dx, dz) % 7 == 0 ? BONE : WorldGenNests.STONE, hash(dx, dz) % 7 == 0 ? 2 : 0);
-            if (r > R) put(col, TOP + 1, BONE, 2);
-            if (pillar(dx, dz)) for (int y = floor + 1; y <= floor + PILLAR_H; y++) put(col, y, BONE, 2);
-            if (WorldGenNests.ringDist(dx, dz, RING, PILLARS, 0) < 0.5) put(col, floor, WorldGenNests.GLOW, 0);
+        void build(int dx, int dz, int[] col) {
+            double r = Math.sqrt(dx * dx + dz * dz);
+            int ax = Math.abs(dx), floor = TOP - SINK;
+            boolean ramp = ax <= 1 && r > PIT - 6; // спуски с севера и юга
+            if (r <= PIT) { // яма
+                int f = ramp ? Math.min(TOP, floor + (int) Math.max(0, (r - (PIT - 6)) * SINK / 6)) : floor;
+                for (int y = f + 1; y <= TOP; y++) put(col, y, AIR, 0);
+                set(col, f, hash(dx, dz) % 6 == 0 ? BONE : hash(dx, dz) % 5 == 0 ? SOUL : WorldGenNests.STONE);
+                if (pillar(dx, dz)) for (int y = f + 1; y <= f + PILLAR_H; y++) set(col, y, PILLAR);
+            } else if (r <= PIT + 1.5) { // стена ямы
+                if (ramp) set(col, TOP, BRICK);
+                else for (int y = floor; y <= TOP + 1; y++) set(col, y, y == TOP + 1 ? CHISEL : BRICK);
+            } else if (r <= R - 1.5) { // трибуны: ступени вверх
+                int tier = (int) ((r - PIT - 1.5) / 2.2);
+                for (int y = TOP + 1; y <= TOP + tier; y++) set(col, y, BRICK);
+                set(col, TOP + tier, (int) ((r - PIT - 1.5) * 10) % 22 < 11 ? BRICK : SLAB_TOP);
+                if (ramp) for (int y = TOP + 1; y <= TOP + tier; y++) put(col, y, AIR, 0); // проход
+            } else { // внешняя стена с арками
+                boolean arch = Math.round(Math.atan2(dz, dx) * R) % 5 == 0 || ramp;
+                for (int y = TOP + 1; y <= TOP + 9; y++) set(col, y, arch && y <= TOP + 4 ? AIR : worn(dx, y + dz));
+                if (Math.round(Math.atan2(dz, dx) * R) % 10 == 0) set(col, TOP + 10, WorldGenNests.GLOW);
+            }
+            if (r <= PIT && !ramp && hash(dx, dz) % 31 == 0) set(col, floor, WorldGenNests.GLOW);
+            // грудная клетка гиганта над ямой: хребет вдоль X, рёбра - дуги в плоскости YZ
+            int base = floor, spineY = base + 13;
+            if (dz == 0 && ax <= 15) put(col, spineY, PILLAR, 3); // хребет (столб лёжа вдоль X)
+            for (int rib : RIBS) {
+                if (Math.abs(dx - rib) > 0) continue;
+                for (int y = base; y <= spineY; y++) {
+                    double d = Math.sqrt(dz * dz + (y - base) * (y - base));
+                    boolean broken = rib == 8 && dz < 0 && y < base + 6; // одно ребро обломано
+                    if (Math.abs(d - 13) < 0.6 && !broken) set(col, y, BONE);
+                }
+            }
         }
     }
 }
