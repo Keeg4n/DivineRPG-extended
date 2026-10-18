@@ -110,6 +110,21 @@ public abstract class ColumnStructure {
             ch.setChunkModified();
         }
         for (int[] l : lights) w.func_147451_t(l[0], l[1], l[2]);
+        decorate(w, cx, cz, x0, z0);
+    }
+
+    /**
+     * Блоки с данными (статуи, сундуки) - ставятся через мир, а не в хранилище чанка: только те, что попадают в область
+     * заселения [x0, x0 + 16) x [z0, z0 + 16) (см. {@link #place}).
+     */
+    protected void decorate(World w, int cx, int cz, int x0, int z0) {}
+
+    /** Поставить блок с данными, если (cx + dx, cz + dz) в области заселения; true - поставлен. */
+    protected static boolean place(World w, int cx, int cz, int x0, int z0, int dx, int y, int dz, Block b, int meta) {
+        int x = cx + dx, z = cz + dz;
+        if (x < x0 || x >= x0 + 16 || z < z0 || z >= z0 + 16) return false;
+        w.setBlock(x, y, z, b, meta, 2);
+        return true;
     }
 
     /**
@@ -127,6 +142,7 @@ public abstract class ColumnStructure {
                 if (!column(x - cx, z - cz, col)) continue;
                 for (int y = yFrom; y <= yTo; y++) {
                     if (col[y * 2] != AIR || w.isAirBlock(x, y, z)) continue;
+                    if (w.getBlock(x, y, z).hasTileEntity(w.getBlockMetadata(x, y, z))) continue; // статуи и сундуки постройки ({@link #decorate})
                     w.removeTileEntity(x, y, z);
                     w.setBlock(x, y, z, Blocks.air, 0, 2);
                 }

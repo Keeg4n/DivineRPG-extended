@@ -212,6 +212,7 @@ public class CommonProxy {
 
         GameRegistry.registerWorldGenerator(new WorldGenLairs(), 50);
         GameRegistry.registerWorldGenerator(new IceikaDecor(), 100);
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.IceikaXmasTree(), 101);
         GameRegistry.registerWorldGenerator(new WorldGenThrone(), 60);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.WorldGenNests(), 62);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.WorldGenTwilightFeatures(), 64);

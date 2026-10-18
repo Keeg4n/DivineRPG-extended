@@ -3111,6 +3111,10 @@ public class SelfTest {
                 String in = com.divinerpgextended.boss.LairSummons.refusal(v, own, c[0] + 3, fy, c[2] + 3);
                 String wrong = com.divinerpgextended.boss.LairSummons.refusal(v, other, c[0] + 3, fy, c[2] + 3);
                 String out = com.divinerpgextended.boss.LairSummons.refusal(v, own, c[0] + 80, fy, c[2]);
+                int statues = 0;
+                for (int x = c[0] - 30; x <= c[0] + 30; x++) for (int z = c[2] - 30; z <= c[2] + 30; z++) for (int y = fy - 2; y <= fy + 12; y++)
+                    if (w.getBlock(x, y, z) instanceof net.divinerpg.blocks.base.BlockStatue) statues++;
+                floor &= statues >= 1;
                 boolean good = floor && in == null && wrong != null && ("dre.chat.summon_arena_" + t.key()).equals(out);
                 ok &= good;
                 dump(w, c[0], com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP, c[2], 34, "arena-" + t.key());
@@ -3119,7 +3123,7 @@ public class SelfTest {
                 for (int y = com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP - 1; y > com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP - 30; y--)
                     if (w.isAirBlock(fx, y, fz)) gap++;
                 floor &= gap == 0;
-                sb.append(t.key()).append(good ? " ок" : " пол " + floor + " свой " + in + " чужой " + wrong + " снаружи " + out).append("; ");
+                sb.append(t.key()).append(good ? " ок" : " пол и статуи (" + statues + ") " + floor + " свой " + in + " чужой " + wrong + " снаружи " + out).append("; ");
             }
             // соседние квадраты всегда разных видов
             boolean differ = true;
@@ -3256,6 +3260,40 @@ public class SelfTest {
             check(skull && bone > 120 && chest == 1 && airInside > 5 && buried && ribs && rib > 60 && high > 10,
                 "череп " + skull + ": кости " + bone + ", сундук " + chest + ", полость " + airInside + ", в земле " + buried + "; рёбра " + ribs + ": кости " + rib + ", из них выше 4 блоков " + high);
             return "череп гиганта (" + bone + " блоков кости, наполовину в земле, внутри полость и сундук) и грудная клетка (" + rib + " блоков, рёбра дугами)";
+        });
+        t("Логова", "Iceika: новогодняя ёлка", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
+            int x0 = 9900, y0 = 70, z0 = 9900;
+            loadAround(w, x0, z0, 2);
+            for (int x = x0 - 10; x <= x0 + 10; x++) for (int z = z0 - 10; z <= z0 + 10; z++) for (int y = y0 - 3; y <= 122; y++)
+                w.setBlock(x, y, z, y <= y0 ? net.divinerpg.utils.blocks.IceikaBlocks.frozenGrass : Blocks.air);
+            boolean built = com.divinerpgextended.world.IceikaXmasTree.build(w, new java.util.Random(7), x0, z0);
+            int lights = 0, presents = 0, gifts = 0, canes = 0, leaves = 0;
+            boolean santa = false;
+            for (int x = x0 - 10; x <= x0 + 10; x++) for (int z = z0 - 10; z <= z0 + 10; z++) for (int y = y0; y <= y0 + 20; y++) {
+                net.minecraft.block.Block b = w.getBlock(x, y, z);
+                if (b instanceof net.divinerpg.blocks.iceika.BlockXmasLights) lights++;
+                if (b == net.divinerpg.utils.blocks.IceikaBlocks.candyCane) canes++;
+                if (b == net.divinerpg.utils.blocks.IceikaBlocks.brittleLeaves) leaves++;
+                if (b == net.divinerpg.utils.blocks.IceikaBlocks.presentBox) {
+                    presents++;
+                    net.minecraft.inventory.IInventory inv = (net.minecraft.inventory.IInventory) w.getTileEntity(x, y, z);
+                    for (int i = 0; i < inv.getSizeInventory(); i++) if (inv.getStackInSlot(i) != null) gifts++;
+                }
+            }
+            // много ёлок подряд: изредка в подарке - вещь Санты
+            for (int i = 0; i < 40 && !santa; i++) {
+                net.minecraft.inventory.InventoryBasic inv = new net.minecraft.inventory.InventoryBasic("t", false, 54);
+                java.lang.reflect.Method m = com.divinerpgextended.world.IceikaXmasTree.class.getDeclaredMethod("gifts", java.util.Random.class, net.minecraft.inventory.IInventory.class);
+                m.setAccessible(true);
+                m.invoke(null, new java.util.Random(i), inv);
+                for (int k2 = 0; k2 < 54; k2++) if (inv.getStackInSlot(k2) != null && inv.getStackInSlot(k2).getItem() == net.divinerpg.utils.items.IceikaItems.santaCap) santa = true;
+            }
+            boolean star = w.getBlock(x0, y0 + com.divinerpgextended.world.IceikaXmasTree.HEIGHT + 1, z0) == net.divinerpg.utils.blocks.IceikaBlocks.workshopLamp;
+            for (int x = x0 - 10; x <= x0 + 10; x++) for (int z = z0 - 10; z <= z0 + 10; z++) for (int y = y0 - 3; y <= 122; y++) w.setBlockToAir(x, y, z);
+            check(built && lights > 10 && presents == com.divinerpgextended.world.IceikaXmasTree.PRESENTS && gifts >= 12 && canes == 6 && leaves > 150 && star && santa,
+                "построена " + built + ", огоньков " + lights + ", подарков " + presents + " (вещей " + gifts + "), тростей " + canes + ", хвои " + leaves + ", звезда " + star + ", шапка Санты бывает " + santa);
+            return "ёлка: ярусы хвои (" + leaves + "), гирлянды Divine (" + lights + "), звезда, " + presents + " подарочные коробки Divine со сладостями (бывает вещь Санты), леденцовые трости";
         });
         t("Логова", "Мортум 0.78: Демон-маг, ладья, Пожиратель, карты", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
