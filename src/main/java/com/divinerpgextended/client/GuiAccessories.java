@@ -66,6 +66,7 @@ public class GuiAccessories extends GuiContainer {
         for (int i = 0; i < Accessories.SIZE; i++) {
             slot(guiLeft + ContainerAccessories.SLOT_X + i * 18, guiTop + ContainerAccessories.SLOT_Y, i >= unlocked);
         }
+        for (int i = 0; i < Accessories.AMMO; i++) slot(guiLeft + ContainerAccessories.AMMO_X + i * 18, guiTop + ContainerAccessories.AMMO_Y, false);
         for (int row = 0; row < 3; row++) for (int col = 0; col < 9; col++) slot(guiLeft + 8 + col * 18, guiTop + 84 + row * 18, false);
         for (int col = 0; col < 9; col++) slot(guiLeft + 8 + col * 18, guiTop + 142, false);
     }
@@ -84,6 +85,17 @@ public class GuiAccessories extends GuiContainer {
     @Override
     public void drawScreen(int mx, int my, float pt) {
         super.drawScreen(mx, my, pt);
+        // подсказка на пустом слоте боеприпасов
+        for (int i = 0; i < Accessories.AMMO; i++) {
+            int x = guiLeft + ContainerAccessories.AMMO_X + i * 18, y = guiTop + ContainerAccessories.AMMO_Y;
+            if (mx >= x && mx < x + 16 && my >= y && my < y + 16 && !((net.minecraft.inventory.Slot) inventorySlots.inventorySlots.get(Accessories.SIZE + i)).getHasStack()
+                && mc.thePlayer.inventory.getItemStack() == null) {
+                List<String> tip = new ArrayList<String>();
+                tip.add(StatCollector.translateToLocal("dre.accessories.ammo"));
+                tip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.accessories.ammo_hint"));
+                drawHoveringText(tip, mx, my, fontRendererObj);
+            }
+        }
         // подсказка на закрытом слоте: какой босс его откроет
         for (int i = unlocked; i < Accessories.SIZE; i++) {
             int x = guiLeft + ContainerAccessories.SLOT_X + i * 18, y = guiTop + ContainerAccessories.SLOT_Y;

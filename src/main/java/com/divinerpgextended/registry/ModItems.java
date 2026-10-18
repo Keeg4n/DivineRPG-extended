@@ -65,7 +65,7 @@ public final class ModItems {
     public static Item petCarrier;
     public static Item worldStick;
     public static Item guardianHeart;
-    public static Item skyCart, apalachiaRails;
+    public static Item skyCart, apalachiaRails, arcanaRails;
 
     private ModItems() {}
 
@@ -139,8 +139,10 @@ public final class ModItems {
         GameRegistry.registerItem(guardianHeart, "guardianHeart");
         skyCart = new com.divinerpgextended.item.ItemSkyCart();
         GameRegistry.registerItem(skyCart, "skyCart");
-        apalachiaRails = new com.divinerpgextended.item.ItemApalachiaRails();
+        apalachiaRails = new com.divinerpgextended.item.ItemApalachiaRails(false);
         GameRegistry.registerItem(apalachiaRails, "apalachiaRails");
+        arcanaRails = new com.divinerpgextended.item.ItemApalachiaRails(true);
+        GameRegistry.registerItem(arcanaRails, "arcanaRails");
 
         EntityRegistry.registerModEntity(EntityGreatCadillion.class, "GreatCadillion", 0, DivineRPGExtended.instance,
             80, 3, true);

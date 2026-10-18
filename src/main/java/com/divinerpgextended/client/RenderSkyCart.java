@@ -45,6 +45,22 @@ public class RenderSkyCart extends Render {
         return l < 1e-4 ? new double[] { 0, 1, 0 } : new double[] { n[0] / l, n[1] / l, n[2] / l };
     }
 
+    /**
+     * Наклон по кратчайшему повороту "вверх" -> нормаль (взгляд не крутится вокруг себя): {угол в градусах, ось x, ось z};
+     * на потолке ось - вбок от хода. null - на полу, наклона нет.
+     */
+    static double[] tilt(EntitySkyCart c, double[] up) {
+        if (up[1] > 0.999) return null;
+        double ax = up[2], az = -up[0];
+        if (ax * ax + az * az < 1e-6) {
+            float[] f = c.course();
+            ax = f[2];
+            az = -f[0];
+            if (ax * ax + az * az < 1e-6) ax = 1;
+        }
+        return new double[] { Math.toDegrees(Math.acos(Math.max(-1, Math.min(1, up[1])))), ax, az };
+    }
+
     /** Поворот модели: X - по ходу, Y - по нормали, Z - вбок (матрица по столбцам для glMultMatrix). */
     static FloatBuffer basis(EntitySkyCart c, double[] up) {
         float[] f0 = c.course();
@@ -110,15 +126,8 @@ public class RenderSkyCart extends Render {
             GL11.glPushMatrix();
             // точка ног сиденья: ниже середины по нормали, как у ванильной вагонетки
             GL11.glTranslated(mx - up[0] * EntitySkyCart.SEAT, my - up[1] * EntitySkyCart.SEAT, mz - up[2] * EntitySkyCart.SEAT);
-            // наклон по кратчайшему повороту "вверх" -> нормаль (взгляд седока не крутится); на потолке - через бок по ходу
-            double ax = up[2], az = -up[0];
-            if (ax * ax + az * az < 1e-6) {
-                float[] f = c.course();
-                ax = f[2];
-                az = -f[0];
-                if (ax * ax + az * az < 1e-6) ax = 1;
-            }
-            GL11.glRotated(Math.toDegrees(Math.acos(Math.max(-1, Math.min(1, up[1])))), ax, 0, az);
+            double[] t = tilt(c, up);
+            GL11.glRotated(t[0], t[1], 0, t[2]);
             // сам игрок рисуется от своей позиции - её убрать
             GL11.glTranslated(-px, -py, -pz);
             pushed.add(p);

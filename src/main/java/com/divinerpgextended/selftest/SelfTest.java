@@ -277,7 +277,7 @@ public class SelfTest {
         for (int i = 0; i < 4; i++) p.inventory.armorInventory[i] = null;
         for (int i = 0; i < p.inventory.mainInventory.length; i++) p.inventory.mainInventory[i] = null;
         Accessories a = Accessories.of(p);
-        for (int i = 0; i < Accessories.SIZE; i++) a.setInventorySlotContents(i, null);
+        for (int i = 0; i < Accessories.TOTAL; i++) a.setInventorySlotContents(i, null);
         for (Boss b : Boss.values()) BossProgress.revoke(p, b);
         p.clearActivePotions();
         p.capabilities.isCreativeMode = false;
@@ -2540,6 +2540,97 @@ public class SelfTest {
             String ammo = net.divinerpg.utils.TooltipLocalizer.ammo(net.divinerpg.utils.items.TwilightItemsOther.edenDust);
             check(!tip.contains(net.divinerpg.utils.TooltipLocalizer.infiniteAmmo()) && tip.contains(ammo) && tip.size() == 3, "подсказка " + tip);
             return "у фазера вместо бесконечных боеприпасов - пыль своего мира и строка про подсумок";
+        });
+        t("Прохождение", "Слоты боеприпасов", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            loadAround(w, 9488, 9840, 1);
+            TestPlayer av = join(player(ConfigurationHelper.eden, "TestAmmo", 9488.5, 120, 9840.5), true);
+            Accessories acc = Accessories.of(av);
+            int A = Accessories.SIZE;
+            boolean valid = acc.canPlace(A, new ItemStack(Items.arrow)) && acc.canPlace(A, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.edenDust))
+                && !acc.canPlace(A, new ItemStack(Items.diamond_sword)) && !acc.canPlace(0, new ItemStack(Items.arrow));
+            // лук: стрелы только в слоте - натягивается, стреляет, в слоте на одну меньше, в инвентаре пусто
+            acc.setInventorySlotContents(A, new ItemStack(Items.arrow, 5));
+            ItemStack bow = new ItemStack(Items.bow);
+            av.setCurrentItemOrArmor(0, bow);
+            net.minecraftforge.event.entity.player.ArrowNockEvent nock = new net.minecraftforge.event.entity.player.ArrowNockEvent(av, bow);
+            MinecraftForge.EVENT_BUS.post(nock);
+            boolean drawn = nock.isCanceled() && av.isUsingItem();
+            int before = w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, av.boundingBox.expand(6, 6, 6)).size();
+            bow.getItem().onPlayerStoppedUsing(bow, w, av, bow.getMaxItemUseDuration() - 40);
+            java.util.List<?> fl = w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, av.boundingBox.expand(6, 6, 6));
+            boolean fired = fl.size() == before + 1;
+            for (Object o : fl) ((net.minecraft.entity.Entity) o).setDead();
+            av.clearItemInUse();
+            com.divinerpgextended.perk.Ammo.settle(av);
+            int arrows = acc.getStackInSlot(A) == null ? 0 : acc.getStackInSlot(A).stackSize;
+            boolean bowOk = drawn && fired && arrows == 4 && !av.inventory.hasItem(Items.arrow);
+            acc.setInventorySlotContents(A, null);
+            // блиц без подсумка: пыль из слота на каждый выстрел; одолженная и не потраченная - вернулась в слот
+            acc.setInventorySlotContents(A + 1, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.edenDust, 4));
+            ItemStack bz = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz);
+            av.setCurrentItemOrArmor(0, bz);
+            int shots = 0;
+            for (int k2 = 0; k2 < 2; k2++) {
+                int b0 = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, av.boundingBox.expand(6, 6, 6)).size();
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(av,
+                    net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w));
+                try {
+                    bz.getItem().onItemRightClick(bz, w, av);
+                } catch (NullPointerException ex) {
+                    // Divine после выстрела шлёт инвентарь по сети - у тестового игрока сети нет
+                }
+                java.util.List<?> bl = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, av.boundingBox.expand(6, 6, 6));
+                if (bl.size() > b0) shots++;
+                for (Object o : bl) ((net.minecraft.entity.Entity) o).setDead();
+                com.divinerpgextended.perk.Ammo.settle(av);
+            }
+            com.divinerpgextended.perk.Ammo.lend(av, net.divinerpg.utils.items.TwilightItemsOther.edenDust);
+            boolean lent = av.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsOther.edenDust);
+            com.divinerpgextended.perk.Ammo.settle(av);
+            int dust = acc.getStackInSlot(A + 1) == null ? 0 : acc.getStackInSlot(A + 1).stackSize;
+            boolean blitzOk = shots == 2 && lent && dust == 2 && !av.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsOther.edenDust);
+            // фазер: пыль из слота
+            av.setCurrentItemOrArmor(0, new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenPhaser));
+            net.divinerpg.entities.vanilla.projectile.EntityShooterBullet ps = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, av, 10,
+                "divinerpg:textures/projectiles/phaserEden.png");
+            boolean phaserOk = w.spawnEntityInWorld(ps) && acc.getStackInSlot(A + 1) != null && acc.getStackInSlot(A + 1).stackSize == 1; // было 2
+            ps.setDead();
+            acc.setInventorySlotContents(A + 1, null);
+            av.setCurrentItemOrArmor(0, null);
+            check(valid && bowOk && blitzOk && phaserOk, "что кладётся " + valid + ", лук: натянут " + drawn + ", выстрел " + fired + ", стрел в слоте " + arrows
+                + "; блиц: выстрелов " + shots + " из 2, одолжена " + lent + ", пыли в слоте " + dust + "; фазер из слота " + phaserOk);
+            return "в слоты боеприпасов кладутся только боеприпасы; лук, блиц и фазер берут из них, когда в инвентаре нет; не потраченное возвращается в слот";
+        });
+        t("Прохождение", "Вагонетка Апалачии: рельсы арканы и обычные", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            loadAround(w, 9600, 9900, 1);
+            int x0 = 9600, y0 = 100, z0 = 9900;
+            for (int x = x0 - 1; x <= x0 + 31; x++) {
+                w.setBlock(x, y0 - 1, z0, Blocks.stone);
+                w.setBlock(x, y0, z0, Blocks.air);
+            }
+            // 30 рельсов: первые 10 - арканы Divine, дальше ванильные
+            for (int x = x0; x < x0 + 30; x++) w.setBlock(x, y0, z0, x < x0 + 10 ? net.divinerpg.utils.blocks.ArcanaBlocks.arcaniteRails : Blocks.rail);
+            TestPlayer cv = join(player(ConfigurationHelper.apalachia, "TestCartBoost", x0 + 0.5, y0, z0 + 0.5), true);
+            com.divinerpgextended.entity.EntitySkyCart cart = new com.divinerpgextended.entity.EntitySkyCart(w, x0, y0, z0, -90);
+            w.spawnEntityInWorld(cart);
+            cv.mountEntity(cart);
+            double top = 0;
+            int far = 0;
+            for (int i = 0; i < 40; i++) {
+                cart.onUpdate();
+                top = Math.max(top, cart.speed());
+                far = Math.max(far, cart.railPos()[0] - x0);
+            }
+            cv.mountEntity(null);
+            cart.setDead();
+            for (int x = x0 - 1; x <= x0 + 31; x++) {
+                w.setBlockToAir(x, y0, z0);
+                w.setBlockToAir(x, y0 - 1, z0);
+            }
+            check(top > 0.6 && far >= 25, "разгон до " + String.format("%.2f", top) + " (обычная " + com.divinerpgextended.entity.EntitySkyCart.SPEED + "), доехала до " + far + " по ванильным");
+            return "рельсы арканы разгоняют вагонетку Апалачии (до " + String.format("%.2f", top) + "), дальше она едет по обычным ванильным рельсам";
         });
         t("Прохождение", "Бонусы колчанов", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);

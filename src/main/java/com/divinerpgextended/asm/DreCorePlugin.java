@@ -10,7 +10,8 @@ import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
  * ({@link ArcanaTransformer}), чинит свойства полных сетов брони ({@link ArmorSetTransformer}), выключает обмен
  * инвентаря Ветеи и в Divine без настройки vetheaInventory ({@link VetheaSwapTransformer}), ускоряет поиск парного
  * портала в сумеречных мирах ({@link PortalTransformer}), ставит их деревья внутрь заселяемой области
- * ({@link TreeShiftTransformer}) и отмечает время их заселения (для пересылки чанков целиком).
+ * ({@link TreeShiftTransformer}) и отмечает время их заселения (для пересылки чанков целиком), наклоняет вид в вагонетке
+ * Апалачии ({@link CameraTransformer}).
  */
 @IFMLLoadingPlugin.MCVersion("1.7.10")
 @IFMLLoadingPlugin.Name("DivineRPG Extended Core")
@@ -21,7 +22,7 @@ public class DreCorePlugin implements IFMLLoadingPlugin {
     public String[] getASMTransformerClass() {
         return new String[] { FurnaceTransformer.class.getName(), ArcanaTransformer.class.getName(),
             ArmorSetTransformer.class.getName(), VetheaSwapTransformer.class.getName(),
-            PortalTransformer.class.getName(), TreeShiftTransformer.class.getName() };
+            PortalTransformer.class.getName(), TreeShiftTransformer.class.getName(), CameraTransformer.class.getName() };
     }
 
     @Override

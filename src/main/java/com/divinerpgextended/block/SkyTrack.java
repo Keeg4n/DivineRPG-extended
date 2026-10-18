@@ -21,9 +21,26 @@ public final class SkyTrack {
 
     private SkyTrack() {}
 
-    /** Напольный рельс: рельс Апалачии аддона (гнётся) или старый рельс Апалачии Divine (как золотой - не гнётся). */
-    static boolean divine(Block b) {
-        return b == TwilightBlocks.apalachiaRails || b == com.divinerpgextended.registry.ModBlocks.apalachiaRail;
+    /** Напольный рельс: любой (Апалачии, арканы, ванильные и чужие) - вагонетка Апалачии ездит и по обычным рельсам. */
+    static boolean floor(Block b) {
+        return b instanceof net.minecraft.block.BlockRailBase;
+    }
+
+    /**
+     * Во что превращается напольный рельс у подножия стены с навесным рельсом (горка): рельсы Апалачии - в навесной
+     * Апалачии, рельсы арканы - в навесной арканы; остальные не превращаются (иначе ванильный рельс ломался бы в рельс Апалачии).
+     */
+    public static Block rampOf(Block b) {
+        if (b == TwilightBlocks.apalachiaRails || b == com.divinerpgextended.registry.ModBlocks.apalachiaRail) return com.divinerpgextended.registry.ModBlocks.skyRail;
+        if (b == net.divinerpg.utils.blocks.ArcanaBlocks.arcaniteRails) return com.divinerpgextended.registry.ModBlocks.skyBoostRail;
+        return null;
+    }
+
+    /** Разгоняет ли рельс вагонетку Апалачии: рельсы арканы (на полу и навесные) и запитанные золотые. */
+    public static boolean boost(IBlockAccess w, int x, int y, int z) {
+        Block b = w.getBlock(x, y, z);
+        return b instanceof BlockSkyBoostRail || b == net.divinerpg.utils.blocks.ArcanaBlocks.arcaniteRails
+            || b == net.minecraft.init.Blocks.golden_rail && (w.getBlockMetadata(x, y, z) & 8) != 0;
     }
 
     /** Форма напольного рельса (0-9, как у ванильных): без бита "запитан" у рельсов Divine. */
@@ -32,17 +49,17 @@ public final class SkyTrack {
         return b instanceof net.minecraft.block.BlockRailBase ? ((net.minecraft.block.BlockRailBase) b).getBasicRailMetadata(w, null, x, y, z) : 0;
     }
 
-    /** Грань опоры рельса: навесной - по мете, рельс Divine - пол; не рельс - UNKNOWN. */
+    /** Грань опоры рельса: навесной - по мете, напольный - пол; не рельс - UNKNOWN. */
     public static ForgeDirection support(IBlockAccess w, int x, int y, int z) {
         Block b = w.getBlock(x, y, z);
         if (b instanceof BlockSkyRail) return BlockSkyRail.support(w.getBlockMetadata(x, y, z));
-        if (divine(b)) return ForgeDirection.DOWN;
+        if (floor(b)) return ForgeDirection.DOWN;
         return NONE;
     }
 
-    /** Наклонный рельс Divine (мета 2-5, как у ванильных): куда поднимается; иначе UNKNOWN. */
+    /** Наклонный напольный рельс (мета 2-5, как у ванильных): куда поднимается; иначе UNKNOWN. */
     public static ForgeDirection ascending(IBlockAccess w, int x, int y, int z) {
-        if (!divine(w.getBlock(x, y, z))) return NONE;
+        if (!floor(w.getBlock(x, y, z))) return NONE;
         switch (shapeMeta(w, x, y, z)) {
             case 2: return ForgeDirection.EAST;
             case 3: return ForgeDirection.WEST;
@@ -77,7 +94,7 @@ public final class SkyTrack {
         List<int[]> out = new ArrayList<int[]>();
         ForgeDirection n = support(w, x, y, z);
         if (n == NONE) return out;
-        if (divine(w.getBlock(x, y, z)) && corner(w, x, y, z) == NONE) {
+        if (floor(w.getBlock(x, y, z)) && corner(w, x, y, z) == NONE) {
             ForgeDirection asc = ascending(w, x, y, z);
             for (ForgeDirection d : shape(shapeMeta(w, x, y, z))) {
                 int[][] tries = d == asc ? new int[][] { { 1 }, { 0 } } : new int[][] { { 0 }, { -1 }, { 1 } };

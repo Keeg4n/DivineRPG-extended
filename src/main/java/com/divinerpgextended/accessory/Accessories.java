@@ -19,7 +19,8 @@ import com.divinerpgextended.trinket.Trinket;
 /**
  * Аксессуары игрока (как в Террарии): свои слоты под бижутерию аддона. Всего 6, открыто 2 и ещё по одному за
  * Короля-лича, Смотрителя, Демона сумерек и Карота. Одинаковые вещи вместе не работают. Хранятся в постоянных данных
- * игрока - переживают смерть.
+ * игрока - переживают смерть. Ниже - {@link #AMMO} слотов боеприпасов ({@link com.divinerpgextended.perk.Ammo}): тот же
+ * объект, поэтому защита от дюпа, журнал и /dreinv - общие.
  * <p>
  * Защита от дюпа: на сервере один объект на игрока (по UUID), и он привязан к текущей сущности игрока. После смерти
  * или перезахода сущность новая - объект пересоздаётся из её данных, а старый становится недействительным, и все
@@ -28,6 +29,8 @@ import com.divinerpgextended.trinket.Trinket;
 public class Accessories implements IInventory {
 
     public static final int SIZE = 6, BASE = 2;
+    /** Слоты боеприпасов идут после аксессуаров: SIZE .. TOTAL - 1. */
+    public static final int AMMO = 9, TOTAL = SIZE + AMMO;
     /** Боссы, каждый из которых открывает ещё один слот (по порядку). */
     public static final Boss[] UNLOCKS = { Boss.LICH_KING, Boss.WATCHER, Boss.TWILIGHT_DEMON, Boss.KAROT };
     public static final String TAG = "dre_accessories";
@@ -35,7 +38,7 @@ public class Accessories implements IInventory {
 
     /** Владелец (null - снимок из файла оффлайн-игрока, только чтение). */
     final EntityPlayer player;
-    private final ItemStack[] stacks = new ItemStack[SIZE];
+    private final ItemStack[] stacks = new ItemStack[TOTAL];
     /** Сколько слотов открыто (на клиенте приходит с сервера при открытии окна). */
     public int unlocked;
     public final boolean readOnly;
@@ -104,14 +107,14 @@ public class Accessories implements IInventory {
         for (int i = 0; i < list.tagCount(); i++) {
             NBTTagCompound c = list.getCompoundTagAt(i);
             int slot = c.getByte("Slot");
-            if (slot >= 0 && slot < SIZE) stacks[slot] = ItemStack.loadItemStackFromNBT(c);
+            if (slot >= 0 && slot < TOTAL) stacks[slot] = ItemStack.loadItemStackFromNBT(c);
         }
     }
 
     private void save() {
         if (player == null || readOnly || player.worldObj.isRemote || !valid()) return;
         NBTTagList list = new NBTTagList();
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < TOTAL; i++) {
             if (stacks[i] == null) continue;
             NBTTagCompound c = new NBTTagCompound();
             c.setByte("Slot", (byte) i);
@@ -121,8 +124,9 @@ public class Accessories implements IInventory {
         persisted(player).setTag(TAG, list);
     }
 
-    /** Можно ли положить эту вещь в слот: только бижутерия, слот открыт, такой же вещи в других слотах нет. */
+    /** Можно ли положить эту вещь в слот: в слот боеприпасов - боеприпасы; в аксессуар - бижутерия, слот открыт, такой же вещи в других слотах нет. */
     public boolean canPlace(int slot, ItemStack s) {
+        if (slot >= SIZE) return !readOnly && s != null && com.divinerpgextended.perk.Ammo.isAmmo(s.getItem());
         if (readOnly || s == null || s.getItem() != ModItems.trinket || slot >= unlocked) return false;
         // один и тот же эффект дважды не надеть - ни саму вещь, ни объединённую с ней
         java.util.Set<Trinket> mine = ItemTrinket.of(s).provides();
@@ -150,7 +154,7 @@ public class Accessories implements IInventory {
 
     @Override
     public int getSizeInventory() {
-        return SIZE;
+        return TOTAL;
     }
 
     @Override
@@ -161,8 +165,13 @@ public class Accessories implements IInventory {
     @Override
     public ItemStack decrStackSize(int i, int n) {
         if (readOnly || stacks[i] == null) return null;
-        ItemStack s = stacks[i];
-        stacks[i] = null;
+        ItemStack s;
+        if (i >= SIZE && stacks[i].stackSize > n) { // боеприпасы - часть стака
+            s = stacks[i].splitStack(n);
+        } else {
+            s = stacks[i];
+            stacks[i] = null;
+        }
         markDirty();
         return s;
     }
@@ -190,7 +199,7 @@ public class Accessories implements IInventory {
 
     @Override
     public int getInventoryStackLimit() {
-        return 1;
+        return 64; // у аксессуаров слот сам ограничивает до 1
     }
 
     @Override

@@ -23,6 +23,9 @@ import com.divinerpgextended.registry.ModItems;
 public class EntitySkyCart extends Entity {
 
     public static final double SPEED = 0.35;
+    /** Рельсы арканы разгоняют до MAX_SPEED на BOOST за тик; без них скорость спадает к обычной на DRAG за тик. */
+    public static final double MAX_SPEED = 0.9, BOOST = 0.06, DRAG = 0.005;
+    private double speed = SPEED;
     /** Середина вагонетки над точкой касания колёс; глаза седока над серединой (как у ванильной вагонетки). */
     public static final double BODY = 0.4, EYES = 0.82, SEAT = 0.8;
     private static final int DW_N = 20, DW_F = 23; // нормаль и курс: по три float
@@ -196,8 +199,9 @@ public class EntitySkyCart extends Entity {
                 t = 0;
                 start();
             }
+            speed = SkyTrack.boost(worldObj, cx, cy, cz) ? Math.min(MAX_SPEED, speed + BOOST) : Math.max(SPEED, speed - DRAG);
             if (nx != cx || ny != cy || nz != cz) {
-                t += SPEED;
+                t += speed;
                 int guard = 0;
                 while (t >= 1 && guard++ < 4) {
                     t -= 1;
@@ -320,6 +324,7 @@ public class EntitySkyCart extends Entity {
             ny = c[4];
             nz = c[5];
             t = tag.getDouble("T");
+            speed = Math.max(SPEED, tag.getDouble("Speed"));
             placed = true;
             return;
         }
@@ -336,6 +341,11 @@ public class EntitySkyCart extends Entity {
     protected void writeEntityToNBT(NBTTagCompound tag) {
         tag.setIntArray("Path", new int[] { cx, cy, cz, nx, ny, nz });
         tag.setDouble("T", t);
+        tag.setDouble("Speed", speed);
+    }
+
+    public double speed() {
+        return speed;
     }
 
     public int[] railPos() {

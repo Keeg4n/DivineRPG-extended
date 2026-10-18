@@ -35,7 +35,8 @@ public class RenderSkyRail implements ISimpleBlockRenderingHandler {
         ForgeDirection[] links = BlockSkyRail.links(w, x, y, z);
         ForgeDirection a, b; // текстура: +u к a, +v к b
         boolean turn = false;
-        if (links.length >= 2 && links[0] != links[1].getOpposite()) {
+        // рельсы арканы, как золотые, не гнутся: на повороте рисуются прямыми вдоль первого соседа
+        if (links.length >= 2 && links[0] != links[1].getOpposite() && !(block instanceof com.divinerpgextended.block.BlockSkyBoostRail)) {
             a = links[0];
             b = links[1];
             turn = true;

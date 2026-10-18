@@ -40,7 +40,7 @@ public final class ModBlocks {
     public static final Block[] gateStone = new Block[4];
     public static Block windTotem;
     public static Block cloud;
-    public static Block skyRail, apalachiaRail;
+    public static Block skyRail, apalachiaRail, skyBoostRail;
     /** Лампы сумеречных миров по номеру TwilightWorld; [EDEN] пусто - у Эдема лампа Divine. */
     public static final Block[] worldLamp = new Block[5];
     private static final int[] TORCH_COLOR = { 0xFFD84A, 0x5AA8FF, 0xC070FF, 0xE8ECF4, 0xE04040 };
@@ -94,6 +94,8 @@ public final class ModBlocks {
         GameRegistry.registerBlock(skyRail, "skyRail");
         apalachiaRail = new com.divinerpgextended.block.BlockApalachiaRail();
         GameRegistry.registerBlock(apalachiaRail, "apalachiaRail");
+        skyBoostRail = new com.divinerpgextended.block.BlockSkyBoostRail();
+        GameRegistry.registerBlock(skyBoostRail, "skyBoostRail");
         cloud = new com.divinerpgextended.block.BlockCloud();
         GameRegistry.registerBlock(cloud, "cloud");
         windTotem = new com.divinerpgextended.block.BlockWindTotem();

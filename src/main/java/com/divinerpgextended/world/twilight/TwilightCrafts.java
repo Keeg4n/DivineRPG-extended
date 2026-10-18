@@ -117,16 +117,18 @@ public final class TwilightCrafts {
     }
 
     /** Рельсы Апалачии Divine на стену и потолок ставятся навесными рельсами аддона; на пол - как обычно. */
-    /** Сломанный рельс Апалачии Divine выпадает рельсами Апалачии аддона - ими же он и ставится. */
+    /** Сломанные рельсы Апалачии и арканы Divine выпадают рельсами аддона - ими же они и ставятся. */
     public static class RailDrops {
 
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
         public void onDrops(net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent e) {
-            if (e.block != TwilightBlocks.apalachiaRails) return;
-            Item old = Item.getItemFromBlock(TwilightBlocks.apalachiaRails);
+            Item mine = e.block == TwilightBlocks.apalachiaRails ? ModItems.apalachiaRails
+                : e.block == net.divinerpg.utils.blocks.ArcanaBlocks.arcaniteRails ? ModItems.arcanaRails : null;
+            if (mine == null) return;
+            Item old = Item.getItemFromBlock(e.block);
             for (int i = 0; i < e.drops.size(); i++) {
                 ItemStack d = e.drops.get(i);
-                if (d != null && d.getItem() == old) e.drops.set(i, new ItemStack(ModItems.apalachiaRails, d.stackSize));
+                if (d != null && d.getItem() == old) e.drops.set(i, new ItemStack(mine, d.stackSize));
             }
         }
     }
@@ -137,6 +139,8 @@ public final class TwilightCrafts {
         remove(old);
         // рельсы Апалачии: на пол - настоящие рельсы Divine, на стену и потолок - навесные; старые рельсы Divine перекладываются в них
         GameRegistry.addShapelessRecipe(new ItemStack(ModItems.apalachiaRails), old);
+        // рельсы арканы Divine (у Датикона) - в рельсы арканы аддона: разгоняют вагонетку, ставятся и на стены
+        GameRegistry.addShapelessRecipe(new ItemStack(ModItems.arcanaRails), net.divinerpg.utils.blocks.ArcanaBlocks.arcaniteRails);
         GameRegistry.addRecipe(new ItemStack(ModItems.apalachiaRails, 16), "F F", "FSF", "F F", 'F', net.divinerpg.utils.items.TwilightItemsOther.apalachiaFragments, 'S',
             stick(WorldWood.APALACHIA));
         GameRegistry.addShapelessRecipe(new ItemStack(ModItems.skyCart), Items.minecart, net.divinerpg.utils.items.TwilightItemsOther.apalachiaGem,

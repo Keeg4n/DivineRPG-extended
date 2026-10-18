@@ -147,11 +147,12 @@ public class BlockSkyRail extends Block {
         w.setBlockMetadataWithNotify(x, y, z, meta | (acrossBit ? 8 : 0), 2);
     }
 
-    /** Рельс на стене над рельсом Divine у её подножия: тот становится горкой (навесным рельсом на полу). */
+    /** Рельс на стене над напольным рельсом у её подножия: тот становится горкой (навесным рельсом на полу). */
     @Override
     public void onBlockAdded(World w, int x, int y, int z) {
         if (w.isRemote || support(w.getBlockMetadata(x, y, z)).offsetY != 0) return;
-        if (SkyTrack.divine(w.getBlock(x, y - 1, z)) && SkyTrack.ascending(w, x, y - 1, z) == ForgeDirection.UNKNOWN) w.setBlock(x, y - 1, z, this, 0, 3);
+        Block ramp = SkyTrack.rampOf(w.getBlock(x, y - 1, z));
+        if (ramp != null && SkyTrack.ascending(w, x, y - 1, z) == ForgeDirection.UNKNOWN) w.setBlock(x, y - 1, z, ramp, 0, 3);
     }
 
     @Override
@@ -178,8 +179,8 @@ public class BlockSkyRail extends Block {
         return com.divinerpgextended.registry.ModItems.apalachiaRails;
     }
 
-    /** Путь вагонетки Апалачии: навесной рельс или напольный рельс Апалачии (аддона или Divine). */
+    /** Путь вагонетки Апалачии: навесной рельс или любой напольный. */
     public static boolean track(Block b) {
-        return b instanceof BlockSkyRail || SkyTrack.divine(b);
+        return b instanceof BlockSkyRail || SkyTrack.floor(b);
     }
 }
