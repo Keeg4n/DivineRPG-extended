@@ -53,6 +53,7 @@ public class CommonProxy {
         com.divinerpgextended.accessory.AccessoryMessages.register();
         com.divinerpgextended.boss.ProgressSync.register();
         com.divinerpgextended.trinket.DoubleJump.register();
+        com.divinerpgextended.perk.RangedRoles.registerMessages();
         com.divinerpgextended.debug.Debug.register();
     }
 
@@ -74,7 +75,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.ArenaCalm());
         com.divinerpgextended.perk.RangedRoles ranged = new com.divinerpgextended.perk.RangedRoles();
         MinecraftForge.EVENT_BUS.register(ranged);
-        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.twilight.TwilightCrafts.DivineRailSwap());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.twilight.TwilightCrafts.RailDrops());
         FMLCommonHandler.instance().bus().register(ranged);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.TwilightDrops());
         com.divinerpgextended.perk.HomingArrows homing = new com.divinerpgextended.perk.HomingArrows();

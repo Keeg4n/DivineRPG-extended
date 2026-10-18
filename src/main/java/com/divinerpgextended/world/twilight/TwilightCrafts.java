@@ -117,18 +117,17 @@ public final class TwilightCrafts {
     }
 
     /** Рельсы Апалачии Divine на стену и потолок ставятся навесными рельсами аддона; на пол - как обычно. */
-    public static class DivineRailSwap {
+    /** Сломанный рельс Апалачии Divine выпадает рельсами Апалачии аддона - ими же он и ставится. */
+    public static class RailDrops {
 
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
-        public void onUse(net.minecraftforge.event.entity.player.PlayerInteractEvent e) {
-            if (e.action != net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK) return;
-            ItemStack held = e.entityPlayer.getHeldItem();
-            if (held == null || held.getItem() != Item.getItemFromBlock(TwilightBlocks.apalachiaRails)) return;
-            if (e.face == 1) return; // на пол - обычные рельсы Divine (повороты, разгон, любые вагонетки)
-            e.setCanceled(true);
-            ItemStack tmp = new ItemStack(ModBlocks.skyRail);
-            if (tmp.getItem().onItemUse(tmp, e.entityPlayer, e.world, e.x, e.y, e.z, e.face, 0.5F, 0.5F, 0.5F) && tmp.stackSize == 0
-                && !e.entityPlayer.capabilities.isCreativeMode) held.stackSize--;
+        public void onDrops(net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent e) {
+            if (e.block != TwilightBlocks.apalachiaRails) return;
+            Item old = Item.getItemFromBlock(TwilightBlocks.apalachiaRails);
+            for (int i = 0; i < e.drops.size(); i++) {
+                ItemStack d = e.drops.get(i);
+                if (d != null && d.getItem() == old) e.drops.set(i, new ItemStack(ModItems.apalachiaRails, d.stackSize));
+            }
         }
     }
 
@@ -136,8 +135,9 @@ public final class TwilightCrafts {
     private static void rails() {
         Item old = Item.getItemFromBlock(TwilightBlocks.apalachiaRails);
         remove(old);
-        // рельсы Divine: на пол - настоящие рельсы, на стену и потолок встают навесными (DivineRailSwap)
-        GameRegistry.addRecipe(new ItemStack(old, 16), "F F", "FSF", "F F", 'F', net.divinerpg.utils.items.TwilightItemsOther.apalachiaFragments, 'S',
+        // рельсы Апалачии: на пол - настоящие рельсы Divine, на стену и потолок - навесные; старые рельсы Divine перекладываются в них
+        GameRegistry.addShapelessRecipe(new ItemStack(ModItems.apalachiaRails), old);
+        GameRegistry.addRecipe(new ItemStack(ModItems.apalachiaRails, 16), "F F", "FSF", "F F", 'F', net.divinerpg.utils.items.TwilightItemsOther.apalachiaFragments, 'S',
             stick(WorldWood.APALACHIA));
         GameRegistry.addShapelessRecipe(new ItemStack(ModItems.skyCart), Items.minecart, net.divinerpg.utils.items.TwilightItemsOther.apalachiaGem,
             net.divinerpg.utils.items.TwilightItemsOther.apalachiaGem);

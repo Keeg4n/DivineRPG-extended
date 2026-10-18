@@ -36,6 +36,7 @@ public class ClientProxy extends CommonProxy {
         super.init(event);
         ClientCommandHandler.instance.registerCommand(new CommandFlySpeed());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.DreBossBar());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.RenderSkyCart.Rider());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.AccessoryButton());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.TooltipWrap());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.TemperTooltip());

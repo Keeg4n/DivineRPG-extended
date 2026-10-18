@@ -1,0 +1,53 @@
+package com.divinerpgextended.item;
+
+import java.util.List;
+
+import net.divinerpg.utils.blocks.TwilightBlocks;
+import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
+import net.minecraft.world.World;
+
+import com.divinerpgextended.block.BlockSkyRail;
+import com.divinerpgextended.registry.ModBlocks;
+
+/**
+ * Рельсы Апалачии: на пол встают обычными рельсами Апалачии Divine (повороты, любые вагонетки), на стену и потолок -
+ * навесными ({@link BlockSkyRail}); у подножия стены с рельсом - горкой. Не ItemBlock нарочно: клиент проверяет
+ * ItemBlock рельсов Divine (нужен пол под рельсом) и клик по стене до сервера не доходил.
+ */
+public class ItemApalachiaRails extends Item {
+
+    public ItemApalachiaRails() {
+        setUnlocalizedName("dre.apalachiaRails");
+        setTextureName("divinerpgextended:apalachia_rails");
+        setCreativeTab(com.divinerpgextended.DreTab.TAB);
+    }
+
+    @Override
+    public boolean onItemUse(ItemStack s, EntityPlayer p, World w, int x, int y, int z, int side, float hx, float hy, float hz) {
+        Block place = ModBlocks.skyRail;
+        if (side == 1) {
+            Block clicked = w.getBlock(x, y, z);
+            int ty = clicked == Blocks.snow_layer || clicked.isReplaceable(w, x, y, z) ? y : y + 1;
+            // под рельсом на стене - горка (навесной на полу), иначе обычный рельс Divine
+            Block above = w.getBlock(x, ty + 1, z);
+            boolean underWall = above instanceof BlockSkyRail && BlockSkyRail.support(w.getBlockMetadata(x, ty + 1, z)).offsetY == 0;
+            if (!underWall) place = TwilightBlocks.apalachiaRails;
+        }
+        ItemStack tmp = new ItemStack(place);
+        if (!tmp.getItem().onItemUse(tmp, p, w, x, y, z, side, hx, hy, hz)) return false;
+        if (tmp.stackSize == 0 && !p.capabilities.isCreativeMode) s.stackSize--;
+        return true;
+    }
+
+    @Override
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public void addInformation(ItemStack s, EntityPlayer p, List list, boolean adv) {
+        list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.tooltip.apalachia_rails"));
+    }
+}

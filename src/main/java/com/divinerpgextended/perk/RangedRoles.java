@@ -38,8 +38,9 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * </ul>
  * Колчаны-аксессуары (как в Террарии; падают со стрелков - {@link #DROP_CHANCE}: лучники - колчан (Вечный лучник - наверняка), маг - подсумок, колдун -
  * перевязь) дают бесконечные боеприпасы своему виду: бездонный колчан - лукам, подсумок пыли -
- * блицам и фазерам, перевязь метателя - слайсерам. Пока колчан надет и оружие в руке, в инвентаре держится один
- * помеченный боеприпас ({@link #QUIVER_TAG}); выстрел его тратит - появляется снова. Снял колчан - метка пропадает.
+ * блицам и фазерам, перевязь метателя - слайсерам. Колчан: лук натягивается и стреляет без стрел, ничего не кладя в
+ * инвентарь (клиенту о колчане говорит {@link QuiverSync}). Подсумок: фазер не тратит пыль, блицу пыль подкладывается
+ * на миг выстрела ({@link #QUIVER_TAG}) и тут же им тратится - в инвентаре её не видно.
  * Чтобы колчан носили не только ради удобства: колчан +10% урона стрелами, подсумок +15% урона блица и фазера,
  * перевязь +1 цель рикошета.
  */
@@ -133,35 +134,97 @@ public class RangedRoles {
             new ItemStack(com.divinerpgextended.registry.ModItems.trinket, 1, t.ordinal())));
     }
 
-    /** Колчан: держит один помеченный боеприпас, пока надет и оружие его вида в руке; иначе метку убирает. */
+    /**
+     * Подсумок и блиц: Divine стреляет блицем, только если пыль есть, и сразу её тратит, а события перед выстрелом нет.
+     * Поэтому на клик (до выстрела) подкладываем одну помеченную пыль - выстрел её и съедает; не выстрелил (перезарядка) -
+     * её убирает {@link #onPlayerTick}.
+     */
+    @SubscribeEvent
+    public void onUse(net.minecraftforge.event.entity.player.PlayerInteractEvent e) {
+        if (e.world.isRemote || e.action == net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.LEFT_CLICK_BLOCK) return;
+        EntityPlayer p = e.entityPlayer;
+        Object[] need = ammoFor(p.getHeldItem());
+        if (need == null || p.capabilities.isCreativeMode || !wears(p, (com.divinerpgextended.trinket.Trinket) need[1])) return;
+        Item a = (Item) need[0];
+        if (p.inventory.hasItem(a)) return;
+        ItemStack s = new ItemStack(a);
+        s.setTagCompound(new NBTTagCompound());
+        s.getTagCompound().setBoolean(QUIVER_TAG, true);
+        p.inventory.addItemStackToInventory(s);
+    }
+
+    /** Клиент: надет ли колчан у своего игрока (лук натягивается без стрел и на клиенте). */
+    public static boolean clientQuiver;
+    private static final java.util.Map<EntityPlayer, Boolean> QUIVER_SENT = new java.util.WeakHashMap<EntityPlayer, Boolean>();
+
+    private static boolean quiver(EntityPlayer p) {
+        return p.worldObj.isRemote ? clientQuiver : wears(p, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER);
+    }
+
+    /** Убрать помеченные боеприпасы (подложенная пыль, не ушедшая в выстрел; старые стрелы колчана) и сказать клиенту про колчан. */
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent e) {
-        if (e.phase != TickEvent.Phase.END || e.player.worldObj.isRemote || e.player.ticksExisted % 2 != 0) return;
+        if (e.phase != TickEvent.Phase.END || e.player.worldObj.isRemote) return;
         EntityPlayer p = e.player;
-        Object[] need = ammoFor(p.getHeldItem());
-        Item keep = null;
-        if (need != null && wears(p, (com.divinerpgextended.trinket.Trinket) need[1])) {
-            keep = (Item) need[0];
-            if (!p.inventory.hasItem(keep)) {
-                ItemStack a = new ItemStack(keep);
-                a.setTagCompound(new NBTTagCompound());
-                a.getTagCompound().setBoolean(QUIVER_TAG, true);
-                p.inventory.addItemStackToInventory(a);
-            }
-        }
         for (int i = 0; i < p.inventory.mainInventory.length; i++) {
             ItemStack s = p.inventory.mainInventory[i];
-            if (s != null && s.hasTagCompound() && s.getTagCompound().getBoolean(QUIVER_TAG) && s.getItem() != keep) p.inventory.mainInventory[i] = null;
+            if (s != null && s.hasTagCompound() && s.getTagCompound().getBoolean(QUIVER_TAG)) p.inventory.mainInventory[i] = null;
         }
+        if (p.ticksExisted % 10 == 0 && p instanceof net.minecraft.entity.player.EntityPlayerMP) {
+            boolean q = wears(p, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER);
+            if (!Boolean.valueOf(q).equals(QUIVER_SENT.get(p))) {
+                QUIVER_SENT.put(p, q);
+                com.divinerpgextended.cold.ColdHandler.NET.sendTo(new QuiverSync(q), (net.minecraft.entity.player.EntityPlayerMP) p);
+            }
+        }
+    }
+
+    public static class QuiverSync implements cpw.mods.fml.common.network.simpleimpl.IMessage {
+
+        boolean on;
+
+        public QuiverSync() {}
+
+        QuiverSync(boolean on) {
+            this.on = on;
+        }
+
+        @Override
+        public void fromBytes(io.netty.buffer.ByteBuf buf) {
+            on = buf.readBoolean();
+        }
+
+        @Override
+        public void toBytes(io.netty.buffer.ByteBuf buf) {
+            buf.writeBoolean(on);
+        }
+    }
+
+    public static class QuiverSyncHandler implements cpw.mods.fml.common.network.simpleimpl.IMessageHandler<QuiverSync, cpw.mods.fml.common.network.simpleimpl.IMessage> {
+
+        @Override
+        public cpw.mods.fml.common.network.simpleimpl.IMessage onMessage(QuiverSync msg, cpw.mods.fml.common.network.simpleimpl.MessageContext ctx) {
+            clientQuiver = msg.on;
+            return null;
+        }
+    }
+
+    public static void registerMessages() {
+        com.divinerpgextended.cold.ColdHandler.NET.registerMessage(QuiverSyncHandler.class, QuiverSync.class, 10, cpw.mods.fml.relauncher.Side.CLIENT);
     }
 
     public static final String TMP_INF = "dreTmpInfinity";
     private static final int INFINITY = net.minecraft.enchantment.Enchantment.infinity.effectId;
 
-    /** Колчан: лук (ванильный и Divine) натягивается и стреляет как с Бесконечностью - стрелы не нужны и не тратятся. */
+    /**
+     * Колчан: лук (ванильный и Divine) натягивается без стрел (оба требуют стрелу даже с Бесконечностью - натягиваем
+     * сами) и стреляет как с Бесконечностью - стрелы не нужны и не тратятся.
+     */
     @SubscribeEvent
     public void onNock(net.minecraftforge.event.entity.player.ArrowNockEvent e) {
-        lendInfinity(e.entityPlayer, e.result);
+        if (e.result == null || !quiver(e.entityPlayer)) return;
+        e.entityPlayer.setItemInUse(e.result, e.result.getMaxItemUseDuration());
+        e.setCanceled(true);
     }
 
     @SubscribeEvent
@@ -171,7 +234,7 @@ public class RangedRoles {
 
     /** Повесить на лук временную Бесконечность (снимается, когда лук отпущен). */
     public static void lendInfinity(EntityPlayer p, ItemStack bow) {
-        if (bow == null || !wears(p, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER)) return;
+        if (bow == null || !quiver(p)) return;
         if (net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(INFINITY, bow) > 0) return;
         bow.addEnchantment(net.minecraft.enchantment.Enchantment.infinity, 1);
         bow.getTagCompound().setBoolean(TMP_INF, true);

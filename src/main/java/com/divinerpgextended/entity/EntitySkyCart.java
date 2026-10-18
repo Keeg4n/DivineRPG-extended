@@ -1,5 +1,7 @@
 package com.divinerpgextended.entity;
 
+import java.util.List;
+
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -9,27 +11,31 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.divinerpgextended.block.BlockSkyRail;
-import com.divinerpgextended.registry.ModBlocks;
+import com.divinerpgextended.block.SkyTrack;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Вагонетка Апалачии: едет только по рельсам Апалачии, по полу, стенам и потолку. Идёт от центра одного рельса к
- * центру следующего: прямо, если дальше рельс; иначе поворачивает на соседний рельс (с пола на стену, со стены на
- * потолок и т.д.) - так замыкается кольцо. Едет, пока в ней сидят; рельсы кончились - разворачивается. Игрок на
- * потолке висит под вагонеткой.
+ * Вагонетка Апалачии: едет по рельсам Апалачии - по полу, вверх по стене и по потолку (заготовка под американские
+ * горки). Путь - ломаная "середина рельса - стык - середина следующего" ({@link SkyTrack}): прямо, если можно, иначе
+ * на другой соседний рельс; на углу пол - стена - горкой. Едет, пока в ней сидят; путь кончился - едет обратно.
+ * Седок сидит внутри и поворачивается вместе с ней (клиент рисует его по нормали пути).
  */
 public class EntitySkyCart extends Entity {
 
     public static final double SPEED = 0.35;
-    private static final int DW_FACE = 20;
-    private static final int[][] DIRS = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
+    /** Середина вагонетки над точкой касания колёс; глаза седока над серединой (как у ванильной вагонетки). */
+    public static final double BODY = 0.4, EYES = 0.82, SEAT = 0.8;
+    private static final int DW_N = 20, DW_F = 23; // нормаль и курс: по три float
 
     private int cx, cy, cz, nx, ny, nz;
-    private int dx = 1, dy, dz;
     private double t;
     private boolean placed;
+    /** Направление первого шага при постановке (по взгляду игрока). */
+    private int sx = 1, sz;
     /** Кто сидел на прошлом тике: слез - поставить в безопасное место (не в потолок и не в стену). */
     private Entity lastRider;
+    /** Клиент: нормаль на прошлом тике - для плавного поворота между тиками. */
+    public float[] prevNormal = { 0, 1, 0 };
 
     public EntitySkyCart(World w) {
         super(w);
@@ -40,100 +46,123 @@ public class EntitySkyCart extends Entity {
 
     public EntitySkyCart(World w, int x, int y, int z, float yaw) {
         this(w);
-        cx = x;
-        cy = y;
-        cz = z;
+        cx = nx = x;
+        cy = ny = y;
+        cz = nz = z;
         int f = net.minecraft.util.MathHelper.floor_double(yaw * 4.0F / 360.0F + 0.5D) & 3;
-        int[][] h = { { 0, 0, 1 }, { -1, 0, 0 }, { 0, 0, -1 }, { 1, 0, 0 } };
-        dx = h[f][0];
-        dy = 0;
-        dz = h[f][2];
+        int[][] h = { { 0, 1 }, { -1, 0 }, { 0, -1 }, { 1, 0 } };
+        sx = h[f][0];
+        sz = h[f][1];
         placed = true;
-        pickNext(true);
+        start();
         updatePos();
     }
 
     @Override
     protected void entityInit() {
-        dataWatcher.addObject(DW_FACE, Byte.valueOf((byte) 0));
+        for (int i = 0; i < 6; i++) dataWatcher.addObject(DW_N + i, Float.valueOf(i == 1 ? 1 : 0));
     }
 
-    /** Грань опоры текущего рельса (для отрисовки: на потолке - вверх колёсами). */
-    public ForgeDirection face() {
-        return ForgeDirection.getOrientation(dataWatcher.getWatchableObjectByte(DW_FACE));
+    public float[] normal() {
+        return new float[] { dataWatcher.getWatchableObjectFloat(DW_N), dataWatcher.getWatchableObjectFloat(DW_N + 1), dataWatcher.getWatchableObjectFloat(DW_N + 2) };
+    }
+
+    public float[] course() {
+        return new float[] { dataWatcher.getWatchableObjectFloat(DW_F), dataWatcher.getWatchableObjectFloat(DW_F + 1), dataWatcher.getWatchableObjectFloat(DW_F + 2) };
     }
 
     private boolean rail(int x, int y, int z) {
         return BlockSkyRail.track(worldObj.getBlock(x, y, z));
     }
 
-    /** Следующий рельс: прямо, иначе поворот на соседний (не назад); start - можно развернуться сразу. */
-    private boolean pickNext(boolean start) {
-        if (rail(cx + dx, cy + dy, cz + dz)) {
-            nx = cx + dx;
-            ny = cy + dy;
-            nz = cz + dz;
+    /** Первый шаг: по взгляду игрока, если туда есть путь, иначе любой. */
+    private void start() {
+        List<int[]> ex = SkyTrack.exits(worldObj, cx, cy, cz);
+        int[] pick = null;
+        for (int[] o : ex) if (pick == null && o[0] == sx && o[2] == sz) pick = o;
+        if (pick == null && !ex.isEmpty()) pick = ex.get(0);
+        if (pick != null) {
+            nx = cx + pick[0];
+            ny = cy + pick[1];
+            nz = cz + pick[2];
+        }
+    }
+
+    /** Доехали до (cx,cy,cz) из (px,py,pz): дальше прямо, иначе на другой выход; тупик - обратно (false). */
+    private boolean pickNext(int px, int py, int pz) {
+        int dx = cx - px, dy = cy - py, dz = cz - pz;
+        boolean flat = dx != 0 || dz != 0;
+        int[] best = null;
+        for (int[] o : SkyTrack.exits(worldObj, cx, cy, cz)) {
+            if (cx + o[0] == px && cy + o[1] == py && cz + o[2] == pz) continue; // назад
+            if (!rail(cx + o[0], cy + o[1], cz + o[2])) continue;
+            boolean straight = flat ? o[0] == dx && o[2] == dz : o[0] == 0 && o[2] == 0 && o[1] == dy;
+            if (best == null || straight) best = o;
+            if (straight) break;
+        }
+        if (best != null) {
+            nx = cx + best[0];
+            ny = cy + best[1];
+            nz = cz + best[2];
             return true;
         }
-        // подъём и спуск по наклонным рельсам Divine: вперёд и на блок выше или ниже
-        if (dy == 0) for (int up = 1; up >= -1; up -= 2) {
-            if (rail(cx + dx, cy + up, cz + dz)) {
-                nx = cx + dx;
-                ny = cy + up;
-                nz = cz + dz;
-                return true;
-            }
-        }
-        for (int[] d : DIRS) {
-            if (d[0] == -dx && d[1] == -dy && d[2] == -dz && !start) continue;
-            if (d[0] == dx && d[1] == dy && d[2] == dz) continue;
-            if (rail(cx + d[0], cy + d[1], cz + d[2])) {
-                dx = d[0];
-                dy = d[1];
-                dz = d[2];
-                nx = cx + dx;
-                ny = cy + dy;
-                nz = cz + dz;
-                return true;
-            }
-        }
-        // тупик - разворот
-        if (rail(cx - dx, cy - dy, cz - dz)) {
-            dx = -dx;
-            dy = -dy;
-            dz = -dz;
-            nx = cx + dx;
-            ny = cy + dy;
-            nz = cz + dz;
-            return true;
-        }
-        nx = cx;
-        ny = cy;
-        nz = cz;
+        boolean back = rail(px, py, pz);
+        nx = back ? px : cx;
+        ny = back ? py : cy;
+        nz = back ? pz : cz;
         return false;
     }
 
-    /** Позиция между центрами рельсов, прижата к опоре. */
+    private static double[] lerp(double[] a, double[] b, double k) {
+        return new double[] { a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k };
+    }
+
+    private static double[] unit(double[] a) {
+        double l = Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
+        return l < 1e-6 ? new double[] { 0, 1, 0 } : new double[] { a[0] / l, a[1] / l, a[2] / l };
+    }
+
+    /** Позиция на ломаной: первая половина шага - от середины рельса к стыку, вторая - от стыка к середине следующего. */
     private void updatePos() {
-        double px = cx + 0.5 + (nx - cx) * t, py = cy + 0.5 + (ny - cy) * t, pz = cz + 0.5 + (nz - cz) * t;
-        ForgeDirection sup = worldObj.getBlock(cx, cy, cz) instanceof BlockSkyRail ? BlockSkyRail.support(worldObj.getBlockMetadata(cx, cy, cz)) : ForgeDirection.DOWN;
-        if (!worldObj.isRemote) dataWatcher.updateObject(DW_FACE, Byte.valueOf((byte) sup.ordinal()));
-        px += sup.offsetX * 0.3;
-        py += sup.offsetY * 0.3 - 0.35;
-        pz += sup.offsetZ * 0.3;
-        setPosition(px, py, pz);
+        double[] ca = SkyTrack.contact(worldObj, cx, cy, cz), na = SkyTrack.normal(worldObj, cx, cy, cz);
+        double[] p, n, f;
+        if (nx == cx && ny == cy && nz == cz) {
+            p = ca;
+            n = na;
+            f = new double[] { sx, 0, sz };
+        } else {
+            double[] cb = SkyTrack.contact(worldObj, nx, ny, nz), nb = SkyTrack.normal(worldObj, nx, ny, nz);
+            double[] j = SkyTrack.joint(worldObj, cx, cy, cz, nx, ny, nz), nj = unit(lerp(na, nb, 0.5));
+            if (t < 0.5) {
+                p = lerp(ca, j, t * 2);
+                n = unit(lerp(na, nj, t * 2));
+                f = new double[] { j[0] - ca[0], j[1] - ca[1], j[2] - ca[2] };
+            } else {
+                p = lerp(j, cb, t * 2 - 1);
+                n = unit(lerp(nj, nb, t * 2 - 1));
+                f = new double[] { cb[0] - j[0], cb[1] - j[1], cb[2] - j[2] };
+            }
+        }
+        f = unit(f);
+        if (!worldObj.isRemote) for (int i = 0; i < 3; i++) {
+            dataWatcher.updateObject(DW_N + i, Float.valueOf((float) n[i]));
+            dataWatcher.updateObject(DW_F + i, Float.valueOf((float) f[i]));
+        }
+        // середина вагонетки - над точкой касания по нормали; posY - низ рамки
+        setPosition(p[0] + n[0] * BODY, p[1] + n[1] * BODY - height / 2, p[2] + n[2] * BODY);
     }
 
     @Override
     public void onUpdate() {
+        if (worldObj.isRemote) prevNormal = normal();
         super.onUpdate();
         if (worldObj.isRemote) return;
         if (!placed) {
-            cx = (int) Math.floor(posX);
-            cy = (int) Math.floor(posY + 0.4);
-            cz = (int) Math.floor(posZ);
+            cx = nx = (int) Math.floor(posX);
+            cy = ny = (int) Math.floor(posY + 0.4);
+            cz = nz = (int) Math.floor(posZ);
             placed = true;
-            pickNext(true);
+            start();
         }
         if (!rail(cx, cy, cz)) { // рельс убрали - вагонетка выпадает предметом
             com.divinerpgextended.debug.Debug.noteNear(this, 32, "Вагонетка Апалачии: под ней нет рельса (" + cx + " " + cy + " " + cz + ") - выпала предметом");
@@ -144,30 +173,50 @@ public class EntitySkyCart extends Entity {
         lastRider = riddenByEntity;
         if (riddenByEntity != null) {
             riddenByEntity.fallDistance = 0;
-            t += SPEED;
-            int guard = 0;
-            while (t >= 1 && guard++ < 4) {
-                t -= 1;
-                cx = nx;
-                cy = ny;
-                cz = nz;
-                if (!pickNext(false)) {
-                    t = 0;
-                    com.divinerpgextended.debug.Debug.noteNear(this, 32, "Вагонетка Апалачии: тупик в " + cx + " " + cy + " " + cz);
-                    break;
+            boolean still = nx == cx && ny == cy && nz == cz;
+            if (still || !rail(nx, ny, nz)) { // стояла без пути или следующий рельс убрали - искать заново
+                nx = cx;
+                ny = cy;
+                nz = cz;
+                t = 0;
+                start();
+            }
+            if (nx != cx || ny != cy || nz != cz) {
+                t += SPEED;
+                int guard = 0;
+                while (t >= 1 && guard++ < 4) {
+                    t -= 1;
+                    int px = cx, py = cy, pz = cz;
+                    cx = nx;
+                    cy = ny;
+                    cz = nz;
+                    if (!pickNext(px, py, pz)) {
+                        com.divinerpgextended.debug.Debug.noteNear(this, 32, "Вагонетка Апалачии: конец пути в " + cx + " " + cy + " " + cz + ", обратно");
+                        if (nx == cx && ny == cy && nz == cz) t = 0;
+                    }
                 }
             }
         }
         updatePos();
     }
 
-    /** Седок: на полу - сверху, на стене - рядом стоя, на потолке - висит под вагонеткой. */
+    /** Седок сидит внутри: глаза - над серединой по нормали пути (на стене - в сторону от стены, на потолке - вниз). */
     @Override
     public void updateRiderPosition() {
         if (riddenByEntity == null) return;
-        ForgeDirection f = face();
-        double y = f == ForgeDirection.UP ? posY - 1.3 : posY + 0.35;
-        riddenByEntity.setPosition(posX - f.offsetX * 0.2, y + riddenByEntity.getYOffset(), posZ - f.offsetZ * 0.2);
+        float[] n = normal();
+        double my = posY + height / 2;
+        // у игрока на клиенте posY - глаза, на сервере - ноги: getYOffset() это учитывает (как у ванильной вагонетки)
+        riddenByEntity.setPosition(posX + n[0] * EYES, my + n[1] * EYES - 1.62 + 0.5 + riddenByEntity.getYOffset(), posZ + n[2] * EYES);
+    }
+
+    /** Грань опоры по нормали (для высадки). */
+    private ForgeDirection face() {
+        float[] n = normal();
+        float ax = Math.abs(n[0]), ay = Math.abs(n[1]), az = Math.abs(n[2]);
+        if (ay >= ax && ay >= az) return n[1] > 0 ? ForgeDirection.DOWN : ForgeDirection.UP;
+        if (ax >= az) return n[0] > 0 ? ForgeDirection.WEST : ForgeDirection.EAST;
+        return n[2] > 0 ? ForgeDirection.NORTH : ForgeDirection.SOUTH;
     }
 
     /** Высадка: на потолке - под вагонетку, на стене - шаг от стены, на полу - рядом. */
@@ -194,7 +243,7 @@ public class EntitySkyCart extends Entity {
 
     @Override
     public double getMountedYOffset() {
-        return 0.35;
+        return height / 2 + EYES - 1.62 + 0.5;
     }
 
     @Override
@@ -208,7 +257,7 @@ public class EntitySkyCart extends Entity {
         if (!worldObj.isRemote) {
             p.mountEntity(riddenByEntity == p ? null : this);
             com.divinerpgextended.debug.Debug.note(p, "Вагонетка Апалачии: " + (riddenByEntity == p ? "сел" : "слез") + " на " + cx + " " + cy + " " + cz
-                + ", дальше " + nx + " " + ny + " " + nz);
+                + ", дальше " + nx + " " + ny + " " + nz + ", выходов " + SkyTrack.exits(worldObj, cx, cy, cz).size());
         }
         return true;
     }
@@ -228,24 +277,31 @@ public class EntitySkyCart extends Entity {
 
     @Override
     protected void readEntityFromNBT(NBTTagCompound tag) {
-        int[] c = tag.getIntArray("Rail");
+        int[] c = tag.getIntArray("Path");
         if (c.length == 6) {
             cx = c[0];
             cy = c[1];
             cz = c[2];
-            dx = c[3];
-            dy = c[4];
-            dz = c[5];
+            nx = c[3];
+            ny = c[4];
+            nz = c[5];
+            t = tag.getDouble("T");
             placed = true;
-            nx = cx + dx;
-            ny = cy + dy;
-            nz = cz + dz;
+            return;
+        }
+        c = tag.getIntArray("Rail"); // старый формат: только текущий рельс
+        if (c.length == 6) {
+            cx = nx = c[0];
+            cy = ny = c[1];
+            cz = nz = c[2];
+            placed = true;
         }
     }
 
     @Override
     protected void writeEntityToNBT(NBTTagCompound tag) {
-        tag.setIntArray("Rail", new int[] { cx, cy, cz, dx, dy, dz });
+        tag.setIntArray("Path", new int[] { cx, cy, cz, nx, ny, nz });
+        tag.setDouble("T", t);
     }
 
     public int[] railPos() {

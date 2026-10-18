@@ -11,7 +11,8 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
 /**
- * Навесные рельсы Апалачии: ставятся рельсами Апалачии Divine на стену или потолок (на пол - обычные рельсы Divine) (мета 0-5 - грань опоры: 0 снизу, 1 сверху, 2-5 -
+ * Навесные рельсы Апалачии: ставятся рельсами Апалачии ({@link com.divinerpgextended.item.ItemApalachiaRails}) на стену или потолок, на пол - обычные
+ * рельсы Divine; у стены пол переходит в стену горкой ({@link SkyTrack#corner}) (мета 0-5 - грань опоры: 0 снизу, 1 сверху, 2-5 -
  * север, юг, запад, восток; бит 8 - поперёк). По ним ездит вагонетка Апалачии ({@link com.divinerpgextended.entity.EntitySkyCart})
  * и сама поворачивает на стыках, так что можно замкнуть кольцо пол - стена - потолок - стена.
  */
@@ -68,7 +69,6 @@ public class BlockSkyRail extends Block {
         setStepSound(soundTypeMetal);
         setBlockName("dre.skyRail");
         setBlockTextureName("divinerpg:apalachiaRails");
-        setCreativeTab(com.divinerpgextended.DreTab.TAB);
     }
 
     /** Грань опоры (ForgeDirection, куда смотрит опора от рельса). */
@@ -147,6 +147,18 @@ public class BlockSkyRail extends Block {
         w.setBlockMetadataWithNotify(x, y, z, meta | (acrossBit ? 8 : 0), 2);
     }
 
+    /** Рельс на стене над рельсом Divine у её подножия: тот становится горкой (навесным рельсом на полу). */
+    @Override
+    public void onBlockAdded(World w, int x, int y, int z) {
+        if (w.isRemote || support(w.getBlockMetadata(x, y, z)).offsetY != 0) return;
+        if (SkyTrack.divine(w.getBlock(x, y - 1, z)) && SkyTrack.ascending(w, x, y - 1, z) == ForgeDirection.UNKNOWN) w.setBlock(x, y - 1, z, this, 0, 3);
+    }
+
+    @Override
+    public net.minecraft.item.Item getItem(World w, int x, int y, int z) {
+        return com.divinerpgextended.registry.ModItems.apalachiaRails;
+    }
+
     @Override
     public void onNeighborBlockChange(World w, int x, int y, int z, Block b) {
         if (!solid(w, x, y, z, support(w.getBlockMetadata(x, y, z)))) {
@@ -160,10 +172,10 @@ public class BlockSkyRail extends Block {
         return 0;
     }
 
-    /** Ломается в рельсы Апалачии Divine: из них же и ставится. */
+    /** Ломается в рельсы Апалачии: из них же и ставится. */
     @Override
     public net.minecraft.item.Item getItemDropped(int meta, java.util.Random r, int fortune) {
-        return net.minecraft.item.Item.getItemFromBlock(net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails);
+        return com.divinerpgextended.registry.ModItems.apalachiaRails;
     }
 
     /** Путь вагонетки Апалачии: навесной рельс или рельс Апалачии Divine. */

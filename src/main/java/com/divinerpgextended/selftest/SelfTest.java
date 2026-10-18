@@ -2489,21 +2489,46 @@ public class SelfTest {
             int dustLeft = qv.inventory.getStackInSlot(5) == null ? 0 : qv.inventory.getStackInSlot(5).stackSize;
             s2.setDead();
             qv.inventory.setInventorySlotContents(5, null);
-            // колчан: натянул лук Эдема без стрел - на луке временная Бесконечность, стрел в инвентаре нет; отпустил - снята
+            // колчан: лук Эдема без стрел натягивается (событие отменено, лук в деле), выстрел - стрела летит, в инвентаре стрел нет
             ItemStack bow = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBow);
             qv.setCurrentItemOrArmor(0, bow);
             Accessories.of(qv).setInventorySlotContents(0, trinket(Trinket.ENDLESS_QUIVER));
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.ArrowNockEvent(qv, bow));
-            boolean arrow = net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(net.minecraft.enchantment.Enchantment.infinity.effectId, bow) > 0
-                && !qv.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsWeapons.edenArrow);
-            Accessories.of(qv).setInventorySlotContents(0, null);
+            net.minecraftforge.event.entity.player.ArrowNockEvent nock = new net.minecraftforge.event.entity.player.ArrowNockEvent(qv, bow);
+            MinecraftForge.EVENT_BUS.post(nock);
+            boolean drawn = nock.isCanceled() && qv.isUsingItem();
+            int arrowsBefore = w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, qv.boundingBox.expand(6, 6, 6)).size();
+            bow.getItem().onPlayerStoppedUsing(bow, w, qv, bow.getMaxItemUseDuration() - 40);
+            java.util.List<?> flying = w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, qv.boundingBox.expand(6, 6, 6));
+            boolean fired = flying.size() == arrowsBefore + 1;
+            for (Object o : flying) ((net.minecraft.entity.Entity) o).setDead();
+            qv.clearItemInUse();
             FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, qv));
+            boolean arrow = drawn && fired && !qv.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsWeapons.edenArrow);
             boolean gone = net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(net.minecraft.enchantment.Enchantment.infinity.effectId, bow) == 0
                 && (bow.getTagCompound() == null || !bow.getTagCompound().hasKey("ench"));
+            // подсумок: блиц без пыли стреляет, пыль в инвентаре не остаётся
+            Accessories.of(qv).setInventorySlotContents(0, trinket(Trinket.DUST_POUCH));
+            ItemStack bz = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz);
+            qv.setCurrentItemOrArmor(0, bz);
+            int bulletsBefore = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, qv.boundingBox.expand(6, 6, 6)).size();
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(qv,
+                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w));
+            try {
+                bz.getItem().onItemRightClick(bz, w, qv);
+            } catch (NullPointerException ex) {
+                // Divine после выстрела шлёт инвентарь по сети - у тестового игрока сети нет
+            }
+            java.util.List<?> bl = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, qv.boundingBox.expand(6, 6, 6));
+            int blitzShots = bl.size() - bulletsBefore;
+            for (Object o : bl) ((net.minecraft.entity.Entity) o).setDead();
+            FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, qv));
+            boolean noDust = !qv.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsOther.edenDust);
+            Accessories.of(qv).setInventorySlotContents(0, null);
             qv.setCurrentItemOrArmor(0, null);
-            check(pellets && dry && shot && dustLeft == 2 && arrow && gone,
-                "дробь без неуязвимости " + pellets + ", фазер без пыли молчит " + dry + ", с пылью стреляет " + shot + " (пыли осталось " + dustLeft + "), колчан - Бесконечность без стрел " + arrow + ", отпустил - снята " + gone);
-            return "дробины блица бьют одну цель все; фазер тратит пыль Эдема (без неё молчит); с колчаном лук натягивается и стреляет как с Бесконечностью, стрел в инвентаре нет";
+            check(pellets && dry && shot && dustLeft == 2 && arrow && gone && blitzShots == com.divinerpgextended.perk.RangedRoles.PELLETS && noDust,
+                "дробь без неуязвимости " + pellets + ", фазер без пыли молчит " + dry + ", с пылью стреляет " + shot + " (пыли осталось " + dustLeft + "), колчан: натянут " + drawn
+                    + ", выстрел " + fired + ", Бесконечность снята " + gone + "; блиц с подсумком без пыли: снарядов " + blitzShots + ", пыли в инвентаре нет " + noDust);
+            return "дробины блица бьют одну цель все; фазер тратит пыль Эдема (без неё молчит); с колчаном лук без стрел натягивается и стреляет, стрел в инвентаре нет; с подсумком блиц стреляет без пыли и ничего не кладёт";
         });
         t("Прохождение", "Бонусы колчанов", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
@@ -2571,88 +2596,98 @@ public class SelfTest {
                 "колчанов с 500 солнечных лучников " + got + ", чужих " + other + ", крафт " + craft + ", лучник Скайтерна " + skyQuiver + ", с Вечного лучника " + bossGot + " из 20");
             return "колчан падает с лучников (~10%: " + got + " из 500), с Вечного лучника всегда, не крафтится";
         });
-        t("Прохождение", "Рельсы Divine ставятся на стену", () -> {
-            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
-            loadAround(w, 9560, 9820, 1);
-            w.setBlock(9560, 100, 9820, Blocks.stone);
-            w.setBlockToAir(9561, 100, 9820);
-            TestPlayer rv = player(ConfigurationHelper.apalachia, "TestRailSwap", 9562.5, 100, 9820.5);
-            hold(rv, new ItemStack(net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails, 4));
-            net.minecraftforge.event.entity.player.PlayerInteractEvent ev = new net.minecraftforge.event.entity.player.PlayerInteractEvent(rv,
-                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, 9560, 100, 9820, 5, w); // восточная грань камня
-            MinecraftForge.EVENT_BUS.post(ev);
-            boolean placed = w.getBlock(9561, 100, 9820) == com.divinerpgextended.registry.ModBlocks.skyRail;
-            int meta = w.getBlockMetadata(9561, 100, 9820) & 7;
-            int left = rv.getHeldItem() == null ? 0 : rv.getHeldItem().stackSize;
-            w.setBlockToAir(9561, 100, 9820);
-            w.setBlockToAir(9560, 100, 9820);
-            check(placed && meta == net.minecraftforge.common.util.ForgeDirection.WEST.ordinal() && left == 3 && ev.isCanceled(),
-                "поставлено " + placed + ", опора " + meta + ", осталось " + left);
-            return "рельсы Апалачии Divine в руке ставятся рельсами аддона на стену (опора - камень с запада)";
-        });
-        t("Прохождение", "Рельсы как в игре: пол и стена", () -> {
+        t("Прохождение", "Рельсы как в игре: пол, горка, стена, потолок", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9580, 9860, 1);
             int x0 = 9580, y0 = 100, z0 = 9860;
+            // пол, стена на востоке (x0+6), потолок на высоте y0+6
             for (int x = x0 - 2; x <= x0 + 8; x++) for (int y = y0 - 1; y <= y0 + 8; y++) for (int z = z0 - 2; z <= z0 + 2; z++)
-                w.setBlock(x, y, z, y == y0 - 1 || x == x0 + 6 ? Blocks.stone : Blocks.air); // пол и стена на востоке
+                w.setBlock(x, y, z, y == y0 - 1 || x == x0 + 6 || y == y0 + 6 ? Blocks.stone : Blocks.air);
             TestPlayer rv = join(player(ConfigurationHelper.apalachia, "TestRailPlay", x0 + 0.5, y0, z0 + 0.5), true);
             rv.rotationYaw = -90; // смотрит на восток
-            ItemStack rails = new ItemStack(net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails, 64);
+            ItemStack rails = new ItemStack(com.divinerpgextended.registry.ModItems.apalachiaRails, 64);
             hold(rv, rails);
-            // по полу: клик по верху блоков пола - обычные рельсы Divine
             rv.rotationPitch = 60;
-            for (int x = x0; x <= x0 + 5; x++) {
-                net.minecraftforge.event.entity.player.PlayerInteractEvent fe = new net.minecraftforge.event.entity.player.PlayerInteractEvent(rv,
-                    net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, x, y0 - 1, z0, 1, w);
-                MinecraftForge.EVENT_BUS.post(fe);
-                if (!fe.isCanceled()) rails.getItem().onItemUse(rails, rv, w, x, y0 - 1, z0, 1, 0.5F, 1F, 0.5F);
-            }
-            // по стене: клик по западной грани стены (сторона 4) - навесные рельсы
+            for (int x = x0; x <= x0 + 5; x++) rails.getItem().onItemUse(rails, rv, w, x, y0 - 1, z0, 1, 0.5F, 1F, 0.5F); // пол
             rv.rotationPitch = 0;
-            for (int y = y0 + 1; y <= y0 + 5; y++) {
-                net.minecraftforge.event.entity.player.PlayerInteractEvent we = new net.minecraftforge.event.entity.player.PlayerInteractEvent(rv,
-                    net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, x0 + 6, y, z0, 4, w);
-                MinecraftForge.EVENT_BUS.post(we);
-                if (!we.isCanceled()) rails.getItem().onItemUse(rails, rv, w, x0 + 6, y, z0, 4, 0F, 0.5F, 0.5F);
-            }
-            int floor = 0, wall = 0;
-            for (int x = x0; x <= x0 + 5; x++) if (w.getBlock(x, y0, z0) == net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails) floor++;
+            for (int y = y0 + 1; y <= y0 + 5; y++) rails.getItem().onItemUse(rails, rv, w, x0 + 6, y, z0, 4, 0F, 0.5F, 0.5F); // стена
+            rv.rotationPitch = -60;
+            for (int x = x0; x <= x0 + 4; x++) rails.getItem().onItemUse(rails, rv, w, x, y0 + 6, z0, 0, 0.5F, 0F, 0.5F); // потолок
+            int floor = 0, wall = 0, ceil = 0;
+            for (int x = x0; x <= x0 + 4; x++) if (w.getBlock(x, y0, z0) == net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails) floor++;
             for (int y = y0 + 1; y <= y0 + 5; y++)
                 if (w.getBlock(x0 + 5, y, z0) == com.divinerpgextended.registry.ModBlocks.skyRail
                     && (w.getBlockMetadata(x0 + 5, y, z0) & 7) == net.minecraftforge.common.util.ForgeDirection.EAST.ordinal()) wall++;
-            // соединения: рельс на полу у стены смотрит к стене (на восток), рельс на стене - вертикальный
-            net.minecraftforge.common.util.ForgeDirection[] lf = new net.minecraftforge.common.util.ForgeDirection[0];
-            net.minecraftforge.common.util.ForgeDirection[] lw = com.divinerpgextended.block.BlockSkyRail.links(w, x0 + 5, y0 + 3, z0);
-            boolean linkFloor = java.util.Arrays.asList(lf).contains(net.minecraftforge.common.util.ForgeDirection.WEST)
-                && java.util.Arrays.asList(lf).contains(net.minecraftforge.common.util.ForgeDirection.UP) == false
-                && lf.length == 2;
-            boolean linkWall = java.util.Arrays.asList(lw).contains(net.minecraftforge.common.util.ForgeDirection.UP)
-                && java.util.Arrays.asList(lw).contains(net.minecraftforge.common.util.ForgeDirection.DOWN);
-            // нижний рельс на стене видит рельс Divine на полу под собой
-            net.minecraftforge.common.util.ForgeDirection[] lw1 = com.divinerpgextended.block.BlockSkyRail.links(w, x0 + 5, y0 + 1, z0);
-            linkWall &= java.util.Arrays.asList(lw1).contains(net.minecraftforge.common.util.ForgeDirection.DOWN);
-            // вагонетка предметом, посадка кликом
+            for (int x = x0; x <= x0 + 4; x++)
+                if (w.getBlock(x, y0 + 5, z0) == com.divinerpgextended.registry.ModBlocks.skyRail
+                    && (w.getBlockMetadata(x, y0 + 5, z0) & 7) == net.minecraftforge.common.util.ForgeDirection.UP.ordinal()) ceil++;
+            // рельс Divine у подножия стены стал горкой; верх стены - горка на потолок
+            net.minecraftforge.common.util.ForgeDirection low = com.divinerpgextended.block.SkyTrack.corner(w, x0 + 5, y0, z0);
+            net.minecraftforge.common.util.ForgeDirection high = com.divinerpgextended.block.SkyTrack.corner(w, x0 + 5, y0 + 5, z0);
+            boolean ramps = w.getBlock(x0 + 5, y0, z0) == com.divinerpgextended.registry.ModBlocks.skyRail && low == net.minecraftforge.common.util.ForgeDirection.EAST
+                && high == net.minecraftforge.common.util.ForgeDirection.UP;
+            // вагонетка предметом, посадка кликом; доезжает до конца потолка и возвращается на пол без скачков, глаза седока не в камне
             ItemStack cartItem = new ItemStack(com.divinerpgextended.registry.ModItems.skyCart);
             cartItem.getItem().onItemUse(cartItem, rv, w, x0, y0, z0, 1, 0.5F, 0.1F, 0.5F);
             java.util.List<?> carts = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntitySkyCart.class,
                 net.minecraft.util.AxisAlignedBB.getBoundingBox(x0 - 1, y0 - 1, z0 - 1, x0 + 2, y0 + 2, z0 + 2));
-            int topY = 0;
+            boolean ceilEnd = false, home = false, eyesFree = true, sat = false;
+            double jump = 0, minNy = 1;
+            int ticks = 0;
             if (carts.size() == 1) {
                 com.divinerpgextended.entity.EntitySkyCart c = (com.divinerpgextended.entity.EntitySkyCart) carts.get(0);
                 c.interactFirst(rv);
-                for (int i = 0; i < 60; i++) {
+                sat = rv.ridingEntity == c;
+                double lx = c.posX, ly = c.posY, lz = c.posZ;
+                for (; ticks < 200; ticks++) {
                     c.onUpdate();
-                    topY = Math.max(topY, c.railPos()[1]);
+                    c.updateRiderPosition();
+                    jump = Math.max(jump, Math.sqrt((c.posX - lx) * (c.posX - lx) + (c.posY - ly) * (c.posY - ly) + (c.posZ - lz) * (c.posZ - lz)));
+                    lx = c.posX;
+                    ly = c.posY;
+                    lz = c.posZ;
+                    minNy = Math.min(minNy, c.normal()[1]);
+                    int[] r = c.railPos();
+                    if (r[0] == x0 && r[1] == y0 + 5) ceilEnd = true;
+                    net.minecraft.block.Block eye = w.getBlock((int) Math.floor(rv.posX), (int) Math.floor(rv.posY + 1.62), (int) Math.floor(rv.posZ));
+                    if (eye.isOpaqueCube()) eyesFree = false;
+                    if (ceilEnd && r[1] == y0 && r[0] <= x0 + 2) {
+                        home = true;
+                        break;
+                    }
                 }
                 rv.mountEntity(null);
                 c.setDead();
             }
             for (int x = x0 - 2; x <= x0 + 8; x++) for (int y = y0 - 1; y <= y0 + 8; y++) for (int z = z0 - 2; z <= z0 + 2; z++) w.setBlockToAir(x, y, z);
-            check(floor == 6 && wall == 5 && linkWall && carts.size() == 1 && topY == y0 + 5,
-                "на полу " + floor + ", на стене " + wall + ", у стены связи " + java.util.Arrays.toString(lf) + ", на стене " + java.util.Arrays.toString(lw)
-                    + ", вагонеток " + carts.size() + ", поднялась до " + (topY - y0));
-            return "рельсы Апалачии: на пол - обычные рельсы Divine, на стену - навесные; вагонетка Апалачии с пола заезжает на стену до верха";
+            check(floor == 5 && wall == 5 && ceil == 5 && ramps && sat && ceilEnd && home && jump < 0.5 && minNy < -0.99 && eyesFree,
+                "на полу " + floor + ", на стене " + wall + ", на потолке " + ceil + ", горки " + low + "/" + high + ", сел " + sat + ", до конца потолка " + ceilEnd
+                    + ", вернулась " + home + " за " + ticks + " тиков, скачок " + String.format("%.2f", jump) + ", вверх дном " + (minNy < -0.99) + ", глаза не в камне " + eyesFree);
+            return "рельсы Апалачии: пол - рельсы Divine, у стены горка, стена и потолок - навесные; вагонетка с седоком доезжает до конца потолка и возвращается без скачков";
+        });
+        t("Прохождение", "Рельсы Апалачии на стену и в дроп", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            loadAround(w, 9560, 9820, 1);
+            w.setBlock(9560, 100, 9820, Blocks.stone);
+            w.setBlockToAir(9561, 100, 9820);
+            TestPlayer rv = player(ConfigurationHelper.apalachia, "TestRailSwap", 9562.5, 100, 9820.5);
+            ItemStack r4 = new ItemStack(com.divinerpgextended.registry.ModItems.apalachiaRails, 4);
+            hold(rv, r4);
+            boolean used = r4.getItem().onItemUse(r4, rv, w, 9560, 100, 9820, 5, 1F, 0.5F, 0.5F); // восточная грань камня
+            boolean placed = w.getBlock(9561, 100, 9820) == com.divinerpgextended.registry.ModBlocks.skyRail;
+            int meta = w.getBlockMetadata(9561, 100, 9820) & 7;
+            java.util.ArrayList<ItemStack> dr = com.divinerpgextended.registry.ModBlocks.skyRail.getDrops(w, 9561, 100, 9820, w.getBlockMetadata(9561, 100, 9820), 0);
+            java.util.ArrayList<ItemStack> dd = new java.util.ArrayList<ItemStack>();
+            dd.add(new ItemStack(net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent(9561, 99, 9820, w,
+                net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails, 0, 0, 1F, dd, rv, false));
+            boolean drops = dr.size() == 1 && dr.get(0).getItem() == com.divinerpgextended.registry.ModItems.apalachiaRails
+                && dd.get(0).getItem() == com.divinerpgextended.registry.ModItems.apalachiaRails;
+            w.setBlockToAir(9561, 100, 9820);
+            w.setBlockToAir(9560, 100, 9820);
+            check(used && placed && meta == net.minecraftforge.common.util.ForgeDirection.WEST.ordinal() && r4.stackSize == 3 && drops,
+                "поставлено " + placed + ", опора " + meta + ", осталось " + r4.stackSize + ", выпадают рельсами аддона " + drops);
+            return "рельсы Апалачии ставятся на стену навесными (опора - камень с запада); и навесной, и рельс Divine ломаются в рельсы Апалачии";
         });
         t("Логова", "Король: прыжок ввысь", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
