@@ -226,7 +226,197 @@ public class MortumWorld {
         int[] c = WorldGenNests.nearest(w.getSeed(), w.provider.dimensionId, x, z);
         if (c == null) return false;
         double dx = x - c[0], dz = z - c[2];
-        return dx * dx + dz * dz < (WorldGenNests.MORTUM_R + 2) * (WorldGenNests.MORTUM_R + 2);
+        int e = MortumArenas.extent(MortumArenas.typeAt(w, c));
+        return dx * dx + dz * dz < e * e;
+    }
+
+    // ---------------------------------------------------------------- причал арены и мосты
+
+    public static int arenaDocks, bridgeColumns;
+
+    /** Точка реки у арены этого квадрата {x, z} (null - арена не у реки). */
+    static int[] arenaRiver(long seed, int dim, int[] c) {
+        int g = WorldGenNests.spacing(dim);
+        int rx = Math.floorDiv(c[0], g), rz = Math.floorDiv(c[2], g);
+        return WorldGenNests.riverPoint(seed, dim, rx, rz);
+    }
+
+    /**
+     * Причал арены: от края арены к ближайшему руслу - на берегу у воды настил из досок, столб с фонарём и Харон. Строится в
+     * той области заселения, куда попал край воды.
+     */
+    static boolean arenaDock(World w, TwilightWorld tw, int x0, int z0) {
+        long seed = w.getSeed();
+        int[] c = WorldGenNests.nearest(seed, w.provider.dimensionId, x0 + 8, z0 + 8);
+        if (c == null) return false;
+        int[] rp = arenaRiver(seed, w.provider.dimensionId, c);
+        if (rp == null) return false;
+        // от точки реки к арене до берега: последняя точка реки - край воды
+        double dx = c[0] - rp[0], dz = c[2] - rp[1], l = Math.sqrt(dx * dx + dz * dz);
+        if (l < 1) return false;
+        dx /= l;
+        dz /= l;
+        int ex = rp[0], ez = rp[1];
+        for (int i = 0; i < 40; i++) {
+            int nx = (int) Math.floor(rp[0] + dx * i), nz = (int) Math.floor(rp[1] + dz * i);
+            if (!river(seed, nx, nz)) break;
+            ex = nx;
+            ez = nz;
+        }
+        if (ex < x0 || ex >= x0 + 16 || ez < z0 || ez >= z0 + 16) return false;
+        // настил 3 x 6: два ряда над водой (на гладь), остальное по берегу к арене (на землю)
+        for (int i = -2; i <= 3; i++) for (int k = -1; k <= 1; k++) {
+            int x = (int) Math.floor(ex + 0.5 + dx * i - dz * k), z = (int) Math.floor(ez + 0.5 + dz * i + dx * k);
+            int top = SEA + 1;
+            if (i > 0) {
+                top = ground(w, x, z);
+                if (top > SEA + 4) continue; // крутой берег - настил кончается
+            }
+            w.setBlock(x, top, z, tw.planks(), 0, 2);
+            for (int a = 1; a <= 3; a++) if (!w.isAirBlock(x, top + a, z) && w.getBlock(x, top + a, z) != Blocks.bedrock) w.setBlock(x, top + a, z, Blocks.air, 0, 2);
+            if (i == -2 && Math.abs(k) == 1) { // столбы причала из воды, на них фонари
+                for (int y = SEA - 3; y < top; y++) w.setBlock(x, y, z, tw.log(), 0, 2);
+                w.setBlock(x, top + 1, z, Blocks.fence, 0, 2);
+                w.setBlock(x, top + 2, z, tw.lamp(), tw.lampMeta(), 2);
+            }
+        }
+        com.divinerpgextended.entity.EntityCharon ch = new com.divinerpgextended.entity.EntityCharon(w);
+        ch.setLocationAndAngles(ex + 0.5 + dx, SEA + 2, ez + 0.5 + dz, 0, 0);
+        w.spawnEntityInWorld(ch);
+        arenaDocks++;
+        return true;
+    }
+
+    /** Мосты: квадрат BRIDGE_CELL, в каждом не больше одного. Высота настила над гладью - BRIDGE_UP. */
+    public static final int BRIDGE_CELL = 112, BRIDGE_UP = 5;
+    private static final java.util.Map<Long, double[]> BRIDGES = new java.util.concurrent.ConcurrentHashMap<Long, double[]>();
+
+    /**
+     * Мост квадрата (bx, bz): {x, z, поперёк ux, uz, полуширина воды} или пустой - моста нет. Место - самая середина русла
+     * в средней части квадрата, вдали от арен; направление - поперёк русла (по градиенту шума).
+     */
+    public static double[] bridge(long seed, int dim, int bx, int bz) {
+        long key = seed ^ bx * 0x9E3779B1L ^ bz * 0x85EBCA6BL ^ 0xB71D6EL;
+        double[] b = BRIDGES.get(key);
+        if (b != null) return b;
+        double best = WIDTH * 0.25;
+        int px = 0, pz = 0;
+        boolean found = false;
+        for (int i = 24; i < BRIDGE_CELL - 24; i += 3) for (int k = 24; k < BRIDGE_CELL - 24; k += 3) {
+            int x = bx * BRIDGE_CELL + i, z = bz * BRIDGE_CELL + k;
+            double a = Math.abs(riverNoise(seed, x, z));
+            if (a < best) {
+                best = a;
+                px = x;
+                pz = z;
+                found = true;
+            }
+        }
+        b = new double[0];
+        if (found) {
+            int[] c = WorldGenNests.nearest(seed, dim, px, pz);
+            boolean far = c == null;
+            if (c != null) {
+                int g = WorldGenNests.spacing(dim);
+                int e = MortumArenas.extent(MortumArenas.type(seed, Math.floorDiv(c[0], g), Math.floorDiv(c[2], g)));
+                double ddx = px - c[0], ddz = pz - c[2];
+                far = ddx * ddx + ddz * ddz > (e + 30) * (e + 30);
+            }
+            double gx = riverNoise(seed, px + 2, pz) - riverNoise(seed, px - 2, pz), gz = riverNoise(seed, px, pz + 2) - riverNoise(seed, px, pz - 2);
+            double gl = Math.sqrt(gx * gx + gz * gz);
+            if (far && gl > 1e-6) {
+                double ux = gx / gl, uz = gz / gl;
+                int half = 0;
+                for (int s = -1; s <= 1; s += 2) {
+                    int h = 0;
+                    while (h < 22 && river(seed, (int) Math.floor(px + 0.5 + ux * h * s), (int) Math.floor(pz + 0.5 + uz * h * s))) h++;
+                    half = Math.max(half, h);
+                }
+                if (half >= 3 && half < 22) b = new double[] { px + 0.5, pz + 0.5, ux, uz, half };
+            }
+        }
+        BRIDGES.put(key, b);
+        return b;
+    }
+
+    private static final java.util.Map<Long, Boolean> OPEN = new java.util.concurrent.ConcurrentHashMap<Long, Boolean>();
+    public static final int OPEN_SKY = 35;
+
+    /**
+     * Над серединой моста открыто: от настила на OPEN_SKY блоков вверх нет породы (иначе река там в тоннеле, и мост вышел
+     * бы залом в скале). Решается по одному столбцу один раз - все куски моста решают одинаково.
+     */
+    public static boolean open(World w, double[] b) {
+        long key = w.getSeed() ^ Double.doubleToLongBits(b[0]) * 31 ^ Double.doubleToLongBits(b[1]);
+        Boolean o = OPEN.get(key);
+        if (o != null) return o;
+        int x = (int) Math.floor(b[0]), z = (int) Math.floor(b[1]);
+        boolean ok = true;
+        for (int y = SEA + BRIDGE_UP + 1; y <= SEA + BRIDGE_UP + OPEN_SKY && ok; y++) {
+            net.minecraft.block.Block bl = w.getBlock(x, y, z);
+            if (!bl.isAir(w, x, y, z) && !soft(w, x, y, z)) ok = false;
+        }
+        OPEN.put(key, ok);
+        return ok;
+    }
+
+    /** Земля в столбце у русла: первый твёрдый блок сверху вниз от SEA + 12 (не Лета, не трава). */
+    static int ground(World w, int x, int z) {
+        for (int y = SEA + 12; y > SEA - DEEP; y--) {
+            net.minecraft.block.Block b = w.getBlock(x, y, z);
+            if (!b.isAir(w, x, y, z) && b != ModBlocks.lethe && !soft(w, x, y, z)) return y;
+        }
+        return SEA - DEEP;
+    }
+
+    /**
+     * Мосты через Лету в области заселения: настил из адского кирпича шириной 5 на BRIDGE_UP над гладью (гондола проходит
+     * под аркой), перила с фонарями, привратные столбы на концах, сходы к берегу; где берег - холм, над настилом прорублен
+     * проход.
+     */
+    static int bridges(World w, TwilightWorld tw, int x0, int z0) {
+        long seed = w.getSeed();
+        int n = 0;
+        int bx0 = Math.floorDiv(x0 - 40, BRIDGE_CELL), bx1 = Math.floorDiv(x0 + 56, BRIDGE_CELL);
+        int bz0 = Math.floorDiv(z0 - 40, BRIDGE_CELL), bz1 = Math.floorDiv(z0 + 56, BRIDGE_CELL);
+        for (int bx = bx0; bx <= bx1; bx++) for (int bz = bz0; bz <= bz1; bz++) {
+            double[] b = bridge(seed, w.provider.dimensionId, bx, bz);
+            if (b.length == 0 || !open(w, b)) continue;
+            double cx = b[0], cz = b[1], ux = b[2], uz = b[3], wh = b[4], half = wh + 5;
+            for (int x = x0; x < x0 + 16; x++) for (int z = z0; z < z0 + 16; z++) {
+                double rx = x + 0.5 - cx, rz = z + 0.5 - cz;
+                double u = rx * ux + rz * uz, v = -rx * uz + rz * ux, au = Math.abs(u), av = Math.abs(v);
+                if (au > half || av > 3.5) continue;
+                int deck = SEA + BRIDGE_UP;
+                int g = ground(w, x, z);
+                boolean water = river(seed, x, z) && au <= wh;
+                if (au > wh + 1) deck = Math.min(deck, Math.max(SEA + BRIDGE_UP - (int) Math.round(au - wh - 1), g + 1));
+                boolean gate = Math.abs(au - (wh + 1)) < 0.6 && av > 2.5; // привратные столбы
+                if (av <= 2.5) { // настил и низ: над водой - арка, над берегом - опора до земли
+                    w.setBlock(x, deck, z, Blocks.nether_brick, 0, 2);
+                    if (water) {
+                        int under = SEA + 3 + (int) Math.round(1.2 * (1 - (au / wh) * (au / wh)));
+                        for (int y = under; y < deck; y++) w.setBlock(x, y, z, Blocks.nether_brick, 0, 2);
+                    } else for (int y = deck - 1; y > g; y--) w.setBlock(x, y, z, Blocks.nether_brick, 0, 2);
+                    for (int y = deck + 1; y <= deck + 4; y++) if (!w.isAirBlock(x, y, z) && w.getBlock(x, y, z) != Blocks.bedrock) w.setBlock(x, y, z, Blocks.air, 0, 2);
+                } else { // перила; опора под ними как у настила
+                    w.setBlock(x, deck, z, Blocks.nether_brick, 0, 2);
+                    if (!water) for (int y = deck - 1; y > g; y--) w.setBlock(x, y, z, Blocks.nether_brick, 0, 2);
+                    for (int y = deck + 1; y <= deck + 4; y++) if (!w.isAirBlock(x, y, z) && w.getBlock(x, y, z) != Blocks.bedrock) w.setBlock(x, y, z, Blocks.air, 0, 2);
+                    boolean post = Math.floorMod((int) Math.round(u), 4) == 0;
+                    if (gate) {
+                        for (int y = deck + 1; y <= deck + 4; y++) w.setBlock(x, y, z, Blocks.nether_brick, 0, 2);
+                        w.setBlock(x, deck + 5, z, tw.lamp(), tw.lampMeta(), 2);
+                    } else {
+                        w.setBlock(x, deck + 1, z, Blocks.nether_brick_fence, 0, 2);
+                        if (post && au <= wh + 1) w.setBlock(x, deck + 2, z, tw.lamp(), tw.lampMeta(), 2);
+                    }
+                }
+                n++;
+            }
+        }
+        bridgeColumns += n;
+        return n;
     }
 
     /** Череп на полу (скелет, случайный поворот). */

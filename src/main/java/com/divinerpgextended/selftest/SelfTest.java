@@ -3604,6 +3604,89 @@ public class SelfTest {
                 "стрела отражена в стрелка " + reflected + ", ближний бой проходит " + melee + "; у зеркала " + gazed + " (от центра " + edge + "), снаряд в окне зеркала " + !s2.isCanceled() + ", урон " + h2.ammount);
             return "Карот отражает стрелы и снаряды в стрелка, ближний бой проходит; у зеркальной стены замирает, и снаряды бьют его x" + com.divinerpgextended.boss.MortumBosses.GAZE_DMG;
         });
+        t("Логова", "Мортум: река у арен, причалы, мосты", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            long seed = w.getSeed();
+            int sea = com.divinerpgextended.world.twilight.MortumWorld.SEA;
+            // у каждой арены русло - сразу за её краем, но не на ней
+            StringBuilder sb = new StringBuilder();
+            int byRiver = 0, wet = 0, total = 0;
+            for (com.divinerpgextended.world.twilight.MortumArenas.Type t : com.divinerpgextended.world.twilight.MortumArenas.Type.values()) {
+                int[] c = com.divinerpgextended.world.twilight.MortumArenas.nearestOf(w, t, 0, 0, 6);
+                if (c == null) continue;
+                total++;
+                int ext = com.divinerpgextended.world.twilight.MortumArenas.extent(t);
+                boolean inside = false, near = false;
+                for (int a = 0; a < 72; a++) {
+                    double ang = a * Math.PI / 36;
+                    for (int r = 0; r < ext; r += 3)
+                        inside |= com.divinerpgextended.world.twilight.MortumWorld.river(seed, c[0] + (int) (Math.cos(ang) * r), c[2] + (int) (Math.sin(ang) * r));
+                    for (int r = ext; r <= ext + 8; r++)
+                        near |= com.divinerpgextended.world.twilight.MortumWorld.river(seed, c[0] + (int) (Math.cos(ang) * r), c[2] + (int) (Math.sin(ang) * r));
+                }
+                if (near) byRiver++;
+                if (inside) wet++;
+                int minR = 999;
+                for (int a2 = 0; a2 < 360; a2++) for (int r = 0; r < ext + 10; r++)
+                    if (r < minR && com.divinerpgextended.world.twilight.MortumWorld.river(seed, c[0] + (int) Math.round(Math.cos(a2 * Math.PI / 180) * r), c[2] + (int) Math.round(Math.sin(a2 * Math.PI / 180) * r))) minR = r;
+                int sg = com.divinerpgextended.world.twilight.WorldGenNests.spacing(w.provider.dimensionId);
+                boolean placed = com.divinerpgextended.world.twilight.WorldGenNests.riverPoint(seed, w.provider.dimensionId, Math.floorDiv(c[0], sg), Math.floorDiv(c[2], sg)) != null;
+                sb.append(t.key()).append(near ? " у реки" : " без реки").append(inside ? " (река по арене! ближе всего " + minR + " из " + ext + ", место у реки найдено " + placed + ")" : "").append("; ");
+            }
+            // по многим мирам: доля арен у реки и арен, по которым шум реки всё же проходит
+            int sTotal = 0, sNear = 0, sWet = 0, sNone = 0;
+            int dimM = w.provider.dimensionId, gM = com.divinerpgextended.world.twilight.WorldGenNests.spacing(dimM);
+            for (long sd = 1; sd <= 8; sd++) for (int rx = -3; rx <= 2; rx++) for (int rz = -3; rz <= 2; rz++) {
+                long ss = sd * 0x5DEECE66DL + 11;
+                int[] cc = com.divinerpgextended.world.twilight.WorldGenNests.center(ss, dimM, rx, rz);
+                int ex2 = com.divinerpgextended.world.twilight.MortumArenas.extent(com.divinerpgextended.world.twilight.MortumArenas.type(ss, rx, rz));
+                boolean in2 = false, nr2 = false;
+                for (int a2 = 0; a2 < 120; a2++) {
+                    double an = a2 * Math.PI / 60;
+                    for (int r = 0; r < ex2; r += 2) in2 |= com.divinerpgextended.world.twilight.MortumWorld.river(ss, cc[0] + (int) Math.round(Math.cos(an) * r), cc[2] + (int) Math.round(Math.sin(an) * r));
+                    for (int r = ex2; r <= ex2 + 8; r += 2) nr2 |= com.divinerpgextended.world.twilight.MortumWorld.river(ss, cc[0] + (int) Math.round(Math.cos(an) * r), cc[2] + (int) Math.round(Math.sin(an) * r));
+                }
+                sTotal++;
+                if (nr2) sNear++;
+                if (in2) sWet++;
+                if (com.divinerpgextended.world.twilight.WorldGenNests.riverPoint(ss, dimM, rx, rz) == null) sNone++;
+            }
+            sb.append("по 8 мирам: арен ").append(sTotal).append(", у реки ").append(sNear).append(", река заходит на арену ").append(sWet).append(", места у реки не нашлось ").append(sNone).append("; ");
+            // мост: ближайший к началу координат
+            double[] b = null;
+            int specs = 0, covered = 0;
+            for (int i = 0; i < 10 && b == null; i++) for (int j = 0; j < 10 && b == null; j++) {
+                double[] bq = com.divinerpgextended.world.twilight.MortumWorld.bridge(seed, w.provider.dimensionId, 40 + i, 40 + j);
+                if (bq.length == 0) continue;
+                specs++;
+                if (com.divinerpgextended.world.twilight.MortumWorld.open(w, bq)) b = bq;
+                else covered++;
+            }
+            sb.append("мест под мост ").append(specs).append(", из них в тоннеле (без моста) ").append(covered).append("; ");
+            boolean bridge = false;
+            String bs = "моста нет";
+            if (b != null) {
+                int bx = (int) Math.floor(b[0]), bz = (int) Math.floor(b[1]);
+                loadAround(w, bx, bz, 3);
+                int up = com.divinerpgextended.world.twilight.MortumWorld.BRIDGE_UP;
+                int deck = 0, rail = 0;
+                for (int x = bx - 30; x <= bx + 30; x++) for (int z = bz - 30; z <= bz + 30; z++) {
+                    if (w.getBlock(x, sea + up, z) == Blocks.nether_brick) deck++;
+                    if (w.getBlock(x, sea + up + 1, z) == Blocks.nether_brick_fence) rail++;
+                }
+                boolean overWater = w.getBlock(bx, sea + up, bz) == Blocks.nether_brick && w.getBlock(bx, sea, bz) == com.divinerpgextended.registry.ModBlocks.lethe
+                    && w.isAirBlock(bx, sea + 1, bz) && w.isAirBlock(bx, sea + 2, bz);
+                boolean sky = true;
+                for (int y = sea + up + 1; y <= sea + up + 20; y++) if (!w.isAirBlock(bx, y, bz) && !com.divinerpgextended.world.twilight.MortumWorld.soft(w, bx, y, bz)) sky = false;
+                bridge = overWater && deck > 30 && rail > 8 && sky;
+                dump(w, bx, sea + 10, bz, 30, "render-bridge");
+                bs = "мост у " + bx + "," + bz + ": над Летой " + overWater + ", над ним открыто " + sky + ", настила " + deck + ", перил " + rail + ", вода шириной " + (int) (b[4] * 2);
+            }
+            int docks = com.divinerpgextended.world.twilight.MortumWorld.arenaDocks;
+            sb.append("причалов у арен построено ").append(docks).append("; ");
+            check(total == 6 && sNear >= sTotal * 0.85 && sWet <= sTotal * 0.08 && sWet <= sNone && bridge && docks > 0, sb + bs);
+            return "арен у русла " + sNear + " из " + sTotal + " (8 миров), река заходит на арену у " + sWet + ", причалов у арен " + docks + "; " + bs;
+        });
         t("Логова", "РЕНДЕР карта Леты", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int bx = 40000, bz = 40000, size = 192;
@@ -4322,6 +4405,8 @@ public class SelfTest {
                 cmd.processCommand(d, new String[] { "mobs", "on" });
                 d.chat.clear();
                 ow.difficultySetting = net.minecraft.world.EnumDifficulty.EASY;
+                d.isDead = false;
+                d.setHealth(d.getMaxHealth()); // после прошлых ударов мог быть при смерти - удар бы не прошёл
                 hit(d, DamageSource.causeMobDamage(dz), 10);
                 hit(dg, DamageSource.causeMobDamage(dz), 3); // моб бьёт моба рядом с отладчиком
                 FMLCommonHandler.instance().bus().post(new PlayerEvent.PlayerLoggedInEvent(d));

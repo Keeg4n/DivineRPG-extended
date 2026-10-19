@@ -45,6 +45,8 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         if (mortum) { // река течёт и мимо арен (на самих аренах её нет)
             int river = MortumWorld.lethe(world, tw, x0, z0);
             if (river > 4) MortumWorld.dock(world, r, tw, x0, z0);
+            MortumWorld.bridges(world, tw, x0, z0);
+            MortumWorld.arenaDock(world, tw, x0, z0);
         }
         if (nearLair(world, x0 + 8, z0 + 8)) return;
         boolean built = false;

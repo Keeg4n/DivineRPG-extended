@@ -67,7 +67,8 @@ public class WorldGenNests implements IWorldGenerator {
         int margin = Math.min(g / 3, NEST_R + 40);
         int x = rx * g + margin + r.nextInt(Math.max(1, g - 2 * margin)), z = rz * g + margin + r.nextInt(Math.max(1, g - 2 * margin));
         if (TwilightWorld.of(dim) == TwilightWorld.MORTUM) {
-            int[] near = nearRiver(seed, x, z, rx * g + margin, rz * g + margin, rx * g + g - margin, rz * g + g - margin);
+            int ext = MortumArenas.extent(MortumArenas.type(seed, rx, rz)), m2 = ext + 6; // к реке можно сдвинуть почти по всему квадрату
+            int[] near = nearRiver(seed, x, z, rx * g + m2, rz * g + m2, rx * g + g - m2, rz * g + g - m2, ext);
             if (near != null) {
                 x = near[0];
                 z = near[1];
@@ -79,42 +80,54 @@ public class WorldGenNests implements IWorldGenerator {
     private static final java.util.Map<Long, int[]> RIVER_SPOT = new java.util.concurrent.ConcurrentHashMap<Long, int[]>();
 
     /**
-     * Арена Мортума - у Леты: ближайшая к (x, z) точка реки в квадрате, от неё на 38 блоков вбок туда, где сама арена не на
-     * реке. null - реки поблизости нет (арена остаётся где была).
+     * Арена Мортума - у Леты: ближайшая к (x, z) точка реки в квадрате, от неё на ext + 3 блока вбок туда, где в круге ext
+     * (арена со склонами) реки нет - русло проходит у самого края арены. {x, z, точка реки x, z}; null - реки поблизости нет
+     * (арена остаётся где была).
      */
-    static int[] nearRiver(long seed, int x, int z, int x0, int z0, int x1, int z1) {
-        long key = seed ^ (long) x * 0x9E3779B1L ^ (long) z * 0x85EBCA6BL;
+    static int[] nearRiver(long seed, int x, int z, int x0, int z0, int x1, int z1, int ext) {
+        long key = seed ^ (long) x * 0x9E3779B1L ^ (long) z * 0x85EBCA6BL ^ (long) ext * 0x632BE5ABL;
         int[] cached = RIVER_SPOT.get(key);
         if (cached != null) return cached.length == 0 ? null : cached;
-        int[] best = null;
-        long bd = Long.MAX_VALUE;
-        for (int i = -96; i <= 96; i += 4) for (int k = -96; k <= 96; k += 4) {
-            if (!MortumWorld.river(seed, x + i, z + k)) continue;
-            long d = (long) i * i + (long) k * k;
-            if (d < bd) {
-                bd = d;
-                best = new int[] { x + i, z + k };
+        // середина русла вокруг, ближние точки первыми; от каждой пробуем 16 сторон, пока круг ext вокруг арены не окажется сухим
+        java.util.List<int[]> pts = new java.util.ArrayList<int[]>();
+        for (int i = -100; i <= 100; i += 4) for (int k = -100; k <= 100; k += 4)
+            if (Math.abs(MortumWorld.riverNoise(seed, x + i, z + k)) < MortumWorld.WIDTH * 0.3) pts.add(new int[] { x + i, z + k, i * i + k * k });
+        java.util.Collections.sort(pts, new java.util.Comparator<int[]>() {
+            @Override
+            public int compare(int[] a, int[] b) {
+                return a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0;
             }
-        }
+        });
         int[] spot = null;
-        if (best != null) {
-            int[][] dirs = { { 38, 0 }, { -38, 0 }, { 0, 38 }, { 0, -38 }, { 27, 27 }, { -27, 27 }, { 27, -27 }, { -27, -27 } };
-            for (int[] o : dirs) {
-                int cx = best[0] + o[0], cz = best[1] + o[1];
+        int d = ext + 8; // от середины русла: край воды - в паре блоков от края арены
+        for (int p = 0; p < pts.size() && p < 120 && spot == null; p++) {
+            int[] best = pts.get(p);
+            for (int a = 0; a < 16 && spot == null; a++) {
+                double ang = a * Math.PI / 8;
+                int cx = best[0] + (int) Math.round(Math.cos(ang) * d), cz = best[1] + (int) Math.round(Math.sin(ang) * d);
                 if (cx < x0 || cz < z0 || cx > x1 || cz > z1) continue;
-                boolean dry = true;
-                for (int a = 0; a < 16 && dry; a++) {
-                    double ang = a * Math.PI / 8;
-                    if (MortumWorld.river(seed, cx + (int) (Math.cos(ang) * 30), cz + (int) (Math.sin(ang) * 30))) dry = false;
+                boolean dry = !MortumWorld.river(seed, cx, cz);
+                for (int r = 2; r <= ext + 2 && dry; r += 2) for (int b = 0; b < 96 && dry; b++) {
+                    double bb = b * Math.PI / 48;
+                    if (MortumWorld.river(seed, cx + (int) (Math.cos(bb) * r), cz + (int) (Math.sin(bb) * r))) dry = false;
                 }
-                if (dry && !MortumWorld.river(seed, cx, cz)) {
-                    spot = new int[] { cx, cz };
-                    break;
-                }
+                if (dry) spot = new int[] { cx, cz, best[0], best[1] };
             }
         }
         RIVER_SPOT.put(key, spot == null ? new int[0] : spot);
         return spot;
+    }
+
+    /** Точка Леты, у которой стоит арена Мортума квадрата (rx, rz): {x, z}; null - арена не у реки. */
+    public static int[] riverPoint(long seed, int dim, int rx, int rz) {
+        int g = spacing(dim);
+        if (g <= 0) return null;
+        Random r = new Random(seed ^ (rx * 341873128712L + rz * 132897987541L) ^ (dim * 0x9E3779B97F4A7C15L) ^ 0x4E35L);
+        int margin = Math.min(g / 3, NEST_R + 40);
+        int x = rx * g + margin + r.nextInt(Math.max(1, g - 2 * margin)), z = rz * g + margin + r.nextInt(Math.max(1, g - 2 * margin));
+        int ext = MortumArenas.extent(MortumArenas.type(seed, rx, rz)), m2 = ext + 6;
+        int[] near = nearRiver(seed, x, z, rx * g + m2, rz * g + m2, rx * g + g - m2, rz * g + g - m2, ext);
+        return near == null ? null : new int[] { near[2], near[3] };
     }
 
     /** Ближайшее к точке логово этого мира (своя и соседние области). */

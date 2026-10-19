@@ -161,6 +161,21 @@ public final class MortumArenas {
         return l;
     }
 
+    private static final int[] EXTENT = new int[Type.values().length];
+
+    /**
+     * Докуда от центра арена трогает землю: постройка, склоны и проходы (их подсыпка засыпала бы русло). Река течёт сразу
+     * за этим кругом, на самой арене её нет.
+     */
+    public static int extent(Type t) {
+        int e = EXTENT[t.ordinal()];
+        if (e > 0) return e;
+        Building b = (Building) shape(t);
+        e = b.reach() + (b.slopes() ? Math.max(Building.SLOPE, Building.TUNNEL) + 2 : 2);
+        EXTENT[t.ordinal()] = e;
+        return e;
+    }
+
     public static ColumnStructure shape(Type t) {
         switch (t) {
             case TWINS: return new Twins();
