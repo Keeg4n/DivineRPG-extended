@@ -3699,6 +3699,85 @@ public class SelfTest {
             check(total == 6 && sNear >= sTotal * 0.85 && sWet <= sTotal * 0.08 && sWet <= sNone && bridge && docks > 0, sb + bs);
             return "арен у русла " + sNear + " из " + sTotal + " (8 миров), река заходит на арену у " + sWet + ", причалов у арен " + docks + "; " + bs;
         });
+        t("Прохождение", "Бестиарий: главы, убийства, знаки охотника", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int sx0 = 9440, sz0 = 9830;
+            loadAround(w, sx0, sz0, 1);
+            // главы: у каждой мобы, моб ровно в одной главе, боссов нет
+            StringBuilder sb = new StringBuilder();
+            boolean filled = true, noBoss = true;
+            java.util.Set<String> seen = new java.util.HashSet<String>();
+            int dup = 0;
+            for (com.divinerpgextended.bestiary.Bestiary.Chapter c : com.divinerpgextended.bestiary.Bestiary.Chapter.values()) {
+                java.util.List<String> l = com.divinerpgextended.bestiary.Bestiary.mobs(c);
+                sb.append(c.key()).append(' ').append(l.size()).append("; ");
+                filled &= l.size() >= 3;
+                for (String m : l) {
+                    if (!seen.add(m)) dup++;
+                    Class<?> cl = (Class<?>) net.minecraft.entity.EntityList.stringToClassMapping.get(m);
+                    if (cl == null || net.minecraft.entity.boss.IBossDisplayData.class.isAssignableFrom(cl) || net.divinerpg.entities.base.EntityDivineRPGBoss.class.isAssignableFrom(cl)) noBoss = false;
+                }
+            }
+            boolean enderInEnd = com.divinerpgextended.bestiary.Bestiary.chapterOf("DRPGEnderSpider") == com.divinerpgextended.bestiary.Bestiary.Chapter.END
+                || !net.minecraft.entity.EntityList.stringToClassMapping.containsKey("DRPGEnderSpider");
+            // убийства: игрок убивает - счёт растёт, подручного босса - нет
+            TestPlayer bp = join(player(0, "TestBestiary", sx0 + 0.5, 100, sz0 + 0.5), true);
+            com.divinerpgextended.bestiary.Bestiary.kills(bp).func_150296_c().clear();
+            com.divinerpgextended.bestiary.Bestiary.kills(bp);
+            bp.getEntityData().getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG).removeTag("dreBestiary");
+            bp.getEntityData().getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG).removeTag("dreBestiaryClaimed");
+            com.divinerpgextended.bestiary.Bestiary.Chapter eden = com.divinerpgextended.bestiary.Bestiary.Chapter.EDEN;
+            String first = com.divinerpgextended.bestiary.Bestiary.mobs(eden).get(0);
+            net.minecraft.entity.EntityLivingBase victim = (net.minecraft.entity.EntityLivingBase) net.minecraft.entity.EntityList.createEntityByName(first, w);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(victim, DamageSource.causePlayerDamage(bp)));
+            int one = com.divinerpgextended.bestiary.Bestiary.kills(bp).getInteger(first);
+            victim.getEntityData().setBoolean("dreDemonAdd", true);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(victim, DamageSource.causePlayerDamage(bp)));
+            int still = com.divinerpgextended.bestiary.Bestiary.kills(bp).getInteger(first);
+            // торговец скотом: книга в продаже; с книгой и закрытой главой - знак, второй раз - ничего
+            net.divinerpg.entities.vanilla.EntityLivestockMerchant lm = new net.divinerpg.entities.vanilla.EntityLivestockMerchant(w);
+            lm.setLocationAndAngles(sx0 + 2.5, 100, sz0 + 0.5, 0, 0);
+            w.spawnEntityInWorld(lm);
+            bp.setCurrentItemOrArmor(0, null);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.EntityInteractEvent(bp, lm));
+            boolean sold = false;
+            for (Object o : lm.getRecipes(bp)) {
+                ItemStack sell = ((net.minecraft.village.MerchantRecipe) o).getItemToSell();
+                if (sell != null && sell.getItem() == com.divinerpgextended.registry.ModItems.bestiary) sold = true;
+            }
+            for (String m : com.divinerpgextended.bestiary.Bestiary.mobs(eden))
+                for (int kk = 0; kk < com.divinerpgextended.bestiary.Bestiary.need(m); kk++) com.divinerpgextended.bestiary.Bestiary.count(bp, m);
+            boolean done = com.divinerpgextended.bestiary.Bestiary.complete(com.divinerpgextended.bestiary.Bestiary.kills(bp), eden);
+            bp.inventory.clearInventory(null, -1);
+            bp.setCurrentItemOrArmor(0, new ItemStack(com.divinerpgextended.registry.ModItems.bestiary));
+            net.minecraftforge.event.entity.player.EntityInteractEvent ie = new net.minecraftforge.event.entity.player.EntityInteractEvent(bp, lm);
+            MinecraftForge.EVENT_BUS.post(ie);
+            int marks = 0;
+            for (ItemStack it : bp.inventory.mainInventory)
+                if (it != null && it.getItem() == ModItems.trinket && com.divinerpgextended.trinket.ItemTrinket.of(it) == com.divinerpgextended.trinket.Trinket.HUNTER_EDEN) marks++;
+            int again = com.divinerpgextended.bestiary.Bestiary.claim(bp);
+            lm.setDead();
+            // знак: сильнее в своём мире
+            bp.inventory.clearInventory(null, -1);
+            Accessories.of(bp).setInventorySlotContents(0, trinket(com.divinerpgextended.trinket.Trinket.HUNTER_EDEN));
+            net.minecraft.entity.monster.EntityZombie zb = new net.minecraft.entity.monster.EntityZombie(w);
+            net.minecraftforge.event.entity.living.LivingHurtEvent h1 = new net.minecraftforge.event.entity.living.LivingHurtEvent(zb, DamageSource.causePlayerDamage(bp), 10);
+            MinecraftForge.EVENT_BUS.post(h1);
+            int dimWas = bp.dimension;
+            bp.dimension = ConfigurationHelper.eden;
+            net.minecraftforge.event.entity.living.LivingHurtEvent h2 = new net.minecraftforge.event.entity.living.LivingHurtEvent(zb, DamageSource.causePlayerDamage(bp), 10);
+            MinecraftForge.EVENT_BUS.post(h2);
+            net.minecraftforge.event.entity.living.LivingHurtEvent h3 = new net.minecraftforge.event.entity.living.LivingHurtEvent(bp, DamageSource.causeMobDamage(zb), 10);
+            MinecraftForge.EVENT_BUS.post(h3);
+            bp.dimension = dimWas;
+            Accessories.of(bp).setInventorySlotContents(0, null);
+            bp.inventory.clearInventory(null, -1);
+            boolean dmg = Math.abs(h1.ammount - 10.6F) < 0.01 && Math.abs(h2.ammount - 11.5F) < 0.01 && Math.abs(h3.ammount - 8.8F) < 0.01;
+            check(filled && noBoss && dup == 0 && enderInEnd && one == 1 && still == 1 && sold && done && ie.isCanceled() && marks == 1 && again == 0 && dmg,
+                sb + "моб в двух главах " + dup + ", боссов нет " + noBoss + ", паук-эндер в Энде " + enderInEnd + "; убит " + first + ": " + one + ", подручный не в счёт " + (still == 1)
+                    + "; книга в продаже " + sold + ", глава Эдема закрыта " + done + ", знаков выдано " + marks + ", повторно " + again + "; урон: в обычном мире " + h1.ammount + ", в Эдеме " + h2.ammount + ", от моба в Эдеме " + h3.ammount);
+            return "главы: " + sb + "моб - в одной главе, боссов нет; убийства считаются (подручные боссов - нет); торговец скотом продаёт книгу и выдаёт знак за закрытую главу один раз; знак Эдема: +6% везде, +15% и -12% в Эдеме";
+        });
         t("Логова", "РЕНДЕР карта Леты", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int bx = 40000, bz = 40000, size = 192;

@@ -46,7 +46,10 @@ public enum Trinket {
     /** Крылья сна (только в Ветее): взлёт и пропуск на 2, 3, 4 этаж. Крафт из жемчуга и слитков этажей. */
     DREAM_WINGS_1, DREAM_WINGS_2, DREAM_WINGS_3,
     /** Колчаны (как в Террарии), крафт из материалов Эдема: бесконечные боеприпасы только своему виду оружия. */
-    ENDLESS_QUIVER, DUST_POUCH, SLICER_SLING;
+    ENDLESS_QUIVER, DUST_POUCH, SLICER_SLING,
+    /** Знаки охотника - за закрытые главы бестиария (у торговца скотом): сильнее в своём мире ({@link com.divinerpgextended.bestiary.Bestiary}). */
+    HUNTER_OVERWORLD, HUNTER_NETHER, HUNTER_END, HUNTER_ICEIKA, HUNTER_EDEN, HUNTER_WILDWOOD, HUNTER_APALACHIA, HUNTER_SKYTHERN, HUNTER_MORTUM,
+    HUNTER_ARCANA, HUNTER_VETHEA;
 
     /** Заказ у Джека: сколько голов [скелет, визер-скелет, зомби, крипер]; null - не заказ Джека. */
     public final int[] heads;
@@ -91,7 +94,7 @@ public enum Trinket {
 
     /** Своя для Ветеи вещь: в кошмаре работает (остальные аксессуары там молчат). */
     public boolean vethean() {
-        return this == DREAM_WINGS_1 || this == DREAM_WINGS_2 || this == DREAM_WINGS_3;
+        return this == DREAM_WINGS_1 || this == DREAM_WINGS_2 || this == DREAM_WINGS_3 || this == HUNTER_VETHEA;
     }
 
     /** Какие эффекты даёт: сам и, у объединённых, оба компонента. */

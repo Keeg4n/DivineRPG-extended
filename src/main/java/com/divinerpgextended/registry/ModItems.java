@@ -63,6 +63,7 @@ public final class ModItems {
     public static Item furnaceModule;
     public static Item trinket;
     public static Item petCarrier;
+    public static Item bestiary;
     public static Item worldStick;
     public static Item guardianHeart;
     public static Item skyCart, apalachiaRails, arcanaRails, gondola;
@@ -130,6 +131,8 @@ public final class ModItems {
         GameRegistry.registerItem(furnaceModule, "furnaceModule");
         trinket = new com.divinerpgextended.trinket.ItemTrinket();
         GameRegistry.registerItem(trinket, "trinket");
+        bestiary = new com.divinerpgextended.bestiary.ItemBestiary();
+        GameRegistry.registerItem(bestiary, "bestiary");
         petCarrier = new com.divinerpgextended.arcana.ItemPetCarrier();
         GameRegistry.registerItem(petCarrier, "petCarrier");
         worldStick = new com.divinerpgextended.item.ItemWorldStick();

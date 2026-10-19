@@ -146,6 +146,8 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.arcana.ItemPetCarrier.Handler());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.trinket.JackOMan());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.trinket.AccessorySources());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.bestiary.Bestiary());
+        com.divinerpgextended.bestiary.Bestiary.registerMessages();
         FMLCommonHandler.instance()
             .bus()
             .register(new com.divinerpgextended.boss.ProgressSync());
@@ -326,6 +328,7 @@ public class CommonProxy {
 
         com.divinerpgextended.world.twilight.TwilightCrafts.postInit();
         com.divinerpgextended.perk.RangedRoles.setupDust();
+        com.divinerpgextended.bestiary.Bestiary.build(); // главы - когда все мобы и спавны уже записаны
 
         com.divinerpgextended.vethea.VetheaStash.disableDivineSwap();
         if (Config.warnVetheaInventory && com.divinerpgextended.vethea.VetheaStash.divineSwap()) {
