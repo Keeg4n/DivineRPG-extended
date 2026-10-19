@@ -31,7 +31,8 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * <li>лук - дальность и точность (без изменений);</li>
  * <li>блиц - дробовик: {@link #PELLETS} снарядов веером, каждый слабее ({@link #PELLET_DMG}), по подручным боссов x2 -
  * против толпы, но вблизи: дробь летит {@link #BLITZ_LIFE} тиков (~10 блоков), отброс от неё слабый, боссов не сносит;
- * боеприпасы бесконечные (у Divine он тратит пыль - пыль подкладываем на миг выстрела, {@link #QUIVER_TAG});</li>
+ * боеприпасы бесконечные, как у фазера: при запуске у блицев снимаем патрон Divine ({@link #infiniteBlitz}) - Divine сам
+ * не проверяет и не тратит пыль, инвентарь не трогается;</li>
  * <li>фазер - пробой: снаряд проходит насквозь до {@link #PIERCE} целей, по частям голема x2; бесконечный, как у Divine;</li>
  * <li>слайсер - рикошет до {@link #RICOCHET} целей подряд, перерезает лиану голема, сбивает замах Короля-воина и
  * издалека заряжает ветряные тотемы (как снежки в кристаллы дракона).</li>
@@ -82,21 +83,25 @@ public class RangedRoles {
         return com.divinerpgextended.accessory.Accessories.wears(p, t);
     }
 
-    /** Подсказка блица: у Divine "боеприпасы: пыль", у нас он бесконечный. */
-    @SubscribeEvent
-    public void onTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent e) {
-        if (e.itemStack == null || kind(e.itemStack) != BLITZ) return;
-        Item dust = Ammo.divineAmmo(e.itemStack);
-        if (dust == null) return;
-        String inf, ammo;
-        try {
-            inf = net.divinerpg.utils.TooltipLocalizer.infiniteAmmo();
-            ammo = net.divinerpg.utils.TooltipLocalizer.ammo(dust);
-        } catch (Throwable ex) { // другая версия Divine
-            return;
+    /**
+     * Блицы бесконечные, как фазеры: Divine проверяет и тратит патрон, только если он задан (у фазеров не задан) - снимаем
+     * патрон у всех блицев. Делается при запуске и на сервере, и на клиенте; подсказку "бесконечные боеприпасы" Divine
+     * тогда пишет сам. @return сколько блицев стали бесконечными
+     */
+    public static int infiniteBlitz() {
+        int n = 0;
+        for (Object o : Item.itemRegistry) {
+            if (!(o instanceof net.divinerpg.items.base.ItemProjectileShooter) || kind(new ItemStack((Item) o)) != BLITZ) continue;
+            try {
+                java.lang.reflect.Field f = net.divinerpg.items.base.ItemProjectileShooter.class.getDeclaredField("ammo");
+                f.setAccessible(true);
+                f.set(o, null);
+                n++;
+            } catch (Exception ex) {
+                com.divinerpgextended.DivineRPGExtended.LOG.warn("Блиц " + o + ": не удалось снять патрон Divine - " + ex);
+            }
         }
-        int at = e.toolTip.indexOf(ammo);
-        if (at >= 0) e.toolTip.set(at, inf);
+        return n;
     }
 
     /**
@@ -181,22 +186,8 @@ public class RangedRoles {
         EntityPlayer p = e.entityPlayer;
         ItemStack held = p.getHeldItem();
         if (held == null || held.getItem() instanceof net.minecraft.item.ItemBow || kind(held) == PHASER || p.capabilities.isCreativeMode) return;
-        Item a = kind(held) == BLITZ ? Ammo.divineAmmo(held) : Ammo.of(held);
+        Item a = Ammo.of(held); // у блица и фазера патрона нет - бесконечные
         if (a == null || p.inventory.hasItem(a)) return;
-        if (kind(held) == BLITZ) {
-            ItemStack s = new ItemStack(a);
-            s.setTagCompound(new NBTTagCompound());
-            s.getTagCompound().setBoolean(QUIVER_TAG, true);
-            if (!Ammo.give(p, s)) { // рюкзак полон, и убрать в слоты боеприпасов нечего
-                long now = p.worldObj.getTotalWorldTime();
-                long last = p.getEntityData().getLong("dreBlitzFull");
-                if (!p.getEntityData().hasKey("dreBlitzFull") || now - last > 60 || now < last) { // время мира могло откатиться (другой мир)
-                    p.getEntityData().setLong("dreBlitzFull", now);
-                    p.addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.blitz_full"));
-                }
-            }
-            return;
-        }
         Ammo.lend(p, a);
     }
 

@@ -2571,16 +2571,12 @@ public class SelfTest {
                 shots[run] = bl.size() - before;
                 for (Object o : bl) ((net.minecraft.entity.Entity) o).setDead();
                 FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, fv));
-                if (run == 0) chat0[0] = fv.chat.toString();
-                if (run == 0) shots[0] = shots[0] * 1000 + (fv.heard("dre.chat.blitz_full") || fv.chat.toString().contains("blitz_full") ? 1 : 0);
+                if (run == 0) chat0[0] = String.valueOf(fv.inventory.mainInventory[35]);
             }
-            ItemStack d35 = null;
-            boolean arrowsMoved = fv.inventory.mainInventory[35] == null || fv.inventory.mainInventory[35].getItem() != Items.arrow;
+            ItemStack s35 = fv.inventory.mainInventory[35];
+            boolean arrowsStay = s35 != null && s35.getItem() == Items.arrow && s35.stackSize == 20;
             int inSlots = 0;
-            for (int i = Accessories.SIZE; i < Accessories.TOTAL; i++) {
-                ItemStack a = Accessories.of(fv).getStackInSlot(i);
-                if (a != null && a.getItem() == Items.arrow) inSlots += a.stackSize;
-            }
+            for (int i = Accessories.SIZE; i < Accessories.TOTAL; i++) if (Accessories.of(fv).getStackInSlot(i) != null) inSlots++;
             boolean noDust = !fv.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsOther.edenDust);
             int dirt = 0;
             for (ItemStack it : fv.inventory.mainInventory) if (it != null && it.getItem() == Item.getItemFromBlock(Blocks.dirt)) dirt += it.stackSize;
@@ -2598,20 +2594,19 @@ public class SelfTest {
             z.setDead();
             fv.inventory.clearInventory(null, -1);
             int P = com.divinerpgextended.perk.RangedRoles.PELLETS;
-            check(shots[0] == 1 && shots[1] == P && arrowsMoved && inSlots == 20 && noDust && dirt == 34 * 64 && still,
-                "забит без боеприпасов: выстрелов/подсказка " + shots[0] + " (ждём 0 выстрелов и подсказку; чат " + chat0[0] + "); со стрелами: снарядов " + shots[1] + ", стрелы ушли в слоты боеприпасов " + arrowsMoved + " (" + inSlots + " шт.), пыли не осталось " + noDust + ", земли " + dirt + " из " + 34 * 64 + ", зомби не отброшен " + still);
-            return "забитый рюкзак без боеприпасов: блиц не стреляет и подсказывает, вещи не трогает; есть стрелы - они уходят в слоты боеприпасов, блиц стреляет; дробь никого не отбрасывает";
+            check(shots[0] == P && shots[1] == P && chat0[0].contains("diamond") && arrowsStay && inSlots == 0 && noDust && dirt == 34 * 64 && still,
+                "забит землёй и алмазами: снарядов " + shots[0] + ", в последней ячейке " + chat0[0] + "; со стрелами: снарядов " + shots[1] + ", стрелы на месте " + arrowsStay + ", в слотах боеприпасов " + inSlots + ", пыли нет " + noDust + ", земли " + dirt + " из " + 34 * 64 + ", зомби не отброшен " + still);
+            return "блиц стреляет при любом заполнении рюкзака и ничего в нём не трогает; дробь никого не отбрасывает";
         });
-        t("Прохождение", "Подсказка блица: бесконечные боеприпасы", () -> {
-            TestPlayer tv = player(ConfigurationHelper.eden, "TestBlitzTip", 9486.5, 120, 9830.5);
-            ItemStack bt = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz);
-            String ammo = net.divinerpg.utils.TooltipLocalizer.ammo(com.divinerpgextended.perk.Ammo.divineAmmo(bt));
-            java.util.ArrayList<String> tip = new java.util.ArrayList<String>();
-            tip.add(bt.getDisplayName());
-            tip.add(ammo);
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.ItemTooltipEvent(bt, tv, tip, false));
-            check(!tip.contains(ammo) && tip.contains(net.divinerpg.utils.TooltipLocalizer.infiniteAmmo()) && tip.size() == 2, "подсказка " + tip);
-            return "у блица вместо пыли - бесконечные боеприпасы, как у фазера";
+        t("Прохождение", "Блиц без патрона, как фазер", () -> {
+            int n = 0, bad = 0;
+            for (Object o : Item.itemRegistry) {
+                if (!(o instanceof Item) || com.divinerpgextended.perk.RangedRoles.kind(new ItemStack((Item) o)) != com.divinerpgextended.perk.RangedRoles.BLITZ) continue;
+                n++;
+                if (com.divinerpgextended.perk.Ammo.divineAmmo(new ItemStack((Item) o)) != null) bad++;
+            }
+            check(n >= 6 && bad == 0, "блицев " + n + ", с патроном Divine осталось " + bad);
+            return "у всех " + n + " блицев патрон Divine снят: стреляют бесконечно и подсказка Divine сама пишет про бесконечные боеприпасы";
         });
         t("Прохождение", "Слоты боеприпасов", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);

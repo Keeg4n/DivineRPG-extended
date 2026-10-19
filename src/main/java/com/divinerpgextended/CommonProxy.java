@@ -325,6 +325,7 @@ public class CommonProxy {
             " c ", 'c', VanillaItemsOther.bluefireStone, 'i', Blocks.iron_block, 'E', ModItems.watcherEye);
 
         com.divinerpgextended.world.twilight.TwilightCrafts.postInit();
+        com.divinerpgextended.perk.RangedRoles.infiniteBlitz();
 
         com.divinerpgextended.vethea.VetheaStash.disableDivineSwap();
         if (Config.warnVetheaInventory && com.divinerpgextended.vethea.VetheaStash.divineSwap()) {
