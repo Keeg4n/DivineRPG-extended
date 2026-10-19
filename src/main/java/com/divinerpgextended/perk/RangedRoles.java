@@ -31,8 +31,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * <li>лук - дальность и точность (без изменений);</li>
  * <li>блиц - дробовик: {@link #PELLETS} снарядов веером, каждый слабее ({@link #PELLET_DMG}), по подручным боссов x2 -
  * против толпы, но вблизи: дробь летит {@link #BLITZ_LIFE} тиков (~10 блоков), отброс от неё слабый, боссов не сносит;
- * боеприпасы бесконечные, как у фазера: при запуске у блицев снимаем патрон Divine ({@link #infiniteBlitz}) - Divine сам
- * не проверяет и не тратит пыль, инвентарь не трогается;</li>
+ * тратит пыль своего мира ({@link #setupDust}), как и фазер;</li>
  * <li>фазер - пробой: снаряд проходит насквозь до {@link #PIERCE} целей, по частям голема x2; бесконечный, как у Divine;</li>
  * <li>слайсер - рикошет до {@link #RICOCHET} целей подряд, перерезает лиану голема, сбивает замах Короля-воина и
  * издалека заряжает ветряные тотемы (как снежки в кристаллы дракона).</li>
@@ -83,26 +82,109 @@ public class RangedRoles {
         return com.divinerpgextended.accessory.Accessories.wears(p, t);
     }
 
-    /**
-     * Блицы бесконечные, как фазеры: Divine проверяет и тратит патрон, только если он задан (у фазеров не задан) - снимаем
-     * патрон у всех блицев. Делается при запуске и на сервере, и на клиенте; подсказку "бесконечные боеприпасы" Divine
-     * тогда пишет сам. @return сколько блицев стали бесконечными
-     */
-    public static int infiniteBlitz() {
-        int n = 0;
-        for (Object o : Item.itemRegistry) {
-            if (!(o instanceof net.divinerpg.items.base.ItemProjectileShooter) || kind(new ItemStack((Item) o)) != BLITZ) continue;
-            try {
-                java.lang.reflect.Field f = net.divinerpg.items.base.ItemProjectileShooter.class.getDeclaredField("ammo");
-                f.setAccessible(true);
-                f.set(o, null);
-                n++;
-            } catch (Exception ex) {
-                com.divinerpgextended.DivineRPGExtended.LOG.warn("Блиц " + o + ": не удалось снять патрон Divine - " + ex);
-            }
+    /** Пыль-патрон фазеров и блицев: у Divine она задана только блицам, фазеру - пыль блица того же мира. */
+    private static final java.util.Map<Item, Item> DUST = new java.util.HashMap<Item, Item>();
+    /** Оружие, которому на этот тик патрон выставлен под игрока (в конце тика - обратно пыль). */
+    private static final java.util.Set<Item> ARMED = new java.util.HashSet<Item>();
+    private static java.lang.reflect.Field ammoField;
+
+    private static java.lang.reflect.Field ammoField() throws Exception {
+        if (ammoField == null) {
+            ammoField = net.divinerpg.items.base.ItemProjectileShooter.class.getDeclaredField("ammo");
+            ammoField.setAccessible(true);
         }
-        return n;
+        return ammoField;
     }
+
+    /**
+     * При запуске (сервер и клиент): фазеры и блицы стреляют пылью своего мира. Divine проверяет и тратит патрон, только
+     * если он задан у оружия, - фазерам задаём пыль блица того же мира. @return сколько оружия на пыли
+     */
+    public static int setupDust() {
+        DUST.clear();
+        try {
+            java.lang.reflect.Field f = ammoField();
+            for (TwilightWorld w : TwilightWorld.values()) {
+                Item[] wp = TwilightCrafts.weapons(w);
+                Object d = f.get(wp[3]);
+                if (!(d instanceof Item)) continue;
+                DUST.put(wp[3], (Item) d);
+                DUST.put(wp[2], (Item) d);
+            }
+            Object hd = f.get(TwilightItemsWeapons.haliteBlitz);
+            if (hd instanceof Item) {
+                DUST.put(TwilightItemsWeapons.haliteBlitz, (Item) hd);
+                DUST.put(TwilightItemsWeapons.halitePhaser, (Item) hd);
+            }
+            for (java.util.Map.Entry<Item, Item> en : DUST.entrySet()) f.set(en.getKey(), en.getValue());
+        } catch (Exception ex) {
+            com.divinerpgextended.DivineRPGExtended.LOG.warn("Пыль фазеров и блицев: не удалось задать патрон Divine - " + ex);
+        }
+        return DUST.size();
+    }
+
+    /** Пыль-патрон этого фазера или блица (null - не они). */
+    public static Item dust(Item weapon) {
+        return DUST.get(weapon);
+    }
+
+    /** Бесконечные патроны фазеру и блицу: надет подсумок пыли или на оружии Бесконечность. */
+    public static boolean infiniteDust(EntityPlayer p, ItemStack held) {
+        return wears(p, com.divinerpgextended.trinket.Trinket.DUST_POUCH)
+            || net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(INFINITY, held) > 0;
+    }
+
+    /**
+     * Перед выстрелом: патрон оружия - под этого игрока (бесконечные - без патрона, иначе пыль). Divine смотрит на патрон
+     * оружия в ту же минуту, сразу после клика; каждому клику предшествует своё событие - у каждого игрока свой расчёт. В
+     * конце тика патрон возвращается ({@link #onServerTick}). Предметы игрока не трогаются.
+     */
+    static void arm(EntityPlayer p, ItemStack held) {
+        Item d = DUST.get(held.getItem());
+        if (d == null) return;
+        try {
+            ammoField().set(held.getItem(), infiniteDust(p, held) ? null : d);
+            ARMED.add(held.getItem());
+        } catch (Exception ignored) {
+            // поле недоступно - Divine стреляет как обычно
+        }
+    }
+
+    /** Конец тика сервера: патроны фазеров и блицев - снова пыль. */
+    @SubscribeEvent
+    public void onServerTick(TickEvent.ServerTickEvent e) {
+        if (e.phase == TickEvent.Phase.END) disarm();
+    }
+
+    /** Вернуть пыль фазерам и блицам, которым патрон выставлялся под игрока. */
+    public static void disarm() {
+        if (ARMED.isEmpty()) return;
+        for (Item i : ARMED) try {
+            ammoField().set(i, DUST.get(i));
+        } catch (Exception ignored) {
+            // см. arm
+        }
+        ARMED.clear();
+    }
+
+    /** Бесконечность на фазер и блиц - книгой на наковальне (столу зачарований её не даёт сама игра: она только для луков). */
+    @SubscribeEvent
+    public void onAnvil(net.minecraftforge.event.AnvilUpdateEvent e) {
+        if (e.left == null || e.right == null || e.right.getItem() != net.minecraft.init.Items.enchanted_book || DUST.get(e.left.getItem()) == null) return;
+        if (net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(INFINITY, e.left) > 0) return;
+        net.minecraft.nbt.NBTTagList l = net.minecraft.init.Items.enchanted_book.func_92110_g(e.right);
+        boolean inf = false;
+        for (int i = 0; l != null && i < l.tagCount(); i++) if (l.getCompoundTagAt(i).getShort("id") == INFINITY) inf = true;
+        if (!inf) return;
+        ItemStack out = e.left.copy();
+        out.addEnchantment(net.minecraft.enchantment.Enchantment.infinity, 1);
+        if (e.name != null && !e.name.isEmpty() && !e.name.equals(e.left.getDisplayName())) out.setStackDisplayName(e.name);
+        e.output = out;
+        e.cost = ANVIL_COST;
+        e.materialCost = 1;
+    }
+
+    public static final int ANVIL_COST = 6;
 
     /**
      * Дробь блица бьёт по одной цели вся: неуязвимость после попадания для неё не действует. Но отброс от пяти дробин
@@ -185,8 +267,12 @@ public class RangedRoles {
         if (e.world.isRemote || e.action == net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.LEFT_CLICK_BLOCK) return;
         EntityPlayer p = e.entityPlayer;
         ItemStack held = p.getHeldItem();
-        if (held == null || held.getItem() instanceof net.minecraft.item.ItemBow || kind(held) == PHASER || p.capabilities.isCreativeMode) return;
-        Item a = Ammo.of(held); // у блица и фазера патрона нет - бесконечные
+        if (held == null || held.getItem() instanceof net.minecraft.item.ItemBow || p.capabilities.isCreativeMode) return;
+        if (DUST.get(held.getItem()) != null) {
+            arm(p, held);
+            if (infiniteDust(p, held)) return; // подсумок или Бесконечность - пыль не нужна
+        }
+        Item a = Ammo.of(held);
         if (a == null || p.inventory.hasItem(a)) return;
         Ammo.lend(p, a);
     }

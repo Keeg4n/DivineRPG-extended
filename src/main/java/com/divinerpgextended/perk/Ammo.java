@@ -33,8 +33,8 @@ public final class Ammo {
     public static Item of(ItemStack held) {
         if (held == null) return null;
         Item i = held.getItem();
-        int k = RangedRoles.kind(held);
-        if (k == RangedRoles.BLITZ || k == RangedRoles.PHASER) return null; // бесконечные
+        Item dust = RangedRoles.dust(i);
+        if (dust != null) return dust; // фазер и блиц - пыль своего мира
         if (i instanceof net.divinerpg.items.base.ItemModBow) return field(net.divinerpg.items.base.ItemModBow.class, i, "arrow");
         if (i instanceof ItemBow) return Items.arrow;
         if (i instanceof net.divinerpg.items.base.ItemProjectileShooter) return field(net.divinerpg.items.base.ItemProjectileShooter.class, i, "ammo");
