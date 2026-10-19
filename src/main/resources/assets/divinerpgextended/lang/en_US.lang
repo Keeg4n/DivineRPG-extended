@@ -1005,3 +1005,5 @@ dre.chat.demon_floor=The Demon is out of reach: climb to his floor of the tower.
 dre.chat.demon_focus=The focus on the pedestal feeds the Demon - break it.
 dre.chat.demon_focus_broken=The focus is broken - the Demon is vulnerable!
 dre.chat.demon_focus_relit=The Demon has relit the focus.
+dre.chat.twins_duel_densos=Densos drags you to the light half: "You are mine now."
+dre.chat.twins_duel_reyvor=Reyvor drags you to the dark half: "My turn."

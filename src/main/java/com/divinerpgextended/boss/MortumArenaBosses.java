@@ -36,11 +36,10 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * Механики боссов на аренах Мортума ({@link MortumArenas}); работают только у боссов, вызванных на своей арене
  * (у них есть дом логова - {@link LairSummons#home}).
  * <ul>
- * <li>Денсос и Рейвор - близнецы. Рядом друг с другом ({@link #TWIN_NEAR}) прикрывают друг друга: урон x{@link #TWIN_SHIELD}
- * - их надо развести. По очереди каждые {@link #STEP} тиков один шагает сквозь тень за спину цели и бьёт
- * ({@link #STEP_DMG}; Денсос ослепляет, Рейвор замедляет), за секунду до шага у ног цели дым. Убил одного - живой
- * впадает в ярость (сила II, скорость) и через {@link #REVIVE} тиков поднимает брата (с половиной здоровья, без
- * трофеев): добивать обоих почти одновременно.</li>
+ * <li>Денсос и Рейвор - близнецы, бьются по очереди ({@link #DUEL} тиков): дуэлянт затягивает цель на свою половину
+ * (Денсос - светлую, Рейвор - тёмную) и шагает сквозь тень за спину ({@link #STEP_DMG}; Денсос ослепляет, Рейвор
+ * замедляет); второй неуязвим, стоит у своего помоста и мешает через разлом. Убил одного - живой в ярости и сразу
+ * дуэлянт; не добил его за {@link #REVIVE} тиков - брат встаёт с половиной здоровья (один раз, без трофеев).</li>
  * <li>Вечный лучник - каждые {@link #VOLLEY} тиков залп веером ({@link #VOLLEY_ARROWS} стрел) с замахом в 1.5 секунды;
  * от залпа прячутся за колоннами галереи, но каждый залп обрушивает верх колонны у цели - укрытий всё меньше.</li>
  * <li>Пожиратель душ - каждые {@link #RAISE} тиков поднимает души из целых могил погоста рядом с собой ({@link #GRAVE_R}):
@@ -53,8 +52,12 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  */
 public class MortumArenaBosses {
 
-    public static final double TWIN_NEAR = 6;
-    public static final float TWIN_SHIELD = 0.3F;
+    /**
+     * Дуэль близнецов: по DUEL тиков поочерёдно Денсос (светлая половина, запад) и Рейвор (тёмная, восток) - дуэлянт
+     * затягивает цель на свою половину, второй неуязвим, стоит у своего помоста и мешает через разлом раз в HARASS тиков.
+     */
+    public static final int DUEL = 400, HARASS = 60;
+    public static final float PULL = 0.8F;
     public static final int REVIVE = 200;
     public static final String REVIVED = "dreRevived", SOUL = "dreFiendSoul", DASH = "dreDash", WIND = "dreWind", STUNNED = "dreStun";
     public static final int VOLLEY = 160, VOLLEY_WARN = 30, VOLLEY_ARROWS = 9, RAISE = 400, SOULS = 3, CHARGE = 160, WINDUP = 20, DASH_TICKS = 40, STUN = 60;
@@ -104,14 +107,22 @@ public class MortumArenaBosses {
         return best;
     }
 
+    /** Чья сейчас дуэль; брат мёртв - выживший всегда дуэлянт. */
+    public static boolean duelist(EntityLivingBase t) {
+        if (brother(t, 64) == null) return true;
+        boolean densosTurn = t.worldObj.getTotalWorldTime() / DUEL % 2 == 0;
+        return t instanceof EntityDensos == densosTurn;
+    }
+
+    /** Сторона брата: Денсос - запад (-1), Рейвор - восток (+1). */
+    public static int side(EntityLivingBase t) {
+        return t instanceof EntityDensos ? -1 : 1;
+    }
+
     @SubscribeEvent
     public void onHurt(LivingHurtEvent e) {
         EntityLivingBase v = e.entityLiving;
         if (v.worldObj.isRemote || !arena(v)) return;
-        if (twin(v) && brother(v, TWIN_NEAR) != null) {
-            e.ammount *= TWIN_SHIELD;
-            ((WorldServer) v.worldObj).func_147487_a("magicCrit", v.posX, v.posY + v.height / 2, v.posZ, 8, 0.6, 0.6, 0.6, 0.1);
-        }
         if (v instanceof EntityVamacheron && v.getEntityData().getInteger(STUNNED) > 0) e.ammount *= 2;
     }
 
@@ -121,11 +132,12 @@ public class MortumArenaBosses {
         if (v.worldObj.isRemote || !twin(v) || !arena(v)) return;
         EntityLivingBase b = brother(v, 64);
         if (b == null) return; // второй уже мёртв - победа
-        REVIVES.add(new Object[] { v.worldObj, v.getClass(), b, v.worldObj.getTotalWorldTime() + REVIVE });
         v.worldObj.playSoundAtEntity(b, "mob.wither.idle", 1.5F, 0.6F);
-        // ярость живого до воскрешения брата
-        b.addPotionEffect(new PotionEffect(Potion.damageBoost.id, REVIVE + 20, 1));
-        b.addPotionEffect(new PotionEffect(Potion.moveSpeed.id, REVIVE + 20, 0));
+        // ярость живого: он теперь дуэлянт до конца боя
+        b.addPotionEffect(new PotionEffect(Potion.damageBoost.id, 20 * 600, 1));
+        b.addPotionEffect(new PotionEffect(Potion.moveSpeed.id, 20 * 600, 0));
+        if (v.getEntityData().getBoolean(REVIVED)) return; // брата поднимают один раз
+        REVIVES.add(new Object[] { v.worldObj, v.getClass(), b, v.worldObj.getTotalWorldTime() + REVIVE });
     }
 
     /** Поднятые братом и бегуны лучника - без трофеев (иначе ферма). */
@@ -189,17 +201,69 @@ public class MortumArenaBosses {
         return m.worldObj.getClosestVulnerablePlayerToEntity(m, r);
     }
 
-    // ---------------- близнецы: шаг сквозь тень
+    // ---------------- близнецы: дуэль на своей половине, шаг сквозь тень
 
     private void twinTick(EntityLiving t) {
-        int k = (t.ticksExisted + (t instanceof EntityDensos ? 0 : STEP / 2)) % STEP; // по очереди
+        int[] h = LairSummons.home(t);
+        if (h == null) return;
+        double cx = h[0] + 0.5;
+        int side = side(t);
+        if ((t.posX - cx) * side < 2.5) { // за разлом не заходит
+            t.motionX = side * 0.4;
+            t.velocityChanged = true;
+        }
         EntityPlayer p = target(t, 32);
-        if (p == null || t.ticksExisted < STEP / 2) return;
+        if (p == null) return;
+        if (!duelist(t)) { // второй - у своего помоста, мешает через разлом
+            double dx = cx + side * MortumArenas.TWINS_DAIS - t.posX, dz = h[2] + 0.5 - t.posZ;
+            if (dx * dx + dz * dz > 9) t.getNavigator().tryMoveToXYZ(cx + side * MortumArenas.TWINS_DAIS, h[1], h[2] + 0.5, 1.0);
+            if (t.ticksExisted % HARASS == 0) harass(t, p);
+            return;
+        }
+        long now = t.worldObj.getTotalWorldTime();
+        if (now % DUEL == 0 && brother(t, 64) != null) tell(t, t instanceof EntityDensos ? "dre.chat.twins_duel_densos" : "dre.chat.twins_duel_reyvor");
+        if ((p.posX - cx) * side < 3) pull(t, p, cx, side);
+        int k = t.ticksExisted % STEP;
+        if (t.ticksExisted < STEP / 2) return;
         if (k == STEP - STEP_WARN) {
             ((WorldServer) t.worldObj).func_147487_a("largesmoke", p.posX, p.posY + 0.1, p.posZ, 20, 0.4, 0.05, 0.4, 0.01);
             t.worldObj.playSoundAtEntity(p, "mob.endermen.stare", 0.8F, t instanceof EntityDensos ? 1.4F : 0.7F);
         }
         if (k == 0) step(t, p);
+    }
+
+    /** Дуэлянт тянет цель на свою половину: цепь из частиц, цель летит к нему над разломом. */
+    public static void pull(EntityLiving t, EntityPlayer p, double cx, int side) {
+        double tx = cx + side * 8, dx = tx - p.posX, dz = t.posZ - p.posZ, l = Math.max(0.5, Math.sqrt(dx * dx + dz * dz));
+        p.motionX = dx / l * PULL;
+        p.motionZ = dz / l * PULL * 0.3;
+        p.motionY = Math.max(p.motionY, 0.22);
+        p.fallDistance = 0;
+        p.velocityChanged = true;
+        WorldServer ws = (WorldServer) t.worldObj;
+        for (int i = 1; i < 6; i++) {
+            double k = i / 6.0;
+            ws.func_147487_a("portal", p.posX + (t.posX - p.posX) * k, p.posY + 1 + (t.posY + 1 - p.posY - 1) * k, p.posZ + (t.posZ - p.posZ) * k, 2, 0, 0, 0, 0);
+        }
+        if (t.ticksExisted % 20 == 0) t.worldObj.playSoundAtEntity(p, "mob.endermen.portal", 0.8F, t instanceof EntityDensos ? 1.4F : 0.6F);
+    }
+
+    /** Второй брат мешает через разлом: теневой снаряд; Денсос ослепляет, Рейвор замедляет. */
+    public static void harass(EntityLiving t, EntityPlayer p) {
+        com.divinerpgextended.entity.EntityShadowBolt b = new com.divinerpgextended.entity.EntityShadowBolt(t.worldObj, t);
+        b.setThrowableHeading(p.posX - t.posX, p.posY + p.height / 2 - (t.posY + t.getEyeHeight()), p.posZ - t.posZ, 1.2F, 2);
+        t.worldObj.spawnEntityInWorld(b);
+        if (t instanceof EntityDensos) p.addPotionEffect(new PotionEffect(Potion.blindness.id, 40, 0));
+        else p.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 60, 1));
+        t.worldObj.playSoundAtEntity(t, "mob.ghast.fireball", 0.8F, t instanceof EntityDensos ? 1.4F : 0.6F);
+    }
+
+    static void tell(Entity src, String key) {
+        for (Object o : src.worldObj.getEntitiesWithinAABB(EntityPlayer.class, src.boundingBox.expand(40, 16, 40))) {
+            net.minecraft.util.ChatComponentTranslation m = new net.minecraft.util.ChatComponentTranslation(key);
+            m.getChatStyle().setColor(net.minecraft.util.EnumChatFormatting.DARK_PURPLE).setItalic(true);
+            ((EntityPlayer) o).addChatMessage(m);
+        }
     }
 
     /** Шаг сквозь тень: за спину цели (2 блока), удар; Денсос ослепляет, Рейвор замедляет. false - за спиной стена. */
@@ -468,11 +532,17 @@ public class MortumArenaBosses {
         e.world.playSoundEffect(e.x + 0.5, e.y + 0.5, e.z + 0.5, "mob.wither.hurt", 1.0F, 0.6F);
     }
 
-    /** Пока жива хоть одна его душа, Пожиратель неуязвим. */
+    /** Пока жива хоть одна его душа, Пожиратель неуязвим. Близнеца не в его дуэли не ранить. */
     @SubscribeEvent
     public void onAttack(LivingAttackEvent e) {
         EntityLivingBase v = e.entityLiving;
-        if (v.worldObj.isRemote || !(v instanceof EntitySoulFiend) || !arena(v) || e.source == DamageSource.outOfWorld) return;
+        if (v.worldObj.isRemote || !arena(v) || e.source == DamageSource.outOfWorld) return;
+        if (twin(v) && !duelist(v)) {
+            e.setCanceled(true);
+            ((WorldServer) v.worldObj).func_147487_a("magicCrit", v.posX, v.posY + v.height / 2, v.posZ, 8, 0.6, 0.6, 0.6, 0.1);
+            return;
+        }
+        if (!(v instanceof EntitySoulFiend)) return;
         if (souls((EntityLiving) v).isEmpty()) return;
         e.setCanceled(true);
         ((WorldServer) v.worldObj).func_147487_a("witchMagic", v.posX, v.posY + v.height / 2, v.posZ, 10, 0.5, 0.8, 0.5, 0.05);

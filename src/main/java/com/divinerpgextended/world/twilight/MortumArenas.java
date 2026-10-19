@@ -90,6 +90,9 @@ public final class MortumArenas {
         return in && Math.abs(y - floorY(t) - 1) <= 8;
     }
 
+    /** Зал близнецов: помосты братьев на DAIS_X от центра; Зеркальный зал Карота: зеркала на MIRROR_H от центра. */
+    public static final int TWINS_DAIS = Twins.DAIS_X, MIRROR_H = Mirror.H;
+
     /** Галерея лучника: половины по X и Z внутри стен (пробиваемое залпом - только внутри). */
     public static final int GALLERY_HX = Gallery.HX, GALLERY_HZ = Gallery.HZ;
 

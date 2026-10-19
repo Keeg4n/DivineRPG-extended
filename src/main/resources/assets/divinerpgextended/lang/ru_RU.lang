@@ -1072,3 +1072,5 @@ dre.chat.demon_floor=Демона не достать: поднимись на �
 dre.chat.demon_focus=Фокус на пьедестале питает Демона - разбей его.
 dre.chat.demon_focus_broken=Фокус разбит - Демон уязвим!
 dre.chat.demon_focus_relit=Демон снова зажёг фокус.
+dre.chat.twins_duel_densos=Денсос тянет тебя на светлую половину: "Теперь ты мой."
+dre.chat.twins_duel_reyvor=Рейвор тянет тебя на тёмную половину: "Моя очередь."

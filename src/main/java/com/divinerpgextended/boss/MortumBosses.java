@@ -67,6 +67,13 @@ public class MortumBosses {
     private static final List<Object[]> RUNE_LIST = new java.util.ArrayList<Object[]>();
     /** Оружие с таким уроном - Карот бьёт в полную силу Divine; кулак - в 0.2, топовое оружие - до x3. */
     public static final float MIRROR_REF = 10F;
+    /**
+     * Карот отражает снаряды: стрелку - REFLECT от урона. Раз в GAZE_EVERY тиков уходит к зеркальной стене и GAZE тиков
+     * смотрится в зеркало - стоит, и снаряды бьют его в GAZE_DMG раза сильнее. Ближний бой - всегда.
+     */
+    public static final int GAZE_EVERY = 160, GAZE = 60;
+    public static final float REFLECT = 0.5F, GAZE_DMG = 1.5F;
+    public static final String GAZE_LEFT = "dreGaze";
 
     // ---------------- Демон сумерек ----------------
 
@@ -82,7 +89,11 @@ public class MortumBosses {
     public void onUpdate(LivingEvent.LivingUpdateEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
         if (e.entityLiving instanceof EntityTwilightDemon) demonTick((EntityTwilightDemon) e.entityLiving);
-        else if (e.entityLiving instanceof EntityKarot && e.entityLiving.ticksExisted % 10 == 0) mirror((EntityKarot) e.entityLiving);
+        else if (e.entityLiving instanceof EntityKarot) {
+            EntityKarot k = (EntityKarot) e.entityLiving;
+            if (k.ticksExisted % 10 == 0) mirror(k);
+            gazeTick(k);
+        }
     }
 
     private void demonTick(EntityTwilightDemon d) {
@@ -507,6 +518,59 @@ public class MortumBosses {
         tag.setFloat(MAX_POWER, Math.max(tag.getFloat(MAX_POWER), power(w, a)));
     }
 
+    /** Ход Карота: смотрится в зеркало (стоит, искры) или по расписанию уходит к зеркалу. */
+    private static void gazeTick(EntityKarot k) {
+        if (LairSummons.home(k) == null) return;
+        NBTTagCompound tag = k.getEntityData();
+        int g = tag.getInteger(GAZE_LEFT);
+        if (g > 0) {
+            tag.setInteger(GAZE_LEFT, g - 1);
+            k.motionX = k.motionZ = 0;
+            k.getNavigator().clearPathEntity();
+            if (g % 5 == 0) ((WorldServer) k.worldObj).func_147487_a("magicCrit", k.posX, k.posY + k.height, k.posZ, 6, 0.4, 0.3, 0.4, 0.05);
+            return;
+        }
+        if (k.ticksExisted % GAZE_EVERY == GAZE_EVERY / 2 && k.worldObj.getClosestVulnerablePlayerToEntity(k, 40) != null) gaze(k);
+    }
+
+    /** Уйти к зеркальной стене и замереть: снаряды снова его ранят. */
+    public static boolean gaze(EntityKarot k) {
+        int[] h = LairSummons.home(k);
+        if (h == null) return false;
+        int m = com.divinerpgextended.world.twilight.MortumArenas.MIRROR_H - 3; // Карот шириной 3.25 - ближе задевает зеркала
+        int[][] spots = { { m, -4 }, { m, 4 }, { -m, -4 }, { -m, 4 }, { -4, m }, { 4, m }, { -4, -m }, { 4, -m } };
+        int start = k.getRNG().nextInt(spots.length);
+        double ox = k.posX, oy = k.posY, oz = k.posZ;
+        for (int i = 0; i < spots.length; i++) {
+            int[] s = spots[(start + i) % spots.length];
+            k.setPosition(h[0] + s[0] + 0.5, h[1], h[2] + s[1] + 0.5);
+            if (!k.worldObj.getCollidingBoundingBoxes(k, k.boundingBox).isEmpty()) continue;
+            k.setPosition(ox, oy, oz);
+            ((WorldServer) k.worldObj).func_147487_a("portal", ox, oy + 1, oz, 30, 0.6, 1, 0.6, 0.5);
+            k.setPositionAndUpdate(h[0] + s[0] + 0.5, h[1], h[2] + s[1] + 0.5);
+            k.rotationYaw = k.rotationYawHead = (float) Math.toDegrees(Math.atan2(s[0], -s[1])); // лицом к стене
+            k.getEntityData().setInteger(GAZE_LEFT, GAZE);
+            k.worldObj.playSoundAtEntity(k, "random.glass", 1.2F, 0.6F);
+            return true;
+        }
+        k.setPosition(ox, oy, oz);
+        return false;
+    }
+
+    /** Снаряд в Карота, пока он не смотрится в зеркало, отражается в стрелка. */
+    @SubscribeEvent
+    public void onKarotAttack(LivingAttackEvent e) {
+        if (!(e.entityLiving instanceof EntityKarot) || e.entityLiving.worldObj.isRemote || LairSummons.home(e.entityLiving) == null) return;
+        Entity direct = e.source.getSourceOfDamage(), owner = e.source.getEntity();
+        if (direct == null || direct == owner || e.entityLiving.getEntityData().getInteger(GAZE_LEFT) > 0) return; // ближний бой или окно зеркала
+        e.setCanceled(true);
+        EntityKarot k = (EntityKarot) e.entityLiving;
+        ((WorldServer) k.worldObj).func_147487_a("magicCrit", k.posX, k.posY + k.height / 2, k.posZ, 15, 0.6, 0.8, 0.6, 0.2);
+        k.worldObj.playSoundAtEntity(k, "random.glass", 0.8F, 1.6F);
+        if (direct != null) direct.setDead();
+        if (owner instanceof EntityLivingBase && owner != k) ((EntityLivingBase) owner).attackEntityFrom(DamageSource.causeThornsDamage(k), e.ammount * REFLECT);
+    }
+
     /** Карот бьёт как оружие игрока и держит удар как его броня. Демона сумерек пробивает только фазер. */
     @SubscribeEvent
     public void onHurt(LivingHurtEvent e) {
@@ -522,5 +586,7 @@ public class MortumBosses {
         } else if (e.entityLiving instanceof EntityKarot && e.entityLiving.getEntityData().hasKey(MIRROR_A)) {
             e.ammount *= 1 - Math.min(0.8F, e.entityLiving.getEntityData().getInteger(MIRROR_A) * 0.04F);
         }
+        if (e.entityLiving instanceof EntityKarot && e.entityLiving.getEntityData().getInteger(GAZE_LEFT) > 0 && e.source.getSourceOfDamage() != e.source.getEntity())
+            e.ammount *= GAZE_DMG;
     }
 }

@@ -3194,9 +3194,21 @@ public class SelfTest {
             w.spawnEntityInWorld(re);
             com.divinerpgextended.boss.LairSummons.leash(de, x0, y0, z0, 20);
             com.divinerpgextended.boss.LairSummons.leash(re, x0, y0, z0, 20);
-            net.minecraftforge.event.entity.living.LivingHurtEvent th = new net.minecraftforge.event.entity.living.LivingHurtEvent(de, net.minecraft.util.DamageSource.causePlayerDamage(mp), 100);
-            MinecraftForge.EVENT_BUS.post(th);
-            boolean shield = Math.abs(th.ammount - 100 * com.divinerpgextended.boss.MortumArenaBosses.TWIN_SHIELD) < 0.01;
+            // дуэль: брат не в своей дуэли неуязвим, дуэлянт уязвим и тянет цель на свою половину
+            boolean dTurn = com.divinerpgextended.boss.MortumArenaBosses.duelist(de);
+            net.minecraft.entity.EntityLiving duel = dTurn ? de : re, idle = dTurn ? re : de;
+            net.minecraftforge.event.entity.living.LivingAttackEvent ta = new net.minecraftforge.event.entity.living.LivingAttackEvent(idle, net.minecraft.util.DamageSource.causePlayerDamage(mp), 10);
+            net.minecraftforge.event.entity.living.LivingAttackEvent tb = new net.minecraftforge.event.entity.living.LivingAttackEvent(duel, net.minecraft.util.DamageSource.causePlayerDamage(mp), 10);
+            MinecraftForge.EVENT_BUS.post(ta);
+            MinecraftForge.EVENT_BUS.post(tb);
+            int sd = com.divinerpgextended.boss.MortumArenaBosses.side(duel);
+            mp.setPosition(x0 + 0.5 - sd * 5, y0, z0 + 6.5); // на чужой половине
+            mp.motionX = 0;
+            com.divinerpgextended.boss.MortumArenaBosses.pull(duel, mp, x0 + 0.5, sd);
+            boolean pulled = mp.motionX * sd > 0.3 && mp.motionY > 0.1;
+            mp.setPositionAndUpdate(x0 + 0.5, y0, z0 + 6.5);
+            mp.motionX = mp.motionY = mp.motionZ = 0;
+            boolean shield = ta.isCanceled() && !tb.isCanceled() && pulled;
             mp.rotationYaw = 0; // смотрит на юг (+Z): спина - на севере
             float hpBefore = mp.getHealth();
             mp.hurtResistantTime = 0;
@@ -3274,9 +3286,9 @@ public class SelfTest {
             ea.setDead();
             for (int x = x0 - 12; x <= x0 + 12; x++) for (int z = z0 - 12; z <= z0 + 12; z++) for (int y = y0 - 1; y <= y0 + 8; y++) w.setBlockToAir(x, y, z);
             check(shield && revived && noLoot && raised == com.divinerpgextended.boss.MortumArenaBosses.SOULS && used && guarded && open && stunned && arrows == 9 && eroded && stepped,
-                "близнецы: прикрытие " + shield + ", в очереди " + queued + ", после " + com.divinerpgextended.boss.MortumArenaBosses.pending() + ", Денсосов рядом " + w.getEntitiesWithinAABB(net.divinerpg.entities.twilight.EntityDensos.class, re.boundingBox.expand(30, 10, 30)).size() + ", поднят " + revived + ", без трофеев " + noLoot + "; шаг за спину " + stepped + "; пожиратель: надгробий " + stones + ", душ " + raised + ", целых осталось " + intact + ", неуязвим " + guarded + ", потом уязвим " + open
+                "близнецы: дуэль (второй неуязвим, дуэлянт уязвим и тянет) " + shield + ", в очереди " + queued + ", после " + com.divinerpgextended.boss.MortumArenaBosses.pending() + ", Денсосов рядом " + w.getEntitiesWithinAABB(net.divinerpg.entities.twilight.EntityDensos.class, re.boundingBox.expand(30, 10, 30)).size() + ", поднят " + revived + ", без трофеев " + noLoot + "; шаг за спину " + stepped + "; пожиратель: надгробий " + stones + ", душ " + raised + ", целых осталось " + intact + ", неуязвим " + guarded + ", потом уязвим " + open
                     + "; вамачерон: оглушён на тике " + stunAt + ", урон " + vh.ammount + "; лучник: стрел " + arrows + ", колонна осыпалась " + eroded);
-            return "близнецы прикрывают друг друга, шагают за спину и поднимают брата (без трофеев); Пожиратель поднимает души только из целых могил рядом, могила рассыпается, пока души живы - неуязвим; Вамачерон оглушается о стену (урон x2); лучник бьёт залпом и рушит укрытия";
+            return "близнецы бьются по очереди (дуэлянт тянет на свою половину, второй неуязвим), шагают за спину и поднимают брата (без трофеев); Пожиратель поднимает души только из целых могил рядом, могила рассыпается, пока души живы - неуязвим; Вамачерон оглушается о стену (урон x2); лучник бьёт залпом и рушит укрытия";
         });
         t("Логова", "Мортум: останки гигантов", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
@@ -3558,6 +3570,40 @@ public class SelfTest {
                 "кровля из ступеней с обсидиановым коньком " + roof + "; залп " + arrows + " стрел, пробито блоков в стенке " + holes + "; бегунов " + r1 + "+" + r2 + "; дождь " + rain + " стрел");
             return "кровля галереи - ступени адского кирпича; залп пробивает стенку (" + holes + " блоков), бегуны до трёх, дождь стрел " + rain;
         });
+        t("Логова", "Карот: отражает снаряды, смотрится в зеркало", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            int cx = 30000 + com.divinerpgextended.world.twilight.MortumArenas.Type.KAROT.ordinal() * 160, cz = 30000; // зал построен тестом рендера
+            loadAround(w, cx, cz, 2);
+            int top = com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP;
+            net.divinerpg.entities.twilight.EntityKarot kt = new net.divinerpg.entities.twilight.EntityKarot(w);
+            kt.setLocationAndAngles(cx + 0.5, top + 1, cz + 0.5, 0, 0);
+            w.spawnEntityInWorld(kt);
+            com.divinerpgextended.boss.LairSummons.leash(kt, cx, top + 1, cz, 13);
+            TestPlayer kp = join(player(ConfigurationHelper.mortum, "TestKarotShot", cx + 0.5, top + 1, cz + 6.5), true);
+            float hp = kp.getHealth();
+            net.minecraft.entity.projectile.EntityArrow ar = new net.minecraft.entity.projectile.EntityArrow(w, kp, 1.0F);
+            net.minecraftforge.event.entity.living.LivingAttackEvent s1 = new net.minecraftforge.event.entity.living.LivingAttackEvent(kt, DamageSource.causeArrowDamage(ar, kp), 8);
+            MinecraftForge.EVENT_BUS.post(s1);
+            boolean reflected = s1.isCanceled() && kp.getHealth() < hp;
+            kp.setHealth(kp.getMaxHealth());
+            net.minecraftforge.event.entity.living.LivingAttackEvent m1 = new net.minecraftforge.event.entity.living.LivingAttackEvent(kt, DamageSource.causePlayerDamage(kp), 8);
+            MinecraftForge.EVENT_BUS.post(m1);
+            boolean melee = !m1.isCanceled();
+            boolean gazed = com.divinerpgextended.boss.MortumBosses.gaze(kt);
+            int edge = Math.max(Math.abs((int) Math.floor(kt.posX) - cx), Math.abs((int) Math.floor(kt.posZ) - cz));
+            net.minecraft.entity.projectile.EntityArrow ar2 = new net.minecraft.entity.projectile.EntityArrow(w, kp, 1.0F);
+            net.minecraftforge.event.entity.living.LivingAttackEvent s2 = new net.minecraftforge.event.entity.living.LivingAttackEvent(kt, DamageSource.causeArrowDamage(ar2, kp), 8);
+            MinecraftForge.EVENT_BUS.post(s2);
+            net.minecraftforge.event.entity.living.LivingHurtEvent h2 = new net.minecraftforge.event.entity.living.LivingHurtEvent(kt, DamageSource.causeArrowDamage(ar2, kp), 8);
+            MinecraftForge.EVENT_BUS.post(h2);
+            boolean open = !s2.isCanceled() && Math.abs(h2.ammount - 8 * com.divinerpgextended.boss.MortumBosses.GAZE_DMG) < 0.01;
+            kt.setDead();
+            ar.setDead();
+            ar2.setDead();
+            check(reflected && melee && gazed && edge == com.divinerpgextended.world.twilight.MortumArenas.MIRROR_H - 3 && open,
+                "стрела отражена в стрелка " + reflected + ", ближний бой проходит " + melee + "; у зеркала " + gazed + " (от центра " + edge + "), снаряд в окне зеркала " + !s2.isCanceled() + ", урон " + h2.ammount);
+            return "Карот отражает стрелы и снаряды в стрелка, ближний бой проходит; у зеркальной стены замирает, и снаряды бьют его x" + com.divinerpgextended.boss.MortumBosses.GAZE_DMG;
+        });
         t("Логова", "РЕНДЕР карта Леты", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int bx = 40000, bz = 40000, size = 192;
@@ -3654,6 +3700,8 @@ public class SelfTest {
             for (int x = 0; x < 512; x += 2) for (int z = 0; z < 512; z += 2) if (com.divinerpgextended.world.twilight.MortumWorld.river(w.getSeed(), x, z)) river++;
             double share = river / (256.0 * 256.0);
             // склеп на ровной площадке: саркофаг (сундук) и спавнер
+            // поверхность ищется сверху: острова над площадкой убрать, иначе "земля" окажется на них
+            for (int x = x0 + 2; x <= x0 + 8; x++) for (int z = z0 + 2; z <= z0 + 10; z++) for (int y = y0 + 11; y <= 118; y++) w.setBlockToAir(x, y, z);
             boolean crypt = com.divinerpgextended.world.twilight.MortumWorld.crypt(w, new java.util.Random(5), com.divinerpgextended.world.twilight.TwilightWorld.MORTUM, x0 + 2, z0 + 2);
             boolean chest = w.getTileEntity(x0 + 5, y0, z0 + 4) instanceof net.minecraft.tileentity.TileEntityChest
                 && w.getBlock(x0 + 3, y0, z0 + 3) == Blocks.mob_spawner;
