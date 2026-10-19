@@ -1007,3 +1007,4 @@ dre.chat.demon_focus_broken=The focus is broken - the Demon is vulnerable!
 dre.chat.demon_focus_relit=The Demon has relit the focus.
 dre.chat.twins_duel_densos=Densos drags you to the light half: "You are mine now."
 dre.chat.twins_duel_reyvor=Reyvor drags you to the dark half: "My turn."
+dre.chat.blitz_full=The blitz needs one free inventory slot for a moment (or ammo in the backpack that fits into the ammo slots).

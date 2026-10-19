@@ -137,25 +137,34 @@ public final class Ammo {
     static final String STASH = "dreAmmoStash";
 
     /**
-     * Положить патрон на миг выстрела. Инвентарь полон - патрон кладётся в ячейку рюкзака, а её вещь откладывается в
-     * постоянные данные игрока (переживает выход и смерть) и в конце тика возвращается на место ({@link #unstash}).
+     * Положить патрон на миг выстрела. Рюкзак полон - стопка боеприпасов из рюкзака (стрелы, пыль...) переезжает в слоты
+     * боеприпасов (там ей и место, обратно не возвращается), освободившуюся ячейку занимает патрон. Таких стопок нет или
+     * слоты боеприпасов заняты - false: прочие вещи не трогаем вовсе.
      */
     public static boolean give(EntityPlayer p, ItemStack one) {
         if (p.inventory.addItemStackToInventory(one) && one.stackSize <= 0) return true;
         if (one.stackSize <= 0) return true;
-        NBTTagCompound pd = persisted(p);
-        if (pd.hasKey(STASH)) return false; // уже одолжена ячейка
         ItemStack[] inv = p.inventory.mainInventory;
         for (int i = inv.length - 1; i >= 0; i--) {
-            if (i == p.inventory.currentItem || inv[i] == null || marked(inv[i])) continue;
-            NBTTagCompound st = new NBTTagCompound();
-            st.setInteger("slot", i);
-            inv[i].writeToNBT(st);
-            pd.setTag(STASH, st);
+            ItemStack s = inv[i];
+            if (i == p.inventory.currentItem || s == null || marked(s) || !isAmmo(s.getItem()) || room(p, s) < s.stackSize) continue;
+            putBack(p, s); // влезает целиком - проверено
             inv[i] = one;
             return true;
         }
         return false;
+    }
+
+    /** Сколько таких штук ещё влезет в слоты боеприпасов. */
+    static int room(EntityPlayer p, ItemStack s) {
+        Accessories acc = Accessories.of(p);
+        int n = 0;
+        for (int i = Accessories.SIZE; i < Accessories.TOTAL; i++) {
+            ItemStack in = acc.getStackInSlot(i);
+            if (in == null) n += s.getMaxStackSize();
+            else if (in.isItemEqual(s) && ItemStack.areItemStackTagsEqual(in, s)) n += Math.max(0, in.getMaxStackSize() - in.stackSize);
+        }
+        return n;
     }
 
     static boolean marked(ItemStack s) {
@@ -168,7 +177,7 @@ public final class Ammo {
         return data.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
     }
 
-    /** Вернуть отложенную на выстрел вещь в её ячейку (занята - в любое место инвентаря, некуда - под ноги). */
+    /** Вернуть вещь, отложенную на выстрел версией 0.86 (если такая осталась в данных игрока): в её ячейку, в инвентарь или под ноги. */
     public static void unstash(EntityPlayer p) {
         NBTTagCompound pd = persisted(p);
         if (!pd.hasKey(STASH)) return;

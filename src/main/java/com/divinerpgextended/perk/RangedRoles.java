@@ -187,7 +187,14 @@ public class RangedRoles {
             ItemStack s = new ItemStack(a);
             s.setTagCompound(new NBTTagCompound());
             s.getTagCompound().setBoolean(QUIVER_TAG, true);
-            Ammo.give(p, s); // полный инвентарь - на миг выстрела занимает ячейку рюкзака
+            if (!Ammo.give(p, s)) { // рюкзак полон, и убрать в слоты боеприпасов нечего
+                long now = p.worldObj.getTotalWorldTime();
+                long last = p.getEntityData().getLong("dreBlitzFull");
+                if (!p.getEntityData().hasKey("dreBlitzFull") || now - last > 60 || now < last) { // время мира могло откатиться (другой мир)
+                    p.getEntityData().setLong("dreBlitzFull", now);
+                    p.addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.blitz_full"));
+                }
+            }
             return;
         }
         Ammo.lend(p, a);

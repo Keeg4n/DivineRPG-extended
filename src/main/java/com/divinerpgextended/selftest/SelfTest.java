@@ -2548,24 +2548,40 @@ public class SelfTest {
             loadAround(w, 9470, 9830, 2);
             TestPlayer fv = join(player(ConfigurationHelper.eden, "TestBlitzFull", 9470.5, 120, 9830.5), true);
             ItemStack bz = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz);
-            for (int i = 0; i < fv.inventory.mainInventory.length; i++) fv.inventory.mainInventory[i] = new ItemStack(Blocks.dirt, 64);
-            fv.inventory.currentItem = 0;
-            fv.inventory.mainInventory[0] = bz;
-            fv.inventory.mainInventory[35] = new ItemStack(Items.diamond, 7);
-            int before = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, fv.boundingBox.expand(6, 6, 6)).size();
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(fv,
-                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w));
-            try {
-                bz.getItem().onItemRightClick(bz, w, fv);
-            } catch (NullPointerException ex) {
-                // у тестового игрока нет сети
+            int[] shots = new int[2];
+            String[] chat0 = { "" };
+            for (int run = 0; run < 2; run++) {
+                for (int i = 0; i < fv.inventory.mainInventory.length; i++) fv.inventory.mainInventory[i] = new ItemStack(Blocks.dirt, 64);
+                for (int i = Accessories.SIZE; i < Accessories.TOTAL; i++) Accessories.of(fv).setInventorySlotContents(i, null);
+                fv.inventory.currentItem = 0;
+                fv.inventory.mainInventory[0] = bz;
+                // 1-й прогон: в рюкзаке только земля и алмазы; 2-й: в последней ячейке стрелы
+                fv.inventory.mainInventory[35] = run == 0 ? new ItemStack(Items.diamond, 7) : new ItemStack(Items.arrow, 20);
+                fv.chat.clear();
+                fv.getEntityData().removeTag("dreBlitzFull");
+                int before = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, fv.boundingBox.expand(6, 6, 6)).size();
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(fv,
+                    net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w));
+                try {
+                    bz.getItem().onItemRightClick(bz, w, fv);
+                } catch (NullPointerException ex) {
+                    // у тестового игрока нет сети
+                }
+                java.util.List<?> bl = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, fv.boundingBox.expand(6, 6, 6));
+                shots[run] = bl.size() - before;
+                for (Object o : bl) ((net.minecraft.entity.Entity) o).setDead();
+                FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, fv));
+                if (run == 0) chat0[0] = fv.chat.toString();
+                if (run == 0) shots[0] = shots[0] * 1000 + (fv.heard("dre.chat.blitz_full") || fv.chat.toString().contains("blitz_full") ? 1 : 0);
             }
-            java.util.List<?> bl = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, fv.boundingBox.expand(6, 6, 6));
-            int shots = bl.size() - before;
-            for (Object o : bl) ((net.minecraft.entity.Entity) o).setDead();
-            FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, fv));
-            ItemStack back = fv.inventory.mainInventory[35];
-            boolean restored = back != null && back.getItem() == Items.diamond && back.stackSize == 7 && !fv.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsOther.edenDust);
+            ItemStack d35 = null;
+            boolean arrowsMoved = fv.inventory.mainInventory[35] == null || fv.inventory.mainInventory[35].getItem() != Items.arrow;
+            int inSlots = 0;
+            for (int i = Accessories.SIZE; i < Accessories.TOTAL; i++) {
+                ItemStack a = Accessories.of(fv).getStackInSlot(i);
+                if (a != null && a.getItem() == Items.arrow) inSlots += a.stackSize;
+            }
+            boolean noDust = !fv.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsOther.edenDust);
             int dirt = 0;
             for (ItemStack it : fv.inventory.mainInventory) if (it != null && it.getItem() == Item.getItemFromBlock(Blocks.dirt)) dirt += it.stackSize;
             // отброс: обычного моба дробь тоже не отбрасывает
@@ -2581,9 +2597,10 @@ public class SelfTest {
             boolean still = Math.abs(z.motionX) < 0.01;
             z.setDead();
             fv.inventory.clearInventory(null, -1);
-            check(shots == com.divinerpgextended.perk.RangedRoles.PELLETS && restored && dirt == 34 * 64 && still,
-                "снарядов при полном инвентаре " + shots + ", алмазы вернулись в ячейку " + restored + ", земли " + dirt + " из " + 34 * 64 + ", зомби не отброшен " + still);
-            return "блиц стреляет и при забитом инвентаре (ячейка одалживается на миг выстрела и возвращается), дробь никого не отбрасывает";
+            int P = com.divinerpgextended.perk.RangedRoles.PELLETS;
+            check(shots[0] == 1 && shots[1] == P && arrowsMoved && inSlots == 20 && noDust && dirt == 34 * 64 && still,
+                "забит без боеприпасов: выстрелов/подсказка " + shots[0] + " (ждём 0 выстрелов и подсказку; чат " + chat0[0] + "); со стрелами: снарядов " + shots[1] + ", стрелы ушли в слоты боеприпасов " + arrowsMoved + " (" + inSlots + " шт.), пыли не осталось " + noDust + ", земли " + dirt + " из " + 34 * 64 + ", зомби не отброшен " + still);
+            return "забитый рюкзак без боеприпасов: блиц не стреляет и подсказывает, вещи не трогает; есть стрелы - они уходят в слоты боеприпасов, блиц стреляет; дробь никого не отбрасывает";
         });
         t("Прохождение", "Подсказка блица: бесконечные боеприпасы", () -> {
             TestPlayer tv = player(ConfigurationHelper.eden, "TestBlitzTip", 9486.5, 120, 9830.5);
