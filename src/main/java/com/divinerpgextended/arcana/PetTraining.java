@@ -180,22 +180,59 @@ public class PetTraining {
         return best;
     }
 
-    /** Smelter 2+: подобранная рядом руда сразу переплавляется (3 - иногда вдвойне). */
+    /** Переплавка для Smelter: руда - в слитки (3 - иногда вдвойне); null - не руда. */
+    static ItemStack smelt(net.minecraft.world.World w, ItemStack s, int lvl) {
+        if (s == null || !FurnaceRoles.ore(s)) return null;
+        ItemStack r = net.minecraft.item.crafting.FurnaceRecipes.smelting().getSmeltingResult(s);
+        if (r == null) return null;
+        int n = s.stackSize * r.stackSize;
+        if (lvl >= 3) for (int i = 0; i < s.stackSize; i++) if (w.rand.nextFloat() < 0.25F) n += r.stackSize;
+        ItemStack out = r.copy();
+        out.stackSize = Math.min(n, out.getMaxStackSize());
+        return out;
+    }
+
+    /**
+     * Smelter 2+: руда, выпавшая из блока рядом с хозяином, плавится сразу на земле - огонь, дым, шипение, смелтер
+     * вспыхивает. Выброшенное самим игроком (у него задержка подбора 40) не трогаем.
+     */
+    @SubscribeEvent
+    public void onItemJoin(net.minecraftforge.event.entity.EntityJoinWorldEvent e) {
+        if (e.world.isRemote || !(e.entity instanceof net.minecraft.entity.item.EntityItem)) return;
+        net.minecraft.entity.item.EntityItem it = (net.minecraft.entity.item.EntityItem) e.entity;
+        if (it.delayBeforeCanPickup >= 40 || !FurnaceRoles.ore(it.getEntityItem())) return;
+        int lvl = 0;
+        EntitySmelter pet = null;
+        for (Object o : e.world.playerEntities) {
+            EntityPlayer p = (EntityPlayer) o;
+            if (p.getDistanceSqToEntity(it) > 12 * 12) continue;
+            @SuppressWarnings("unchecked")
+            List<Entity> near = e.world.getEntitiesWithinAABB(EntitySmelter.class, p.boundingBox.expand(10, 5, 10));
+            for (Entity s : near) if (owns((EntityDivineRPGTameable) s, p) && level(s) > lvl) {
+                lvl = level(s);
+                pet = (EntitySmelter) s;
+            }
+        }
+        if (lvl < 2) return;
+        ItemStack out = smelt(e.world, it.getEntityItem(), lvl);
+        if (out == null) return;
+        it.setEntityItemStack(out);
+        WorldServer ws = (WorldServer) e.world;
+        ws.func_147487_a("flame", it.posX, it.posY + 0.3, it.posZ, 12, 0.2, 0.2, 0.2, 0.03);
+        ws.func_147487_a("smoke", it.posX, it.posY + 0.4, it.posZ, 8, 0.2, 0.2, 0.2, 0.02);
+        e.world.playSoundEffect(it.posX, it.posY, it.posZ, "random.fizz", 0.5F, 1.6F);
+        if (pet != null) ws.func_147487_a("lava", pet.posX, pet.posY + pet.height, pet.posZ, 4, 0.3, 0.2, 0.3, 0);
+    }
+
+    /** Smelter 2+: руда, подобранная рядом и ещё не расплавленная на земле (выпала далеко), переплавляется при подборе. */
     @SubscribeEvent
     public void onPickup(net.minecraftforge.event.entity.player.EntityItemPickupEvent e) {
         EntityPlayer p = e.entityPlayer;
         if (p.worldObj.isRemote) return;
-        ItemStack s = e.item.getEntityItem();
-        if (s == null || !FurnaceRoles.ore(s)) return;
         int lvl = nearPet(p, EntitySmelter.class, 10);
         if (lvl < 2) return;
-        ItemStack r = net.minecraft.item.crafting.FurnaceRecipes.smelting().getSmeltingResult(s);
-        if (r == null) return;
-        int n = s.stackSize * r.stackSize;
-        if (lvl >= 3) for (int i = 0; i < s.stackSize; i++) if (p.worldObj.rand.nextFloat() < 0.25F) n += r.stackSize;
-        ItemStack out = r.copy();
-        out.stackSize = Math.min(n, out.getMaxStackSize());
-        e.item.setEntityItemStack(out);
+        ItemStack out = smelt(p.worldObj, e.item.getEntityItem(), lvl);
+        if (out != null) e.item.setEntityItemStack(out);
     }
 
     /** Каменный голем 2+: хозяин рядом получает вдвое (3 - вчетверо) меньше урона от взрывов. */

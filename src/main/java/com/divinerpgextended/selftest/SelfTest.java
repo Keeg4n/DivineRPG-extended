@@ -3781,6 +3781,75 @@ public class SelfTest {
                     + "; книга в продаже " + sold + ", глава Эдема закрыта " + done + ", знаков выдано " + marks + ", повторно " + again + "; урон: в обычном мире " + h1.ammount + ", в Эдеме " + h2.ammount + ", от моба в Эдеме " + h3.ammount);
             return "главы: " + sb + "моб - в одной главе, боссов нет; убийства считаются (подручные боссов - нет); торговец скотом продаёт книгу и выдаёт знак за закрытую главу один раз; знак Эдема: +6% везде, +15% и -12% в Эдеме";
         });
+        t("Отладка", "РЕНДЕР список предметов Divine", () -> {
+            java.io.PrintWriter out = new java.io.PrintWriter(new File(MinecraftServer.getServer().getFile("logs"), "divine-items.txt"), "UTF-8");
+            String[] holders = { "VanillaItemsOther", "VanillaItemsWeapons", "VanillaItemsArmor", "VanillaItemsTools", "ItemsFood", "IceikaItems", "ArcanaItems",
+                "TwilightItemsOther", "TwilightItemsWeapons", "TwilightItemsArmor", "TwilightItemsTools", "TwilightItemsCrops", "VetheaItems" };
+            String[] blockHolders = { "VanillaBlocks", "IceikaBlocks", "ArcanaBlocks", "TwilightBlocks", "VetheaBlocks" };
+            int n = 0;
+            for (String[] grp : new String[][] { holders, blockHolders }) {
+                boolean blocks = grp == blockHolders;
+                for (String h : grp) {
+                    Class<?> c;
+                    try {
+                        c = Class.forName("net.divinerpg.utils." + (blocks ? "blocks." : "items.") + h);
+                    } catch (ClassNotFoundException ex) {
+                        continue;
+                    }
+                    for (java.lang.reflect.Field f : c.getDeclaredFields()) {
+                        if (!java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
+                        Object o;
+                        try {
+                            f.setAccessible(true);
+                            o = f.get(null);
+                        } catch (Exception ex) {
+                            continue;
+                        }
+                        String unl, reg, cls;
+                        if (o instanceof net.minecraft.block.Block) {
+                            net.minecraft.block.Block b = (net.minecraft.block.Block) o;
+                            unl = b.getUnlocalizedName();
+                            reg = String.valueOf(net.minecraft.block.Block.blockRegistry.getNameForObject(b));
+                            cls = b.getClass().getSimpleName();
+                        } else if (o instanceof net.minecraft.item.Item) {
+                            net.minecraft.item.Item i = (net.minecraft.item.Item) o;
+                            unl = i.getUnlocalizedName();
+                            reg = String.valueOf(net.minecraft.item.Item.itemRegistry.getNameForObject(i));
+                            cls = i.getClass().getSimpleName();
+                        } else continue;
+                        out.println(h + "\t" + f.getName() + "\t" + (blocks ? "block" : "item") + "\t" + reg + "\t" + unl + "\t" + cls);
+                        n++;
+                    }
+                }
+            }
+            out.close();
+            return "выгружено предметов и блоков Divine: " + n;
+        });
+        t("Аркана", "Смелтер плавит руду на земле", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int x0 = 9420, z0 = 9830;
+            loadAround(w, x0, z0, 1);
+            TestPlayer sp = join(player(0, "TestSmelter", x0 + 0.5, 100, z0 + 0.5), true);
+            net.divinerpg.entities.vanilla.EntitySmelter sm = new net.divinerpg.entities.vanilla.EntitySmelter(w);
+            sm.setLocationAndAngles(x0 + 2.5, 100, z0 + 0.5, 0, 0);
+            sm.setTamed(true);
+            sm.func_152115_b(sp.getUniqueID().toString());
+            sm.getEntityData().setInteger("dreLevel", 2);
+            w.spawnEntityInWorld(sm);
+            net.minecraft.entity.item.EntityItem mined = new net.minecraft.entity.item.EntityItem(w, x0 + 1.5, 100, z0 + 2.5, new ItemStack(Blocks.iron_ore, 3));
+            mined.delayBeforeCanPickup = 10; // как у выпавшего из блока
+            w.spawnEntityInWorld(mined);
+            net.minecraft.entity.item.EntityItem thrown = new net.minecraft.entity.item.EntityItem(w, x0 + 1.5, 100, z0 - 2.5, new ItemStack(Blocks.iron_ore, 2));
+            thrown.delayBeforeCanPickup = 40; // выброшено игроком
+            w.spawnEntityInWorld(thrown);
+            ItemStack a = mined.getEntityItem(), b = thrown.getEntityItem();
+            boolean melted = a.getItem() == Items.iron_ingot && a.stackSize == 3, kept = b.getItem() == Item.getItemFromBlock(Blocks.iron_ore);
+            mined.setDead();
+            thrown.setDead();
+            sm.setDead();
+            check(melted && kept, "выпавшая руда: " + a + ", выброшенная игроком: " + b);
+            return "руда, выпавшая рядом с хозяином смелтера 2+, сразу на земле становится слитками (3 руды - 3 слитка); выброшенную игроком не трогает";
+        });
         t("Логова", "РЕНДЕР карта Леты", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int bx = 40000, bz = 40000, size = 192;
