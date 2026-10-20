@@ -33,7 +33,12 @@ public enum Boss {
     SNOW_GLACON(EntitySnowGlacon.class, -1),
     LICH_KING(EntityLichKing.class, -1),
     DRAMIX(net.divinerpg.entities.arcana.EntityDramix.class, -1),
-    PARASECTA(net.divinerpg.entities.arcana.EntityParasecta.class, -1);
+    PARASECTA(net.divinerpg.entities.arcana.EntityParasecta.class, -1),
+    // боссы арен Мортума (ворота Ветеи); близнецы - одной победой: засчитываются, когда пал последний из двоих
+    ETERNAL_ARCHER(net.divinerpg.entities.twilight.EntityEternalArcher.class, -1),
+    TWINS(net.divinerpg.entities.twilight.EntityDensos.class, -1),
+    SOUL_FIEND(net.divinerpg.entities.twilight.EntitySoulFiend.class, -1),
+    VAMACHERON(net.divinerpg.entities.twilight.EntityVamacheron.class, -1);
 
     private final Class<? extends Entity> entityClass;
     /** Для великого кадиллиона - номер мира, иначе -1. */
@@ -54,7 +59,9 @@ public enum Boss {
 
     public static Boss of(Entity entity) {
         for (Boss b : values()) {
-            if (!b.entityClass.isInstance(entity)) continue;
+            boolean match = b == TWINS ? entity instanceof net.divinerpg.entities.twilight.EntityDensos || entity instanceof net.divinerpg.entities.twilight.EntityReyvor
+                : b.entityClass.isInstance(entity);
+            if (!match) continue;
             if (b.variant >= 0 && ((EntityGreatCadillion) entity).getVariant() != b.variant) continue;
             return b;
         }

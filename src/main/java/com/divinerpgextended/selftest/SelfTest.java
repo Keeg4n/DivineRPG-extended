@@ -3850,6 +3850,43 @@ public class SelfTest {
             check(melted && kept, "выпавшая руда: " + a + ", выброшенная игроком: " + b);
             return "руда, выпавшая рядом с хозяином смелтера 2+, сразу на земле становится слитками (3 руды - 3 слитка); выброшенную игроком не трогает";
         });
+        t("Ветея - кошмар", "Вход в Ветею после поздних боссов", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int x0 = 9400, y0 = 100, z0 = 9830;
+            loadAround(w, x0, z0, 1);
+            TestPlayer vp = join(player(0, "TestVetheaGate", x0 + 0.5, y0, z0 + 2.5), true);
+            for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.boss.Boss.values()) com.divinerpgextended.boss.BossProgress.revoke(vp, b);
+            w.setBlock(x0, y0, z0, VetheaBlocks.nightmareBedBlock, 0, 2);
+            net.minecraftforge.event.entity.player.PlayerInteractEvent i1 = new net.minecraftforge.event.entity.player.PlayerInteractEvent(vp,
+                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, x0, y0, z0, 1, w);
+            vp.chat.clear();
+            MinecraftForge.EVENT_BUS.post(i1);
+            boolean locked = i1.isCanceled() && vp.heard("dre.chat.vethea_locked");
+            // близнецы: первый пал при живом брате - не засчитано; второй - засчитано тому, кто бил первого
+            net.divinerpg.entities.twilight.EntityDensos de = new net.divinerpg.entities.twilight.EntityDensos(w);
+            net.divinerpg.entities.twilight.EntityReyvor re = new net.divinerpg.entities.twilight.EntityReyvor(w);
+            de.setLocationAndAngles(x0 + 5.5, y0, z0 + 0.5, 0, 0);
+            re.setLocationAndAngles(x0 + 8.5, y0, z0 + 0.5, 0, 0);
+            w.spawnEntityInWorld(de);
+            w.spawnEntityInWorld(re);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(de, DamageSource.causePlayerDamage(vp), 5));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(de, DamageSource.causePlayerDamage(vp)));
+            de.setDead();
+            boolean notYet = !com.divinerpgextended.boss.BossProgress.has(vp, com.divinerpgextended.boss.Boss.TWINS);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(re, DamageSource.generic));
+            re.setDead();
+            boolean twins = com.divinerpgextended.boss.BossProgress.has(vp, com.divinerpgextended.boss.Boss.TWINS);
+            // все поздние боссы - кровать пускает
+            for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.boss.VetheaGate.NEED) com.divinerpgextended.boss.BossProgress.grant(vp, b);
+            net.minecraftforge.event.entity.player.PlayerInteractEvent i2 = new net.minecraftforge.event.entity.player.PlayerInteractEvent(vp,
+                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, x0, y0, z0, 1, w);
+            MinecraftForge.EVENT_BUS.post(i2);
+            boolean open = !i2.isCanceled();
+            for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.boss.Boss.values()) com.divinerpgextended.boss.BossProgress.revoke(vp, b);
+            w.setBlockToAir(x0, y0, z0);
+            check(locked && notYet && twins && open, "без боссов кровать не пускает " + locked + "; близнецы: первый пал - не засчитано " + notYet + ", второй - засчитано " + twins + "; все 8 - пускает " + open);
+            return "Кровать кошмаров пускает в Ветею только после 6 боссов Мортума (близнецы - одной победой, когда пал последний) и 2 боссов Арканы, иначе говорит, кого не хватает";
+        });
         t("Логова", "РЕНДЕР карта Леты", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int bx = 40000, bz = 40000, size = 192;

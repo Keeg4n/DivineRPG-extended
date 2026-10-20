@@ -47,6 +47,15 @@ public class BossTracker {
         if (ids == null) ids = new HashSet<UUID>();
         Entity killer = event.source.getEntity();
         if (killer instanceof EntityPlayer) ids.add(((EntityPlayer) killer).getUniqueID());
+        if (boss == Boss.TWINS) { // брат ещё жив - победы нет; бившие этого брата засчитаются вместе с последним
+            EntityLivingBase brother = MortumArenaBosses.brother(event.entityLiving, 64);
+            if (brother != null) {
+                Set<UUID> rest = attackers.get(brother);
+                if (rest == null) attackers.put(brother, rest = new HashSet<UUID>());
+                rest.addAll(ids);
+                return;
+            }
+        }
 
         for (Object o : MinecraftServer.getServer()
             .getConfigurationManager().playerEntityList) {
