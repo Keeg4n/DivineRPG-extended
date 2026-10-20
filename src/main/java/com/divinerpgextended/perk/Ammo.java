@@ -106,6 +106,11 @@ public final class Ammo {
         return r;
     }
 
+    /** Списать одну штуку из слотов боеприпасов (выстрел уже был). @return true - было что списать */
+    public static boolean consume(EntityPlayer p, Item a) {
+        return takeFromSlots(p, a) != null;
+    }
+
     /** Вынуть одну штуку из слотов (null - нет). */
     private static ItemStack takeFromSlots(EntityPlayer p, Item a) {
         Accessories acc = Accessories.of(p);

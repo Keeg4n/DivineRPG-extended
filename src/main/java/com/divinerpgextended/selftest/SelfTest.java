@@ -2536,11 +2536,13 @@ public class SelfTest {
             boolean mapped = com.divinerpgextended.perk.RangedRoles.dust(blitz) == dust && com.divinerpgextended.perk.RangedRoles.dust(phaser) == dust;
             // случаи: оружие, подсумок, Бесконечность, пыль в инвентаре, пыль в слоте боеприпасов
             Object[][] cases = { { blitz, false, false, 0, 0 }, { blitz, true, false, 0, 0 }, { blitz, false, true, 0, 0 }, { blitz, false, false, 0, 2 },
-                { phaser, false, false, 3, 0 }, { phaser, false, false, 0, 0 }, { phaser, true, false, 3, 0 } };
+                { phaser, false, false, 3, 0 }, { phaser, false, false, 0, 0 }, { phaser, true, false, 3, 0 }, { phaser, false, false, 0, 2 } };
+            boolean dustNeverInBag = true;
             int[] shots = new int[cases.length], left = new int[cases.length];
             boolean dirtSafe = true;
             for (int c = 0; c < cases.length; c++) {
-                for (int i = 0; i < fv.inventory.mainInventory.length; i++) fv.inventory.mainInventory[i] = i < 30 ? new ItemStack(Blocks.dirt, 64) : null;
+                boolean full = c == cases.length - 1; // фазер с пылью в слоте и забитым рюкзаком
+                for (int i = 0; i < fv.inventory.mainInventory.length; i++) fv.inventory.mainInventory[i] = i < 30 || full ? new ItemStack(Blocks.dirt, 64) : null;
                 for (int i = 0; i < Accessories.TOTAL; i++) Accessories.of(fv).setInventorySlotContents(i, null);
                 ItemStack gun = new ItemStack((Item) cases[c][0]);
                 if ((Boolean) cases[c][2]) gun.addEnchantment(net.minecraft.enchantment.Enchantment.infinity, 1);
@@ -2558,6 +2560,7 @@ public class SelfTest {
                 } catch (NullPointerException ex) {
                     // у тестового игрока нет сети
                 }
+                if ((Integer) cases[c][3] == 0) dustNeverInBag &= !fv.inventory.hasItem(dust); // пыль из слотов в рюкзак не попадает
                 int n = 0;
                 for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityThrowable.class, fv.boundingBox.expand(8, 8, 8)))
                     if (!((net.minecraft.entity.Entity) o).isDead) {
@@ -2576,7 +2579,7 @@ public class SelfTest {
                 left[c] = d;
                 int dirt = 0;
                 for (ItemStack it : fv.inventory.mainInventory) if (it != null && it.getItem() == Item.getItemFromBlock(Blocks.dirt)) dirt += it.stackSize;
-                dirtSafe &= dirt == 29 * 64;
+                dirtSafe &= dirt == (full ? 35 : 29) * 64;
             }
             boolean restored = com.divinerpgextended.perk.Ammo.divineAmmo(new ItemStack(blitz)) == dust && com.divinerpgextended.perk.Ammo.divineAmmo(new ItemStack(phaser)) == dust;
             // наковальня: книга Бесконечности на фазер
@@ -2601,10 +2604,10 @@ public class SelfTest {
             for (int i = 0; i < Accessories.TOTAL; i++) Accessories.of(fv).setInventorySlotContents(i, null);
             int P = com.divinerpgextended.perk.RangedRoles.PELLETS;
             boolean ok = shots[0] == 0 && shots[1] == P && shots[2] == P && shots[3] == P && left[3] == 1 && shots[4] > 0 && left[4] == 2 && shots[5] == 0
-                && shots[6] > 0 && left[6] == 3;
+                && shots[6] > 0 && left[6] == 3 && shots[7] > 0 && left[7] == 1 && dustNeverInBag;
             check(mapped && ok && dirtSafe && restored && anvil && still,
                 "пыль задана " + mapped + "; блиц без пыли " + shots[0] + ", с подсумком " + shots[1] + ", с Бесконечностью " + shots[2] + ", пыль из слота " + shots[3] + " (осталось " + left[3]
-                    + "); фазер с пылью " + shots[4] + " (осталось " + left[4] + " из 3), без пыли " + shots[5] + ", с подсумком " + shots[6] + " (осталось " + left[6] + "); земля цела " + dirtSafe
+                    + "); фазер с пылью " + shots[4] + " (осталось " + left[4] + " из 3), без пыли " + shots[5] + ", с подсумком " + shots[6] + " (осталось " + left[6] + "); фазер, пыль в слоте, рюкзак забит: " + shots[7] + " (осталось " + left[7] + "), пыль в рюкзак не попадала " + dustNeverInBag + "; земля цела " + dirtSafe
                     + ", патрон вернулся " + restored + ", наковальня " + anvil + ", зомби не отброшен " + still);
             return "фазер и блиц тратят пыль своего мира (из инвентаря и слотов боеприпасов), без пыли молчат; подсумок или Бесконечность (книгой на наковальне) - пыль не нужна; вещи рюкзака не трогаются; дробь не отбрасывает";
         });

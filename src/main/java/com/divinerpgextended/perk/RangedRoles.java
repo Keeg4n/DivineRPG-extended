@@ -86,6 +86,9 @@ public class RangedRoles {
     private static final java.util.Map<Item, Item> DUST = new java.util.HashMap<Item, Item>();
     /** Оружие, которому на этот тик патрон выставлен под игрока (в конце тика - обратно пыль). */
     private static final java.util.Set<Item> ARMED = new java.util.HashSet<Item>();
+    /** Пыль из слотов боеприпасов: {игрок, оружие, CanShootTime до клика, пыль} - списать, если выстрел был. */
+    private static final List<Object[]> FROM_SLOTS = new ArrayList<Object[]>();
+    static final String SHOOT_TIME = "CanShootTime";
     private static java.lang.reflect.Field ammoField;
 
     private static java.lang.reflect.Field ammoField() throws Exception {
@@ -142,9 +145,13 @@ public class RangedRoles {
     static void arm(EntityPlayer p, ItemStack held) {
         Item d = DUST.get(held.getItem());
         if (d == null) return;
+        boolean inf = infiniteDust(p, held);
+        // пыль только в слотах боеприпасов: выстрел без патрона, пыль спишется из слота, если выстрел был (в рюкзак не кладём)
+        boolean slots = !inf && !p.inventory.hasItem(d) && Ammo.has(p, d);
         try {
-            ammoField().set(held.getItem(), infiniteDust(p, held) ? null : d);
+            ammoField().set(held.getItem(), inf || slots ? null : d);
             ARMED.add(held.getItem());
+            if (slots) FROM_SLOTS.add(new Object[] { p, held, held.hasTagCompound() ? held.getTagCompound().getLong(SHOOT_TIME) : Long.MIN_VALUE, d });
         } catch (Exception ignored) {
             // поле недоступно - Divine стреляет как обычно
         }
@@ -156,8 +163,14 @@ public class RangedRoles {
         if (e.phase == TickEvent.Phase.END) disarm();
     }
 
-    /** Вернуть пыль фазерам и блицам, которым патрон выставлялся под игрока. */
+    /** Вернуть пыль фазерам и блицам, которым патрон выставлялся под игрока; за выстрелы пылью из слотов - списать её. */
     public static void disarm() {
+        for (Object[] f : FROM_SLOTS) {
+            ItemStack gun = (ItemStack) f[1];
+            long before = (Long) f[2], now = gun.hasTagCompound() ? gun.getTagCompound().getLong(SHOOT_TIME) : Long.MIN_VALUE;
+            if (now != before) Ammo.consume((EntityPlayer) f[0], (Item) f[3]); // Divine выстрелил - перезарядка записана заново
+        }
+        FROM_SLOTS.clear();
         if (ARMED.isEmpty()) return;
         for (Item i : ARMED) try {
             ammoField().set(i, DUST.get(i));
@@ -269,8 +282,8 @@ public class RangedRoles {
         ItemStack held = p.getHeldItem();
         if (held == null || held.getItem() instanceof net.minecraft.item.ItemBow || p.capabilities.isCreativeMode) return;
         if (DUST.get(held.getItem()) != null) {
-            arm(p, held);
-            if (infiniteDust(p, held)) return; // подсумок или Бесконечность - пыль не нужна
+            arm(p, held); // пыль в рюкзаке - тратит Divine, в слотах - спишем сами, подсумок или Бесконечность - не нужна
+            return;
         }
         Item a = Ammo.of(held);
         if (a == null || p.inventory.hasItem(a)) return;
