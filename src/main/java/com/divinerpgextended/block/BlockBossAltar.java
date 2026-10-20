@@ -32,11 +32,11 @@ import cpw.mods.fml.relauncher.SideOnly;
  */
 public class BlockBossAltar extends Block {
 
-    public static final int CARCINUS = 0, SNOW_GLACON = 1, THRONE = 2, TOMB = 3, NEST = 4;
+    public static final int CARCINUS = 0, SNOW_GLACON = 1, THRONE = 2, TOMB = 3, NEST = 4, JUNGLE = 5;
     private static final String[] NAMES = { "dre.carcinusAltar", "dre.glaconAltar", "dre.throneAltar", "dre.tombAltar",
-        "dre.nestAltar" };
+        "dre.nestAltar", "dre.jungleAltar" };
     private static final String[] TEXTURES = { "minecraft:stonebrick_carved", "minecraft:lapis_block",
-        "minecraft:diamond_block", "minecraft:gold_block", "minecraft:emerald_block" };
+        "minecraft:diamond_block", "minecraft:gold_block", "minecraft:emerald_block", "minecraft:stonebrick_mossy" };
     private final int type;
 
     public BlockBossAltar(int type) {
@@ -56,6 +56,10 @@ public class BlockBossAltar extends Block {
     @SideOnly(Side.CLIENT)
     public void randomDisplayTick(World world, int x, int y, int z, Random rand) {
         if (type == CARCINUS) return;
+        if (type == JUNGLE) { // зелёные споры
+            world.spawnParticle("happyVillager", x + rand.nextDouble(), y + 1.0 + rand.nextDouble() * 0.6, z + rand.nextDouble(), 0, 0, 0);
+            return;
+        }
         if (type == NEST) { // зелёные искры над гнездом
             world.spawnParticle("happyVillager", x + rand.nextDouble(), y + 1.0 + rand.nextDouble() * 0.6, z + rand.nextDouble(), 0, 0, 0);
             return;
@@ -72,6 +76,7 @@ public class BlockBossAltar extends Block {
     }
 
     private Item cost() {
+        if (type == JUNGLE) return ModItems.jungleTotem;
         if (type == NEST) return ModItems.cadillionCall;
         if (type == TOMB) return VanillaItemsOther.mysteriousClock;
         return type == CARCINUS ? VanillaItemsOther.crabClaw : type == THRONE ? IceikaItems.snowflake : ModItems.deepShell;
@@ -121,7 +126,7 @@ public class BlockBossAltar extends Block {
         float hy, float hz) {
         if (world.isRemote) return true;
         if (type == NEST) return nest(world, x, y, z, player);
-        Class<? extends EntityLiving> bossClass = type == CARCINUS ? EntityCarcinus.class
+        Class<? extends EntityLiving> bossClass = type == JUNGLE ? com.divinerpgextended.entity.EntityAncientDramcryx.class : type == CARCINUS ? EntityCarcinus.class
             : type == THRONE ? EntityFrostColossus.class
                 : type == TOMB ? net.divinerpg.entities.vanilla.EntityAncientEntity.class : EntitySnowGlacon.class;
         net.minecraft.util.AxisAlignedBB area = net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 48, y - 24, z - 48,
@@ -141,10 +146,15 @@ public class BlockBossAltar extends Block {
         }
         if (!player.capabilities.isCreativeMode) held.stackSize -= costCount();
 
-        EntityLiving boss = type == CARCINUS ? new EntityCarcinus(world)
+        EntityLiving boss = type == JUNGLE ? new com.divinerpgextended.entity.EntityAncientDramcryx(world) : type == CARCINUS ? new EntityCarcinus(world)
             : type == THRONE ? new EntityFrostColossus(world)
                 : type == TOMB ? new net.divinerpg.entities.vanilla.EntityAncientEntity(world) : new EntitySnowGlacon(world);
-        if (type == TOMB) {
+        if (type == JUNGLE) {
+            // алтарь у северного края помоста, Древний драмкрикс встаёт в центре зала
+            int dz = com.divinerpgextended.world.WorldGenJungleLair.ALTAR_DZ;
+            boss.setLocationAndAngles(x + 0.5, y - 1, z + 0.5 + dz, 0, 0);
+            com.divinerpgextended.boss.LairSummons.leash(boss, x, y - 1, z + dz, com.divinerpgextended.world.WorldGenJungleLair.BOSS_R - 2);
+        } else if (type == TOMB) {
             // алтарь на помосте у восточной стены погребального зала, сущность встаёт в центре зала
             boss.setLocationAndAngles(x + 0.5 - com.divinerpgextended.world.WorldGenTomb.ALTAR_DX,
                 y - com.divinerpgextended.world.WorldGenTomb.ALTAR_DY + 1, z + 0.5, 270, 0);

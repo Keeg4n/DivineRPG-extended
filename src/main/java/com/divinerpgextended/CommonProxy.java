@@ -100,6 +100,7 @@ public class CommonProxy {
         com.divinerpgextended.boss.ArcanaGate arcanaGate = new com.divinerpgextended.boss.ArcanaGate();
         MinecraftForge.EVENT_BUS.register(arcanaGate);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.halite.HaliteDrops());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.block.BlockJungleOre.Handler());
         FMLCommonHandler.instance()
             .bus()
             .register(arcanaGate);
@@ -214,6 +215,8 @@ public class CommonProxy {
             .register(achievements);
 
         GameRegistry.registerWorldGenerator(new WorldGenLairs(), 50);
+
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenJungleLair(), 50);
         GameRegistry.registerWorldGenerator(new IceikaDecor(), 100);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.IceikaXmasTree(), 101);
         GameRegistry.registerWorldGenerator(new WorldGenThrone(), 60);

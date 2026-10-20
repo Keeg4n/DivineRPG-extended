@@ -61,7 +61,6 @@ public class BossTracker {
             .getConfigurationManager().playerEntityList) {
             EntityPlayerMP player = (EntityPlayerMP) o;
             if (ids.contains(player.getUniqueID())) {
-                com.divinerpgextended.halite.Halite.reward(player, boss); // трофей и частичка души - каждому участнику, каждую победу
                 com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.forBoss(boss));
                 com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.extraForBoss(boss));
             }

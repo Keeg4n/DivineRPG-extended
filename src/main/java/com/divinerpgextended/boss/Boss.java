@@ -38,7 +38,9 @@ public enum Boss {
     ETERNAL_ARCHER(net.divinerpg.entities.twilight.EntityEternalArcher.class, -1),
     TWINS(net.divinerpg.entities.twilight.EntityDensos.class, -1),
     SOUL_FIEND(net.divinerpg.entities.twilight.EntitySoulFiend.class, -1),
-    VAMACHERON(net.divinerpg.entities.twilight.EntityVamacheron.class, -1);
+    VAMACHERON(net.divinerpg.entities.twilight.EntityVamacheron.class, -1),
+    /** Босс логова под храмом джунглей. */
+    JUNGLE_KING(com.divinerpgextended.entity.EntityAncientDramcryx.class, -1);
 
     private final Class<? extends Entity> entityClass;
     /** Для великого кадиллиона - номер мира, иначе -1. */

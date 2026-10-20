@@ -106,20 +106,44 @@ public final class Halite {
             case PARASECTA: return Spark.PARASECTA;
             case ANCIENT_ENTITY: return Spark.ANCIENT_ENTITY;
             case KING_OF_SCORCHERS: return Spark.SCORCHERS;
+            case JUNGLE_KING: return Spark.JUNGLE;
             default: return null;
         }
     }
 
-    /** Участнику победы над боссом: трофей и частичка (в инвентарь, некуда - под ноги). */
-    public static void reward(EntityPlayer p, Boss b) {
-        Trophy t = trophyOf(b);
-        if (t != null) give(p, trophy(t));
-        Spark s = sparkOf(b);
-        if (s != null) give(p, spark(s));
+    /** Радиус, в котором игроки получают свою долю добычи босса. */
+    public static final double SHARE_R = 48;
+    public static final String OWNER = "dreOwner";
+
+    /** Пометить добычу: поднять её может только этот игрок. */
+    public static ItemStack own(ItemStack s, EntityPlayer p) {
+        if (!s.hasTagCompound()) s.setTagCompound(new net.minecraft.nbt.NBTTagCompound());
+        net.minecraft.nbt.NBTTagCompound o = new net.minecraft.nbt.NBTTagCompound();
+        o.setString("id", p.getUniqueID().toString());
+        o.setString("name", p.getCommandSenderName());
+        s.getTagCompound().setTag(OWNER, o);
+        return s;
     }
 
-    public static void give(EntityPlayer p, ItemStack s) {
-        if (!p.inventory.addItemStackToInventory(s) || s.stackSize > 0) p.entityDropItem(s, 0.5F);
-        p.inventoryContainer.detectAndSendChanges();
+    /** Чья добыча (null - ничья). */
+    public static String owner(ItemStack s) {
+        return s != null && s.hasTagCompound() && s.getTagCompound().hasKey(OWNER) ? s.getTagCompound().getCompoundTag(OWNER).getString("id") : null;
+    }
+
+    public static String ownerName(ItemStack s) {
+        return s != null && s.hasTagCompound() && s.getTagCompound().hasKey(OWNER) ? s.getTagCompound().getCompoundTag(OWNER).getString("name") : null;
+    }
+
+    /** Доля одного игрока с босса: осколки (если Мортум), трофей, частичка - помеченные его именем. */
+    public static java.util.List<ItemStack> share(EntityPlayer p, Boss b, java.util.Random r) {
+        java.util.List<ItemStack> l = new java.util.ArrayList<ItemStack>();
+        Trophy t = trophyOf(b);
+        if (t != null) {
+            l.add(own(part(Part.SHARD, SHARDS_MIN + r.nextInt(SHARDS_MAX - SHARDS_MIN + 1)), p));
+            l.add(own(trophy(t), p));
+        }
+        Spark s = sparkOf(b);
+        if (s != null) l.add(own(spark(s), p));
+        return l;
     }
 }

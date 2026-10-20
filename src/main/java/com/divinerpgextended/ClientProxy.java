@@ -69,6 +69,7 @@ public class ClientProxy extends CommonProxy {
             new net.minecraft.client.renderer.entity.RenderSnowball(net.minecraft.init.Items.ender_eye));
         RenderingRegistry.registerEntityRenderingHandler(EntityGreatCadillion.class, new RenderGreatCadillion());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityAncientGolem.class, new com.divinerpgextended.client.RenderAncientGolem());
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityAncientDramcryx.class, new com.divinerpgextended.client.RenderAncientDramcryx());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWarriorKing.class, new com.divinerpgextended.client.RenderWarriorKing());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWindLord.class, new com.divinerpgextended.client.RenderWindLord());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityBoulder.class, new com.divinerpgextended.client.RenderBoulder());

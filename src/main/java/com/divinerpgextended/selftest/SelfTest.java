@@ -3856,24 +3856,42 @@ public class SelfTest {
             loadAround(w, x0, z0, 1);
             TestPlayer hp = join(player(0, "TestHalite", x0 + 0.5, y0, z0 + 2.5), true);
             hp.inventory.clearInventory(null, -1);
-            // Карот: участнику трофей и частичка; на землю - осколки, готового халита нет
+            // Карот: игроку рядом - своя доля на землю (осколки, трофей, частичка) с его именем; готового халита нет
             net.divinerpg.entities.twilight.EntityKarot kh = new net.divinerpg.entities.twilight.EntityKarot(w);
             kh.setLocationAndAngles(x0 + 5.5, y0, z0 + 0.5, 0, 0);
             w.spawnEntityInWorld(kh);
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(kh, DamageSource.causePlayerDamage(hp), 5));
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(kh, DamageSource.causePlayerDamage(hp)));
             java.util.ArrayList<net.minecraft.entity.item.EntityItem> dr = new java.util.ArrayList<net.minecraft.entity.item.EntityItem>();
             dr.add(new net.minecraft.entity.item.EntityItem(w, x0, y0, z0, new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.halitePhaser)));
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(kh, DamageSource.causePlayerDamage(hp), dr, 0, true, 0));
             kh.setDead();
-            boolean noHalite = true;
+            boolean noHalite = true, trophy = false, spark = false, bagEmpty = hp.inventory.getFirstEmptyStack() == 0;
             int shards = 0;
+            net.minecraft.entity.item.EntityItem mine = null;
+            String me = hp.getUniqueID().toString();
             for (net.minecraft.entity.item.EntityItem ei : dr) {
-                if (ei.getEntityItem().getItem() == net.divinerpg.utils.items.TwilightItemsWeapons.halitePhaser) noHalite = false;
-                if (ei.getEntityItem().getItem() == ModItems.haliteMaterial) shards += ei.getEntityItem().stackSize;
+                ItemStack st = ei.getEntityItem();
+                if (st.getItem() == net.divinerpg.utils.items.TwilightItemsWeapons.halitePhaser) noHalite = false;
+                if (!me.equals(com.divinerpgextended.halite.Halite.owner(st))) continue;
+                if (st.getItem() == ModItems.haliteMaterial) shards += st.stackSize;
+                if (st.getItem() == ModItems.mortumTrophy && st.getItemDamage() == com.divinerpgextended.halite.Halite.Trophy.KAROT.ordinal()) trophy = true;
+                if (st.getItem() == ModItems.spiritSpark && st.getItemDamage() == com.divinerpgextended.halite.Halite.Spark.KAROT.ordinal()) {
+                    spark = true;
+                    mine = ei;
+                }
             }
-            boolean trophy = hp.inventory.hasItemStack(com.divinerpgextended.halite.Halite.trophy(com.divinerpgextended.halite.Halite.Trophy.KAROT));
-            boolean spark = hp.inventory.hasItemStack(com.divinerpgextended.halite.Halite.spark(com.divinerpgextended.halite.Halite.Spark.KAROT));
+            // чужой игрок долю не поднимет
+            TestPlayer other = join(player(0, "TestHaliteOther", x0 + 1.5, y0, z0 + 2.5), true);
+            boolean foreign = false;
+            if (mine != null) {
+                w.spawnEntityInWorld(mine);
+                net.minecraftforge.event.entity.player.EntityItemPickupEvent pe = new net.minecraftforge.event.entity.player.EntityItemPickupEvent(other, mine);
+                MinecraftForge.EVENT_BUS.post(pe);
+                net.minecraftforge.event.entity.player.EntityItemPickupEvent own = new net.minecraftforge.event.entity.player.EntityItemPickupEvent(hp, mine);
+                MinecraftForge.EVENT_BUS.post(own);
+                foreign = pe.isCanceled() && !own.isCanceled();
+                mine.setDead();
+            }
+            trophy &= bagEmpty && foreign; // в инвентарь ничего не клали, чужой не поднимет
             // верстак: дух сумерек только из трёх разных частичек
             net.minecraft.inventory.InventoryCrafting grid = new net.minecraft.inventory.InventoryCrafting(new net.minecraft.inventory.Container() {
                 @Override
@@ -3911,9 +3929,122 @@ public class SelfTest {
             boolean speeds = pick == 60 && multiStone == 30 && multiWood == 30;
             hp.inventory.clearInventory(null, -1);
             check(noHalite && shards >= 4 && shards <= 6 && trophy && spark && distinct && ingot != null && ingot.getItem() == ModItems.haliteMaterial && bed && speeds,
-                "готового халита нет " + noHalite + ", осколков " + shards + ", трофей " + trophy + ", частичка " + spark + "; дух сумерек из разных " + (r1 != null) + ", из двух одинаковых нет " + (r2 == null)
+                "готового халита нет " + noHalite + ", осколков " + shards + ", трофей (в инвентарь не кладут, чужой не поднимет) " + trophy + ", частичка " + spark + "; дух сумерек из разных " + (r1 != null) + ", из двух одинаковых нет " + (r2 == null)
                     + "; слиток " + ingot + "; кровать: старый рецепт " + oldBed + ", новый " + newBed + "; скорость кирки " + pick + ", мульти камень " + multiStone + " дерево " + multiWood);
-            return "с босса Мортума - осколки на землю, трофей и частичка участнику, готового халита нет; дух сумерек - только из трёх разных частичек; слиток из осколков; Кровать кошмаров - только с Духом вселенной; кирка 60, мультиинструмент 30";
+            return "с босса Мортума каждому игроку рядом - своя доля на землю (осколки, трофей, частичка), чужую не поднять, в инвентарь ничего не кладётся, готового халита нет; дух сумерек - только из трёх разных частичек; слиток из осколков; Кровать кошмаров - только с Духом вселенной; кирка 60, мультиинструмент 30";
+        });
+        t("Логова", "Джунгли: руда, тотем, логово, Древний драмкрикс", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int x0 = 30000, z0 = 33000, gy = 80;
+            loadAround(w, x0 + 50, z0, 6);
+            // ровная земля и храм джунглей Minecraft
+            for (int x = x0 - 12; x <= x0 + 110; x++) for (int z = z0 - 40; z <= z0 + 40; z++) for (int y = 2; y <= gy + 20; y++) {
+                net.minecraft.block.Block want = y < gy - 3 ? Blocks.stone : y < gy ? Blocks.dirt : y == gy ? Blocks.grass : Blocks.air;
+                if (w.getBlock(x, y, z) != want) w.setBlock(x, y, z, want, 0, 2);
+            }
+            java.util.Random rnd = new java.util.Random(7);
+            net.minecraft.world.gen.structure.ComponentScatteredFeaturePieces.JunglePyramid jp = new net.minecraft.world.gen.structure.ComponentScatteredFeaturePieces.JunglePyramid(rnd, x0, z0);
+            net.minecraft.world.gen.structure.StructureBoundingBox area = new net.minecraft.world.gen.structure.StructureBoundingBox(x0 - 16, z0 - 16, x0 + 32, z0 + 32);
+            jp.addComponentParts(w, rnd, area);
+            net.minecraft.world.gen.structure.StructureBoundingBox tb = jp.getBoundingBox();
+            int[] altar = com.divinerpgextended.world.WorldGenJungleLair.build(w, rnd, tb);
+            boolean lair = altar != null && w.getBlock(altar[0], altar[1], altar[2]) == com.divinerpgextended.registry.ModBlocks.jungleAltar;
+            dump(w, x0 + 50, tb.minY, z0, 62, "render-jungle");
+            // проход из храма до зала: поиск по воздуху от колодца
+            boolean reach = false;
+            String[] reachInfo = { "" };
+            if (lair) {
+                int tsx = (tb.minX + tb.maxX) / 2, tsz = (tb.minZ + tb.maxZ) / 2, tsy = tb.minY;
+                java.util.ArrayDeque<int[]> qq = new java.util.ArrayDeque<int[]>();
+                java.util.HashSet<Long> seen = new java.util.HashSet<Long>();
+                qq.add(new int[] { tsx, tsy, tsz });
+                int[][] nb = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
+                reachInfo[0] = "старт " + w.getBlock(tsx, tsy, tsz).getUnlocalizedName() + "/" + w.getBlock(tsx, tsy - 1, tsz).getUnlocalizedName() + "/" + w.getBlock(tsx, tsy - 3, tsz).getUnlocalizedName() + " у " + tsx + "," + tsy + "," + tsz + "; алтарь " + altar[0] + "," + altar[1] + "," + altar[2];
+                int minY = 999, best = 99999, wet = 0;
+                int air = 0;
+                while (!qq.isEmpty() && air < 400000 && !reach) {
+                    int[] pp = qq.poll();
+                    minY = Math.min(minY, pp[1]);
+                    best = Math.min(best, Math.abs(pp[0] - altar[0]) + Math.abs(pp[1] - altar[1]) + Math.abs(pp[2] - altar[2] - com.divinerpgextended.world.WorldGenJungleLair.ALTAR_DZ));
+                    for (int[] d : nb) {
+                        int x = pp[0] + d[0], y = pp[1] + d[1], z = pp[2] + d[2];
+                        // только внутри рамки логова: колодец и ходы, а не открытый воздух и пещеры вокруг
+                        if (y < tb.minY - 60 || y > tb.minY + 1 || x < tb.minX - 8 || x > altar[0] + com.divinerpgextended.world.WorldGenJungleLair.BOSS_R + 4
+                            || Math.abs(z - altar[2]) > 50) continue;
+                        long key = ((long) x * 73856093L) ^ ((long) y * 19349663L) ^ ((long) z * 83492791L);
+                        if (!seen.add(key)) continue;
+                        net.minecraft.block.Block bl = w.getBlock(x, y, z);
+                        if (Math.abs(x - altar[0]) <= 1 && Math.abs(z - altar[2] - com.divinerpgextended.world.WorldGenJungleLair.ALTAR_DZ) <= 1 && y == altar[1]) reach = true;
+                        if (bl.getMaterial().isLiquid()) wet++;
+                        if (bl.getMaterial().blocksMovement() && bl != Blocks.leaves || bl.getMaterial().isLiquid()) continue; // по воде не плывём - иначе уходит в чужие океаны
+                        qq.add(new int[] { x, y, z });
+                        air++;
+                    }
+                }
+                reachInfo[0] += "; обошёл воздуха " + air + ", всего клеток " + seen.size() + ", ниже всего " + minY + ", ближе всего " + best + ", воды по пути " + wet;
+            }
+            // руда: только халитовая кирка
+            TestPlayer jp2 = join(player(0, "TestJungle", x0 + 2.5, gy + 1, z0 - 30.5), true);
+            jp2.setCurrentItemOrArmor(0, new ItemStack(Items.diamond_pickaxe));
+            net.minecraftforge.event.entity.player.PlayerEvent.HarvestCheck h1 = new net.minecraftforge.event.entity.player.PlayerEvent.HarvestCheck(jp2, com.divinerpgextended.registry.ModBlocks.jungleOre, true);
+            MinecraftForge.EVENT_BUS.post(h1);
+            net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed b1 = new net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed(jp2, com.divinerpgextended.registry.ModBlocks.jungleOre, 0, 8, x0, gy, z0);
+            MinecraftForge.EVENT_BUS.post(b1);
+            jp2.setCurrentItemOrArmor(0, new ItemStack(ModItems.halitePickaxe));
+            net.minecraftforge.event.entity.player.PlayerEvent.HarvestCheck h2 = new net.minecraftforge.event.entity.player.PlayerEvent.HarvestCheck(jp2, com.divinerpgextended.registry.ModBlocks.jungleOre, false);
+            MinecraftForge.EVENT_BUS.post(h2);
+            boolean ore = !h1.success && b1.newSpeed == 0 && h2.success && com.divinerpgextended.world.WorldGenJungleLair.jungle(net.minecraft.world.biome.BiomeGenBase.jungle)
+                && !com.divinerpgextended.world.WorldGenJungleLair.jungle(net.minecraft.world.biome.BiomeGenBase.plains);
+            // тотем на алтаре - Древний драмкрикс в центре зала на привязи
+            boolean summoned = false, shell = false, sweep = false;
+            String[] sweepInfo = { "" };
+            com.divinerpgextended.entity.EntityAncientDramcryx boss = null;
+            if (lair) {
+                jp2.setCurrentItemOrArmor(0, new ItemStack(ModItems.jungleTotem));
+                com.divinerpgextended.registry.ModBlocks.jungleAltar.onBlockActivated(w, altar[0], altar[1], altar[2], jp2, 1, 0.5F, 0.5F, 0.5F);
+                for (Object o : w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityAncientDramcryx.class,
+                    net.minecraft.util.AxisAlignedBB.getBoundingBox(altar[0] - 20, altar[1] - 6, altar[2] - 10, altar[0] + 20, altar[1] + 12, altar[2] + 30)))
+                    boss = (com.divinerpgextended.entity.EntityAncientDramcryx) o;
+                summoned = boss != null && com.divinerpgextended.boss.LairSummons.home(boss) != null && (jp2.getHeldItem() == null || jp2.getHeldItem().stackSize == 0);
+                if (boss != null) {
+                    // зов на половине: пока порабощённые живы, шкура держит урон
+                    int adds = boss.callAdds();
+                    net.minecraftforge.event.entity.living.LivingHurtEvent dummy = null;
+                    float hpBefore = boss.getHealth();
+                    boss.hurtResistantTime = 0;
+                    boss.attackEntityFrom(DamageSource.causePlayerDamage(jp2), 40);
+                    float lost = hpBefore - boss.getHealth();
+                    shell = adds == com.divinerpgextended.entity.EntityAncientDramcryx.ADDS && lost > 0 && lost <= 40 * com.divinerpgextended.entity.EntityAncientDramcryx.SHELL + 0.01;
+                    for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class, boss.boundingBox.expand(30, 10, 30)))
+                        if (((net.minecraft.entity.Entity) o).getEntityData().hasKey(com.divinerpgextended.entity.EntityAncientDramcryx.ADD)) ((net.minecraft.entity.Entity) o).setDead();
+                    // хвост: игрок рядом получает урон
+                    TestPlayer near = join(player(0, "TestJungleTail", boss.posX + 3, boss.posY, boss.posZ), true); // новый игрок сразу в чанке босса
+                    near.hurtResistantTime = 0;
+                    near.setHealth(near.getMaxHealth());
+                    int hitN = boss.sweep();
+                    sweepInfo[0] = "задето " + hitN + ", здоровье " + near.getHealth();
+                    sweep = hitN >= 1 && near.getHealth() < near.getMaxHealth();
+                    near.setHealth(near.getMaxHealth());
+                }
+            }
+            // дух мира: Древняя сущность + босс джунглей
+            net.minecraft.inventory.InventoryCrafting grid = new net.minecraft.inventory.InventoryCrafting(new net.minecraft.inventory.Container() {
+                @Override
+                public boolean canInteractWith(EntityPlayer pp) {
+                    return true;
+                }
+            }, 3, 3);
+            grid.setInventorySlotContents(0, com.divinerpgextended.halite.Halite.spark(com.divinerpgextended.halite.Halite.Spark.ANCIENT_ENTITY));
+            ItemStack only = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(grid, w);
+            grid.setInventorySlotContents(1, com.divinerpgextended.halite.Halite.spark(com.divinerpgextended.halite.Halite.Spark.JUNGLE));
+            ItemStack both = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(grid, w);
+            boolean spirit = only == null && both != null && both.getItem() == ModItems.worldSpirit
+                && com.divinerpgextended.halite.Halite.sparkOf(com.divinerpgextended.boss.Boss.JUNGLE_KING) == com.divinerpgextended.halite.Halite.Spark.JUNGLE;
+            if (boss != null) boss.setDead();
+            jp2.inventory.clearInventory(null, -1);
+            check(lair && reach && ore && summoned && shell && sweep && spirit, "логово " + lair + ", дошёл от храма до алтаря " + reach + " (" + reachInfo[0] + "); руда (алмазной нет, халитовой да) " + ore + "; призыв " + summoned
+                + "; шкура при порабощённых " + shell + "; хвост " + sweep + " (" + sweepInfo[0] + "); дух мира только с частичкой джунглей " + spirit);
+            return "под храмом джунглей логово: колодец, ходы, зал с алтарём - дойти можно; руду берёт только халитовая кирка; тотем на алтаре зовёт Древнего драмкрикса; при порабощённых шкура держит урон, хвост бьёт по кругу; дух мира - Древняя сущность + босс джунглей";
         });
         t("Логова", "РЕНДЕР карта Леты", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
@@ -4026,7 +4157,9 @@ public class SelfTest {
             double bx = lp.posX, bz = lp.posZ;
             lp.chat.clear();
             ch.interact(lp);
-            int[] tw = com.divinerpgextended.world.twilight.MortumArenas.nearestOf(w, com.divinerpgextended.world.twilight.MortumArenas.Type.TWINS, x0, z0, 8);
+            // Харон ищет от себя: при двух почти равноудалённых аренах важно, откуда считать
+            int[] tw = com.divinerpgextended.world.twilight.MortumArenas.nearestOf(w, com.divinerpgextended.world.twilight.MortumArenas.Type.TWINS, ch.posX, ch.posZ,
+                com.divinerpgextended.entity.EntityCharon.SEARCH);
             double dist = Math.sqrt((bx - tw[0]) * (bx - tw[0]) + (bz - tw[2]) * (bz - tw[2]));
             int left = lp.inventory.getStackInSlot(5) == null ? 0 : lp.inventory.getStackInSlot(5).stackSize;
             String said = lp.chat.isEmpty() ? "" : lp.chat.get(lp.chat.size() - 1);

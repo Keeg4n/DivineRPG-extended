@@ -64,6 +64,7 @@ public final class ModItems {
     public static Item trinket;
     public static Item petCarrier;
     public static Item bestiary;
+    public static Item jungleGem, jungleTotem;
     public static Item haliteMaterial, mortumTrophy, spiritSpark, worldSpirit, halitePickaxe, haliteAxe, haliteShovel, haliteMultitool;
     public static Item worldStick;
     public static Item guardianHeart;
@@ -134,6 +135,10 @@ public final class ModItems {
         GameRegistry.registerItem(trinket, "trinket");
         bestiary = new com.divinerpgextended.bestiary.ItemBestiary();
         GameRegistry.registerItem(bestiary, "bestiary");
+        jungleGem = new com.divinerpgextended.item.ItemTrophy("dre.jungleGem", "divinerpgextended:jungleGem", "dre.tooltip.jungle_gem", false);
+        GameRegistry.registerItem(jungleGem, "jungleGem");
+        jungleTotem = new com.divinerpgextended.item.ItemTrophy("dre.jungleTotem", "divinerpgextended:jungleTotem", "dre.tooltip.jungle_totem", true);
+        GameRegistry.registerItem(jungleTotem, "jungleTotem");
         haliteMaterial = new com.divinerpgextended.halite.ItemMeta("haliteMaterial", keys(com.divinerpgextended.halite.Halite.Part.values()), 64, false);
         GameRegistry.registerItem(haliteMaterial, "haliteMaterial");
         mortumTrophy = new com.divinerpgextended.halite.ItemMeta("mortumTrophy", keys(com.divinerpgextended.halite.Halite.Trophy.values()), 16, true);
@@ -186,6 +191,7 @@ public final class ModItems {
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityGondola.class, "Gondola", 17, DivineRPGExtended.instance, 80, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityShadowBolt.class, "ShadowBolt", 18, DivineRPGExtended.instance, 64, 5, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityAncientGolem.class, "AncientGolem", 11, DivineRPGExtended.instance, 96, 3, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityAncientDramcryx.class, "AncientDramcryx", 19, DivineRPGExtended.instance, 96, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWarriorKing.class, "WarriorKing", 12, DivineRPGExtended.instance, 96, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWindLord.class, "WindLord", 13, DivineRPGExtended.instance, 112, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityBoulder.class, "Boulder", 14, DivineRPGExtended.instance, 64, 5, true);

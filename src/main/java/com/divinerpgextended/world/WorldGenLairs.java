@@ -262,7 +262,7 @@ public class WorldGenLairs implements IWorldGenerator {
         return true;
     }
 
-    private static boolean near(List<int[]> points, int[] p, int dist) {
+    static boolean near(List<int[]> points, int[] p, int dist) {
         for (int[] q : points) {
             int dx = q[0] - p[0], dy = q[1] - p[1], dz = q[2] - p[2];
             if (dx * dx + dy * dy + dz * dz < dist * dist) return true;
@@ -294,7 +294,7 @@ public class WorldGenLairs implements IWorldGenerator {
     }
 
     /** Остов лабиринта "рекурсивным возвратом" по сетке узлов cols x rows от (si, sj): рёбра {i1, j1, i2, j2}. */
-    private static List<int[]> mazeEdges(Random rand, int cols, int rows, int si, int sj) {
+    static List<int[]> mazeEdges(Random rand, int cols, int rows, int si, int sj) {
         List<int[]> edges = new ArrayList<int[]>();
         boolean[][] seen = new boolean[cols][rows];
         List<int[]> stack = new ArrayList<int[]>();
@@ -694,11 +694,11 @@ public class WorldGenLairs implements IWorldGenerator {
 
     // ---------------------------------------------------------------- общее
 
-    private static void set(World world, int x, int y, int z, Block b) {
+    static void set(World world, int x, int y, int z, Block b) {
         world.setBlock(x, y, z, b, 0, 2);
     }
 
-    private static void spawner(World world, int x, int y, int z, String entity) {
+    static void spawner(World world, int x, int y, int z, String entity) {
         world.setBlock(x, y, z, Blocks.mob_spawner, 0, 2);
         TileEntityMobSpawner te = (TileEntityMobSpawner) world.getTileEntity(x, y, z);
         if (te != null) te.func_145881_a()

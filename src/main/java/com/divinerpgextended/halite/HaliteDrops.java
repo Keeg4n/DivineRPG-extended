@@ -8,8 +8,12 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
+import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
+import net.minecraftforge.event.entity.player.ItemTooltipEvent;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 
 import com.divinerpgextended.boss.Boss;
 
@@ -17,9 +21,10 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Дроп боссов Мортума: готовых халитовых вещей нет (Divine их роняет - убираем), вместо них осколки халита. Близнец,
- * павший при живом брате, ничего не роняет - победа ещё не одержана. Частичка Края - тем, кто рядом с последним Айрако.
- * Трофеи и прочие частички выдаёт учёт боссов участникам ({@link Halite#reward}).
+ * Добыча боссов: с боссов Мортума готовых халитовых вещей нет (Divine их роняет - убираем). Каждому игроку рядом
+ * ({@link Halite#SHARE_R}) - своя доля на землю: осколки, трофей, частичка души; поднять её может только он
+ * ({@link #onPickup}). В инвентари ничего не кладём. Близнец, павший при живом брате, ничего не роняет - победы ещё нет.
+ * Последний из стаи Айрако - частичка Края.
  */
 public class HaliteDrops {
 
@@ -32,27 +37,50 @@ public class HaliteDrops {
         return n != null && n.toString().toLowerCase().contains("halite") && !n.toString().startsWith("divinerpgextended");
     }
 
-    @SubscribeEvent(priority = EventPriority.LOW)
+    @SuppressWarnings("unchecked")
+    static List<EntityPlayer> near(EntityLivingBase v) {
+        return v.worldObj.getEntitiesWithinAABB(EntityPlayer.class, v.boundingBox.expand(Halite.SHARE_R, Halite.SHARE_R / 2, Halite.SHARE_R));
+    }
+
+    static boolean lastAyeraco(EntityLivingBase v) {
+        if (!(v instanceof EntityAyeraco)) return false;
+        for (Object o : v.worldObj.getEntitiesWithinAABB(EntityAyeraco.class, v.boundingBox.expand(128, 96, 128)))
+            if (o != v && ((EntityAyeraco) o).isEntityAlive()) return false;
+        return true;
+    }
+
+    /** Раньше неуязвимости лута боссов - наши доли тоже станут неуязвимыми. */
+    @SubscribeEvent(priority = EventPriority.HIGH)
     public void onDrops(LivingDropsEvent e) {
         EntityLivingBase v = e.entityLiving;
         if (v.worldObj.isRemote) return;
         Boss b = Boss.of(v);
-        if (!mortum(b)) return;
-        for (Iterator<EntityItem> it = e.drops.iterator(); it.hasNext();) if (halite(it.next().getEntityItem().getItem())) it.remove();
+        if (mortum(b)) for (Iterator<EntityItem> it = e.drops.iterator(); it.hasNext();) if (halite(it.next().getEntityItem().getItem())) it.remove();
         if (b == Boss.TWINS && com.divinerpgextended.boss.MortumArenaBosses.brotherAlive(v)) return;
         if (v.getEntityData().getBoolean(com.divinerpgextended.boss.MortumArenaBosses.REVIVED)) return; // поднятый братом - без трофеев
-        int n = Halite.SHARDS_MIN + v.worldObj.rand.nextInt(Halite.SHARDS_MAX - Halite.SHARDS_MIN + 1);
-        e.drops.add(new EntityItem(v.worldObj, v.posX, v.posY + 1, v.posZ, Halite.part(Halite.Part.SHARD, n)));
+        boolean ayeraco = lastAyeraco(v);
+        if (b == null && !ayeraco) return;
+        for (EntityPlayer p : near(v)) {
+            List<ItemStack> share = ayeraco ? java.util.Collections.singletonList(Halite.own(Halite.spark(Halite.Spark.AYERACO), p)) : Halite.share(p, b, v.worldObj.rand);
+            for (ItemStack s : share) {
+                EntityItem it = new EntityItem(v.worldObj, v.posX, v.posY + 1, v.posZ, s);
+                it.delayBeforeCanPickup = 10;
+                e.drops.add(it);
+            }
+        }
     }
 
-    /** Последний из пяти Айрако: частичка Края всем, кто рядом. */
+    /** Чужую долю не поднять (своя - как обычно). */
     @SubscribeEvent
-    public void onDeath(LivingDeathEvent e) {
-        if (e.entityLiving.worldObj.isRemote || !(e.entityLiving instanceof EntityAyeraco)) return;
-        List<?> flock = e.entityLiving.worldObj.getEntitiesWithinAABB(EntityAyeraco.class, e.entityLiving.boundingBox.expand(128, 96, 128));
-        for (Object o : flock) if (o != e.entityLiving && ((EntityAyeraco) o).isEntityAlive()) return;
-        @SuppressWarnings("unchecked")
-        List<EntityPlayer> near = e.entityLiving.worldObj.getEntitiesWithinAABB(EntityPlayer.class, e.entityLiving.boundingBox.expand(64, 48, 64));
-        for (EntityPlayer p : near) Halite.give(p, Halite.spark(Halite.Spark.AYERACO));
+    public void onPickup(EntityItemPickupEvent e) {
+        String o = Halite.owner(e.item.getEntityItem());
+        if (o != null && !o.equals(e.entityPlayer.getUniqueID().toString())) e.setCanceled(true);
+    }
+
+    /** В подсказке - чья это добыча. */
+    @SubscribeEvent
+    public void onTooltip(ItemTooltipEvent e) {
+        String n = Halite.ownerName(e.itemStack);
+        if (n != null) e.toolTip.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocalFormatted("dre.tooltip.loot_owner", n));
     }
 }

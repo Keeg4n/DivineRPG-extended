@@ -50,7 +50,10 @@ public final class HaliteRecipes {
         RecipeSorter.register("divinerpgextended:twilight_spirit", RecipeTwilightSpirit.class, RecipeSorter.Category.SHAPELESS, "after:minecraft:shapeless");
         GameRegistry.addRecipe(new RecipeTwilightSpirit());
         GameRegistry.addShapelessRecipe(Halite.spirit(Spirit.ARCANA), Halite.spark(Spark.DRAMIX), Halite.spark(Spark.PARASECTA));
-        GameRegistry.addShapelessRecipe(Halite.spirit(Spirit.WORLD), Halite.spark(Spark.ANCIENT_ENTITY)); // + босс джунглей, когда появится
+        GameRegistry.addShapelessRecipe(Halite.spirit(Spirit.WORLD), Halite.spark(Spark.ANCIENT_ENTITY), Halite.spark(Spark.JUNGLE));
+        // тотем Древнего драмкрикса: самоцветы джунглей (только халитовой киркой), осколки и камень джунглей Divine
+        GameRegistry.addRecipe(new ItemStack(ModItems.jungleTotem), "GSG", "SJS", "GSG", 'G', ModItems.jungleGem, 'S',
+            net.divinerpg.utils.items.VanillaItemsOther.jungleShards, 'J', net.divinerpg.utils.items.VanillaItemsOther.jungleStone);
         GameRegistry.addShapelessRecipe(Halite.spirit(Spirit.NETHER), Halite.spark(Spark.SCORCHERS));
         GameRegistry.addShapelessRecipe(Halite.spirit(Spirit.END), Halite.spark(Spark.AYERACO));
         GameRegistry.addShapelessRecipe(Halite.spirit(Spirit.UNIVERSE), Halite.spirit(Spirit.TWILIGHT), Halite.spirit(Spirit.ARCANA), Halite.spirit(Spirit.WORLD),
