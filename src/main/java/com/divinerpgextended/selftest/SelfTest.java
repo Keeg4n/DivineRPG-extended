@@ -3850,42 +3850,70 @@ public class SelfTest {
             check(melted && kept, "выпавшая руда: " + a + ", выброшенная игроком: " + b);
             return "руда, выпавшая рядом с хозяином смелтера 2+, сразу на земле становится слитками (3 руды - 3 слитка); выброшенную игроком не трогает";
         });
-        t("Ветея - кошмар", "Вход в Ветею после поздних боссов", () -> {
+        t("Логова", "Халит, частички душ и Кровать кошмаров", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x0 = 9400, y0 = 100, z0 = 9830;
             loadAround(w, x0, z0, 1);
-            TestPlayer vp = join(player(0, "TestVetheaGate", x0 + 0.5, y0, z0 + 2.5), true);
-            for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.boss.Boss.values()) com.divinerpgextended.boss.BossProgress.revoke(vp, b);
-            w.setBlock(x0, y0, z0, VetheaBlocks.nightmareBedBlock, 0, 2);
-            net.minecraftforge.event.entity.player.PlayerInteractEvent i1 = new net.minecraftforge.event.entity.player.PlayerInteractEvent(vp,
-                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, x0, y0, z0, 1, w);
-            vp.chat.clear();
-            MinecraftForge.EVENT_BUS.post(i1);
-            boolean locked = i1.isCanceled() && vp.heard("dre.chat.vethea_locked");
-            // близнецы: первый пал при живом брате - не засчитано; второй - засчитано тому, кто бил первого
-            net.divinerpg.entities.twilight.EntityDensos de = new net.divinerpg.entities.twilight.EntityDensos(w);
-            net.divinerpg.entities.twilight.EntityReyvor re = new net.divinerpg.entities.twilight.EntityReyvor(w);
-            de.setLocationAndAngles(x0 + 5.5, y0, z0 + 0.5, 0, 0);
-            re.setLocationAndAngles(x0 + 8.5, y0, z0 + 0.5, 0, 0);
-            w.spawnEntityInWorld(de);
-            w.spawnEntityInWorld(re);
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(de, DamageSource.causePlayerDamage(vp), 5));
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(de, DamageSource.causePlayerDamage(vp)));
-            de.setDead();
-            boolean notYet = !com.divinerpgextended.boss.BossProgress.has(vp, com.divinerpgextended.boss.Boss.TWINS);
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(re, DamageSource.generic));
-            re.setDead();
-            boolean twins = com.divinerpgextended.boss.BossProgress.has(vp, com.divinerpgextended.boss.Boss.TWINS);
-            // все поздние боссы - кровать пускает
-            for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.boss.VetheaGate.NEED) com.divinerpgextended.boss.BossProgress.grant(vp, b);
-            net.minecraftforge.event.entity.player.PlayerInteractEvent i2 = new net.minecraftforge.event.entity.player.PlayerInteractEvent(vp,
-                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, x0, y0, z0, 1, w);
-            MinecraftForge.EVENT_BUS.post(i2);
-            boolean open = !i2.isCanceled();
-            for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.boss.Boss.values()) com.divinerpgextended.boss.BossProgress.revoke(vp, b);
-            w.setBlockToAir(x0, y0, z0);
-            check(locked && notYet && twins && open, "без боссов кровать не пускает " + locked + "; близнецы: первый пал - не засчитано " + notYet + ", второй - засчитано " + twins + "; все 8 - пускает " + open);
-            return "Кровать кошмаров пускает в Ветею только после 6 боссов Мортума (близнецы - одной победой, когда пал последний) и 2 боссов Арканы, иначе говорит, кого не хватает";
+            TestPlayer hp = join(player(0, "TestHalite", x0 + 0.5, y0, z0 + 2.5), true);
+            hp.inventory.clearInventory(null, -1);
+            // Карот: участнику трофей и частичка; на землю - осколки, готового халита нет
+            net.divinerpg.entities.twilight.EntityKarot kh = new net.divinerpg.entities.twilight.EntityKarot(w);
+            kh.setLocationAndAngles(x0 + 5.5, y0, z0 + 0.5, 0, 0);
+            w.spawnEntityInWorld(kh);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(kh, DamageSource.causePlayerDamage(hp), 5));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(kh, DamageSource.causePlayerDamage(hp)));
+            java.util.ArrayList<net.minecraft.entity.item.EntityItem> dr = new java.util.ArrayList<net.minecraft.entity.item.EntityItem>();
+            dr.add(new net.minecraft.entity.item.EntityItem(w, x0, y0, z0, new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.halitePhaser)));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(kh, DamageSource.causePlayerDamage(hp), dr, 0, true, 0));
+            kh.setDead();
+            boolean noHalite = true;
+            int shards = 0;
+            for (net.minecraft.entity.item.EntityItem ei : dr) {
+                if (ei.getEntityItem().getItem() == net.divinerpg.utils.items.TwilightItemsWeapons.halitePhaser) noHalite = false;
+                if (ei.getEntityItem().getItem() == ModItems.haliteMaterial) shards += ei.getEntityItem().stackSize;
+            }
+            boolean trophy = hp.inventory.hasItemStack(com.divinerpgextended.halite.Halite.trophy(com.divinerpgextended.halite.Halite.Trophy.KAROT));
+            boolean spark = hp.inventory.hasItemStack(com.divinerpgextended.halite.Halite.spark(com.divinerpgextended.halite.Halite.Spark.KAROT));
+            // верстак: дух сумерек только из трёх разных частичек
+            net.minecraft.inventory.InventoryCrafting grid = new net.minecraft.inventory.InventoryCrafting(new net.minecraft.inventory.Container() {
+                @Override
+                public boolean canInteractWith(EntityPlayer p) {
+                    return true;
+                }
+            }, 3, 3);
+            com.divinerpgextended.halite.Halite.Spark[] sp = com.divinerpgextended.halite.Halite.Spark.values();
+            grid.setInventorySlotContents(0, com.divinerpgextended.halite.Halite.spark(sp[0]));
+            grid.setInventorySlotContents(1, com.divinerpgextended.halite.Halite.spark(sp[3]));
+            grid.setInventorySlotContents(2, com.divinerpgextended.halite.Halite.spark(sp[5]));
+            ItemStack r1 = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(grid, w);
+            grid.setInventorySlotContents(2, com.divinerpgextended.halite.Halite.spark(sp[3]));
+            ItemStack r2 = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(grid, w);
+            boolean distinct = r1 != null && r1.getItem() == ModItems.worldSpirit && r1.getItemDamage() == 0 && r2 == null;
+            for (int i = 0; i < 9; i++) grid.setInventorySlotContents(i, null);
+            // слиток: 4 осколка + душа Мортума
+            for (int i = 0; i < 4; i++) grid.setInventorySlotContents(i, com.divinerpgextended.halite.Halite.part(com.divinerpgextended.halite.Halite.Part.SHARD, 1));
+            grid.setInventorySlotContents(4, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.mortumSoul));
+            ItemStack ingot = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(grid, w);
+            for (int i = 0; i < 9; i++) grid.setInventorySlotContents(i, null);
+            // Кровать кошмаров: старый рецепт Divine не работает, новый - с Духом вселенной
+            for (int i = 0; i < 3; i++) {
+                grid.setInventorySlotContents(i, new ItemStack(net.divinerpg.utils.blocks.TwilightBlocks.mortumBlock));
+                grid.setInventorySlotContents(3 + i, new ItemStack(net.divinerpg.utils.blocks.TwilightBlocks.mortumLogs));
+            }
+            ItemStack oldBed = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(grid, w);
+            grid.setInventorySlotContents(1, com.divinerpgextended.halite.Halite.spirit(com.divinerpgextended.halite.Halite.Spirit.UNIVERSE));
+            ItemStack newBed = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(grid, w);
+            boolean bed = oldBed == null && newBed != null && newBed.getItem() == VetheaItems.nightmareBed;
+            // скорость: халитовая кирка 60, мультиинструмент 30 (на камне и на дереве)
+            float pick = new ItemStack(ModItems.halitePickaxe).getItem().getDigSpeed(new ItemStack(ModItems.halitePickaxe), Blocks.stone, 0);
+            float multiStone = ModItems.haliteMultitool.getDigSpeed(new ItemStack(ModItems.haliteMultitool), Blocks.stone, 0);
+            float multiWood = ModItems.haliteMultitool.getDigSpeed(new ItemStack(ModItems.haliteMultitool), Blocks.log, 0);
+            boolean speeds = pick == 60 && multiStone == 30 && multiWood == 30;
+            hp.inventory.clearInventory(null, -1);
+            check(noHalite && shards >= 4 && shards <= 6 && trophy && spark && distinct && ingot != null && ingot.getItem() == ModItems.haliteMaterial && bed && speeds,
+                "готового халита нет " + noHalite + ", осколков " + shards + ", трофей " + trophy + ", частичка " + spark + "; дух сумерек из разных " + (r1 != null) + ", из двух одинаковых нет " + (r2 == null)
+                    + "; слиток " + ingot + "; кровать: старый рецепт " + oldBed + ", новый " + newBed + "; скорость кирки " + pick + ", мульти камень " + multiStone + " дерево " + multiWood);
+            return "с босса Мортума - осколки на землю, трофей и частичка участнику, готового халита нет; дух сумерек - только из трёх разных частичек; слиток из осколков; Кровать кошмаров - только с Духом вселенной; кирка 60, мультиинструмент 30";
         });
         t("Логова", "РЕНДЕР карта Леты", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);

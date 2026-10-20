@@ -64,6 +64,7 @@ public final class ModItems {
     public static Item trinket;
     public static Item petCarrier;
     public static Item bestiary;
+    public static Item haliteMaterial, mortumTrophy, spiritSpark, worldSpirit, halitePickaxe, haliteAxe, haliteShovel, haliteMultitool;
     public static Item worldStick;
     public static Item guardianHeart;
     public static Item skyCart, apalachiaRails, arcanaRails, gondola;
@@ -133,6 +134,22 @@ public final class ModItems {
         GameRegistry.registerItem(trinket, "trinket");
         bestiary = new com.divinerpgextended.bestiary.ItemBestiary();
         GameRegistry.registerItem(bestiary, "bestiary");
+        haliteMaterial = new com.divinerpgextended.halite.ItemMeta("haliteMaterial", keys(com.divinerpgextended.halite.Halite.Part.values()), 64, false);
+        GameRegistry.registerItem(haliteMaterial, "haliteMaterial");
+        mortumTrophy = new com.divinerpgextended.halite.ItemMeta("mortumTrophy", keys(com.divinerpgextended.halite.Halite.Trophy.values()), 16, true);
+        GameRegistry.registerItem(mortumTrophy, "mortumTrophy");
+        spiritSpark = new com.divinerpgextended.halite.ItemMeta("spiritSpark", keys(com.divinerpgextended.halite.Halite.Spark.values()), 16, true);
+        GameRegistry.registerItem(spiritSpark, "spiritSpark");
+        worldSpirit = new com.divinerpgextended.halite.ItemMeta("worldSpirit", keys(com.divinerpgextended.halite.Halite.Spirit.values()), 16, true);
+        GameRegistry.registerItem(worldSpirit, "worldSpirit");
+        halitePickaxe = new com.divinerpgextended.halite.HaliteTools.Pickaxe();
+        GameRegistry.registerItem(halitePickaxe, "halitePickaxe");
+        haliteAxe = new com.divinerpgextended.halite.HaliteTools.Axe();
+        GameRegistry.registerItem(haliteAxe, "haliteAxe");
+        haliteShovel = new com.divinerpgextended.halite.HaliteTools.Shovel();
+        GameRegistry.registerItem(haliteShovel, "haliteShovel");
+        haliteMultitool = new com.divinerpgextended.halite.HaliteTools.Multitool();
+        GameRegistry.registerItem(haliteMultitool, "haliteMultitool");
         petCarrier = new com.divinerpgextended.arcana.ItemPetCarrier();
         GameRegistry.registerItem(petCarrier, "petCarrier");
         worldStick = new com.divinerpgextended.item.ItemWorldStick();
@@ -173,5 +190,11 @@ public final class ModItems {
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWindLord.class, "WindLord", 13, DivineRPGExtended.instance, 112, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityBoulder.class, "Boulder", 14, DivineRPGExtended.instance, 64, 5, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntitySkyCart.class, "SkyCart", 15, DivineRPGExtended.instance, 80, 1, true);
+    }
+
+    private static String[] keys(Enum<?>[] v) {
+        String[] k = new String[v.length];
+        for (int i = 0; i < v.length; i++) k[i] = v[i].name().toLowerCase();
+        return k;
     }
 }

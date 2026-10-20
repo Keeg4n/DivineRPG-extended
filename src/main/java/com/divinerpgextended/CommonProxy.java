@@ -99,9 +99,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new ProgressSpawns());
         com.divinerpgextended.boss.ArcanaGate arcanaGate = new com.divinerpgextended.boss.ArcanaGate();
         MinecraftForge.EVENT_BUS.register(arcanaGate);
-        com.divinerpgextended.boss.VetheaGate vetheaGate = new com.divinerpgextended.boss.VetheaGate();
-        MinecraftForge.EVENT_BUS.register(vetheaGate);
-        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(vetheaGate);
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.halite.HaliteDrops());
         FMLCommonHandler.instance()
             .bus()
             .register(arcanaGate);
@@ -331,6 +329,9 @@ public class CommonProxy {
 
         com.divinerpgextended.world.twilight.TwilightCrafts.postInit();
         com.divinerpgextended.perk.RangedRoles.setupDust();
+        // вход в Ветею - Кровать кошмаров только с Духом вселенной
+        removeRecipes(net.divinerpg.utils.items.VetheaItems.nightmareBed);
+        com.divinerpgextended.halite.HaliteRecipes.register();
         com.divinerpgextended.bestiary.Bestiary.build(); // главы - когда все мобы и спавны уже записаны
 
         com.divinerpgextended.vethea.VetheaStash.disableDivineSwap();

@@ -91,6 +91,11 @@ public class MortumArenaBosses {
         return e instanceof EntityDensos || e instanceof EntityReyvor;
     }
 
+    /** Жив ли брат этого близнеца (тогда победы над близнецами ещё нет). */
+    public static boolean brotherAlive(EntityLivingBase t) {
+        return brother(t, 64) != null;
+    }
+
     /** Живой брат-близнец рядом (другой класс). */
     static EntityLivingBase brother(EntityLivingBase t, double r) {
         Class<?> other = t instanceof EntityDensos ? EntityReyvor.class : EntityDensos.class;

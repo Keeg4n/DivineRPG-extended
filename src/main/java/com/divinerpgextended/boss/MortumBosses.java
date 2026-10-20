@@ -474,7 +474,6 @@ public class MortumBosses {
         if (e.entityLiving instanceof EntityKarot) {
             float power = e.entityLiving.getEntityData().getFloat(MAX_POWER);
             drop(e, new ItemStack(TwilightItemsOther.mortumSoul, 4 + (int) (power * 4)));
-            if (power >= 2.5F) drop(e, new ItemStack(TwilightItemsWeapons.halitePhaser));
             if (power >= 1.5F) drop(e, new ItemStack(net.minecraft.item.Item.getItemFromBlock(net.divinerpg.utils.blocks.VanillaBlocks.karotStatue)));
         }
     }
