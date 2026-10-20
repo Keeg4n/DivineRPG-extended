@@ -331,9 +331,12 @@ public final class MortumArenas {
             int ax = Math.abs(dx), az = Math.abs(dz), far = Math.max(ax, az);
             boolean tunnel = !in && slopes() && (ax <= 1 || az <= 1) && far <= reach() + TUNNEL;
             double out = outside(dx, dz);
-            if (!in && !tunnel && out > 0 && out <= SLOPE && slopes()) { // склон вокруг: насыпь вниз до земли, откос вверх
+            if (!in && !tunnel && out > 0 && out <= SLOPE && slopes()) {
+                // склон вокруг: насыпь вниз до земли; выше - откос вверх и свод пещеры, опускающийся от постройки (купол, а не
+                // отвесный вырез): где сверху порода, она нависает сводом и сходится с откосом
                 put(col, TOP - 1 - (int) (out * 1.3), FOUNDATION, 0);
-                for (int y = TOP + 1 + (int) (out * 1.5); y <= TOP + 30; y++) put(col, y, AIR, 0);
+                int dome = TOP + dome() - (int) (out * 1.2);
+                for (int y = TOP + 1 + (int) (out * 1.5); y <= dome; y++) put(col, y, AIR, 0);
                 return true;
             }
             if (!in && !tunnel) return false;
@@ -346,9 +349,14 @@ public final class MortumArenas {
             put(col, TOP - 5, FOUNDATION, 0);
             for (int y = TOP - 4; y < TOP; y++) put(col, y, WorldGenNests.DIRT, 0);
             int c = clear(dx, dz);
-            for (int y = TOP + 1; y <= TOP + c; y++) put(col, y, AIR, 0);
+            for (int y = TOP + 1; y <= TOP + c + (slopes() ? 4 : 0); y++) put(col, y, AIR, 0); // запас над крышей - начало свода
             build(dx, dz, col);
             return true;
+        }
+
+        /** Высота свода над полом у края постройки (дальше по склону он опускается). */
+        int dome() {
+            return clear(0, 0) + 4;
         }
 
         /** Докуда от центра доходит постройка (для проходов). */
@@ -963,7 +971,6 @@ public final class MortumArenas {
         static final int CROWN = 35, BALCONY = 21;
         /** Башенки: угол вокруг башни, низ и верх (от пола площадки), радиус. */
         static final double[][] TURRETS = { { 0.15, 6, 30, 2.8 }, { -1.15, 16, 38, 2.6 }, { -2.6, -2, 26, 2.9 } };
-        static final int BX = 17, BZ = -6, BR = 5, BH = 9;
         /** Ров Леты у подножия (с юга и боков), мост на тропе. */
         static final int MOAT_IN = 39, MOAT_OUT = 44;
         static final int FOCUS = 90, BOOKS = 91;
@@ -1006,9 +1013,17 @@ public final class MortumArenas {
             return MOAT_OUT + 1;
         }
 
+        /** Высоко расчищено только вокруг башни; над двором - на обелиски и парапет; склоны - своим куполом ({@link #dome}). */
         @Override
         int clear(int dx, int dz) {
-            return TH + ROOF + 8;
+            // высота - от пола прочих арен (Building.TOP), а площадка башни на LIFT выше
+            if (tower(dx, dz) <= TR + 3) return LIFT + TH + ROOF + 8; // узко: башня с башенками и контрфорсами
+            return dx * dx + dz * dz <= (COURT + 1) * (COURT + 1) ? LIFT + 12 : 0;
+        }
+
+        /** Верх расчистки над склоном утёса: купол над двором, опускается наружу. Башня проходит сквозь верхние пласты сама. */
+        static int dome(double r, double td) {
+            return TOP + 12 - (int) ((r - COURT - 1) * 1.0);
         }
 
         static double tower(int dx, int dz) {
@@ -1061,8 +1076,9 @@ public final class MortumArenas {
             top = Math.max(top, ground);
             // ров Леты у подножия (юг и бока), мост на тропе
             boolean moat = r >= MOAT_IN && r <= MOAT_OUT && dz > -14;
-            if (moat) { // общий фундамент постройки (TOP - 5) здесь не нужен - он засыпал бы ров
-                for (int y = ground - 4; y <= TOP + 10; y++) put(col, y, AIR, 0);
+            if (moat) { // ров копается только у дна; выше - как было (общий фундамент TOP - 5 и подсыпку снимаем)
+                for (int y = ground + 6; y <= TOP; y++) put(col, y, KEEP, 0);
+                for (int y = ground - 4; y <= ground + 5; y++) put(col, y, AIR, 0);
                 set(col, ground - 4, WorldGenNests.STONE);
                 for (int y = ground - 3; y <= MortumWorld.SEA; y++) put(col, y, WorldGenNests.WATER, 0);
                 if (path || (ax <= 2 && dz > 0)) { // мост: настил, перила, арка снизу
@@ -1082,8 +1098,10 @@ public final class MortumArenas {
                 for (int y = TOP - 5; y <= TOP + 10; y++) put(col, y, KEEP, 0);
                 return;
             }
-            if (r > COURT + 1) { // склон утёса
-                for (int y = top + 1; y <= TOP + 10; y++) put(col, y, AIR, 0);
+            if (r > COURT + 1) { // склон утёса: выше скалы - природный рельеф, кроме купола расчистки
+                for (int y = top + 1; y <= TOP; y++) put(col, y, KEEP, 0); // снять общую подсыпку постройки над склоном
+                int dome = Math.max(dome(r, td), path ? top + 4 : 0);
+                for (int y = top + 1; y <= dome; y++) put(col, y, AIR, 0);
                 put(col, top - 4, FOUNDATION, 0);
                 for (int y = top - 3; y < top; y++) set(col, y, rock(dx, y, dz));
                 set(col, top, path ? GRAVEL : top - TOP > -3 || hash(dx, dz) % 3 != 0 ? WorldGenNests.GRASS : rock(dx, top, dz));
@@ -1106,17 +1124,6 @@ public final class MortumArenas {
                 }
                 if (r > COURT - 0.5 && dz > 0 && ax == 2) for (int y = TOP + 1; y <= TOP + 5; y++) set(col, y, CHISEL);
                 if (r > COURT - 0.5 && dz > 0 && ax <= 1) set(col, TOP + 5, CHISEL);
-            }
-            // бастион сбоку
-            double bd = Math.sqrt((dx - BX) * (dx - BX) + (dz - BZ) * (dz - BZ));
-            if (bd <= BR) {
-                put(col, top - 4, FOUNDATION, 0);
-                for (int y = top - 3; y <= TOP + BH; y++) set(col, y, bd > BR - 1.2 ? (y % 6 == 0 ? CHISEL : NETHER) : WorldGenNests.STONE);
-                if (bd > BR - 1.2 && (ax + az) % 2 == 0) {
-                    set(col, TOP + BH + 1, NETHER);
-                    if ((ax * 7 + az) % 4 == 0) set(col, TOP + BH + 2, FENCE); // пики на зубцах
-                }
-                return;
             }
             tower(dx, dz, td, col);
             turrets(dx, dz, col);

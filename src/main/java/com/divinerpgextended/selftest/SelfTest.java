@@ -3175,7 +3175,7 @@ public class SelfTest {
                 floor &= statues == 0 && altar && "dre.chat.summon_altar".equals(floorClick);
                 boolean good = floor && in == null && wrong != null && ("dre.chat.summon_arena_" + t.key()).equals(out);
                 ok &= good;
-                dump(w, c[0], com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP, c[2], 34, "arena-" + t.key());
+                dump(w, c[0], com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP, c[2], t == com.divinerpgextended.world.twilight.MortumArenas.Type.DEMON ? 58 : 40, "arena-" + t.key());
                 // стоит на фундаменте: под полом у края нет пустоты до земли
                 int fx = c[0] + 10, fz = c[2] + 2, gap = 0;
                 for (int y = com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP - 1; y > com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP - 30; y--)
