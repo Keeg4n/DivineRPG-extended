@@ -64,6 +64,8 @@ public abstract class ColumnStructure {
     public void buildSlice(World w, int cx, int cz, int x0, int z0) {
         Set<Chunk> touched = new HashSet<Chunk>();
         List<int[]> lights = new ArrayList<int[]>();
+        // что поменяли в хранилище чанка напрямую - клиент не узнает сам (чанк мог уже уйти игроку): помечаем к отправке
+        List<int[]> changed = new ArrayList<int[]>();
         int[] col = new int[256 * 2];
         for (int x = x0; x < x0 + 16; x++) {
             for (int z = z0; z < z0 + 16; z++) {
@@ -84,6 +86,7 @@ public abstract class ColumnStructure {
                             if (fs == null) fs = arr[yy >> 4] = new ExtendedBlockStorage(yy >> 4 << 4, !w.provider.hasNoSky);
                             fs.func_150818_a(x & 15, yy & 15, z & 15, f);
                             fs.setExtBlockMetadata(x & 15, yy & 15, z & 15, 0);
+                            changed.add(new int[] { x, yy, z });
                         }
                         continue;
                     }
@@ -98,6 +101,7 @@ public abstract class ColumnStructure {
                     }
                     s.func_150818_a(x & 15, y & 15, z & 15, b);
                     s.setExtBlockMetadata(x & 15, y & 15, z & 15, meta);
+                    changed.add(new int[] { x, y, z });
                     if (lit(b)) lights.add(new int[] { x, y, z });
                 }
             }
@@ -110,7 +114,19 @@ public abstract class ColumnStructure {
             ch.setChunkModified();
         }
         for (int[] l : lights) w.func_147451_t(l[0], l[1], l[2]);
+        resend(w, changed);
         decorate(w, cx, cz, x0, z0);
+    }
+
+    /**
+     * Сказать игрокам, видящим эти чанки, про блоки, записанные мимо мира: без этого уже отправленный клиенту соседний
+     * чанк остаётся старым кусками (дыры и "стекло" до первого обновления рядом). Больше 64 блоков в чанке - игра сама
+     * перешлёт изменённые секции целиком.
+     */
+    static void resend(World w, List<int[]> changed) {
+        if (!(w instanceof net.minecraft.world.WorldServer) || changed.isEmpty()) return;
+        net.minecraft.server.management.PlayerManager pm = ((net.minecraft.world.WorldServer) w).getPlayerManager();
+        for (int[] c : changed) pm.markBlockForUpdate(c[0], c[1], c[2]);
     }
 
     /**

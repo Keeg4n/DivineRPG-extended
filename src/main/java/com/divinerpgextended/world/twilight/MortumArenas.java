@@ -13,7 +13,7 @@ import net.minecraft.world.World;
  * Арены боссов Мортума: у каждого кристалла - своя, вызвать босса можно только на ней. В каждом квадрате Мортума
  * ({@link WorldGenNests#spacing}) одна арена, тип из сида и координат квадрата так, что соседние квадраты всегда разные.
  * Все - отдельные постройки на высоте {@link WorldGenNests#MORTUM_TOP} на своём фундаменте до земли, с расчищенным
- * местом вокруг и четырьмя проходами, если стоят в толще камня ({@link Building}).
+ * местом вокруг (свод пещеры над склонами, без прорубленных проходов) ({@link Building}).
  * <ul>
  * <li>Замок мага - Демон сумерек: стены, угловые башни, шпиль мага, во дворе ритуальный круг с обелисками.</li>
  * <li>Зал близнецов - Денсос и Рейвор: крепость из светлой и тёмной половин, разлом с мостами, помост брата в каждой.</li>
@@ -164,14 +164,14 @@ public final class MortumArenas {
     private static final int[] EXTENT = new int[Type.values().length];
 
     /**
-     * Докуда от центра арена трогает землю: постройка, склоны и проходы (их подсыпка засыпала бы русло). Река течёт сразу
+     * Докуда от центра арена трогает землю: постройка и склоны (их подсыпка засыпала бы русло). Река течёт сразу
      * за этим кругом, на самой арене её нет.
      */
     public static int extent(Type t) {
         int e = EXTENT[t.ordinal()];
         if (e > 0) return e;
         Building b = (Building) shape(t);
-        e = b.reach() + (b.slopes() ? Math.max(Building.SLOPE, Building.TUNNEL) + 2 : 2);
+        e = b.reach() + (b.slopes() ? Building.SLOPE + 2 : 2);
         EXTENT[t.ordinal()] = e;
         return e;
     }
@@ -200,7 +200,7 @@ public final class MortumArenas {
     /**
      * Постройка арены в пещере Мортума: стоит на своём фундаменте до земли ({@link ColumnStructure#FOUNDATION}), над ней
      * расчищено место (без каменного купола - Мортум почти весь из открытых пещер, купол висел бы зонтом), к ней ведут
-     * четыре прохода через скалу, если она в толще камня.
+     * над склонами свод пещеры, опускающийся от постройки (прорубленных проходов нет).
      */
     abstract static class Building extends ColumnStructure {
 
@@ -329,7 +329,7 @@ public final class MortumArenas {
         protected boolean column(int dx, int dz, int[] col) {
             boolean in = footprint(dx, dz);
             int ax = Math.abs(dx), az = Math.abs(dz), far = Math.max(ax, az);
-            boolean tunnel = !in && slopes() && (ax <= 1 || az <= 1) && far <= reach() + TUNNEL;
+            boolean tunnel = false; // прорубленные проходы к арене не стыковались с рельефом - их нет
             double out = outside(dx, dz);
             if (!in && !tunnel && out > 0 && out <= SLOPE && slopes()) {
                 // склон вокруг: насыпь вниз до земли; выше - откос вверх и свод пещеры, опускающийся от постройки (купол, а не
@@ -1075,7 +1075,7 @@ public final class MortumArenas {
             if (path) top = Math.max(top, TOP - (int) ((r - COURT) * 1.0));
             top = Math.max(top, ground);
             // ров Леты у подножия (юг и бока), мост на тропе
-            boolean moat = r >= MOAT_IN && r <= MOAT_OUT && dz > -14;
+            boolean moat = false; // ров каньоном резал рельеф; река и так течёт у арены
             if (moat) { // ров копается только у дна; выше - как было (общий фундамент TOP - 5 и подсыпку снимаем)
                 for (int y = ground + 6; y <= TOP; y++) put(col, y, KEEP, 0);
                 for (int y = ground - 4; y <= ground + 5; y++) put(col, y, AIR, 0);
