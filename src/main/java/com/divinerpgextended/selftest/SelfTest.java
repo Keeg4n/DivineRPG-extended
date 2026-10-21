@@ -1996,19 +1996,27 @@ public class SelfTest {
             // Мортум: вампиризм
             Item[] mort = com.divinerpgextended.world.twilight.TwilightWorld.MORTUM.armor();
             armor(sv, mort[0], mort[1], mort[2], mort[3]);
-            sv.setHealth(10);
             net.minecraft.entity.monster.EntityZombie prey = new net.minecraft.entity.monster.EntityZombie(sv.worldObj);
             prey.setPosition(sv.posX + 2, sv.posY, sv.posZ);
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(prey, net.minecraft.util.DamageSource.causePlayerDamage(sv), 10));
-            float healed = sv.getHealth() - 10;
+            // вампиризм - шанс, а не каждый удар: 200 ударов по 10
+            int procs = 0;
+            float healed = 0;
+            for (int i = 0; i < 200; i++) {
+                sv.setHealth(10);
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(prey, net.minecraft.util.DamageSource.causePlayerDamage(sv), 10));
+                if (sv.getHealth() > 10) {
+                    procs++;
+                    healed = Math.max(healed, sv.getHealth() - 10);
+                }
+            }
             sv.ticksExisted = 20;
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sv));
             double kbOff = sv.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.knockbackResistance).getAttributeValue();
             armor(sv, null, null, null, null);
             sv.setHealth(sv.getMaxHealth());
-            check(kb >= 1 && kbOff < 1 && reflected > 1 && reflected <= 2 && healed >= 0.9 && healed <= 2.1,
-                "отбрасывание " + kb + " (снят сет " + kbOff + "), отражено " + reflected + ", вампиризм " + healed);
-            return "Апалачия: не отбрасывает, около 20% урона (после защиты дома) вернулось зомби; Мортум: удар на 10 лечит на " + healed;
+            check(kb >= 1 && kbOff < 1 && reflected > 1 && reflected <= 2 && procs >= 15 && procs <= 100 && Math.abs(healed - com.divinerpgextended.perk.SetPerks.DRAIN_MAX) < 0.01,
+                "отбрасывание " + kb + " (снят сет " + kbOff + "), отражено " + reflected + ", вампиризм " + procs + " из 200 ударов, по " + healed);
+            return "Апалачия: не отбрасывает, около 20% урона (после защиты дома) вернулось зомби; Мортум: из 200 ударов на 10 лечили " + procs + ", каждый на " + healed;
         });
         t("Броня", "Лесной следопыт", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
@@ -2526,6 +2534,98 @@ public class SelfTest {
                 "дробь без неуязвимости " + pellets + ", фазер без пыли стреляет " + dry + ", с пылью " + shot + " (пыли осталось " + dustLeft + " из 3), колчан: натянут " + drawn
                     + ", выстрел " + fired + ", Бесконечность снята " + gone);
             return "дробины блица бьют одну цель все; с колчаном лук без стрел натягивается и стреляет, стрел в инвентаре нет";
+        });
+        t("Прохождение", "Блиц - кибер-дробовик, фазеры и халит не ломаются", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            loadAround(w, 9470, 9850, 2);
+            TestPlayer fv = join(player(ConfigurationHelper.eden, "TestBlitzCooldown", 9470.5, 120, 9850.5), true);
+            // фазеры и блицы: бесконечная прочность, у блица своя перезарядка и свой звук
+            java.lang.reflect.Field uses = net.divinerpg.items.base.ItemProjectileShooter.class.getDeclaredField("uses");
+            java.lang.reflect.Field delay = net.divinerpg.items.base.ItemProjectileShooter.class.getDeclaredField("delay");
+            java.lang.reflect.Field sound = net.divinerpg.items.base.ItemProjectileShooter.class.getDeclaredField("soundName");
+            uses.setAccessible(true);
+            delay.setAccessible(true);
+            sound.setAccessible(true);
+            int guns = 0, unbreakable = 0, tuned = 0;
+            for (com.divinerpgextended.world.twilight.TwilightWorld tw : com.divinerpgextended.world.twilight.TwilightWorld.values()) {
+                Item[] wp = com.divinerpgextended.world.twilight.TwilightCrafts.weapons(tw);
+                for (Item gn : new Item[] { wp[2], wp[3] }) {
+                    if (com.divinerpgextended.perk.RangedRoles.dust(gn) == null) continue;
+                    guns++;
+                    if (uses.getInt(gn) == -1 && gn.getMaxDamage() == 0) unbreakable++;
+                    if (gn == wp[3] && delay.getInt(gn) == com.divinerpgextended.perk.RangedRoles.BLITZ_DELAY && sound.get(gn) == null) tuned++;
+                }
+            }
+            Item hp = net.divinerpg.utils.items.TwilightItemsWeapons.halitePhaser;
+            boolean halitePhaser = uses.getInt(hp) == -1 && hp.getMaxDamage() == 0;
+            // поношенный фазер на клик чинится
+            fv.inventory.clearInventory(null, -1);
+            for (int i = 0; i < Accessories.TOTAL; i++) Accessories.of(fv).setInventorySlotContents(i, null);
+            Accessories.of(fv).setInventorySlotContents(0, trinket(Trinket.DUST_POUCH));
+            ItemStack worn = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenPhaser, 1, 37);
+            fv.inventory.currentItem = 0;
+            fv.inventory.mainInventory[0] = worn;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(fv,
+                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w));
+            com.divinerpgextended.perk.RangedRoles.disarm();
+            boolean repaired = worn.getItemDamage() == 0;
+            // блиц: второй выстрел сразу - нет, через перезарядку - да
+            ItemStack gun = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz);
+            fv.inventory.mainInventory[0] = gun;
+            java.lang.reflect.Field tick = Class.forName("net.divinerpg.utils.events.Ticker").getField("tick");
+            int[] shots = new int[3];
+            for (int c = 0; c < 3; c++) {
+                if (c == 2) tick.setInt(null, tick.getInt(null) + com.divinerpgextended.perk.RangedRoles.BLITZ_COOLDOWN);
+                for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityThrowable.class, fv.boundingBox.expand(8, 8, 8))) ((net.minecraft.entity.Entity) o).setDead();
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(fv,
+                    net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w));
+                try {
+                    gun.getItem().onItemRightClick(gun, w, fv);
+                } catch (NullPointerException ex) {
+                    // у тестового игрока нет сети
+                }
+                com.divinerpgextended.perk.RangedRoles.disarm();
+                for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityThrowable.class, fv.boundingBox.expand(8, 8, 8)))
+                    if (!((net.minecraft.entity.Entity) o).isDead) {
+                        shots[c]++;
+                        ((net.minecraft.entity.Entity) o).setDead();
+                    }
+            }
+            // счётчик Divine сбросился в ноль, а на блице записано время из прошлого круга - перезарядка не должна длиться полтора часа
+            gun.getTagCompound().setLong("CanShootTime", tick.getInt(null) + 90000L);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(fv,
+                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w));
+            com.divinerpgextended.perk.RangedRoles.disarm();
+            boolean wrapFixed = gun.getTagCompound().getLong("CanShootTime") == 0;
+            // халитовые инструменты: не ломаются, подсказка как у кирок Divine
+            ItemStack pick = new ItemStack(com.divinerpgextended.registry.ModItems.halitePickaxe);
+            pick.damageItem(50, fv);
+            ItemStack multi = new ItemStack(com.divinerpgextended.registry.ModItems.haliteMultitool);
+            multi.damageItem(50, fv);
+            boolean tools = pick.getItemDamage() == 0 && pick.stackSize == 1 && multi.getItemDamage() == 0
+                && com.divinerpgextended.registry.ModItems.haliteAxe.getMaxDamage() == 0 && com.divinerpgextended.registry.ModItems.haliteShovel.getMaxDamage() == 0;
+            java.util.List<String> tip = new java.util.ArrayList<String>();
+            com.divinerpgextended.item.ToolInfo.add(tip, multi, com.divinerpgextended.halite.HaliteTools.MULTI_SPEED);
+            java.util.List<String> iceTip = new java.util.ArrayList<String>();
+            com.divinerpgextended.item.ToolInfo.add(iceTip, new ItemStack(com.divinerpgextended.registry.ModItems.icePick), 6);
+            boolean tooltip = tip.size() == 2 && tip.get(0).equals(net.divinerpg.utils.TooltipLocalizer.efficiency(30))
+                && tip.get(1).equals(net.divinerpg.utils.TooltipLocalizer.infiniteUses()) && iceTip.get(1).equals(net.divinerpg.utils.TooltipLocalizer.usesRemaining(1000));
+            // рельсы Divine в инвентаре становятся рельсами аддона
+            fv.inventory.clearInventory(null, -1);
+            fv.inventory.mainInventory[5] = new ItemStack(net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails, 12);
+            fv.inventory.mainInventory[6] = new ItemStack(net.divinerpg.utils.blocks.ArcanaBlocks.arcaniteRails, 3);
+            com.divinerpgextended.world.twilight.TwilightCrafts.RailDrops.convert(fv);
+            boolean rails = fv.inventory.mainInventory[5].getItem() == com.divinerpgextended.registry.ModItems.apalachiaRails && fv.inventory.mainInventory[5].stackSize == 12
+                && fv.inventory.mainInventory[6].getItem() == com.divinerpgextended.registry.ModItems.arcanaRails && fv.inventory.mainInventory[6].stackSize == 3;
+            fv.inventory.clearInventory(null, -1);
+            for (int i = 0; i < Accessories.TOTAL; i++) Accessories.of(fv).setInventorySlotContents(i, null);
+            int P = com.divinerpgextended.perk.RangedRoles.PELLETS;
+            check(guns > 0 && unbreakable == guns && tuned == guns / 2 && halitePhaser && repaired && shots[0] == P && shots[1] == 0 && shots[2] == P && wrapFixed && tools
+                && tooltip && rails,
+                "фазеров и блицев " + guns + ", не ломаются " + unbreakable + ", блицы с перезарядкой и своим звуком " + tuned + ", халитовый фазер " + halitePhaser
+                    + ", поношенный починен " + repaired + "; выстрелы: " + shots[0] + ", сразу " + shots[1] + ", после перезарядки " + shots[2] + "; сброс после круга счётчика "
+                    + wrapFixed + "; халит не ломается " + tools + ", подсказка " + tip + " / " + iceTip + "; рельсы " + rails);
+            return "фазеры и блицы (и халитовые) не ломаются; блиц стреляет раз в " + com.divinerpgextended.perk.RangedRoles.BLITZ_COOLDOWN + " тиков (5 дробин), второй выстрел сразу - нет; халитовые инструменты не изнашиваются, подсказка с эффективностью как у Divine; рельсы Divine в инвентаре стали рельсами аддона";
         });
         t("Прохождение", "Фазер и блиц: пыль, подсумок, Бесконечность", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);

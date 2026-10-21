@@ -29,10 +29,11 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * Роли сумеречного дальнобоя (снаряды Divine у блица, фазера и слайсера одни - различаем по оружию в руке при выстреле):
  * <ul>
  * <li>лук - дальность и точность (без изменений);</li>
- * <li>блиц - дробовик: {@link #PELLETS} снарядов веером, каждый слабее ({@link #PELLET_DMG}), по подручным боссов x2 -
- * против толпы, но вблизи: дробь летит {@link #BLITZ_LIFE} тиков (~10 блоков), отброс от неё слабый, боссов не сносит;
- * тратит пыль своего мира ({@link #setupDust}), как и фазер;</li>
- * <li>фазер - пробой: снаряд проходит насквозь до {@link #PIERCE} целей, по частям голема x2; бесконечный, как у Divine;</li>
+ * <li>блиц - кибер-дробовик: {@link #PELLETS} снарядов веером в полную силу ({@link #PELLET_DMG}), по подручным боссов x2,
+ * но редко - перезарядка {@link #BLITZ_COOLDOWN} тиков; против толпы и вблизи: дробь летит {@link #BLITZ_LIFE} тиков
+ * (~10 блоков), боссов не сносит; свой звук выстрела; тратит пыль своего мира ({@link #setupDust}), как и фазер;</li>
+ * <li>фазер - пробой: снаряд проходит насквозь до {@link #PIERCE} целей, по частям голема x2;</li>
+ * <li>фазеры и блицы не ломаются.</li>
  * <li>слайсер - рикошет до {@link #RICOCHET} целей подряд, перерезает лиану голема, сбивает замах Короля-воина и
  * издалека заряжает ветряные тотемы (как снежки в кристаллы дракона).</li>
  * </ul>
@@ -46,8 +47,11 @@ public class RangedRoles {
     public static final String KIND = "dreRanged", GEN = "dreRangedGen";
     public static final int BLITZ = 1, PHASER = 2, SLICER = 3;
     public static final int PELLETS = 5, PIERCE = 3, RICOCHET = 3;
-    public static final float PELLET_DMG = 0.35F, ADD_BONUS = 2.0F;
-    /** Дробь живёт столько тиков (дальность ~10 блоков); от отброса дробью остаётся доля KNOCK_KEEP - ноль: при такой скорострельности блиц не отбрасывает вовсе. */
+    public static final float PELLET_DMG = 1.0F, ADD_BONUS = 2.0F;
+    /** Перезарядка блица: задержка Divine (в её единицах, x4 тика) и она же в тиках - выстрел в секунду. */
+    public static final int BLITZ_DELAY = 5, BLITZ_COOLDOWN = BLITZ_DELAY * 4;
+    public static final String BLITZ_SOUND = "divinerpgextended:blitz_shot";
+    /** Дробь живёт столько тиков (дальность ~10 блоков); от отброса дробью остаётся доля KNOCK_KEEP - ноль: блиц не отбрасывает вовсе. */
     public static final int BLITZ_LIFE = 7;
     public static final double KNOCK_KEEP = 0;
     /** Боковые дробины по боссу: доля урона (иначе пять дробин в упор выносили босса, а сет Мортума лечил за каждую). */
@@ -123,7 +127,54 @@ public class RangedRoles {
         } catch (Exception ex) {
             com.divinerpgextended.DivineRPGExtended.LOG.warn("Пыль фазеров и блицев: не удалось задать патрон Divine - " + ex);
         }
+        tune();
         return DUST.size();
+    }
+
+    private static java.lang.reflect.Field shooterField(String name) throws Exception {
+        java.lang.reflect.Field f = net.divinerpg.items.base.ItemProjectileShooter.class.getDeclaredField(name);
+        f.setAccessible(true);
+        return f;
+    }
+
+    /** Фазеры и блицы не ломаются (uses = -1, как у блицев Divine); блиц стреляет раз в секунду и без звука Divine - свой даёт {@link #onJoin}. */
+    private static void tune() {
+        for (Item i : DUST.keySet()) {
+            boolean blitz = kind(new ItemStack(i)) == BLITZ;
+            try {
+                shooterField("uses").setInt(i, -1);
+                i.setMaxDamage(0);
+                if (blitz) {
+                    shooterField("delay").setInt(i, BLITZ_DELAY);
+                    shooterField("soundName").set(i, null);
+                }
+            } catch (Exception ex) {
+                com.divinerpgextended.DivineRPGExtended.LOG.warn("Фазеры и блицы: не удалось настроить " + i.getUnlocalizedName() + " - " + ex);
+            }
+        }
+    }
+
+    /** Счётчик тиков Divine (по нему перезарядка оружия; null - нет такого). */
+    static java.lang.reflect.Field tickerField() {
+        try {
+            return Class.forName("net.divinerpg.utils.events.Ticker").getField("tick");
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    /**
+     * Счётчик Divine после 100000 тиков (~1,5 ч) сбрасывается в ноль, а записанное на оружии время следующего выстрела -
+     * нет: блиц замолкал бы на полтора часа. Время дальше перезарядки - сбрасываем.
+     */
+    static void fixCooldown(ItemStack held) {
+        if (!held.hasTagCompound()) return;
+        java.lang.reflect.Field t = tickerField();
+        try {
+            if (t != null && held.getTagCompound().getLong(SHOOT_TIME) - t.getInt(null) > BLITZ_COOLDOWN) held.getTagCompound().setLong(SHOOT_TIME, 0);
+        } catch (Exception ignored) {
+            // нет счётчика - как у Divine
+        }
     }
 
     /** Пыль-патрон этого фазера или блица (null - не они). */
@@ -145,6 +196,8 @@ public class RangedRoles {
     static void arm(EntityPlayer p, ItemStack held) {
         Item d = DUST.get(held.getItem());
         if (d == null) return;
+        if (held.getItemDamage() != 0) held.setItemDamage(0); // фазеры, поношенные до того, как перестали ломаться
+        fixCooldown(held);
         boolean inf = infiniteDust(p, held);
         // пыль только в слотах боеприпасов: выстрел без патрона, пыль спишется из слота, если выстрел был (в рюкзак не кладём)
         boolean slots = !inf && !p.inventory.hasItem(d) && Ammo.has(p, d);
@@ -473,6 +526,7 @@ public class RangedRoles {
         if (k == SLICER) TOTEM_SHOTS.add(b);
         if (k == BLITZ) {
             BLITZ_SHOTS.add(b);
+            e.world.playSoundAtEntity(pl, BLITZ_SOUND, 1.3F, 0.95F + e.world.rand.nextFloat() * 0.1F);
             // дробь: ещё PELLETS - 1 снарядов веером по горизонтали
             for (int i = 1; i < PELLETS; i++) {
                 double ang = Math.toRadians(SPREAD * ((i + 1) / 2) * (i % 2 == 0 ? 1 : -1));

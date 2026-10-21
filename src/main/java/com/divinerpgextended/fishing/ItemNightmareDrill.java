@@ -115,6 +115,7 @@ public class ItemNightmareDrill extends ItemPickaxe {
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void addInformation(ItemStack s, EntityPlayer p, List list, boolean adv) {
+        com.divinerpgextended.item.ToolInfo.add(list, s, efficiencyOnProperMaterial);
         list.add(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("dre.tooltip.drill1"));
         if (Config.drillArea) list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.drill2"));
         list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.tooltip.drill3"));

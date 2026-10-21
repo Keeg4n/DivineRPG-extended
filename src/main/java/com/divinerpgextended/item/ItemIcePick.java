@@ -124,6 +124,7 @@ public class ItemIcePick extends ItemPickaxe {
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean adv) {
+        com.divinerpgextended.item.ToolInfo.add(list, stack, efficiencyOnProperMaterial);
         if (rime) {
             list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.ice_pick"));
             list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.tooltip.ice_pick_sneak"));

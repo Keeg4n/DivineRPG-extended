@@ -29,6 +29,7 @@ public class ItemWormShovel extends ItemSpade {
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void addInformation(ItemStack s, EntityPlayer p, List list, boolean adv) {
+        com.divinerpgextended.item.ToolInfo.add(list, s, efficiencyOnProperMaterial);
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.worm_shovel"));
     }
 

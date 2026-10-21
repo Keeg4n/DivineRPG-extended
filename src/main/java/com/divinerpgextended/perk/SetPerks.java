@@ -26,12 +26,13 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * <li>Апалачия, Каменная стена: не отбрасывает, {@link #REFLECT} ближнего урона возвращается атакующему;</li>
  * <li>Скайтерн, Хозяин ветров: ковёр летит вверх и вниз по взгляду, запас ковра вдвое больше
  * ({@link com.divinerpgextended.trinket.DoubleJump});</li>
- * <li>Мортум, Пожиратель тьмы: часть нанесённого урона возвращается здоровьем, в темноте вдвое больше.</li>
+ * <li>Мортум, Пожиратель тьмы: удар с шансом {@link #DRAIN_CHANCE} (в темноте {@link #DRAIN_CHANCE_DARK}) возвращает здоровьем
+ * {@link #DRAIN} нанесённого урона, не больше {@link #DRAIN_MAX} - отхил, а не бессмертие против боссов-рукопашников.</li>
  * </ul>
  */
 public class SetPerks {
 
-    public static final float REFLECT = 0.2F, DRAIN = 0.1F;
+    public static final float REFLECT = 0.2F, DRAIN = 0.3F, DRAIN_MAX = 3.0F, DRAIN_CHANCE = 0.2F, DRAIN_CHANCE_DARK = 0.35F;
     private static final UUID STEADY = UUID.fromString("6b1f3c2e-9d4a-4f0e-8a51-2c7d9e3b5a10");
 
     public static boolean wears(EntityPlayer p, TwilightWorld w) {
@@ -77,7 +78,9 @@ public class SetPerks {
         // Пожиратель тьмы: вампиризм
         if (e.source.getEntity() instanceof EntityPlayer && !(e.entityLiving instanceof EntityPlayer)) {
             EntityPlayer p = (EntityPlayer) e.source.getEntity();
-            if (wears(p, TwilightWorld.MORTUM) && !com.divinerpgextended.perk.RangedRoles.sidePellet(e.source.getSourceOfDamage())) p.heal(Math.min(e.ammount, e.entityLiving.getHealth()) * DRAIN * (dark(p) ? 2 : 1));
+            if (wears(p, TwilightWorld.MORTUM) && !com.divinerpgextended.perk.RangedRoles.sidePellet(e.source.getSourceOfDamage())
+                && p.getRNG().nextFloat() < (dark(p) ? DRAIN_CHANCE_DARK : DRAIN_CHANCE))
+                p.heal(Math.min(DRAIN_MAX, Math.min(e.ammount, e.entityLiving.getHealth()) * DRAIN));
         }
     }
 }

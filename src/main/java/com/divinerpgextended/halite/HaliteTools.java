@@ -12,7 +12,7 @@ import net.minecraftforge.common.util.EnumHelper;
 /**
  * Халитовые инструменты: кирка, топор, лопата чуть быстрее инструментов Мортума; мультиинструмент (кирка, топор и
  * лопата в одном) - на 10 быстрее божественного шикакса, но медленнее отдельных халитовых. Руду джунглей берут только
- * халитовая кирка и мультиинструмент.
+ * халитовая кирка и мультиинструмент. Не ломаются.
  */
 public final class HaliteTools {
 
@@ -26,27 +26,48 @@ public final class HaliteTools {
     public static class Pickaxe extends ItemPickaxe {
         public Pickaxe() {
             super(HALITE);
+            setMaxDamage(0);
             setUnlocalizedName("dre.halitePickaxe");
             setTextureName("divinerpgextended:halitePickaxe");
             setCreativeTab(com.divinerpgextended.DreTab.TAB);
+        }
+
+        @Override
+        @SuppressWarnings("rawtypes")
+        public void addInformation(ItemStack s, net.minecraft.entity.player.EntityPlayer p, java.util.List list, boolean adv) {
+            com.divinerpgextended.item.ToolInfo.add(list, s, efficiencyOnProperMaterial);
         }
     }
 
     public static class Axe extends ItemAxe {
         public Axe() {
             super(HALITE);
+            setMaxDamage(0);
             setUnlocalizedName("dre.haliteAxe");
             setTextureName("divinerpgextended:haliteAxe");
             setCreativeTab(com.divinerpgextended.DreTab.TAB);
+        }
+
+        @Override
+        @SuppressWarnings("rawtypes")
+        public void addInformation(ItemStack s, net.minecraft.entity.player.EntityPlayer p, java.util.List list, boolean adv) {
+            com.divinerpgextended.item.ToolInfo.add(list, s, efficiencyOnProperMaterial);
         }
     }
 
     public static class Shovel extends ItemSpade {
         public Shovel() {
             super(HALITE);
+            setMaxDamage(0);
             setUnlocalizedName("dre.haliteShovel");
             setTextureName("divinerpgextended:haliteShovel");
             setCreativeTab(com.divinerpgextended.DreTab.TAB);
+        }
+
+        @Override
+        @SuppressWarnings("rawtypes")
+        public void addInformation(ItemStack s, net.minecraft.entity.player.EntityPlayer p, java.util.List list, boolean adv) {
+            com.divinerpgextended.item.ToolInfo.add(list, s, efficiencyOnProperMaterial);
         }
     }
 
@@ -57,6 +78,7 @@ public final class HaliteTools {
             setHarvestLevel("pickaxe", 100);
             setHarvestLevel("axe", 100);
             setHarvestLevel("shovel", 100);
+            setMaxDamage(0);
             setUnlocalizedName("dre.haliteMultitool");
             setTextureName("divinerpgextended:haliteMultitool");
             setCreativeTab(com.divinerpgextended.DreTab.TAB);
@@ -82,6 +104,12 @@ public final class HaliteTools {
         @Override
         public boolean func_150897_b(Block b) {
             return diggable(b) || super.func_150897_b(b);
+        }
+
+        @Override
+        @SuppressWarnings("rawtypes")
+        public void addInformation(ItemStack s, net.minecraft.entity.player.EntityPlayer p, java.util.List list, boolean adv) {
+            com.divinerpgextended.item.ToolInfo.add(list, s, efficiencyOnProperMaterial);
         }
     }
 

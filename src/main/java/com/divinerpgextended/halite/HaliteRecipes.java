@@ -44,8 +44,10 @@ public final class HaliteRecipes {
         GameRegistry.addRecipe(new ItemStack(ModItems.halitePickaxe), "III", " H ", " T ", 'I', I, 'H', H, 'T', Halite.trophy(Trophy.VAMACHERON));
         GameRegistry.addRecipe(new ItemStack(ModItems.haliteAxe), "II", "IH", "T ", 'I', I, 'H', H, 'T', Halite.trophy(Trophy.VAMACHERON));
         GameRegistry.addRecipe(new ItemStack(ModItems.haliteShovel), "I", "H", "T", 'I', I, 'H', H, 'T', Halite.trophy(Trophy.VAMACHERON));
-        GameRegistry.addShapelessRecipe(new ItemStack(ModItems.haliteMultitool), ModItems.halitePickaxe, ModItems.haliteAxe, ModItems.haliteShovel,
-            Halite.trophy(Trophy.KAROT));
+        // любой износ: до 0.98 инструменты ломались, у старых в метаданных остался износ
+        int any = net.minecraftforge.oredict.OreDictionary.WILDCARD_VALUE;
+        GameRegistry.addShapelessRecipe(new ItemStack(ModItems.haliteMultitool), new ItemStack(ModItems.halitePickaxe, 1, any), new ItemStack(ModItems.haliteAxe, 1, any),
+            new ItemStack(ModItems.haliteShovel, 1, any), Halite.trophy(Trophy.KAROT));
         // духи
         RecipeSorter.register("divinerpgextended:twilight_spirit", RecipeTwilightSpirit.class, RecipeSorter.Category.SHAPELESS, "after:minecraft:shapeless");
         GameRegistry.addRecipe(new RecipeTwilightSpirit());

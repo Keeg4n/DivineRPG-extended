@@ -116,9 +116,45 @@ public final class TwilightCrafts {
         if (Config.gateStones) gates();
     }
 
-    /** Рельсы Апалачии Divine на стену и потолок ставятся навесными рельсами аддона; на пол - как обычно. */
-    /** Сломанные рельсы Апалачии и арканы Divine выпадают рельсами аддона - ими же они и ставятся. */
+    /**
+     * Рельсы Апалачии и арканы Divine - предметы-блоки: клиент сам проверяет пол под рельсом и клик по стене до сервера не
+     * доходит, без правки байткода Divine их на стену не поставить. Поэтому вместо них - рельсы аддона (на пол ставят те же
+     * рельсы, на стены и потолок - навесные), а рельсы Divine из игры убраны: крафта нет, во вкладке их нет, сломанные
+     * выпадают рельсами аддона, купленные у Датикона и найденные - в инвентаре сразу становятся ими же.
+     */
     public static class RailDrops {
+
+        public static void hideDivine() {
+            TwilightBlocks.apalachiaRails.setCreativeTab(null);
+            net.divinerpg.utils.blocks.ArcanaBlocks.arcaniteRails.setCreativeTab(null);
+        }
+
+        /** Рельсы аддона вместо рельсов Divine (null - не они). */
+        public static Item replacement(Item i) {
+            if (i == null) return null;
+            if (i == Item.getItemFromBlock(TwilightBlocks.apalachiaRails)) return ModItems.apalachiaRails;
+            if (i == Item.getItemFromBlock(net.divinerpg.utils.blocks.ArcanaBlocks.arcaniteRails)) return ModItems.arcanaRails;
+            return null;
+        }
+
+        /** Рельсы Divine в инвентаре - на месте те же по числу рельсы аддона (слот не освобождается ни на миг). */
+        public static int convert(net.minecraft.entity.player.EntityPlayer p) {
+            int n = 0;
+            ItemStack[] inv = p.inventory.mainInventory;
+            for (int i = 0; i < inv.length; i++) {
+                Item r = inv[i] == null ? null : replacement(inv[i].getItem());
+                if (r == null) continue;
+                inv[i] = new ItemStack(r, inv[i].stackSize);
+                n++;
+            }
+            if (n > 0) p.inventoryContainer.detectAndSendChanges();
+            return n;
+        }
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onTick(cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent e) {
+            if (e.phase == cpw.mods.fml.common.gameevent.TickEvent.Phase.END && !e.player.worldObj.isRemote && e.player.ticksExisted % 20 == 0) convert(e.player);
+        }
 
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
         public void onDrops(net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent e) {
@@ -137,6 +173,7 @@ public final class TwilightCrafts {
     private static void rails() {
         Item old = Item.getItemFromBlock(TwilightBlocks.apalachiaRails);
         remove(old);
+        RailDrops.hideDivine();
         // рельсы Апалачии: на пол - настоящие рельсы Divine, на стену и потолок - навесные; старые рельсы Divine перекладываются в них
         GameRegistry.addShapelessRecipe(new ItemStack(ModItems.apalachiaRails), old);
         // рельсы арканы Divine (у Датикона) - в рельсы арканы аддона: разгоняют вагонетку, ставятся и на стены
