@@ -85,6 +85,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(ranged);
         com.divinerpgextended.world.twilight.TwilightCrafts.RailDrops rails = new com.divinerpgextended.world.twilight.TwilightCrafts.RailDrops();
         MinecraftForge.EVENT_BUS.register(rails);
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.EnderGear());
         FMLCommonHandler.instance().bus().register(rails);
         FMLCommonHandler.instance().bus().register(ranged);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.TwilightDrops());
@@ -334,6 +335,12 @@ public class CommonProxy {
 
         com.divinerpgextended.world.twilight.TwilightCrafts.postInit();
         com.divinerpgextended.perk.RangedRoles.setupDust();
+        // Divine при входе игрока проверяет обновления сетевым запросом в потоке сервера без таймаута: нет ответа - сервер стоит
+        try {
+            net.divinerpg.utils.config.ConfigurationHelper.class.getField("updateChecker").setBoolean(null, false);
+        } catch (Exception ignored) {
+            // нет такой настройки - нечего выключать
+        }
         // вход в Ветею - Кровать кошмаров только с Духом вселенной
         removeRecipes(net.divinerpg.utils.items.VetheaItems.nightmareBed);
         com.divinerpgextended.halite.HaliteRecipes.register();

@@ -2649,6 +2649,61 @@ public class SelfTest {
                     + wrapFixed + "; халит не ломается " + tools + ", подсказка " + tip + " / " + iceTip + "; рельсы " + rails);
             return "фазеры и блицы (и халитовые) не ломаются; блиц стреляет раз в " + com.divinerpgextended.perk.RangedRoles.BLITZ_COOLDOWN + " тиков (5 дробин), второй выстрел сразу - нет; халитовые инструменты не изнашиваются, подсказка с эффективностью как у Divine; рельсы Divine в инвентаре стали рельсами аддона";
         });
+        t("Прохождение", "Эндер-лук и эндер-меч против эндер-мобов", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            loadAround(w, 9470, 9890, 2);
+            TestPlayer fv = join(player(ConfigurationHelper.eden, "TestEnderGear", 9470.5, 120, 9890.5), true);
+            fv.inventory.clearInventory(null, -1);
+            fv.inventory.currentItem = 0;
+            Class<?>[] kinds = { net.minecraft.entity.monster.EntityEnderman.class, net.divinerpg.entities.vanilla.EntityEnderWatcher.class,
+                net.divinerpg.entities.vanilla.EntityEnderSpider.class };
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            for (Class<?> kc : kinds) {
+                float[] lost = new float[2];
+                for (int b = 0; b < 2; b++) { // 0 - эндер-лук, 1 - обычный лук
+                    net.minecraft.entity.monster.EntityEnderman em = (net.minecraft.entity.monster.EntityEnderman) kc.getConstructor(net.minecraft.world.World.class).newInstance(w);
+                    em.setLocationAndAngles(9476.5, 120, 9890.5, 0, 0);
+                    w.spawnEntityInWorld(em);
+                    em.setHealth(em.getMaxHealth());
+                    float hp = em.getHealth();
+                    fv.inventory.mainInventory[0] = new ItemStack(b == 0 ? net.divinerpg.utils.items.VanillaItemsWeapons.enderBow : Items.bow);
+                    // в упор по прямой: прицел ванильной стрелы с упреждением проносит её над мелкими наблюдателем и пауком
+                    net.minecraft.entity.projectile.EntityArrow a = new net.minecraft.entity.projectile.EntityArrow(w, fv, 2.0F);
+                    a.setLocationAndAngles(9472.5, 120 + em.height / 2, 9890.5, 0, 0);
+                    a.motionX = 2.5;
+                    a.motionY = a.motionZ = 0;
+                    w.spawnEntityInWorld(a);
+                    for (int i = 0; i < 20 && !a.isDead && em.getHealth() == hp; i++) a.onUpdate();
+                    lost[b] = hp - em.getHealth();
+                    double moved = Math.abs(em.posX - 9476.5) + Math.abs(em.posZ - 9890.5);
+                    if (b == 0) ok &= moved < 0.01;
+                    a.setDead();
+                    em.setDead();
+                }
+                ok &= lost[0] > 0 && lost[1] == 0;
+                rep.append(kc.getSimpleName()).append(": эндер-лук ").append(lost[0]).append(", обычный ").append(lost[1]).append("; ");
+            }
+            // меч: после удара 3 секунды без телепорта
+            net.minecraft.entity.monster.EntityEnderman em = new net.minecraft.entity.monster.EntityEnderman(w);
+            em.setLocationAndAngles(9472.5, 120, 9890.5, 0, 0);
+            w.spawnEntityInWorld(em);
+            net.minecraftforge.event.entity.living.EnderTeleportEvent before = new net.minecraftforge.event.entity.living.EnderTeleportEvent(em, 9480, 120, 9890, 0);
+            MinecraftForge.EVENT_BUS.post(before);
+            fv.inventory.mainInventory[0] = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.blueEnderSword);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(em, DamageSource.causePlayerDamage(fv), 4));
+            net.minecraftforge.event.entity.living.EnderTeleportEvent pinned = new net.minecraftforge.event.entity.living.EnderTeleportEvent(em, 9480, 120, 9890, 0);
+            MinecraftForge.EVENT_BUS.post(pinned);
+            long left = em.getEntityData().getLong(com.divinerpgextended.perk.EnderGear.PIN) - w.getTotalWorldTime();
+            em.getEntityData().setLong(com.divinerpgextended.perk.EnderGear.PIN, w.getTotalWorldTime());
+            net.minecraftforge.event.entity.living.EnderTeleportEvent after = new net.minecraftforge.event.entity.living.EnderTeleportEvent(em, 9480, 120, 9890, 0);
+            MinecraftForge.EVENT_BUS.post(after);
+            em.setDead();
+            fv.inventory.clearInventory(null, -1);
+            boolean sword = !before.isCanceled() && pinned.isCanceled() && left == com.divinerpgextended.perk.EnderGear.PIN_TICKS && !after.isCanceled();
+            check(ok && sword, rep + "меч: до удара телепорт " + !before.isCanceled() + ", после удара запрещён " + pinned.isCanceled() + " на " + left + " тиков, потом снова можно " + !after.isCanceled());
+            return "по эндермену, эндер-наблюдателю и эндер-пауку попадает только стрела эндер-лука (обычная - уворот телепортом); удар эндер-мечом - 3 секунды без телепорта";
+        });
         t("Прохождение", "Фазер и блиц: пыль, подсумок, Бесконечность", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9470, 9830, 2);
