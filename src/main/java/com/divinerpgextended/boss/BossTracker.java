@@ -61,8 +61,8 @@ public class BossTracker {
             .getConfigurationManager().playerEntityList) {
             EntityPlayerMP player = (EntityPlayerMP) o;
             if (ids.contains(player.getUniqueID())) {
-                com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.forBoss(boss));
-                com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.extraForBoss(boss));
+                com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.forBoss(boss), event.entityLiving);
+                com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.extraForBoss(boss), event.entityLiving);
             }
             if (ids.contains(player.getUniqueID()) && BossProgress.grant(player, boss)) {
                 ProgressSync.send(player);

@@ -392,6 +392,20 @@ public class SelfTest {
         return n;
     }
 
+    /** Аксессуары на земле с владельцем k (добыча боссов в инвентарь не кладётся): сколько их, убрать с земли. */
+    static int ownedDrops(EntityPlayer k, Trinket t) {
+        int n = 0;
+        for (Object o : new java.util.ArrayList<Object>(k.worldObj.loadedEntityList)) {
+            if (!(o instanceof net.minecraft.entity.item.EntityItem) || ((net.minecraft.entity.item.EntityItem) o).isDead) continue;
+            ItemStack s = ((net.minecraft.entity.item.EntityItem) o).getEntityItem();
+            if (s.getItem() != com.divinerpgextended.registry.ModItems.trinket || s.getItemDamage() != t.ordinal()) continue;
+            if (!k.getUniqueID().toString().equals(com.divinerpgextended.halite.Halite.owner(s))) continue;
+            n += s.stackSize;
+            ((net.minecraft.entity.item.EntityItem) o).setDead();
+        }
+        return n;
+    }
+
     private static int countTrinket(EntityPlayer p, Trinket t) {
         int n = 0;
         for (ItemStack s : p.inventory.mainInventory) if (s != null && s.getItem() == ModItems.trinket && s.getItemDamage() == t.ordinal()) n++;
@@ -647,17 +661,24 @@ public class SelfTest {
         t("Аксессуары", "С боссов", () -> {
             reset(p);
             persisted(p).removeTag("dre_acc_got");
-            com.divinerpgextended.trinket.AccessorySources.reward(p, Trinket.CARCINUS_SHELL);
-            int first = countTrinket(p, Trinket.CARCINUS_SHELL);
-            for (int i = 0; i < p.inventory.mainInventory.length; i++) p.inventory.mainInventory[i] = null;
+            // аксессуар падает у тела босса, помечен игроком, в инвентарь не попадает
+            net.minecraft.entity.monster.EntityZombie bossBody = new net.minecraft.entity.monster.EntityZombie(p.worldObj);
+            bossBody.setPosition(p.posX + 6, p.posY, p.posZ);
+            net.minecraft.entity.item.EntityItem fi = com.divinerpgextended.trinket.AccessorySources.reward(p, Trinket.CARCINUS_SHELL, bossBody);
+            int first = fi == null ? 0 : 1;
+            boolean atBoss = fi != null && Math.abs(fi.posX - bossBody.posX) < 0.5 && countTrinket(p, Trinket.CARCINUS_SHELL) == 0
+                && p.getUniqueID().toString().equals(com.divinerpgextended.halite.Halite.owner(fi.getEntityItem())) && fi.isEntityInvulnerable();
+            if (fi != null) fi.setDead();
             int got = 0;
             for (int i = 0; i < 2000; i++) {
-                com.divinerpgextended.trinket.AccessorySources.reward(p, Trinket.CARCINUS_SHELL);
-                got += countTrinket(p, Trinket.CARCINUS_SHELL);
-                for (int k = 0; k < p.inventory.mainInventory.length; k++) p.inventory.mainInventory[k] = null;
+                net.minecraft.entity.item.EntityItem ri = com.divinerpgextended.trinket.AccessorySources.reward(p, Trinket.CARCINUS_SHELL, bossBody);
+                if (ri != null) {
+                    got++;
+                    ri.setDead();
+                }
             }
-            check(first == 1 && got > 140 && got < 270, "первая победа: " + first + ", повторные: " + got + " из 2000 (ждали около 200)");
-            return "первая победа наверняка; повторные " + got + " из 2000 (" + (got / 20.0) + "%)";
+            check(first == 1 && atBoss && got > 140 && got < 270, "первая победа: " + first + ", у тела босса с владельцем " + atBoss + ", повторные: " + got + " из 2000 (ждали около 200)");
+            return "первая победа наверняка, аксессуар падает у тела босса с именем игрока (не в инвентарь); повторные " + got + " из 2000 (" + (got / 20.0) + "%)";
         });
         t("Аксессуары", "Объединение", () -> {
             reset(p);
@@ -1306,8 +1327,9 @@ public class SelfTest {
             return "ачивка " + a.statId + (parent != null ? " и родительская " + parent : "") + " выданы";
         });
         t("Аксессуары", "С боссов", () -> {
-            check(countTrinket(k, Trinket.CARCINUS_SHELL) == 1, "Панцирь Карцинуса после первой победы: " + countTrinket(k, Trinket.CARCINUS_SHELL));
-            return "настоящая победа над Карцинусом - Панцирь в инвентаре; повторные победы ~10% (2000 бросков)";
+            int shell = ownedDrops(k, Trinket.CARCINUS_SHELL);
+            check(shell == 1 && countTrinket(k, Trinket.CARCINUS_SHELL) == 0, "Панцирь Карцинуса после первой победы: на земле " + shell + ", в инвентаре " + countTrinket(k, Trinket.CARCINUS_SHELL));
+            return "настоящая победа над Карцинусом - Панцирь на земле с именем игрока (не в инвентаре); повторные победы ~10% (2000 бросков)";
         });
 
         // ---- стая Айрако ----
@@ -1322,11 +1344,11 @@ public class SelfTest {
             ow.spawnEntityInWorld(g2);
             g1.setHealth(0);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(g1, DamageSource.causePlayerDamage(a)));
-            int afterFirst = countTrinket(a, Trinket.AYERACO_WING);
+            int afterFirst = ownedDrops(a, Trinket.AYERACO_WING);
             g1.setDead();
             g2.setHealth(0);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(g2, DamageSource.causePlayerDamage(a)));
-            int afterLast = countTrinket(a, Trinket.AYERACO_WING);
+            int afterLast = ownedDrops(a, Trinket.AYERACO_WING);
             g2.setDead();
             check(afterFirst == 0 && afterLast == 1, "крыло после первого: " + afterFirst + ", после последнего: " + afterLast);
             return "после первого дракона крыла нет, после последнего - есть";

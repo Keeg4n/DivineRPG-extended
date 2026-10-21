@@ -88,9 +88,13 @@ public class AccessorySources {
         return b == Boss.ANCIENT_ENTITY ? Trinket.MAGIC_CARPET : null;
     }
 
-    /** Аксессуар за босса: первый раз (для этого игрока) - наверняка, дальше 10%. */
-    public static void reward(EntityPlayer p, Trinket t) {
-        if (t == null || p.worldObj.isRemote) return;
+    /**
+     * Аксессуар за босса: первый раз (для этого игрока) - наверняка, дальше 10%. В инвентарь не кладётся: падает у тела
+     * босса (at; null - у игрока), помечен владельцем - поднять может только он, неуязвим, как вся добыча боссов.
+     * @return выпавший предмет (null - не выпал)
+     */
+    public static EntityItem reward(EntityPlayer p, Trinket t, net.minecraft.entity.Entity at) {
+        if (t == null || p.worldObj.isRemote) return null;
         NBTTagCompound d = p.getEntityData();
         if (!d.hasKey(EntityPlayer.PERSISTED_NBT_TAG)) d.setTag(EntityPlayer.PERSISTED_NBT_TAG, new NBTTagCompound());
         NBTTagCompound ps = d.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
@@ -98,13 +102,21 @@ public class AccessorySources {
         boolean first = (got & bit) == 0;
         if (!first && p.worldObj.rand.nextFloat() >= 0.1F) {
             com.divinerpgextended.debug.Debug.note(p, "Аксессуар " + t.name().toLowerCase() + ": не выпал (повторная победа, шанс 10%)");
-            return;
+            return null;
         }
         com.divinerpgextended.debug.Debug.note(p, "Аксессуар " + t.name().toLowerCase() + ": выпал" + (first ? " (первая победа)" : " (повторная, 10%)"));
         ps.setLong(GOT, got | bit);
-        ItemStack s = stack(t);
-        give(p, s);
+        ItemStack s = com.divinerpgextended.halite.Halite.own(stack(t), p);
+        net.minecraft.entity.Entity src = at != null && at.worldObj == p.worldObj ? at : p;
+        EntityItem it = new EntityItem(p.worldObj, src.posX, src.posY + 1, src.posZ, s);
+        it.delayBeforeCanPickup = 10;
+        NBTTagCompound tag = new NBTTagCompound();
+        it.writeToNBT(tag);
+        tag.setBoolean("Invulnerable", true); // как у {@link com.divinerpgextended.boss.BossLoot}
+        it.readFromNBT(tag);
+        p.worldObj.spawnEntityInWorld(it);
         say(p, EnumChatFormatting.LIGHT_PURPLE, "dre.chat.accessory_drop", s.getDisplayName());
+        return it;
     }
 
     /**
@@ -128,7 +140,7 @@ public class AccessorySources {
         @SuppressWarnings("unchecked")
         List<EntityPlayer> near = e.entityLiving.worldObj.getEntitiesWithinAABB(EntityPlayer.class,
             e.entityLiving.boundingBox.expand(64, 48, 64));
-        for (EntityPlayer p : near) reward(p, t);
+        for (EntityPlayer p : near) reward(p, t, e.entityLiving);
     }
 
     /** Лампа подземелий - редкий дроп мобов Арканы. */
