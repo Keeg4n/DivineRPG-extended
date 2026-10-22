@@ -90,9 +90,12 @@ public abstract class DreHandler extends TemplateRecipeHandler {
             this.title = title;
         }
 
+        /** Подсказки ячеек, если NEI сам их не умеет (классический NEI). */
+        final java.util.Map<PositionedStack, List<String>> tips = new java.util.IdentityHashMap<PositionedStack, List<String>>();
+
         PositionedStack add(Object stacks, int x, int y, int color, List<String> tooltip, boolean input) {
             PositionedStack ps = new PositionedStack(stacks, x, y, false);
-            if (tooltip != null) ps.setTooltip(tooltip);
+            if (tooltip != null && !tooltip.isEmpty() && !Nei.setTooltip(ps, tooltip)) tips.put(ps, tooltip);
             (input ? inputs : others).add(ps);
             all.add(ps);
             colors.add(color);
@@ -182,6 +185,29 @@ public abstract class DreHandler extends TemplateRecipeHandler {
             GuiDraw.drawString(n, 2, y, 0x505050, false);
             y += 10;
         }
+    }
+
+    /**
+     * Классический NEI: подсказка ячейки - по предмету под мышью (первая ячейка страницы с этим предметом). В NEI из GTNH
+     * подсказки уже стоят на ячейках, здесь ничего не добавляется.
+     */
+    @Override
+    public List<String> handleItemTooltip(codechicken.nei.recipe.GuiRecipe<?> gui, ItemStack stack, List<String> currenttip, int recipe) {
+        List<String> tip = super.handleItemTooltip(gui, stack, currenttip, recipe);
+        if (stack == null || recipe < 0 || recipe >= arecipes.size() || !(arecipes.get(recipe) instanceof Page)) return tip;
+        Page p = (Page) arecipes.get(recipe);
+        if (p.tips.isEmpty()) return tip;
+        for (PositionedStack ps : p.all) {
+            List<String> extra = p.tips.get(ps);
+            if (extra == null) continue;
+            for (ItemStack it : ps.items) {
+                if (ItemStack.areItemStacksEqual(it, stack) || same(it, stack) && it.stackSize == stack.stackSize) {
+                    tip.addAll(extra);
+                    return tip;
+                }
+            }
+        }
+        return tip;
     }
 
     static List<String> none() {
