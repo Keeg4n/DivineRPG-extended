@@ -156,12 +156,23 @@ public class ColorGear {
 
     /**
      * Кого задевает волна: того же рода, что и цель (бьёшь враждебного - только враждебных, жителей и големов деревни не
-     * трогает; бьёшь голема или животное - остальных не враждебных). Игроков, питомцев с хозяином и жителей - никогда.
+     * трогает; бьёшь голема или животное - остальных не враждебных). Игроков, жителей и прирученных - никогда: питомец
+     * считается прирученным и при хозяине не в сети (хозяин записан в питомце), лошадь - по своему признаку приручения.
      */
     static boolean sameKind(EntityLivingBase o, EntityLivingBase center) {
         if (o instanceof EntityPlayer || o instanceof net.minecraft.entity.passive.EntityVillager) return false;
-        if (o instanceof net.minecraft.entity.IEntityOwnable && ((net.minecraft.entity.IEntityOwnable) o).getOwner() != null) return false;
+        if (tamed(o)) return false;
         return o instanceof net.minecraft.entity.monster.IMob == center instanceof net.minecraft.entity.monster.IMob;
+    }
+
+    static boolean tamed(EntityLivingBase o) {
+        if (o instanceof net.minecraft.entity.passive.EntityTameable && ((net.minecraft.entity.passive.EntityTameable) o).isTamed()) return true;
+        if (o instanceof net.minecraft.entity.passive.EntityHorse && ((net.minecraft.entity.passive.EntityHorse) o).isTame()) return true;
+        if (o instanceof net.minecraft.entity.IEntityOwnable) {
+            String id = ((net.minecraft.entity.IEntityOwnable) o).func_152113_b();
+            if (id != null && !id.isEmpty()) return true;
+        }
+        return false;
     }
 
     /** Волна бедроковой булавы: мобы вокруг цели (не игроки) получают долю удара и отлетают от неё. */

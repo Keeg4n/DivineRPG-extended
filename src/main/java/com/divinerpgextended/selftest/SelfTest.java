@@ -2810,10 +2810,25 @@ public class SelfTest {
                 w.spawnEntityInWorld(el);
                 el.setHealth(el.getMaxHealth());
             }
-            float gb = g1.getHealth(), zb = gz.getHealth();
+            // питомцы: волк с хозяином не в сети и приручённая лошадь рядом с големом
+            net.minecraft.entity.passive.EntityWolf pet = new net.minecraft.entity.passive.EntityWolf(w);
+            pet.setLocationAndAngles(9475.5, 120, 9933.5, 0, 0);
+            pet.setTamed(true);
+            pet.func_152115_b(java.util.UUID.randomUUID().toString());
+            net.minecraft.entity.passive.EntityHorse horse = new net.minecraft.entity.passive.EntityHorse(w);
+            horse.setLocationAndAngles(9473.5, 120, 9933.5, 0, 0);
+            horse.setTamedBy(fv);
+            for (net.minecraft.entity.EntityLivingBase el : new net.minecraft.entity.EntityLivingBase[] { pet, horse }) {
+                w.spawnEntityInWorld(el);
+                el.setHealth(el.getMaxHealth());
+            }
+            float gb = g1.getHealth(), zb = gz.getHealth(), pb = pet.getHealth(), hb = horse.getHealth();
             fv.inventory.mainInventory[0] = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.bedrockMaul);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(g0, DamageSource.causePlayerDamage(fv), 20));
-            boolean golems = g1.getHealth() < gb && gz.getHealth() == zb;
+            boolean pets = pet.getHealth() == pb && horse.getHealth() == hb;
+            boolean golems = g1.getHealth() < gb && gz.getHealth() == zb && pets;
+            pet.setDead();
+            horse.setDead();
             g0.setDead();
             g1.setDead();
             gz.setDead();
@@ -2822,7 +2837,7 @@ public class SelfTest {
             rep.append("мечи (красный, синий, зелёный, жёлтый, серый) ").append(java.util.Arrays.toString(fx)).append(", по горящему ").append(bh.ammount)
                 .append("; 2 красные + 2 жёлтые: огонь 8 > ").append(fire.ammount).append(", скорость +").append(speedMod).append("; серый сет: отбрасывание ").append(kb)
                 .append(" (снят ").append(kbOff).append("), стрела 8 > ").append(shot.ammount).append("; бедрок-меч: устойчивость ").append(kbSword)
-                .append("; волна булавы: рядом ").append(near).append(", далеко ").append(far).append(", отлетел ").append(flew).append("; по голему: второй голем задет ").append(g1.getHealth() < gb).append(", зомби рядом цел ").append(gz.getHealth() == zb);
+                .append("; волна булавы: рядом ").append(near).append(", далеко ").append(far).append(", отлетел ").append(flew).append("; по голему: второй голем задет ").append(g1.getHealth() < gb).append(", зомби рядом цел ").append(gz.getHealth() == zb).append(", волк без хозяина в сети и лошадь целы ").append(pets);
             check(fx[0] && fx[1] && fx[2] && fx[3] && fx[4] && pigPoisoned && redBonus && mixed && gray && kbOff < 0.01 && kbSword >= 0.99 && wave, rep.toString());
             return rep.toString();
         });
