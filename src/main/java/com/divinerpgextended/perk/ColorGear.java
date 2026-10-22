@@ -154,6 +154,16 @@ public class ColorGear {
         v.velocityChanged = true;
     }
 
+    /**
+     * Кого задевает волна: того же рода, что и цель (бьёшь враждебного - только враждебных, жителей и големов деревни не
+     * трогает; бьёшь голема или животное - остальных не враждебных). Игроков, питомцев с хозяином и жителей - никогда.
+     */
+    static boolean sameKind(EntityLivingBase o, EntityLivingBase center) {
+        if (o instanceof EntityPlayer || o instanceof net.minecraft.entity.passive.EntityVillager) return false;
+        if (o instanceof net.minecraft.entity.IEntityOwnable && ((net.minecraft.entity.IEntityOwnable) o).getOwner() != null) return false;
+        return o instanceof net.minecraft.entity.monster.IMob == center instanceof net.minecraft.entity.monster.IMob;
+    }
+
     /** Волна бедроковой булавы: мобы вокруг цели (не игроки) получают долю удара и отлетают от неё. */
     private static void wave(EntityPlayer p, EntityLivingBase center, float dmg) {
         @SuppressWarnings("unchecked")
@@ -162,7 +172,7 @@ public class ColorGear {
         try {
             for (EntityLivingBase o : l) {
                 if (o == center || o == p || o instanceof EntityPlayer || !o.isEntityAlive() || o.getDistanceToEntity(center) > WAVE_R + 1) continue;
-                if (!(o instanceof net.minecraft.entity.monster.IMob)) continue; // своих питомцев и мирных не задевает
+                if (!sameKind(o, center)) continue;
                 o.hurtResistantTime = 0;
                 o.attackEntityFrom(DamageSource.causePlayerDamage(p), dmg * WAVE_DMG);
                 if (!RangedRoles.boss(o)) push(o, center.posX, center.posZ, 0.7);

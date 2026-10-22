@@ -2800,11 +2800,29 @@ public class SelfTest {
             for (net.minecraft.entity.monster.EntityZombie z : zs) z.setDead();
             fv.inventory.clearInventory(null, -1);
             fv.clearActivePotions();
-            boolean wave = near > 0 && far == 0 && flew;
+            // голем: волна по другим не враждебным (големам), а зомби рядом с ним не задевает
+            net.minecraft.entity.monster.EntityIronGolem g0 = new net.minecraft.entity.monster.EntityIronGolem(w), g1 = new net.minecraft.entity.monster.EntityIronGolem(w);
+            net.minecraft.entity.monster.EntityZombie gz = new net.minecraft.entity.monster.EntityZombie(w);
+            g0.setLocationAndAngles(9474.5, 120, 9934.5, 0, 0);
+            g1.setLocationAndAngles(9476.5, 120, 9934.5, 0, 0);
+            gz.setLocationAndAngles(9474.5, 120, 9936.5, 0, 0);
+            for (net.minecraft.entity.EntityLivingBase el : new net.minecraft.entity.EntityLivingBase[] { g0, g1, gz }) {
+                w.spawnEntityInWorld(el);
+                el.setHealth(el.getMaxHealth());
+            }
+            float gb = g1.getHealth(), zb = gz.getHealth();
+            fv.inventory.mainInventory[0] = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.bedrockMaul);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(g0, DamageSource.causePlayerDamage(fv), 20));
+            boolean golems = g1.getHealth() < gb && gz.getHealth() == zb;
+            g0.setDead();
+            g1.setDead();
+            gz.setDead();
+            fv.inventory.clearInventory(null, -1);
+            boolean wave = near > 0 && far == 0 && flew && golems;
             rep.append("мечи (красный, синий, зелёный, жёлтый, серый) ").append(java.util.Arrays.toString(fx)).append(", по горящему ").append(bh.ammount)
                 .append("; 2 красные + 2 жёлтые: огонь 8 > ").append(fire.ammount).append(", скорость +").append(speedMod).append("; серый сет: отбрасывание ").append(kb)
                 .append(" (снят ").append(kbOff).append("), стрела 8 > ").append(shot.ammount).append("; бедрок-меч: устойчивость ").append(kbSword)
-                .append("; волна булавы: рядом ").append(near).append(", далеко ").append(far).append(", отлетел ").append(flew);
+                .append("; волна булавы: рядом ").append(near).append(", далеко ").append(far).append(", отлетел ").append(flew).append("; по голему: второй голем задет ").append(g1.getHealth() < gb).append(", зомби рядом цел ").append(gz.getHealth() == zb);
             check(fx[0] && fx[1] && fx[2] && fx[3] && fx[4] && pigPoisoned && redBonus && mixed && gray && kbOff < 0.01 && kbSword >= 0.99 && wave, rep.toString());
             return rep.toString();
         });
