@@ -3392,7 +3392,12 @@ public class SelfTest {
                 { divine, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone, false }, { eden, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone, true },
                 { eden, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodOre, false }, { wild, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodOre, true },
                 { wild, net.divinerpg.utils.blocks.TwilightBlocks.edenOre, true }, { divine, net.divinerpg.utils.blocks.TwilightBlocks.edenOre, false },
-                { null, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodDirt, true } };
+                { null, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodDirt, true },
+                // халитовые - выше Мортума, берут всё; божественный шикакс - как божественная кирка
+                { com.divinerpgextended.registry.ModItems.halitePickaxe, net.divinerpg.utils.blocks.TwilightBlocks.mortumOre, true },
+                { com.divinerpgextended.registry.ModItems.haliteMultitool, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodOre, true },
+                { com.divinerpgextended.registry.ModItems.haliteMultitool, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone, true },
+                { net.divinerpg.utils.items.VanillaItemsTools.divineShickaxe, net.divinerpg.utils.blocks.TwilightBlocks.edenOre, false } };
             String bad = "";
             for (Object[] c : cases) {
                 mv.setCurrentItemOrArmor(0, c[0] == null ? null : new ItemStack((Item) c[0]));
@@ -3403,7 +3408,7 @@ public class SelfTest {
             }
             mv.setCurrentItemOrArmor(0, null);
             check(bad.isEmpty(), "не так: " + bad);
-            return "в Диком лесу камень берёт кирка Эдема (божественная - нет), руду Дикого леса - только его кирка, руду Эдема - она же; землю - рука";
+            return "в Диком лесу камень берёт кирка Эдема (божественная - нет), руду Дикого леса - только его кирка, руду Эдема - она же; землю - рука; халитовые кирка и мультиинструмент берут любую руду и камень, божественный шикакс - как божественная кирка";
         });
         t("Логова", "Торговля странника", () -> {
             net.minecraft.village.MerchantRecipeList l = com.divinerpgextended.entity.EntityWanderer.trades(com.divinerpgextended.world.twilight.TwilightWorld.EDEN);

@@ -16,7 +16,8 @@ import com.divinerpgextended.world.twilight.TwilightWorld;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Уровни кирок сумеречных миров: 0 - божественная, 1 - Эдема ... 5 - Мортума. Руду мира ломает только кирка этого
+ * Уровни кирок сумеречных миров: 0 - божественная (и божественный шикакс), 1 - Эдема ... 5 - Мортума, 6 - халитовые кирка и
+ * мультиинструмент (берут всё). Руду мира ломает только кирка этого
  * мира или выше (первую кирку мира собирают из душ его мобов), сумеречный камень в мире - кирка прошлого мира или
  * выше (в Эдеме - божественная). Слабая кирка не ломает блок и звенит о него с искрами.
  */
@@ -28,7 +29,8 @@ public class MiningTiers {
     public static int tier(ItemStack s) {
         if (s == null) return -1;
         Item i = s.getItem();
-        if (i == VanillaItemsTools.divinePickaxe) return 0;
+        if (i == VanillaItemsTools.divinePickaxe || i == VanillaItemsTools.divineShickaxe) return 0;
+        if (com.divinerpgextended.halite.HaliteTools.minesJungle(s)) return TwilightWorld.values().length + 1; // халитовые - выше Мортума
         for (TwilightWorld w : TwilightWorld.values()) if (TwilightCrafts.tools(w)[0] == i) return w.ordinal() + 1;
         return -1;
     }
