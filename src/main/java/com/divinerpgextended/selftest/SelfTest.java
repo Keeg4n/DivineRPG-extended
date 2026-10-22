@@ -2704,6 +2704,110 @@ public class SelfTest {
             check(ok && sword, rep + "меч: до удара телепорт " + !before.isCanceled() + ", после удара запрещён " + pinned.isCanceled() + " на " + left + " тиков, потом снова можно " + !after.isCanceled());
             return "по эндермену, эндер-наблюдателю и эндер-пауку попадает только стрела эндер-лука (обычная - уворот телепортом); удар эндер-мечом - 3 секунды без телепорта";
         });
+        t("Броня", "Цвета Divine и бедрок", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            loadAround(w, 9470, 9930, 2);
+            TestPlayer fv = join(player(ConfigurationHelper.eden, "TestColorGear", 9470.5, 120, 9930.5), true);
+            fv.inventory.clearInventory(null, -1);
+            fv.inventory.currentItem = 0;
+            StringBuilder rep = new StringBuilder();
+            // мечи: эффект на цели по цвету
+            Item[] swords = { net.divinerpg.utils.items.VanillaItemsWeapons.redDivineSword, net.divinerpg.utils.items.VanillaItemsWeapons.blueEnderSword,
+                net.divinerpg.utils.items.VanillaItemsWeapons.greenDivineSword, net.divinerpg.utils.items.VanillaItemsWeapons.yellowEnderSword,
+                net.divinerpg.utils.items.VanillaItemsWeapons.grayDivineSword };
+            boolean[] fx = new boolean[5];
+            for (int c = 0; c < 5; c++) {
+                net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w);
+                z.setLocationAndAngles(9472.5, 120, 9930.5, 0, 0);
+                w.spawnEntityInWorld(z);
+                fv.inventory.mainInventory[0] = new ItemStack(swords[c]);
+                fv.clearActivePotions();
+                z.motionX = 0;
+                net.minecraftforge.event.entity.living.LivingHurtEvent he = new net.minecraftforge.event.entity.living.LivingHurtEvent(z, DamageSource.causePlayerDamage(fv), 10);
+                MinecraftForge.EVENT_BUS.post(he);
+                switch (c) {
+                    case 0: fx[c] = z.isBurning(); break;
+                    case 1: fx[c] = z.isPotionActive(net.minecraft.potion.Potion.moveSlowdown); break;
+                    case 2: fx[c] = Math.abs(he.ammount - 12) < 0.01 && !z.isPotionActive(net.minecraft.potion.Potion.poison); break; // зомби яд нипочём - урон +20%
+                    case 3: fx[c] = fv.isPotionActive(net.minecraft.potion.Potion.moveSpeed); break;
+                    default: fx[c] = z.motionX > 0.3 && z.isPotionActive(net.minecraft.potion.Potion.moveSlowdown);
+                }
+                z.setDead();
+            }
+            // зелёный по живому (не нежить) - отравляет
+            net.minecraft.entity.passive.EntityPig pig = new net.minecraft.entity.passive.EntityPig(w);
+            pig.setLocationAndAngles(9472.5, 120, 9932.5, 0, 0);
+            w.spawnEntityInWorld(pig);
+            fv.inventory.mainInventory[0] = new ItemStack(swords[2]);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(pig, DamageSource.causePlayerDamage(fv), 4));
+            boolean pigPoisoned = pig.isPotionActive(net.minecraft.potion.Potion.poison);
+            pig.setDead();
+            // горящий получает от красного +20%
+            net.minecraft.entity.monster.EntityZombie burn = new net.minecraft.entity.monster.EntityZombie(w);
+            burn.setLocationAndAngles(9472.5, 120, 9930.5, 0, 0);
+            w.spawnEntityInWorld(burn);
+            burn.setFire(5);
+            fv.inventory.mainInventory[0] = new ItemStack(swords[0]);
+            net.minecraftforge.event.entity.living.LivingHurtEvent bh = new net.minecraftforge.event.entity.living.LivingHurtEvent(burn, DamageSource.causePlayerDamage(fv), 10);
+            MinecraftForge.EVENT_BUS.post(bh);
+            burn.setDead();
+            boolean redBonus = Math.abs(bh.ammount - 12) < 0.01;
+            // броня: две красные части - огонь вдвое слабее; три жёлтые - скорость; четыре серые - отбрасывание и снаряды
+            fv.inventory.mainInventory[0] = null;
+            fv.setCurrentItemOrArmor(1, new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.redRupeeBoots));
+            fv.setCurrentItemOrArmor(2, new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.redEnderLegs));
+            fv.setCurrentItemOrArmor(3, new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.yellowEnderBody));
+            fv.setCurrentItemOrArmor(4, new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.yellowRupeeHelmet));
+            net.minecraftforge.event.entity.living.LivingHurtEvent fire = new net.minecraftforge.event.entity.living.LivingHurtEvent(fv, DamageSource.inFire, 8);
+            MinecraftForge.EVENT_BUS.post(fire);
+            com.divinerpgextended.perk.ColorGear.update(fv);
+            net.minecraft.entity.ai.attributes.IAttributeInstance spd = fv.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.movementSpeed);
+            double speedMod = 0;
+            for (Object o : spd.func_111122_c()) speedMod += ((net.minecraft.entity.ai.attributes.AttributeModifier) o).getAmount();
+            boolean mixed = Math.abs(fire.ammount - 4) < 0.01 && Math.abs(speedMod - 0.10) < 0.001;
+            for (int i = 1; i <= 4; i++) fv.setCurrentItemOrArmor(i, new ItemStack(new Item[] { null, net.divinerpg.utils.items.VanillaItemsArmor.grayEnderBoots,
+                net.divinerpg.utils.items.VanillaItemsArmor.grayEnderLegs, net.divinerpg.utils.items.VanillaItemsArmor.grayRupeeBody,
+                net.divinerpg.utils.items.VanillaItemsArmor.grayEnderHelmet }[i]));
+            com.divinerpgextended.perk.ColorGear.update(fv);
+            double kb = fv.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.knockbackResistance).getAttributeValue();
+            net.minecraft.entity.projectile.EntityArrow arr = new net.minecraft.entity.projectile.EntityArrow(w);
+            net.minecraftforge.event.entity.living.LivingHurtEvent shot = new net.minecraftforge.event.entity.living.LivingHurtEvent(fv, DamageSource.causeArrowDamage(arr, null), 8);
+            MinecraftForge.EVENT_BUS.post(shot);
+            boolean gray = kb >= 0.99 && Math.abs(shot.ammount - 6) < 0.01;
+            for (int i = 1; i <= 4; i++) fv.setCurrentItemOrArmor(i, null);
+            com.divinerpgextended.perk.ColorGear.update(fv);
+            double kbOff = fv.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.knockbackResistance).getAttributeValue();
+            // бедроковый меч в руке - не отбрасывает
+            fv.inventory.mainInventory[0] = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.bedrockSword);
+            com.divinerpgextended.perk.ColorGear.update(fv);
+            double kbSword = fv.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.knockbackResistance).getAttributeValue();
+            fv.inventory.mainInventory[0] = null;
+            com.divinerpgextended.perk.ColorGear.update(fv);
+            // бедроковая булава: волна по мобам рядом с целью, дальних и игроков не трогает
+            fv.inventory.mainInventory[0] = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.bedrockMaul);
+            net.minecraft.entity.monster.EntityZombie[] zs = new net.minecraft.entity.monster.EntityZombie[3];
+            double[] zx = { 9474.5, 9476.5, 9482.5 };
+            for (int i = 0; i < 3; i++) {
+                zs[i] = new net.minecraft.entity.monster.EntityZombie(w);
+                zs[i].setLocationAndAngles(zx[i], 120, 9930.5, 0, 0);
+                w.spawnEntityInWorld(zs[i]);
+                zs[i].setHealth(zs[i].getMaxHealth());
+            }
+            float before1 = zs[1].getHealth(), before2 = zs[2].getHealth();
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(zs[0], DamageSource.causePlayerDamage(fv), 10));
+            float near = before1 - zs[1].getHealth(), far = before2 - zs[2].getHealth();
+            boolean flew = zs[1].motionX > 0.3;
+            for (net.minecraft.entity.monster.EntityZombie z : zs) z.setDead();
+            fv.inventory.clearInventory(null, -1);
+            fv.clearActivePotions();
+            boolean wave = near > 0 && far == 0 && flew;
+            rep.append("мечи (красный, синий, зелёный, жёлтый, серый) ").append(java.util.Arrays.toString(fx)).append(", по горящему ").append(bh.ammount)
+                .append("; 2 красные + 2 жёлтые: огонь 8 > ").append(fire.ammount).append(", скорость +").append(speedMod).append("; серый сет: отбрасывание ").append(kb)
+                .append(" (снят ").append(kbOff).append("), стрела 8 > ").append(shot.ammount).append("; бедрок-меч: устойчивость ").append(kbSword)
+                .append("; волна булавы: рядом ").append(near).append(", далеко ").append(far).append(", отлетел ").append(flew);
+            check(fx[0] && fx[1] && fx[2] && fx[3] && fx[4] && pigPoisoned && redBonus && mixed && gray && kbOff < 0.01 && kbSword >= 0.99 && wave, rep.toString());
+            return rep.toString();
+        });
         t("Прохождение", "Фазер и блиц: пыль, подсумок, Бесконечность", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9470, 9830, 2);
