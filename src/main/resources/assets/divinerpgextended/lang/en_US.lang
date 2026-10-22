@@ -1140,4 +1140,4 @@ dre.tooltip.hue.green.armor=Green: poison -25% per piece; full set cures poison 
 dre.tooltip.hue.yellow.armor=Yellow: +5% speed per piece; full set - night vision
 dre.tooltip.hue.gray.armor=Gray: knockback -25% per piece; full set - projectiles -25%
 dre.tooltip.bedrock_sword=Immovable: no knockback while held
-dre.tooltip.bedrock_maul=Shockwave: mobs within 3 blocks of the target take 40% of the hit and fly back
+dre.tooltip.bedrock_maul=Shockwave: mobs within 3 blocks of the target take 40% of the hit (no knockback)

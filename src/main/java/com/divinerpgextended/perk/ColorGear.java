@@ -39,7 +39,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * меньше на четверть за часть, полный сет - снаряды на {@link #GRAY_ARROWS} слабее.</li>
  * </ul>
  * Бедрок - несдвигаемый: с бедроковым мечом в руке не отбрасывает; бедроковая булава бьёт волной - мобы в
- * {@link #WAVE_R} блоках от цели получают {@link #WAVE_DMG} урона удара и отлетают (боссы не отлетают).
+ * {@link #WAVE_R} блоках от цели получают {@link #WAVE_DMG} урона удара, но не отлетают (отброс всех вокруг мешал).
  */
 public class ColorGear {
 
@@ -175,7 +175,7 @@ public class ColorGear {
         return false;
     }
 
-    /** Волна бедроковой булавы: мобы вокруг цели (не игроки) получают долю удара и отлетают от неё. */
+    /** Волна бедроковой булавы: мобы вокруг цели (не игроки) получают долю удара; отброса нет - и ванильный от удара гасим. */
     private static void wave(EntityPlayer p, EntityLivingBase center, float dmg) {
         @SuppressWarnings("unchecked")
         List<EntityLivingBase> l = center.worldObj.getEntitiesWithinAABB(EntityLivingBase.class, center.boundingBox.expand(WAVE_R, 1.5, WAVE_R));
@@ -185,8 +185,12 @@ public class ColorGear {
                 if (o == center || o == p || o instanceof EntityPlayer || !o.isEntityAlive() || o.getDistanceToEntity(center) > WAVE_R + 1) continue;
                 if (!sameKind(o, center)) continue;
                 o.hurtResistantTime = 0;
+                double mx = o.motionX, my = o.motionY, mz = o.motionZ;
                 o.attackEntityFrom(DamageSource.causePlayerDamage(p), dmg * WAVE_DMG);
-                if (!RangedRoles.boss(o)) push(o, center.posX, center.posZ, 0.7);
+                o.motionX = mx;
+                o.motionY = my;
+                o.motionZ = mz;
+                o.velocityChanged = true;
             }
         } finally {
             inWave = false;

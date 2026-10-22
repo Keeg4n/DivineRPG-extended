@@ -2796,7 +2796,7 @@ public class SelfTest {
             float before1 = zs[1].getHealth(), before2 = zs[2].getHealth();
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(zs[0], DamageSource.causePlayerDamage(fv), 10));
             float near = before1 - zs[1].getHealth(), far = before2 - zs[2].getHealth();
-            boolean flew = zs[1].motionX > 0.3;
+            boolean flew = Math.abs(zs[1].motionX) > 0.05 || Math.abs(zs[1].motionZ) > 0.05; // волна не отбрасывает
             for (net.minecraft.entity.monster.EntityZombie z : zs) z.setDead();
             fv.inventory.clearInventory(null, -1);
             fv.clearActivePotions();
@@ -2833,7 +2833,7 @@ public class SelfTest {
             g1.setDead();
             gz.setDead();
             fv.inventory.clearInventory(null, -1);
-            boolean wave = near > 0 && far == 0 && flew && golems;
+            boolean wave = near > 0 && far == 0 && !flew && golems;
             rep.append("мечи (красный, синий, зелёный, жёлтый, серый) ").append(java.util.Arrays.toString(fx)).append(", по горящему ").append(bh.ammount)
                 .append("; 2 красные + 2 жёлтые: огонь 8 > ").append(fire.ammount).append(", скорость +").append(speedMod).append("; серый сет: отбрасывание ").append(kb)
                 .append(" (снят ").append(kbOff).append("), стрела 8 > ").append(shot.ammount).append("; бедрок-меч: устойчивость ").append(kbSword)
