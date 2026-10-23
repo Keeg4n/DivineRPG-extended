@@ -46,8 +46,10 @@ public class IceikaDecor implements IWorldGenerator {
             new WorldGenMinable(ModBlocks.rimeOre, 0, 5, IceikaBlocks.frozenStone).generate(world, rand,
                 chunkX * 16 + 8 + rand.nextInt(16), 6 + rand.nextInt(40), chunkZ * 16 + 8 + rand.nextInt(16));
         }
-        if (rand.nextInt(10) == 0) cavern(world, rand, chunkX * 16 + 16, chunkZ * 16 + 16);
-        if (rand.nextInt(18) == 0) lake(world, rand, chunkX * 16 + 16, chunkZ * 16 + 16);
+        // пещеры и озёра - не внутри Ледяного Трона (прорезали бы купол и арену)
+        boolean throne = WorldGenThrone.shields(world, chunkX * 16 + 16, 30, chunkZ * 16 + 16);
+        if (rand.nextInt(10) == 0 && !throne) cavern(world, rand, chunkX * 16 + 16, chunkZ * 16 + 16);
+        if (rand.nextInt(18) == 0 && !throne) lake(world, rand, chunkX * 16 + 16, chunkZ * 16 + 16);
         chests(world, rand, chunkX, chunkZ);
         // угол мастерской Divine ставит в пределах своего чанка
         for (int x = chunkX * 16; x < chunkX * 16 + 16; x++) {

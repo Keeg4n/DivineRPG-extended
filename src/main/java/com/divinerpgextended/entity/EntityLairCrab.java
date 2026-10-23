@@ -78,9 +78,23 @@ public class EntityLairCrab extends EntityMob {
         return Sounds.getSoundName(Sounds.crabHurt);
     }
 
+    /** Метка краба, которого позвал Карцинус в бою: с него ничего не падает (иначе бой - ферма клешней). */
+    public static final String CARCINUS_ADD = "dreCarcinusAdd";
+
+    /** Позван Карцинусом - пустой. */
+    public static boolean summoned(net.minecraft.entity.Entity e) {
+        return e.getEntityData().getBoolean(CARCINUS_ADD);
+    }
+
     @Override
     protected void dropFewItems(boolean byPlayer, int looting) {
+        if (summoned(this)) return;
         dropItem(VanillaItemsOther.crabClaw, rand.nextInt(2 + looting));
+    }
+
+    @Override
+    protected int getExperiencePoints(net.minecraft.entity.player.EntityPlayer p) {
+        return summoned(this) ? 0 : super.getExperiencePoints(p);
     }
 
     /** Норный король крабов: крупнее и злее, клешня падает всегда. */
@@ -102,6 +116,7 @@ public class EntityLairCrab extends EntityMob {
 
         @Override
         protected void dropFewItems(boolean byPlayer, int looting) {
+            if (summoned(this)) return;
             dropItem(VanillaItemsOther.crabClaw, 1 + rand.nextInt(2 + looting));
         }
     }

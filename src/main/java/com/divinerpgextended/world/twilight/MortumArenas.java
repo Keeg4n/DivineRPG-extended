@@ -1321,7 +1321,7 @@ public final class MortumArenas {
         }
 
         static void spawner(World w, int cx, int cz, int x0, int z0, int dx, int y, int dz, TwilightWorld tw) {
-            if (!place(w, cx, cz, x0, z0, dx, y, dz, Blocks.mob_spawner, 0)) return;
+            if (!com.divinerpgextended.Config.dungeonSpawners || !place(w, cx, cz, x0, z0, dx, y, dz, Blocks.mob_spawner, 0)) return;
             net.minecraft.tileentity.TileEntity te = w.getTileEntity(cx + dx, y, cz + dz);
             Class<? extends net.minecraft.entity.EntityLiving>[] mobs = tw.mobs();
             String name = (String) net.minecraft.entity.EntityList.classToStringMapping.get(mobs[Math.abs(dx * 7 + y) % mobs.length]);

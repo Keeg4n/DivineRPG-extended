@@ -162,8 +162,8 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         }
         w.setBlock(x + 1, floor + 4, z + 1, tw.lamp(), tw.lampMeta(), 2);
         w.setBlock(x + 7, floor + 4, z + 7, tw.lamp(), tw.lampMeta(), 2);
-        // спавнер моба мира
-        w.setBlock(x + 4, floor, z + 4, Blocks.mob_spawner, 0, 2);
+        // спавнер моба мира (если включены в конфиге)
+        if (com.divinerpgextended.Config.dungeonSpawners) w.setBlock(x + 4, floor, z + 4, Blocks.mob_spawner, 0, 2);
         if (w.getTileEntity(x + 4, floor, z + 4) instanceof TileEntityMobSpawner) {
             Class<? extends EntityLiving>[] mobs = tw.mobs();
             String name = (String) EntityList.classToStringMapping.get(mobs[r.nextInt(mobs.length)]);

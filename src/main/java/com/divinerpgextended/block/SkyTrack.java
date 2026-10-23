@@ -116,20 +116,21 @@ public final class SkyTrack {
             }
             return out;
         }
+        // навесной рельс держит форму, как напольный: едем только туда, куда он соединён
         for (ForgeDirection d : ForgeDirection.VALID_DIRECTIONS)
-            if (d != n && d != n.getOpposite() && track(w, x, y, z, d)) out.add(off(d));
+            if (d != n && d != n.getOpposite() && track(w, x, y, z, d) && BlockSkyRail.linked(w, x, y, z, d)) out.add(off(d));
         ForgeDirection c = corner(w, x, y, z);
-        if (c != NONE) out.add(off(n.getOpposite()));
+        if (c != NONE && BlockSkyRail.linked(w, x, y, z, c)) out.add(off(n.getOpposite()));
         // внешнее ребро: рельса дальше в своей плоскости нет, а за ребром опоры на соседней грани того же блока - есть
         for (ForgeDirection d : ForgeDirection.VALID_DIRECTIONS) {
-            if (d == n || d == n.getOpposite() || track(w, x, y, z, d)) continue;
+            if (d == n || d == n.getOpposite() || track(w, x, y, z, d) || !BlockSkyRail.linked(w, x, y, z, d)) continue;
             if (outerTo(w, x, y, z, d)) out.add(new int[] { d.offsetX + n.offsetX, d.offsetY + n.offsetY, d.offsetZ + n.offsetZ });
         }
         return out;
     }
 
     /** За ребром опоры в сторону d (вдоль своей плоскости) - рельс на соседней грани того же блока. */
-    private static boolean outerTo(IBlockAccess w, int x, int y, int z, ForgeDirection d) {
+    static boolean outerTo(IBlockAccess w, int x, int y, int z, ForgeDirection d) {
         ForgeDirection n = support(w, x, y, z);
         if (n == NONE || d == n || d == n.getOpposite()) return false;
         return support(w, x + d.offsetX + n.offsetX, y + d.offsetY + n.offsetY, z + d.offsetZ + n.offsetZ) == d.getOpposite();

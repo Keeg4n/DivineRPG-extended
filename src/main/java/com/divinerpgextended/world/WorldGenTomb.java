@@ -256,7 +256,7 @@ public class WorldGenTomb implements IWorldGenerator {
                 LairLoot.chest(w, rand, x, t + 1, z, Blocks.chest, LairLoot.tomb());
                 set(w, x, t + 2, z, Blocks.stone_slab, 1); // саркофаг: песчаниковая плита сверху
                 chests++;
-            } else if (spawners < 6) {
+            } else if (com.divinerpgextended.Config.dungeonSpawners && spawners < 6) {
                 String mob = undead[rand.nextInt(undead.length)];
                 if (mob == null) mob = "Zombie";
                 set(w, x, t, z, Blocks.mob_spawner, 0);

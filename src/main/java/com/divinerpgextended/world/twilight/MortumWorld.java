@@ -488,7 +488,7 @@ public class MortumWorld {
         skull(w, r, x + 1, base + 1, z + 6);
         skull(w, r, x + 5, base + 1, z + 4);
         w.setBlock(x + 3, base + 3, z + 5, tw.lamp(), tw.lampMeta(), 2);
-        w.setBlock(x + 1, base + 1, z + 1, Blocks.mob_spawner, 0, 2);
+        if (com.divinerpgextended.Config.dungeonSpawners) w.setBlock(x + 1, base + 1, z + 1, Blocks.mob_spawner, 0, 2);
         if (w.getTileEntity(x + 1, base + 1, z + 1) instanceof net.minecraft.tileentity.TileEntityMobSpawner) {
             Class<? extends EntityLiving>[] mobs = tw.mobs();
             String name = (String) net.minecraft.entity.EntityList.classToStringMapping.get(mobs[r.nextInt(mobs.length)]);

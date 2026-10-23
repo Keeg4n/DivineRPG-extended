@@ -26,6 +26,9 @@ public class EntitySkyCart extends Entity {
     /** Рельсы арканы разгоняют до MAX_SPEED на BOOST за тик; без них скорость спадает к обычной на DRAG за тик. */
     public static final double MAX_SPEED = 0.9, BOOST = 0.06, DRAG = 0.005;
     private double speed = SPEED;
+    /** Разгон от толчка (без игрока внутри): катится по инерции и тормозит, как ванильная вагонетка. */
+    private double momentum;
+    public static final double PUSH = 0.25, FRICTION = 0.006;
     /** Середина вагонетки над точкой касания колёс; глаза седока над серединой (как у ванильной вагонетки). */
     public static final double BODY = 0.4, EYES = 0.82, SEAT = 0.8;
     private static final int DW_N = 20, DW_F = 23; // нормаль и курс: по три float
@@ -189,8 +192,9 @@ public class EntitySkyCart extends Entity {
         }
         if (lastRider != null && riddenByEntity != lastRider) safeDismount(lastRider);
         lastRider = riddenByEntity;
-        if (riddenByEntity != null) {
-            riddenByEntity.fallDistance = 0;
+        boolean driven = riddenByEntity instanceof net.minecraft.entity.player.EntityPlayer; // игрок едет сам
+        if (riddenByEntity != null) riddenByEntity.fallDistance = 0;
+        if (driven || momentum > 0.01) {
             boolean still = nx == cx && ny == cy && nz == cz;
             if (still || !rail(nx, ny, nz)) { // стояла без пути или следующий рельс убрали - искать заново
                 nx = cx;
@@ -199,7 +203,8 @@ public class EntitySkyCart extends Entity {
                 t = 0;
                 start();
             }
-            speed = SkyTrack.boost(worldObj, cx, cy, cz) ? Math.min(MAX_SPEED, speed + BOOST) : Math.max(SPEED, speed - DRAG);
+            if (driven) speed = SkyTrack.boost(worldObj, cx, cy, cz) ? Math.min(MAX_SPEED, speed + BOOST) : Math.max(SPEED, speed - DRAG);
+            else speed = momentum = SkyTrack.boost(worldObj, cx, cy, cz) ? Math.min(MAX_SPEED, momentum + BOOST) : Math.max(0, momentum - FRICTION);
             if (nx != cx || ny != cy || nz != cz) {
                 t += speed;
                 int guard = 0;
@@ -212,6 +217,7 @@ public class EntitySkyCart extends Entity {
                     if (!pickNext(px, py, pz)) {
                         com.divinerpgextended.debug.Debug.noteNear(this, 32, "Вагонетка Апалачии: конец пути в " + cx + " " + cy + " " + cz + ", обратно");
                         if (nx == cx && ny == cy && nz == cz) t = 0;
+                        if (!driven) momentum *= 0.5; // отскок от тупика
                     }
                 }
             }
@@ -287,6 +293,70 @@ public class EntitySkyCart extends Entity {
     @Override
     public boolean canBeCollidedWith() {
         return !isDead;
+    }
+
+    /** Её можно толкать (иначе игрок и мобы проходят сквозь, не задевая). */
+    @Override
+    public boolean canBePushed() {
+        return true;
+    }
+
+    /**
+     * Как ванильная вагонетка: задели - покатилась вдоль рельса в сторону толчка; движущаяся пустая вагонетка сажает
+     * в себя моба, которого задела (не игрока и не железного голема).
+     */
+    @Override
+    public void applyEntityCollision(net.minecraft.entity.Entity e) {
+        if (worldObj.isRemote || e == riddenByEntity || e.ridingEntity == this || riddenByEntity instanceof EntityPlayer) return;
+        if (e instanceof net.minecraft.entity.EntityLivingBase && !(e instanceof EntityPlayer) && !(e instanceof net.minecraft.entity.monster.EntityIronGolem)
+            && !(e instanceof net.minecraft.entity.boss.IBossDisplayData) && riddenByEntity == null && e.ridingEntity == null && momentum > 0.05) {
+            e.mountEntity(this);
+            return;
+        }
+        push(posX - e.posX, posY - e.posY, posZ - e.posZ);
+    }
+
+    /** Толчок в сторону (dx, dy, dz): разгон вдоль рельса; толкнули против хода - едет обратно. */
+    public void push(double dx, double dy, double dz) {
+        double l = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (l < 1e-4) return;
+        dx /= l;
+        dy /= l;
+        dz /= l;
+        if (nx == cx && ny == cy && nz == cz) { // стояла: ехать к соседу, который лучше всего по толчку
+            int[] best = null;
+            double bd = 0.2;
+            for (int[] o : SkyTrack.exits(worldObj, cx, cy, cz)) {
+                double ol = Math.sqrt(o[0] * o[0] + o[1] * o[1] + o[2] * o[2]), d = (o[0] * dx + o[1] * dy + o[2] * dz) / ol;
+                if (d > bd) {
+                    bd = d;
+                    best = o;
+                }
+            }
+            if (best == null) return;
+            nx = cx + best[0];
+            ny = cy + best[1];
+            nz = cz + best[2];
+            t = 0;
+        } else {
+            float[] f = watchedCourse();
+            if (f[0] * dx + f[1] * dy + f[2] * dz < -0.2) { // против хода - разворот на том же отрезке
+                int ox = cx, oy = cy, oz = cz;
+                cx = nx;
+                cy = ny;
+                cz = nz;
+                nx = ox;
+                ny = oy;
+                nz = oz;
+                t = 1 - t;
+            }
+        }
+        momentum = Math.max(momentum, PUSH);
+    }
+
+    /** Разгон от толчков (для замеров и автотеста). */
+    public double momentum() {
+        return momentum;
     }
 
     @Override

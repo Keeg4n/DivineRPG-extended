@@ -79,7 +79,7 @@ public class ItemLairMap extends Item {
         // перезарядка: поиск по карте биомов нагружает сервер
         long now = world.getTotalWorldTime(), last = player.getEntityData().getLong(COOLDOWN);
         long cd = com.divinerpgextended.Config.mapCooldownSeconds * 20L;
-        if (cd > 0 && now - last < cd && now >= last) {
+        if (cd > 0 && player.getEntityData().hasKey(COOLDOWN) && now - last < cd && now >= last) { // ещё не пользовался - ждать нечего
             player.addChatMessage(new ChatComponentTranslation("dre.chat.map_cooldown", (cd - (now - last) + 19) / 20));
             return stack;
         }
@@ -103,6 +103,7 @@ public class ItemLairMap extends Item {
             int[] lair = new int[] { t, c[0], com.divinerpgextended.world.WorldGenThrone.TOP + 1, c[2] - com.divinerpgextended.world.WorldGenThrone.CITADEL };
             player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, lair[1], lair[3]),
                 direction(player, lair[1], lair[3]), lair[2], lair[1], lair[3]));
+            ExplorerMaps.give(world, player, t, "item.dre.lairMap." + KEYS[t] + ".name", lair[1], lair[3]);
             return stack;
         }
         return overworld(stack, world, player, t);
@@ -175,9 +176,11 @@ public class ItemLairMap extends Item {
         if (built != null && builtD <= siteD) {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, built[1], built[3]),
                 direction(player, built[1], built[3]), built[2], built[1], built[3]));
+            ExplorerMaps.give(world, player, t, "item.dre.lairMap." + KEYS[t] + ".name", built[1], built[3]);
         } else {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.map_site_" + KEYS[t], distance(player, site[0], site[1]),
                 direction(player, site[0], site[1]), site[0], site[1]));
+            ExplorerMaps.give(world, player, t, "item.dre.lairMap." + KEYS[t] + ".name", site[0], site[1]);
         }
         return true;
     }
@@ -201,6 +204,7 @@ public class ItemLairMap extends Item {
         int floor = arena != null ? com.divinerpgextended.world.twilight.MortumArenas.floorY(arena) + 1 : c[1] + 1;
         player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, c[0], c[2]),
             direction(player, c[0], c[2]), floor, c[0], c[2]));
+        ExplorerMaps.give(world, player, t, "item.dre.lairMap." + KEYS[t] + ".name", c[0], c[2]);
         return stack;
     }
 
@@ -220,6 +224,7 @@ public class ItemLairMap extends Item {
         int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(world.getSeed(), type, player.posX, player.posZ);
         player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, c[0], c[2]),
             direction(player, c[0], c[2]), c[1] + 1, c[0], c[2]));
+        ExplorerMaps.give(world, player, t, "item.dre.lairMap." + KEYS[t] + ".name", c[0], c[2]);
         return stack;
     }
 
@@ -251,5 +256,7 @@ public class ItemLairMap extends Item {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean adv) {
         list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.tooltip.lair_map"));
+        String boss = "dre.tooltip.map_boss." + KEYS[type(stack)]; // кто там призывается
+        if (StatCollector.canTranslate(boss)) list.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal(boss));
     }
 }

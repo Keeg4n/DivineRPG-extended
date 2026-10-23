@@ -22,6 +22,7 @@ public class IceikaThroneTransformer implements IClassTransformer, Opcodes {
 
     private static final String TARGET = "net.divinerpg.dimensions.iceika.ChunkProviderIceika";
     private static final String GEN_DESC = "(Lnet/minecraft/world/World;Ljava/util/Random;III)Z";
+    private static final String SET_DESC = "(IIILnet/minecraft/block/Block;II)Z";
     private static final String HOOKS = "com/divinerpgextended/asm/IceikaThroneHooks";
     private static final Logger LOG = LogManager.getLogger("divinerpgextended-core");
 
@@ -37,6 +38,15 @@ public class IceikaThroneTransformer implements IClassTransformer, Opcodes {
                 for (AbstractInsnNode i = m.instructions.getFirst(); i != null; i = i.getNext()) {
                     if (i.getOpcode() != INVOKEVIRTUAL) continue;
                     MethodInsnNode c = (MethodInsnNode) i;
+                    // замерзание и снег в конце заселения ставятся прямо в мир - тоже мимо Трона
+                    if (SET_DESC.equals(c.desc) && ("func_147465_d".equals(c.name) || "setBlock".equals(c.name))) {
+                        c.setOpcode(INVOKESTATIC);
+                        c.desc = "(Lnet/minecraft/world/World;" + SET_DESC.substring(1);
+                        c.owner = HOOKS;
+                        c.name = "set";
+                        calls++;
+                        continue;
+                    }
                     if (!GEN_DESC.equals(c.desc) || !("func_76484_a".equals(c.name) || "generate".equals(c.name))) continue;
                     c.setOpcode(INVOKESTATIC);
                     c.desc = "(Lnet/minecraft/world/gen/feature/WorldGenerator;" + GEN_DESC.substring(1);

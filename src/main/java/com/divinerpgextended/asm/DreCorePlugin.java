@@ -25,7 +25,8 @@ public class DreCorePlugin implements IFMLLoadingPlugin {
         return new String[] { FurnaceTransformer.class.getName(), ArcanaTransformer.class.getName(),
             ArmorSetTransformer.class.getName(), VetheaSwapTransformer.class.getName(),
             PortalTransformer.class.getName(), TreeShiftTransformer.class.getName(), CameraTransformer.class.getName(),
-            AyeracoTransformer.class.getName(), IceikaThroneTransformer.class.getName(), BossStatusTransformer.class.getName() };
+            AyeracoTransformer.class.getName(), IceikaThroneTransformer.class.getName(), BossStatusTransformer.class.getName(),
+            NearChatTransformer.class.getName() };
     }
 
     @Override

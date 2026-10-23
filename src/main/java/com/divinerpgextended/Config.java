@@ -44,6 +44,8 @@ public class Config {
     /** Боссов вызывают только в их логовах (алтари, круг); выключить - вызов где угодно, как в Divine. */
     public static boolean summonOnlyInLairs = true;
     public static boolean bossNoFly = true;
+    public static boolean dungeonSpawners = false;
+    public static int divineTorchRadius = 24;
     public static boolean worldCrafts = true, gateStones = true, miningTiers = true;
     /** Постройки сумеречных миров: 1 на N чанков (0 - нет). */
     public static int twilightRuinsRarity = 30, twilightDungeonRarity = 40, twilightBridgeRarity = 3, twilightCampRarity = 45;
@@ -140,6 +142,10 @@ public class Config {
             "Лагеря странников в сумеречных мирах (торговец, костёр - точка возрождения): в среднем 1 на N чанков (0 - не генерировать)");
         netherLairSpacing = cfg.getInt("netherLairSpacing", "worldgen", netherLairSpacing, 0, 100000,
             "Логова Ада (Обсерватория Смотрителя, Огненная палата Короля скорчеров): одно каждого на квадрат N x N блоков Ада; 0 - не генерировать их и гнездовье Айрако в Энде (тогда их предметы вызова работают где угодно)");
+        divineTorchRadius = cfg.getInt("divineTorchRadius", b, divineTorchRadius, 0, 128,
+            "Факелы Divine (водный, скелетный, Эдема, арканиевый) и факелы сумеречных миров в обычном мире: в этом радиусе мобы Divine сами не появляются; 0 - выключено");
+        dungeonSpawners = cfg.getBoolean("dungeonSpawners", b, dungeonSpawners,
+            "Спавнеры мобов в постройках аддона (Древняя гробница, ледяная пещера, логово под храмом джунглей, подземелья сумеречных миров, склепы Мортума, башня Сумеречного демона). false - без спавнеров: мобы приходят сами, как везде");
         bossNoFly = cfg.getBoolean("bossNoFly", b, bossNoFly,
             "Рядом с живым боссом (48 блоков) полёт выключается - кроме Скайтерна и творческого режима. false - летать можно");
         summonOnlyInLairs = cfg.getBoolean("summonOnlyInLairs", b, summonOnlyInLairs,

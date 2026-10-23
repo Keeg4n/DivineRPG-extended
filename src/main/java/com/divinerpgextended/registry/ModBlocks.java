@@ -69,6 +69,7 @@ public final class ModBlocks {
         GameRegistry.registerBlock(bubbleCurtain, "bubbleCurtain");
         carcinusHeart = new BlockCarcinusHeart();
         GameRegistry.registerBlock(carcinusHeart, "carcinusHeart");
+        GameRegistry.registerTileEntity(com.divinerpgextended.block.TileSkyRail.class, "divinerpgextended:skyRail");
         GameRegistry.registerTileEntity(BlockCarcinusHeart.Tile.class, "divinerpgextended:carcinusHeart");
         sharkNest = new BlockSharkNest();
         GameRegistry.registerBlock(sharkNest, "sharkNest");

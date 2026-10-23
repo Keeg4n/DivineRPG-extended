@@ -254,7 +254,8 @@ public final class TwilightCrafts {
         }
         for (CadillionWorld w : CadillionWorld.values()) {
             TwilightWorld tw = TwilightWorld.values()[w.ordinal()];
-            GameRegistry.addRecipe(new ItemStack(ModBlocks.gateStone[w.ordinal()], 12), "BBB", "BHB", "BBB", 'B', tw.gemBlock(), 'H',
+            // 10 штук - ровно на рамку портала 4 x 5
+            GameRegistry.addRecipe(new ItemStack(ModBlocks.gateStone[w.ordinal()], 10), "BBB", "BHB", "BBB", 'B', tw.gemBlock(), 'H',
                 new ItemStack(ModItems.guardianHeart, 1, w.ordinal()));
         }
     }

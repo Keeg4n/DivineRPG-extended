@@ -262,7 +262,7 @@ public class WorldGenJungleLair implements IWorldGenerator {
         Collections.shuffle(path, rand);
         List<int[]> spawners = new ArrayList<int[]>();
         for (int[] p : path) {
-            if (spawners.size() >= 4 * L || spider == null || dram == null) break;
+            if (!com.divinerpgextended.Config.dungeonSpawners || spawners.size() >= 4 * L || spider == null || dram == null) break;
             if (p[0] < nx0 + 6 || p[0] > bossX - BOSS_R - 3 || WorldGenLairs.near(spawners, p, 12)) continue;
             int y = p[1];
             while (c.has(p[0], y - 1, p[2]) && p[1] - y < 5) y--;

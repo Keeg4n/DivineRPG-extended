@@ -158,6 +158,7 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
     }
 
     private void spawnMinion(EntityLiving minion) {
+        minion.getEntityData().setBoolean(EntityLairCrab.CARCINUS_ADD, true); // в бою - без клешней и опыта
         minion.setLocationAndAngles(posX + (rand.nextDouble() - 0.5) * 6, posY, posZ + (rand.nextDouble() - 0.5) * 6,
             rand.nextFloat() * 360, 0);
         worldObj.spawnEntityInWorld(minion);

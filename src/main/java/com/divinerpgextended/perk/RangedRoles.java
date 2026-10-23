@@ -515,7 +515,8 @@ public class RangedRoles {
     /** Подручный босса (по меткам призыва). */
     public static boolean bossAdd(Entity e) {
         NBTTagCompound d = e.getEntityData();
-        return d.hasKey(com.divinerpgextended.entity.EntityGroveGuardian.ADD_TAG) || d.hasKey("dreCadillionAdd") || d.hasKey("dreDemonAdd");
+        return d.hasKey(com.divinerpgextended.entity.EntityGroveGuardian.ADD_TAG) || d.hasKey("dreCadillionAdd") || d.hasKey("dreDemonAdd")
+            || d.hasKey(com.divinerpgextended.entity.EntityLairCrab.CARCINUS_ADD);
     }
 
     @SubscribeEvent

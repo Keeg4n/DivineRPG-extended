@@ -88,7 +88,9 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.EnderGear());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.portal.PortalFrames.Drops());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.item.ItemLetheBucket.Fill());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.TorchWards());
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.item.ItemLairMap.Unfold());
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.item.ExplorerMaps.Marks());
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.boss.BossNoFly());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.ColorGear());
         FMLCommonHandler.instance().bus().register(rails);
