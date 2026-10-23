@@ -10,10 +10,8 @@ import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.StatCollector;
-import net.minecraft.world.ChunkPosition;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
-import net.minecraft.world.biome.WorldChunkManager;
 
 import com.divinerpgextended.world.LairData;
 
@@ -48,6 +46,7 @@ public class ItemLairMap extends Item {
     /** Мета карты к гнезду Великого кадиллиона (в его мире) и к Демоническому кругу (Мортум). */
     public static final int NEST = 4, CIRCLE = 5;
     private static final String[] DIRS = { "s", "sw", "w", "nw", "n", "ne", "e", "se" };
+    private static final String COOLDOWN = "dreLairMapUsed";
 
     public ItemLairMap() {
         setHasSubtypes(true);
@@ -77,6 +76,14 @@ public class ItemLairMap extends Item {
     public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
         if (world.isRemote) return stack;
         int t = type(stack);
+        // перезарядка: поиск по карте биомов нагружает сервер
+        long now = world.getTotalWorldTime(), last = player.getEntityData().getLong(COOLDOWN);
+        long cd = com.divinerpgextended.Config.mapCooldownSeconds * 20L;
+        if (cd > 0 && now - last < cd && now >= last) {
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.map_cooldown", (cd - (now - last) + 19) / 20));
+            return stack;
+        }
+        player.getEntityData().setLong(COOLDOWN, now);
         if (t == NEST || t == CIRCLE || t >= ARENA) return twilight(stack, world, player, t);
         if (t >= WATCHER) return outer(world, player, t);
         // логова - в обычном мире, Ледяной Трон - в Iceika
@@ -87,31 +94,51 @@ public class ItemLairMap extends Item {
             return stack;
         }
         // место Трона вычисляется из сида - карта знает его заранее
-        int[] lair;
         if (t == LairData.THRONE) {
             int[] c = com.divinerpgextended.world.WorldGenThrone.nearest(world.getSeed(), player.posX, player.posZ);
-            lair = c == null ? null
-                : new int[] { t, c[0], com.divinerpgextended.world.WorldGenThrone.TOP + 1,
-                    c[2] - com.divinerpgextended.world.WorldGenThrone.CITADEL };
-        } else {
-            lair = LairData.get(world)
-                .nearest(t, player.posX, player.posZ);
-        }
-        if (lair == null) {
-            player.addChatMessage(new ChatComponentTranslation("dre.chat.map_none_" + KEYS[t]));
-            if (t == LairData.THRONE) return stack; // в Iceika один биом, подсказывать нечего
-            ChunkPosition biome = findBiome(world, player, t);
-            if (biome == null) {
-                player.addChatMessage(new ChatComponentTranslation("dre.chat.map_no_biome_" + KEYS[t]));
-            } else {
-                player.addChatMessage(new ChatComponentTranslation("dre.chat.map_biome_" + KEYS[t],
-                    distance(player, biome.chunkPosX, biome.chunkPosZ), direction(player, biome.chunkPosX, biome.chunkPosZ),
-                    biome.chunkPosX, biome.chunkPosZ));
+            if (c == null) {
+                player.addChatMessage(new ChatComponentTranslation("dre.chat.map_none_" + KEYS[t]));
+                return stack;
             }
+            int[] lair = new int[] { t, c[0], com.divinerpgextended.world.WorldGenThrone.TOP + 1, c[2] - com.divinerpgextended.world.WorldGenThrone.CITADEL };
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, lair[1], lair[3]),
+                direction(player, lair[1], lair[3]), lair[2], lair[1], lair[3]));
             return stack;
         }
-        player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, lair[1], lair[3]),
-            direction(player, lair[1], lair[3]), lair[2], lair[1], lair[3]));
+        return overworld(stack, world, player, t);
+    }
+
+    /**
+     * Карцинус, ледяная пещера, гробница: ближайшее из построенных логов и мест из сида мира, где логово ещё будет
+     * ({@link com.divinerpgextended.world.LairSites}). Ближе {@link com.divinerpgextended.Config#mapSkipNear} блоков место
+     * считается найденным - карта ведёт к следующему; места, где построить не удалось, пропускаются.
+     */
+    private static ItemStack overworld(ItemStack stack, World world, EntityPlayer player, final int t) {
+        int radius = com.divinerpgextended.Config.mapSearchRadius, skip = com.divinerpgextended.Config.mapSkipNear;
+        final LairData data = LairData.get(world);
+        double px = player.posX, pz = player.posZ;
+        int[] built = null;
+        double builtD = Double.MAX_VALUE;
+        for (int[] l : data.all(t)) {
+            double d = (l[1] - px) * (l[1] - px) + (l[3] - pz) * (l[3] - pz);
+            if (d <= (double) skip * skip || d > (double) radius * radius || d >= builtD) continue;
+            builtD = d;
+            built = l;
+        }
+        int[] site = com.divinerpgextended.world.LairSites.nearest(world, t, px, pz, radius, skip,
+            s -> !data.near(t, s[0], s[1], 96) && !data.near(t + LairData.FAILED, s[0], s[1], 24));
+        double siteD = site == null ? Double.MAX_VALUE : (site[0] - px) * (site[0] - px) + (site[1] - pz) * (site[1] - pz);
+        if (built == null && site == null) {
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.map_none_" + KEYS[t], radius));
+            return stack;
+        }
+        if (built != null && builtD <= siteD) {
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, built[1], built[3]),
+                direction(player, built[1], built[3]), built[2], built[1], built[3]));
+        } else {
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.map_site_" + KEYS[t], distance(player, site[0], site[1]),
+                direction(player, site[0], site[1]), site[0], site[1]));
+        }
         return stack;
     }
 
@@ -169,59 +196,15 @@ public class ItemLairMap extends Item {
         return new ChatComponentTranslation("dre.dir." + DIRS[sector]);
     }
 
-    private static final int SEARCH_STEP = 48, SEARCH_RADIUS = 4000;
-
-    /**
-     * Ближайший биом, где может появиться логово. Обходим квадратные кольца вокруг игрока с шагом 48 блоков и
-     * спрашиваем биом в каждой точке (через кэш биомов, без генерации чанков). Ванильный findBiomePosition строит
-     * карту биомов на всю площадь сразу и на больших радиусах съедает всю память.
-     */
-    private static ChunkPosition findBiome(World world, EntityPlayer player, int t) {
-        WorldChunkManager wcm = world.getWorldChunkManager();
-        int x = MathHelper.floor_double(player.posX), z = MathHelper.floor_double(player.posZ);
-        for (int ring = 0; ring * SEARCH_STEP <= SEARCH_RADIUS; ring++) {
-            ChunkPosition best = null;
-            long bestDist = Long.MAX_VALUE;
-            for (int i = -ring; i <= ring; i++) {
-                for (int j = -ring; j <= ring; j++) {
-                    if (Math.abs(i) != ring && Math.abs(j) != ring) continue; // только периметр кольца
-                    int px = x + i * SEARCH_STEP, pz = z + j * SEARCH_STEP;
-                    if (!suits(wcm.getBiomeGenAt(px, pz), t)) continue;
-                    long d = (long) (px - x) * (px - x) + (long) (pz - z) * (pz - z);
-                    if (d < bestDist) {
-                        bestDist = d;
-                        best = new ChunkPosition(px, 0, pz);
-                    }
-                }
-            }
-            if (best != null) return best;
-        }
-        return null;
-    }
-
-    private static boolean suits(BiomeGenBase b, int t) {
-        if (b == null) return false;
-        boolean ocean = b == BiomeGenBase.ocean || b == BiomeGenBase.deepOcean || b == BiomeGenBase.frozenOcean;
-        if (t == 0) return b == BiomeGenBase.beach || b == BiomeGenBase.coldBeach; // нора краба - у берега
-        if (t == LairData.TOMB) return b == BiomeGenBase.desert || b == BiomeGenBase.desertHills; // гробница - под пирамидой
-        // снежная суша; замёрзшая река не подходит - под ней вода
-        return !ocean && b != BiomeGenBase.frozenRiver && b.getEnableSnow();
-    }
-
     @Override
     @SideOnly(Side.CLIENT)
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void getSubItems(Item item, CreativeTabs tab, List list) {
-        list.add(new ItemStack(item, 1, 0));
-        list.add(new ItemStack(item, 1, 1));
-        list.add(new ItemStack(item, 1, 2));
-        list.add(new ItemStack(item, 1, 3));
-        list.add(new ItemStack(item, 1, NEST));
-        list.add(new ItemStack(item, 1, CIRCLE));
-        list.add(new ItemStack(item, 1, WATCHER));
-        list.add(new ItemStack(item, 1, SCORCHERS));
-        list.add(new ItemStack(item, 1, AYERACO));
+        // в порядке прохождения: Карцинус, снежная пещера, Трон, гробница, Ад, рощи, Мортум, Айрако
+        int[] order = { 0, 1, 2, 3, WATCHER, SCORCHERS, NEST, CIRCLE };
+        for (int m : order) list.add(new ItemStack(item, 1, m));
         for (int i = ARENA; i < KEYS.length; i++) list.add(new ItemStack(item, 1, i));
+        list.add(new ItemStack(item, 1, AYERACO));
     }
 
     @Override

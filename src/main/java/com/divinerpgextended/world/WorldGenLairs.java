@@ -42,17 +42,17 @@ public class WorldGenLairs implements IWorldGenerator {
     @Override
     public void generate(Random rand, int chunkX, int chunkZ, World world, IChunkProvider gen, IChunkProvider prov) {
         if (world.provider.dimensionId != 0) return;
-        int x = chunkX * 16 + 8, z = chunkZ * 16 + 8;
-        BiomeGenBase biome = world.getBiomeGenForCoords(x, z);
-        if (biome == null) return;
-        // по типам биомов, а не по ванильным объектам: так годятся и пляжи и снега Biomes O' Plenty
-        boolean beach = Biomes.sandBeach(biome);
-        if (beach && Config.carcinusShoreRarity > 0 && rand.nextInt(Config.carcinusShoreRarity) == 0) {
-            if (crabLair(world, rand, x, z)) DivineRPGExtended.LOG.info("Логово Карцинуса: " + x + " " + z);
-        } else if (Biomes.snowyLand(biome) && Config.snowDungeonRarity > 0
-            && rand.nextInt(Config.snowDungeonRarity) == 0) {
-                if (snowDungeon(world, rand, x, z) != null) DivineRPGExtended.LOG.info("Снежное подземелье: " + x + " " + z);
-            }
+        // места логов - из сида мира по карте биомов ({@link LairSites}): карта логова знает их заранее
+        int[] crab = LairSites.siteInChunk(world, LairSites.CARCINUS, chunkX, chunkZ);
+        if (crab != null) {
+            if (crabLair(world, rand, crab[0], crab[1])) DivineRPGExtended.LOG.info("Логово Карцинуса: " + crab[0] + " " + crab[1]);
+            else LairData.get(world).fail(LairData.CARCINUS, crab[0], crab[1]); // рельеф не подошёл - карта это место пропустит
+        }
+        int[] snow = LairSites.siteInChunk(world, LairSites.SNOW, chunkX, chunkZ);
+        if (snow != null) {
+            if (snowDungeon(world, rand, snow[0], snow[1]) != null) DivineRPGExtended.LOG.info("Снежное подземелье: " + snow[0] + " " + snow[1]);
+            else LairData.get(world).fail(LairData.SNOW, snow[0], snow[1]);
+        }
     }
 
     // ---------------------------------------------------------------- логово Карцинуса
@@ -81,37 +81,40 @@ public class WorldGenLairs implements IWorldGenerator {
      * потолке светятся лампы кракена и аква-лампы. На востоке за завесой пузырей - сухой грот с алтарём призыва Карцинуса.
      */
     private boolean crabLair(World world, Random rand, int cx, int cz) {
-        // вход: вода на уровне моря у самой суши (кромка пляжа)
-        int ex = 0, ez = 0;
-        boolean found = false;
-        for (int t = 0; t < 64 && !found; t++) {
-            int x = cx + rand.nextInt(32) - 16, z = cz + rand.nextInt(32) - 16;
+        // вход: вода на уровне моря у самой суши (кромка пляжа). Кандидатов несколько: лабиринт уходит от входа на
+        // восток, и над ним нужна толща дна - у резкого обрыва (океаны Biomes O' Plenty) первый вход может не подойти
+        int span = (N - 1) * STEP;
+        int ex = 0, ez = 0, ym = 0, entrances = 0, bestBed = -1;
+        for (int t = 0; t < 160 && entrances < 12 && ym == 0; t++) {
+            int x = cx + rand.nextInt(48) - 24, z = cz + rand.nextInt(48) - 24;
             if (!isWater(world, x, 62, z) || seabed(world, x, z) < 55) continue;
+            boolean shore = false;
             for (int[] d : SHORE) {
-                if (!isWater(world, x + d[0], 62, z + d[1]) && world.getBlock(x + d[0], 62, z + d[1])
-                    .getMaterial()
-                    .isSolid()) {
-                    found = true;
-                    ex = x;
-                    ez = z;
-                    break;
-                }
+                if (!isWater(world, x + d[0], 62, z + d[1]) && world.getBlock(x + d[0], 62, z + d[1]).getMaterial().isSolid()) shore = true;
+            }
+            if (!shore) continue;
+            entrances++;
+            // самое глубокое дно над будущими ходами; ходы опускаются под него, но не ниже 20
+            int bed = 62;
+            for (int xx = x - 4; xx <= x + 109 && bed >= 26; xx += 4) {
+                for (int zz = z - (N / 2) * STEP - 8; zz <= z + (N / 2) * STEP + 11; zz += 4) bed = Math.min(bed, seabed(world, xx, zz));
+            }
+            bestBed = Math.max(bestBed, bed);
+            if (bed - 6 >= 20) {
+                ex = x;
+                ez = z;
+                ym = Math.min(34, bed - 6); // стены норы держат воду: над ходами не меньше 6 блоков дна
             }
         }
-        if (!found) return false;
+        if (ym == 0) {
+            DivineRPGExtended.LOG.info("Логово Карцинуса не встало у " + cx + " " + cz + ": входов у кромки воды " + entrances
+                + (entrances > 0 ? ", дно над ходами слишком глубоко (лучшее " + bestBed + ")" : ""));
+            return false;
+        }
 
-        int span = (N - 1) * STEP;
-        int ym = 34; // средняя высота ходов: пол около 31
         int x0 = ex + 20, z0 = ez - (N / 2) * STEP; // узел (0, 0); вход в 20 блоках западнее первого узла
         int gx0 = x0 + span + 5, gcx = gx0 + 6, gcz = z0 + (N / 2) * STEP; // стена грота и его центр
         int ax0 = ex - 10, ax1 = gcx + 8, az0 = z0 - 8, az1 = z0 + span + 8;
-
-        // над ходами нужна толща суши или морского дна
-        for (int x = ax0 + 6; x <= ax1; x += 4) {
-            for (int z = az0; z <= az1 + 3; z += 4) {
-                if (seabed(world, x, z) < ym + 10) return false;
-            }
-        }
 
         Carver c = new Carver(ax0, ym - 8, az0, ax1 - ax0 + 1, 72 - (ym - 8), az1 - az0 + 1, gx0 - 1);
 
@@ -438,7 +441,7 @@ public class WorldGenLairs implements IWorldGenerator {
         for (int x = cx - 6; x <= bossX + BOSS_R + 2; x += 6) {
             for (int z = z0 - 10; z <= zMax + 10; z += 6) {
                 int top = world.getTopSolidOrLiquidBlock(x, z);
-                if (top < y0 + 16 || world.getBlock(x, top - 1, z)
+                if (top < y0 + 9 || world.getBlock(x, top - 1, z)
                     .getMaterial()
                     .isLiquid()) return null;
             }

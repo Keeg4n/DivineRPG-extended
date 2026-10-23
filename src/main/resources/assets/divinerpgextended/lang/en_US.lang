@@ -36,8 +36,8 @@ item.dre.lairMap.carcinus.name=Map to the Carcinus Lair
 item.dre.lairMap.snow.name=Map to the Snow Dungeon
 dre.tooltip.lair_map=Right-click: distance and direction to the nearest lair, or to a suitable biome if none is found yet
 dre.chat.map_overworld=The map only works in the Overworld.
-dre.chat.map_none_carcinus=No Carcinus lair found yet. Explore sandy shores and islands: lairs appear in new lands.
-dre.chat.map_none_snow=No snow dungeon found yet. Explore snowy lands: dungeons appear in new lands.
+dre.chat.map_none_carcinus=No Carcinus lairs within %d blocks: no sandy sea shores.
+dre.chat.map_none_snow=No ice caves within %d blocks: no flat snowy land.
 dre.chat.map_found_carcinus=Carcinus lair: %d blocks to the %s. The entrance is a crater in the water right by the shore (y=%d), coordinates %d, %d.
 dre.chat.map_found_snow=Ice cave: %d blocks to the %s. The entrance is an igloo on the surface (y=%d), coordinates %d, %d.
 dre.dir.s=south
@@ -208,7 +208,7 @@ dre.chat.lich_perch=The Lich King leaps onto a pylon and pelts you with snow fro
 tile.dre.tombAltar.name=Ancient Tomb Altar
 item.dre.lairMap.tomb.name=Map to the Ancient Tomb
 dre.chat.clock_only_tomb=The Mysterious Clock is silent. It only answers at the altar of the Ancient Tomb, hidden beneath a desert pyramid.
-dre.chat.map_none_tomb=No Ancient Tomb found yet. Look for pyramids in new, unexplored deserts.
+dre.chat.map_none_tomb=No Ancient Tombs within %d blocks: no deserts with pyramids.
 dre.chat.map_found_tomb=Ancient Tomb: %d blocks to the %s. Pyramid (y=%d), coordinates %d, %d. The way down starts in the treasure room under the pyramid floor.
 dre.chat.map_biome_tomb=Nearest desert: %d blocks to the %s, coordinates %d, %d. Tombs hide beneath pyramids in new lands.
 dre.chat.map_no_biome_tomb=No deserts nearby (searched within 4000 blocks).
@@ -894,6 +894,7 @@ dre.tooltip.guardian_heart=Great Cadillion trophy. Surround with 8 world gem blo
 dre.chat.gate_incomplete=The frame is not complete: a 4 x 5 rectangle of gate stones without corners, empty inside.
 dre.tooltip.pick_tier=Mines ore: %s, stone: up to %s
 dre.tooltip.pick_stone=Mines %s stone, not twilight ores
+dre.tooltip.pick_all=Mines every twilight ore and stone, and jungle ore
 dre.tooltip.set_perk.eden=Set: Sun Miner. A pickaxe chips the horn of a stunned cadillion
 dre.tooltip.set_perk.wildwood=Set: Forest Tracker. Heals underwater and inside tree crowns
 dre.tooltip.set_perk.apalachia=Set: Stone Wall. No knockback, 20% of melee damage reflected
@@ -1141,3 +1142,7 @@ dre.tooltip.hue.yellow.armor=Yellow: +5% speed per piece; full set - night visio
 dre.tooltip.hue.gray.armor=Gray: knockback -25% per piece; full set - projectiles -25%
 dre.tooltip.bedrock_sword=Immovable: no knockback while held
 dre.tooltip.bedrock_maul=Shockwave: mobs within 3 blocks of the target take 40% of the hit (no knockback)
+dre.chat.map_site_carcinus=Carcinus lair: %d blocks %s, by the shore, at %d, %d. That land is not generated yet - the lair appears when you get there.
+dre.chat.map_site_snow=Ice cave: %d blocks %s, the entrance is an igloo, at %d, %d. That land is not generated yet - the cave appears when you get there.
+dre.chat.map_site_tomb=Desert pyramid with the Ancient Tomb: %d blocks %s, at %d, %d. That land is not generated yet - the pyramid appears when you get there.
+dre.chat.map_cooldown=The map is still unfolding: wait %d s.

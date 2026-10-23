@@ -35,6 +35,26 @@ public class LairData extends WorldSavedData {
         markDirty();
     }
 
+    /** Место логова из сида, где построить не удалось (рельеф не подошёл): тип + FAILED. */
+    public static final int FAILED = 100;
+
+    public void fail(int type, int x, int z) {
+        add(type + FAILED, x, 0, z);
+    }
+
+    /** Есть ли запись этого типа ближе r блоков. */
+    public boolean near(int type, int x, int z, int r) {
+        for (int[] l : lairs) if (l[0] == type && (long) (l[1] - x) * (l[1] - x) + (long) (l[3] - z) * (l[3] - z) <= (long) r * r) return true;
+        return false;
+    }
+
+    /** Все записи этого типа. */
+    public java.util.List<int[]> all(int type) {
+        java.util.List<int[]> out = new java.util.ArrayList<int[]>();
+        for (int[] l : lairs) if (l[0] == type) out.add(l);
+        return out;
+    }
+
     /** Ближайшее логово этого типа или null. */
     public int[] nearest(int type, double px, double pz) {
         int[] best = null;

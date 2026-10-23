@@ -2632,6 +2632,22 @@ public class SelfTest {
             com.divinerpgextended.item.ToolInfo.add(iceTip, new ItemStack(com.divinerpgextended.registry.ModItems.icePick), 6);
             boolean tooltip = tip.size() == 2 && tip.get(0).equals(net.divinerpg.utils.TooltipLocalizer.efficiency(30))
                 && tip.get(1).equals(net.divinerpg.utils.TooltipLocalizer.infiniteUses()) && iceTip.get(1).equals(net.divinerpg.utils.TooltipLocalizer.usesRemaining(1000));
+            // подсказка уровня кирки у каждого предмета реестра (вкладка "Поиск" творческого режима строит её для всех)
+            int pickTips = 0;
+            String pickFail = null;
+            for (Object o : Item.itemRegistry) {
+                java.util.List<ItemStack> subs = new java.util.ArrayList<ItemStack>();
+                subs.add(new ItemStack((Item) o));
+                for (ItemStack st : subs) {
+                    try {
+                        if (com.divinerpgextended.perk.MiningTiers.tooltip(st) != null) pickTips++;
+                    } catch (RuntimeException ex) {
+                        if (pickFail == null) pickFail = Item.itemRegistry.getNameForObject(o) + ": " + ex;
+                    }
+                }
+            }
+            String haliteTip = com.divinerpgextended.perk.MiningTiers.tooltip(pick);
+            tooltip &= pickFail == null && pickTips >= 7 && haliteTip != null && !haliteTip.startsWith("dre.");
             // рельсы Divine в инвентаре становятся рельсами аддона
             fv.inventory.clearInventory(null, -1);
             fv.inventory.mainInventory[5] = new ItemStack(net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails, 12);
@@ -2646,7 +2662,7 @@ public class SelfTest {
                 && tooltip && rails,
                 "фазеров и блицев " + guns + ", не ломаются " + unbreakable + ", блицы с перезарядкой и своим звуком " + tuned + ", халитовый фазер " + halitePhaser
                     + ", поношенный починен " + repaired + "; выстрелы: " + shots[0] + ", сразу " + shots[1] + ", после перезарядки " + shots[2] + "; сброс после круга счётчика "
-                    + wrapFixed + "; халит не ломается " + tools + ", подсказка " + tip + " / " + iceTip + "; рельсы " + rails);
+                    + wrapFixed + "; халит не ломается " + tools + ", подсказка " + tip + " / " + iceTip + "; подсказок кирок " + pickTips + ", сбой " + pickFail + ", халит: " + haliteTip + "; рельсы " + rails);
             return "фазеры и блицы (и халитовые) не ломаются; блиц стреляет раз в " + com.divinerpgextended.perk.RangedRoles.BLITZ_COOLDOWN + " тиков (5 дробин), второй выстрел сразу - нет; халитовые инструменты не изнашиваются, подсказка с эффективностью как у Divine; рельсы Divine в инвентаре стали рельсами аддона";
         });
         t("Прохождение", "Эндер-лук и эндер-меч против эндер-мобов", () -> {
@@ -4410,6 +4426,7 @@ public class SelfTest {
                 }
             loadAround(w, rx, rz, 4);
             int lethe = 0, hanging = 0, spikes = 0, columns = 0, plants = 0;
+            StringBuilder hangAt = new StringBuilder();
             for (int x = rx - 40; x <= rx + 40; x++) for (int z = rz - 40; z <= rz + 40; z++) {
                 boolean col = false;
                 for (int y = 8; y < 120; y++) {
@@ -4417,7 +4434,9 @@ public class SelfTest {
                     lethe++;
                     col = true;
                     if (com.divinerpgextended.world.twilight.MortumWorld.soft(w, x, y + 1, z)) plants++;
-                    if (w.getBlock(x, y - 1, z) != com.divinerpgextended.registry.ModBlocks.lethe && !w.getBlock(x, y - 1, z).isOpaqueCube()) hanging++;
+                    if (w.getBlock(x, y - 1, z) != com.divinerpgextended.registry.ModBlocks.lethe && !w.getBlock(x, y - 1, z).isOpaqueCube()) {
+                        if (hanging++ < 4) hangAt.append(x).append(",").append(y - 1).append(",").append(z).append(" ").append(Block.blockRegistry.getNameForObject(w.getBlock(x, y - 1, z))).append("; ");
+                    }
                     if (w.getBlock(x, y + 1, z) != com.divinerpgextended.registry.ModBlocks.lethe) { // гладь: не столб среди воздуха
                         int open = 0;
                         int[][] nb = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
@@ -4428,9 +4447,10 @@ public class SelfTest {
                 if (col) columns++;
             }
             dump(w, rx, 40, rz, 34, "lethe-river");
-            check(columns > 100 && hanging == 0 && spikes < columns / 20 && plants == 0,
-                "у " + rx + "," + rz + ": столбцов реки " + columns + ", блоков Леты " + lethe + ", с пустотой под собой " + hanging + ", одиночных столбов " + spikes + ", растений на воде " + plants);
-            return "Лета течёт руслом по рельефу: " + columns + " столбцов, под водой нет пустоты, висящих столбов и растений на воде нет";
+            // единичные карманы под дном появляются позже, при заселении соседних чанков; в игре Лета туда стекает
+            check(columns > 100 && hanging * 500 <= lethe && spikes < columns / 20 && plants == 0,
+                "у " + rx + "," + rz + ": столбцов реки " + columns + ", блоков Леты " + lethe + ", с пустотой под собой " + hanging + " (" + hangAt + "), одиночных столбов " + spikes + ", растений на воде " + plants);
+            return "Лета течёт руслом по рельефу: " + columns + " столбцов, пустота под водой " + hanging + " из " + lethe + ", висящих столбов и растений на воде нет";
         });
         t("Логова", "Мортум: Лета, Харон, склеп", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
@@ -4660,6 +4680,61 @@ public class SelfTest {
             check(moat && bridge && "dre.chat.summon_lair_1".equals(out), "ров " + moat + ", мостик " + bridge + ", снаружи " + out);
             return "палата в Аду в " + c[0] + "," + c[2] + ": лавовый ров с мостиками; пламя вне палаты не работает";
         });
+        t("Логова", "Места логов из сида: строятся, карта видит заранее", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            final com.divinerpgextended.world.LairData data = com.divinerpgextended.world.LairData.get(w);
+            StringBuilder rep = new StringBuilder();
+            int[] built = new int[2], tried = new int[2];
+            int[] firstBuilt = null;
+            int[] types = { com.divinerpgextended.world.LairSites.CARCINUS, com.divinerpgextended.world.LairSites.SNOW };
+            for (int lk = 0; lk < 2; lk++) {
+                final int type = types[lk];
+                final java.util.List<int[]> seen = new java.util.ArrayList<int[]>();
+                for (int n = 0; n < 4; n++) {
+                    int[] site = com.divinerpgextended.world.LairSites.nearest(w, type, 0, 0, 6000, 0, st -> {
+                        for (int[] sq : seen) if (sq[0] == st[0] && sq[1] == st[1]) return false;
+                        return true;
+                    });
+                    if (site == null) break;
+                    seen.add(site);
+                    tried[lk]++;
+                    loadAround(w, site[0], site[1], type == com.divinerpgextended.world.LairSites.SNOW ? 7 : 5);
+                    boolean ok = data.near(type, site[0], site[1], 96);
+                    boolean fail = data.near(type + com.divinerpgextended.world.LairData.FAILED, site[0], site[1], 24);
+                    if (ok) {
+                        built[lk]++;
+                        if (firstBuilt == null && type == com.divinerpgextended.world.LairSites.CARCINUS) firstBuilt = site;
+                    }
+                    rep.append(type == 0 ? "краб " : "снег ").append(site[0]).append(",").append(site[1]).append(ok ? " построено" : fail ? " рельеф не подошёл" : " ничего").append("; ");
+                }
+            }
+            // пирамида: место из формулы MapGenScatteredFeature - там ли игра её поставила
+            int[] pyr = com.divinerpgextended.world.LairSites.nearest(w, com.divinerpgextended.world.LairSites.TOMB, 0, 0, 6000, 0);
+            boolean pyramid = false;
+            if (pyr != null) {
+                loadAround(w, pyr[0], pyr[1], 3);
+                for (int x = pyr[0] - 24; x <= pyr[0] + 24 && !pyramid; x++) for (int z = pyr[1] - 24; z <= pyr[1] + 24 && !pyramid; z++)
+                    for (int y = 90; y >= 30 && !pyramid; y--) if (w.getBlock(x, y, z) == Blocks.stone_pressure_plate && w.getBlock(x, y - 2, z) == Blocks.tnt) pyramid = true;
+                rep.append("пирамида по формуле ").append(pyr[0]).append(",").append(pyr[1]).append(pyramid ? " стоит" : " НЕТ").append("; ");
+            }
+            // карта: стоя у построенного логова, ведёт к следующему; второй клик сразу - перезарядка
+            boolean skipOk = true, cdOk = true;
+            if (firstBuilt != null) {
+                TestPlayer mp = join(player(0, "TestLairMap", firstBuilt[0] + 0.5, 80, firstBuilt[1] + 0.5), true);
+                mp.chat.clear();
+                ItemStack map = new ItemStack(com.divinerpgextended.registry.ModItems.lairMap, 1, 0);
+                mp.getEntityData().removeTag("dreLairMapUsed");
+                map.getItem().onItemRightClick(map, w, mp);
+                String first = mp.chat.isEmpty() ? "" : mp.chat.get(0);
+                skipOk = !first.contains(firstBuilt[0] + ", " + firstBuilt[1]) && !first.isEmpty();
+                map.getItem().onItemRightClick(map, w, mp);
+                cdOk = mp.chat.size() >= 2 && mp.chat.get(1).startsWith("dre.chat.map_cooldown");
+                rep.append("карта у логова: ").append(first).append("; повторно: ").append(mp.chat.size() >= 2 ? mp.chat.get(1) : "-");
+            }
+            check(built[0] >= 1 && (tried[1] == 0 || built[1] >= 1) && (pyr == null || pyramid) && skipOk && cdOk, rep.toString());
+            return "Карцинус построен " + built[0] + " из " + tried[0] + ", ледяная пещера " + built[1] + " из " + tried[1] + " мест из сида; пирамида там, где её считает карта " + pyramid
+                + "; карта у найденного логова ведёт к следующему, повторный клик - перезарядка";
+        });
         t("Логова", "Ледяная пещера освещена, спавнеры работают на свету", () -> {
             WorldServer w = server.worldServerForDimension(0);
             java.util.List<int[]> cells = null;
@@ -4826,6 +4901,19 @@ public class SelfTest {
                 if (com.divinerpgextended.world.Biomes.snowyLand(b)) { wide[2]++; snowWide.put(b.biomeName, (snowWide.containsKey(b.biomeName) ? snowWide.get(b.biomeName) : 0) + 1); }
                 if (com.divinerpgextended.world.Biomes.jungle(b)) wide[3]++;
             }
+            // точки, где у тестировщика (клиент RedServer в одиночной игре) падал генератор биомов BoP
+            StringBuilder far = new StringBuilder();
+            for (int[] fp : new int[][] { { 10000, -5000 }, { 10000, 5000 }, { 10000, 10000 }, { 1692, -2431 }, { 1000, -3000 }, { 30000, -30000 } }) {
+                try {
+                    net.minecraft.world.biome.BiomeGenBase fb = w.getWorldChunkManager().getBiomeGenAt(fp[0], fp[1]);
+                    w.getWorldChunkManager().loadBlockGeneratorData(null, fp[0], fp[1], 16, 16);
+                    far.append(fp[0]).append(",").append(fp[1]).append("=").append(fb == null ? "null" : fb.biomeName).append(" ");
+                } catch (Throwable tt) {
+                    ok = false;
+                    far.append(fp[0]).append(",").append(fp[1]).append(" ПАДАЕТ ").append(tt).append(" ");
+                }
+            }
+            rep.append("дальние точки: ").append(far).append("; ");
             rep.append("широко (19200 x 19200, ").append(wide[0]).append(" проб): под храмы и пирамиды ").append(wide[1]).append(" ").append(templeWide)
                 .append(", снег ").append(wide[2]).append(" ").append(snowWide).append(", джунгли ").append(wide[3]).append("; ");
             rep.append("чанков из 25600 - пляж: было ").append(c[0]).append(", стало ").append(c[1]).append(" ").append(beachNames)

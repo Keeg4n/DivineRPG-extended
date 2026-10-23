@@ -6,6 +6,7 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.world.BlockEvent;
 
@@ -24,6 +25,18 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 public class MiningTiers {
 
     private static final String TINK = "dreMiningTink";
+
+    /** Строка подсказки кирки цепочки: какую руду и камень берёт; null - не кирка цепочки или уровни выключены. */
+    public static String tooltip(ItemStack s) {
+        int t = tier(s);
+        if (t < 0 || !Config.miningTiers) return null;
+        TwilightWorld[] w = TwilightWorld.values();
+        // выше всех сумеречных миров (халит): своя строка, номера мира у неё нет
+        if (t > w.length) return StatCollector.translateToLocal("dre.tooltip.pick_all");
+        String stone = StatCollector.translateToLocal("dre.world." + w[Math.min(t, w.length - 1)].key());
+        return t == 0 ? StatCollector.translateToLocalFormatted("dre.tooltip.pick_stone", stone)
+            : StatCollector.translateToLocalFormatted("dre.tooltip.pick_tier", StatCollector.translateToLocal("dre.world." + w[t - 1].key()), stone);
+    }
 
     /** Уровень кирки (-1 - не кирка цепочки). */
     public static int tier(ItemStack s) {

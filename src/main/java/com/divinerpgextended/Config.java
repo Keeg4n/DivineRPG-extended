@@ -47,7 +47,8 @@ public class Config {
     /** Постройки сумеречных миров: 1 на N чанков (0 - нет). */
     public static int twilightRuinsRarity = 30, twilightDungeonRarity = 40, twilightBridgeRarity = 3, twilightCampRarity = 45;
     /** Логово Карцинуса: 1 на N океанских чанков; снежное подземелье: 1 на N заснеженных чанков (0 - выключить). */
-    public static int carcinusShoreRarity = 40, snowDungeonRarity = 200;
+    /** Логова обычного мира по сетке из сида: Карцинус и ледяная пещера - по одному на регион N x N. Карты. */
+    public static int carcinusSpacing = 320, snowDungeonSpacing = 640, mapSearchRadius = 5000, mapSkipNear = 128, mapCooldownSeconds = 5;
 
     public static boolean requireBossUnlocks = true;
     public static boolean replaceTwilightClock = true;
@@ -148,10 +149,16 @@ public class Config {
             "Рамки порталов Дикого леса..Мортума - камни врат из сердца стража (трофей Великого кадиллиона) вместо блоков камней прошлого мира. Старые рамки из блоков камней перестанут работать");
         throneSpacing = cfg.getInt("throneSpacing", "worldgen", throneSpacing, 0, 100000,
             "Ледяной Трон в Iceika: один на квадрат N x N блоков, место выбирается из сида мира (0 - не генерировать). Меньше 1024 не ставить: арена 300 блоков");
-        carcinusShoreRarity = cfg.getInt("carcinusShoreRarity", "worldgen", carcinusShoreRarity, 0, 100000,
-            "Логово Карцинуса: в среднем 1 на N чанков песчаного пляжа (материк или остров; 0 - не генерировать)");
-        snowDungeonRarity = cfg.getInt("snowDungeonRarity", "worldgen", snowDungeonRarity, 0, 100000,
-            "Снежное подземелье: в среднем 1 на N заснеженных чанков (0 - не генерировать)");
+        carcinusSpacing = cfg.getInt("carcinusSpacing", "worldgen", carcinusSpacing, 0, 100000,
+            "Логово Карцинуса: одно на квадрат N x N блоков, если в нём есть песчаный пляж у моря; место из сида мира, карта знает его заранее (0 - не генерировать)");
+        snowDungeonSpacing = cfg.getInt("snowDungeonSpacing", "worldgen", snowDungeonSpacing, 0, 100000,
+            "Ледяная пещера Снежного Глакона: одна на квадрат N x N блоков, если в нём есть ровная заснеженная суша; место из сида мира (0 - не генерировать)");
+        mapSearchRadius = cfg.getInt("mapSearchRadius", "worldgen", mapSearchRadius, 500, 30000,
+            "Карты логов обычного мира: радиус поиска в блоках (5000 - квадрат 10000 x 10000)");
+        mapSkipNear = cfg.getInt("mapSkipNear", "worldgen", mapSkipNear, 0, 1000,
+            "Карты логов: место ближе N блоков считается найденным - карта ведёт к следующему");
+        mapCooldownSeconds = cfg.getInt("mapCooldownSeconds", "worldgen", mapCooldownSeconds, 0, 600,
+            "Карты логов: перезарядка в секундах (поиск по карте биомов нагружает сервер)");
         snowGlobeOnlyFromBoss = cfg.getBoolean("snowGlobeOnlyFromBoss", Configuration.CATEGORY_GENERAL,
             snowGlobeOnlyFromBoss, "Убрать рецепт Снежного шара Divine: шар падает только со Снежного Глакона");
         snowflakesInSummons = cfg.getBoolean("snowflakesInSummons", Configuration.CATEGORY_GENERAL,

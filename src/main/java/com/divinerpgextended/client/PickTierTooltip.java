@@ -4,7 +4,6 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 
-import com.divinerpgextended.Config;
 import com.divinerpgextended.perk.MiningTiers;
 import com.divinerpgextended.world.twilight.TwilightWorld;
 
@@ -27,12 +26,8 @@ public class PickTierTooltip {
         }
         int rk = com.divinerpgextended.perk.RangedRoles.kind(e.itemStack);
         if (rk > 0) e.toolTip.add(Math.min(1, e.toolTip.size()), EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.ranged_role." + rk));
-        int t = MiningTiers.tier(e.itemStack);
-        if (t < 0 || !Config.miningTiers) return;
-        String stone = StatCollector.translateToLocal("dre.world." + TwilightWorld.values()[Math.min(t, 4)].key());
-        String line = t == 0 ? StatCollector.translateToLocalFormatted("dre.tooltip.pick_stone", stone)
-            : StatCollector.translateToLocalFormatted("dre.tooltip.pick_tier",
-                StatCollector.translateToLocal("dre.world." + TwilightWorld.values()[t - 1].key()), stone);
+        String line = MiningTiers.tooltip(e.itemStack);
+        if (line == null) return;
         e.toolTip.add(Math.min(1, e.toolTip.size()), EnumChatFormatting.AQUA + line);
     }
 }
