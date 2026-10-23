@@ -113,10 +113,49 @@ public class ItemLairMap extends Item {
      * ({@link com.divinerpgextended.world.LairSites}). Ближе {@link com.divinerpgextended.Config#mapSkipNear} блоков место
      * считается найденным - карта ведёт к следующему; места, где построить не удалось, пропускаются.
      */
+    /** Поиск на тик: не дольше, чтобы игра не подвисала (в одиночной игре сервер в том же процессе). */
+    private static final long BUDGET_NS = 20_000_000L;
+
+    /** Недосчитанные поиски: игрок -> {тип, x, z} места, где развернули карту. */
+    private static final java.util.Map<EntityPlayer, double[]> UNFOLDING = new java.util.WeakHashMap<EntityPlayer, double[]>();
+
     private static ItemStack overworld(ItemStack stack, World world, EntityPlayer player, final int t) {
+        if (!answer(world, player, t, player.posX, player.posZ, System.nanoTime() + BUDGET_NS)) {
+            UNFOLDING.put(player, new double[] { t, player.posX, player.posZ });
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.map_unfolding"));
+        }
+        return stack;
+    }
+
+    /** Досчитывает начатые поиски: общий бюджет на тик, по очереди. */
+    public static class Unfold {
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onTick(cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent e) {
+            if (e.phase != cpw.mods.fml.common.gameevent.TickEvent.Phase.END || UNFOLDING.isEmpty()) return;
+            long deadline = System.nanoTime() + BUDGET_NS;
+            for (java.util.Iterator<java.util.Map.Entry<EntityPlayer, double[]>> it = UNFOLDING.entrySet().iterator(); it.hasNext() && System.nanoTime() < deadline;) {
+                java.util.Map.Entry<EntityPlayer, double[]> q = it.next();
+                EntityPlayer p = q.getKey();
+                if (p.isDead || p.worldObj.provider.dimensionId != 0) {
+                    it.remove();
+                    continue;
+                }
+                double[] a = q.getValue();
+                if (answer(p.worldObj, p, (int) a[0], a[1], a[2], deadline)) it.remove();
+            }
+        }
+    }
+
+    /**
+     * Карцинус, ледяная пещера, гробница: ближайшее из построенных логов и мест из сида мира, где логово ещё будет
+     * ({@link com.divinerpgextended.world.LairSites}). Ближе {@link com.divinerpgextended.Config#mapSkipNear} блоков место
+     * считается найденным - карта ведёт к следующему; места, где построить не удалось, пропускаются. false - не успел до
+     * deadline, досчитать позже.
+     */
+    static boolean answer(World world, EntityPlayer player, final int t, double px, double pz, long deadline) {
         int radius = com.divinerpgextended.Config.mapSearchRadius, skip = com.divinerpgextended.Config.mapSkipNear;
         final LairData data = LairData.get(world);
-        double px = player.posX, pz = player.posZ;
         int[] built = null;
         double builtD = Double.MAX_VALUE;
         for (int[] l : data.all(t)) {
@@ -126,11 +165,12 @@ public class ItemLairMap extends Item {
             built = l;
         }
         int[] site = com.divinerpgextended.world.LairSites.nearest(world, t, px, pz, radius, skip,
-            s -> !data.near(t, s[0], s[1], 96) && !data.near(t + LairData.FAILED, s[0], s[1], 24));
+            s -> !data.near(t, s[0], s[1], 96) && !data.near(t + LairData.FAILED, s[0], s[1], 24), deadline);
+        if (site == com.divinerpgextended.world.LairSites.UNFINISHED) return false;
         double siteD = site == null ? Double.MAX_VALUE : (site[0] - px) * (site[0] - px) + (site[1] - pz) * (site[1] - pz);
         if (built == null && site == null) {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.map_none_" + KEYS[t], radius));
-            return stack;
+            return true;
         }
         if (built != null && builtD <= siteD) {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, built[1], built[3]),
@@ -139,7 +179,7 @@ public class ItemLairMap extends Item {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.map_site_" + KEYS[t], distance(player, site[0], site[1]),
                 direction(player, site[0], site[1]), site[0], site[1]));
         }
-        return stack;
+        return true;
     }
 
     /** Гнёзда и круг - из сида мира, карта знает их заранее (как Трон). */

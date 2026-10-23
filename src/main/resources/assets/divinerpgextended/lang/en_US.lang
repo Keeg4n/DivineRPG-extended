@@ -1151,3 +1151,5 @@ tile.dre.vetheaPlanks.hyrewood.name=Hyrewood Planks
 tile.dre.vetheaPlanks.firewood.name=Firewood Planks
 tile.dre.vetheaPlanks.mintwood.name=Mintwood Planks
 dre.chat.boss_no_fly=A boss is near - flight is unavailable.
+dre.chat.map_unfolding=The map is unfolding: the far lands are not on it yet...
+item.dre.letheBucket.name=Lethe Bucket

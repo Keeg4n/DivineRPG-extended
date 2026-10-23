@@ -1218,3 +1218,5 @@ tile.dre.vetheaPlanks.hyrewood.name=Хайровые доски
 tile.dre.vetheaPlanks.firewood.name=Огненные доски
 tile.dre.vetheaPlanks.mintwood.name=Мятные доски
 dre.chat.boss_no_fly=Рядом босс - полёт недоступен.
+dre.chat.map_unfolding=Карта разворачивается: дальние земли ещё не на ней...
+item.dre.letheBucket.name=Ведро Леты

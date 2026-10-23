@@ -123,6 +123,10 @@ public final class ModBlocks {
         lethe = new com.divinerpgextended.block.BlockLethe(letheFluid);
         GameRegistry.registerBlock(lethe, "lethe");
         if (letheFluid.getBlock() == null) letheFluid.setBlock(lethe);
+        ModItems.letheBucket = new com.divinerpgextended.item.ItemLetheBucket();
+        GameRegistry.registerItem(ModItems.letheBucket, "letheBucket");
+        net.minecraftforge.fluids.FluidContainerRegistry.registerFluidContainer(letheFluid, new net.minecraft.item.ItemStack(ModItems.letheBucket),
+            new net.minecraft.item.ItemStack(net.minecraft.init.Items.bucket));
         cloud = new com.divinerpgextended.block.BlockCloud();
         GameRegistry.registerBlock(cloud, "cloud");
         windTotem = new com.divinerpgextended.block.BlockWindTotem();

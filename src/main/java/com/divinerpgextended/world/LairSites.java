@@ -29,6 +29,8 @@ public final class LairSites {
 
     public static final int CARCINUS = LairData.CARCINUS, SNOW = LairData.SNOW, TOMB = LairData.TOMB;
     private static final int[] NONE = new int[0];
+    /** Ответ "не успел": поиск упёрся в отведённое время, досчитать в следующий тик (посчитанное лежит в кэше). */
+    public static final int[] UNFINISHED = new int[0];
     /** Кэш по миру: сид + тип + регион -> место (NONE - в регионе нет места). */
     private static final Map<Long, int[]> CACHE = new HashMap<Long, int[]>();
 
@@ -40,16 +42,39 @@ public final class LairSites {
         return 32 * 16; // пирамиды: регион 32 x 32 чанка
     }
 
+    private static long key(World w, int type, int rx, int rz) {
+        return (w.getSeed() * 31 + type) * 0x9E3779B97F4A7C15L ^ ((long) rx << 32 | (rz & 0xFFFFFFFFL));
+    }
+
+    /** Для автотеста: забыть посчитанные места. */
+    public static void clearCache() {
+        synchronized (CACHE) {
+            CACHE.clear();
+        }
+        synchronized (PROGRESS) {
+            PROGRESS.clear();
+        }
+    }
+
     /** Место логова типа type в регионе (rx, rz) или null. */
     public static int[] site(World w, int type, int rx, int rz) {
+        return site(w, type, rx, rz, Long.MAX_VALUE);
+    }
+
+    /** Докуда дошёл обход недосчитанных регионов: ключ региона -> {номер точки, шаг проверки точки}. */
+    private static final Map<Long, int[]> PROGRESS = new HashMap<Long, int[]>();
+
+    /** То же, но не дольше deadline: не успел - {@link #UNFINISHED}, обход региона продолжится с той же точки. */
+    static int[] site(World w, int type, int rx, int rz, long deadline) {
         int size = spacing(type);
         if (size <= 0) return null;
-        long key = (w.getSeed() * 31 + type) * 0x9E3779B97F4A7C15L ^ ((long) rx << 32 | (rz & 0xFFFFFFFFL));
+        long key = key(w, type, rx, rz);
         synchronized (CACHE) {
             int[] c = CACHE.get(key);
             if (c != null) return c == NONE ? null : c;
         }
-        int[] s = type == TOMB ? pyramid(w, rx, rz) : scan(w, type, rx, rz, size);
+        int[] s = type == TOMB ? pyramid(w, rx, rz) : scan(w, type, rx, rz, size, key, deadline);
+        if (s == UNFINISHED) return s;
         synchronized (CACHE) {
             if (CACHE.size() > 20000) CACHE.clear();
             CACHE.put(key, s == null ? NONE : s);
@@ -66,19 +91,40 @@ public final class LairSites {
         return s != null && s[0] >> 4 == chunkX && s[1] >> 4 == chunkZ ? s : null;
     }
 
-    /** Обход точек региона в порядке из сида; первая подходящая - место. */
-    private static int[] scan(World w, int type, int rx, int rz, int size) {
+    /** Обход точек региона в порядке из сида; первая подходящая - место. Не успел до deadline - UNFINISHED. */
+    private static int[] scan(World w, int type, int rx, int rz, int size, long key, long deadline) {
         WorldChunkManager wcm = w.getWorldChunkManager();
         int step = 32, n = Math.max(1, size / step), total = n * n;
         Random r = new Random(w.getSeed() + rx * 341873128712L + rz * 132897987541L + (type == CARCINUS ? 52801 : 77213));
         int start = r.nextInt(total), stride = 7919 % total == 0 ? 1 : 7919;
         while (gcd(stride, total) != 1) stride++;
-        for (int k = 0; k < total; k++) {
+        int[] from;
+        synchronized (PROGRESS) {
+            from = PROGRESS.remove(key);
+        }
+        int m = from == null ? 0 : from[1];
+        for (int k = from == null ? 0 : from[0]; k < total; k++, m = 0) {
+            if (deadline != Long.MAX_VALUE && System.nanoTime() > deadline) return pause(key, k, m);
             int idx = (int) ((start + (long) k * stride) % total);
             int x = ((rx * size + (idx % n) * step) >> 4) * 16 + 8, z = ((rz * size + (idx / n) * step) >> 4) * 16 + 8;
-            if (type == CARCINUS ? shore(wcm, x, z) : snowField(wcm, x, z)) return new int[] { x, z };
+            if (type == CARCINUS) {
+                if (shore(wcm, x, z)) return new int[] { x, z };
+                continue;
+            }
+            // заснеженное поле проверяется по 35 точкам площади пещеры - и его можно прервать посреди
+            int res = snowField(wcm, x, z, m, deadline);
+            if (res == SNOW_YES) return new int[] { x, z };
+            if (res >= 0) return pause(key, k, res);
         }
         return null;
+    }
+
+    private static int[] pause(long key, int k, int m) {
+        synchronized (PROGRESS) {
+            if (PROGRESS.size() > 5000) PROGRESS.clear();
+            PROGRESS.put(key, new int[] { k, m });
+        }
+        return UNFINISHED;
     }
 
     private static int gcd(int a, int b) {
@@ -95,13 +141,26 @@ public final class LairSites {
 
     /** Заснеженная ровная суша на всей площади пещеры (к востоку до ~170 блоков, в стороны ~60). */
     static boolean snowField(WorldChunkManager wcm, int x, int z) {
-        if (!Biomes.snowyLand(wcm.getBiomeGenAt(x, z))) return false;
+        return snowField(wcm, x, z, 0, Long.MAX_VALUE) == SNOW_YES;
+    }
+
+    private static final int SNOW_YES = -2, SNOW_NO = -1;
+
+    /**
+     * Проверка поля с шага m (0 - центр, дальше 35 точек площади): SNOW_YES, SNOW_NO или шаг, с которого продолжить,
+     * если вышло время.
+     */
+    private static int snowField(WorldChunkManager wcm, int x, int z, int m, long deadline) {
+        if (m == 0 && !Biomes.snowyLand(wcm.getBiomeGenAt(x, z))) return SNOW_NO;
+        int i = 0;
         for (int dx = -16; dx <= 176; dx += 32) for (int dz = -64; dz <= 64; dz += 32) {
+            if (++i <= m) continue;
+            if (deadline != Long.MAX_VALUE && System.nanoTime() > deadline) return i - 1;
             BiomeGenBase b = wcm.getBiomeGenAt(x + dx, z + dz);
             if (b == null || Biomes.ocean(b) || Biomes.beach(b) || BiomeDictionary.isBiomeOfType(b, BiomeDictionary.Type.RIVER)
-                || BiomeDictionary.isBiomeOfType(b, BiomeDictionary.Type.SWAMP) || b.rootHeight < 0.0F || b.heightVariation > 0.45F) return false;
+                || BiomeDictionary.isBiomeOfType(b, BiomeDictionary.Type.SWAMP) || b.rootHeight < 0.0F || b.heightVariation > 0.45F) return SNOW_NO;
         }
-        return true;
+        return SNOW_YES;
     }
 
     /**
@@ -125,6 +184,14 @@ public final class LairSites {
 
     /** То же, но только места, прошедшие проверку ok (например, ещё не построенные). */
     public static int[] nearest(World w, int type, double px, double pz, int radius, int skip, java.util.function.Predicate<int[]> ok) {
+        return nearest(w, type, px, pz, radius, skip, ok, Long.MAX_VALUE);
+    }
+
+    /**
+     * То же, но не дольше, чем до deadline (System.nanoTime): не успел - {@link #UNFINISHED}, посчитанные регионы остаются в
+     * кэше, и следующий вызов продолжит с места остановки. Так карта не подвешивает игру на дальнем поиске.
+     */
+    public static int[] nearest(World w, int type, double px, double pz, int radius, int skip, java.util.function.Predicate<int[]> ok, long deadline) {
         int size = spacing(type);
         if (size <= 0) return null;
         int rx0 = Math.floorDiv((int) Math.floor(px), size), rz0 = Math.floorDiv((int) Math.floor(pz), size), rings = radius / size + 1;
@@ -135,7 +202,8 @@ public final class LairSites {
             if (best != null && near * near > bestD) break;
             for (int i = -ring; i <= ring; i++) for (int j = -ring; j <= ring; j++) {
                 if (Math.abs(i) != ring && Math.abs(j) != ring) continue;
-                int[] s = site(w, type, rx0 + i, rz0 + j);
+                int[] s = site(w, type, rx0 + i, rz0 + j, deadline);
+                if (s == UNFINISHED) return UNFINISHED;
                 if (s == null) continue;
                 double d = (s[0] - px) * (s[0] - px) + (s[1] - pz) * (s[1] - pz);
                 if (d <= (double) skip * skip || d > (double) radius * radius || d >= bestD || ok != null && !ok.test(s)) continue;

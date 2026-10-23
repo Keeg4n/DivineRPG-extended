@@ -37,6 +37,8 @@ public final class ModItems {
         "wandererBoots" };
 
     public static Item wandererClock;
+    /** Ведро Леты - регистрируется вместе с Летой ({@link ModBlocks#register}): блок нужен ведру при создании. */
+    public static Item letheBucket;
     public static Item timeGear;
     public static Item cadillionCall;
     public static Item deepShell;

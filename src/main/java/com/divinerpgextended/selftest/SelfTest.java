@@ -194,7 +194,17 @@ public class SelfTest {
         return Math.abs(a - b) < 0.06F;
     }
 
+    /** Выбор тестов при отладке: -Ddre.selftest.only=часть названия[,часть] (по листу и строке); пусто - все. */
+    private static final String[] ONLY = System.getProperty("dre.selftest.only", "").trim().isEmpty() ? new String[0]
+        : System.getProperty("dre.selftest.only").toLowerCase().split(",");
+
     private void t(String sheet, String row, Body b) {
+        if (ONLY.length > 0) {
+            String name = (sheet + " / " + row).toLowerCase();
+            boolean hit = false;
+            for (String o : ONLY) hit |= name.contains(o.trim());
+            if (!hit) return;
+        }
         try {
             String detail = b.run();
             results.add(new String[] { sheet, row, "работает", detail });
@@ -3918,6 +3928,32 @@ public class SelfTest {
             check(ok, sb.toString());
             return "на полу крена нет, на потолке картинка вверх ногами, на стене - на бок; мышь вверх/вправо по экрану ведёт взгляд вверх/вправо по экрану (200 случайных положений)";
         });
+        t("Сумеречные миры", "Ведро Леты; статус босса у боссов Divine", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            int x0 = 9650, y0 = 100, z0 = 9650;
+            loadAround(w, x0, z0, 1);
+            for (int x = x0 - 3; x <= x0 + 3; x++) for (int z = z0 - 3; z <= z0 + 3; z++) for (int y = y0 - 1; y <= y0 + 3; y++)
+                w.setBlock(x, y, z, y == y0 - 1 ? Blocks.stone : Blocks.air);
+            w.setBlock(x0, y0, z0, com.divinerpgextended.registry.ModBlocks.lethe, 0, 3);
+            TestPlayer bp = join(player(ConfigurationHelper.mortum, "TestLetheBucket", x0 + 0.5, y0 + 2, z0 + 2.5), true);
+            ItemStack empty = new ItemStack(net.minecraft.init.Items.bucket);
+            net.minecraft.util.MovingObjectPosition hit = new net.minecraft.util.MovingObjectPosition(x0, y0, z0, 1, net.minecraft.util.Vec3.createVectorHelper(x0 + 0.5, y0 + 1, z0 + 0.5));
+            net.minecraftforge.event.entity.player.FillBucketEvent fe = new net.minecraftforge.event.entity.player.FillBucketEvent(bp, empty, w, hit);
+            MinecraftForge.EVENT_BUS.post(fe);
+            boolean filled = fe.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.ALLOW && fe.result != null
+                && fe.result.getItem() == com.divinerpgextended.registry.ModItems.letheBucket && w.isAirBlock(x0, y0, z0);
+            boolean placed = ((net.minecraft.item.ItemBucket) com.divinerpgextended.registry.ModItems.letheBucket).tryPlaceContainedLiquid(w, x0 + 1, y0, z0)
+                && w.getBlock(x0 + 1, y0, z0) == com.divinerpgextended.registry.ModBlocks.lethe;
+            boolean container = net.minecraftforge.fluids.FluidContainerRegistry.getFluidForFilledItem(new ItemStack(com.divinerpgextended.registry.ModItems.letheBucket)) != null;
+            server.getConfigurationManager().playerEntityList.remove(bp);
+            w.removeEntity(bp);
+            for (int x = x0 - 3; x <= x0 + 3; x++) for (int z = z0 - 3; z <= z0 + 3; z++) for (int y = y0 - 1; y <= y0 + 3; y++) w.setBlockToAir(x, y, z);
+            // боссы Divine - со статусом босса, как Иссушитель (их щадят моды вроде жертвенного кинжала Blood Magic)
+            boolean boss = (Object) new net.divinerpg.entities.twilight.EntityTwilightDemon(w) instanceof net.minecraft.entity.boss.IBossDisplayData
+                && (Object) new net.divinerpg.entities.vanilla.EntityKingOfScorchers(w) instanceof net.minecraft.entity.boss.IBossDisplayData;
+            check(filled && placed && container && boss, "ведро набрало Лету " + filled + ", поставило " + placed + ", контейнер Forge " + container + ", статус босса " + boss);
+            return "ведро из источника Леты - ведро Леты, ставит Лету обратно, в словаре жидкостей Forge; боссы Divine с IBossDisplayData";
+        });
         t("Логова", "Iceika: Ледяной Трон - заселение Divine мимо, всё освещено", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
             int[] c = com.divinerpgextended.world.WorldGenThrone.nearest(w.getSeed(), 0, 0);
@@ -5045,9 +5081,35 @@ public class SelfTest {
                 cdOk = mp.chat.size() >= 2 && mp.chat.get(1).startsWith("dre.chat.map_cooldown");
                 rep.append("карта у логова: ").append(first).append("; повторно: ").append(mp.chat.size() >= 2 ? mp.chat.get(1) : "-");
             }
-            check(built[0] >= 1 && (tried[1] == 0 || built[1] >= 1) && (pyr == null || pyramid) && skipOk && cdOk, rep.toString());
+            // дальний поиск с пустым кэшем: игра не подвисает - ответ по частям, не дольше ~20 мс за тик
+            com.divinerpgextended.world.LairSites.clearCache();
+            TestPlayer fp = join(player(0, "TestMapFar", 40000.5, 80, -40000.5), true);
+            fp.chat.clear();
+            fp.getEntityData().removeTag("dreLairMapUsed");
+            ItemStack farMap = new ItemStack(com.divinerpgextended.registry.ModItems.lairMap, 1, com.divinerpgextended.world.LairSites.SNOW);
+            long t0 = System.nanoTime();
+            farMap.getItem().onItemRightClick(farMap, w, fp);
+            long first = (System.nanoTime() - t0) / 1000000, worst = first;
+            com.divinerpgextended.item.ItemLairMap.Unfold unfold = new com.divinerpgextended.item.ItemLairMap.Unfold();
+            int ticksToAnswer = 0;
+            long total = first;
+            while (ticksToAnswer < 2000 && (fp.chat.isEmpty() || fp.chat.get(fp.chat.size() - 1).startsWith("dre.chat.map_unfolding"))) {
+                long a0 = System.nanoTime();
+                unfold.onTick(new cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END));
+                long tk = (System.nanoTime() - a0) / 1000000;
+                worst = Math.max(worst, tk);
+                total += tk;
+                ticksToAnswer++;
+            }
+            String farAnswer = fp.chat.isEmpty() ? "" : fp.chat.get(fp.chat.size() - 1);
+            boolean farOk = (farAnswer.startsWith("dre.chat.map_site_snow") || farAnswer.startsWith("dre.chat.map_none_snow")) && total / (ticksToAnswer + 1) < 40 && worst < 1000; // одиночный запрос к генератору биомов не прервать
+            rep.append("; дальний поиск: первый ответ ").append(fp.chat.isEmpty() ? "-" : fp.chat.get(0)).append(", итог ").append(farAnswer)
+                .append(" за ").append(ticksToAnswer).append(" тиков, в среднем ").append(total / (ticksToAnswer + 1)).append(" мс, самый долгий тик ").append(worst).append(" мс");
+            server.getConfigurationManager().playerEntityList.remove(fp);
+            w.removeEntity(fp);
+            check(built[0] >= 1 && (tried[1] == 0 || built[1] >= 1) && (pyr == null || pyramid) && skipOk && cdOk && farOk, rep.toString());
             return "Карцинус построен " + built[0] + " из " + tried[0] + ", ледяная пещера " + built[1] + " из " + tried[1] + " мест из сида; пирамида там, где её считает карта " + pyramid
-                + "; карта у найденного логова ведёт к следующему, повторный клик - перезарядка";
+                + "; карта у найденного логова ведёт к следующему, повторный клик - перезарядка; дальний поиск по частям: " + ticksToAnswer + " тиков, тик до " + worst + " мс";
         });
         t("Логова", "Ледяная пещера освещена, спавнеры работают на свету", () -> {
             WorldServer w = server.worldServerForDimension(0);

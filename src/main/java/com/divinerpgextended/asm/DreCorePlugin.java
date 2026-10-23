@@ -11,7 +11,7 @@ import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
  * инвентаря Ветеи и в Divine без настройки vetheaInventory ({@link VetheaSwapTransformer}), ускоряет поиск парного
  * портала в сумеречных мирах ({@link PortalTransformer}), ставит их деревья внутрь заселяемой области
  * ({@link TreeShiftTransformer}) и отмечает время их заселения (для пересылки чанков целиком), наклоняет вид в вагонетке
- * Апалачии ({@link CameraTransformer}), не даёт Айрако без братьев ронять сохранение ({@link AyeracoTransformer}), не пускает заселение Iceika в Ледяной Трон
+ * Апалачии ({@link CameraTransformer}), не даёт Айрако без братьев ронять сохранение ({@link AyeracoTransformer}), не пускает заселение Iceika в Ледяной Трон, даёт боссам Divine статус босса ({@link BossStatusTransformer})
  * ({@link IceikaThroneTransformer}); до загрузки
  * модов разводит ID биомов Divine с Biomes O Plenty ({@link BiomeIdGuard}).
  */
@@ -25,7 +25,7 @@ public class DreCorePlugin implements IFMLLoadingPlugin {
         return new String[] { FurnaceTransformer.class.getName(), ArcanaTransformer.class.getName(),
             ArmorSetTransformer.class.getName(), VetheaSwapTransformer.class.getName(),
             PortalTransformer.class.getName(), TreeShiftTransformer.class.getName(), CameraTransformer.class.getName(),
-            AyeracoTransformer.class.getName(), IceikaThroneTransformer.class.getName() };
+            AyeracoTransformer.class.getName(), IceikaThroneTransformer.class.getName(), BossStatusTransformer.class.getName() };
     }
 
     @Override

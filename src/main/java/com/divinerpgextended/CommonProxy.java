@@ -87,6 +87,8 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(rails);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.EnderGear());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.portal.PortalFrames.Drops());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.item.ItemLetheBucket.Fill());
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.item.ItemLairMap.Unfold());
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.boss.BossNoFly());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.ColorGear());
         FMLCommonHandler.instance().bus().register(rails);
@@ -319,6 +321,7 @@ public class CommonProxy {
     }
 
     public void postInit(FMLPostInitializationEvent event) {
+        HatsCompat.apply();
         if (Config.replaceTwilightClock) removeRecipes(TwilightItemsOther.twilightClock);
         if (Config.snowGlobeOnlyFromBoss) removeRecipes(IceikaItems.snowGlobe);
         if (Config.snowflakesInSummons) {
