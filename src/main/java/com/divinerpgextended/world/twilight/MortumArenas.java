@@ -123,11 +123,24 @@ public final class MortumArenas {
 
     /** Где стоит босс арены (смещение от центра): лучник - на помосте в конце галереи; null - где вызвали. */
     public static int[] bossSpot(Type t) {
-        return t == Type.ARCHER ? new int[] { 0, Gallery.DAIS_H, -(Gallery.HZ - 3) } : null;
+        return t == Type.ARCHER ? new int[] { 0, Gallery.DAIS_H, -(Gallery.HZ - 4) } : null;
+    }
+
+    /**
+     * Блок, на который кристалл ставит босса (Divine ставит его в угол блока сверху и молча отказывает, если тот задевает
+     * стену): Карот - центр зеркального зала, лучник - его помост; null - сам алтарь. Так работают и арены, построенные
+     * до переноса алтарей (у зеркал и вплотную к трону).
+     */
+    public static int[] summonBlock(World w, Type t, int[] c) {
+        int top = WorldGenNests.MORTUM_TOP;
+        if (t == Type.KAROT) return new int[] { c[0], w.getBlock(c[0], top + 1, c[2]) == com.divinerpgextended.registry.ModBlocks.arenaAltar ? top + 1 : top, c[2] };
+        if (t == Type.ARCHER) return new int[] { c[0], top + Gallery.DAIS_H, c[2] - (Gallery.HZ - 4) }; // перед сиденьем трона (плита на HZ - 1)
+        return null;
     }
 
     /** Башня Демона для боя (от центра арены): центр башни, радиус, пол площадки, этажи боя, коронный зал. */
-    public static final int SPIRE_TX = Spire.TX, SPIRE_TZ = Spire.TZ, SPIRE_TR = Spire.TR, SPIRE_TOP = Spire.TOP, SPIRE_CROWN = Spire.CROWN;
+    public static final int SPIRE_TX = Spire.TX, SPIRE_TZ = Spire.TZ, SPIRE_TR = Spire.TR, SPIRE_TOP = Spire.TOP, SPIRE_CROWN = Spire.CROWN,
+        SPIRE_BASE = Spire.BASE, SPIRE_COURT = Spire.COURT, SPIRE_LIFT = Spire.LIFT, SPIRE_MOAT = Spire.MOAT_OUT;
 
     /** Главный фокус силы Демона: блок на пьедестале коронного зала {dx, y, dz} от центра арены. */
     public static int[] crownFocus() {
@@ -145,8 +158,8 @@ public final class MortumArenas {
         int top = WorldGenNests.MORTUM_TOP;
         switch (t) {
             case TWINS: l.add(new int[] { -Twins.DAIS_X, top + 2, -2 }); l.add(new int[] { Twins.DAIS_X, top + 2, -2 }); break;
-            case KAROT: l.add(new int[] { 0, top + 1, -Mirror.H + 2 }); break;
-            case ARCHER: l.add(new int[] { -3, top + Gallery.DAIS_H + 1, -Gallery.HZ + 1 }); l.add(new int[] { 3, top + Gallery.DAIS_H + 1, -Gallery.HZ + 1 }); break;
+            case KAROT: l.add(new int[] { 0, top + 1, 0 }); break;
+            case ARCHER: l.add(new int[] { -3, top + Gallery.DAIS_H + 1, -Gallery.HZ + 4 }); l.add(new int[] { 3, top + Gallery.DAIS_H + 1, -Gallery.HZ + 4 }); break;
             case FIEND: l.add(new int[] { 0, top + 1, -1 }); break;
             case VAMACHERON: l.add(new int[] { 0, top - Pit.SINK + 1, 0 }); break;
             default: l.add(new int[] { 0, Spire.TOP + 1, 0 });
@@ -482,7 +495,7 @@ public final class MortumArenas {
 
         @Override
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
-            altar(w, cx, cz, x0, z0, 0, TOP + 1, -H + 2);
+            altar(w, cx, cz, x0, z0, 0, TOP + 1, 0); // в центре: у зеркал Карот (3.25 блока) не помещается
         }
 
         @Override
@@ -563,8 +576,8 @@ public final class MortumArenas {
 
         @Override
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
-            altar(w, cx, cz, x0, z0, -3, TOP + DAIS_H + 1, -HZ + 1);
-            altar(w, cx, cz, x0, z0, 3, TOP + DAIS_H + 1, -HZ + 1);
+            altar(w, cx, cz, x0, z0, -3, TOP + DAIS_H + 1, -HZ + 4); // от трона и торца: лучнику (3 блока) нужно место
+            altar(w, cx, cz, x0, z0, 3, TOP + DAIS_H + 1, -HZ + 4);
         }
 
         @Override
@@ -1106,9 +1119,8 @@ public final class MortumArenas {
                 for (int y = top - 3; y < top; y++) set(col, y, rock(dx, y, dz));
                 set(col, top, path ? GRAVEL : top - TOP > -3 || hash(dx, dz) % 3 != 0 ? WorldGenNests.GRASS : rock(dx, top, dz));
                 if (path && (int) r % 3 == 0) set(col, top, SLAB_TOP);
-            } else { // площадка: ритуальный круг, под ней скала
-                put(col, TOP - 4, FOUNDATION, 0);
-                for (int y = TOP - 3; y < TOP; y++) set(col, y, rock(dx, y, dz));
+            } else { // площадка: ритуальный круг, под ней сплошная скала (без полости на высоте прочих арен)
+                for (int y = TOP - LIFT - 4; y < TOP; y++) set(col, y, rock(dx, y, dz));
                 int ri = (int) r;
                 set(col, TOP, r < 2.5 ? WorldGenNests.GEM : ri % 4 == 0 ? OBSIDIAN : ri % 4 == 2 ? NETHER : worn(dx, dz));
                 if (r < 0.7 || WorldGenNests.ringDist(dx, dz, 6, 12, 0) < 0.5) set(col, TOP, WorldGenNests.GLOW);
@@ -1124,6 +1136,15 @@ public final class MortumArenas {
                 }
                 if (r > COURT - 0.5 && dz > 0 && ax == 2) for (int y = TOP + 1; y <= TOP + 5; y++) set(col, y, CHISEL);
                 if (r > COURT - 0.5 && dz > 0 && ax <= 1) set(col, TOP + 5, CHISEL);
+            }
+            // нижний вход: ход от двери у подножия башни под двором и склоном к концу тропы (раньше дверь смотрела в скалу)
+            if (dz > TZ && ax <= 2 && td > TR - 1.3) {
+                int base = TOP + BASE;
+                if (ax <= 1) {
+                    set(col, base, NETHER);
+                    for (int y = base + 1; y <= base + 4; y++) put(col, y, AIR, 0);
+                    if (top > base + 5) set(col, base + 5, ax == 0 && Math.floorMod(dz, 6) == 0 ? WorldGenNests.GLOW : NETHER);
+                } else if (top > base + 4) for (int y = base + 1; y <= base + 4; y++) set(col, y, NETHER);
             }
             tower(dx, dz, td, col);
             turrets(dx, dz, col);

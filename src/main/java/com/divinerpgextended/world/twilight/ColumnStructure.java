@@ -48,7 +48,7 @@ public abstract class ColumnStructure {
     }
 
     public static void put(int[] col, int y, int code, int meta) {
-        if (y <= 0 || y >= 255) return;
+        if (y <= 0 || y >= 256) return;
         col[y * 2] = code;
         col[y * 2 + 1] = meta;
     }
@@ -74,7 +74,7 @@ public abstract class ColumnStructure {
                 Chunk ch = w.getChunkFromBlockCoords(x, z);
                 touched.add(ch);
                 ExtendedBlockStorage[] arr = ch.getBlockStorageArray();
-                for (int y = 1; y < 255; y++) {
+                for (int y = 1; y < 256; y++) {
                     int code = col[y * 2];
                     if (code == KEEP) continue;
                     if (code == FOUNDATION) {

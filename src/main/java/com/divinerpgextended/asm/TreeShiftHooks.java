@@ -28,6 +28,7 @@ public class TreeShiftHooks {
 
     public static boolean tree(WorldGenerator g, World w, Random r, int x, int y, int z) {
         int nx = x + 8, nz = z + 8;
+        if (com.divinerpgextended.world.twilight.WorldGenNests.templeIsland(w, nx, nz)) return false; // не на храме Скайтерна
         return g.generate(w, r, nx, y - w.getHeightValue(x, z) + w.getHeightValue(nx, nz), nz);
     }
 

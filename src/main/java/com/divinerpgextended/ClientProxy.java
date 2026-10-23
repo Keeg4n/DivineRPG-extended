@@ -81,7 +81,7 @@ public class ClientProxy extends CommonProxy {
             new com.divinerpgextended.client.RenderDreHook());
         // Карцинус - Король крабов, увеличенный в 4 раза
         RenderingRegistry.registerEntityRenderingHandler(EntityCarcinus.class,
-            new RenderScaledBoss(new ModelCrab(), 4.0F, EntityResourceLocation.kingCrab, 1.0F, 0.85F, 0.8F));
+            new RenderScaledBoss(new ModelCrab(), 4.0F, EntityResourceLocation.crab, 1.0F, 0.85F, 0.8F)); // kingCrab.png 64x64 - не под модель краба (64x32), растягивалась
         // Снежный Глакон - Глакон, увеличенный и холодного оттенка
         RenderingRegistry.registerEntityRenderingHandler(EntitySnowGlacon.class,
             new RenderScaledBoss(new ModelGlacon(), 2.2F, EntityResourceLocation.glacon, 0.8F, 0.9F, 1.0F));

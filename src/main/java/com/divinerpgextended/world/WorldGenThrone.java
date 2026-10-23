@@ -148,7 +148,88 @@ public class WorldGenThrone implements IWorldGenerator {
             ch.generateSkylightMap();
             ch.setChunkModified();
         }
-        for (int[] l : lights) w.func_147451_t(l[0], l[1], l[2]);
+        for (int[] l : lights) relight(w, l[0], l[1], l[2]);
+        // свет ламп соседних, уже построенных кусков: здесь он был посчитан по старым блокам (камень там, где теперь ход) - заново
+        for (int x = x0 - 15; x < x0 + 31; x++) {
+            for (int z = z0 - 15; z < z0 + 31; z++) {
+                if (x >= x0 && x < x0 + 16 && z >= z0 && z < z0 + 16 || !w.blockExists(x, 64, z) || !column(x - cx, z - cz, col)) continue;
+                for (int y = 1; y < 250; y++) {
+                    int code = col[y * 2];
+                    if ((code == LAMP || code == BRAZIER) && w.getBlock(x, y, z) == block(code)) relight(w, x, y, z);
+                }
+            }
+        }
+    }
+
+    /**
+     * Свет лампы: игра молча не считает его, если в 17 блоках есть несозданный чанк (у края строящегося Трона - всегда).
+     * Такие лампы ждут в очереди мира, пока соседи не появятся ({@link #flush}).
+     */
+    private static final java.util.Map<World, Set<Long>> PENDING = new java.util.WeakHashMap<World, Set<Long>>();
+
+    private static void relight(World w, int x, int y, int z) {
+        if (w.doChunksNearChunkExist(x, y, z, 17)) {
+            spread(w, x, y, z);
+            return;
+        }
+        Set<Long> q = PENDING.get(w);
+        if (q == null) PENDING.put(w, q = new HashSet<Long>());
+        q.add(((long) x & 0x3FFFFFF) << 38 | ((long) z & 0x3FFFFFF) << 12 | y & 0xFFF);
+    }
+
+    /**
+     * Разлить свет лампы заново: игра пересчитывает только при изменении света в самой точке, а у горящей лампы он и так
+     * 15 - поэтому сначала ноль.
+     */
+    private static void spread(World w, int x, int y, int z) {
+        w.setLightValue(net.minecraft.world.EnumSkyBlock.Block, x, y, z, 0);
+        w.updateLightByType(net.minecraft.world.EnumSkyBlock.Block, x, y, z);
+    }
+
+    /** Сколько ламп ждёт пересчёта света (для замеров и автотеста). */
+    public static int pending(World w) {
+        Set<Long> q = PENDING.get(w);
+        return q == null ? 0 : q.size();
+    }
+
+    /** Досчитать свет ламп из очереди, вокруг которых чанки уже есть. */
+    public static int flush(World w) {
+        Set<Long> q = PENDING.get(w);
+        if (q == null || q.isEmpty()) return 0;
+        int n = 0;
+        for (java.util.Iterator<Long> it = q.iterator(); it.hasNext();) {
+            long k = it.next();
+            int x = (int) (k >> 38), z = (int) (k << 26 >> 38), y = (int) (k & 0xFFF);
+            if (!w.doChunksNearChunkExist(x, y, z, 17)) continue;
+            it.remove();
+            if (w.getBlock(x, y, z).getLightValue() > 0 || w.getBlock(x, y, z) == ModBlocks.brazier) {
+                spread(w, x, y, z);
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /** Раз в секунду - очередь света Тронов. */
+    public static class Relight {
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onTick(cpw.mods.fml.common.gameevent.TickEvent.WorldTickEvent e) {
+            if (e.phase == cpw.mods.fml.common.gameevent.TickEvent.Phase.END && !e.world.isRemote && e.world.getTotalWorldTime() % 20 == 0) flush(e.world);
+        }
+    }
+
+    /**
+     * В Троне мобы сами не появляются (ни Iceika, ни чужие - Grimoire of Gaia и прочие): не зависит от света, в огромном
+     * куполе его не уследить во всех углах. Спавнеров там нет, боссов и их подручных вызывают отдельно.
+     */
+    public static class NoSpawns {
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onCheckSpawn(net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn e) {
+            if (!e.world.isRemote && shields(e.world, (int) Math.floor(e.x), (int) Math.floor(e.y), (int) Math.floor(e.z)))
+                e.setResult(cpw.mods.fml.common.eventhandler.Event.Result.DENY);
+        }
     }
 
     // ---------------------------------------------------------------- что где стоит
@@ -192,6 +273,18 @@ public class WorldGenThrone implements IWorldGenerator {
         return (h ^ h >>> 15) & 0x7fffffff;
     }
 
+    /**
+     * Точка внутри Трона или впритык к нему: купол арены со сводом (с запасом на размер озера или подземелья) и цитадель
+     * со шпилями. Генераторы заселения Iceika сюда не ставят ({@link com.divinerpgextended.asm.IceikaThroneHooks}).
+     */
+    public static boolean shields(World w, int x, int y, int z) {
+        if (w.provider.dimensionId != ConfigurationHelper.iceika || Config.throneSpacing <= 0) return false;
+        int[] c = nearest(w.getSeed(), x, z);
+        double d = Math.sqrt((x - c[0]) * (x - c[0]) + (z - c[2]) * (z - c[2]));
+        if (d <= CITADEL + 16) return y <= TOP + 64;
+        return d <= R + 20 && y <= ceil(Math.min(d, R - 1)) + 3 + 12;
+    }
+
     /** Нижняя граница свода арены над точкой на расстоянии r от центра. */
     private static int ceil(double r) {
         if (r >= R) return FLOOR + 12;
@@ -224,6 +317,8 @@ public class WorldGenThrone implements IWorldGenerator {
         if (r < R) {
             boolean ring = ((int) r / 8) % 2 == 0;
             put(col, FLOOR - 1, r < 12 || ring ? ICY : SNOW, 0);
+            // лампы в полу сеткой со сдвигом через 5 блоков: свет на всём полу не ниже 8, мобы (и чужие, Grimoire of Gaia) не родятся
+            if (Math.floorMod(dx, 5) == 0 && Math.floorMod(dz + (Math.floorMod(Math.floorDiv(dx, 5), 2) == 0 ? 0 : 2), 5) == 0) put(col, FLOOR - 1, LAMP, 0);
             for (int y = FLOOR; y < ce; y++) put(col, y, AIR, 0);
             // свод: рёбра из ледяного кирпича каждые 15 градусов, между ними паковый лёд
             double ang = Math.toDegrees(Math.atan2(dz, dx)) + 360;
@@ -244,6 +339,7 @@ public class WorldGenThrone implements IWorldGenerator {
                 if (pb <= 2.2 && y < pylon) put(col, y, y < FLOOR + 3 ? ICY : PACKED, 0);
                 if (pb <= 3.4 && y >= pylon - 1) put(col, y, ICY, 0); // площадка наверху
             }
+            if (pb < 0.75) put(col, pylon, LAMP, 0); // и лампа в её центре
             // жаровни вокруг центра
             if (ringDist(dx, dz, 30, 12, 0) < 0.5) {
                 put(col, FLOOR, ICY, 0);
@@ -348,8 +444,8 @@ public class WorldGenThrone implements IWorldGenerator {
             for (int y = FLOOR; y <= TOP; y++) {
                 if (y >= ce) put(col, y, AIR, 0); // шахта сквозь свод и толщу
                 int stepSector = ((y - FLOOR) % 16 + 16) % 16;
-                if (rt <= 1.5) put(col, y, ICY, 0); // столб
-                else if (rt <= 4.6 && sector == stepSector) put(col, y, ICY, 0); // ступень
+                if (rt <= 1.5) put(col, y, rt > 0.9 && (y - FLOOR) % 2 == 0 ? LAMP : ICY, 0); // столб, в нём пояса ламп над ступенями
+                else if (rt <= 4.6 && sector == stepSector) put(col, y, rt > 3.6 && (y - FLOOR) % 3 == 0 ? LAMP : ICY, 0); // ступень, у края каждой третьей - лампа
                 else if (rt > 4.6 && rt <= 5.4 && sector == ((y - 1 - FLOOR) % 16 + 16) % 16 && y > FLOOR) {
                     put(col, y, PACKED, 0); // перильце
                 }

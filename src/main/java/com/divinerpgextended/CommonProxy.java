@@ -86,6 +86,8 @@ public class CommonProxy {
         com.divinerpgextended.world.twilight.TwilightCrafts.RailDrops rails = new com.divinerpgextended.world.twilight.TwilightCrafts.RailDrops();
         MinecraftForge.EVENT_BUS.register(rails);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.EnderGear());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.portal.PortalFrames.Drops());
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.boss.BossNoFly());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.ColorGear());
         FMLCommonHandler.instance().bus().register(rails);
         FMLCommonHandler.instance().bus().register(ranged);
@@ -224,6 +226,8 @@ public class CommonProxy {
         GameRegistry.registerWorldGenerator(new IceikaDecor(), 100);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.IceikaXmasTree(), 101);
         GameRegistry.registerWorldGenerator(new WorldGenThrone(), 60);
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new WorldGenThrone.Relight());
+        MinecraftForge.EVENT_BUS.register(new WorldGenThrone.NoSpawns());
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.WorldGenNests(), 62);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.WorldGenTwilightFeatures(), 64);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenOuterLairs(), 66);

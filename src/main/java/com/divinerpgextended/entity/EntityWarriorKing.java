@@ -203,15 +203,25 @@ public class EntityWarriorKing extends EntityGroveGuardian {
         }
     }
 
-    /** На священной горе новая встреча начинается ярусом выше: прыжок на верх яруса кургана. */
+    /**
+     * На священной горе новая встреча начинается на вершине кургана: прыжок к костровищу (рядом с ним, не в огонь).
+     * Высота - по настоящей поверхности, и только туда, где король целиком помещается (раньше вторая встреча ставила его
+     * на высоту нижнего яруса в 3 блоках от центра - внутрь вершины).
+     */
     private void climbTier() {
         int[] home = com.divinerpgextended.boss.LairSummons.home(this);
-        int r = round();
-        if (home == null || r >= com.divinerpgextended.world.twilight.WorldGenNests.TIER_H.length) return;
-        int y = home[1] + com.divinerpgextended.world.twilight.WorldGenNests.TIER_H[r];
-        if (worldObj.isAirBlock(home[0] + 3, y - 1, home[2])) return; // не курган - ярусов нет
+        int[] tierH = com.divinerpgextended.world.twilight.WorldGenNests.TIER_H;
+        if (home == null || round() >= tierH.length) return;
+        int tx = home[0] + 4, tz = home[2];
+        if (worldObj.isAirBlock(tx, home[1] + tierH[1] - 1, tz)) return; // не курган - ярусов нет
+        int y = home[1] + tierH[tierH.length - 1] + 12;
+        while (y > home[1] && worldObj.isAirBlock(tx, y - 1, tz)) y--;
+        for (int k = 0; k < 8; k++, y++) {
+            setPosition(tx + 0.5, y, tz + 0.5);
+            if (worldObj.getCollidingBoundingBoxes(this, boundingBox).isEmpty()) break;
+        }
         ((WorldServer) worldObj).func_147487_a("largeexplode", posX, posY + 1, posZ, 2, 0.5, 0.5, 0.5, 0);
-        setPositionAndUpdate(home[0] + 3.5, y, home[2] + 0.5); // центр вершины - костровище
+        setPositionAndUpdate(tx + 0.5, y, tz + 0.5);
         worldObj.playSoundAtEntity(this, "mob.enderdragon.wings", 2.0F, 0.8F);
     }
 

@@ -326,6 +326,25 @@ public class SelfTest {
         }
     }
 
+    /** Для разбора тёмных мест: чужие блоки рядом, ближайшая лампа, её свет и есть ли вокруг неё чанки, очередь света. */
+    private static String around(WorldServer w, int x, int y, int z) {
+        java.util.Set<String> names = new java.util.TreeSet<String>();
+        int[] lamp = null;
+        int best = 99;
+        for (int dx = -7; dx <= 7; dx++) for (int dy = -7; dy <= 7; dy++) for (int dz = -7; dz <= 7; dz++) {
+            net.minecraft.block.Block b = w.getBlock(x + dx, y + dy, z + dz);
+            String n = String.valueOf(net.minecraft.block.Block.blockRegistry.getNameForObject(b));
+            if (Math.abs(dx) <= 2 && Math.abs(dy) <= 2 && Math.abs(dz) <= 2) names.add(n);
+            int d = Math.abs(dx) + Math.abs(dy) + Math.abs(dz);
+            if (b.getLightValue() > 0 && d < best) {
+                best = d;
+                lamp = new int[] { x + dx, y + dy, z + dz };
+            }
+        }
+        return "вокруг " + names + (lamp == null ? ", ламп нет" : ", лампа в " + best + " (свет " + w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Block, lamp[0], lamp[1], lamp[2])
+            + ", чанки вокруг " + w.doChunksNearChunkExist(lamp[0], lamp[1], lamp[2], 17) + ")") + ", в очереди " + com.divinerpgextended.world.WorldGenThrone.pending(w);
+    }
+
     /** Пустая сетка верстака 3 x 3 для проверки рецептов. */
     private static net.minecraft.inventory.InventoryCrafting grid() {
         return new net.minecraft.inventory.InventoryCrafting(new Container() {
@@ -1705,7 +1724,19 @@ public class SelfTest {
                 int lsx = px > c[0] ? 1 : -1;
                 if (w.getBlock(px + 2 * lsx, top + 1, pz) == Blocks.ladder && w.getBlock(px + 2 * lsx, top + h - 1, pz) == Blocks.ladder) ladders++;
             }
-            log = "алтарь " + altar + ", колонна " + column + ", над центром пусто " + open + ", облачных площадок " + clouds + ", лестниц " + ladders;
+            // небо над всем островом открыто до верха мира (выше карниза колоннады ничего нет)
+            int roof = 0;
+            StringBuilder roofAt = new StringBuilder();
+            for (int ox = -36; ox <= 36; ox += 2) for (int oz = -36; oz <= 36; oz += 2) {
+                if (ox * ox + oz * oz > 36 * 36) continue;
+                for (int y = top + 37; y < 256; y++) if (!w.isAirBlock(c[0] + ox, y, c[2] + oz)) {
+                    if (roof++ < 3) roofAt.append(ox).append(",").append(y - top).append(",").append(oz).append(" ")
+                        .append(net.minecraft.block.Block.blockRegistry.getNameForObject(w.getBlock(c[0] + ox, y, c[2] + oz))).append("; ");
+                    break;
+                }
+            }
+            open &= roof == 0;
+            log = "алтарь " + altar + ", колонна " + column + ", над центром пусто " + open + " (столбцов с потолком " + roof + ": " + roofAt + "), облачных площадок " + clouds + ", лестниц " + ladders;
             dump(w, c[0], top, c[2], 46, "temple-skythern");
             // Зов на алтаре - Повелитель ветров, тотемы встают на площадки
             TestPlayer v = player(dim, "TestTemple", c[0], top + 1, az + 2);
@@ -1726,7 +1757,7 @@ public class SelfTest {
                 l.setDead();
             }
             check(altar && column && open && clouds == 4 && ladders == 4 && lords.size() == 1 && totems == 4, log + ", повелителей " + lords.size() + ", тотемов на облаках " + totems);
-            return "храм в " + c[0] + "," + c[2] + ": колоннада, алтарь, 4 постамента с лестницами и облаками; Зов - Повелитель, тотемы встают на облака";
+            return "храм в " + c[0] + "," + c[2] + ": небо над островом открыто, колоннада, алтарь, 4 постамента с лестницами и облаками; Зов - Повелитель, тотемы встают на облака";
         });
         t("Логова", "Капище и родники", () -> {
             int dim = ConfigurationHelper.wildwood;
@@ -1798,15 +1829,17 @@ public class SelfTest {
                 net.minecraft.util.AxisAlignedBB.getBoundingBox(c[0] - 6, top - 2, az - 2, c[0] + 8, top + 12, az + 8));
             String log = "алтарь " + altar + ", вершина " + summit + ", лестница " + stairs + ", частокол " + stands + ", королей у алтаря " + kl.size();
             double y2 = 0;
+            boolean stuck = false;
             if (kl.size() == 1) {
                 com.divinerpgextended.entity.EntityWarriorKing k3 = (com.divinerpgextended.entity.EntityWarriorKing) kl.get(0);
                 k3.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(v), 100000);
                 for (int i = 0; i < com.divinerpgextended.entity.EntityWarriorKing.KNEEL + 2; i++) k3.onLivingUpdate();
                 y2 = k3.posY - (top + 1);
+                stuck = !w.getCollidingBoundingBoxes(k3, k3.boundingBox).isEmpty();
                 k3.setDead();
             }
-            check(altar && summit && stairs && stands && kl.size() == 1 && Math.abs(y2 - 5) < 0.6, log + ", 2-я встреча на высоте " + y2);
-            return "священная гора: курган в 3 уровня с лестницами, частокол, алтарь на полу; Король у алтаря, 2-ю встречу начинает на ярусе +5";
+            check(altar && summit && stairs && stands && kl.size() == 1 && Math.abs(y2 - 10) < 0.6 && !stuck, log + ", 2-я встреча на высоте " + y2 + ", в блоках " + stuck);
+            return "священная гора: курган в 3 уровня с лестницами, частокол, алтарь на полу; Король у алтаря, 2-ю встречу начинает на вершине (+10), не в блоках";
         });
         t("Логова", "Глыба крошит укрытие", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
@@ -2179,6 +2212,8 @@ public class SelfTest {
                 for (int wk = 0; wk <= com.divinerpgextended.entity.EntityWindLord.CHARGE + 1; wk++) {
                     wv.setPositionAndUpdate(tt[0] + 1.5, tt[1], tt[2] + 0.5); // порывы - стоим на месте
                     wv.motionX = wv.motionZ = 0;
+                    // игрок жмёт на тотем во время зарядки - отсчёт не начинается заново
+                    if (wk % 10 == 5) w.getBlock(tt[0], tt[1], tt[2]).onBlockActivated(w, tt[0], tt[1], tt[2], wv, 1, 0.5F, 1F, 0.5F);
                     lord.onLivingUpdate();
                 }
                 log += "тотем " + (i + 1) + " " + isTotem + " горит " + lord.litTotems() + ", здоровье " + (int) lord.getHealth() + "; ";
@@ -2187,7 +2222,7 @@ public class SelfTest {
             lord.setDead();
             for (int i = -16; i <= 16; i++) for (int wk = -16; wk <= 16; wk++) for (int h = 99; h < 125; h++) w.setBlockToAir(9980 + i, h, 9980 + wk);
             check(immune && dead && log.contains("зарядка false") && log.contains("тотем 3 true горит 3") && log.contains("тотем 4 true горит 0"), "неуязвим " + immune + "; " + log + "убит " + dead);
-            return "оружие Повелителя не берёт; 4 тотема на разной высоте, зарядка сбрасывается, если отойти; каждый заряженный - молния на четверть здоровья, четвёртый добивает, тотемы убираются";
+            return "оружие Повелителя не берёт; 4 тотема на разной высоте, зарядка сбрасывается, если отойти, а от повторных кликов - нет; каждый заряженный - молния на четверть здоровья, четвёртый добивает, тотемы убираются";
         });
         t("Логова", "Демон сумерек: дилемма", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
@@ -2510,6 +2545,39 @@ public class SelfTest {
             for (int x = x0 - 1; x <= x0 + 6; x++) for (int y = y0 - 1; y <= y0 + 6; y++) for (int z = z0 - 1; z <= z0 + 1; z++) w.setBlockToAir(x, y, z);
             check(wall && ceiling && back, "по стене " + wall + ", по потолку " + ceiling + ", вернулась на старт " + back + " за " + ticks + " тиков");
             return "вагонетка Апалачии объехала кольцо пол - стена - потолок - стена и вернулась (" + ticks + " тиков)";
+        });
+        t("Прохождение", "Рельсы снаружи: через рёбра блока", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            loadAround(w, 9540, 9700, 1);
+            int x0 = 9540, y0 = 100, z0 = 9700;
+            // столб 4 x 4 в плоскости XY, рельсы снаружи: сверху, справа, снизу, слева - кольцо через четыре внешних ребра
+            for (int x = x0 - 3; x <= x0 + 6; x++) for (int y = y0 - 3; y <= y0 + 6; y++) for (int z = z0 - 1; z <= z0 + 1; z++)
+                w.setBlock(x, y, z, x >= x0 && x <= x0 + 3 && y >= y0 && y <= y0 + 3 && z == z0 ? Blocks.stone : Blocks.air);
+            for (int x = x0; x <= x0 + 3; x++) w.setBlock(x, y0 + 4, z0, com.divinerpgextended.registry.ModBlocks.skyRail, 0, 3);     // сверху, опора снизу
+            for (int y = y0; y <= y0 + 3; y++) w.setBlock(x0 + 4, y, z0, com.divinerpgextended.registry.ModBlocks.skyRail, 4, 3);     // справа, опора на западе
+            for (int x = x0; x <= x0 + 3; x++) w.setBlock(x, y0 - 1, z0, com.divinerpgextended.registry.ModBlocks.skyRail, 1, 3);     // снизу, опора сверху
+            for (int y = y0; y <= y0 + 3; y++) w.setBlock(x0 - 1, y, z0, com.divinerpgextended.registry.ModBlocks.skyRail, 5, 3);     // слева, опора на востоке
+            TestPlayer op = join(player(ConfigurationHelper.apalachia, "TestOuterRail", x0 + 0.5, y0 + 5, z0 + 0.5), true);
+            com.divinerpgextended.entity.EntitySkyCart oc = new com.divinerpgextended.entity.EntitySkyCart(w, x0, y0 + 4, z0, -90); // на восток
+            w.spawnEntityInWorld(oc);
+            op.mountEntity(oc);
+            boolean right = false, under = false, left = false, home = false, inside = false;
+            int ticks = 0;
+            for (; ticks < 300; ticks++) {
+                oc.onUpdate();
+                int[] rp = oc.railPos();
+                if (rp[0] == x0 + 4) right = true;
+                if (rp[1] == y0 - 1) under = true;
+                if (rp[0] == x0 - 1) left = true;
+                // вагонетка не заходит внутрь столба
+                if (oc.posX > x0 + 0.3 && oc.posX < x0 + 3.7 && oc.posY + oc.height / 2 > y0 + 0.3 && oc.posY + oc.height / 2 < y0 + 3.7) inside = true;
+                if (left && rp[1] == y0 + 4 && rp[0] == x0 + 1) { home = true; break; }
+            }
+            op.mountEntity(null);
+            oc.setDead();
+            for (int x = x0 - 3; x <= x0 + 6; x++) for (int y = y0 - 3; y <= y0 + 6; y++) for (int z = z0 - 1; z <= z0 + 1; z++) w.setBlockToAir(x, y, z);
+            check(right && under && left && home && !inside, "справа " + right + ", снизу " + under + ", слева " + left + ", вернулась наверх " + home + ", сквозь блок " + inside + " за " + ticks + " тиков");
+            return "вагонетка Апалачии объехала столб снаружи: верх - правая грань - низ - левая грань - верх, через четыре внешних ребра (" + ticks + " тиков)";
         });
         t("Прохождение", "Дробь, пыль фазера, колчаны", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
@@ -3511,6 +3579,21 @@ public class SelfTest {
                 for (int x = c[0] - 30; x <= c[0] + 30; x++) for (int z = c[2] - 30; z <= c[2] + 30; z++) for (int y = fy - 6; y <= fy + 12; y++)
                     if (w.getBlock(x, y, z) instanceof net.divinerpg.blocks.base.BlockStatue) statues++;
                 floor &= statues == 0 && altar && "dre.chat.summon_altar".equals(floorClick);
+                // настоящий вызов: кристалл в руке, клик по алтарю - босс появился (Divine молча отказывает, если тесно)
+                java.util.Set<Object> before = new java.util.HashSet<Object>(w.loadedEntityList);
+                v.inventory.mainInventory[v.inventory.currentItem] = new ItemStack(own);
+                net.minecraftforge.event.entity.player.PlayerInteractEvent pie = new net.minecraftforge.event.entity.player.PlayerInteractEvent(v,
+                    net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, ax, ay, az, 1, w);
+                MinecraftForge.EVENT_BUS.post(pie);
+                if (pie.useItem != cpw.mods.fml.common.eventhandler.Event.Result.DENY) own.onItemUse(v.getHeldItem() != null ? v.getHeldItem() : new ItemStack(own), v, w, ax, ay, az, 1, 0.5F, 1.0F, 0.5F);
+                int summoned = 0;
+                for (Object o : new java.util.ArrayList<Object>(w.loadedEntityList))
+                    if (!before.contains(o) && (o instanceof net.minecraft.entity.boss.IBossDisplayData || o instanceof net.divinerpg.entities.base.EntityDivineRPGBoss)) {
+                        summoned++;
+                        ((net.minecraft.entity.Entity) o).setDead();
+                    }
+                v.inventory.mainInventory[v.inventory.currentItem] = null;
+                floor &= summoned > 0;
                 boolean good = floor && in == null && wrong != null && ("dre.chat.summon_arena_" + t.key()).equals(out);
                 ok &= good;
                 dump(w, c[0], com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP, c[2], t == com.divinerpgextended.world.twilight.MortumArenas.Type.DEMON ? 58 : 40, "arena-" + t.key());
@@ -3519,14 +3602,32 @@ public class SelfTest {
                 for (int y = com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP - 1; y > com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP - 30; y--)
                     if (w.isAirBlock(fx, y, fz)) gap++;
                 floor &= gap == 0;
-                sb.append(t.key()).append(good ? " ок" : " пол " + floor + " алтарь " + altar + " (над ним " + w.getBlock(ax, ay + 1, az).getUnlocalizedName() + "/" + w.getBlock(ax, ay + 2, az).getUnlocalizedName() + ", пол " + w.getBlock(c[0] + 3, fy, c[2] + 3).getUnlocalizedName() + "/" + w.getBlock(c[0] + 3, fy + 1, c[2] + 3).getUnlocalizedName() + "/" + w.getBlock(c[0] + 3, fy + 3, c[2] + 3).getUnlocalizedName() + ") статуй " + statues + " свой " + in + " чужой " + wrong + " мимо алтаря " + floorClick + " снаружи " + out).append("; ");
+                if (t == com.divinerpgextended.world.twilight.MortumArenas.Type.DEMON) {
+                    // под двором нет полости; от нижней двери башни ход к подножию тропы
+                    int top = com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TOP, tz = com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TZ;
+                    int tr = com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TR, court = com.divinerpgextended.world.twilight.MortumArenas.SPIRE_COURT;
+                    int hollow = 0;
+                    for (int dx = -court + 1; dx <= court - 1; dx++) for (int dz = -court + 1; dz <= court - 1; dz++) {
+                        double tdd = Math.sqrt(dx * dx + (dz - tz) * (dz - tz));
+                        if (dx * dx + dz * dz > (court - 1) * (court - 1) || tdd <= tr + 4 || Math.abs(dx) <= 2) continue;
+                        for (int y = top - com.divinerpgextended.world.twilight.MortumArenas.SPIRE_LIFT + 1; y < top - 4; y++) if (w.isAirBlock(c[0] + dx, y, c[2] + dz)) hollow++;
+                    }
+                    int base = top + com.divinerpgextended.world.twilight.MortumArenas.SPIRE_BASE, blocked = 0;
+                    for (int dz = tz + tr; dz <= com.divinerpgextended.world.twilight.MortumArenas.SPIRE_MOAT; dz++) {
+                        boolean walk = w.isAirBlock(c[0], base + 1, c[2] + dz) && w.isAirBlock(c[0], base + 2, c[2] + dz);
+                        if (!walk) blocked++;
+                    }
+                    floor &= hollow == 0 && blocked == 0;
+                    sb.append("демон: полость под двором ").append(hollow).append(", ход от нижней двери перекрыт в ").append(blocked).append(" местах; ");
+                }
+                sb.append(t.key()).append(good ? " ок" : " пол " + floor + " алтарь " + altar + " (над ним " + w.getBlock(ax, ay + 1, az).getUnlocalizedName() + "/" + w.getBlock(ax, ay + 2, az).getUnlocalizedName() + ", пол " + w.getBlock(c[0] + 3, fy, c[2] + 3).getUnlocalizedName() + "/" + w.getBlock(c[0] + 3, fy + 1, c[2] + 3).getUnlocalizedName() + "/" + w.getBlock(c[0] + 3, fy + 3, c[2] + 3).getUnlocalizedName() + ") статуй " + statues + " вызвано боссов " + summoned + " свой " + in + " чужой " + wrong + " мимо алтаря " + floorClick + " снаружи " + out).append("; ");
             }
             // соседние квадраты всегда разных видов
             boolean differ = true;
             for (int i = -5; i <= 5; i++) for (int j = -5; j <= 5; j++) for (int a = -1; a <= 1; a++) for (int b = -1; b <= 1; b++)
                 if ((a != 0 || b != 0) && com.divinerpgextended.world.twilight.MortumArenas.type(w.getSeed(), i, j) == com.divinerpgextended.world.twilight.MortumArenas.type(w.getSeed(), i + a, j + b)) differ = false;
             check(ok && differ, sb + "соседи разные " + differ);
-            return "у каждого из шести боссов Мортума своя арена с алтарём, статуй нет; кристалл работает только по алтарю своей арены, мимо алтаря, чужой и снаружи - отказ; соседние арены разные";
+            return "у каждого из шести боссов Мортума своя арена с алтарём, статуй нет; кристалл по алтарю своей арены вызывает босса (Карот и лучник - на свободном месте зала), мимо алтаря, чужой и снаружи - отказ; соседние арены разные";
         });
         t("Логова", "Боссы арен Мортума: механики", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
@@ -3668,6 +3769,219 @@ public class SelfTest {
             check(skull && bone > 120 && chest == 1 && airInside > 5 && buried && ribs && rib > 60 && high > 10,
                 "череп " + skull + ": кости " + bone + ", сундук " + chest + ", полость " + airInside + ", в земле " + buried + "; рёбра " + ribs + ": кости " + rib + ", из них выше 4 блоков " + high);
             return "череп гиганта (" + bone + " блоков кости, наполовину в земле, внутри полость и сундук) и грудная клетка (" + rib + " блоков, рёбра дугами)";
+        });
+        t("Прохождение", "Доски из дерева Ветеи и крафты из них", () -> {
+            StringBuilder sb = new StringBuilder();
+            boolean ok = true;
+            for (com.divinerpgextended.block.BlockVetheaPlanks.Wood wd : com.divinerpgextended.block.BlockVetheaPlanks.Wood.values()) {
+                net.minecraft.block.Block pl = com.divinerpgextended.registry.ModBlocks.vetheaPlanks[wd.ordinal()];
+                net.minecraft.inventory.InventoryCrafting g1 = grid();
+                g1.setInventorySlotContents(0, new ItemStack(wd.log()));
+                ItemStack planks = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(g1, server.worldServerForDimension(0));
+                net.minecraft.inventory.InventoryCrafting g2 = grid();
+                for (int i : new int[] { 0, 1, 3, 4 }) g2.setInventorySlotContents(i, new ItemStack(pl));
+                ItemStack table = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(g2, server.worldServerForDimension(0));
+                net.minecraft.inventory.InventoryCrafting g3 = grid();
+                g3.setInventorySlotContents(0, new ItemStack(pl));
+                g3.setInventorySlotContents(3, new ItemStack(pl));
+                ItemStack sticks = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(g3, server.worldServerForDimension(0));
+                boolean good = planks != null && planks.getItem() == net.minecraft.item.Item.getItemFromBlock(pl) && planks.stackSize == 4
+                    && table != null && table.getItem() == net.minecraft.item.Item.getItemFromBlock(Blocks.crafting_table)
+                    && sticks != null && sticks.getItem() == net.minecraft.init.Items.stick;
+                ok &= good;
+                sb.append(wd.key()).append(good ? " ок; " : " бревно -> " + planks + ", верстак " + table + ", палки " + sticks + "; ");
+            }
+            check(ok, sb.toString());
+            return "4 дерева Ветеи: бревно - 4 доски, из досок верстак и палки (доски в рудном словаре plankWood)";
+        });
+        t("Логова", "Iceika: Морозный лучник стреляет раз в 1-2 секунды", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
+            int x0 = 9800, y0 = 70, z0 = 9800;
+            loadAround(w, x0, z0, 1);
+            for (int x = x0 - 8; x <= x0 + 8; x++) for (int z = z0 - 8; z <= z0 + 8; z++) for (int y = y0 - 1; y <= y0 + 5; y++)
+                w.setBlock(x, y, z, y == y0 - 1 ? Blocks.stone : Blocks.air);
+            TestPlayer fp = join(player(ConfigurationHelper.iceika, "TestFrostArcher", x0 + 6.5, y0, z0 + 0.5), true);
+            net.divinerpg.entities.iceika.EntityFrostArcher fa = new net.divinerpg.entities.iceika.EntityFrostArcher(w);
+            fa.setLocationAndAngles(x0 + 0.5, y0, z0 + 0.5, 0, 0);
+            w.spawnEntityInWorld(fa);
+            fa.setAttackTarget(fp);
+            int arrows = 0;
+            for (int i = 0; i < 100; i++) {
+                fa.setAttackTarget(fp);
+                java.util.Set<Object> before = new java.util.HashSet<Object>(w.loadedEntityList);
+                fa.onUpdate();
+                for (Object o : w.loadedEntityList)
+                    if (!before.contains(o) && o instanceof net.minecraft.entity.projectile.EntityArrow && ((net.minecraft.entity.projectile.EntityArrow) o).shootingEntity == fa) {
+                        arrows++;
+                        ((net.minecraft.entity.Entity) o).setDead();
+                    }
+            }
+            fa.setDead();
+            server.getConfigurationManager().playerEntityList.remove(fp);
+            w.removeEntity(fp);
+            check(arrows >= 2 && arrows <= 6, "стрел за 5 секунд: " + arrows);
+            return "за 5 секунд по игроку в 6 блоках - " + arrows + " стрел (у Divine было бы около 50)";
+        });
+        t("Логова", "Рядом с боссом не полетать (кроме Скайтерна)", () -> {
+            String log = "";
+            boolean ok = true;
+            int[] dims = { ConfigurationHelper.iceika, ConfigurationHelper.skythern };
+            for (int k2 = 0; k2 < 2; k2++) {
+                WorldServer w = server.worldServerForDimension(dims[k2]);
+                int x0 = 9700, y0 = 150, z0 = 9700;
+                loadAround(w, x0, z0, 2);
+                TestPlayer fl = join(player(dims[k2], "TestNoFly" + k2, x0 + 12.5, y0 + 11, z0 + 0.5), true);
+                fl.capabilities.allowFlying = true;
+                fl.capabilities.isFlying = true;
+                net.minecraft.entity.EntityLiving boss = k2 == 0 ? new com.divinerpgextended.entity.EntityFrostColossus(w) : new com.divinerpgextended.entity.EntityWindLord(w);
+                boss.setLocationAndAngles(x0 + 0.5, y0 + 1, z0 + 0.5, 0, 0);
+                w.spawnEntityInWorld(boss);
+                new com.divinerpgextended.boss.BossNoFly().onTick(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, fl));
+                boolean flying = fl.capabilities.isFlying;
+                boss.setDead();
+                fl.capabilities.isFlying = true;
+                new com.divinerpgextended.boss.BossNoFly().onTick(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, fl));
+                boolean after = fl.capabilities.isFlying;
+                server.getConfigurationManager().playerEntityList.remove(fl);
+                w.removeEntity(fl);
+                ok &= k2 == 0 ? !flying && after : flying && after;
+                log += (k2 == 0 ? "Iceika у Колосса" : "Скайтерн у Повелителя ветров") + ": летит " + flying + ", после смерти босса летит " + after + "; ";
+            }
+            check(ok, log);
+            return "у Ледяного Колосса полёт выключается, без босса снова можно; в Скайтерне у Повелителя ветров летать можно";
+        });
+        t("Сумеречные миры", "Рамка портала, построенная телепортом, ничего не роняет", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
+            int x0 = 9600, z0 = 9600;
+            loadAround(w, x0, z0, 2);
+            TestPlayer pp = player(ConfigurationHelper.wildwood, "TestPortal", x0 + 0.5, 100, z0 + 0.5);
+            net.minecraft.block.Block frame = net.divinerpg.utils.blocks.TwilightBlocks.edenBlock;
+            com.divinerpgextended.portal.FastTeleporter tp = new com.divinerpgextended.portal.FastTeleporter(w, ConfigurationHelper.wildwood,
+                net.divinerpg.utils.blocks.TwilightBlocks.wildwoodPortal, frame);
+            tp.makePortal(pp);
+            com.divinerpgextended.portal.PortalFrames pf = com.divinerpgextended.portal.PortalFrames.get(w);
+            int marked = 0;
+            int[] one = null;
+            for (int x = x0 - 20; x <= x0 + 20; x++) for (int z = z0 - 20; z <= z0 + 20; z++) for (int y = 1; y < 255; y++)
+                if (w.getBlock(x, y, z) == frame && pf.has(x, y, z)) {
+                    marked++;
+                    if (one == null) one = new int[] { x, y, z };
+                }
+            // добыча: отмеченный блок - пусто; такой же блок, поставленный руками, - сам блок
+            java.util.ArrayList<ItemStack> d1 = frame.getDrops(w, one[0], one[1], one[2], 0, 0);
+            net.minecraftforge.event.ForgeEventFactory.fireBlockHarvesting(d1, w, frame, one[0], one[1], one[2], 0, 0, 1.0F, false, pp);
+            w.setBlock(x0 + 30, 120, z0, frame);
+            java.util.ArrayList<ItemStack> d2 = frame.getDrops(w, x0 + 30, 120, z0, 0, 0);
+            net.minecraftforge.event.ForgeEventFactory.fireBlockHarvesting(d2, w, frame, x0 + 30, 120, z0, 0, 0, 1.0F, false, pp);
+            w.setBlockToAir(x0 + 30, 120, z0);
+            check(marked >= 10 && d1.isEmpty() && !d2.isEmpty(), "отмечено блоков рамки " + marked + ", дроп отмеченного " + d1 + ", дроп своего " + d2);
+            return "портал телепорта в Диком лесу: " + marked + " блоков Эдема в рамке, добытые - пусто; свой блок Эдема роняет себя";
+        });
+        t("Прохождение", "Вагонетка Апалачии: крен вида и мышь на стене и потолке", () -> {
+            StringBuilder sb = new StringBuilder();
+            boolean ok = true;
+            // пол - крена нет; потолок - вверх ногами; стена на восток при взгляде на юг - "верх" вагонетки (восток) вверху экрана
+            double floor = com.divinerpgextended.entity.SkyCartView.roll(37, 20, new double[] { 0, 1, 0 });
+            double ceil = com.divinerpgextended.entity.SkyCartView.roll(0, 0, new double[] { 0, -1, 0 });
+            double wall = com.divinerpgextended.entity.SkyCartView.roll(0, 0, new double[] { 1, 0, 0 });
+            ok &= Math.abs(floor) < 0.01 && Math.abs(Math.abs(ceil) - 180) < 0.01 && Math.abs(wall + 90) < 0.01;
+            sb.append("пол ").append((int) floor).append(", потолок ").append((int) ceil).append(", стена ").append((int) wall).append("; ");
+            // мышь: сдвиг "вверх по экрану" и "вправо по экрану" ведёт взгляд туда, куда на наклонённом экране верх и право
+            java.util.Random rnd = new java.util.Random(5);
+            int bad = 0;
+            for (int i = 0; i < 200; i++) {
+                double yaw = rnd.nextDouble() * 360, pitch = rnd.nextDouble() * 100 - 50; // круче 60 градусов поворот по горизонтали короче и без крена (как в игре)
+                double[] up = { rnd.nextGaussian(), rnd.nextGaussian(), rnd.nextGaussian() };
+                double r = com.divinerpgextended.entity.SkyCartView.roll(yaw, pitch, up);
+                if (Double.isNaN(r)) continue;
+                double rr = Math.toRadians(r);
+                double[] R = com.divinerpgextended.entity.SkyCartView.screenRight(yaw, pitch), C = com.divinerpgextended.entity.SkyCartView.screenUp(yaw, pitch);
+                double[] su = { Math.sin(rr) * R[0] + Math.cos(rr) * C[0], Math.sin(rr) * R[1] + Math.cos(rr) * C[1], Math.sin(rr) * R[2] + Math.cos(rr) * C[2] };
+                double[] sr = { Math.cos(rr) * R[0] - Math.sin(rr) * C[0], Math.cos(rr) * R[1] - Math.sin(rr) * C[1], Math.cos(rr) * R[2] - Math.sin(rr) * C[2] };
+                // верх вагонетки (в плоскости экрана) смотрит вверх экрана
+                double[] f0 = com.divinerpgextended.entity.SkyCartView.look(yaw, pitch);
+                double kf = up[0] * f0[0] + up[1] * f0[1] + up[2] * f0[2];
+                double[] upp = { up[0] - f0[0] * kf, up[1] - f0[1] * kf, up[2] - f0[2] * kf };
+                double ul = Math.sqrt(upp[0] * upp[0] + upp[1] * upp[1] + upp[2] * upp[2]);
+                if ((upp[0] * su[0] + upp[1] * su[1] + upp[2] * su[2]) / ul < 0.999) bad++;
+                for (int dir = 0; dir < 2; dir++) {
+                    float[] m = com.divinerpgextended.entity.SkyCartView.mouse(dir == 0 ? 0 : 1, dir == 0 ? 1 : 0, r);
+                    double[] f1 = com.divinerpgextended.entity.SkyCartView.look(yaw + m[0] * 0.15, pitch - m[1] * 0.15);
+                    double[] df = { f1[0] - f0[0], f1[1] - f0[1], f1[2] - f0[2] };
+                    double dl = Math.sqrt(df[0] * df[0] + df[1] * df[1] + df[2] * df[2]);
+                    double[] want = dir == 0 ? su : sr;
+                    if ((df[0] * want[0] + df[1] * want[1] + df[2] * want[2]) / dl < 0.95) bad++;
+                }
+            }
+            ok &= bad == 0;
+            sb.append("несовпадений мыши и верха ").append(bad);
+            check(ok, sb.toString());
+            return "на полу крена нет, на потолке картинка вверх ногами, на стене - на бок; мышь вверх/вправо по экрану ведёт взгляд вверх/вправо по экрану (200 случайных положений)";
+        });
+        t("Логова", "Iceika: Ледяной Трон - заселение Divine мимо, всё освещено", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
+            int[] c = com.divinerpgextended.world.WorldGenThrone.nearest(w.getSeed(), 0, 0);
+            int px = c[0] + 60, pz = c[2] + 40;
+            loadAround(w, px, pz, 3);
+            // снимок купола, потом заселение Divine по чанкам вокруг ещё раз: подземелья, озёра, деревья - мимо Трона
+            int[] snap = new int[41 * 41 * 56];
+            int ki = 0;
+            for (int x = px - 20; x <= px + 20; x++) for (int z = pz - 20; z <= pz + 20; z++) for (int y = 5; y < 61; y++)
+                snap[ki++] = net.minecraft.block.Block.getIdFromBlock(w.getBlock(x, y, z));
+            int skipped0 = com.divinerpgextended.asm.IceikaThroneHooks.skipped;
+            for (int cx = (px >> 4) - 2; cx <= (px >> 4) + 1; cx++) for (int cz = (pz >> 4) - 2; cz <= (pz >> 4) + 1; cz++)
+                w.theChunkProviderServer.currentChunkProvider.populate(w.theChunkProviderServer, cx, cz);
+            int changed = 0;
+            ki = 0;
+            for (int x = px - 20; x <= px + 20; x++) for (int z = pz - 20; z <= pz + 20; z++) for (int y = 5; y < 61; y++)
+                if (snap[ki++] != net.minecraft.block.Block.getIdFromBlock(w.getBlock(x, y, z))) changed++;
+            int skipped = com.divinerpgextended.asm.IceikaThroneHooks.skipped - skipped0;
+            boolean inside = com.divinerpgextended.world.WorldGenThrone.shields(w, px, 30, pz)
+                && !com.divinerpgextended.world.WorldGenThrone.shields(w, c[0] + 400, 30, c[2] + 400)
+                && !com.divinerpgextended.world.WorldGenThrone.shields(w, px, 120, pz);
+            // освещение: пол арены и ступени лестниц цитадели - свет не ниже 8 (мобы не родятся)
+            com.divinerpgextended.world.WorldGenThrone.flush(w); // очередь света, которую игра досчитала бы в ближайшую секунду
+            int fl = com.divinerpgextended.world.WorldGenThrone.FLOOR, floorSpots = 0, darkFloor = 0, steps = 0, darkSteps = 0;
+            StringBuilder floorAt = new StringBuilder();
+            for (int x = px - 20; x <= px + 20; x++) for (int z = pz - 20; z <= pz + 20; z++) {
+                if (!w.isAirBlock(x, fl, z) || !w.isAirBlock(x, fl + 1, z) || !w.getBlock(x, fl - 1, z).isOpaqueCube()) continue;
+                floorSpots++;
+                if (w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Block, x, fl, z) < 8) {
+                    if (darkFloor++ < 3) floorAt.append(x - c[0]).append(",").append(z - c[2]).append("=").append(w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Block, x, fl, z))
+                        .append(" ").append(around(w, x, fl, z)).append("; ");
+                }
+            }
+            loadAround(w, c[0], c[2], 2);
+            com.divinerpgextended.world.WorldGenThrone.flush(w); // что игра досчитала бы в ближайшую секунду
+            StringBuilder darkAt = new StringBuilder();
+            for (int side = -1; side <= 1; side += 2) for (int x = -5; x <= 5; x++) for (int z = -5; z <= 5; z++) {
+                if (x * x + z * z > 21) continue;
+                int stx = c[0] + side * 14 + x, stz = c[2] + z;
+                for (int y = fl + 1; y < com.divinerpgextended.world.WorldGenThrone.TOP; y++) {
+                    if (!w.isAirBlock(stx, y, stz) || !w.isAirBlock(stx, y + 1, stz) || w.isAirBlock(stx, y - 1, stz)) continue;
+                    steps++;
+                    if (w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Block, stx, y, stz) < 8) {
+                        int lv = w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Block, stx, y, stz);
+                        if (lv < 8) {
+                            darkSteps++;
+                            if (darkAt.length() < 600) darkAt.append(side * 14 + x).append(",").append(y - fl).append(",").append(z).append("=").append(lv).append(" ").append(around(w, stx, y, stz)).append("; ");
+                        }
+                    }
+                }
+            }
+            // спавн в Троне запрещён при любом свете; снаружи - как обычно
+            net.minecraft.entity.monster.EntityZombie zs = new net.minecraft.entity.monster.EntityZombie(w);
+            net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn inSpawn = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(zs, w, px, fl, pz);
+            MinecraftForge.EVENT_BUS.post(inSpawn);
+            net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn outSpawn = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(zs, w, c[0] + 400, 70, c[2] + 400);
+            MinecraftForge.EVENT_BUS.post(outSpawn);
+            boolean spawns = "DENY".equals(inSpawn.getResult().name()) && !"DENY".equals(outSpawn.getResult().name());
+            // свет - для вида: в сборке единичные места бывают тёмными (освещение пересчитывает кто-то из модов), спавна там всё равно нет
+            check(changed == 0 && skipped > 0 && inside && spawns && floorSpots > 500 && darkFloor * 100 <= floorSpots && steps > 50 && darkSteps * 100 <= steps,
+                "в куполе изменилось блоков " + changed + ", генераторов пропущено " + skipped + ", граница Трона " + inside + ", спавн в Троне запрещён " + spawns + "; пол: мест " + floorSpots + ", тёмных " + darkFloor + " (" + floorAt + ")"
+                    + "; ступени: мест " + steps + ", тёмных " + darkSteps + " (" + darkAt + ")");
+            return "повторное заселение 16 чанков над куполом: в Троне не изменилось ни блока, генераторов Divine пропущено " + skipped + "; пол арены (" + floorSpots
+                + " мест, тёмных " + darkFloor + ") и ступени лестниц (" + steps + ", тёмных " + darkSteps + ") освещены; мобы в Троне сами не появляются";
         });
         t("Логова", "Iceika: новогодняя ёлка", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
@@ -4965,8 +5279,42 @@ public class SelfTest {
                 res[pass] = cs.getResult().name();
             }
             for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.boss.Boss.values()) com.divinerpgextended.boss.BossProgress.revoke(low, b);
-            check(got[0] == 0 && "DENY".equals(res[0]) && !"DENY".equals(res[1]), "мобов Энда при игроке ранга 0: " + got[0] + " (" + where + "); смотритель в 150 блоках: ранг 0 - " + res[0] + ", ранг 3 - " + res[1]);
-            return "естественный спавн в Энде при игроке ранга 0: мобов Divine " + got[0] + " (при ранге 3 - " + got[1] + "); смотритель в 150 блоках от игрока ранга 0 запрещён, ранга 3 - разрешён";
+            // в Энде игрок ранга 0 рядом с игроком ранга 3 спавну не мешает; в обычном мире правило прежнее - решает слабый
+            TestPlayer high = join(player(1, "TestEndHigh", 60.5, y + 1, 60.5), true);
+            com.divinerpgextended.boss.BossProgress.grant(high, com.divinerpgextended.boss.Boss.LICH_KING);
+            com.divinerpgextended.boss.BossProgress.grant(high, com.divinerpgextended.boss.Boss.ANCIENT_ENTITY);
+            net.divinerpg.entities.vanilla.EntityEnderWatcher ew2 = new net.divinerpg.entities.vanilla.EntityEnderWatcher(w);
+            ew2.setPosition(50.5, y + 1, 50.5);
+            net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn both = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(ew2, w,
+                (float) ew2.posX, (float) ew2.posY, (float) ew2.posZ);
+            MinecraftForge.EVENT_BUS.post(both);
+            int lowHits = 0;
+            ew2.setAttackTarget(low);
+            net.minecraftforge.common.ForgeHooks.onLivingSetAttackTarget(ew2, low);
+            if (ew2.getAttackTarget() == low) lowHits++;
+            WorldServer owEnd = server.worldServerForDimension(0);
+            TestPlayer owLow = join(player(0, "TestOwLow", 30000.5, 80, 30000.5), true);
+            TestPlayer owHigh = join(player(0, "TestOwHigh", 30020.5, 80, 30020.5), true);
+            com.divinerpgextended.boss.BossProgress.grant(owHigh, com.divinerpgextended.boss.Boss.LICH_KING);
+            net.divinerpg.entities.vanilla.EntityCyclops cy = new net.divinerpg.entities.vanilla.EntityCyclops(owEnd);
+            cy.setPosition(30010.5, 80, 30010.5);
+            net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn owBoth = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(cy, owEnd,
+                (float) cy.posX, (float) cy.posY, (float) cy.posZ);
+            MinecraftForge.EVENT_BUS.post(owBoth);
+            for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.boss.Boss.values()) {
+                com.divinerpgextended.boss.BossProgress.revoke(high, b);
+                com.divinerpgextended.boss.BossProgress.revoke(owHigh, b);
+            }
+            for (TestPlayer gone : new TestPlayer[] { high, owLow, owHigh }) { // не мешать спавну в следующих тестах
+                server.getConfigurationManager().playerEntityList.remove(gone);
+                gone.worldObj.removeEntity(gone);
+            }
+            check(got[0] == 0 && "DENY".equals(res[0]) && !"DENY".equals(res[1]) && !"DENY".equals(both.getResult().name()) && lowHits == 0
+                && "DENY".equals(owBoth.getResult().name()),
+                "мобов Энда при игроке ранга 0: " + got[0] + " (" + where + "); смотритель в 150 блоках: ранг 0 - " + res[0] + ", ранг 3 - " + res[1]
+                    + "; в Энде игроки рангов 0 и 3 вместе: " + both.getResult() + ", слабого целит " + lowHits + "; в обычном мире ранги 0 и 2 вместе: " + owBoth.getResult());
+            return "естественный спавн в Энде при игроке ранга 0: мобов Divine " + got[0] + " (при ранге 3 - " + got[1] + "); смотритель в 150 блоках от игрока ранга 0 запрещён, ранга 3 - разрешён; "
+                + "в Энде игрок ранга 0 рядом с игроком ранга 3 спавну не мешает (сам целью не становится), в обычном мире по-прежнему решает слабый";
         });
         t("Логова", "Гнездовье Айрако", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.AYERACO;

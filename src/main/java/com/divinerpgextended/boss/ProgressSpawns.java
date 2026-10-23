@@ -35,6 +35,8 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * <li>Ранг 3 (убита Древняя сущность): мобы Энда - эндер-пауки, тройняшки и эндер-смотрители (с них глаз для
  * призыва Смотрителя, а Смотритель открывает Аркану).</li>
  * </ul>
+ * В Энде наоборот - решает самый сильный: моб появляется, если рядом есть хоть один игрок нужного ранга (игрок ниже
+ * рангом не может нарочно мешать фарму; его самого такие мобы не трогают).
  * Моб появляется, только если у всех игроков, вокруг которых игра вообще спавнит мобов (8 чанков от чанка игрока -
  * до ~180 блоков по диагонали; раньше было 128 блоков, и мобы рождались за этим кругом и приходили), ранг не ниже нужного - решает самый слабый, чтобы тот,
  * кто не качает Divine, не страдал из-за соседа. Если моб уже есть, а рядом игрок ниже рангом, моб его не трогает.
@@ -94,14 +96,15 @@ public class ProgressSpawns {
         int need = tier(event.entityLiving);
         if (need == 0) return;
         int cx = MathHelper.floor_double(event.x) >> 4, cz = MathHelper.floor_double(event.z) >> 4;
+        // в Энде решает самый сильный: игрок ниже рангом не мешает спавну тому, кому эти мобы нужны (его самого они не трогают)
+        boolean end = event.world.provider.dimensionId == 1, low = false;
         for (Object o : event.world.playerEntities) {
             EntityPlayer p = (EntityPlayer) o;
-            if (Math.abs(cx - (MathHelper.floor_double(p.posX) >> 4)) <= SPAWN_CHUNKS && Math.abs(cz - (MathHelper.floor_double(p.posZ) >> 4)) <= SPAWN_CHUNKS
-                && rank(p) < need) {
-                event.setResult(Event.Result.DENY);
-                return;
-            }
+            if (Math.abs(cx - (MathHelper.floor_double(p.posX) >> 4)) > SPAWN_CHUNKS || Math.abs(cz - (MathHelper.floor_double(p.posZ) >> 4)) > SPAWN_CHUNKS) continue;
+            if (rank(p) < need) low = true;
+            else if (end) return;
         }
+        if (low) event.setResult(Event.Result.DENY);
     }
 
     /** Моб не выбирает целью игрока ниже своего ранга. */

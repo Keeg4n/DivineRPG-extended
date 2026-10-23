@@ -6,24 +6,48 @@ import net.minecraft.entity.Entity;
 import org.lwjgl.opengl.GL11;
 
 import com.divinerpgextended.entity.EntitySkyCart;
+import com.divinerpgextended.entity.SkyCartView;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Вид из вагонетки Апалачии: мир поворачивается вместе с ней - на стене наклонён, на потолке вверх ногами (раньше камера
- * держала горизонт, как стабилизатор). Взгляд мышью - относительно вагонетки. Тот же поворот, что у седока в виде от
- * 3-го лица ({@link RenderSkyCart#tilt}), только обратный: поворачиваем мир, а не игрока.
+ * Вид из вагонетки Апалачии: на стене и потолке картинка наклоняется вокруг оси взгляда так, чтобы "верх" вагонетки
+ * был вверху экрана, а сам взгляд остаётся настоящим (раньше поворачивался весь мир, и на потолке игра считала взгляд
+ * "вверх" взглядом "вниз" - удары и клики уходили не туда). Мышь поворачивается на тот же угол ({@link #angles}).
  */
 @SideOnly(Side.CLIENT)
 public class CameraTilt {
 
+    /** Последний крен (градусы): когда смотрим вдоль "верха" вагонетки, крен не определён - держим прежний. */
+    private static double last;
+
+    private static EntitySkyCart cart(Entity v) {
+        return v != null && v.ridingEntity instanceof EntitySkyCart ? (EntitySkyCart) v.ridingEntity : null;
+    }
+
+    /** В начале EntityRenderer.orientCamera: крен вокруг оси взгляда. */
     public static void apply(float pt) {
         Entity v = Minecraft.getMinecraft().renderViewEntity;
-        if (v == null || !(v.ridingEntity instanceof EntitySkyCart)) return;
-        EntitySkyCart c = (EntitySkyCart) v.ridingEntity;
-        double[] t = RenderSkyCart.tilt(c, RenderSkyCart.up(c, pt));
-        if (t == null) return;
-        GL11.glRotated(-t[0], t[1], 0, t[2]);
+        EntitySkyCart c = cart(v);
+        if (c == null) {
+            last = 0;
+            return;
+        }
+        double yaw = v.prevRotationYaw + (v.rotationYaw - v.prevRotationYaw) * pt;
+        double pitch = v.prevRotationPitch + (v.rotationPitch - v.prevRotationPitch) * pt;
+        double r = SkyCartView.roll(yaw, pitch, RenderSkyCart.up(c, pt));
+        if (!Double.isNaN(r)) last = r;
+        if (Math.abs(last) > 0.01) GL11.glRotated(last, 0, 0, 1);
+    }
+
+    /** Вместо Entity.setAngles в EntityRenderer.updateCameraAndRender: сдвиг мыши - в осях наклонённого экрана. */
+    public static void angles(Entity e, float dx, float dy) {
+        if (cart(e) != null && Math.abs(last) > 0.01) {
+            float[] m = SkyCartView.mouse(dx, dy, last);
+            dx = m[0];
+            dy = m[1];
+        }
+        e.setAngles(dx, dy);
     }
 }

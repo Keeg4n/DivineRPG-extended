@@ -164,7 +164,17 @@ public class WorldGenNests implements IWorldGenerator {
         ColumnStructure s = tw == TwilightWorld.MORTUM ? MortumArenas.shape(MortumArenas.typeAt(world, c)) : shape(tw, c);
         s.buildSlice(world, c[0], c[2], x0, z0);
         int top = top(world.provider.dimensionId);
-        s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, top + 1, Math.min(250, top + 100));
+        s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, top + 1, tw == TwilightWorld.SKYTHERN ? 255 : Math.min(250, top + 100));
+    }
+
+    /**
+     * Над островом храма Скайтерна небо открыто, и поверхность там - сам храм: деревья Скайтерна (они садятся на высоту
+     * поверхности) выросли бы на колоннаде и карнизе. Им здесь не место.
+     */
+    public static boolean templeIsland(World w, int x, int z) {
+        if (TwilightWorld.of(w.provider.dimensionId) != TwilightWorld.SKYTHERN) return false;
+        int[] c = nearest(w.getSeed(), w.provider.dimensionId, x, z);
+        return c != null && (x - c[0]) * (x - c[0]) + (z - c[2]) * (z - c[2]) <= (Temple.R_ISLAND + 10) * (Temple.R_ISLAND + 10);
     }
 
     public static ColumnStructure shape(TwilightWorld tw, int[] c) {
@@ -716,9 +726,8 @@ public class WorldGenNests implements IWorldGenerator {
             double rOut = outline(dx, dz, R_ISLAND + 2, salt);
             if (r > rOut) return false;
             tornBase(dx, dz, r, rOut, torn, salt, col, 1.3);
-            for (int y = TOP + 1; y <= TOP + COL_H + 8; y++) put(col, y, AIR, 0);
-            // колодец к небу над колоннадой: верхние пласты Скайтерна пробиты, в храм падает свет
-            if (r < PERI - 2) for (int y = TOP + COL_H + 9; y <= TOP + 100; y++) put(col, y, AIR, 0);
+            // над всем островом храма - открытое небо до верха мира: верхние пласты Скайтерна пробиты, в храм падает свет
+            for (int y = TOP + 1; y <= 255; y++) put(col, y, AIR, 0);
             if (r > STYLO + 1.5) {
                 put(col, TOP, GRASS, 0); // терраса, дальше склон к обрыву
                 slope(dx, dz, r, STYLO + 4, rOut, salt, col, GRASS);

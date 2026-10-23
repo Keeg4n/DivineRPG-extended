@@ -46,6 +46,8 @@ public final class ModBlocks {
     public static net.minecraftforge.fluids.Fluid letheFluid;
     /** Лампы сумеречных миров по номеру TwilightWorld; [EDEN] пусто - у Эдема лампа Divine. */
     public static final Block[] worldLamp = new Block[5];
+    /** Доски дерева Ветеи (по {@link com.divinerpgextended.block.BlockVetheaPlanks.Wood}). */
+    public static final Block[] vetheaPlanks = new Block[4];
     private static final int[] TORCH_COLOR = { 0xFFD84A, 0x5AA8FF, 0xC070FF, 0xE8ECF4, 0xE04040 };
 
     private ModBlocks() {}
@@ -101,6 +103,13 @@ public final class ModBlocks {
             if (w == com.divinerpgextended.world.twilight.TwilightWorld.EDEN) continue;
             worldLamp[w.ordinal()] = new com.divinerpgextended.block.BlockWorldLamp(w);
             GameRegistry.registerBlock(worldLamp[w.ordinal()], "worldLamp_" + w.key());
+        }
+        for (com.divinerpgextended.block.BlockVetheaPlanks.Wood w : com.divinerpgextended.block.BlockVetheaPlanks.Wood.values()) {
+            vetheaPlanks[w.ordinal()] = new com.divinerpgextended.block.BlockVetheaPlanks(w);
+            GameRegistry.registerBlock(vetheaPlanks[w.ordinal()], "vetheaPlanks_" + w.key());
+            net.minecraft.init.Blocks.fire.setFireInfo(vetheaPlanks[w.ordinal()], 5, 20); // горят как доски (после регистрации - нужен id)
+            net.minecraftforge.oredict.OreDictionary.registerOre("plankWood", vetheaPlanks[w.ordinal()]);
+            GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(vetheaPlanks[w.ordinal()], 4), w.log());
         }
         skyRail = new com.divinerpgextended.block.BlockSkyRail();
         GameRegistry.registerBlock(skyRail, "skyRail");

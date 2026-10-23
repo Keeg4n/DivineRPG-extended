@@ -128,8 +128,12 @@ public class EntityWindLord extends EntityGroveGuardian {
         return remote[i];
     }
 
-    /** Игрок начал заряжать тотем (клик по нему). */
+    /** Игрок начал заряжать тотем (клик по нему). Повторный клик по тому же тотему отсчёт не сбрасывает. */
     public void startCharge(int x, int y, int z, EntityPlayer p) {
+        if (charging() && chargeX == x && chargeY == y && chargeZ == z) {
+            charger = p;
+            return;
+        }
         chargeX = x;
         chargeY = y;
         chargeZ = z;

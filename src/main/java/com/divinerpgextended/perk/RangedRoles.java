@@ -491,6 +491,23 @@ public class RangedRoles {
             && a.canBePickedUp == 1) a.canBePickedUp = 2;
     }
 
+    /** Пауза Морозного лучника между выстрелами (тики): у Divine - 2 тика, десять стрел в секунду. */
+    public static final int FROST_ARCHER_MIN = 20, FROST_ARCHER_MAX = 40;
+
+    /** Морозный лучник стреляет как скелет - раз в 1-2 секунды, а не очередью. */
+    @SubscribeEvent
+    public void onFrostArcher(EntityJoinWorldEvent e) {
+        if (e.world.isRemote || !(e.entity instanceof net.divinerpg.entities.iceika.EntityFrostArcher)) return;
+        net.divinerpg.entities.iceika.EntityFrostArcher a = (net.divinerpg.entities.iceika.EntityFrostArcher) e.entity;
+        for (Object o : new java.util.ArrayList<Object>(a.tasks.taskEntries)) {
+            net.minecraft.entity.ai.EntityAITasks.EntityAITaskEntry t = (net.minecraft.entity.ai.EntityAITasks.EntityAITaskEntry) o;
+            if (!(t.action instanceof net.minecraft.entity.ai.EntityAIArrowAttack)) continue;
+            a.tasks.removeTask(t.action);
+            a.tasks.addTask(t.priority, new net.minecraft.entity.ai.EntityAIArrowAttack(a,
+                a.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.movementSpeed).getBaseValue(), FROST_ARCHER_MIN, FROST_ARCHER_MAX, 10.0F));
+        }
+    }
+
     public static int kind(Entity bullet) {
         return bullet == null ? 0 : bullet.getEntityData().getInteger(KIND);
     }

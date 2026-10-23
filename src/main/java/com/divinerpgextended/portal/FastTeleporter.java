@@ -48,6 +48,16 @@ public class FastTeleporter extends DivineTeleporter {
         return super.placeInExistingPortal(entity, x, y, z, rotation);
     }
 
+    /** Новый портал на этой стороне: его рамку (и площадку) отмечаем - добытая, она ничего не роняет ({@link PortalFrames}). */
+    @Override
+    public boolean makePortal(Entity entity) {
+        int ex = MathHelper.floor_double(entity.posX), ez = MathHelper.floor_double(entity.posZ), r = 20;
+        java.util.Set<Long> before = PortalFrames.snapshot(field_85192_a, frameBlock, ex, ez, r);
+        boolean made = super.makePortal(entity);
+        PortalFrames.mark(field_85192_a, frameBlock, before, ex, ez, r);
+        return made;
+    }
+
     /** Ближайший блок портала (нижний в своём столбе) в квадрате радиуса 128, как у Divine; null - нет. */
     int[] find(Entity entity, int ex, int ez) {
         ChunkProviderServer cps = field_85192_a.theChunkProviderServer;

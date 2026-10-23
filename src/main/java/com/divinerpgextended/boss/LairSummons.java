@@ -38,7 +38,18 @@ public class LairSummons {
         if (held == null) return;
         if (e.world.getBlock(e.x, e.y, e.z) instanceof BlockBossAltar) return; // алтарь решает сам
         String refuse = refusal(p, held.getItem(), e.x, e.y, e.z);
-        if (refuse == null) return;
+        if (refuse == null) {
+            // большие боссы арен: кристалл ставит их на свободное место арены, а не впритык к алтарю
+            com.divinerpgextended.world.twilight.MortumArenas.Type t = held.getItem() instanceof ItemTwilightSpawner
+                ? com.divinerpgextended.world.twilight.MortumArenas.ofCrystal(held.getItem()) : null;
+            int[] c = t == null ? null : com.divinerpgextended.world.twilight.MortumArenas.nearest(e.world, e.x, e.z);
+            int[] s = c == null ? null : com.divinerpgextended.world.twilight.MortumArenas.summonBlock(e.world, t, c);
+            if (s != null && (s[0] != e.x || s[1] != e.y || s[2] != e.z)) {
+                e.useItem = Event.Result.DENY;
+                held.getItem().onItemUse(held, p, e.world, s[0], s[1], s[2], 1, 0.5F, 1.0F, 0.5F);
+            }
+            return;
+        }
         e.useItem = Event.Result.DENY;
         p.addChatMessage(new ChatComponentTranslation(refuse));
         ((net.minecraft.world.WorldServer) e.world).func_147487_a("smoke", e.x + 0.5, e.y + 1.2, e.z + 0.5, 12, 0.2, 0.2, 0.2, 0.02);

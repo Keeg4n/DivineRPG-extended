@@ -120,7 +120,27 @@ public final class SkyTrack {
             if (d != n && d != n.getOpposite() && track(w, x, y, z, d)) out.add(off(d));
         ForgeDirection c = corner(w, x, y, z);
         if (c != NONE) out.add(off(n.getOpposite()));
+        // внешнее ребро: рельса дальше в своей плоскости нет, а за ребром опоры на соседней грани того же блока - есть
+        for (ForgeDirection d : ForgeDirection.VALID_DIRECTIONS) {
+            if (d == n || d == n.getOpposite() || track(w, x, y, z, d)) continue;
+            if (outerTo(w, x, y, z, d)) out.add(new int[] { d.offsetX + n.offsetX, d.offsetY + n.offsetY, d.offsetZ + n.offsetZ });
+        }
         return out;
+    }
+
+    /** За ребром опоры в сторону d (вдоль своей плоскости) - рельс на соседней грани того же блока. */
+    private static boolean outerTo(IBlockAccess w, int x, int y, int z, ForgeDirection d) {
+        ForgeDirection n = support(w, x, y, z);
+        if (n == NONE || d == n || d == n.getOpposite()) return false;
+        return support(w, x + d.offsetX + n.offsetX, y + d.offsetY + n.offsetY, z + d.offsetZ + n.offsetZ) == d.getOpposite();
+    }
+
+    /** Пара a -> b через внешнее ребро: направление от a по его плоскости (UNKNOWN - не ребро). */
+    private static ForgeDirection outer(IBlockAccess w, int ax, int ay, int az, int bx, int by, int bz) {
+        ForgeDirection n = support(w, ax, ay, az);
+        if (n == NONE) return NONE;
+        ForgeDirection d = dir(bx - ax - n.offsetX, by - ay - n.offsetY, bz - az - n.offsetZ);
+        return d != NONE && outerTo(w, ax, ay, az, d) ? d : NONE;
     }
 
     private static boolean contains(List<int[]> l, ForgeDirection d) {
@@ -199,6 +219,12 @@ public final class SkyTrack {
 
     /** Стык двух соседних рельсов (середина между их краями - сглаживает неточные пары). */
     public static double[] joint(IBlockAccess w, int ax, int ay, int az, int bx, int by, int bz) {
+        // через внешнее ребро - стык на самом ребре опоры (чуть снаружи), вагонетка перекатывается через него
+        ForgeDirection od = outer(w, ax, ay, az, bx, by, bz);
+        if (od != NONE) {
+            ForgeDirection n = support(w, ax, ay, az);
+            return add(center(ax, ay, az), v(n, 0.5 - LIFT), v(od, 0.5 + LIFT));
+        }
         int dx = bx - ax, dy = by - ay, dz = bz - az;
         boolean diag = (dx != 0 || dz != 0) && dy != 0;
         ForgeDirection to = dir(dx, diag ? 0 : dy, dz);
