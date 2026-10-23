@@ -4660,6 +4660,68 @@ public class SelfTest {
             check(moat && bridge && "dre.chat.summon_lair_1".equals(out), "ров " + moat + ", мостик " + bridge + ", снаружи " + out);
             return "палата в Аду в " + c[0] + "," + c[2] + ": лавовый ров с мостиками; пламя вне палаты не работает";
         });
+        t("Логова", "Ледяная пещера освещена, спавнеры работают на свету", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            java.util.List<int[]> cells = null;
+            int cx = 0, cz = 0;
+            com.divinerpgextended.world.WorldGenLairs gen = new com.divinerpgextended.world.WorldGenLairs();
+            // по карте биомов (дёшево) ищем ровную сушу без воды на всей площади пещеры, только там строим
+            int tries = 0;
+            for (int t = 0; t < 3000 && cells == null && tries < 15; t++) {
+                cx = -24000 + (t % 60) * 400;
+                cz = 18000 + (t / 60) * 400;
+                boolean land = true;
+                for (int dx = -16; dx <= 176 && land; dx += 16) for (int dz = -64; dz <= 64 && land; dz += 16) {
+                    net.minecraft.world.biome.BiomeGenBase b = w.getWorldChunkManager().getBiomeGenAt(cx + dx, cz + dz);
+                    land = b != null && b.rootHeight > 0.05F && b.rootHeight < 0.6F && b.heightVariation < 0.3F && !com.divinerpgextended.world.Biomes.ocean(b)
+                        && !com.divinerpgextended.world.Biomes.beach(b) && !net.minecraftforge.common.BiomeDictionary.isBiomeOfType(b, net.minecraftforge.common.BiomeDictionary.Type.RIVER)
+                        && !net.minecraftforge.common.BiomeDictionary.isBiomeOfType(b, net.minecraftforge.common.BiomeDictionary.Type.SWAMP);
+                }
+                if (!land) continue;
+                tries++;
+                loadAround(w, cx + 80, cz, 9);
+                cells = gen.buildSnowDungeon(w, new java.util.Random(77 + t), cx, cz);
+            }
+            check(cells != null, "не нашлось места для пещеры");
+            int surface = w.getTopSolidOrLiquidBlock(cx, cz);
+            int dark = 0, checked = 0;
+            String firstDark = "";
+            for (int[] c : cells) {
+                if (c[1] >= surface - 3 || w.getBlock(c[0], c[1], c[2]).isOpaqueCube()) continue;
+                if (!w.getBlock(c[0], c[1] - 1, c[2]).isOpaqueCube()) continue; // только места, где может стоять моб
+                checked++;
+                int light = w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Block, c[0], c[1], c[2]);
+                if (light < 8) {
+                    dark++;
+                    if (firstDark.length() < 900) {
+                        firstDark += c[0] + "," + c[1] + "," + c[2] + " свет " + light + " пов " + surface + " [";
+                        for (int dy = 1; dy <= 4; dy++) firstDark += w.getBlock(c[0], c[1] + dy, c[2]).getUnlocalizedName().replace("tile.", "") + "/" + w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Block, c[0], c[1] + dy, c[2]) + " ";
+                        firstDark += "небо " + w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Sky, c[0], c[1], c[2]) + "]; ";
+                    }
+                }
+            }
+            // спавнер Глаконов на свету
+            String glacon = (String) net.minecraft.entity.EntityList.classToStringMapping.get(net.divinerpg.entities.vanilla.EntityGlacon.class);
+            net.minecraft.tileentity.TileEntityMobSpawner sp = null;
+            int spawners = 0;
+            for (int[] c : cells) {
+                int x = c[0], y = c[1] - 1, z = c[2];
+                if (w.getBlock(x, y, z) != com.divinerpgextended.registry.ModBlocks.lairSpawner) continue;
+                spawners++;
+                net.minecraft.tileentity.TileEntityMobSpawner te = (net.minecraft.tileentity.TileEntityMobSpawner) w.getTileEntity(x, y, z);
+                if (sp == null && te != null && glacon.equals(te.func_145881_a().getEntityNameToSpawn())) sp = te;
+            }
+            int got = 0, lightAt = -1;
+            if (sp != null) {
+                lightAt = w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Block, sp.xCoord, sp.yCoord + 1, sp.zCoord);
+                TestPlayer v = join(player(0, "TestSnowLight", sp.xCoord + 0.5, sp.yCoord + 1, sp.zCoord + 3.5), true);
+                for (int i = 0; i < 40; i++) sp.updateEntity();
+                got = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.EntityGlacon.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(sp.xCoord - 8, sp.yCoord - 4, sp.zCoord - 8, sp.xCoord + 8, sp.yCoord + 5, sp.zCoord + 8)).size();
+                for (Object o : w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.EntityGlacon.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(sp.xCoord - 8, sp.yCoord - 4, sp.zCoord - 8, sp.xCoord + 8, sp.yCoord + 5, sp.zCoord + 8))) ((net.minecraft.entity.Entity) o).setDead();
+            }
+            check(dark == 0 && checked > 200 && spawners > 0 && sp != null && got > 0, "клеток проверено " + checked + ", тёмных " + dark + " (" + firstDark + "); спавнеров логова " + spawners + ", у спавнера Глаконов свет " + lightAt + ", появилось Глаконов " + got);
+            return "пещера у " + cx + "," + cz + ": все " + checked + " мест, где может встать моб, со светом 8+ (чужие мобы не спавнятся); " + spawners + " спавнеров логова, Глакон появился на свету " + lightAt;
+        });
         t("Сервер", "Айрако без братьев сохраняется", () -> {
             WorldServer w = server.worldServerForDimension(0);
             String bad = "";

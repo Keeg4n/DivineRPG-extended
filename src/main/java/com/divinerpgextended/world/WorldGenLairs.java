@@ -51,7 +51,7 @@ public class WorldGenLairs implements IWorldGenerator {
             if (crabLair(world, rand, x, z)) DivineRPGExtended.LOG.info("Логово Карцинуса: " + x + " " + z);
         } else if (Biomes.snowyLand(biome) && Config.snowDungeonRarity > 0
             && rand.nextInt(Config.snowDungeonRarity) == 0) {
-                if (snowDungeon(world, rand, x, z)) DivineRPGExtended.LOG.info("Снежное подземелье: " + x + " " + z);
+                if (snowDungeon(world, rand, x, z) != null) DivineRPGExtended.LOG.info("Снежное подземелье: " + x + " " + z);
             }
     }
 
@@ -412,16 +412,22 @@ public class WorldGenLairs implements IWorldGenerator {
      * ледяные лампы. Спавнеры Глаконов и Фростов вмёрзли в пол под снегом. В конце - купольный зал с алтарём
      * Глакона на помосте у светящейся рунной стены.
      */
-    private boolean snowDungeon(World world, Random rand, int cx, int cz) {
+    /** Построить ледяную пещеру (для самопроверки). @return клетки пещеры или null - место не подошло */
+    public List<int[]> buildSnowDungeon(World world, Random rand, int cx, int cz) {
+        Carver c = snowDungeon(world, rand, cx, cz);
+        return c == null ? null : c.cells;
+    }
+
+    private Carver snowDungeon(World world, Random rand, int cx, int cz) {
         int surface = world.getTopSolidOrLiquidBlock(cx, cz);
         if (surface < 62 || world.getBlock(cx, surface - 1, cz)
             .getMaterial()
-            .isLiquid()) return false;
+            .isLiquid()) return null;
         int g = surface - 1; // земля, на которой стоит иглу
         // этажи пещеры: первый на 20 блоков ниже поверхности, дальше каждые 13 блоков, пока не ниже ~30 (до 3 этажей)
         List<Integer> levels = new ArrayList<Integer>();
         for (int ly = g - 20; ly >= 32 && levels.size() < 3; ly -= LEVEL_GAP) levels.add(ly);
-        if (levels.isEmpty()) return false;
+        if (levels.isEmpty()) return null;
         int y0 = levels.get(0), yLast = levels.get(levels.size() - 1);
         int mid = CAVE_ROWS / 2;
         int x0 = cx + 28, z0 = cz + 10 - mid * CAVE_STEP; // узел (0, 0)
@@ -434,7 +440,7 @@ public class WorldGenLairs implements IWorldGenerator {
                 int top = world.getTopSolidOrLiquidBlock(x, z);
                 if (top < y0 + 16 || world.getBlock(x, top - 1, z)
                     .getMaterial()
-                    .isLiquid()) return false;
+                    .isLiquid()) return null;
             }
         }
 
@@ -577,7 +583,7 @@ public class WorldGenLairs implements IWorldGenerator {
             int y = p[1];
             while (c.has(p[0], y - 1, p[2]) && p[1] - y < 5) y--;
             if (c.has(p[0], y - 1, p[2])) continue;
-            spawner(world, p[0], y - 1, p[2], spawners.size() % 3 == 2 ? frost : glacon);
+            lairSpawner(world, p[0], y - 1, p[2], spawners.size() % 3 == 2 ? frost : glacon);
             world.setBlock(p[0], y, p[2], Blocks.snow_layer, 0, 2);
             spawners.add(p);
         }
@@ -629,9 +635,13 @@ public class WorldGenLairs implements IWorldGenerator {
             }
         }
 
+        // освещена вся пещера: в темноте спавнились бы чужие мобы (на серверах Grimoire of Gaia - во всех мирах), а
+        // Глаконов и Фростов ставят спавнеры логова, им свет не мешает
+        lightUp(world, c, g + 2); // до уровня пола иглу: верх шахты под ним тоже светлый
+
         LairData.get(world)
             .add(LairData.SNOW, cx - 7, g + 1, cz); // вход в иглу
-        return true;
+        return c;
     }
 
     /** Стена пещеры: пятна пакового льда и мёрзлого камня; пол чаще каменный. */
@@ -695,6 +705,123 @@ public class WorldGenLairs implements IWorldGenerator {
 
     static void set(World world, int x, int y, int z, Block b) {
         world.setBlock(x, y, z, b, 0, 2);
+    }
+
+    /** Сколько шагов по воздуху до лампы допустимо: свет лампы 15, через 5 шагов ещё 10, с запасом на снег и колонны - монстры не спавнятся (нужно 7 и ниже). */
+    static final int LIGHT_STEPS = 5;
+
+    private static long key(int x, int y, int z) {
+        return ((long) (x & 0x3FFFFFF) << 38) | ((long) (y & 0xFFF) << 26) | (z & 0x3FFFFFF);
+    }
+
+    private static boolean clear(World w, int x, int y, int z) {
+        return !w.getBlock(x, y, z).isOpaqueCube();
+    }
+
+    /**
+     * Осветить пещеру целиком: поиск в ширину по воздуху пещеры от светящихся блоков; где до света дальше
+     * {@link #LIGHT_STEPS} шагов - ледяная лампа в потолок над этим местом. Шаги по воздуху, а не по прямой: свет
+     * огибает углы так же.
+     */
+    static int lightUp(World world, Carver c, int maxY) {
+        java.util.Map<Long, Integer> dist = new java.util.HashMap<Long, Integer>();
+        java.util.ArrayDeque<int[]> q = new java.util.ArrayDeque<int[]>();
+        int[][] nb = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
+        for (int[] p : c.cells) {
+            if (p[1] >= maxY || !clear(world, p[0], p[1], p[2])) continue;
+            for (int[] d : nb) {
+                if (world.getBlock(p[0] + d[0], p[1] + d[1], p[2] + d[2]).getLightValue() >= 14) {
+                    dist.put(key(p[0], p[1], p[2]), 1);
+                    q.add(p);
+                    break;
+                }
+            }
+        }
+        spread(world, c, dist, q, maxY, nb);
+        int added = 0;
+        for (int[] p : c.cells) {
+            if (p[1] >= maxY || !clear(world, p[0], p[1], p[2])) continue;
+            Integer d = dist.get(key(p[0], p[1], p[2]));
+            if (d != null && d <= LIGHT_STEPS) continue;
+            // лампа в потолок; у входа потолок - уже поверхность, тогда в пол или в стену рядом
+            int[] lamp = null, s0 = null;
+            int y = p[1];
+            while (c.has(p[0], y + 1, p[2]) && y + 1 < maxY) y++;
+            if (y + 1 < maxY - 3 && !c.has(p[0], y + 1, p[2])) {
+                lamp = new int[] { p[0], y + 1, p[2] };
+                s0 = new int[] { p[0], y, p[2] };
+            } else {
+                for (int[] o : nb) {
+                    int x = p[0] + o[0], yy = p[1] + o[1], z = p[2] + o[2];
+                    if (o[1] > 0 || c.has(x, yy, z) || !world.getBlock(x, yy, z).isOpaqueCube()) continue;
+                    lamp = new int[] { x, yy, z };
+                    s0 = p;
+                    if (o[1] < 0) break; // пол лучше стены
+                }
+            }
+            if (lamp == null) continue;
+            world.setBlock(lamp[0], lamp[1], lamp[2], VanillaBlocks.lamp2, 0, 2);
+            added++;
+            if (s0 == null) continue;
+            dist.put(key(s0[0], s0[1], s0[2]), 1);
+            q.add(s0);
+            spread(world, c, dist, q, maxY, nb);
+        }
+        // сверка с настоящим светом мира: расчёт шагов и свет игры могут разойтись (снег, колонны, сосульки)
+        for (int round = 0; round < 6; round++) {
+            int fixed = 0;
+            for (int[] p : c.cells) {
+                if (p[1] >= maxY || !clear(world, p[0], p[1], p[2]) || clear(world, p[0], p[1] - 1, p[2])) continue;
+                if (world.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Block, p[0], p[1], p[2]) >= 8) continue;
+                int[] lamp = lampSpot(world, c, p, maxY, nb);
+                if (lamp == null) continue;
+                world.setBlock(lamp[0], lamp[1], lamp[2], VanillaBlocks.lamp2, 0, 2);
+                fixed++;
+            }
+            added += fixed;
+            if (fixed == 0) break;
+        }
+        return added;
+    }
+
+    /** Куда поставить лампу для места p: в потолок над ним, а если потолок - уже поверхность, в пол или стену рядом. */
+    private static int[] lampSpot(World world, Carver c, int[] p, int maxY, int[][] nb) {
+        int y = p[1];
+        while (c.has(p[0], y + 1, p[2]) && y + 1 < maxY && clear(world, p[0], y + 1, p[2])) y++;
+        // потолок - только ниже поверхности (maxY - 3 = земля под иглу), выше - пол или стена
+        if (y + 1 < maxY - 3 && y - p[1] <= 4 && world.getBlock(p[0], y + 1, p[2]).isOpaqueCube()) return new int[] { p[0], y + 1, p[2] };
+        int[] best = null;
+        for (int[] o : nb) {
+            int x = p[0] + o[0], yy = p[1] + o[1], z = p[2] + o[2];
+            if (o[1] > 0 || !world.getBlock(x, yy, z).isOpaqueCube() || world.getBlock(x, yy, z) == com.divinerpgextended.registry.ModBlocks.lairSpawner) continue;
+            best = new int[] { x, yy, z };
+            if (o[1] < 0) break;
+        }
+        return best;
+    }
+
+    private static void spread(World world, Carver c, java.util.Map<Long, Integer> dist, java.util.ArrayDeque<int[]> q, int maxY, int[][] nb) {
+        while (!q.isEmpty()) {
+            int[] p = q.poll();
+            int d = dist.get(key(p[0], p[1], p[2]));
+            if (d >= LIGHT_STEPS) continue;
+            for (int[] o : nb) {
+                int x = p[0] + o[0], y = p[1] + o[1], z = p[2] + o[2];
+                if (y >= maxY || !c.has(x, y, z) || !clear(world, x, y, z)) continue;
+                Integer was = dist.get(key(x, y, z));
+                if (was != null && was <= d + 1) continue;
+                dist.put(key(x, y, z), d + 1);
+                q.add(new int[] { x, y, z });
+            }
+        }
+    }
+
+    /** Спавнер логова ({@link com.divinerpgextended.block.BlockLairSpawner}): ставит мобов при любом свете. */
+    static void lairSpawner(World world, int x, int y, int z, String entity) {
+        world.setBlock(x, y, z, com.divinerpgextended.registry.ModBlocks.lairSpawner, 0, 2);
+        TileEntityMobSpawner te = (TileEntityMobSpawner) world.getTileEntity(x, y, z);
+        if (te != null) te.func_145881_a()
+            .setEntityName(entity);
     }
 
     static void spawner(World world, int x, int y, int z, String entity) {

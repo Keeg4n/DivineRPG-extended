@@ -21,7 +21,7 @@ public final class ModBlocks {
 
     public static Block wandererAnvil;
     public static Block carcinusAltar;
-    public static Block glaconAltar;
+    public static Block glaconAltar, lairSpawner;
     public static Block burrow;
     public static Block carcinusHeart;
     public static Block bubbleCurtain;
@@ -58,6 +58,9 @@ public final class ModBlocks {
         GameRegistry.registerBlock(carcinusAltar, "carcinusAltar");
         glaconAltar = new BlockBossAltar(BlockBossAltar.SNOW_GLACON);
         GameRegistry.registerBlock(glaconAltar, "glaconAltar");
+        lairSpawner = new com.divinerpgextended.block.BlockLairSpawner();
+        GameRegistry.registerBlock(lairSpawner, "lairSpawner");
+        GameRegistry.registerTileEntity(com.divinerpgextended.block.BlockLairSpawner.Tile.class, "divinerpgextended:lairSpawner");
         burrow = new BlockBurrow();
         GameRegistry.registerBlock(burrow, "burrow");
         bubbleCurtain = new BlockBubbleCurtain();
