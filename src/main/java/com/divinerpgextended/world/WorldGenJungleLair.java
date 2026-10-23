@@ -14,7 +14,6 @@ import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.BiomeGenBase;
-import net.minecraft.world.biome.BiomeGenJungle;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.world.gen.feature.WorldGenMinable;
 import net.minecraft.world.gen.structure.MapGenScatteredFeature;
@@ -58,8 +57,9 @@ public class WorldGenJungleLair implements IWorldGenerator {
         }
     }
 
+    /** Джунгли - и ванильные, и других модов (Biomes O' Plenty). */
     public static boolean jungle(BiomeGenBase b) {
-        return b instanceof BiomeGenJungle;
+        return Biomes.jungle(b);
     }
 
     // ---------------------------------------------------------------- храмы

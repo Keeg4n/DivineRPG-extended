@@ -4660,6 +4660,119 @@ public class SelfTest {
             check(moat && bridge && "dre.chat.summon_lair_1".equals(out), "ров " + moat + ", мостик " + bridge + ", снаружи " + out);
             return "палата в Аду в " + c[0] + "," + c[2] + ": лавовый ров с мостиками; пламя вне палаты не работает";
         });
+        t("Сервер", "Айрако без братьев сохраняется", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            String bad = "";
+            Object[] kinds = { new net.divinerpg.entities.vanilla.EntityAyeracoGreen(w), new net.divinerpg.entities.vanilla.EntityAyeracoRed(w),
+                new net.divinerpg.entities.vanilla.EntityAyeracoBlue(w), new net.divinerpg.entities.vanilla.EntityAyeracoYellow(w),
+                new net.divinerpg.entities.vanilla.EntityAyeracoPurple(w) };
+            for (Object o : kinds) {
+                net.minecraft.entity.Entity ay = (net.minecraft.entity.Entity) o;
+                try {
+                    net.minecraft.nbt.NBTTagCompound tag = new net.minecraft.nbt.NBTTagCompound();
+                    ay.writeToNBTOptional(tag);
+                } catch (Throwable t) {
+                    bad += ay.getClass().getSimpleName() + ": " + t + "; ";
+                }
+            }
+            check(bad.isEmpty(), "сохранение падает: " + bad);
+            return "одиночные Айрако всех пяти цветов сохраняются (раньше NullPointerException: вылет при сохранении чанка, в сборке с Morph - при убийстве)";
+        });
+        t("Сервер", "ID биомов Divine не совпадают с BoP", () -> {
+            java.io.File root = java.nio.file.Files.createTempDirectory("dre-biomeids").toFile();
+            java.nio.charset.Charset u = java.nio.charset.Charset.forName("UTF-8");
+            String[] res = new String[4];
+            for (int c = 0; c < 4; c++) {
+                java.io.File cfg = new java.io.File(root, "c" + c + "/config"), mods = new java.io.File(root, "c" + c + "/mods");
+                new java.io.File(cfg, "biomesoplenty").mkdirs();
+                mods.mkdirs();
+                java.nio.file.Files.write(new java.io.File(mods, "BiomesOPlenty-1.7.10-2.1.0.jar").toPath(), new byte[0]);
+                String bop = "\"biome ids\" {\n    I:\"Tropics ID\"=101\n    I:\"Volcano ID\"=102\n    I:\"Mangrove ID\"=103\n}\n\"potions ids\" {\n    I:\"Paralysis Potion ID\"=20\n}\n";
+                String weights = "\"overworld biome weights\" {\n    I:Tropics=172\n}\n";
+                if (c != 2) java.nio.file.Files.write(new java.io.File(cfg, "biomesoplenty/ids.cfg").toPath(), bop.getBytes(u));
+                java.nio.file.Files.write(new java.io.File(cfg, "biomesoplenty/biomeweights.cfg").toPath(), weights.getBytes(u));
+                if (c == 0) java.nio.file.Files.write(new java.io.File(cfg, "DivineRPG.cfg").toPath(),
+                    "# Configuration file\n\ndimension {\n    I:\"Apalachia biome ID\"=102\n    I:\"Apalachia dimension ID\"=126\n    I:\"Wildwood biome ID\"=101\n}\n".getBytes(u));
+                if (c == 1) {
+                    StringBuilder rs = new StringBuilder("dimension {\n");
+                    String[] dk = { "Apalachia", "Arcana", "Eden", "Iceika", "Mortum", "Skythern", "Vethea", "Wildwood" };
+                    for (int i = 0; i < 8; i++) rs.append("    I:\"").append(dk[i]).append(" biome ID\"=").append(170 + i).append("\n");
+                    java.nio.file.Files.write(new java.io.File(cfg, "DivineRPG.cfg").toPath(), rs.append("}\n").toString().getBytes(u));
+                }
+                if (c == 3) java.nio.file.Files.write(new java.io.File(cfg, "TwilightForest.cfg").toPath(), "biome {\n    I:biome.id.Clearing=170\n}\n".getBytes(u));
+                java.util.Map<String, Integer> moved = com.divinerpgextended.asm.BiomeIdGuard.resolve(cfg, mods);
+                java.io.File dc = new java.io.File(cfg, "DivineRPG.cfg");
+                String text = dc.isFile() ? new String(java.nio.file.Files.readAllBytes(dc.toPath()), u) : "";
+                res[c] = moved + " | " + text.replace("\n", " ");
+            }
+            boolean c0 = res[0].contains("Apalachia biome ID\"=170") && res[0].contains("Wildwood biome ID\"=177") && res[0].contains("dimension ID\"=126") && res[0].contains("Iceika biome ID\"=173");
+            boolean c1 = res[1].startsWith("{}") && res[1].contains("Apalachia biome ID\"=170");
+            boolean c2 = res[2].contains("Eden biome ID\"=172") && res[2].contains("dimension {");
+            boolean c3 = res[3].contains("Apalachia biome ID\"=171") && !res[3].contains("=170");
+            check(c0 && c1 && c2 && c3, "по умолчанию рядом с BoP: " + res[0] + " || как на RedServer: " + res[1] + " || первый запуск: " + res[2] + " || 170 занят Twilight: " + res[3]);
+            return "ID 100-107 рядом с BoP переставлены на 170-177 (остальные ключи конфига целы); конфиг как на RedServer не трогается; на первом запуске конфиг создаётся сразу со свободными; занятый Twilight Forest ID пропускается; веса биомов BoP за ID не считаются";
+        });
+        t("Сервер", "Биомы сборки: ID, Ад, пляжи, снега, джунгли", () -> {
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            // 1. биомы миров Divine на своих ID (с BoP по умолчанию 101-107 совпадали с его биомами)
+            String[] bkeys = { "edenBiome", "wildwoodBiome", "apalachiaBiome", "skythernBiome", "mortumBiome", "vetheaBiome", "arcanaBiome", "iceikaBiome" };
+            StringBuilder ids = new StringBuilder();
+            for (String bk : bkeys) {
+                int id = net.divinerpg.utils.config.ConfigurationHelper.class.getField(bk).getInt(null);
+                net.minecraft.world.biome.BiomeGenBase b = net.minecraft.world.biome.BiomeGenBase.getBiome(id);
+                boolean own = b != null && b.getClass().getName().startsWith("net.divinerpg.");
+                ok &= own;
+                ids.append(bk.replace("Biome", "")).append("=").append(id).append(own ? "" : "(занят: " + (b == null ? "пусто" : b.biomeName) + ")").append(" ");
+            }
+            rep.append("ID Divine: ").append(ids).append("; ");
+            // 2. мобы Divine в каждом биоме Ада
+            StringBuilder hell = new StringBuilder();
+            for (net.minecraft.world.biome.BiomeGenBase b : net.minecraft.world.biome.BiomeGenBase.getBiomeGenArray()) {
+                if (b == null || !com.divinerpgextended.world.Biomes.nether(b)) continue;
+                int n = 0;
+                for (Object o : b.getSpawnableList(net.minecraft.entity.EnumCreatureType.monster))
+                    if (((net.minecraft.world.biome.BiomeGenBase.SpawnListEntry) o).entityClass.getName().startsWith("net.divinerpg.")) n++;
+                ok &= n >= 3;
+                hell.append(b.biomeName).append("#").append(b.biomeID).append("=").append(n).append(" ");
+            }
+            rep.append("Ад (мобов Divine): ").append(hell).append("; ");
+            // 3. карта биомов обычного мира: сколько чанков годится под логова по старым правилам и по новым
+            WorldServer w = server.worldServerForDimension(0);
+            int[] c = new int[6];
+            java.util.Map<String, Integer> beachNames = new java.util.TreeMap<String, Integer>(), snowNames = new java.util.TreeMap<String, Integer>();
+            for (int cx = -80; cx < 80; cx++) for (int cz = -80; cz < 80; cz++) {
+                net.minecraft.world.biome.BiomeGenBase b = w.getWorldChunkManager().getBiomeGenAt(cx * 16 + 8, cz * 16 + 8);
+                if (b == null) continue;
+                boolean oldOcean = b == net.minecraft.world.biome.BiomeGenBase.ocean || b == net.minecraft.world.biome.BiomeGenBase.deepOcean || b == net.minecraft.world.biome.BiomeGenBase.frozenOcean;
+                if (b == net.minecraft.world.biome.BiomeGenBase.beach || b == net.minecraft.world.biome.BiomeGenBase.coldBeach) c[0]++;
+                if (com.divinerpgextended.world.Biomes.sandBeach(b)) { c[1]++; beachNames.put(b.biomeName, (beachNames.containsKey(b.biomeName) ? beachNames.get(b.biomeName) : 0) + 1); }
+                if (!oldOcean && b.getEnableSnow()) c[2]++;
+                if (com.divinerpgextended.world.Biomes.snowyLand(b)) { c[3]++; snowNames.put(b.biomeName, (snowNames.containsKey(b.biomeName) ? snowNames.get(b.biomeName) : 0) + 1); }
+                if (b instanceof net.minecraft.world.biome.BiomeGenJungle) c[4]++;
+                if (com.divinerpgextended.world.Biomes.jungle(b)) c[5]++;
+            }
+            // храмы и пирамиды строятся только в биомах из списка MapGenScatteredFeature (ванильные пустыни, джунгли, болота)
+            java.util.List<?> scattered = (java.util.List<?>) cpw.mods.fml.relauncher.ReflectionHelper.getPrivateValue(net.minecraft.world.gen.structure.MapGenScatteredFeature.class, null, "biomelist", "field_75061_e");
+            int[] wide = new int[4];
+            java.util.Map<String, Integer> snowWide = new java.util.TreeMap<String, Integer>(), templeWide = new java.util.TreeMap<String, Integer>();
+            for (int cx = -600; cx < 600; cx += 3) for (int cz = -600; cz < 600; cz += 3) {
+                net.minecraft.world.biome.BiomeGenBase b = w.getWorldChunkManager().getBiomeGenAt(cx * 16 + 8, cz * 16 + 8);
+                if (b == null) continue;
+                wide[0]++;
+                if (scattered.contains(b)) { wide[1]++; templeWide.put(b.biomeName, (templeWide.containsKey(b.biomeName) ? templeWide.get(b.biomeName) : 0) + 1); }
+                if (com.divinerpgextended.world.Biomes.snowyLand(b)) { wide[2]++; snowWide.put(b.biomeName, (snowWide.containsKey(b.biomeName) ? snowWide.get(b.biomeName) : 0) + 1); }
+                if (com.divinerpgextended.world.Biomes.jungle(b)) wide[3]++;
+            }
+            rep.append("широко (19200 x 19200, ").append(wide[0]).append(" проб): под храмы и пирамиды ").append(wide[1]).append(" ").append(templeWide)
+                .append(", снег ").append(wide[2]).append(" ").append(snowWide).append(", джунгли ").append(wide[3]).append("; ");
+            rep.append("чанков из 25600 - пляж: было ").append(c[0]).append(", стало ").append(c[1]).append(" ").append(beachNames)
+                .append("; снег: было ").append(c[2]).append(", стало ").append(c[3]).append(" ").append(snowNames)
+                .append("; джунгли: было ").append(c[4]).append(", стало ").append(c[5]);
+            ok &= c[1] >= c[0] && (c[2] == 0 || c[3] > 0) && c[5] >= c[4];
+            check(ok, rep.toString());
+            return rep.toString();
+        });
         t("Прохождение", "Ранги: Энд закрыт для игрока ниже ранга", () -> {
             WorldServer w = server.worldServerForDimension(1);
             loadAround(w, 0, 0, 5);

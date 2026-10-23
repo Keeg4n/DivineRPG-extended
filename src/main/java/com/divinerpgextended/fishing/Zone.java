@@ -31,9 +31,8 @@ public enum Zone {
         if (y < 48 && !w.canBlockSeeTheSky(x, y + 1, z)) return CAVE;
         BiomeGenBase b = w.getBiomeGenForCoords(x, z);
         if (b == null) return FRESH;
-        if (b == BiomeGenBase.ocean || b == BiomeGenBase.deepOcean || b == BiomeGenBase.frozenOcean || b == BiomeGenBase.beach
-            || b == BiomeGenBase.coldBeach || b == BiomeGenBase.stoneBeach) return OCEAN;
-        if (b.getEnableSnow()) return SNOW;
+        if (com.divinerpgextended.world.Biomes.ocean(b) || com.divinerpgextended.world.Biomes.beach(b)) return OCEAN;
+        if (b.getEnableSnow() || BiomeDictionary.isBiomeOfType(b, BiomeDictionary.Type.SNOWY)) return SNOW;
         if (BiomeDictionary.isBiomeOfType(b, BiomeDictionary.Type.JUNGLE)) return JUNGLE;
         if (BiomeDictionary.isBiomeOfType(b, BiomeDictionary.Type.SANDY) && !BiomeDictionary.isBiomeOfType(b,
             BiomeDictionary.Type.BEACH)) return DESERT;

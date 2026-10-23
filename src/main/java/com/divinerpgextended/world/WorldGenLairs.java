@@ -45,12 +45,11 @@ public class WorldGenLairs implements IWorldGenerator {
         int x = chunkX * 16 + 8, z = chunkZ * 16 + 8;
         BiomeGenBase biome = world.getBiomeGenForCoords(x, z);
         if (biome == null) return;
-        boolean ocean = biome == BiomeGenBase.ocean || biome == BiomeGenBase.deepOcean
-            || biome == BiomeGenBase.frozenOcean;
-        boolean beach = biome == BiomeGenBase.beach || biome == BiomeGenBase.coldBeach;
+        // по типам биомов, а не по ванильным объектам: так годятся и пляжи и снега Biomes O' Plenty
+        boolean beach = Biomes.sandBeach(biome);
         if (beach && Config.carcinusShoreRarity > 0 && rand.nextInt(Config.carcinusShoreRarity) == 0) {
             if (crabLair(world, rand, x, z)) DivineRPGExtended.LOG.info("Логово Карцинуса: " + x + " " + z);
-        } else if (!ocean && biome.getEnableSnow() && Config.snowDungeonRarity > 0
+        } else if (Biomes.snowyLand(biome) && Config.snowDungeonRarity > 0
             && rand.nextInt(Config.snowDungeonRarity) == 0) {
                 if (snowDungeon(world, rand, x, z)) DivineRPGExtended.LOG.info("Снежное подземелье: " + x + " " + z);
             }

@@ -11,7 +11,8 @@ import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
  * инвентаря Ветеи и в Divine без настройки vetheaInventory ({@link VetheaSwapTransformer}), ускоряет поиск парного
  * портала в сумеречных мирах ({@link PortalTransformer}), ставит их деревья внутрь заселяемой области
  * ({@link TreeShiftTransformer}) и отмечает время их заселения (для пересылки чанков целиком), наклоняет вид в вагонетке
- * Апалачии ({@link CameraTransformer}).
+ * Апалачии ({@link CameraTransformer}), не даёт Айрако без братьев ронять сохранение ({@link AyeracoTransformer}); до загрузки
+ * модов разводит ID биомов Divine с Biomes O Plenty ({@link BiomeIdGuard}).
  */
 @IFMLLoadingPlugin.MCVersion("1.7.10")
 @IFMLLoadingPlugin.Name("DivineRPG Extended Core")
@@ -22,7 +23,8 @@ public class DreCorePlugin implements IFMLLoadingPlugin {
     public String[] getASMTransformerClass() {
         return new String[] { FurnaceTransformer.class.getName(), ArcanaTransformer.class.getName(),
             ArmorSetTransformer.class.getName(), VetheaSwapTransformer.class.getName(),
-            PortalTransformer.class.getName(), TreeShiftTransformer.class.getName(), CameraTransformer.class.getName() };
+            PortalTransformer.class.getName(), TreeShiftTransformer.class.getName(), CameraTransformer.class.getName(),
+            AyeracoTransformer.class.getName() };
     }
 
     @Override
@@ -36,7 +38,11 @@ public class DreCorePlugin implements IFMLLoadingPlugin {
     }
 
     @Override
-    public void injectData(Map<String, Object> data) {}
+    public void injectData(Map<String, Object> data) {
+        // до загрузки модов: ID биомов Divine не должны совпадать с биомами других модов (Biomes O Plenty)
+        Object dir = data.get("mcLocation");
+        if (dir instanceof java.io.File) BiomeIdGuard.run((java.io.File) dir);
+    }
 
     @Override
     public String getAccessTransformerClass() {

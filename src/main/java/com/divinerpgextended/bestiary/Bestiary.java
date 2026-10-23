@@ -110,10 +110,11 @@ public final class Bestiary {
         if (c.contains(".mortum.")) return Chapter.MORTUM;
         if (c.contains(".vethea.")) return Chapter.VETHEA;
         if (c.contains(".arcana.")) return null; // своя ручная глава
-        if (b instanceof net.minecraft.world.biome.BiomeGenHell) return Chapter.NETHER;
-        if (b instanceof net.minecraft.world.biome.BiomeGenEnd) return Chapter.END;
-        if (c.startsWith("net.minecraft.")) return Chapter.OVERWORLD;
-        return null;
+        // по типу биома: Biomes O' Plenty подменяет класс ванильного Ада и добавляет свои биомы Ада и обычного мира
+        if (com.divinerpgextended.world.Biomes.nether(b)) return Chapter.NETHER;
+        if (com.divinerpgextended.world.Biomes.end(b)) return Chapter.END;
+        if (c.startsWith("net.divinerpg.") || c.startsWith("com.divinerpgextended.")) return null;
+        return Chapter.OVERWORLD;
     }
 
     static boolean boss(Class<?> c) {
