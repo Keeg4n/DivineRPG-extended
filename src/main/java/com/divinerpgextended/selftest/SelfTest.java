@@ -4660,6 +4660,51 @@ public class SelfTest {
             check(moat && bridge && "dre.chat.summon_lair_1".equals(out), "ров " + moat + ", мостик " + bridge + ", снаружи " + out);
             return "палата в Аду в " + c[0] + "," + c[2] + ": лавовый ров с мостиками; пламя вне палаты не работает";
         });
+        t("Прохождение", "Ранги: Энд закрыт для игрока ниже ранга", () -> {
+            WorldServer w = server.worldServerForDimension(1);
+            loadAround(w, 0, 0, 5);
+            int y = w.getTopSolidOrLiquidBlock(40, 40);
+            TestPlayer low = join(player(1, "TestEndRank", 40.5, y + 1, 40.5), true);
+            int[] got = new int[2];
+            StringBuilder where = new StringBuilder();
+            for (int pass = 0; pass < 2; pass++) {
+                if (pass == 1) {
+                    com.divinerpgextended.boss.BossProgress.grant(low, com.divinerpgextended.boss.Boss.LICH_KING);
+                    com.divinerpgextended.boss.BossProgress.grant(low, com.divinerpgextended.boss.Boss.ANCIENT_ENTITY);
+                }
+                for (int round = 0; round < 60; round++) {
+                    // чистим мобов, чтобы лимит монстров не мешал спавну
+                    for (Object o : new java.util.ArrayList<Object>(w.loadedEntityList))
+                        if (o instanceof net.minecraft.entity.monster.IMob && o instanceof net.minecraft.entity.EntityLiving) ((net.minecraft.entity.Entity) o).setDead();
+                    for (int i = 0; i < 10; i++) new net.minecraft.world.SpawnerAnimals().findChunksForSpawning(w, true, false, false);
+                    for (Object o : new java.util.ArrayList<Object>(w.loadedEntityList)) {
+                        net.minecraft.entity.Entity en = (net.minecraft.entity.Entity) o;
+                        if (en.isDead || com.divinerpgextended.boss.ProgressSpawns.tier(en) != 3) continue;
+                        got[pass]++;
+                        if (pass == 0 && where.length() < 300) where.append(en.getClass().getSimpleName()).append(" ").append((int) en.posX).append(",").append((int) en.posZ).append(" (").append((int) en.getDistanceToEntity(low)).append(" бл.); ");
+                        en.setDead();
+                    }
+                }
+            }
+            // смотритель в 150 блоках (за старым кругом 128, но в зоне спавна вокруг игрока): ранг 0 - запрет, ранг 3 - можно
+            String[] res = new String[2];
+            for (int pass = 0; pass < 2; pass++) {
+                for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.boss.Boss.values()) com.divinerpgextended.boss.BossProgress.revoke(low, b);
+                if (pass == 1) {
+                    com.divinerpgextended.boss.BossProgress.grant(low, com.divinerpgextended.boss.Boss.LICH_KING);
+                    com.divinerpgextended.boss.BossProgress.grant(low, com.divinerpgextended.boss.Boss.ANCIENT_ENTITY);
+                }
+                net.divinerpg.entities.vanilla.EntityEnderWatcher ew = new net.divinerpg.entities.vanilla.EntityEnderWatcher(w);
+                ew.setPosition(40.5 + 106, y + 1, 40.5 + 106);
+                net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn cs = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(ew, w,
+                    (float) ew.posX, (float) ew.posY, (float) ew.posZ);
+                MinecraftForge.EVENT_BUS.post(cs);
+                res[pass] = cs.getResult().name();
+            }
+            for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.boss.Boss.values()) com.divinerpgextended.boss.BossProgress.revoke(low, b);
+            check(got[0] == 0 && "DENY".equals(res[0]) && !"DENY".equals(res[1]), "мобов Энда при игроке ранга 0: " + got[0] + " (" + where + "); смотритель в 150 блоках: ранг 0 - " + res[0] + ", ранг 3 - " + res[1]);
+            return "естественный спавн в Энде при игроке ранга 0: мобов Divine " + got[0] + " (при ранге 3 - " + got[1] + "); смотритель в 150 блоках от игрока ранга 0 запрещён, ранга 3 - разрешён";
+        });
         t("Логова", "Гнездовье Айрако", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.AYERACO;
             WorldServer w = server.worldServerForDimension(1);

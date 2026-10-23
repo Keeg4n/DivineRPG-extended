@@ -1,5 +1,7 @@
 package com.divinerpgextended.boss;
 
+import net.minecraft.util.MathHelper;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,7 +35,8 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * <li>Ранг 3 (убита Древняя сущность): мобы Энда - эндер-пауки, тройняшки и эндер-смотрители (с них глаз для
  * призыва Смотрителя, а Смотритель открывает Аркану).</li>
  * </ul>
- * Моб появляется, только если у всех игроков в 128 блоках ранг не ниже нужного - решает самый слабый, чтобы тот,
+ * Моб появляется, только если у всех игроков, вокруг которых игра вообще спавнит мобов (8 чанков от чанка игрока -
+ * до ~180 блоков по диагонали; раньше было 128 блоков, и мобы рождались за этим кругом и приходили), ранг не ниже нужного - решает самый слабый, чтобы тот,
  * кто не качает Divine, не страдал из-за соседа. Если моб уже есть, а рядом игрок ниже рангом, моб его не трогает.
  * Игрок может такого моба убить (чтобы не мешал, если забрёл к нему домой), но дроп и опыт с него не падают
  * (lowRankNoDrops в конфиге) - бесплатного фарма не до своей ступени нет.
@@ -77,6 +80,9 @@ public class ProgressSpawns {
         return t == null ? 0 : t;
     }
 
+    /** Радиус в чанках, в котором игра спавнит мобов вокруг игрока (SpawnerAnimals: 8). */
+    public static final int SPAWN_CHUNKS = 8;
+
     private static boolean gated(World w) {
         int d = w.provider.dimensionId;
         return Config.progressSpawns && (d == 0 || d == -1 || d == 1);
@@ -87,10 +93,11 @@ public class ProgressSpawns {
         if (event.world.isRemote || !gated(event.world)) return;
         int need = tier(event.entityLiving);
         if (need == 0) return;
+        int cx = MathHelper.floor_double(event.x) >> 4, cz = MathHelper.floor_double(event.z) >> 4;
         for (Object o : event.world.playerEntities) {
             EntityPlayer p = (EntityPlayer) o;
-            double dx = p.posX - event.x, dz = p.posZ - event.z;
-            if (dx * dx + dz * dz <= 128 * 128 && rank(p) < need) {
+            if (Math.abs(cx - (MathHelper.floor_double(p.posX) >> 4)) <= SPAWN_CHUNKS && Math.abs(cz - (MathHelper.floor_double(p.posZ) >> 4)) <= SPAWN_CHUNKS
+                && rank(p) < need) {
                 event.setResult(Event.Result.DENY);
                 return;
             }
