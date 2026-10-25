@@ -75,6 +75,15 @@ public class ItemLairMap extends Item {
     @Override
     public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
         if (world.isRemote) return stack;
+        ExplorerMaps.inClick = true;
+        try {
+            return use(stack, world, player);
+        } finally {
+            ExplorerMaps.inClick = false;
+        }
+    }
+
+    private ItemStack use(ItemStack stack, World world, EntityPlayer player) {
         int t = type(stack);
         // перезарядка: поиск по карте биомов нагружает сервер
         long now = world.getTotalWorldTime(), last = player.getEntityData().getLong(COOLDOWN);
@@ -95,7 +104,9 @@ public class ItemLairMap extends Item {
         }
         // место Трона вычисляется из сида - карта знает его заранее
         if (t == LairData.THRONE) {
-            int[] c = com.divinerpgextended.world.WorldGenThrone.nearest(world.getSeed(), player.posX, player.posZ);
+            final long seed = world.getSeed();
+            int[] c = pick(com.divinerpgextended.Config.throneSpacing, player.posX, player.posZ, 3,
+                (rx, rz) -> com.divinerpgextended.world.WorldGenThrone.center(seed, rx, rz));
             if (c == null) {
                 player.addChatMessage(new ChatComponentTranslation("dre.chat.map_none_" + KEYS[t]));
                 return stack;
@@ -160,13 +171,14 @@ public class ItemLairMap extends Item {
         int[] built = null;
         double builtD = Double.MAX_VALUE;
         for (int[] l : data.all(t)) {
+            if (!inBounds(l[1], l[3])) continue;
             double d = (l[1] - px) * (l[1] - px) + (l[3] - pz) * (l[3] - pz);
             if (d <= (double) skip * skip || d > (double) radius * radius || d >= builtD) continue;
             builtD = d;
             built = l;
         }
         int[] site = com.divinerpgextended.world.LairSites.nearest(world, t, px, pz, radius, skip,
-            s -> !data.near(t, s[0], s[1], 96) && !data.near(t + LairData.FAILED, s[0], s[1], 24), deadline);
+            s -> inBounds(s[0], s[1]) && !data.near(t, s[0], s[1], 96) && !data.near(t + LairData.FAILED, s[0], s[1], 24), deadline);
         if (site == com.divinerpgextended.world.LairSites.UNFINISHED) return false;
         double siteD = site == null ? Double.MAX_VALUE : (site[0] - px) * (site[0] - px) + (site[1] - pz) * (site[1] - pz);
         if (built == null && site == null) {
@@ -194,9 +206,13 @@ public class ItemLairMap extends Item {
             player.addChatMessage(new ChatComponentTranslation(arena != null ? "dre.chat.map_mortum" : "dre.chat.map_cadillion_world"));
             return stack;
         }
-        // арены Мортума - каждая карта к своей (ближайшей арене этого вида)
-        int[] c = arena != null ? com.divinerpgextended.world.twilight.MortumArenas.nearestOf(world, arena, player.posX, player.posZ, 8)
-            : com.divinerpgextended.world.twilight.WorldGenNests.nearest(world.getSeed(), world.provider.dimensionId, player.posX, player.posZ);
+        // арены Мортума - каждая карта к своей (ближайшей арене этого вида); найденное (ближе mapSkipNear) пропускаем
+        final long seed = world.getSeed();
+        final int dim = world.provider.dimensionId;
+        final com.divinerpgextended.world.twilight.MortumArenas.Type want = arena;
+        int[] c = pick(com.divinerpgextended.world.twilight.WorldGenNests.spacing(dim), player.posX, player.posZ, arena != null ? 8 : 3,
+            (rx, rz) -> want != null && com.divinerpgextended.world.twilight.MortumArenas.type(seed, rx, rz) != want ? null
+                : com.divinerpgextended.world.twilight.WorldGenNests.center(seed, dim, rx, rz));
         if (c == null) {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.map_none_" + KEYS[t]));
             return stack;
@@ -221,11 +237,44 @@ public class ItemLairMap extends Item {
                 : "dre.chat.map_nether"));
             return stack;
         }
-        int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(world.getSeed(), type, player.posX, player.posZ);
+        final long seed = world.getSeed();
+        int[] c = type == com.divinerpgextended.world.WorldGenOuterLairs.AYERACO ? com.divinerpgextended.world.WorldGenOuterLairs.nearest(seed, type, player.posX, player.posZ)
+            : pick(com.divinerpgextended.Config.netherLairSpacing, player.posX, player.posZ, 3, (rx, rz) -> com.divinerpgextended.world.WorldGenOuterLairs.center(seed, type, rx, rz));
+        if (c == null || !inBounds(c[0], c[2])) {
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.map_none_" + KEYS[t]));
+            return stack;
+        }
         player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, c[0], c[2]),
             direction(player, c[0], c[2]), c[1] + 1, c[0], c[2]));
         ExplorerMaps.give(world, player, t, "item.dre.lairMap." + KEYS[t] + ".name", c[0], c[2]);
         return stack;
+    }
+
+    /**
+     * Ближайшее место из сида (по регионам size, кольцами до rings): дальше mapSkipNear блоков (у найденного - следующее) и
+     * в границах карт ({@link #inBounds}); null - нет. at(rx, rz) - место региона {x, y, z} или null.
+     */
+    static int[] pick(int size, double x, double z, int rings, java.util.function.BiFunction<Integer, Integer, int[]> at) {
+        if (size <= 0) return null;
+        int skip = com.divinerpgextended.Config.mapSkipNear;
+        int rx = (int) Math.floor(x / size), rz = (int) Math.floor(z / size);
+        int[] best = null;
+        double bd = Double.MAX_VALUE;
+        for (int i = -rings; i <= rings; i++) for (int k = -rings; k <= rings; k++) {
+            int[] c = at.apply(rx + i, rz + k);
+            if (c == null || !inBounds(c[0], c[2])) continue;
+            double d = (c[0] - x) * (c[0] - x) + (c[2] - z) * (c[2] - z);
+            if (d <= (double) skip * skip || d >= bd) continue;
+            bd = d;
+            best = c;
+        }
+        return best;
+    }
+
+    /** Карты показывают логова только в квадрате mapWorldSize с центром в нуле мира (0 - без границ). */
+    public static boolean inBounds(int x, int z) {
+        int half = com.divinerpgextended.Config.mapWorldSize / 2;
+        return com.divinerpgextended.Config.mapWorldSize <= 0 || Math.abs(x) <= half && Math.abs(z) <= half;
     }
 
     private static int distance(EntityPlayer player, int x, int z) {

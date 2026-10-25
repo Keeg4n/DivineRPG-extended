@@ -137,5 +137,43 @@ public class RenderSkyCart extends Render {
         public void onPost(RenderPlayerEvent.Post e) {
             if (pushed.remove(e.entityPlayer)) GL11.glPopMatrix();
         }
+
+        private final Set<net.minecraft.entity.EntityLivingBase> mobs = new HashSet<net.minecraft.entity.EntityLivingBase>();
+        private static java.lang.reflect.Field timer;
+
+        /** Доля тика кадра (в событии моба её нет; таймер игры закрыт). */
+        private static float partialTicks() {
+            try {
+                if (timer == null) timer = cpw.mods.fml.relauncher.ReflectionHelper.findField(net.minecraft.client.Minecraft.class, "timer", "field_71428_T");
+                return ((net.minecraft.util.Timer) timer.get(net.minecraft.client.Minecraft.getMinecraft())).renderPartialTicks;
+            } catch (Throwable t) {
+                return 1.0F;
+            }
+        }
+
+        /** Моб в вагонетке - так же повёрнут вместе с ней (рисуется от e.x, e.y, e.z - точки его ног). */
+        @SubscribeEvent(priority = EventPriority.LOWEST)
+        public void onMobPre(net.minecraftforge.client.event.RenderLivingEvent.Pre e) {
+            net.minecraft.entity.EntityLivingBase m = e.entity;
+            if (m instanceof EntityPlayer || !(m.ridingEntity instanceof EntitySkyCart)) return;
+            EntitySkyCart c = (EntitySkyCart) m.ridingEntity;
+            float pt = partialTicks();
+            double[] up = up(c, pt);
+            if (up[1] > 0.999) return;
+            double mx = c.lastTickPosX + (c.posX - c.lastTickPosX) * pt - RenderManager.renderPosX;
+            double my = c.lastTickPosY + (c.posY - c.lastTickPosY) * pt - RenderManager.renderPosY + c.height / 2;
+            double mz = c.lastTickPosZ + (c.posZ - c.lastTickPosZ) * pt - RenderManager.renderPosZ;
+            GL11.glPushMatrix();
+            GL11.glTranslated(mx - up[0] * EntitySkyCart.SEAT, my - up[1] * EntitySkyCart.SEAT, mz - up[2] * EntitySkyCart.SEAT);
+            double[] t = tilt(c, up);
+            GL11.glRotated(t[0], t[1], 0, t[2]);
+            GL11.glTranslated(-e.x, -e.y, -e.z);
+            mobs.add(m);
+        }
+
+        @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
+        public void onMobPost(net.minecraftforge.client.event.RenderLivingEvent.Post e) {
+            if (mobs.remove(e.entity)) GL11.glPopMatrix();
+        }
     }
 }

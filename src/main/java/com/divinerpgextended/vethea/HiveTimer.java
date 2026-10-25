@@ -78,6 +78,7 @@ public class HiveTimer {
                 : new net.divinerpg.entities.vethea.EntityHiveSoldier(q.worldObj);
             m.setLocationAndAngles(q.posX + q.worldObj.rand.nextGaussian() * 2, q.posY + 1, q.posZ + q.worldObj.rand.nextGaussian() * 2,
                 q.worldObj.rand.nextFloat() * 360, 0);
+            com.divinerpgextended.boss.BossMinions.mark(m, q);
             q.worldObj.spawnEntityInWorld(m);
         }
     }

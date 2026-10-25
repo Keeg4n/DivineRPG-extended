@@ -26,6 +26,9 @@ public final class ExplorerMaps {
     /** Масштаб 2: 1 пиксель - 4 блока, карта 512 x 512 блоков. */
     private static final byte SCALE = 2;
 
+    /** Идёт клик картой: тратить ту, что в руке, не освобождая слот (игра затрёт его после клика). */
+    static boolean inClick;
+
     private ExplorerMaps() {}
 
     /** Карта к логову (x, z): лишняя карта логова этого вида тратится; такая карта у игрока уже есть - новой не даём. */
@@ -43,7 +46,7 @@ public final class ExplorerMaps {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setIntArray(TARGET, new int[] { x, z });
         map.setTagCompound(tag);
-        map.setStackDisplayName(StatCollector.translateToLocal(name));
+        map.setStackDisplayName(net.minecraft.util.EnumChatFormatting.RESET + StatCollector.translateToLocal(name)); // без курсива переименованных
         mark(d, x, z);
         if (!p.capabilities.isCreativeMode) consume(p, type);
         if (!p.inventory.addItemStackToInventory(map)) p.dropPlayerItemWithRandomChoice(map, false);
@@ -51,6 +54,11 @@ public final class ExplorerMaps {
     }
 
     private static void consume(EntityPlayer p, int type) {
+        ItemStack held = p.getHeldItem();
+        if (inClick && held != null && held.getItem() == com.divinerpgextended.registry.ModItems.lairMap && held.getItemDamage() == type) {
+            held.stackSize--; // пустой стек уберёт сама игра после клика; новая карта ляжет в другой слот
+            return;
+        }
         ItemStack[] inv = p.inventory.mainInventory;
         for (int i = 0; i < inv.length; i++) {
             if (inv[i] == null || inv[i].getItem() != com.divinerpgextended.registry.ModItems.lairMap || inv[i].getItemDamage() != type) continue;

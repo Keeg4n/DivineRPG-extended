@@ -11,7 +11,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
  * Рядом с живым боссом (в {@link #RADIUS} блоках) летать нельзя: с полёта почти любой наземный босс не достаёт.
- * Босс - всё, у чего полоска босса (Divine, аддон, другие моды) и боссы Divine. Кроме Скайтерна (там бой в небе) и
+ * Босс - боссы Divine и аддона (у боссов других модов - Иссушителя, дракона и т.п. - летать можно). Кроме Скайтерна (там бой в небе) и
  * творческого режима. Проверяем только летящих - остальным это ничего не стоит.
  */
 public class BossNoFly {
@@ -24,7 +24,9 @@ public class BossNoFly {
         if (p.worldObj.provider.dimensionId == net.divinerpg.utils.config.ConfigurationHelper.skythern) return false;
         for (Object o : p.worldObj.getEntitiesWithinAABB(EntityLiving.class, p.boundingBox.expand(RADIUS, RADIUS, RADIUS))) {
             EntityLiving e = (EntityLiving) o;
-            if (e.isEntityAlive() && (e instanceof net.minecraft.entity.boss.IBossDisplayData || e instanceof net.divinerpg.entities.base.EntityDivineRPGBoss)) return true;
+            String cls = e.getClass().getName(); // только боссы Divine и аддона: у боссов других модов летать можно
+            if (e.isEntityAlive() && (e instanceof net.minecraft.entity.boss.IBossDisplayData || e instanceof net.divinerpg.entities.base.EntityDivineRPGBoss)
+                && (cls.startsWith("net.divinerpg.") || cls.startsWith("com.divinerpgextended."))) return true;
         }
         return false;
     }

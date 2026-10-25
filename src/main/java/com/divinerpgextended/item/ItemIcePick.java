@@ -57,6 +57,11 @@ public class ItemIcePick extends ItemPickaxe {
             || b == Blocks.stone || b == Blocks.dirt || b == Blocks.gravel || b == ModBlocks.frostIce;
     }
 
+    /** Что кирка инея ломает квадратом 3x3: мёрзлая порода и руда инея. */
+    public static boolean square(Block b) {
+        return isIcyRock(b) || b == ModBlocks.rimeOre;
+    }
+
     /** Скорость в Iceika: в getDigSpeed мир не передаётся, поэтому через событие. */
     public static class Handler {
 
@@ -81,7 +86,7 @@ public class ItemIcePick extends ItemPickaxe {
     public boolean onBlockDestroyed(ItemStack stack, World world, Block block, int x, int y, int z,
         EntityLivingBase entity) {
         boolean r = super.onBlockDestroyed(stack, world, block, x, y, z, entity);
-        if (!rime || world.isRemote || !inIceika(world) || !isIcyRock(block) || !(entity instanceof EntityPlayer)) return r;
+        if (!rime || world.isRemote || !inIceika(world) || !square(block) || !(entity instanceof EntityPlayer)) return r;
         EntityPlayer player = (EntityPlayer) entity;
         if (player.isSneaking() || breaking || !(player instanceof net.minecraft.entity.player.EntityPlayerMP)) return r;
         breaking = true;
@@ -109,7 +114,7 @@ public class ItemIcePick extends ItemPickaxe {
                 }
                 int bx = x + dx, by = y + dy, bz = z + dz;
                 Block other = world.getBlock(bx, by, bz);
-                if (!isIcyRock(other) || other.getBlockHardness(world, bx, by, bz) < 0) continue;
+                if (!square(other) || other.getBlockHardness(world, bx, by, bz) < 0) continue;
                 if (stack.stackSize <= 0) return r; // кирка сломалась
                 // как обычный удар игрока: приваты и плагины видят ломание и могут запретить его
                 ((net.minecraft.entity.player.EntityPlayerMP) player).theItemInWorldManager.tryHarvestBlock(bx, by, bz);

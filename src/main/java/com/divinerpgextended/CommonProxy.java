@@ -58,6 +58,7 @@ public class CommonProxy {
     }
 
     public void init(FMLInitializationEvent event) {
+        net.minecraft.init.Items.snowball.setMaxStackSize(64);
         NetworkRegistry.INSTANCE.registerGuiHandler(DivineRPGExtended.instance, new GuiHandler());
 
         PerkEffects perks = new PerkEffects();
@@ -96,6 +97,10 @@ public class CommonProxy {
         FMLCommonHandler.instance().bus().register(rails);
         FMLCommonHandler.instance().bus().register(ranged);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.TwilightDrops());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.WholeGear());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.BossMinions());
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.block.BlockBurrow.Convert());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.block.DreamCrops.Planting());
         com.divinerpgextended.perk.HomingArrows homing = new com.divinerpgextended.perk.HomingArrows();
         MinecraftForge.EVENT_BUS.register(homing);
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(homing);
@@ -228,6 +233,7 @@ public class CommonProxy {
 
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenJungleLair(), 50);
         GameRegistry.registerWorldGenerator(new IceikaDecor(), 100);
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.vethea.VetheaLakes(), 100);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.IceikaXmasTree(), 101);
         GameRegistry.registerWorldGenerator(new WorldGenThrone(), 60);
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new WorldGenThrone.Relight());

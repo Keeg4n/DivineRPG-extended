@@ -53,7 +53,7 @@ public class TradeHandler extends DreHandler {
     private Page trade(String who, ItemStack a, ItemStack b, ItemStack out) {
         Page p = new Page(StatCollector.translateToLocal("dre.nei.merchant." + who));
         p.add(a, gx(0), gy(0), 0xFF8B8B8B, null, true);
-        p.add(b, gx(1), gy(0), 0xFF8B8B8B, null, true);
+        if (b != null) p.add(b, gx(1), gy(0), 0xFF8B8B8B, null, true);
         p.result = p.add(out, gx(3), gy(0), tierColor(View.RARE), null, false);
         p.others.remove(p.result);
         p.noteY = gy(0) + 20;
@@ -110,6 +110,8 @@ public class TradeHandler extends DreHandler {
             trade("leorna", new ItemStack(ArcanaItems.arcanium, 12), rod(Rod.RUPEE), rod(Rod.ARCANA)),
             trade("jack", new ItemStack(Items.bone, 40), new ItemStack(Blocks.pumpkin, 16), rod(Rod.JACK)),
             trade("hunger", new ItemStack(VetheaItems.polishedPearls, 16), rod(Rod.MORTUM), rod(Rod.HUNGER)),
+            // рельсы арканы Divine у Датикона в инвентаре сразу становятся рельсами аддона
+            trade("datticon", new ItemStack(ArcanaItems.arcanium, 5), null, new ItemStack(ModItems.arcanaRails, 8)),
             quest(), worms());
     }
 

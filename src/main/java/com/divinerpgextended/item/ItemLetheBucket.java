@@ -13,12 +13,12 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
  * Ведро Леты. У Леты материал "вода", и обычное ведро набирало из реки Мортума простую воду: ведро из источника Леты
- * теперь становится ведром Леты ({@link Fill}), а оно ставит Лету обратно. В словаре жидкостей Forge - контейнер Леты.
+ * теперь становится ведром Леты ({@link Fill}), а оно ставит текучую Лету (течёт, как вода). В словаре жидкостей Forge - контейнер Леты.
  */
 public class ItemLetheBucket extends ItemBucket {
 
     public ItemLetheBucket() {
-        super(ModBlocks.lethe);
+        super(ModBlocks.letheFlowing);
         setContainerItem(Items.bucket);
         setMaxStackSize(1);
         setUnlocalizedName("dre.letheBucket");
@@ -34,7 +34,7 @@ public class ItemLetheBucket extends ItemBucket {
             if (e.world.isRemote || e.current == null || e.current.getItem() != Items.bucket || e.target == null
                 || e.target.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) return;
             int x = e.target.blockX, y = e.target.blockY, z = e.target.blockZ;
-            if (e.world.getBlock(x, y, z) != ModBlocks.lethe || e.world.getBlockMetadata(x, y, z) != 0) return;
+            if (!com.divinerpgextended.block.BlockLethe.isSource(e.world, x, y, z)) return;
             if (!e.entityPlayer.canPlayerEdit(x, y, z, e.target.sideHit, e.current)) return;
             e.world.setBlockToAir(x, y, z);
             e.result = new ItemStack(com.divinerpgextended.registry.ModItems.letheBucket);

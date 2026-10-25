@@ -71,7 +71,7 @@ public class TrinketEffects {
         Entity src = e.source.getEntity();
         boolean melee = src != null && e.source.getSourceOfDamage() == src && !e.source.isProjectile();
         // бонусы аксессуаров - только против мобов: по игрокам бьёт лишь обычный урон (приваты с запретом PvP не обойти)
-        if (src instanceof EntityPlayer && !src.worldObj.isRemote && !(e.entityLiving instanceof EntityPlayer)) {
+        if (src instanceof EntityPlayer && !src.worldObj.isRemote && !(e.entityLiving instanceof EntityPlayer) && !com.divinerpgextended.perk.Protection.spare(src, e.entityLiving)) {
             EntityPlayer p = (EntityPlayer) src;
             if (e.source.isProjectile() && wears(p, Trinket.BONE_RING)) {
                 e.ammount *= 1.2F;

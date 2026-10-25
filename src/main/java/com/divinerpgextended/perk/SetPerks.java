@@ -72,7 +72,7 @@ public class SetPerks {
         // Каменная стена: вернуть часть ближнего урона
         if (e.entityLiving instanceof EntityPlayer && wears((EntityPlayer) e.entityLiving, TwilightWorld.APALACHIA)
             && e.source.getSourceOfDamage() instanceof EntityLivingBase && e.source.getSourceOfDamage() == e.source.getEntity()
-            && !"thorns".equals(e.source.getDamageType())) {
+            && !"thorns".equals(e.source.getDamageType()) && !Protection.spare(e.entityLiving, e.source.getEntity())) {
             ((EntityLivingBase) e.source.getEntity()).attackEntityFrom(DamageSource.causeThornsDamage(e.entityLiving), e.ammount * REFLECT);
         }
         // Пожиратель тьмы: вампиризм

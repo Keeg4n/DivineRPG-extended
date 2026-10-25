@@ -305,6 +305,7 @@ public class EntityAncientDramcryx extends EntityMob implements IBossDisplayData
             a.getEntityData().setInteger(ADD, getEntityId());
             a.getEntityData().setBoolean("dreDemonAdd", true); // успокоение арены и бестиарий их не трогают
             if (getAttackTarget() != null) a.setAttackTarget(getAttackTarget());
+            com.divinerpgextended.boss.BossMinions.mark(a, this);
             if (worldObj.spawnEntityInWorld(a)) n++;
         }
         playSound("divinerpg:dramcryx", 3.0F, 0.35F);

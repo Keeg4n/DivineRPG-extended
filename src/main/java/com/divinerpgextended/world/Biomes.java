@@ -38,6 +38,14 @@ public final class Biomes {
         return b.getEnableSnow() || is(b, Type.SNOWY);
     }
 
+    /**
+     * Снег лежит на земле: заснеженная суша, где у поверхности (y = 72) снег, а не дождь. Biomes O' Plenty помечает
+     * снежными и холодные биомы без снега (Dead Forest, тундра) - снег там только на вершинах.
+     */
+    public static boolean snowsAt(BiomeGenBase b, int x, int z) {
+        return snowyLand(b) && b.getFloatTemperature(x, 72, z) < 0.15F;
+    }
+
     public static boolean jungle(BiomeGenBase b) {
         return b instanceof net.minecraft.world.biome.BiomeGenJungle || is(b, Type.JUNGLE);
     }

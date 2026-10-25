@@ -255,6 +255,7 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
                 if (!flies && !worldObj.getCollidingBoundingBoxes(m, m.boundingBox).isEmpty()) continue;
                 m.setAttackTarget(getAttackTarget());
                 m.getEntityData().setInteger(ADD_TAG, getEntityId());
+                com.divinerpgextended.boss.BossMinions.mark(m, this);
                 worldObj.spawnEntityInWorld(m);
                 ((WorldServer) worldObj).func_147487_a("portal", m.posX, m.posY + 1, m.posZ, 20, 0.5, 0.8, 0.5, 0.1);
                 made++;

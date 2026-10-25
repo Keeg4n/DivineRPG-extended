@@ -93,7 +93,11 @@ public class EnderGear {
             e.setCanceled(true);
             return;
         }
-        if (pinned(v)) e.setCanceled(true);
+        if (pinned(v)) {
+            e.setCanceled(true);
+            // горящий эндермен прыгает каждый тик: красный меч поджигает - держим, пока не погаснет
+            if (v.isBurning()) v.getEntityData().setLong(PIN, v.worldObj.getTotalWorldTime() + 2);
+        }
     }
 
     /** Стрела эндер-лука, которая в этот тик влетает в цель (null - нет такой). */

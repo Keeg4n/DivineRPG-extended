@@ -32,7 +32,7 @@ import cpw.mods.fml.common.IWorldGenerator;
 public class WorldGenTwilightFeatures implements IWorldGenerator {
 
     /** Для замеров и автотеста: сколько построено с запуска. */
-    public static int ruins, dungeons, bridges, camps;
+    public static int ruins, dungeons, bridges, camps, ponds;
 
     @Override
     public void generate(Random rand, int chunkX, int chunkZ, World world, IChunkProvider gen, IChunkProvider prov) {
@@ -53,13 +53,19 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         // острова неровные и дырявые: каждой постройке - четыре места в области заселения
         int[][] spots = { { 0, 0 }, { 7, 0 }, { 0, 7 }, { 7, 7 } };
         if (mortum) MortumWorld.bones(world, r, tw, x0, z0);
-        if (Config.twilightRuinsRarity > 0 && r.nextInt(Config.twilightRuinsRarity) == 0) {
+        // в Апалачии постройки чаще (острова там редкие и тонкие - построек было мало)
+        int boost = tw == TwilightWorld.APALACHIA ? Math.max(1, Config.apalachiaStructureBoost) : 1;
+        if (Config.twilightRuinsRarity > 0 && r.nextInt(Math.max(1, Config.twilightRuinsRarity / boost)) == 0) {
             if (mortum) for (int[] o : spots) built = built || MortumWorld.crypt(world, r, tw, x0 + o[0], z0 + o[1]);
             else for (int[] o : spots) if (!built && (built = ruin(world, r, tw, x0 + o[0], z0 + o[1]))) ruins++;
-        } else if (Config.twilightCampRarity > 0 && r.nextInt(Config.twilightCampRarity) == 0) {
+        } else if (Config.twilightCampRarity > 0 && r.nextInt(Math.max(1, Config.twilightCampRarity / boost)) == 0) {
             for (int[] o : spots) if (!built && (built = camp(world, r, tw, x0 + o[0], z0 + o[1]))) camps++;
-        } else if (Config.twilightDungeonRarity > 0 && r.nextInt(Config.twilightDungeonRarity) == 0) {
+        } else if (Config.twilightDungeonRarity > 0 && r.nextInt(Math.max(1, Config.twilightDungeonRarity / boost)) == 0) {
             for (int[] o : spots) if (!built && (built = dungeon(world, r, tw, x0 + o[0], z0 + o[1], x0 + 23))) dungeons++;
+        }
+        // пруд для рыбалки: причал, ива, кувшинки (в Мортуме вместо них - Лета с пристанями)
+        if (!built && !mortum && Config.twilightPondRarity > 0 && r.nextInt(Math.max(1, Config.twilightPondRarity / boost)) == 0) {
+            for (int[] o : new int[][] { { 0, 0 }, { 8, 0 }, { 0, 8 }, { 8, 8 } }) if (!built && (built = pond(world, r, tw, x0 + o[0], z0 + o[1]))) ponds++;
         }
         // мосты: у построек - всегда пробуем (мост издалека подсказывает, что рядом что-то есть), в остальных местах редко
         // в Мортуме мостов нет: пещера мёртвых, деревянный мост там чужой
@@ -248,6 +254,63 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         t.setHome(tw);
         t.setLocationAndAngles(x + 5.5, base + 1, z + 3.5, 90, 0);
         w.spawnEntityInWorld(t);
+        return true;
+    }
+
+    // ---------------------------------------------------------------- пруд
+
+    /**
+     * Пруд для рыбалки 15 x 15 с углом в (x, z): овальная вода глубиной до 3 с кувшинками, причал из досок мира в 2
+     * блока шириной с восточного берега, ива из дерева мира на западном берегу (крона со свисающими прядями).
+     * false - место не подошло (неровно, мало земли под водой).
+     */
+    public static boolean pond(World w, Random r, TwilightWorld tw, int x, int z) {
+        int lo = 999, hi = -1;
+        for (int i = 0; i < 15; i++) for (int k = 0; k < 15; k++) {
+            int y = surface(w, tw, x + i, z + k);
+            if (y < 0) return false;
+            lo = Math.min(lo, y);
+            hi = Math.max(hi, y);
+        }
+        if (hi - lo > 2) return false;
+        int base = lo;
+        for (int i = 0; i < 15; i += 2) for (int k = 0; k < 15; k += 2) // под дном - земля острова, не пустота
+            for (int y = base - 4; y < base; y++) if (w.isAirBlock(x + i, y, z + k)) return false;
+        // выровнять площадку
+        for (int i = 0; i < 15; i++) for (int k = 0; k < 15; k++) {
+            for (int y = base + 1; y <= base + 6; y++) if (!w.isAirBlock(x + i, y, z + k)) w.setBlock(x + i, y, z + k, Blocks.air, 0, 2);
+            w.setBlock(x + i, base, z + k, tw.grass(), 0, 2);
+        }
+        int cx = 7, cz = 7, rx = 4 + r.nextInt(2), rz = 3 + r.nextInt(2);
+        for (int i = 0; i < 15; i++) for (int k = 0; k < 15; k++) {
+            double d = Math.pow((i - cx) / (double) rx, 2) + Math.pow((k - cz) / (double) rz, 2);
+            if (d >= 1) continue;
+            int depth = d < 0.3 ? 3 : d < 0.7 ? 2 : 1;
+            for (int y = base - depth + 1; y <= base; y++) w.setBlock(x + i, y, z + k, Blocks.water, 0, 2);
+            w.setBlock(x + i, base - depth, z + k, tw.dirt(), 0, 2);
+            if (r.nextInt(5) == 0) w.setBlock(x + i, base + 1, z + k, Blocks.waterlily, 0, 2);
+        }
+        // причал: с восточного берега 5 блоков над водой, на конце - столбы до дна
+        Block planks = tw.planks();
+        for (int i = cx + rx; i >= cx + rx - 4; i--) for (int k = cz; k <= cz + 1; k++) {
+            w.setBlock(x + i, base + 1, z + k, planks, 0, 2);
+            if (i == cx + rx - 4) for (int y = base; y >= base - 3 && !w.getBlock(x + i, y, z + k).isOpaqueCube(); y--) w.setBlock(x + i, y, z + k, tw.log(), 0, 2);
+        }
+        // ива на западном берегу
+        int tx = x + cx - rx - 2, tz = z + cz, top = base + 5;
+        for (int y = base + 1; y <= top; y++) w.setBlock(tx, y, tz, tw.log(), 0, 2);
+        for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) for (int dy = 0; dy <= 1; dy++) {
+            int rr = dx * dx + dz * dz;
+            if (rr > (dy == 0 ? 10 : 5) || dx == 0 && dz == 0 && dy == 0) continue;
+            int lx = tx + dx, ly = top + dy, lz = tz + dz;
+            if (w.isAirBlock(lx, ly, lz)) w.setBlock(lx, ly, lz, tw.leaves(), 4, 2); // 4 - не опадают
+            // пряди по краю кроны свисают к земле
+            if (dy == 0 && rr >= 5 && r.nextInt(3) != 0) {
+                int len = 1 + r.nextInt(3);
+                for (int y = ly - 1; y >= ly - len && y > base; y--) if (w.isAirBlock(lx, y, lz)) w.setBlock(lx, y, lz, tw.leaves(), 4, 2);
+            }
+        }
+        w.setBlock(tx, top + 1, tz, tw.leaves(), 4, 2);
         return true;
     }
 

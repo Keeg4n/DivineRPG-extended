@@ -14,8 +14,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Стены крабьей норы: на вид песчаник (мета 0) и песок (мета 1). Если сломать такой блок в выживании или взорвать,
- * нора обрушивается: проход вокруг засыпает падающим песком. Так лабиринт нельзя пройти насквозь киркой.
+ * Стены крабьей норы: на вид песчаник (мета 0) и песок (мета 1). Не ломаются и не взрываются (раньше пролом засыпало
+ * песком - его можно было копать без конца). Блоки норы, гнездо и сердце не добыть: попавшие в инвентарь игрока
+ * становятся обычными песчаником, песком и резным песчаником ({@link Convert}), поставленные в выживании - тоже.
  */
 public class BlockBurrow extends Block {
 
@@ -23,8 +24,8 @@ public class BlockBurrow extends Block {
 
     public BlockBurrow() {
         super(Material.rock);
-        setHardness(2.5F);
-        setResistance(10.0F);
+        setBlockUnbreakable();
+        setResistance(6000000.0F);
         setStepSound(soundTypeStone);
         setBlockName("dre.burrow");
     }
@@ -67,6 +68,11 @@ public class BlockBurrow extends Block {
         if (!world.isRemote) collapse(world, x, y, z);
     }
 
+    @Override
+    public void onBlockPlacedBy(World w, int x, int y, int z, net.minecraft.entity.EntityLivingBase e, net.minecraft.item.ItemStack s) {
+        Convert.placed(w, x, y, z, e, s);
+    }
+
     /** Засыпать песком всё пустое и затопленное вокруг места пролома: песок падает и забивает проход. */
     public static void collapse(World world, int x, int y, int z) {
         for (int dx = -3; dx <= 3; dx++) {
@@ -81,5 +87,42 @@ public class BlockBurrow extends Block {
             }
         }
         world.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, "dig.sand", 2.0F, 0.6F);
+    }
+
+    /** Ванильный двойник блока норы (null - не блок норы). */
+    public static net.minecraft.item.ItemStack plain(net.minecraft.item.ItemStack s) {
+        if (s == null) return null;
+        Block b = Block.getBlockFromItem(s.getItem());
+        if (b == com.divinerpgextended.registry.ModBlocks.burrow)
+            return s.getItemDamage() == 1 ? new net.minecraft.item.ItemStack(Blocks.sand, s.stackSize) : new net.minecraft.item.ItemStack(Blocks.sandstone, s.stackSize);
+        if (b == com.divinerpgextended.registry.ModBlocks.carcinusHeart) return new net.minecraft.item.ItemStack(Blocks.sandstone, s.stackSize, 1);
+        if (b == com.divinerpgextended.registry.ModBlocks.sharkNest) return new net.minecraft.item.ItemStack(Blocks.sand, s.stackSize);
+        return null;
+    }
+
+    /** Блоки норы у игрока в выживании - обычные; поставленные им - тоже обычные, без свойств норы. */
+    public static class Convert {
+
+        static void placed(World w, int x, int y, int z, net.minecraft.entity.EntityLivingBase e, net.minecraft.item.ItemStack s) {
+            if (w.isRemote || !(e instanceof EntityPlayer) || ((EntityPlayer) e).capabilities.isCreativeMode) return;
+            net.minecraft.item.ItemStack p = plain(new net.minecraft.item.ItemStack(s.getItem(), 1, s.getItemDamage()));
+            if (p != null) w.setBlock(x, y, z, Block.getBlockFromItem(p.getItem()), p.getItemDamage(), 3);
+        }
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onTick(cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent e) {
+            EntityPlayer p = e.player;
+            if (e.phase != cpw.mods.fml.common.gameevent.TickEvent.Phase.END || p.worldObj.isRemote || p.capabilities.isCreativeMode
+                || p.ticksExisted % 10 != 0) return;
+            net.minecraft.item.ItemStack[] inv = p.inventory.mainInventory;
+            boolean changed = false;
+            for (int i = 0; i < inv.length; i++) {
+                net.minecraft.item.ItemStack r = plain(inv[i]);
+                if (r == null) continue;
+                inv[i] = r;
+                changed = true;
+            }
+            if (changed) p.inventoryContainer.detectAndSendChanges();
+        }
     }
 }

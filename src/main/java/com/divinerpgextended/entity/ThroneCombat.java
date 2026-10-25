@@ -53,7 +53,13 @@ public final class ThroneCombat {
         if (w == IceikaItems.frozenMaul) return 2.5F;
         if (w == IceikaItems.glacierSword) return 2.0F;
         if (w == IceikaItems.frostkingSword) return 1.6F;
+        if (vsLich(w) > 1.0F) return 1.3F; // клинки Лича - слабее молота, но лёд колют
         return 1.0F;
+    }
+
+    /** Множитель по мертвецам боссов Трона: любое ледяное оружие Трона (против Колосса и против Лича) - x2. */
+    public static float vsMinion(Item w) {
+        return vsColossus(w) > 1.0F || vsLich(w) > 1.0F ? 2.0F : 1.0F;
     }
 
     /** Множитель урона по Королю-личу: эти клинки ещё и не дают ему лечиться. */

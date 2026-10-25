@@ -104,6 +104,7 @@ public class MerikForge {
         Entity src = e.source.getEntity();
         if (!(src instanceof EntityPlayer) || e.source.getSourceOfDamage() != src || src.worldObj.isRemote) return;
         if (e.entityLiving instanceof EntityPlayer) return; // свойства перековки - только против мобов, не в PvP
+        if (com.divinerpgextended.perk.Protection.spare(src, e.entityLiving)) return;
         EntityPlayer p = (EntityPlayer) src;
         ItemStack held = p.getCurrentEquippedItem();
         Reforge r = Reforge.of(held);

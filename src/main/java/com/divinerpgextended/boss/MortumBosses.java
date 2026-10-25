@@ -403,6 +403,7 @@ public class MortumBosses {
                 m.setLocationAndAngles(boss.posX + Math.cos(a) * 5, boss.posY + 0.5, boss.posZ + Math.sin(a) * 5, 0, 0);
                 if (!boss.worldObj.getCollidingBoundingBoxes(m, m.boundingBox).isEmpty()) continue;
                 m.getEntityData().setInteger("dreDemonAdd", boss.getEntityId());
+                BossMinions.mark(m, boss);
                 boss.worldObj.spawnEntityInWorld(m);
             } catch (Exception ignored) {
                 // нет конструктора (World)

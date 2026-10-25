@@ -20,7 +20,8 @@ public class BlockSharkNest extends BlockContainer {
 
     public BlockSharkNest() {
         super(Material.sand);
-        setHardness(2.5F);
+        setBlockUnbreakable(); // не добыть (см. BlockBurrow)
+        setResistance(6000000.0F);
         setStepSound(soundTypeSand);
         setBlockName("dre.sharkNest");
         setBlockTextureName("minecraft:sand");
@@ -29,6 +30,11 @@ public class BlockSharkNest extends BlockContainer {
     @Override
     public TileEntity createNewTileEntity(World world, int meta) {
         return new Tile();
+    }
+
+    @Override
+    public void onBlockPlacedBy(World w, int x, int y, int z, net.minecraft.entity.EntityLivingBase e, net.minecraft.item.ItemStack s) {
+        BlockBurrow.Convert.placed(w, x, y, z, e, s);
     }
 
     @Override

@@ -91,6 +91,7 @@ public final class FrostPowers {
                 .isEmpty()) continue;
             mob.getEntityData()
                 .setBoolean(ThroneCombat.MINION_TAG, true);
+            com.divinerpgextended.boss.BossMinions.mark(mob, boss);
             w.spawnEntityInWorld(mob);
             particles(w, "spell", mob.posX, mob.posY + 1, mob.posZ, 20, 0.4, 0.05);
         }

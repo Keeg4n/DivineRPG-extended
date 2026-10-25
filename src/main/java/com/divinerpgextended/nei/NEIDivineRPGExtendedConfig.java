@@ -25,6 +25,13 @@ public class NEIDivineRPGExtendedConfig implements IConfigureNEI {
         API.registerUsageHandler(crates);
         API.registerRecipeHandler(trades);
         API.registerUsageHandler(trades);
+        // служебные блоки рельсов (ставятся предметами-рельсами) и убранные рельсы Divine
+        for (net.minecraft.block.Block b : new net.minecraft.block.Block[] { com.divinerpgextended.registry.ModBlocks.skyRail,
+            com.divinerpgextended.registry.ModBlocks.apalachiaRail, com.divinerpgextended.registry.ModBlocks.skyBoostRail,
+            com.divinerpgextended.registry.ModBlocks.letheFlowing, com.divinerpgextended.registry.ModBlocks.dreamCarrots,
+            com.divinerpgextended.registry.ModBlocks.dreamMelonStem,
+            net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails, net.divinerpg.utils.blocks.ArcanaBlocks.arcaniteRails })
+            if (b != null) API.hideItem(new net.minecraft.item.ItemStack(b));
         if (!Nei.gtnh()) return;
         try {
             NeiGtnh.setup(fishing);

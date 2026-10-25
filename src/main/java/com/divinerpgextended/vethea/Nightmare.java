@@ -206,7 +206,9 @@ public class Nightmare {
             EntityPlayer p = (EntityPlayer) src;
             ItemStack held = p.getHeldItem();
             boolean ranged = e.source.getSourceOfDamage() != src;
-            if (held != null && !vethean(held) && (ranged || weapon(held))) {
+            // только против мобов самой Ветеи (и игроков); ванильных и чужих мобов чужое оружие бьёт как обычно
+            boolean native_ = e.entityLiving instanceof EntityPlayer || e.entityLiving.getClass().getName().startsWith("net.divinerpg.entities.vethea.");
+            if (native_ && held != null && !vethean(held) && (ranged || weapon(held))) {
                 e.setCanceled(true);
                 if (!(e.entityLiving instanceof EntityPlayer)) {
                     e.entityLiving.heal(e.ammount);

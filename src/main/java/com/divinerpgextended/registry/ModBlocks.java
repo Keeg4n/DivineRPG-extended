@@ -42,7 +42,8 @@ public final class ModBlocks {
     public static final Block[] gateStone = new Block[4];
     public static Block windTotem;
     public static Block cloud;
-    public static Block skyRail, apalachiaRail, skyBoostRail, lethe;
+    public static Block skyRail, apalachiaRail, skyBoostRail, lethe, letheFlowing;
+    public static Block dreamCarrots, dreamMelon, dreamMelonStem, netherTorch;
     public static net.minecraftforge.fluids.Fluid letheFluid;
     /** Лампы сумеречных миров по номеру TwilightWorld; [EDEN] пусто - у Эдема лампа Divine. */
     public static final Block[] worldLamp = new Block[5];
@@ -121,13 +122,29 @@ public final class ModBlocks {
         letheFluid = new net.minecraftforge.fluids.Fluid("dre_lethe").setLuminosity(4).setDensity(1100).setViscosity(1600);
         net.minecraftforge.fluids.FluidRegistry.registerFluid(letheFluid);
         letheFluid = net.minecraftforge.fluids.FluidRegistry.getFluid("dre_lethe");
-        lethe = new com.divinerpgextended.block.BlockLethe(letheFluid);
+        lethe = new com.divinerpgextended.block.BlockLethe(letheFluid, false);
         GameRegistry.registerBlock(lethe, "lethe");
         if (letheFluid.getBlock() == null) letheFluid.setBlock(lethe);
+        letheFlowing = new com.divinerpgextended.block.BlockLethe(letheFluid, true); // из ведра - течёт
+        GameRegistry.registerBlock(letheFlowing, "letheFlowing");
         ModItems.letheBucket = new com.divinerpgextended.item.ItemLetheBucket();
         GameRegistry.registerItem(ModItems.letheBucket, "letheBucket");
         net.minecraftforge.fluids.FluidContainerRegistry.registerFluidContainer(letheFluid, new net.minecraft.item.ItemStack(ModItems.letheBucket),
             new net.minecraft.item.ItemStack(net.minecraft.init.Items.bucket));
+        netherTorch = new com.divinerpgextended.block.BlockWorldTorch(0xFF8A1E);
+        GameRegistry.registerBlock(netherTorch, "worldTorch_nether");
+        GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(netherTorch, 4), net.minecraft.init.Items.blaze_rod);
+        dreamCarrots = new com.divinerpgextended.block.DreamCrops.Carrot();
+        GameRegistry.registerBlock(dreamCarrots, "dreamCarrots");
+        dreamMelon = new com.divinerpgextended.block.DreamCrops.Melon();
+        GameRegistry.registerBlock(dreamMelon, "dreamMelon");
+        dreamMelonStem = new com.divinerpgextended.block.DreamCrops.Stem(dreamMelon);
+        GameRegistry.registerBlock(dreamMelonStem, "dreamMelonStem");
+        ModItems.dreamMelonSeeds = new net.minecraft.item.ItemSeeds(dreamMelonStem, net.minecraft.init.Blocks.farmland).setUnlocalizedName("dre.dreamMelonSeeds")
+            .setTextureName("divinerpgextended:dream_melon_seeds");
+        GameRegistry.registerItem(ModItems.dreamMelonSeeds, "dreamMelonSeeds");
+        GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(ModItems.dreamMelonSeeds), net.divinerpg.utils.items.VetheaItems.dreamMelon);
+        GameRegistry.addRecipe(new net.minecraft.item.ItemStack(dreamMelon), "MMM", "MMM", "MMM", 'M', net.divinerpg.utils.items.VetheaItems.dreamMelon);
         cloud = new com.divinerpgextended.block.BlockCloud();
         GameRegistry.registerBlock(cloud, "cloud");
         windTotem = new com.divinerpgextended.block.BlockWindTotem();

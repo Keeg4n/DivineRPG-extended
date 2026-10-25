@@ -39,6 +39,8 @@ public final class ModItems {
     public static Item wandererClock;
     /** Ведро Леты - регистрируется вместе с Летой ({@link ModBlocks#register}): блок нужен ведру при создании. */
     public static Item letheBucket;
+    public static Item dreamMelonSeeds;
+    public static Item bossEgg;
     public static Item timeGear;
     public static Item cadillionCall;
     public static Item deepShell;
@@ -198,6 +200,8 @@ public final class ModItems {
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWindLord.class, "WindLord", 13, DivineRPGExtended.instance, 112, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityBoulder.class, "Boulder", 14, DivineRPGExtended.instance, 64, 5, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntitySkyCart.class, "SkyCart", 15, DivineRPGExtended.instance, 80, 1, true);
+        bossEgg = new com.divinerpgextended.item.ItemBossEgg();
+        GameRegistry.registerItem(bossEgg, "bossEgg");
     }
 
     private static String[] keys(Enum<?>[] v) {

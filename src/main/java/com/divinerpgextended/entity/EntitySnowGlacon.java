@@ -212,6 +212,7 @@ public class EntitySnowGlacon extends EntityMob implements IBossDisplayData {
     private void summon(EntityLiving mob, double up) {
         mob.setLocationAndAngles(posX + (rand.nextDouble() - 0.5) * 4, posY + up, posZ + (rand.nextDouble() - 0.5) * 4,
             rand.nextFloat() * 360, 0);
+        com.divinerpgextended.boss.BossMinions.mark(mob, this);
         worldObj.spawnEntityInWorld(mob);
     }
 

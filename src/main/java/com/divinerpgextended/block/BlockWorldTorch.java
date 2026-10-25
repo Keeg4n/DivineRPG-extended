@@ -11,13 +11,26 @@ import com.divinerpgextended.world.twilight.TwilightWorld;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Факел сумеречного мира: палка мира с пылью мира, светит ярче обычного и искрит цветом мира. */
+/**
+ * Факел сумеречного мира: палка мира с пылью мира, светит ярче обычного и искрит цветом мира. Адский факел - из стержня
+ * ифрита. Монстров Divine гонит только в своём мире ({@link com.divinerpgextended.boss.TorchWards}).
+ */
 public class BlockWorldTorch extends BlockTorch {
 
+    /** Мир факела (null - адский). */
     public final TwilightWorld world;
     private final float r, g, b;
 
     public BlockWorldTorch(TwilightWorld world, int color) {
+        this(world, world.key(), color);
+    }
+
+    /** Адский факел. */
+    public BlockWorldTorch(int color) {
+        this(null, "nether", color);
+    }
+
+    private BlockWorldTorch(TwilightWorld world, String key, int color) {
         this.world = world;
         r = (color >> 16 & 255) / 255F;
         g = (color >> 8 & 255) / 255F;
@@ -25,9 +38,14 @@ public class BlockWorldTorch extends BlockTorch {
         setLightLevel(1.0F);
         setHardness(0.0F);
         setStepSound(soundTypeWood);
-        setBlockName("dre.worldTorch." + world.key());
-        setBlockTextureName("divinerpgextended:world_torch_" + world.key());
+        setBlockName("dre.worldTorch." + key);
+        setBlockTextureName("divinerpgextended:world_torch_" + key);
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
+    }
+
+    /** Измерение, где факел гонит монстров. */
+    public int dimension() {
+        return world != null ? world.dimension() : -1;
     }
 
     @Override

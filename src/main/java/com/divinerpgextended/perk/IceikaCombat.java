@@ -11,7 +11,6 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.ChatComponentTranslation;
-import net.minecraftforge.event.entity.player.PlayerUseItemEvent;
 
 import com.divinerpgextended.cold.ColdHandler;
 import com.divinerpgextended.entity.FrostPowers;
@@ -37,7 +36,7 @@ public class IceikaCombat {
         IceikaItems.santaBoots };
     private static final Item[] FROZEN = { VanillaItemsArmor.frozenHelmet, VanillaItemsArmor.frozenBody,
         VanillaItemsArmor.frozenLegs, VanillaItemsArmor.frozenBoots };
-    private static final String HEAL_TICK = "dreFrossivence", CHILL = "dreChill", LAST_HP = "dreLastHp";
+    private static final String HEAL_TICK = "dreFrossivence", CHILL = "dreChill";
     private static final int COOLDOWN = 40;
 
     @SubscribeEvent
@@ -57,6 +56,9 @@ public class IceikaCombat {
         if (melee == IceikaItems.snowSlash) {
             event.ammount *= 3.0F;
             com.divinerpgextended.debug.Debug.note(event.entityLiving, "Snowslash по приспешнику трона: x3");
+        } else if (ThroneCombat.vsMinion(melee) > 1.0F) {
+            event.ammount *= ThroneCombat.vsMinion(melee);
+            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Ледяное оружие Трона по приспешнику: x2");
         }
         if (ThroneCombat.iceCannon(event.source)) {
             event.ammount *= 4.0F;
@@ -67,24 +69,25 @@ public class IceikaCombat {
     }
 
     /**
-     * Фроссивенс: Divine лечит на каждый клик без перезарядки. Здесь клик чаще раза в 2 секунды отменяет лечение
-     * (возвращаем здоровье, бывшее в конце прошлого тика), а каждое настоящее лечение добавляет переохлаждение.
+     * Фроссивенс: Divine лечит на каждый клик без перезарядки (в onItemRightClick, setHealth без события лечения). Клик
+     * в воздух чаще раза в 2 секунды не доходит до меча (useItem = DENY): раньше лечение отменялось в начале
+     * использования, а пока меч уже "в руке" (блок), повторные клики начала не вызывают - в бою с Колоссом лечение шло
+     * без перезарядки. Каждое настоящее лечение добавляет переохлаждение.
      */
     @SubscribeEvent
-    public void onUse(PlayerUseItemEvent.Start event) {
+    public void onClick(net.minecraftforge.event.entity.player.PlayerInteractEvent event) {
         EntityPlayer p = event.entityPlayer;
-        ItemStack s = event.item;
-        if (p.worldObj.isRemote || s == null || s.getItem() != IceikaItems.frossivence) return;
+        if (event.action != net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR || p.worldObj.isRemote) return;
+        ItemStack s = p.getHeldItem();
+        if (s == null || s.getItem() != IceikaItems.frossivence) return;
         NBTTagCompound d = p.getEntityData();
         long now = p.worldObj.getTotalWorldTime();
         if (now - d.getLong(HEAL_TICK) < COOLDOWN) {
-            float before = d.getFloat(LAST_HP);
-            if (before > 0 && p.getHealth() > before) {
-                p.setHealth(before);
-                com.divinerpgextended.debug.Debug.note(p, "Фроссивенс на перезарядке: лечение отменено");
-            }
+            event.useItem = cpw.mods.fml.common.eventhandler.Event.Result.DENY;
+            com.divinerpgextended.debug.Debug.note(p, "Фроссивенс на перезарядке: лечения нет");
             return;
         }
+        if (p.getHealth() <= 0 || p.getHealth() >= 20) return; // Divine лечит только ниже 20 - перезарядку не тратим
         d.setLong(HEAL_TICK, now);
         boolean santa = PerkEffects.wears(p, SANTA), frozen = PerkEffects.wears(p, FROZEN);
         if ((santa || frozen) && p.getHealth() < p.getMaxHealth()) {
@@ -97,13 +100,12 @@ public class IceikaCombat {
         FrostPowers.particles(p.worldObj, "snowshovel", p.posX, p.posY + 1.2, p.posZ, 8, 0.4, 0.05);
     }
 
-    /** Запоминаем здоровье в конце тика (для отмены лишнего лечения) и раз в секунду обрабатываем переохлаждение. */
+    /** Раз в секунду обрабатываем переохлаждение. */
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent event) {
         EntityPlayer p = event.player;
         if (event.phase != TickEvent.Phase.END || p.worldObj.isRemote) return;
         NBTTagCompound d = p.getEntityData();
-        d.setFloat(LAST_HP, p.getHealth());
         if (p.ticksExisted % 20 != 0) return;
         float chill = d.getFloat(CHILL);
         if (chill <= 0) return;

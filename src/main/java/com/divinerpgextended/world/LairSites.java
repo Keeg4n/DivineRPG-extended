@@ -54,6 +54,9 @@ public final class LairSites {
         synchronized (PROGRESS) {
             PROGRESS.clear();
         }
+        synchronized (RAW) {
+            RAW.clear();
+        }
     }
 
     /** Место логова типа type в регионе (rx, rz) или null. */
@@ -73,13 +76,50 @@ public final class LairSites {
             int[] c = CACHE.get(key);
             if (c != null) return c == NONE ? null : c;
         }
-        int[] s = type == TOMB ? pyramid(w, rx, rz) : scan(w, type, rx, rz, size, key, deadline);
+        int[] s = raw(w, type, rx, rz, deadline);
         if (s == UNFINISHED) return s;
+        // логова Карцинуса не ближе CARCINUS_GAP: из двух близких остаётся то, у чьего региона приоритет выше
+        if (s != null && type == CARCINUS) {
+            for (int i = -1; i <= 1 && s != null; i++) for (int k = -1; k <= 1 && s != null; k++) {
+                if (i == 0 && k == 0) continue;
+                int[] o = raw(w, type, rx + i, rz + k, deadline);
+                if (o == UNFINISHED) return o;
+                if (o == null || (long) (o[0] - s[0]) * (o[0] - s[0]) + (long) (o[1] - s[1]) * (o[1] - s[1]) >= (long) CARCINUS_GAP * CARCINUS_GAP) continue;
+                if (priority(w, rx + i, rz + k) > priority(w, rx, rz)) s = null;
+            }
+        }
         synchronized (CACHE) {
             if (CACHE.size() > 20000) CACHE.clear();
             CACHE.put(key, s == null ? NONE : s);
         }
         return s;
+    }
+
+    /** Наименьшее расстояние между логовами Карцинуса: 16 чанков. */
+    public static final int CARCINUS_GAP = 256;
+    /** Место региона до проверки соседей. */
+    private static final Map<Long, int[]> RAW = new HashMap<Long, int[]>();
+
+    private static int[] raw(World w, int type, int rx, int rz, long deadline) {
+        if (type == TOMB) return pyramid(w, rx, rz);
+        long key = key(w, type, rx, rz) ^ 0x5DEECE66DL;
+        synchronized (RAW) {
+            int[] c = RAW.get(key);
+            if (c != null) return c == NONE ? null : c;
+        }
+        int[] s = scan(w, type, rx, rz, spacing(type), key, deadline);
+        if (s == UNFINISHED) return s;
+        synchronized (RAW) {
+            if (RAW.size() > 20000) RAW.clear();
+            RAW.put(key, s == null ? NONE : s);
+        }
+        return s;
+    }
+
+    private static long priority(World w, int rx, int rz) {
+        long h = w.getSeed() ^ rx * 0x9E3779B97F4A7C15L ^ rz * 0xC2B2AE3D27D4EB4FL;
+        h ^= h >>> 31;
+        return h * 0xBF58476D1CE4E5B9L;
     }
 
     /** Место в регионе этого чанка, если оно в этом чанке. */
@@ -151,14 +191,16 @@ public final class LairSites {
      * если вышло время.
      */
     private static int snowField(WorldChunkManager wcm, int x, int z, int m, long deadline) {
-        if (m == 0 && !Biomes.snowyLand(wcm.getBiomeGenAt(x, z))) return SNOW_NO;
-        int i = 0;
+        if (m == 0 && !Biomes.snowsAt(wcm.getBiomeGenAt(x, z), x, z)) return SNOW_NO;
+        int i = 0, bare = 0;
         for (int dx = -16; dx <= 176; dx += 32) for (int dz = -64; dz <= 64; dz += 32) {
             if (++i <= m) continue;
             if (deadline != Long.MAX_VALUE && System.nanoTime() > deadline) return i - 1;
             BiomeGenBase b = wcm.getBiomeGenAt(x + dx, z + dz);
             if (b == null || Biomes.ocean(b) || Biomes.beach(b) || BiomeDictionary.isBiomeOfType(b, BiomeDictionary.Type.RIVER)
                 || BiomeDictionary.isBiomeOfType(b, BiomeDictionary.Type.SWAMP) || b.rootHeight < 0.0F || b.heightVariation > 0.45F) return SNOW_NO;
+            // над пещерой - снежное поле: бесснежных точек не больше четверти (продолжение после паузы считает заново)
+            if (!Biomes.snowsAt(b, x + dx, z + dz) && ++bare > 8) return SNOW_NO;
         }
         return SNOW_YES;
     }

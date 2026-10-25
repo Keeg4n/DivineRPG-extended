@@ -112,7 +112,7 @@ public class ColorGear {
         EntityLivingBase v = e.entityLiving;
         if (v.worldObj.isRemote) return;
         EntityPlayer p = meleePlayer(e.source);
-        if (p != null && p != v) {
+        if (p != null && p != v && !Protection.spare(p, v)) {
             ItemStack held = p.getHeldItem();
             Hue h = isWeapon(held) ? hue(held) : null;
             if (h != null) strike(p, v, h, e);
@@ -183,7 +183,7 @@ public class ColorGear {
         try {
             for (EntityLivingBase o : l) {
                 if (o == center || o == p || o instanceof EntityPlayer || !o.isEntityAlive() || o.getDistanceToEntity(center) > WAVE_R + 1) continue;
-                if (!sameKind(o, center)) continue;
+                if (!sameKind(o, center) || Protection.spare(p, o)) continue;
                 o.hurtResistantTime = 0;
                 double mx = o.motionX, my = o.motionY, mz = o.motionZ;
                 o.attackEntityFrom(DamageSource.causePlayerDamage(p), dmg * WAVE_DMG);
@@ -207,7 +207,7 @@ public class ColorGear {
         if (s == DamageSource.magic && p.isPotionActive(Potion.poison)) e.ammount *= 1 - 0.25F * pieces(p, Hue.GREEN);
         if (s.isProjectile() && pieces(p, Hue.GRAY) == 4) e.ammount *= 1 - GRAY_ARROWS;
         Entity a = s.getEntity();
-        if (a instanceof EntityLivingBase && s.getSourceOfDamage() == a && a != p && pieces(p, Hue.RED) == 4) a.setFire(3);
+        if (a instanceof EntityLivingBase && s.getSourceOfDamage() == a && a != p && pieces(p, Hue.RED) == 4 && !Protection.spare(p, a)) a.setFire(3);
     }
 
     @SubscribeEvent

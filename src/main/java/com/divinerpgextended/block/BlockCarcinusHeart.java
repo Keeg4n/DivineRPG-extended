@@ -23,6 +23,11 @@ public class BlockCarcinusHeart extends BlockContainer {
     }
 
     @Override
+    public void onBlockPlacedBy(World w, int x, int y, int z, net.minecraft.entity.EntityLivingBase e, net.minecraft.item.ItemStack s) {
+        BlockBurrow.Convert.placed(w, x, y, z, e, s);
+    }
+
+    @Override
     public TileEntity createNewTileEntity(World world, int meta) {
         return new Tile();
     }

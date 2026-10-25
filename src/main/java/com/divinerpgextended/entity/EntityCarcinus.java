@@ -39,7 +39,12 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
 
     private static final int DW_SHELL = 20, DW_VORTEX = 21;
     private static final int VORTEX_CHARGE = 30;
-    private static final double VORTEX_RADIUS = 6.0D;
+    private static final double VORTEX_RADIUS = 5.0D;
+    /** Приспешников-крабов одновременно не больше; после гибели краба новых не зовёт {@link #CRAB_PAUSE} тиков. */
+    public static final int MAX_CRABS = 12, CRAB_PAUSE = 300;
+    /** Досягаемость клешней от центра (ванильный ИИ бьёт с 6 блоков - к нему не подойти с мечом). */
+    public static final double REACH = 3.5D;
+    private int crabPause, lastCrabs;
     private int crabTimer = 120, kingTimer = 200, shellTimer = 260, rageTimer = 100, shellLeft;
     private int vortexTimer = 160, vortexLeft;
 
@@ -118,6 +123,13 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
     }
 
     @Override
+    public boolean attackEntityAsMob(Entity target) {
+        double dx = target.posX - posX, dz = target.posZ - posZ, r = REACH + target.width / 2;
+        if (dx * dx + dz * dz > r * r) return false; // ещё далеко: подходит ближе
+        return super.attackEntityAsMob(target);
+    }
+
+    @Override
     public boolean isAIEnabled() {
         return true;
     }
@@ -159,6 +171,7 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
 
     private void spawnMinion(EntityLiving minion) {
         minion.getEntityData().setBoolean(EntityLairCrab.CARCINUS_ADD, true); // в бою - без клешней и опыта
+        com.divinerpgextended.boss.BossMinions.mark(minion, this);
         minion.setLocationAndAngles(posX + (rand.nextDouble() - 0.5) * 6, posY, posZ + (rand.nextDouble() - 0.5) * 6,
             rand.nextFloat() * 360, 0);
         worldObj.spawnEntityInWorld(minion);
@@ -202,13 +215,20 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
             dataWatcher.updateObject(DW_VORTEX, Byte.valueOf((byte) 1));
             tell("dre.chat.carcinus_vortex");
         }
-        if (--crabTimer <= 0) {
-            for (int i = 0; i < 2; i++) spawnMinion(new EntityLairCrab(worldObj));
+        if (ticksExisted % 10 == 0) {
+            int crabs = com.divinerpgextended.boss.BossMinions.count(this);
+            if (crabs < lastCrabs) crabPause = CRAB_PAUSE; // краба убили - пауза
+            lastCrabs = crabs;
+        }
+        if (crabPause > 0) crabPause--;
+        if (--crabTimer <= 0 && crabPause <= 0) {
+            for (int i = 0; i < 2 && lastCrabs < MAX_CRABS; i++, lastCrabs++) spawnMinion(new EntityLairCrab(worldObj));
             crabTimer = 200;
         }
         if (hp <= 0.5F) {
-            if (--kingTimer <= 0) {
+            if (--kingTimer <= 0 && crabPause <= 0 && lastCrabs < MAX_CRABS) {
                 spawnMinion(new EntityLairCrab.King(worldObj));
+                lastCrabs++;
                 kingTimer = 300;
             }
             if (--shellTimer <= 0 && !inShell()) {

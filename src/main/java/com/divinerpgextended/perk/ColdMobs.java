@@ -12,27 +12,40 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Ледяные помощники Снежного Глакона (Глаконы и Фросты) боятся адского, как и сам босс: адское оружие (мечи
- * Inferno, Molten, Scorching и адский лук) бьёт их вдвое сильнее и поджигает, огонь жжёт вдвое сильнее, а игроку
- * в огненной броне они наносят вдвое меньше урона.
+ * Морозные мобы ({@link #isCold}: Глаконы, Фросты, мобы Iceika, Колосс, Король-лич и их мертвецы) боятся адского: адское
+ * оружие (мечи Inferno, Molten, Scorching, Bluefire и адский лук) бьёт их вдвое сильнее и поджигает, огонь жжёт вдвое
+ * сильнее, а игроку в огненной броне они наносят вдвое меньше урона. Палящий меч поджигает любую цель.
  */
 public class ColdMobs {
 
-    private static boolean isCold(Entity e) {
-        return e instanceof EntityGlacon || e instanceof EntityFrost;
+    /** Морозные: Глаконы, Фросты, враждебные мобы Iceika, боссы и помощники Ледяного Трона. */
+    public static boolean isCold(Entity e) {
+        if (e instanceof EntityGlacon || e instanceof EntityFrost || e instanceof com.divinerpgextended.entity.EntitySnowGlacon
+            || e instanceof com.divinerpgextended.entity.EntityFrostColossus || e instanceof com.divinerpgextended.entity.EntityLichKing) return true;
+        if (e == null) return false;
+        if (e.getEntityData().getBoolean(com.divinerpgextended.entity.ThroneCombat.MINION_TAG)) return true;
+        return e instanceof net.minecraft.entity.monster.IMob && e.getClass().getName().startsWith("net.divinerpg.entities.iceika.");
     }
 
     private static boolean isHellWeapon(EntityPlayer p) {
         ItemStack held = p.getHeldItem();
-        if (held == null) return false;
-        Item i = held.getItem();
+        return held != null && isHellWeapon(held.getItem());
+    }
+
+    public static boolean isHellWeapon(Item i) {
         return i == VanillaItemsWeapons.infernoSword || i == VanillaItemsWeapons.moltenSword
-            || i == VanillaItemsWeapons.scorchingSword || i == VanillaItemsWeapons.infernoBow;
+            || i == VanillaItemsWeapons.scorchingSword || i == VanillaItemsWeapons.bluefireSword || i == VanillaItemsWeapons.infernoBow;
     }
 
     @SubscribeEvent
     public void onHurt(LivingHurtEvent event) {
         Entity attacker = event.source.getEntity();
+        // Палящий меч Divine - обычный меч без свойств: поджигаем сами
+        if (attacker instanceof EntityPlayer && event.source.getSourceOfDamage() == attacker && !event.entityLiving.worldObj.isRemote) {
+            ItemStack held = ((EntityPlayer) attacker).getHeldItem();
+            if (held != null && held.getItem() == VanillaItemsWeapons.scorchingSword && !Protection.spare(attacker, event.entityLiving))
+                event.entityLiving.setFire(4);
+        }
         if (isCold(event.entityLiving)) {
             if (event.source.isFireDamage()) {
                 event.ammount *= 2.0F;

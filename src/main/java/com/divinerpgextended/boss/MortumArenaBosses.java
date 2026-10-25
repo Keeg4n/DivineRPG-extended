@@ -325,6 +325,7 @@ public class MortumArenaBosses {
             r.getEntityData().setBoolean("dreDemonAdd", true); // успокоение арены их не уносит
             r.addPotionEffect(new PotionEffect(Potion.moveSpeed.id, 20 * 600, 1));
             r.setAttackTarget(p);
+            BossMinions.mark(r, a);
             if (a.worldObj.spawnEntityInWorld(r)) {
                 made++;
                 ((WorldServer) a.worldObj).func_147487_a("largesmoke", x, h[1] + 0.5, z, 15, 0.4, 0.4, 0.4, 0.02);
@@ -489,6 +490,7 @@ public class MortumArenaBosses {
             s.setLocationAndAngles(h[0] + g[0] + 0.5, h[1], h[2] + g[1] + 0.5, f.getRNG().nextFloat() * 360, 0);
             s.getEntityData().setInteger(SOUL, f.getEntityId());
             s.func_110163_bv();
+            BossMinions.mark(s, f);
             if (f.worldObj.spawnEntityInWorld(s)) {
                 made++;
                 ((WorldServer) f.worldObj).func_147487_a("largesmoke", s.posX, s.posY + 0.3, s.posZ, 15, 0.3, 0.2, 0.3, 0.02);
@@ -532,6 +534,7 @@ public class MortumArenaBosses {
         s.setLocationAndAngles(e.x + 0.5, e.y, e.z + 0.5, 0, 0);
         s.getEntityData().setInteger(SOUL, f.getEntityId());
         s.func_110163_bv();
+        BossMinions.mark(s, f);
         e.world.spawnEntityInWorld(s);
         ((WorldServer) e.world).func_147487_a("witchMagic", e.x + 0.5, e.y + 1, e.z + 0.5, 30, 0.4, 0.6, 0.4, 0.05);
         e.world.playSoundEffect(e.x + 0.5, e.y + 0.5, e.z + 0.5, "mob.wither.hurt", 1.0F, 0.6F);

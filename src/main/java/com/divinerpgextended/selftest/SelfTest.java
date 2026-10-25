@@ -888,7 +888,7 @@ public class SelfTest {
         final WorldServer vw = server.worldServerForDimension(vd);
         final TestPlayer v = player(vd, "TestDream", 8, 17, 8);
         final TestPlayer v2 = player(vd, "TestDream2", 10, 17, 8);
-        final EntityZombie z = new EntityZombie(vw);
+        final net.minecraft.entity.EntityLiving z = new net.divinerpg.entities.vethea.EntityCymesoid(vw); // моб Ветеи: только их лечит чужое оружие
         z.setPosition(9, 17, 9);
         vw.spawnEntityInWorld(z);
         final DamageSource mob = DamageSource.causeMobDamage(z);
@@ -930,8 +930,11 @@ public class SelfTest {
             hold(v, new ItemStack(Items.diamond_sword));
             z.setHealth(10);
             float d = hit(z, DamageSource.causePlayerDamage(v), 7);
-            check(d < 0, "алмазный меч: здоровье зомби изменилось на " + f(-d));
-            return "алмазный меч лечит зомби на " + f(-d);
+            EntityZombie vz = new EntityZombie(vw); // ванильный моб в Ветее - бьётся как обычно
+            vz.setHealth(10);
+            float dz = hit(vz, DamageSource.causePlayerDamage(v), 7);
+            check(d < 0 && dz > 0, "алмазный меч: здоровье моба Ветеи изменилось на " + f(-d) + ", зомби - урон " + f(dz));
+            return "алмазный меч лечит моба Ветеи на " + f(-d) + ", зомби в Ветее получает урон " + f(dz);
         });
         t("Ветея - кошмар", "Ветейское оружие бьёт", () -> {
             reset(v);
@@ -2523,6 +2526,529 @@ public class SelfTest {
             check(behind && lit && shots == 5 && hp < 0.8F, "снаряд за спиной " + behind + " (было " + before + ", стало " + after.size() + "), тотем зажжён " + lit + " за " + shots + " попаданий, здоровье " + hp);
             return "фазер пробивает моба насквозь (летит дальше); 5 быстрых попаданий в тотем зажигают его издалека";
         });
+        t("Прохождение", "Вагонетка на полном ходу по кольцу: не в блоках", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            loadAround(w, 9540, 9520, 1);
+            int x0 = 9540, y0 = 100, z0 = 9520, W = 14, H = 6;
+            // кольцо в плоскости XY: пол W, стены H, потолок; на полу первые 9 рельсов - арканы (разгон)
+            for (int x = x0 - 1; x <= x0 + W; x++) for (int y = y0 - 1; y <= y0 + H; y++) for (int z = z0 - 2; z <= z0 + 2; z++)
+                w.setBlock(x, y, z, x == x0 - 1 || x == x0 + W || y == y0 - 1 || y == y0 + H || z < z0 - 1 || z > z0 + 1 ? Blocks.stone : Blocks.air);
+            for (int x = x0 + 1; x < x0 + W - 1; x++) w.setBlock(x, y0, z0, x < x0 + 10 ? com.divinerpgextended.registry.ModBlocks.skyBoostRail : com.divinerpgextended.registry.ModBlocks.skyRail, 0, 3);
+            w.setBlock(x0, y0, z0, com.divinerpgextended.registry.ModBlocks.skyRail, 0, 3);
+            w.setBlock(x0 + W - 1, y0, z0, com.divinerpgextended.registry.ModBlocks.skyRail, 0, 3);
+            for (int y = y0 + 1; y <= y0 + H - 1; y++) w.setBlock(x0 + W - 1, y, z0, com.divinerpgextended.registry.ModBlocks.skyRail, 5, 3);
+            for (int x = x0 + W - 2; x >= x0; x--) w.setBlock(x, y0 + H - 1, z0, com.divinerpgextended.registry.ModBlocks.skyRail, 1, 3);
+            for (int y = y0 + H - 2; y >= y0 + 1; y--) w.setBlock(x0, y, z0, com.divinerpgextended.registry.ModBlocks.skyRail, 4, 3);
+            TestPlayer rp = join(player(ConfigurationHelper.apalachia, "TestRailFast", x0 + 0.5, y0, z0 + 0.5), true);
+            com.divinerpgextended.entity.EntitySkyCart cart = new com.divinerpgextended.entity.EntitySkyCart(w, x0 + 1, y0, z0, -90);
+            w.spawnEntityInWorld(cart);
+            rp.mountEntity(cart);
+            // клиентское сглаживание (как clientSmooth: позиция и нормаль догоняют серверные на 1/4 за тик)
+            double[] cp = { cart.posX, cart.posY, cart.posZ };
+            float[] cn = cart.normal();
+            int bodyIn = 0, camIn = 0, eyeIn = 0, ticks = 0;
+            double top = 0;
+            StringBuilder where = new StringBuilder();
+            for (; ticks < 400; ticks++) {
+                cart.onUpdate();
+                cart.updateRiderPosition();
+                top = Math.max(top, cart.speed());
+                if (cart.speed() < 0.8) continue; // смотрим только полный ход
+                float[] n = cart.normal();
+                double mx = cart.posX, my = cart.posY + cart.height / 2, mz = cart.posZ;
+                if (w.getBlock((int) Math.floor(mx), (int) Math.floor(my), (int) Math.floor(mz)).isNormalCube()) {
+                    bodyIn++;
+                    if (where.length() < 300) where.append(" тело@").append(java.util.Arrays.toString(cart.railPos()));
+                }
+                double ex = mx + n[0] * com.divinerpgextended.entity.EntitySkyCart.EYES, ey = my + n[1] * com.divinerpgextended.entity.EntitySkyCart.EYES,
+                    ez = mz + n[2] * com.divinerpgextended.entity.EntitySkyCart.EYES;
+                if (w.getBlock((int) Math.floor(ex), (int) Math.floor(ey), (int) Math.floor(ez)).isNormalCube()) {
+                    eyeIn++;
+                    if (where.length() < 300) where.append(" глаза@").append(java.util.Arrays.toString(cart.railPos()));
+                }
+                for (int i = 0; i < 3; i++) {
+                    cp[i] += ((i == 0 ? cart.posX : i == 1 ? cart.posY : cart.posZ) - cp[i]) / com.divinerpgextended.entity.EntitySkyCart.CLIENT_LERP;
+                    cn[i] += (n[i] - cn[i]) / com.divinerpgextended.entity.EntitySkyCart.CLIENT_LERP;
+                }
+                double cl = Math.sqrt(cn[0] * cn[0] + cn[1] * cn[1] + cn[2] * cn[2]);
+                double kx = cp[0] + cn[0] / cl * com.divinerpgextended.entity.EntitySkyCart.EYES, ky = cp[1] + cart.height / 2 + cn[1] / cl * com.divinerpgextended.entity.EntitySkyCart.EYES,
+                    kz = cp[2] + cn[2] / cl * com.divinerpgextended.entity.EntitySkyCart.EYES;
+                if (w.getBlock((int) Math.floor(kx), (int) Math.floor(ky), (int) Math.floor(kz)).isNormalCube()) {
+                    camIn++;
+                    if (where.length() < 300) where.append(" камера@").append(java.util.Arrays.toString(cart.railPos()));
+                }
+            }
+            rp.mountEntity(null);
+            // моб в вагонетке на полном ходу: не задыхается
+            cart.setDead();
+            com.divinerpgextended.entity.EntitySkyCart mc = new com.divinerpgextended.entity.EntitySkyCart(w, x0 + 1, y0, z0, -90);
+            w.spawnEntityInWorld(mc);
+            net.minecraft.entity.monster.EntityZombie zr = new net.minecraft.entity.monster.EntityZombie(w);
+            zr.setPosition(mc.posX, mc.posY, mc.posZ);
+            w.spawnEntityInWorld(zr);
+            zr.mountEntity(mc);
+            mc.push(1, 0, 0);
+            int mobIn = 0;
+            for (int i = 0; i < 300; i++) {
+                mc.onUpdate();
+                mc.updateRiderPosition();
+                if (zr.isEntityInsideOpaqueBlock()) {
+                    mobIn++;
+                    if (where.length() < 400) where.append(" моб@").append(java.util.Arrays.toString(mc.railPos()));
+                }
+            }
+            double mobTop = mc.speed();
+            zr.mountEntity(null);
+            zr.setDead();
+            mc.setDead();
+            for (int x = x0 - 1; x <= x0 + W; x++) for (int y = y0 - 1; y <= y0 + H; y++) for (int z = z0 - 2; z <= z0 + 2; z++) w.setBlockToAir(x, y, z);
+            check(top >= 0.8 && bodyIn == 0 && eyeIn == 0 && camIn == 0 && mobIn == 0, "скорость " + String.format("%.2f", top) + ": тело в блоке " + bodyIn
+                + " тиков, глаза " + eyeIn + ", камера со сглаживанием " + camIn + ", моб в блоке " + mobIn + " (скорость моба " + String.format("%.2f", mobTop) + ")" + where);
+            return "на полном ходу (" + String.format("%.2f", top) + ") по кольцу пол - стена - потолок ни вагонетка, ни глаза, ни камера, ни моб не уходят в блоки";
+        });
+        t("Прохождение", "Вагонетка на полном ходу через гору: не в блоках", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            loadAround(w, 9540, 9470, 2);
+            int x0 = 9520, y0 = 100, z0 = 9470, xa = x0 + 12, xb = xa + 3, xe = xb + 12, Hh = 4;
+            for (int x = x0 - 1; x <= xe + 1; x++) for (int y = y0 - 1; y <= y0 + 8; y++) for (int z = z0 - 2; z <= z0 + 2; z++)
+                w.setBlock(x, y, z, y == y0 - 1 || x >= xa && x <= xb && y < y0 + Hh ? Blocks.stone : Blocks.air);
+            // пол: рельсы арканы Divine (разгон) и Апалачии; стена вверх; верх горы; стена вниз; пол дальше
+            for (int x = x0; x < xa; x++) w.setBlock(x, y0, z0, x < x0 + 9 ? net.divinerpg.utils.blocks.ArcanaBlocks.arcaniteRails : com.divinerpgextended.registry.ModBlocks.skyRail, 0, 3);
+            for (int y = y0 + 1; y < y0 + Hh; y++) w.setBlock(xa - 1, y, z0, com.divinerpgextended.registry.ModBlocks.skyRail, 5, 3);
+            for (int x = xa; x <= xb; x++) w.setBlock(x, y0 + Hh, z0, com.divinerpgextended.registry.ModBlocks.skyRail, 0, 3);
+            for (int y = y0 + Hh - 1; y >= y0 + 1; y--) w.setBlock(xb + 1, y, z0, com.divinerpgextended.registry.ModBlocks.skyRail, 4, 3);
+            for (int x = xb + 1; x <= xe; x++) w.setBlock(x, y0, z0, com.divinerpgextended.registry.ModBlocks.skyRail, 0, 3);
+            TestPlayer rp = join(player(ConfigurationHelper.apalachia, "TestRailHill", x0 + 0.5, y0, z0 + 0.5), true);
+            com.divinerpgextended.entity.EntitySkyCart cart = new com.divinerpgextended.entity.EntitySkyCart(w, x0, y0, z0, -90);
+            w.spawnEntityInWorld(cart);
+            rp.mountEntity(cart);
+            double[] cp = { cart.posX, cart.posY, cart.posZ };
+            float[] cn = cart.normal();
+            int bodyIn = 0, camIn = 0, eyeIn = 0, ticks = 0, maxX = 0;
+            double top = 0, fast = 0;
+            StringBuilder where = new StringBuilder();
+            for (; ticks < 300; ticks++) {
+                cart.onUpdate();
+                cart.updateRiderPosition();
+                top = Math.max(top, cart.speed());
+                maxX = Math.max(maxX, cart.railPos()[0]);
+                float[] n = cart.normal();
+                double mx = cart.posX, my = cart.posY + cart.height / 2, mz = cart.posZ;
+                if (cart.railPos()[0] >= xa - 1 && cart.railPos()[0] <= xb + 1) fast = Math.max(fast, cart.speed());
+                if (w.getBlock((int) Math.floor(mx), (int) Math.floor(my), (int) Math.floor(mz)).isNormalCube()) {
+                    bodyIn++;
+                    if (where.length() < 300) where.append(" тело@").append(java.util.Arrays.toString(cart.railPos())).append(String.format("/%.2f", cart.speed()));
+                }
+                double ex = mx + n[0] * com.divinerpgextended.entity.EntitySkyCart.EYES, ey = my + n[1] * com.divinerpgextended.entity.EntitySkyCart.EYES,
+                    ez = mz + n[2] * com.divinerpgextended.entity.EntitySkyCart.EYES;
+                if (w.getBlock((int) Math.floor(ex), (int) Math.floor(ey), (int) Math.floor(ez)).isNormalCube()) {
+                    eyeIn++;
+                    if (where.length() < 300) where.append(" глаза@").append(java.util.Arrays.toString(cart.railPos())).append(String.format("/%.2f", cart.speed()));
+                }
+                for (int i = 0; i < 3; i++) {
+                    cp[i] += ((i == 0 ? cart.posX : i == 1 ? cart.posY : cart.posZ) - cp[i]) / com.divinerpgextended.entity.EntitySkyCart.CLIENT_LERP;
+                    cn[i] += (n[i] - cn[i]) / com.divinerpgextended.entity.EntitySkyCart.CLIENT_LERP;
+                }
+                double cl = Math.sqrt(cn[0] * cn[0] + cn[1] * cn[1] + cn[2] * cn[2]);
+                double kx = cp[0] + cn[0] / cl * com.divinerpgextended.entity.EntitySkyCart.EYES, ky = cp[1] + cart.height / 2 + cn[1] / cl * com.divinerpgextended.entity.EntitySkyCart.EYES,
+                    kz = cp[2] + cn[2] / cl * com.divinerpgextended.entity.EntitySkyCart.EYES;
+                if (w.getBlock((int) Math.floor(kx), (int) Math.floor(ky), (int) Math.floor(kz)).isNormalCube()) {
+                    camIn++;
+                    if (where.length() < 300) where.append(" камера@").append(java.util.Arrays.toString(cart.railPos())).append(String.format("/%.2f", cart.speed()));
+                }
+            }
+            rp.mountEntity(null);
+            cart.setDead();
+            com.divinerpgextended.entity.EntitySkyCart mc = new com.divinerpgextended.entity.EntitySkyCart(w, x0, y0, z0, -90);
+            w.spawnEntityInWorld(mc);
+            net.minecraft.entity.monster.EntityZombie zr = new net.minecraft.entity.monster.EntityZombie(w);
+            zr.setPosition(mc.posX, mc.posY, mc.posZ);
+            w.spawnEntityInWorld(zr);
+            zr.mountEntity(mc);
+            mc.push(1, 0, 0);
+            int mobIn = 0, mobMax = 0;
+            for (int i = 0; i < 300; i++) {
+                mc.onUpdate();
+                mc.updateRiderPosition();
+                mobMax = Math.max(mobMax, mc.railPos()[0]);
+                if (zr.isEntityInsideOpaqueBlock()) {
+                    mobIn++;
+                    if (where.length() < 400) where.append(" моб@").append(java.util.Arrays.toString(mc.railPos())).append(String.format("/%.2f", mc.speed()));
+                }
+            }
+            zr.mountEntity(null);
+            zr.setDead();
+            mc.setDead();
+            for (int x = x0 - 1; x <= xe + 1; x++) for (int y = y0 - 1; y <= y0 + 8; y++) for (int z = z0 - 2; z <= z0 + 2; z++) w.setBlockToAir(x, y, z);
+            check(maxX >= xe - 1 && bodyIn == 0 && eyeIn == 0 && camIn == 0 && mobIn == 0, "скорость " + String.format("%.2f", top) + " (на горе " + String.format("%.2f", fast)
+                + "), доехала до " + (maxX - x0) + " из " + (xe - x0) + ", моб до " + (mobMax - x0) + ": тело в блоке " + bodyIn + " тиков, глаза " + eyeIn
+                + ", камера со сглаживанием " + camIn + ", моб в блоке " + mobIn + where);
+            return "разгон на рельсах арканы, гора (стена вверх, верх, стена вниз) на скорости " + String.format("%.2f", fast) + ": ничего не уходит в блоки";
+        });
+        t("Прохождение", "Целое снаряжение с мобов Divine", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            net.divinerpg.entities.vanilla.EntityWildfire wf = new net.divinerpg.entities.vanilla.EntityWildfire(w);
+            ItemStack bowD = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.infernoBow);
+            bowD.setItemDamage(37);
+            ArrayList<net.minecraft.entity.item.EntityItem> wd = new ArrayList<net.minecraft.entity.item.EntityItem>();
+            wd.add(new net.minecraft.entity.item.EntityItem(w, 0, 100, 0, bowD));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(wf, DamageSource.generic, wd, 0, true, 0));
+            ItemStack dye = new ItemStack(Items.dye, 1, 4); // подтипы не трогаем
+            net.minecraft.entity.monster.EntityZombie zd = new net.minecraft.entity.monster.EntityZombie(w);
+            ItemStack bow2 = new ItemStack(Items.bow);
+            bow2.setItemDamage(37);
+            ArrayList<net.minecraft.entity.item.EntityItem> vd = new ArrayList<net.minecraft.entity.item.EntityItem>();
+            vd.add(new net.minecraft.entity.item.EntityItem(w, 0, 100, 0, bow2));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(zd, DamageSource.generic, vd, 0, true, 0));
+            wd.clear();
+            wd.add(new net.minecraft.entity.item.EntityItem(w, 0, 100, 0, dye));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(wf, DamageSource.generic, wd, 0, true, 0));
+            check(bowD.getItemDamage() == 0 && bow2.getItemDamage() == 37 && dye.getItemDamage() == 4,
+                "лук инферно после дропа с Wildfire " + bowD.getItemDamage() + ", лук зомби " + bow2.getItemDamage() + ", краситель " + dye.getItemDamage());
+            return "лук инферно с Wildfire падает целым; снаряжение ванильных мобов и предметы с подтипами не меняются";
+        });
+        t("Прохождение", "Палящий меч, адское оружие по морозным, клинки Лича у Трона", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            TestPlayer hp14 = join(player(0, "TestHellBlade", sx + 40.5, sy, sz + 0.5), true);
+            hold(hp14, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.scorchingSword));
+            net.minecraft.entity.monster.EntityZombie zs = new net.minecraft.entity.monster.EntityZombie(w);
+            zs.setPosition(sx + 41.5, sy, sz + 0.5);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(zs, DamageSource.causePlayerDamage(hp14), 5));
+            boolean lit = zs.isBurning();
+            net.divinerpg.entities.iceika.EntityFrostArcher fa = new net.divinerpg.entities.iceika.EntityFrostArcher(w);
+            net.minecraftforge.event.entity.living.LivingHurtEvent hh = new net.minecraftforge.event.entity.living.LivingHurtEvent(fa, DamageSource.causePlayerDamage(hp14), 5);
+            MinecraftForge.EVENT_BUS.post(hh);
+            boolean cold = com.divinerpgextended.perk.ColdMobs.isCold(new com.divinerpgextended.entity.EntityLichKing(w))
+                && com.divinerpgextended.perk.ColdMobs.isCold(new com.divinerpgextended.entity.EntityFrostColossus(w)) && !com.divinerpgextended.perk.ColdMobs.isCold(zs);
+            hold(hp14, new ItemStack(net.divinerpg.utils.items.IceikaItems.icineSword));
+            float vsC = com.divinerpgextended.entity.ThroneCombat.vsColossus(net.divinerpg.utils.items.IceikaItems.icineSword);
+            net.minecraft.entity.monster.EntitySkeleton dead = new net.minecraft.entity.monster.EntitySkeleton(w);
+            dead.getEntityData().setBoolean(com.divinerpgextended.entity.ThroneCombat.MINION_TAG, true);
+            net.minecraftforge.event.entity.living.LivingHurtEvent hm = new net.minecraftforge.event.entity.living.LivingHurtEvent(dead, DamageSource.causePlayerDamage(hp14), 5);
+            MinecraftForge.EVENT_BUS.post(hm);
+            server.getConfigurationManager().playerEntityList.remove(hp14);
+            w.removeEntity(hp14);
+            check(lit && hh.ammount >= 9.99F && fa.isBurning() && cold && vsC > 1.0F && hm.ammount >= 9.99F,
+                "палящий поджёг зомби " + lit + ", по морозному лучнику " + hh.ammount + " (горит " + fa.isBurning() + "), морозные Лич и Колосс " + cold
+                + ", ледяной меч по Колоссу x" + vsC + ", по мертвецу Трона " + hm.ammount);
+            return "палящий меч поджигает; адское оружие по морозному лучнику x2 и поджог (Лич и Колосс тоже морозные); ледяной меч по Колоссу x" + vsC + ", по мертвецам x2";
+        });
+        t("Прохождение", "Приват без PvP: эффекты оружия не трогают мирных", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            TestPlayer pv = join(player(0, "TestPvpOff", sx + 44.5, sy, sz + 0.5), true);
+            hold(pv, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.redEnderSword));
+            boolean[] lit = new boolean[3];
+            for (int i = 0; i < 3; i++) {
+                com.divinerpgextended.perk.Protection.testNoPvp = i < 2;
+                net.minecraft.entity.EntityLivingBase v = i == 1 ? new net.minecraft.entity.monster.EntityZombie(w) : new net.minecraft.entity.passive.EntityCow(w);
+                v.setPosition(sx + 45.5, sy, sz + 0.5);
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(v, DamageSource.causePlayerDamage(pv), 4));
+                lit[i] = v.isBurning();
+            }
+            com.divinerpgextended.perk.Protection.testNoPvp = false;
+            boolean kinds = com.divinerpgextended.perk.Protection.shielded(new net.minecraft.entity.passive.EntityWolf(w)) && com.divinerpgextended.perk.Protection.shielded(pv)
+                && !com.divinerpgextended.perk.Protection.shielded(new net.minecraft.entity.monster.EntityPigZombie(w))
+                && !com.divinerpgextended.perk.Protection.shielded(new net.minecraft.entity.monster.EntitySpider(w));
+            server.getConfigurationManager().playerEntityList.remove(pv);
+            w.removeEntity(pv);
+            check(!lit[0] && lit[1] && lit[2] && kinds, "в привате корова горит " + lit[0] + ", зомби горит " + lit[1] + "; без привата корова горит " + lit[2] + "; кого бережёт " + kinds);
+            return "в привате без PvP красный меч не поджигает корову (зомби - поджигает); вне привата - как обычно; свинозомби и пауков приват не бережёт";
+        });
+        t("Прохождение", "Эндермен от красного меча не прыгает, пока горит", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            TestPlayer ep = join(player(0, "TestRedEnder", sx + 48.5, sy, sz + 0.5), true);
+            hold(ep, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.redEnderSword));
+            net.minecraft.entity.monster.EntityEnderman em = new net.minecraft.entity.monster.EntityEnderman(w);
+            em.setPosition(sx + 49.5, sy, sz + 0.5);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(em, DamageSource.causePlayerDamage(ep), 4));
+            em.setFire(10); // горит дольше, чем держит удар
+            long until = em.getEntityData().getLong(com.divinerpgextended.perk.EnderGear.PIN);
+            em.getEntityData().setLong(com.divinerpgextended.perk.EnderGear.PIN, w.getTotalWorldTime() + 1); // удар вот-вот отпустит
+            net.minecraftforge.event.entity.living.EnderTeleportEvent te = new net.minecraftforge.event.entity.living.EnderTeleportEvent(em, em.posX + 5, em.posY, em.posZ, 0);
+            MinecraftForge.EVENT_BUS.post(te);
+            boolean held = te.isCanceled() && em.getEntityData().getLong(com.divinerpgextended.perk.EnderGear.PIN) > w.getTotalWorldTime() + 1;
+            em.extinguish();
+            em.getEntityData().setLong(com.divinerpgextended.perk.EnderGear.PIN, 0);
+            net.minecraftforge.event.entity.living.EnderTeleportEvent te2 = new net.minecraftforge.event.entity.living.EnderTeleportEvent(em, em.posX + 5, em.posY, em.posZ, 0);
+            MinecraftForge.EVENT_BUS.post(te2);
+            server.getConfigurationManager().playerEntityList.remove(ep);
+            w.removeEntity(ep);
+            check(until > w.getTotalWorldTime() && held && !te2.isCanceled(), "прибит до " + (until - w.getTotalWorldTime()) + " тиков, горящий держится " + held + ", потухший и отпущенный прыгает " + !te2.isCanceled());
+            return "после удара красным мечом эндермен прибит, пока горит (огонь меча больше не гонит его прыгать); потух - снова прыгает";
+        });
+        t("Прохождение", "Снежки по 64, вагонетка в творческом, кирка инея и руда", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            boolean snow = new ItemStack(Items.snowball).getMaxStackSize() == 64;
+            loadAround(w, 9600, 9440, 1);
+            for (int x = 9599; x <= 9603; x++) {
+                w.setBlock(x, 99, 9440, Blocks.stone);
+                w.setBlock(x, 100, 9440, com.divinerpgextended.registry.ModBlocks.skyRail, 0, 3);
+            }
+            com.divinerpgextended.entity.EntitySkyCart cc = new com.divinerpgextended.entity.EntitySkyCart(w, 9600, 100, 9440, -90);
+            w.spawnEntityInWorld(cc);
+            TestPlayer cr = join(player(ConfigurationHelper.apalachia, "TestCartCreative", 9601.5, 100, 9441.5), true);
+            cr.capabilities.isCreativeMode = true;
+            cc.attackEntityFrom(DamageSource.causePlayerDamage(cr), 1);
+            int items = w.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, cc.boundingBox.expand(3, 3, 3)).size();
+            boolean gone = cc.isDead && items == 0;
+            server.getConfigurationManager().playerEntityList.remove(cr);
+            w.removeEntity(cr);
+            for (int x = 9599; x <= 9603; x++) {
+                w.setBlockToAir(x, 100, 9440);
+                w.setBlockToAir(x, 99, 9440);
+            }
+            boolean ore = com.divinerpgextended.item.ItemIcePick.square(com.divinerpgextended.registry.ModBlocks.rimeOre)
+                && com.divinerpgextended.item.ItemIcePick.square(net.divinerpg.utils.blocks.IceikaBlocks.frozenStone);
+            check(snow && gone && ore, "снежки по " + new ItemStack(Items.snowball).getMaxStackSize() + ", вагонетка в творческом исчезла " + cc.isDead + " (предметов " + items + "), руда инея в квадрате " + ore);
+            return "снежки стакаются по 64; вагонетка, сломанная в творческом, исчезает без выпадения; кирка инея ломает квадратом и руду инея";
+        });
+        t("Прохождение", "Грядка мечтаний: морковь и арбуз", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int fx = sx + 52, fy = sy + 20, fz = sz;
+            for (int dx = -1; dx <= 2; dx++) for (int dz = -1; dz <= 1; dz++) {
+                w.setBlock(fx + dx, fy - 1, fz + dz, Blocks.farmland, 7, 3);
+                w.setBlock(fx + dx, fy, fz + dz, Blocks.air);
+            }
+            TestPlayer fp = join(player(0, "TestDreamFarm", fx + 0.5, fy, fz + 2.5), true);
+            ItemStack car = new ItemStack(net.divinerpg.utils.items.VetheaItems.dreamCarrot, 5);
+            hold(fp, car);
+            net.minecraftforge.event.entity.player.PlayerInteractEvent pie = new net.minecraftforge.event.entity.player.PlayerInteractEvent(fp,
+                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, fx, fy - 1, fz, 1, w);
+            MinecraftForge.EVENT_BUS.post(pie);
+            boolean planted = w.getBlock(fx, fy, fz) == com.divinerpgextended.registry.ModBlocks.dreamCarrots && car.stackSize == 4 && pie.isCanceled();
+            net.minecraftforge.event.entity.player.PlayerUseItemEvent.Start eat = new net.minecraftforge.event.entity.player.PlayerUseItemEvent.Start(fp, car, 32);
+            MinecraftForge.EVENT_BUS.post(eat);
+            boolean notEaten = eat.isCanceled();
+            w.setBlockMetadataWithNotify(fx, fy, fz, 7, 3);
+            int plain = 0, lucky = 0;
+            for (int i = 0; i < 40; i++) {
+                for (ItemStack d : com.divinerpgextended.registry.ModBlocks.dreamCarrots.getDrops(w, fx, fy, fz, 7, 0)) plain += d.stackSize;
+                for (ItemStack d : com.divinerpgextended.registry.ModBlocks.dreamCarrots.getDrops(w, fx, fy, fz, 7, 3)) lucky += d.stackSize;
+            }
+            // арбуз: семечки на пашню - стебель; созревший стебель растит блок рядом; блок - дольки
+            w.setBlock(fx + 1, fy, fz, com.divinerpgextended.registry.ModBlocks.dreamMelonStem, 7, 3);
+            for (int i = 0; i < 400 && w.getBlock(fx + 2, fy, fz) != com.divinerpgextended.registry.ModBlocks.dreamMelon
+                && w.getBlock(fx + 1, fy, fz + 1) != com.divinerpgextended.registry.ModBlocks.dreamMelon
+                && w.getBlock(fx + 1, fy, fz - 1) != com.divinerpgextended.registry.ModBlocks.dreamMelon; i++) {
+                w.setBlock(fx, fy, fz, Blocks.air);
+                com.divinerpgextended.registry.ModBlocks.dreamMelonStem.updateTick(w, fx + 1, fy, fz, w.rand);
+            }
+            boolean fruit = false;
+            for (int[] o : new int[][] { { 2, 0 }, { 0, 1 }, { 0, -1 }, { 0, 0 } })
+                if (w.getBlock(fx + (o[0] == 0 && o[1] == 0 ? 0 : 1) + (o[0] == 2 ? 1 : 0), fy, fz + o[1]) == com.divinerpgextended.registry.ModBlocks.dreamMelon) fruit = true;
+            int slices = 0;
+            for (ItemStack d : com.divinerpgextended.registry.ModBlocks.dreamMelon.getDrops(w, 0, 0, 0, 0, 0))
+                if (d.getItem() == net.divinerpg.utils.items.VetheaItems.dreamMelon) slices += d.stackSize;
+            boolean seedsPlant = ((net.minecraft.item.ItemSeeds) com.divinerpgextended.registry.ModItems.dreamMelonSeeds).getPlant(w, 0, 0, 0) == com.divinerpgextended.registry.ModBlocks.dreamMelonStem;
+            server.getConfigurationManager().playerEntityList.remove(fp);
+            w.removeEntity(fp);
+            for (int dx = -1; dx <= 2; dx++) for (int dz = -1; dz <= 1; dz++) {
+                w.setBlockToAir(fx + dx, fy, fz + dz);
+                w.setBlockToAir(fx + dx, fy - 1, fz + dz);
+            }
+            check(planted && notEaten && lucky > plain && fruit && slices >= 3 && seedsPlant, "посажена " + planted + ", не съедена " + notEaten + ", урожай без удачи " + plain
+                + " / с удачей III " + lucky + " (40 раз), арбуз вырос " + fruit + ", долек " + slices + ", семечки сажают стебель " + seedsPlant);
+            return "морковь мечтаний сажается на пашню (не съедается тем же кликом), с удачей урожай больше (" + plain + " -> " + lucky + "); семечки - стебель - блок арбуза мечтаний - " + slices + " долек";
+        });
+        t("Прохождение", "Яйца призыва боссов", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            StringBuilder bad = new StringBuilder();
+            int ok14 = 0;
+            for (com.divinerpgextended.item.ItemBossEgg.Boss b : com.divinerpgextended.item.ItemBossEgg.Boss.values()) {
+                net.minecraft.entity.EntityLiving be = com.divinerpgextended.item.ItemBossEgg.spawn(w, new ItemStack(com.divinerpgextended.registry.ModItems.bossEgg, 1, b.ordinal()),
+                    sx + 60.5, sy + 30, sz + 0.5);
+                if (be == null || be.isDead) bad.append(" ").append(b);
+                else ok14++;
+                if (be != null) be.setDead();
+            }
+            String nm = new ItemStack(com.divinerpgextended.registry.ModItems.bossEgg, 1, 0).getDisplayName();
+            check(bad.length() == 0, "не призвались:" + bad);
+            return "все " + ok14 + " яиц призывают своих боссов (\"" + nm + "\" и т.д.)";
+        });
+        t("Прохождение", "Карцинус: лимит крабов, пауза, крабы умирают с боссом, ближний бой", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int cx14 = sx + 70, cy14 = sy + 40, cz14 = sz;
+            for (int dx = -10; dx <= 10; dx++) for (int dz = -10; dz <= 10; dz++) {
+                w.setBlock(cx14 + dx, cy14 - 1, cz14 + dz, Blocks.stone);
+                for (int dy = 0; dy < 4; dy++) w.setBlock(cx14 + dx, cy14 + dy, cz14 + dz, Blocks.air);
+            }
+            TestPlayer cp14 = join(player(0, "TestCrabLimit", cx14 + 6.5, cy14, cz14 + 0.5), true);
+            cp14.capabilities.isCreativeMode = true;
+            com.divinerpgextended.entity.EntityCarcinus boss = new com.divinerpgextended.entity.EntityCarcinus(w);
+            boss.setPosition(cx14 + 0.5, cy14, cz14 + 0.5);
+            w.spawnEntityInWorld(boss);
+            boss.setHealth(boss.getMaxHealth() * 0.4F); // фаза 2: и короли крабов
+            int most = 0;
+            for (int i = 0; i < 4000; i++) {
+                boss.onLivingUpdate();
+                boss.setPosition(cx14 + 0.5, cy14, cz14 + 0.5);
+                if (i % 10 == 0) most = Math.max(most, com.divinerpgextended.boss.BossMinions.count(boss));
+            }
+            int full = com.divinerpgextended.boss.BossMinions.count(boss);
+            // убили одного - 15 секунд новых нет
+            net.minecraft.entity.EntityLivingBase one = null;
+            for (Object o : w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityLairCrab.class, boss.boundingBox.expand(30, 10, 30)))
+                if (com.divinerpgextended.boss.BossMinions.isMinion((net.minecraft.entity.Entity) o)) one = (net.minecraft.entity.EntityLivingBase) o;
+            ArrayList<net.minecraft.entity.item.EntityItem> cd = new ArrayList<net.minecraft.entity.item.EntityItem>();
+            cd.add(new net.minecraft.entity.item.EntityItem(w, 0, 100, 0, new ItemStack(net.divinerpg.utils.items.VanillaItemsOther.crabClaw)));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(one, DamageSource.causePlayerDamage(cp14), cd, 0, true, 0));
+            boolean noLoot = cd.isEmpty();
+            one.setDead();
+            int during = 0;
+            for (int i = 0; i < 280; i++) {
+                boss.onLivingUpdate();
+                boss.setPosition(cx14 + 0.5, cy14, cz14 + 0.5);
+                during = Math.max(during, com.divinerpgextended.boss.BossMinions.count(boss));
+            }
+            // ближний бой: в 5 блоках не достаёт, в 2 - бьёт
+            net.minecraft.entity.monster.EntityZombie far = new net.minecraft.entity.monster.EntityZombie(w);
+            far.setPosition(cx14 + 5.5, cy14, cz14 + 0.5);
+            boolean farHit = boss.attackEntityAsMob(far);
+            net.minecraft.entity.monster.EntityZombie near = new net.minecraft.entity.monster.EntityZombie(w);
+            near.setPosition(cx14 + 2.5, cy14, cz14 + 0.5);
+            w.spawnEntityInWorld(near);
+            boolean nearHit = boss.attackEntityAsMob(near);
+            near.setDead();
+            // смерть босса - крабы гибнут
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(boss, DamageSource.causePlayerDamage(cp14)));
+            int left = 0;
+            for (Object o : w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityLairCrab.class, boss.boundingBox.expand(30, 10, 30)))
+                if (((net.minecraft.entity.Entity) o).isEntityAlive()) left++;
+            boss.setDead();
+            for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.Entity.class, boss.boundingBox.expand(30, 10, 30)))
+                if (!(o instanceof EntityPlayer)) ((net.minecraft.entity.Entity) o).setDead();
+            server.getConfigurationManager().playerEntityList.remove(cp14);
+            w.removeEntity(cp14);
+            check(most <= com.divinerpgextended.entity.EntityCarcinus.MAX_CRABS && full >= 8 && noLoot && during <= full - 1 && !farHit && nearHit && left == 0,
+                "крабов максимум " + most + " (стало " + full + "), с краба лут " + !noLoot + ", после гибели краба за 14 с крабов " + during + ", бьёт с 5 блоков " + farHit
+                + ", с 2 блоков " + nearHit + ", после смерти босса живых крабов " + left);
+            return "Карцинус держит не больше " + com.divinerpgextended.entity.EntityCarcinus.MAX_CRABS + " крабов (набрал " + full + "), после гибели краба 15 с не зовёт новых, крабы без лута и гибнут с боссом; клешнями достаёт с 2 блоков, с 5 - нет";
+        });
+        t("Прохождение", "Блоки норы Карцинуса не добыть", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            boolean hard = com.divinerpgextended.registry.ModBlocks.burrow.getBlockHardness(w, 0, 0, 0) < 0
+                && com.divinerpgextended.registry.ModBlocks.sharkNest.getBlockHardness(w, 0, 0, 0) < 0;
+            TestPlayer bp14 = join(player(0, "TestBurrowInv", sx + 80.5, sy, sz + 0.5), true);
+            bp14.inventory.mainInventory[3] = new ItemStack(com.divinerpgextended.registry.ModBlocks.burrow, 5, 0);
+            bp14.inventory.mainInventory[4] = new ItemStack(com.divinerpgextended.registry.ModBlocks.burrow, 2, 1);
+            bp14.inventory.mainInventory[5] = new ItemStack(com.divinerpgextended.registry.ModBlocks.carcinusHeart, 1);
+            bp14.inventory.mainInventory[6] = new ItemStack(com.divinerpgextended.registry.ModBlocks.sharkNest, 3);
+            bp14.ticksExisted = 20;
+            new com.divinerpgextended.block.BlockBurrow.Convert().onTick(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, bp14));
+            ItemStack[] iv = bp14.inventory.mainInventory;
+            boolean conv = iv[3].getItem() == Item.getItemFromBlock(Blocks.sandstone) && iv[3].stackSize == 5 && iv[3].getItemDamage() == 0
+                && iv[4].getItem() == Item.getItemFromBlock(Blocks.sand) && iv[5].getItem() == Item.getItemFromBlock(Blocks.sandstone) && iv[5].getItemDamage() == 1
+                && iv[6].getItem() == Item.getItemFromBlock(Blocks.sand) && iv[6].stackSize == 3;
+            // поставленное в выживании - обычный блок
+            int bx = sx + 81, by = sy + 30, bz = sz;
+            w.setBlock(bx, by, bz, com.divinerpgextended.registry.ModBlocks.sharkNest);
+            com.divinerpgextended.registry.ModBlocks.sharkNest.onBlockPlacedBy(w, bx, by, bz, bp14, new ItemStack(com.divinerpgextended.registry.ModBlocks.sharkNest));
+            boolean placed = w.getBlock(bx, by, bz) == Blocks.sand && w.getTileEntity(bx, by, bz) == null;
+            w.setBlockToAir(bx, by, bz);
+            server.getConfigurationManager().playerEntityList.remove(bp14);
+            w.removeEntity(bp14);
+            check(hard && conv && placed, "не ломаются " + hard + ", в инвентаре стали ванильными " + conv + ", поставленное гнездо - песок " + placed);
+            return "песчаник норы и гнездо не ломаются; в инвентаре: песчаник норы - песчаник (песчаный - песок), сердце - резной песчаник, гнездо - песок; поставленное игроком - обычный блок";
+        });
+        t("Прохождение", "Факелы гонят монстров своего мира; адский факел", () -> {
+            WorldServer ow14 = server.worldServerForDimension(0), wild = server.worldServerForDimension(ConfigurationHelper.wildwood),
+                nether = server.worldServerForDimension(-1);
+            Block wt = com.divinerpgextended.registry.ModBlocks.worldTorch[com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD.ordinal()];
+            String[] res = new String[4];
+            Object[][] cases = { { ow14, wt, new net.divinerpg.entities.vanilla.EntityCyclops(ow14) }, { wild, wt, new net.divinerpg.entities.twilight.EntityBehemoth(wild) },
+                { ow14, net.divinerpg.utils.blocks.VanillaBlocks.skeletonTorch, new net.divinerpg.entities.vanilla.EntityCyclops(ow14) },
+                { nether, com.divinerpgextended.registry.ModBlocks.netherTorch, new net.divinerpg.entities.vanilla.EntityHellSpider(nether) } };
+            for (int i = 0; i < cases.length; i++) {
+                WorldServer w = (WorldServer) cases[i][0];
+                int x0 = 71000 + i * 100, y0 = 90, z0 = 71000;
+                loadAround(w, x0, z0, 1);
+                w.setBlock(x0, y0 - 1, z0, Blocks.stone);
+                w.setBlock(x0, y0, z0, (Block) cases[i][1]);
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.world.ChunkEvent.Load(w.getChunkFromBlockCoords(x0, z0)));
+                net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn cs = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(
+                    (net.minecraft.entity.EntityLiving) cases[i][2], w, x0 + 8, y0, z0 + 3);
+                MinecraftForge.EVENT_BUS.post(cs);
+                res[i] = cs.getResult().name();
+                w.setBlockToAir(x0, y0, z0);
+                w.setBlockToAir(x0, y0 - 1, z0);
+            }
+            boolean recipe = false;
+            for (Object o : net.minecraft.item.crafting.CraftingManager.getInstance().getRecipeList()) {
+                net.minecraft.item.crafting.IRecipe r = (net.minecraft.item.crafting.IRecipe) o;
+                if (r.getRecipeOutput() != null && r.getRecipeOutput().getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.netherTorch)) recipe = true;
+            }
+            check(!"DENY".equals(res[0]) && "DENY".equals(res[1]) && "DENY".equals(res[2]) && "DENY".equals(res[3]) && recipe,
+                "факел Дикого леса в обычном мире: циклоп " + res[0] + "; в Диком лесу: бегемот " + res[1] + "; скелетный в обычном мире: " + res[2] + "; адский в Аду: " + res[3] + "; рецепт " + recipe);
+            return "факел Дикого леса гонит монстров только в Диком лесу, скелетный - всех монстров Divine в обычном мире, адский (из стержня ифрита) - в Аду";
+        });
+        t("Прохождение", "Лета из ведра течёт и даёт бесконечный источник", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            int x0 = 9660, y0 = 100, z0 = 9640;
+            loadAround(w, x0, z0, 1);
+            for (int x = x0 - 4; x <= x0 + 4; x++) for (int z = z0 - 4; z <= z0 + 4; z++) for (int y = y0 - 1; y <= y0 + 2; y++)
+                w.setBlock(x, y, z, y == y0 - 1 || Math.abs(x - x0) == 4 || Math.abs(z - z0) == 4 ? Blocks.stone : Blocks.air);
+            Block lf = com.divinerpgextended.registry.ModBlocks.letheFlowing;
+            w.setBlock(x0, y0, z0, lf, 0, 3);
+            for (int pass = 0; pass < 6; pass++)
+                for (int x = x0 - 3; x <= x0 + 3; x++) for (int z = z0 - 3; z <= z0 + 3; z++) if (w.getBlock(x, y0, z) == lf) lf.updateTick(w, x, y0, z, w.rand);
+            boolean spread = w.getBlock(x0 + 2, y0, z0) == lf && w.getBlockMetadata(x0 + 2, y0, z0) > 0;
+            for (int x = x0 - 3; x <= x0 + 3; x++) for (int z = z0 - 3; z <= z0 + 3; z++) w.setBlock(x, y0, z, Blocks.air);
+            w.setBlock(x0 - 1, y0, z0, lf, 0, 3);
+            w.setBlock(x0 + 1, y0, z0, lf, 0, 3);
+            w.setBlock(x0, y0, z0, lf, 1, 3);
+            lf.updateTick(w, x0, y0, z0, w.rand);
+            boolean source = com.divinerpgextended.block.BlockLethe.isSource(w, x0, y0, z0);
+            // река мира не течёт
+            for (int x = x0 - 3; x <= x0 + 3; x++) for (int z = z0 - 3; z <= z0 + 3; z++) w.setBlock(x, y0, z, Blocks.air);
+            w.setBlock(x0, y0, z0, com.divinerpgextended.registry.ModBlocks.lethe, 0, 3);
+            com.divinerpgextended.registry.ModBlocks.lethe.updateTick(w, x0, y0, z0, w.rand);
+            boolean still = w.isAirBlock(x0 + 1, y0, z0);
+            for (int x = x0 - 4; x <= x0 + 4; x++) for (int z = z0 - 4; z <= z0 + 4; z++) for (int y = y0 - 1; y <= y0 + 2; y++) w.setBlockToAir(x, y, z);
+            check(spread && source && still, "растеклась на 2 блока " + spread + ", между двумя источниками новый " + source + ", река мира стоит " + still);
+            return "Лета из ведра растекается, между двумя источниками рождается третий; река Мортума в русле не течёт";
+        });
+        t("Прохождение", "Фроссивенс: перезарядка и при ударах босса", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
+            TestPlayer fr = join(player(ConfigurationHelper.iceika, "TestFross", 9700.5, 120, 9700.5), true);
+            fr.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            ItemStack fs = new ItemStack(net.divinerpg.utils.items.IceikaItems.frossivence);
+            hold(fr, fs);
+            int heals = 0;
+            for (int tick = 0; tick < 100; tick++) {
+                fr.setHealth(10); // бьёт босс: здоровье падает каждый тик
+                fr.hurtResistantTime = 0;
+                fr.attackEntityFrom(DamageSource.generic, 1);
+                float before = fr.getHealth();
+                if (tick % 5 == 0) { // клик каждые 5 тиков - как пакет клика в воздух: событие, потом меч
+                    net.minecraftforge.event.entity.player.PlayerInteractEvent ce = new net.minecraftforge.event.entity.player.PlayerInteractEvent(fr,
+                        net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w);
+                    MinecraftForge.EVENT_BUS.post(ce);
+                    if (ce.useItem != cpw.mods.fml.common.eventhandler.Event.Result.DENY) fs.getItem().onItemRightClick(fs, w, fr);
+                }
+                if (fr.getHealth() > before) heals++;
+                fr.ticksExisted++;
+                server.worldServerForDimension(0).getWorldInfo().incrementTotalWorldTime(w.getTotalWorldTime() + 1); // у Айсики время - из обычного мира
+            }
+            float chill = fr.getEntityData().getFloat("dreChill");
+            server.getConfigurationManager().playerEntityList.remove(fr);
+            w.removeEntity(fr);
+            check(heals >= 2 && heals <= 3 && chill > 0, "за 5 с при ударах каждый тик и клике каждые 0.25 с лечений " + heals + ", переохлаждение " + chill);
+            return "Фроссивенс лечит не чаще раза в 2 с и когда босс бьёт в тот же тик (" + heals + " лечения за 5 с), копится переохлаждение";
+        });
+        t("Прохождение", "Снежное подземелье только где лежит снег", () -> {
+            StringBuilder sb14 = new StringBuilder();
+            boolean ok14 = net.minecraft.world.biome.BiomeGenBase.icePlains != null && com.divinerpgextended.world.Biomes.snowsAt(net.minecraft.world.biome.BiomeGenBase.icePlains, 0, 0)
+                && !com.divinerpgextended.world.Biomes.snowsAt(net.minecraft.world.biome.BiomeGenBase.taiga, 0, 0)
+                && !com.divinerpgextended.world.Biomes.snowsAt(net.minecraft.world.biome.BiomeGenBase.extremeHills, 0, 0);
+            for (net.minecraft.world.biome.BiomeGenBase b : net.minecraft.world.biome.BiomeGenBase.getBiomeGenArray()) {
+                if (b == null || !com.divinerpgextended.world.Biomes.snowyLand(b)) continue;
+                boolean sn = com.divinerpgextended.world.Biomes.snowsAt(b, 0, 0);
+                sb14.append(b.biomeName).append(sn ? "+" : "-").append(" ");
+                if ("Dead Forest".equals(b.biomeName) && sn) ok14 = false;
+            }
+            check(ok14, "снежные по словарю (+ снег у земли): " + sb14);
+            return "снег у земли: " + sb14.toString().trim();
+        });
         t("Прохождение", "Рельсы на стенах и потолке", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9540, 9760, 1);
@@ -4015,7 +4541,7 @@ public class SelfTest {
             boolean filled = fe.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.ALLOW && fe.result != null
                 && fe.result.getItem() == com.divinerpgextended.registry.ModItems.letheBucket && w.isAirBlock(x0, y0, z0);
             boolean placed = ((net.minecraft.item.ItemBucket) com.divinerpgextended.registry.ModItems.letheBucket).tryPlaceContainedLiquid(w, x0 + 1, y0, z0)
-                && w.getBlock(x0 + 1, y0, z0) == com.divinerpgextended.registry.ModBlocks.lethe;
+                && w.getBlock(x0 + 1, y0, z0) instanceof com.divinerpgextended.block.BlockLethe;
             boolean container = net.minecraftforge.fluids.FluidContainerRegistry.getFluidForFilledItem(new ItemStack(com.divinerpgextended.registry.ModItems.letheBucket)) != null;
             server.getConfigurationManager().playerEntityList.remove(bp);
             w.removeEntity(bp);
@@ -5097,6 +5623,51 @@ public class SelfTest {
             check(built && planks >= 7 && lamps == 0, "мост " + built + ", досок над пропастью " + planks + ", глоустоуна " + lamps + ", первая доска (от x0,z0) " + where);
             return "мост из досок Эдема через пропасть в 10 блоков (" + planks + " досок пролёта)";
         });
+        t("Логова", "Пруд для рыбалки и озеро Ветеи", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
+            int x = 9300, y = 100, z = 9500;
+            loadAround(w, x, z, 3);
+            for (int i = -4; i < 19; i++) for (int kk = -4; kk < 19; kk++) {
+                for (int h = y - 6; h < y; h++) w.setBlock(x + i, h, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone);
+                w.setBlock(x + i, y, z + kk, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodGrass);
+                for (int h = y + 1; h < 160; h++) w.setBlockToAir(x + i, h, z + kk);
+            }
+            com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD;
+            boolean built = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.pond(w, new java.util.Random(3), tw, x, z);
+            int water = 0, lily = 0, planks = 0, logs = 0, leaves = 0, hanging = 0;
+            for (int i = -4; i < 19; i++) for (int kk = -4; kk < 19; kk++) for (int h = y - 4; h <= y + 8; h++) {
+                net.minecraft.block.Block b = w.getBlock(x + i, h, z + kk);
+                if (b == Blocks.water) water++;
+                else if (b == Blocks.waterlily) lily++;
+                else if (b == tw.planks()) planks++;
+                else if (b == tw.log()) logs++;
+                else if (b == tw.leaves()) {
+                    leaves++;
+                    if (h <= y + 4) hanging++;
+                }
+            }
+            for (int i = -4; i < 19; i++) for (int kk = -4; kk < 19; kk++) for (int h = y - 6; h < 160; h++) w.setBlockToAir(x + i, h, z + kk);
+            // рыбалка в нём - зона мира
+            boolean zone = com.divinerpgextended.fishing.Zone.at(w, x + 7, y, z + 7, false) == com.divinerpgextended.fishing.Zone.WILDWOOD;
+            // озеро Ветеи на этаже 64
+            WorldServer v = server.worldServerForDimension(ConfigurationHelper.vethea);
+            int vx = 9300, vz = 9300, vf = 64;
+            loadAround(v, vx, vz, 2);
+            for (int i = -2; i < 14; i++) for (int kk = -2; kk < 14; kk++) {
+                for (int h = vf - 4; h < vf; h++) v.setBlock(vx + i, h, vz + kk, net.divinerpg.utils.blocks.VetheaBlocks.dreamDirt);
+                v.setBlock(vx + i, vf, vz + kk, net.divinerpg.utils.blocks.VetheaBlocks.dreamGrass);
+                for (int h = vf + 1; h < vf + 6; h++) v.setBlockToAir(vx + i, h, vz + kk);
+            }
+            boolean lake = com.divinerpgextended.vethea.VetheaLakes.lake(v, new java.util.Random(4), vx, vz, vf);
+            int vwater = 0;
+            for (int i = 0; i < 12; i++) for (int kk = 0; kk < 12; kk++) for (int h = vf - 4; h <= vf; h++) if (v.getBlock(vx + i, h, vz + kk) == Blocks.water) vwater++;
+            for (int i = -2; i < 14; i++) for (int kk = -2; kk < 14; kk++) for (int h = vf - 3; h <= vf; h++)
+                if (v.getBlock(vx + i, h, vz + kk) == Blocks.water) v.setBlock(vx + i, h, vz + kk, net.divinerpg.utils.blocks.VetheaBlocks.dreamDirt);
+            check(built && water >= 40 && lily >= 3 && planks == 10 && logs >= 7 && leaves >= 25 && hanging >= 3 && zone && lake && vwater >= 30,
+                "пруд " + built + ": воды " + water + ", кувшинок " + lily + ", досок причала " + planks + ", брёвен " + logs + ", листвы " + leaves + " (свисает " + hanging
+                + "), зона рыбалки " + zone + "; озеро Ветеи " + lake + ", воды " + vwater);
+            return "пруд в Диком лесу: " + water + " воды, " + lily + " кувшинок, причал из 10 досок, ива; озеро на этаже Ветеи (" + vwater + " воды)";
+        });
         t("Логова", "Лагерь странника", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.skythern);
             int x = 9300, y = 100, z = 9300;
@@ -5212,6 +5783,22 @@ public class SelfTest {
                 skipOk = !first.contains(firstBuilt[0] + ", " + firstBuilt[1]) && !first.isEmpty();
                 map.getItem().onItemRightClick(map, w, mp);
                 cdOk = mp.chat.size() >= 2 && mp.chat.get(1).startsWith("dre.chat.map_cooldown");
+                // выбросил карту исследователя, купил такую же карту логова и открыл из руки: новая карта есть, купленная потрачена
+                for (int i = 0; i < mp.inventory.mainInventory.length; i++)
+                    if (com.divinerpgextended.item.ExplorerMaps.target(mp.inventory.mainInventory[i]) != null) mp.inventory.mainInventory[i] = null;
+                mp.getEntityData().removeTag("dreLairMapUsed");
+                mp.inventory.currentItem = 0;
+                mp.inventory.mainInventory[0] = new ItemStack(com.divinerpgextended.registry.ModItems.lairMap, 1, 0);
+                ItemStack heldMap = mp.inventory.mainInventory[0];
+                ItemStack back = heldMap.getItem().onItemRightClick(heldMap, w, mp);
+                mp.inventory.mainInventory[0] = back == null || back.stackSize <= 0 ? null : back; // как игра после клика
+                boolean rebuy = false, lairLeft = false;
+                for (ItemStack is : mp.inventory.mainInventory) {
+                    if (com.divinerpgextended.item.ExplorerMaps.target(is) != null) rebuy = true;
+                    if (is != null && is.getItem() == com.divinerpgextended.registry.ModItems.lairMap) lairLeft = true;
+                }
+                explorer = explorer && rebuy && !lairLeft;
+                rep.append("; купил заново и открыл: карта ").append(rebuy).append(", купленная осталась ").append(lairLeft);
                 rep.append("карта у логова: ").append(first).append("; повторно: ").append(mp.chat.size() >= 2 ? mp.chat.get(1) : "-");
             }
             // дальний поиск с пустым кэшем: игра не подвисает - ответ по частям, не дольше ~20 мс за тик
@@ -5705,7 +6292,7 @@ public class SelfTest {
         t("Ветея - кошмар", "Чужое оружие из конфига", () -> {
             TestPlayer v = player(vd, "TestForeign", 30, 20, 30);
             hold(v, new ItemStack(Items.stick));
-            EntityZombie zz = new EntityZombie(vw);
+            net.minecraft.entity.EntityLiving zz = new net.divinerpg.entities.vethea.EntityCymesoid(vw);
             String[] old = Config.vetheaWeapons;
             java.lang.reflect.Field cache = com.divinerpgextended.vethea.Nightmare.class.getDeclaredField("foreignWeapons");
             cache.setAccessible(true);

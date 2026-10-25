@@ -245,6 +245,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
         h.motionY = 0.5;
         h.getEntityData()
             .setBoolean(ThroneCombat.MINION_TAG, true);
+        com.divinerpgextended.boss.BossMinions.mark(h, this);
         worldObj.spawnEntityInWorld(h);
         worldObj.playSoundAtEntity(this, "mob.irongolem.throw", 3.0F, 0.4F);
         FrostPowers.tell(this, "dre.chat.hastreus_thrown");

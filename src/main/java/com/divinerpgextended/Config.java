@@ -46,9 +46,11 @@ public class Config {
     public static boolean bossNoFly = true;
     public static boolean dungeonSpawners = false;
     public static int divineTorchRadius = 24;
+    public static int mapWorldSize = 10000;
     public static boolean worldCrafts = true, gateStones = true, miningTiers = true;
     /** Постройки сумеречных миров: 1 на N чанков (0 - нет). */
     public static int twilightRuinsRarity = 30, twilightDungeonRarity = 40, twilightBridgeRarity = 3, twilightCampRarity = 45;
+    public static int apalachiaStructureBoost = 2, twilightPondRarity = 20, vetheaLakeRarity = 10;
     /** Логово Карцинуса: 1 на N океанских чанков; снежное подземелье: 1 на N заснеженных чанков (0 - выключить). */
     /** Логова обычного мира по сетке из сида: Карцинус и ледяная пещера - по одному на регион N x N. Карты. */
     public static int carcinusSpacing = 320, snowDungeonSpacing = 640, mapSearchRadius = 5000, mapSkipNear = 128, mapCooldownSeconds = 5;
@@ -134,6 +136,12 @@ public class Config {
             "Логова боссов сумеречных миров (гнёзда Великих кадиллионов, Демонический круг Мортума): одно на квадрат N x N блоков в каждом мире, над островами на высоте 140 (0 - не генерировать). Меньше 256 не ставить");
         twilightRuinsRarity = cfg.getInt("twilightRuinsRarity", "worldgen", twilightRuinsRarity, 0, 100000,
             "Руины с наградой на островах сумеречных миров: в среднем 1 на N чанков (0 - не генерировать)");
+        apalachiaStructureBoost = cfg.getInt("apalachiaStructureBoost", "worldgen", apalachiaStructureBoost, 1, 10,
+            "Во сколько раз в Апалачии чаще руины, лагеря и подземелья на островах (острова там реже и тоньше)");
+        twilightPondRarity = cfg.getInt("twilightPondRarity", "worldgen", twilightPondRarity, 0, 100000,
+            "Пруды для рыбалки на островах сумеречных миров (причал, ива, кувшинки): в среднем 1 на N чанков (0 - не генерировать)");
+        vetheaLakeRarity = cfg.getInt("vetheaLakeRarity", "worldgen", vetheaLakeRarity, 0, 100000,
+            "Озёра на этажах Ветеи (рыбалка мечтаний): в среднем 1 на N чанков на каждом этаже (0 - не генерировать)");
         twilightDungeonRarity = cfg.getInt("twilightDungeonRarity", "worldgen", twilightDungeonRarity, 0, 100000,
             "Подземелья в толще крупных островов сумеречных миров (спавнер, сундук): в среднем 1 на N чанков (0 - не генерировать)");
         twilightBridgeRarity = cfg.getInt("twilightBridgeRarity", "worldgen", twilightBridgeRarity, 0, 100000,
@@ -142,6 +150,8 @@ public class Config {
             "Лагеря странников в сумеречных мирах (торговец, костёр - точка возрождения): в среднем 1 на N чанков (0 - не генерировать)");
         netherLairSpacing = cfg.getInt("netherLairSpacing", "worldgen", netherLairSpacing, 0, 100000,
             "Логова Ада (Обсерватория Смотрителя, Огненная палата Короля скорчеров): одно каждого на квадрат N x N блоков Ада; 0 - не генерировать их и гнездовье Айрако в Энде (тогда их предметы вызова работают где угодно)");
+        mapWorldSize = cfg.getInt("mapWorldSize", b, mapWorldSize, 0, 1000000,
+            "Карты логов показывают логова только в квадрате такого размера с центром в нуле мира: 10000 - от -5000 до +5000 по X и Z; 0 - без границ");
         divineTorchRadius = cfg.getInt("divineTorchRadius", b, divineTorchRadius, 0, 128,
             "Факелы Divine (водный, скелетный, Эдема, арканиевый) и факелы сумеречных миров в обычном мире: в этом радиусе мобы Divine сами не появляются; 0 - выключено");
         dungeonSpawners = cfg.getBoolean("dungeonSpawners", b, dungeonSpawners,

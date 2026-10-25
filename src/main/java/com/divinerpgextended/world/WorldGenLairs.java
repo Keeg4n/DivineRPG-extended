@@ -96,7 +96,7 @@ public class WorldGenLairs implements IWorldGenerator {
             entrances++;
             // самое глубокое дно над будущими ходами; ходы опускаются под него, но не ниже 20
             int bed = 62;
-            for (int xx = x - 4; xx <= x + 109 && bed >= 26; xx += 4) {
+            for (int xx = x - 4; xx <= x + 95 + 2 * DEN_R + 4 && bed >= 26; xx += 4) {
                 for (int zz = z - (N / 2) * STEP - 8; zz <= z + (N / 2) * STEP + 11; zz += 4) bed = Math.min(bed, seabed(world, xx, zz));
             }
             bestBed = Math.max(bestBed, bed);
@@ -113,8 +113,8 @@ public class WorldGenLairs implements IWorldGenerator {
         }
 
         int x0 = ex + 20, z0 = ez - (N / 2) * STEP; // узел (0, 0); вход в 20 блоках западнее первого узла
-        int gx0 = x0 + span + 5, gcx = gx0 + 6, gcz = z0 + (N / 2) * STEP; // стена грота и его центр
-        int ax0 = ex - 10, ax1 = gcx + 8, az0 = z0 - 8, az1 = z0 + span + 8;
+        int gx0 = x0 + span + 5, gcx = gx0 + DEN_R, gcz = z0 + (N / 2) * STEP; // стена грота и его центр
+        int ax0 = ex - 10, ax1 = gcx + DEN_R + 2, az0 = z0 - 8, az1 = z0 + span + 8;
 
         Carver c = new Carver(ax0, ym - 8, az0, ax1 - ax0 + 1, 72 - (ym - 8), az1 - az0 + 1, gx0 - 1);
 
@@ -234,10 +234,10 @@ public class WorldGenLairs implements IWorldGenerator {
             LairLoot.chest(world, rand, x, y, z, false);
         }
 
-        // сухой грот краба за восточной стеной: купол радиусом 6, пол вровень с ходами
+        // сухой грот краба за восточной стеной: зал радиусом DEN_R под низким куполом, пол вровень с ходами
         int yd = ym - 2;
-        for (int dx = -7; dx <= 7; dx++) {
-            for (int dz = -7; dz <= 7; dz++) {
+        for (int dx = -DEN_R - 1; dx <= DEN_R + 1; dx++) {
+            for (int dz = -DEN_R - 1; dz <= DEN_R + 1; dz++) {
                 for (int y = yd; y <= yd + 7; y++) {
                     if (inDen(dx, y - yd, dz)) continue;
                     boolean nearDen = false;
@@ -251,8 +251,11 @@ public class WorldGenLairs implements IWorldGenerator {
                 }
             }
         }
-        for (int[] g : new int[][] { { -2, -2 }, { -2, 2 }, { 2, -2 }, { 2, 2 } }) {
-            lamp(world, rand, gcx + g[0], yd + 7, gcz + g[1]);
+        for (int[] g : new int[][] { { -3, -3 }, { -3, 3 }, { 3, -3 }, { 3, 3 }, { -8, 0 }, { 8, 0 }, { 0, -8 }, { 0, 8 },
+            { -6, -6 }, { -6, 6 }, { 6, -6 }, { 6, 6 } }) {
+            int y = 1;
+            while (inDen(g[0], y, g[1])) y++; // свод над этой точкой
+            lamp(world, rand, gcx + g[0], yd + y, gcz + g[1]);
         }
         // завеса пузырей держит воду: вода лабиринта стоит прямо перед ней, а пройти можно насквозь
         set(world, gx0, yd + 1, gcz, ModBlocks.bubbleCurtain);
@@ -281,9 +284,12 @@ public class WorldGenLairs implements IWorldGenerator {
     private static final int[][] NEIGHBORS = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 },
         { 0, 0, -1 } };
 
-    /** Пустота норы краба: круглый зал радиусом 6, высота 4 и купол сверху (dy - от пола). */
-    private static boolean inDen(int dx, int dy, int dz) {
-        double r = Math.sqrt(dx * dx + dz * dz) / 6.0;
+    /** Радиус грота-арены Карцинуса (был 6 - вдвое теснее). */
+    static final int DEN_R = 12;
+
+    /** Пустота норы краба: круглый зал радиусом {@link #DEN_R}, высота 4 и купол сверху (dy - от пола). */
+    static boolean inDen(int dx, int dy, int dz) {
+        double r = Math.sqrt(dx * dx + dz * dz) / DEN_R;
         if (r >= 1.0 || dy < 1) return false;
         if (dy <= 4) return true;
         if (dy == 5) return r < 0.8;

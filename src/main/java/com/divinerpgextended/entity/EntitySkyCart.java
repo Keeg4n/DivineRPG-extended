@@ -32,6 +32,11 @@ public class EntitySkyCart extends Entity {
     /** Середина вагонетки над точкой касания колёс; глаза седока над серединой (как у ванильной вагонетки). */
     public static final double BODY = 0.4, EYES = 0.82, SEAT = 0.8;
     private static final int DW_N = 20, DW_F = 23; // нормаль и курс: по три float
+    /**
+     * Клиент подводит вагонетку к позиции с сервера за столько тиков. Ванильные 4 на полном ходу (0.9 блока за тик) срезали
+     * внешнее ребро горки хордой - камера седока проходила сквозь блок; за 2 тика путь держится, рывков нет.
+     */
+    public static final int CLIENT_LERP = 2;
 
     private int cx, cy, cz, nx, ny, nz;
     private double t;
@@ -266,7 +271,7 @@ public class EntitySkyCart extends Entity {
         lx = x;
         ly = y;
         lz = z;
-        lerp = steps + 1;
+        lerp = CLIENT_LERP;
         setRotation(yaw, pitch);
     }
 
@@ -373,7 +378,12 @@ public class EntitySkyCart extends Entity {
     @Override
     public boolean attackEntityFrom(DamageSource src, float amount) {
         if (worldObj.isRemote || isDead) return true;
-        if (src.getEntity() instanceof EntityPlayer) dropAsItem();
+        if (src.getEntity() instanceof EntityPlayer) {
+            if (((EntityPlayer) src.getEntity()).capabilities.isCreativeMode) { // как ванильная: в творческом просто исчезает
+                if (riddenByEntity != null) riddenByEntity.mountEntity(null);
+                setDead();
+            } else dropAsItem();
+        }
         return true;
     }
 
