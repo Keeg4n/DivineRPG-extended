@@ -15,7 +15,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * Вид из вагонетки Апалачии: на стене и потолке картинка наклоняется вокруг оси взгляда так, чтобы "верх" вагонетки
  * был вверху экрана, а сам взгляд остаётся настоящим (раньше поворачивался весь мир, и на потолке игра считала взгляд
  * "вверх" взглядом "вниз" - удары и клики уходили не туда). Мышь поворачивается на тот же угол ({@link #angles}).
- * Глаза в воде мечтаний висячего озера Ветеи - картинка вверх ногами (там верх и низ поменялись).
+ * Перевёрнутый в воде мечтаний (ноги в озере в потолке Ветеи) видит картинку вверх ногами.
  */
 @SideOnly(Side.CLIENT)
 public class CameraTilt {
@@ -33,7 +33,7 @@ public class CameraTilt {
         EntitySkyCart c = cart(v);
         if (c == null) {
             // в воде мечтаний (висячие озёра Ветеи) верх и низ поменялись: картинка вверх ногами
-            last = v instanceof net.minecraft.entity.EntityLivingBase && com.divinerpgextended.block.BlockDreamWater.eyesIn((net.minecraft.entity.EntityLivingBase) v) ? 180 : 0;
+            last = v != null && com.divinerpgextended.block.BlockDreamWater.inverted(v) ? 180 : 0;
             if (last != 0) GL11.glRotated(last, 0, 0, 1);
             return;
         }

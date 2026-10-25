@@ -143,7 +143,7 @@ public class Config {
         vetheaLakeRarity = cfg.getInt("vetheaLakeRarity", "worldgen", vetheaLakeRarity, 0, 100000,
             "Озёра на этажах Ветеи (рыбалка мечтаний): в среднем 1 на N чанков на каждом этаже (0 - не генерировать)");
         vetheaHangingLakeRarity = cfg.getInt("vetheaHangingLakeRarity", "worldgen", vetheaHangingLakeRarity, 0, 100000,
-            "Висячие озёра Ветеи (сталактит с потолка, вода мечтаний течёт вверх, гладь в 7 блоках над полом): в среднем 1 на N чанков на этаж (0 - не генерировать)");
+            "Озёра в потолке этажей Ветеи (вода мечтаний течёт вверх, гладь вровень с потолком, у неё висят вверх ногами и рыбачат): в среднем 1 на N чанков на этаж (0 - не генерировать)");
         twilightDungeonRarity = cfg.getInt("twilightDungeonRarity", "worldgen", twilightDungeonRarity, 0, 100000,
             "Подземелья в толще крупных островов сумеречных миров (спавнер, сундук): в среднем 1 на N чанков (0 - не генерировать)");
         twilightBridgeRarity = cfg.getInt("twilightBridgeRarity", "worldgen", twilightBridgeRarity, 0, 100000,

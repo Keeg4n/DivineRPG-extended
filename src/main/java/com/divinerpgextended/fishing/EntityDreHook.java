@@ -368,7 +368,7 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
     }
 
     private void toss(EntityPlayer p, ItemStack loot) {
-        if (lava) { // из лавы улов сразу в руки (предмет в полёте над лавой сгорел бы)
+        if (lava || dreamWaterAbove()) { // из лавы улов сразу в руки (предмет в полёте над лавой сгорел бы); из озера в потолке - упал бы на пол
             // в творческом игра молча удаляет то, чему нет места в инвентаре: кладём под ноги, подберёт сам
             if (p.capabilities.isCreativeMode || !p.inventory.addItemStackToInventory(loot)) {
                 EntityItem drop = new EntityItem(worldObj, p.posX, p.posY + 0.5, p.posZ, loot);

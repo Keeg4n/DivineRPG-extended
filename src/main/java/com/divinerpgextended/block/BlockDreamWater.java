@@ -6,7 +6,8 @@ import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
@@ -20,12 +21,18 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Вода мечтаний - перевёрнутая вода висячих озёр Ветеи: течёт вверх (плотность меньше нуля), гладь смотрит вниз. Для
- * игры это вода (материал воды): в ней плавают, тонут и рыбачат. Кто в ней - для того верх и низ меняются местами: тянет
- * вверх, к дну озера, прыжок - вниз, к глади; картинка перевёрнута ({@link com.divinerpgextended.client.CameraTilt}).
- * Вынырнул вниз - падаешь как обычно. Между двумя источниками под опорой рождается новый (бесконечная, как вода).
+ * Вода мечтаний - перевёрнутая вода озёр в потолке этажей Ветеи: течёт вверх (плотность меньше нуля), гладь смотрит
+ * вниз. Для игры это вода (материал воды): в ней плавают, тонут и рыбачат. Между двумя источниками под опорой рождается
+ * новый (бесконечная, как вода).
+ * <p>
+ * Кто окунулся в неё сверху своего хитбокса хотя бы на {@link #FLIP} блока, тот перевёрнут ({@link #inverted}): висит
+ * вверх ногами, ноги в воде, голова в воздухе - у глади держится сам, тут и рыбачат (поплавок закидывается вверх, в
+ * озеро). Shift - нырнуть глубже, прыжок - отпуститься и упасть. В глубине тянет к дну озера (вверх), прыжок - к глади.
  */
 public class BlockDreamWater extends BlockFluidClassic {
+
+    /** С какой глубины (сверху хитбокса) игрок перевёрнут; на какой держится у глади; где начинается глубина. */
+    public static final double FLIP = 0.4, HOLD = 0.6, DEEP = 1.3;
 
     @SideOnly(Side.CLIENT)
     private IIcon still, flow;
@@ -53,29 +60,33 @@ public class BlockDreamWater extends BlockFluidClassic {
         return w.getBlock(x, y, z) instanceof BlockDreamWater && w.getBlockMetadata(x, y, z) == 0;
     }
 
-    /** Тело существа в воде мечтаний. */
-    public static boolean inside(Entity e) {
-        AxisAlignedBB bb = e.boundingBox;
-        int x0 = MathHelper.floor_double(bb.minX), x1 = MathHelper.floor_double(bb.maxX), y0 = MathHelper.floor_double(bb.minY),
-            y1 = MathHelper.floor_double(bb.maxY), z0 = MathHelper.floor_double(bb.minZ), z1 = MathHelper.floor_double(bb.maxZ);
-        for (int x = x0; x <= x1; x++) for (int y = y0; y <= y1; y++) for (int z = z0; z <= z1; z++)
-            if (e.worldObj.getBlock(x, y, z) instanceof BlockDreamWater) return true;
-        return false;
+    /** На сколько верх хитбокса ушёл в воду мечтаний (по столбцу середины); 0 - не в ней. */
+    public static double depth(Entity e) {
+        int x = MathHelper.floor_double(e.posX), z = MathHelper.floor_double(e.posZ);
+        int y0 = MathHelper.floor_double(e.boundingBox.minY), y1 = MathHelper.floor_double(e.boundingBox.maxY);
+        for (int y = y0; y <= y1; y++) if (e.worldObj.getBlock(x, y, z) instanceof BlockDreamWater) return Math.max(0, e.boundingBox.maxY - y);
+        return 0;
     }
 
-    /** Глаза в воде мечтаний (картинка перевёрнута). */
-    public static boolean eyesIn(EntityLivingBase e) {
-        return e.worldObj.getBlock(MathHelper.floor_double(e.posX), MathHelper.floor_double(e.posY + e.getEyeHeight() - e.yOffset),
+    public static boolean inside(Entity e) {
+        return depth(e) > 0;
+    }
+
+    /** Перевёрнут: ноги (верх хитбокса) в воде мечтаний. */
+    public static boolean inverted(Entity e) {
+        return depth(e) >= FLIP;
+    }
+
+    /** Голова перевёрнутого (низ хитбокса) в воде - тонет. */
+    public static boolean headUnder(EntityLivingBase e) {
+        return e.worldObj.getBlock(MathHelper.floor_double(e.posX), MathHelper.floor_double(e.boundingBox.minY + 0.2),
             MathHelper.floor_double(e.posZ)) instanceof BlockDreamWater;
     }
 
-    /**
-     * Перевёрнутое плавание (на обеих сторонах - движение игрока считает клиент): обычная вода тянет вниз на 0.02 за тик
-     * и прыжок поднимает на 0.04 - здесь наоборот.
-     */
+    /** Перевёрнутое плавание (на обеих сторонах: движение игрока считает клиент). */
     public static class Swim {
 
-        private static java.lang.reflect.Field jumping;
+        private static java.lang.reflect.Field jumping, floating;
 
         static boolean jumping(EntityLivingBase e) {
             try {
@@ -86,16 +97,37 @@ public class BlockDreamWater extends BlockFluidClassic {
             }
         }
 
+        /** Сервер считает висящего у глади "летающим" и через 4 с выкидывает - сбрасываем его счётчик. */
+        static void notFlying(EntityPlayerMP p) {
+            if (p.playerNetServerHandler == null) return;
+            try {
+                if (floating == null) floating = ReflectionHelper.findField(net.minecraft.network.NetHandlerPlayServer.class, "floatingTickCount", "field_147365_f");
+                floating.setInt(p.playerNetServerHandler, 0);
+            } catch (Throwable ignored) {}
+        }
+
         @SubscribeEvent
         public void onUpdate(LivingEvent.LivingUpdateEvent ev) {
             EntityLivingBase e = ev.entityLiving;
-            if (!inside(e)) return;
-            if (e instanceof net.minecraft.entity.player.EntityPlayer && ((net.minecraft.entity.player.EntityPlayer) e).capabilities.isFlying) return;
-            e.motionY += 0.04; // вместо -0.02 воды - +0.02: тянет вверх, к дну озера
-            if (jumping(e)) e.motionY -= 0.08; // прыжок (+0.04 у воды) - вниз, к глади
-            if (e.isSneaking()) e.motionY += 0.02;
-            e.motionY = Math.max(-0.3, Math.min(0.3, e.motionY));
+            double d = depth(e);
+            if (d <= 0) return;
+            if (e instanceof EntityPlayer && ((EntityPlayer) e).capabilities.isFlying) return;
             e.fallDistance = 0;
+            if (!e.worldObj.isRemote && e instanceof EntityPlayerMP) {
+                notFlying((EntityPlayerMP) e);
+                if (!headUnder(e)) e.setAir(300); // голова в воздухе (игра считает глаза у верха хитбокса - в воде)
+            }
+            boolean jump = jumping(e), dive = e.isSneaking();
+            if (d >= DEEP) { // в глубине тянет к дну озера (вверх); прыжок - к глади (вниз)
+                e.motionY += 0.04;
+                if (jump) e.motionY -= 0.08;
+                if (dive) e.motionY += 0.02;
+                e.motionY = Math.max(-0.3, Math.min(0.3, e.motionY));
+            } else if (d >= FLIP || e.motionY > 0) { // у глади: держится ногами в воде
+                if (jump) e.motionY = -0.35; // отпустился - падает
+                else if (dive) e.motionY = 0.12;
+                else e.motionY = (HOLD - d) * 0.3 + 0.02; // пружинит к глубине HOLD (+0.02 гасит тягу воды вниз)
+            }
         }
     }
 

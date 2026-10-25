@@ -37,6 +37,9 @@ public class ClientProxy extends CommonProxy {
         ClientCommandHandler.instance.registerCommand(new CommandFlySpeed());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.DreBossBar());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.RenderSkyCart.Rider());
+        com.divinerpgextended.client.DreamWaterView dreamView = new com.divinerpgextended.client.DreamWaterView();
+        MinecraftForge.EVENT_BUS.register(dreamView);
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(dreamView);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.AccessoryButton());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.TooltipWrap());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.TemperTooltip());

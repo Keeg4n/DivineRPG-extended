@@ -5668,67 +5668,78 @@ public class SelfTest {
                 + "), зона рыбалки " + zone + "; озеро Ветеи " + lake + ", воды " + vwater);
             return "пруд в Диком лесу: " + water + " воды, " + lily + " кувшинок, причал из 10 досок, ива; озеро на этаже Ветеи (" + vwater + " воды)";
         });
-        t("Ветея - этажи", "Висячее озеро: вода мечтаний течёт вверх, внутри всё наоборот", () -> {
+        t("Ветея - этажи", "Озеро в потолке: вода мечтаний течёт вверх, у глади висят вверх ногами", () -> {
             WorldServer v = server.worldServerForDimension(ConfigurationHelper.vethea);
-            int vx = 9400, vz = 9400, vf = 64;
+            int vx = 9400, vz = 9400, vf = 64, ceil = 80;
             loadAround(v, vx, vz, 2);
             Block dw = com.divinerpgextended.registry.ModBlocks.dreamWater;
-            // площадка: трава на 64, потолок на 96
+            // площадка: трава на 64, плита потолка с 80
             for (int i = -9; i <= 9; i++) for (int kk = -9; kk <= 9; kk++) {
                 for (int h = vf - 3; h < vf; h++) v.setBlock(vx + i, h, vz + kk, net.divinerpg.utils.blocks.VetheaBlocks.dreamDirt);
                 v.setBlock(vx + i, vf, vz + kk, net.divinerpg.utils.blocks.VetheaBlocks.dreamGrass);
-                for (int h = vf + 1; h < 96; h++) v.setBlockToAir(vx + i, h, vz + kk);
-                for (int h = 96; h < 99; h++) v.setBlock(vx + i, h, vz + kk, net.divinerpg.utils.blocks.VetheaBlocks.dreamStone);
+                for (int h = vf + 1; h < ceil; h++) v.setBlockToAir(vx + i, h, vz + kk);
+                for (int h = ceil; h < ceil + 8; h++) v.setBlock(vx + i, h, vz + kk, net.divinerpg.utils.blocks.VetheaBlocks.dreamStone);
             }
             boolean built = com.divinerpgextended.vethea.VetheaLakes.hanging(v, new java.util.Random(5), vx, vz, vf);
-            int water = 0, below = 0, surface = -1;
-            for (int i = -6; i <= 6; i++) for (int kk = -6; kk <= 6; kk++) for (int h = vf + 1; h < 96; h++) {
+            int water = 0, column = 0, surface = 999;
+            for (int i = -7; i <= 7; i++) for (int kk = -7; kk <= 7; kk++) for (int h = vf + 1; h < ceil + 8; h++) {
                 if (v.getBlock(vx + i, h, vz + kk) == dw) {
                     water++;
-                    if (surface < 0 || h < surface) surface = h;
-                } else if (h < vf + com.divinerpgextended.vethea.VetheaLakes.HANG && !v.isAirBlock(vx + i, h, vz + kk)) below++;
+                    surface = Math.min(surface, h);
+                } else if (h < ceil && !v.isAirBlock(vx + i, h, vz + kk)) column++;
             }
-            boolean openBelow = v.isAirBlock(vx, surface - 1, vz);
             // течёт вверх: источник под каменной плитой поднимается к ней, вниз не течёт
-            int tx = vx + 7, ty = vf + 3;
+            int tx = vx + 8, ty = ceil - 3;
             v.setBlock(tx, ty, vz, dw, 0, 3);
-            for (int pass = 0; pass < 4; pass++) for (int h = ty - 2; h <= ty + 3; h++) if (v.getBlock(tx, h, vz) == dw) dw.updateTick(v, tx, h, vz, v.rand);
+            for (int pass = 0; pass < 4; pass++) for (int h = ty - 2; h < ceil; h++) if (v.getBlock(tx, h, vz) == dw) dw.updateTick(v, tx, h, vz, v.rand);
             boolean rises = v.getBlock(tx, ty + 1, vz) == dw && v.isAirBlock(tx, ty - 1, vz);
-            for (int h = ty - 2; h <= ty + 6; h++) for (int i = -2; i <= 2; i++) for (int kk = -2; kk <= 2; kk++) v.setBlockToAir(tx + i, h, vz + kk);
+            for (int h = ty - 2; h < ceil; h++) for (int i = -2; i <= 1; i++) for (int kk = -2; kk <= 2; kk++) v.setBlockToAir(tx + i, h, vz + kk);
             // бесконечная: между двумя источниками под плитой - новый
-            int py = vf + 3;
-            for (int i = -1; i <= 1; i++) v.setBlock(tx + i, py + 1, vz, net.divinerpg.utils.blocks.VetheaBlocks.dreamStone);
+            int py = ceil - 1;
             v.setBlock(tx - 1, py, vz, dw, 0, 3);
             v.setBlock(tx + 1, py, vz, dw, 0, 3);
             v.setBlock(tx, py, vz, dw, 1, 3);
             dw.updateTick(v, tx, py, vz, v.rand);
             boolean infinite = com.divinerpgextended.block.BlockDreamWater.isSource(v, tx, py, vz);
-            for (int i = -1; i <= 1; i++) { v.setBlockToAir(tx + i, py, vz); v.setBlockToAir(tx + i, py + 1, vz); }
-            // плавание: в воде тянет вверх, прыжок - вниз
-            TestPlayer sw = join(player(ConfigurationHelper.vethea, "TestDreamSwim", vx + 0.5, surface + 0.2, vz + 0.5), true);
-            sw.motionY = 0;
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sw));
-            double up = sw.motionY;
-            sw.motionY = 0;
+            for (int i = -1; i <= 1; i++) v.setBlockToAir(tx + i, py, vz);
+            // игрок под гладью: хитбокс на заданную глубину верхом в воде
+            TestPlayer sw = join(player(ConfigurationHelper.vethea, "TestDreamSwim", vx + 0.5, vf + 1, vz + 0.5), true);
             java.lang.reflect.Field jf = cpw.mods.fml.relauncher.ReflectionHelper.findField(net.minecraft.entity.EntityLivingBase.class, "isJumping", "field_70703_bu");
+            double[] at = { 0.2, 0.6, 0.9, 1.6 };
+            double[] my = new double[at.length];
+            boolean[] inv = new boolean[at.length];
+            for (int i = 0; i < at.length; i++) {
+                sw.setPosition(vx + 0.5, surface + at[i] - sw.height, vz + 0.5);
+                sw.motionY = i == 0 ? 0.1 : 0; // подплывает снизу
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sw));
+                my[i] = sw.motionY;
+                inv[i] = com.divinerpgextended.block.BlockDreamWater.inverted(sw);
+            }
+            sw.setPosition(vx + 0.5, surface + 0.6 - sw.height, vz + 0.5);
             jf.setBoolean(sw, true);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sw));
-            double jump = sw.motionY;
+            double letGo = sw.motionY;
             jf.setBoolean(sw, false);
-            boolean eyes = com.divinerpgextended.block.BlockDreamWater.eyesIn(sw) || com.divinerpgextended.block.BlockDreamWater.inside(sw);
+            sw.setSneaking(true);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sw));
+            double dive = sw.motionY;
+            sw.setSneaking(false);
+            sw.setAir(10);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sw));
+            boolean breathes = sw.getAir() == 300; // голова (низ хитбокса) в воздухе
             // ведро набирает воду мечтаний
             ItemStack empty = new ItemStack(Items.bucket);
             net.minecraft.util.MovingObjectPosition hit = new net.minecraft.util.MovingObjectPosition(vx, surface, vz, 0, net.minecraft.util.Vec3.createVectorHelper(vx + 0.5, surface, vz + 0.5));
             net.minecraftforge.event.entity.player.FillBucketEvent fe = new net.minecraftforge.event.entity.player.FillBucketEvent(sw, empty, v, hit);
             MinecraftForge.EVENT_BUS.post(fe);
             boolean bucket = fe.result != null && fe.result.getItem() == com.divinerpgextended.registry.ModItems.dreamWaterBucket;
-            // поплавок, закинутый снизу, держится у глади (не падает обратно на траву)
-            TestPlayer an = join(player(ConfigurationHelper.vethea, "TestDreamAngler", vx + 2.5, vf + 1, vz + 0.5), true);
-            hold(an, new ItemStack(Items.fishing_rod));
-            com.divinerpgextended.fishing.EntityDreHook hook = new com.divinerpgextended.fishing.EntityDreHook(v, an, com.divinerpgextended.fishing.Rod.VANILLA);
-            hook.setPosition(vx + 0.5, surface - 2.5, vz + 0.5);
+            // поплавок, закинутый висящим вверх (в озеро), держится у глади
+            sw.setPosition(vx + 2.5, surface + 0.6 - sw.height, vz + 0.5);
+            hold(sw, new ItemStack(Items.fishing_rod));
+            com.divinerpgextended.fishing.EntityDreHook hook = new com.divinerpgextended.fishing.EntityDreHook(v, sw, com.divinerpgextended.fishing.Rod.VANILLA);
+            hook.setPosition(vx + 0.5, surface - 1.0, vz + 0.5);
             hook.motionX = hook.motionZ = 0;
-            hook.motionY = 0.9;
+            hook.motionY = 0.5;
             v.spawnEntityInWorld(hook);
             double lo = 999, hi = -999;
             for (int i = 0; i < 200; i++) {
@@ -5740,19 +5751,19 @@ public class SelfTest {
             }
             boolean floats = !hook.isDead && lo > surface - 1.2 && hi < surface + 1.5;
             hook.setDead();
-            server.getConfigurationManager().playerEntityList.remove(an);
-            v.removeEntity(an);
             server.getConfigurationManager().playerEntityList.remove(sw);
             v.removeEntity(sw);
             boolean zone = com.divinerpgextended.fishing.Zone.at(v, vx, surface, vz, false) == com.divinerpgextended.fishing.Zone.DREAM;
-            for (int i = -9; i <= 9; i++) for (int kk = -9; kk <= 9; kk++) for (int h = vf + 1; h < 99; h++) v.setBlockToAir(vx + i, h, vz + kk);
-            check(built && water >= 150 && below == 0 && surface == vf + com.divinerpgextended.vethea.VetheaLakes.HANG && openBelow && rises && infinite
-                && up > 0.03 && jump < -0.03 && eyes && bucket && zone && floats,
-                "построено " + built + ", воды " + water + ", гладь на " + surface + " (трава " + vf + "), под гладью преград " + below + ", снизу открыто " + openBelow
-                + "; течёт вверх " + rises + ", бесконечная " + infinite + "; в воде тянет " + String.format("%.3f", up) + ", прыжок " + String.format("%.3f", jump)
-                + ", игрок в воде " + eyes + "; ведро " + bucket + ", зона рыбалки " + zone + ", поплавок держится у глади " + floats
+            for (int i = -9; i <= 9; i++) for (int kk = -9; kk <= 9; kk++) for (int h = vf + 1; h < ceil + 8; h++) v.setBlockToAir(vx + i, h, vz + kk);
+            boolean physics = !inv[0] && my[0] > 0 && inv[1] && Math.abs(my[1] - 0.02) < 0.01 && my[2] < 0 && inv[3] && my[3] > 0.03 && letGo < -0.3 && dive > 0.1;
+            check(built && water >= 60 && column == 0 && surface == ceil && rises && infinite && physics && breathes && bucket && zone && floats,
+                "построено " + built + ", воды " + water + ", гладь на " + surface + " (потолок " + ceil + "), блоков под потолком " + column
+                + "; течёт вверх " + rises + ", бесконечная " + infinite + "; на глубине 0.2/0.6/0.9/1.6: перевёрнут " + java.util.Arrays.toString(inv)
+                + ", скорость " + String.format("%.3f/%.3f/%.3f/%.3f", my[0], my[1], my[2], my[3]) + ", прыжок " + String.format("%.2f", letGo)
+                + ", shift " + String.format("%.2f", dive) + ", дышит у глади " + breathes + "; ведро " + bucket + ", зона " + zone + ", поплавок у глади " + floats
                 + String.format(" (%.2f..%.2f)", lo, hi));
-            return "висячее озеро: гладь в " + com.divinerpgextended.vethea.VetheaLakes.HANG + " блоках над травой, " + water + " воды мечтаний; течёт вверх, бесконечная; в ней тянет вверх, прыжок - вниз; ведро; рыбалка мечтаний";
+            return "озеро вырезано в потолке (" + water + " воды мечтаний), течёт вверх, бесконечная; подплыл снизу - тянет к глади, с 0.4 блока ног в воде - перевёрнут и висит, "
+                + "прыжок - отпустился, shift - нырнул; голова в воздухе - дышит; ведро; поплавок держится у глади";
         });
         t("Прохождение", "Призывы боссов Divine - приспешники", () -> {
             WorldServer w = server.worldServerForDimension(-1);
