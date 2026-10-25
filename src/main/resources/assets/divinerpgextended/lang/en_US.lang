@@ -1182,3 +1182,6 @@ dre.tooltip.snow_globe=Dropped by: Snow Glacon (ice cave boss in snowy biomes)
 dre.tooltip.scorching_sword=Sets the target on fire
 dre.tooltip.hell_vs_cold=Frost mobs: x2 damage and set on fire
 item.dre.bossEgg.name=Spawn %s
+tile.dre.dreamWater.name=Dream Water
+item.dre.dreamWaterBucket.name=Dream Water Bucket
+fluid.dre_dreamwater=Dream Water

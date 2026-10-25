@@ -99,6 +99,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.TwilightDrops());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.WholeGear());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.BossMinions());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.block.BlockDreamWater.Swim());
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.block.BlockBurrow.Convert());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.block.DreamCrops.Planting());
         com.divinerpgextended.perk.HomingArrows homing = new com.divinerpgextended.perk.HomingArrows();

@@ -15,6 +15,10 @@ import cpw.mods.fml.common.IWorldGenerator;
 /**
  * Озёра на этажах Ветеи - рыбалка мечтаний: овальная вода в траве этажа, глубиной до 3 (в пределах верхних 4 блоков
  * плиты, их можно копать - нижнюю часть плиты не трогаем, {@link VetheaFloors}).
+ * <p>
+ * Висячие озёра: с потолка этажа (33 блока над полом) свисает каменный сталактит, внизу - чаша с водой мечтаний,
+ * которая течёт вверх: гладь смотрит вниз, в {@link #HANG} блоках над травой - удочкой с пола достать. Внутри верх и
+ * низ меняются местами ({@link com.divinerpgextended.block.BlockDreamWater}).
  */
 public class VetheaLakes implements IWorldGenerator {
 
@@ -29,6 +33,50 @@ public class VetheaLakes implements IWorldGenerator {
             if (r.nextInt(Config.vetheaLakeRarity) != 0) continue;
             lake(w, r, chunkX * 16 + 8 + r.nextInt(4), chunkZ * 16 + 8 + r.nextInt(4), f);
         }
+        if (Config.vetheaHangingLakeRarity <= 0) return;
+        for (int f : FLOORS) {
+            if (r.nextInt(Config.vetheaHangingLakeRarity) != 0) continue;
+            hanging(w, r, chunkX * 16 + 16 + r.nextInt(4), chunkZ * 16 + 16 + r.nextInt(4), f);
+        }
+    }
+
+    /** Высота глади висячего озера над травой. */
+    public static final int HANG = 7;
+    /** Радиус чаши. */
+    static final int BOWL = 5;
+
+    /** Нижний твёрдый блок потолка над (x, y, z) не выше limit или -1. */
+    static int ceiling(World w, int x, int y, int z, int limit) {
+        for (int h = y; h <= limit; h++) if (!w.isAirBlock(x, h, z)) return h;
+        return -1;
+    }
+
+    /** Висячее озеро с центром в (x, z) на этаже floor; false - место не подошло (неровно, низкий потолок). */
+    public static boolean hanging(World w, Random r, int x, int z, int floor) {
+        int g = ground(w, x, z, floor);
+        if (g < 0) return false;
+        int s = g + HANG, top = BOWL + 1;
+        for (int dx = -top; dx <= top; dx += 2) for (int dz = -top; dz <= top; dz += 2) { // под чашей - ровный пол и воздух
+            int gg = ground(w, x + dx, z + dz, floor);
+            if (gg < 0 || gg > g + 2) return false;
+        }
+        int c = ceiling(w, x, s, z, s + 40);
+        if (c < 0 || c - s < 8) return false;
+        net.minecraft.block.Block stone = VetheaBlocks.dreamStone, water = com.divinerpgextended.registry.ModBlocks.dreamWater;
+        for (int dx = -top - 1; dx <= top + 1; dx++) for (int dz = -top - 1; dz <= top + 1; dz++) {
+            double d = Math.sqrt(dx * dx + dz * dz);
+            // сталактит: от края чаши (радиус BOWL+1) сужается к потолку (радиус 2)
+            for (int y = s; y < c + 2; y++) {
+                double k = (y - s) / (double) Math.max(1, c - s), rad = top + 0.5 - (top - 1.5) * k;
+                if (d >= rad) continue;
+                boolean bowl = d < BOWL && y <= s + 2;
+                if (bowl) w.setBlock(x + dx, y, z + dz, water, 0, 2);
+                else if (w.isAirBlock(x + dx, y, z + dz) || y <= s + 3) w.setBlock(x + dx, y, z + dz, stone, 0, 2);
+            }
+            // под гладью - воздух (деревья и кусты не мешают закинуть)
+            if (d < top) for (int y = g + 1; y < s; y++) if (!w.isAirBlock(x + dx, y, z + dz)) w.setBlock(x + dx, y, z + dz, net.minecraft.init.Blocks.air, 0, 2);
+        }
+        return true;
     }
 
     /** Трава этажа в столбце около высоты floor (верхний блок с воздухом над ним) или -1. */

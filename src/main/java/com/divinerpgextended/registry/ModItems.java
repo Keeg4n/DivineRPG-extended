@@ -39,7 +39,7 @@ public final class ModItems {
     public static Item wandererClock;
     /** Ведро Леты - регистрируется вместе с Летой ({@link ModBlocks#register}): блок нужен ведру при создании. */
     public static Item letheBucket;
-    public static Item dreamMelonSeeds;
+    public static Item dreamMelonSeeds, dreamWaterBucket;
     public static Item bossEgg;
     public static Item timeGear;
     public static Item cadillionCall;

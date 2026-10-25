@@ -1249,3 +1249,6 @@ dre.tooltip.snow_globe=Добыча: Снежный Глакон (босс ле�
 dre.tooltip.scorching_sword=Поджигает цель
 dre.tooltip.hell_vs_cold=Морозным мобам: урон x2 и поджог
 item.dre.bossEgg.name=Яйцо призыва: %s
+tile.dre.dreamWater.name=Вода мечтаний
+item.dre.dreamWaterBucket.name=Ведро воды мечтаний
+fluid.dre_dreamwater=Вода мечтаний

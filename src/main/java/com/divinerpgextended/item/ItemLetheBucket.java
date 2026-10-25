@@ -2,6 +2,7 @@ package com.divinerpgextended.item;
 
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemBucket;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
@@ -34,10 +35,12 @@ public class ItemLetheBucket extends ItemBucket {
             if (e.world.isRemote || e.current == null || e.current.getItem() != Items.bucket || e.target == null
                 || e.target.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) return;
             int x = e.target.blockX, y = e.target.blockY, z = e.target.blockZ;
-            if (!com.divinerpgextended.block.BlockLethe.isSource(e.world, x, y, z)) return;
-            if (!e.entityPlayer.canPlayerEdit(x, y, z, e.target.sideHit, e.current)) return;
+            // Лета и вода мечтаний: обе - материал воды, ванильное ведро набрало бы простую воду
+            Item full = com.divinerpgextended.block.BlockLethe.isSource(e.world, x, y, z) ? com.divinerpgextended.registry.ModItems.letheBucket
+                : com.divinerpgextended.block.BlockDreamWater.isSource(e.world, x, y, z) ? com.divinerpgextended.registry.ModItems.dreamWaterBucket : null;
+            if (full == null || !e.entityPlayer.canPlayerEdit(x, y, z, e.target.sideHit, e.current)) return;
             e.world.setBlockToAir(x, y, z);
-            e.result = new ItemStack(com.divinerpgextended.registry.ModItems.letheBucket);
+            e.result = new ItemStack(full);
             e.setResult(Event.Result.ALLOW);
         }
     }

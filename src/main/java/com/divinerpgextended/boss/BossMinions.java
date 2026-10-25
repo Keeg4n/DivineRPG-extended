@@ -17,6 +17,11 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
 /**
  * Приспешники, которых босс зовёт в бою: без лута и опыта, умирают вместе с боссом. Хозяин записан в приспешнике
  * (UUID босса): босс умер, пропал или выгрузился - приспешник через несколько секунд погибает сам.
+ * <p>
+ * Боссы аддона метят своих сами ({@link #mark}). Собственные призывы боссов Divine (Король скорчеров, Карот, Сумеречный
+ * демон, боссы Ветеи и т.д.) ловим так: моб, появившийся во время хода живого босса Divine рядом с ним (между его
+ * LivingUpdateEvent и ходом следующего существа), - его приспешник. Мобы спавнеров, следующий облик босса и другие
+ * боссы - не в счёт.
  */
 public class BossMinions {
 
@@ -49,6 +54,27 @@ public class BossMinions {
         try {
             ReflectionHelper.setPrivateValue(EntityLiving.class, e, 0, "experienceValue", "field_70728_aV");
         } catch (Throwable ignored) {}
+    }
+
+    /** Босс Divine, чей ход идёт сейчас (null - ход не босса). */
+    private static EntityLivingBase turn;
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onTurn(LivingEvent.LivingUpdateEvent e) {
+        EntityLivingBase b = e.entityLiving;
+        turn = !b.worldObj.isRemote && b instanceof net.minecraft.entity.boss.IBossDisplayData && b.getHealth() > 0
+            && b.getClass().getName().startsWith("net.divinerpg.") ? b : null;
+    }
+
+    @SubscribeEvent
+    public void onJoin(net.minecraftforge.event.entity.EntityJoinWorldEvent e) {
+        EntityLivingBase b = turn;
+        if (b == null || e.world.isRemote || b.worldObj != e.world || !(e.entity instanceof EntityLiving) || e.entity == b
+            || e.entity instanceof net.minecraft.entity.boss.IBossDisplayData || e.entity instanceof net.minecraft.entity.player.EntityPlayer
+            || isMinion(e.entity) || b.getHealth() <= 0 || e.entity.getDistanceSqToEntity(b) > 32 * 32) return;
+        for (StackTraceElement f : new Throwable().getStackTrace()) // спавнер рядом с ареной - не приспешник
+            if (f.getClassName().contains("MobSpawnerBaseLogic") || f.getClassName().contains("TileEntityMobSpawner")) return;
+        mark(e.entity, b);
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)

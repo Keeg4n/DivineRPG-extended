@@ -50,7 +50,7 @@ public class Config {
     public static boolean worldCrafts = true, gateStones = true, miningTiers = true;
     /** Постройки сумеречных миров: 1 на N чанков (0 - нет). */
     public static int twilightRuinsRarity = 30, twilightDungeonRarity = 40, twilightBridgeRarity = 3, twilightCampRarity = 45;
-    public static int apalachiaStructureBoost = 2, twilightPondRarity = 20, vetheaLakeRarity = 10;
+    public static int apalachiaStructureBoost = 2, twilightPondRarity = 20, vetheaLakeRarity = 10, vetheaHangingLakeRarity = 14;
     /** Логово Карцинуса: 1 на N океанских чанков; снежное подземелье: 1 на N заснеженных чанков (0 - выключить). */
     /** Логова обычного мира по сетке из сида: Карцинус и ледяная пещера - по одному на регион N x N. Карты. */
     public static int carcinusSpacing = 320, snowDungeonSpacing = 640, mapSearchRadius = 5000, mapSkipNear = 128, mapCooldownSeconds = 5;
@@ -142,6 +142,8 @@ public class Config {
             "Пруды для рыбалки на островах сумеречных миров (причал, ива, кувшинки): в среднем 1 на N чанков (0 - не генерировать)");
         vetheaLakeRarity = cfg.getInt("vetheaLakeRarity", "worldgen", vetheaLakeRarity, 0, 100000,
             "Озёра на этажах Ветеи (рыбалка мечтаний): в среднем 1 на N чанков на каждом этаже (0 - не генерировать)");
+        vetheaHangingLakeRarity = cfg.getInt("vetheaHangingLakeRarity", "worldgen", vetheaHangingLakeRarity, 0, 100000,
+            "Висячие озёра Ветеи (сталактит с потолка, вода мечтаний течёт вверх, гладь в 7 блоках над полом): в среднем 1 на N чанков на этаж (0 - не генерировать)");
         twilightDungeonRarity = cfg.getInt("twilightDungeonRarity", "worldgen", twilightDungeonRarity, 0, 100000,
             "Подземелья в толще крупных островов сумеречных миров (спавнер, сундук): в среднем 1 на N чанков (0 - не генерировать)");
         twilightBridgeRarity = cfg.getInt("twilightBridgeRarity", "worldgen", twilightBridgeRarity, 0, 100000,

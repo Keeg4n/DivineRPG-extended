@@ -216,7 +216,9 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
             if (worldObj.isAABBInMaterial(slice, liquid())) submerged += 1.0 / parts;
         }
         if (!worldObj.isRemote && submerged > 0) bite((WorldServer) worldObj);
-        motionY += 0.04F * (submerged * 2.0 - 1.0);
+        // вода мечтаний (висячее озеро Ветеи) перевёрнута: у её глади (снизу) поплавок держится, всплывая вниз
+        if (!lava && dreamWaterAbove()) motionY -= 0.04F * (submerged * 2.0 - 1.0);
+        else motionY += 0.04F * (submerged * 2.0 - 1.0);
         if (submerged > 0) {
             drag *= 0.9;
             motionY *= 0.8;
@@ -225,6 +227,14 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
         motionY *= drag;
         motionZ *= drag;
         setPosition(posX, posY, posZ);
+    }
+
+    /** Поплавок в воде мечтаний или вплотную под ней. */
+    private boolean dreamWaterAbove() {
+        int x = MathHelper.floor_double(posX), z = MathHelper.floor_double(posZ);
+        for (int y = MathHelper.floor_double(boundingBox.minY); y <= MathHelper.floor_double(boundingBox.maxY + 0.6); y++)
+            if (worldObj.getBlock(x, y, z) instanceof com.divinerpgextended.block.BlockDreamWater) return true;
+        return false;
     }
 
     /** Сила рыбалки сейчас: удочка + приманка + снаряжение рыбака (+ бонусы особенностей). */
@@ -256,7 +266,7 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
         } else if (ticksCatchableDelay > 0) {
             ticksCatchableDelay -= k;
             if (ticksCatchableDelay <= 0) {
-                motionY -= 0.2F;
+                motionY += dreamWaterAbove() ? 0.2F : -0.2F; // рыба тянет поплавок в воду
                 playSound(lava ? "liquid.lavapop" : "random.splash", 0.25F, 1.0F + (rand.nextFloat() - rand.nextFloat()) * 0.4F);
                 float fy = MathHelper.floor_double(boundingBox.minY);
                 ws.func_147487_a(bubble, posX, fy + 1.0F, posZ, (int) (1.0F + width * 20.0F), width, 0.0, width, 0.2F);

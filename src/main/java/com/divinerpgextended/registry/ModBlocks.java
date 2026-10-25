@@ -43,7 +43,8 @@ public final class ModBlocks {
     public static Block windTotem;
     public static Block cloud;
     public static Block skyRail, apalachiaRail, skyBoostRail, lethe, letheFlowing;
-    public static Block dreamCarrots, dreamMelon, dreamMelonStem, netherTorch;
+    public static Block dreamCarrots, dreamMelon, dreamMelonStem, netherTorch, dreamWater;
+    public static net.minecraftforge.fluids.Fluid dreamWaterFluid;
     public static net.minecraftforge.fluids.Fluid letheFluid;
     /** Лампы сумеречных миров по номеру TwilightWorld; [EDEN] пусто - у Эдема лампа Divine. */
     public static final Block[] worldLamp = new Block[5];
@@ -145,6 +146,18 @@ public final class ModBlocks {
         GameRegistry.registerItem(ModItems.dreamMelonSeeds, "dreamMelonSeeds");
         GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(ModItems.dreamMelonSeeds), net.divinerpg.utils.items.VetheaItems.dreamMelon);
         GameRegistry.addRecipe(new net.minecraft.item.ItemStack(dreamMelon), "MMM", "MMM", "MMM", 'M', net.divinerpg.utils.items.VetheaItems.dreamMelon);
+        // вода мечтаний: плотность меньше нуля - течёт вверх
+        dreamWaterFluid = new net.minecraftforge.fluids.Fluid("dre_dreamwater").setLuminosity(6).setDensity(-1000).setViscosity(1000);
+        net.minecraftforge.fluids.FluidRegistry.registerFluid(dreamWaterFluid);
+        dreamWaterFluid = net.minecraftforge.fluids.FluidRegistry.getFluid("dre_dreamwater");
+        dreamWater = new com.divinerpgextended.block.BlockDreamWater(dreamWaterFluid);
+        GameRegistry.registerBlock(dreamWater, "dreamWater");
+        if (dreamWaterFluid.getBlock() == null) dreamWaterFluid.setBlock(dreamWater);
+        ModItems.dreamWaterBucket = new net.minecraft.item.ItemBucket(dreamWater).setContainerItem(net.minecraft.init.Items.bucket).setMaxStackSize(1)
+            .setUnlocalizedName("dre.dreamWaterBucket").setTextureName("divinerpgextended:dreamwater_bucket").setCreativeTab(com.divinerpgextended.DreTab.TAB);
+        GameRegistry.registerItem(ModItems.dreamWaterBucket, "dreamWaterBucket");
+        net.minecraftforge.fluids.FluidContainerRegistry.registerFluidContainer(dreamWaterFluid, new net.minecraft.item.ItemStack(ModItems.dreamWaterBucket),
+            new net.minecraft.item.ItemStack(net.minecraft.init.Items.bucket));
         cloud = new com.divinerpgextended.block.BlockCloud();
         GameRegistry.registerBlock(cloud, "cloud");
         windTotem = new com.divinerpgextended.block.BlockWindTotem();
