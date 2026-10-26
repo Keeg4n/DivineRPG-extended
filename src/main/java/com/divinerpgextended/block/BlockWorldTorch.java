@@ -54,7 +54,7 @@ public class BlockWorldTorch extends BlockTorch {
         blockIcon = reg.registerIcon(getTextureName());
     }
 
-    /** Огонёк над головкой факела (как у ванильного, со сдвигом к стене) - искры цвета мира. */
+    /** Частицы мира над головкой факела (как у ванильного, со сдвигом к стене): {@link com.divinerpgextended.client.TorchFX}. */
     @Override
     @SideOnly(Side.CLIENT)
     public void randomDisplayTick(World w, int x, int y, int z, Random rand) {
@@ -64,9 +64,6 @@ public class BlockWorldTorch extends BlockTorch {
         else if (meta == 2) { px += off; py += up; }
         else if (meta == 3) { pz -= off; py += up; }
         else if (meta == 4) { pz += off; py += up; }
-        w.spawnParticle("smoke", px, py, pz, 0, 0, 0);
-        // reddust с motionX..Z = цвет (motionX 0 даёт красный, поэтому чуть больше нуля)
-        w.spawnParticle("reddust", px, py + 0.05, pz, Math.max(0.001, r), g, b);
-        if (rand.nextInt(3) == 0) w.spawnParticle("flame", px, py, pz, 0, 0, 0);
+        com.divinerpgextended.client.TorchFX.spawn(w, world, px, py, pz, rand);
     }
 }
