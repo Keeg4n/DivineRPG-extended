@@ -41,15 +41,11 @@ public enum Boss {
     VAMACHERON(net.divinerpg.entities.twilight.EntityVamacheron.class, -1),
     /** Босс логова под храмом джунглей. */
     JUNGLE_KING(com.divinerpgextended.entity.EntityAncientDramcryx.class, -1),
-    // три последних босса Ветеи (4 этаж) - строго по очереди: Крушитель, Раглок, Леди Луна ({@link #requires})
+    // три последних босса Ветеи (4 этаж); очередь Раглок - Крушитель - Луна держит снаряжение
+    // ({@link com.divinerpgextended.vethea.VetheaCombat#gate}): Крушителя ранит только гелиозис с Раглока, Луну - арксиан с Крушителя
     WRECK(net.divinerpg.entities.vethea.EntityWreck.class, -1),
     RAGLOK(net.divinerpg.entities.vethea.EntityRaglok.class, -1),
     LADY_LUNA(net.divinerpg.entities.vethea.EntityLadyLuna.class, -1);
-
-    /** Кого нужно победить раньше, чтобы этот засчитался (или null). */
-    public Boss requires() {
-        return this == RAGLOK ? WRECK : this == LADY_LUNA ? RAGLOK : null;
-    }
 
     private final Class<? extends Entity> entityClass;
     /** Для великого кадиллиона - номер мира, иначе -1. */

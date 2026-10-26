@@ -1260,7 +1260,6 @@ dre.boss.lady_luna=Леди Луна
 dre.perk.regeneration=Восстановление
 dre.perk.arcana_flow=Поток арканы
 dre.perk.angel_flight=Ангельский полёт
-dre.chat.boss_order=%s не засчитан: сначала одолей %s.
 item.dre.dreamItem.wings_template.name=Шаблон Крыльев сна
 dre.tooltip.dreamItem.wings_template=Алтарь наполнения: шаблон + 8 глыб амтирмиса = Крылья сновидца
 item.dre.dreamItem.queen_template.name=Шаблон Крыльев полуночи
@@ -1285,3 +1284,5 @@ dre.nightmare.luna_2=Леди Луна в небе: её ранят только
 dre.nightmare.luna_3=Леди Луна взрывается: клин клином - её ранит только пушка.
 dre.nei.infusion=Алтарь наполнения
 dre.nei.infusion.how=Глыбы - верхний слот (можно больше), шаблон - нижний
+dre.nightmare.gate_heliosis=Крушитель едва чувствует такое оружие: всерьёз его ранит гелиозис (глыбы с Раглока) или лучше.
+dre.nightmare.gate_arksiane=Леди Луна едва чувствует такое оружие: всерьёз её ранит арксиан (глыбы с Крушителя) или её собственное оружие.

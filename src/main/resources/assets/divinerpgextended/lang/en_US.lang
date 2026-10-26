@@ -1193,7 +1193,6 @@ dre.boss.lady_luna=Lady Luna
 dre.perk.regeneration=Regeneration
 dre.perk.arcana_flow=Arcana Flow
 dre.perk.angel_flight=Angelic Flight
-dre.chat.boss_order=%s not counted: defeat %s first.
 item.dre.dreamItem.wings_template.name=Dream Wings Template
 dre.tooltip.dreamItem.wings_template=Infusion Table: template + 8 Amthirmis Lumps = Dreamer's Wings
 item.dre.dreamItem.queen_template.name=Midnight Wings Template
@@ -1218,3 +1217,5 @@ dre.nightmare.luna_2=Lady Luna in the sky: only bows and staves hurt her (staff 
 dre.nightmare.luna_3=Lady Luna explodes: fight fire with fire - only cannons hurt her.
 dre.nei.infusion=Infusion Table
 dre.nei.infusion.how=Lumps - top slot (more is fine), template - bottom
+dre.nightmare.gate_heliosis=The Wreck barely feels this weapon: Heliosis (lumps from Raglok) or better really hurts it.
+dre.nightmare.gate_arksiane=Lady Luna barely feels this weapon: Arksiane (lumps from the Wreck) or her own weapons really hurt her.

@@ -34,6 +34,9 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * <li>Роли шлемов полного ветейского сета: шлем - ближний бой, маска - дальний, капюшон - аркана, +5% урона своей
  * группе за ступень брони (1-5). Любой полный сет гасит взрывы: 20% + 10% за ступень.</li>
  * <li>В Ветее взрывы не уничтожают лежащие вещи (выпавший при смерти инвентарь).</li>
+ * <li>Очередь последних боссов держит снаряжение ({@link #gate}): Крушителя всерьёз ранит оружие из гелиозиса (глыбы с
+ * Раглока) и лучше, Леди Луну - из арксиана (глыбы с Крушителя) и лучше. Ступень ниже бьёт на {@link #GATE_PREV}, остальное
+ * на {@link #GATE_LOW} - урон есть, но так босса почти не убить.</li>
  * </ul>
  */
 public class VetheaCombat {
@@ -129,6 +132,42 @@ public class VetheaCombat {
     /** Доля взрыва, которую гасит полный сет ступени tier. */
     public static float blastGuard(int tier) {
         return 0.1F + 0.1F * tier;
+    }
+
+    // ---------------- Материалы и очередь боссов ----------------
+
+    /** Материалы ветейского оружия по силе (1..9); оружие Луны - 10. */
+    private static final String[] MATERIALS = { "teaker", "amthirmis", "amthrimis", "darven", "cermile", "pardimal", "quadrotic", "karos", "heliosis", "arksiane" };
+    private static final int[] RANK = { 1, 2, 2, 3, 4, 5, 6, 7, 8, 9 };
+    public static final int HELIOSIS = 8, ARKSIANE = 9, LUNAR = 10;
+
+    /** Материал ветейского оружия (0 - не ветейское или без материала). */
+    public static int material(ItemStack s) {
+        if (s == null || WeaponKind.ofItem(s) == null) return 0;
+        String u = String.valueOf(s.getItem().getUnlocalizedName()).toLowerCase();
+        if (u.contains("ever")) return LUNAR;
+        for (int i = MATERIALS.length - 1; i >= 0; i--) if (u.contains(MATERIALS[i])) return RANK[i];
+        return 0;
+    }
+
+    /** Какой материал нужен, чтобы ранить босса (0 - любой). */
+    public static int gate(Entity boss) {
+        String n = boss.getClass().getSimpleName();
+        return n.equals("EntityWreck") ? HELIOSIS : n.equals("EntityLadyLuna") ? ARKSIANE : 0;
+    }
+
+    public static final float GATE_PREV = 0.5F, GATE_LOW = 0.1F;
+
+    /** Не тем материалом босса почти не ранить: ступень ниже нужной - 0.5 за удар, остальное - 0.1. */
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onBossHurt(LivingHurtEvent e) {
+        int need = gate(e.entityLiving);
+        if (need == 0 || e.entityLiving.worldObj.isRemote || !(e.source.getEntity() instanceof EntityPlayer)) return;
+        EntityPlayer p = (EntityPlayer) e.source.getEntity();
+        int m = material(p.getHeldItem());
+        if (p.capabilities.isCreativeMode || m >= need) return;
+        e.ammount = Math.min(e.ammount, m == need - 1 ? GATE_PREV : GATE_LOW);
+        Nightmare.hint(p, need == HELIOSIS ? "gate_heliosis" : "gate_arksiane");
     }
 
     // ---------------- События ----------------

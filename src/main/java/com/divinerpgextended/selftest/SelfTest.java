@@ -1376,13 +1376,14 @@ public class SelfTest {
         });
         t("Ветея - прохождение", "Леди Луна: меч, полёт, пушка; лунные осколки, Everlight", () -> {
             TestPlayer zp = join(player(vd, "TestLuna", 400, 20, 300), true);
+            Item zark = com.divinerpgextended.vethea.Infusion.lunar()[0][0];
             loadAround(vw, 400, 300, 2);
             zp.inventory.clearInventory(null, -1);
             net.divinerpg.entities.vethea.EntityLadyLuna zl = new net.divinerpg.entities.vethea.EntityLadyLuna(vw);
             for (int zx = 395; zx <= 410; zx++) for (int zz = 293; zz <= 308; zz++) for (int zy = 20; zy < 45; zy++) vw.setBlockToAir(zx, zy, zz);
             zl.setPosition(402, 20, 300);
             vw.spawnEntityInWorld(zl);
-            hold(zp, new ItemStack(com.divinerpgextended.vethea.Infusion.vethea("teakerSword")));
+            hold(zp, new ItemStack(zark));
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(zl));
             zl.hurtResistantTime = 0;
             boolean p1sword = zl.attackEntityFrom(DamageSource.causePlayerDamage(zp), 5);
@@ -1401,7 +1402,7 @@ public class SelfTest {
                 .getConstructor(net.minecraft.world.World.class).newInstance(vw);
             zl.hurtResistantTime = 0;
             boolean p3cannon = zl.attackEntityFrom(new net.minecraft.util.EntityDamageSourceIndirect("thrown", zbullet, zp).setProjectile(), 5);
-            hold(zp, new ItemStack(com.divinerpgextended.vethea.Infusion.vethea("teakerSword")));
+            hold(zp, new ItemStack(zark));
             zl.hurtResistantTime = 0;
             boolean p3sword = zl.attackEntityFrom(DamageSource.causePlayerDamage(zp), 5);
             for (int i = 0; i < 60; i++) {
@@ -1464,29 +1465,40 @@ public class SelfTest {
             check(!before && after && freeInDream && nightmare, "оружие сна наяву до " + before + ", после " + after + "; в Ветее кошмар после победы " + !freeInDream + ", до " + nightmare);
             return "до победы над всеми боссами Ветеи меч сна наяву не ранит; после - ранит, а в Ветее кошмар для этого игрока снят";
         });
-        t("Ветея - прохождение", "Крушитель, Раглок, Луна по очереди - перки Странника", () -> {
-            TestPlayer zo = join(player(vd, "TestOrder", 460, 40, 300), true);
-            com.divinerpgextended.boss.BossProgress.revoke(zo, com.divinerpgextended.boss.Boss.WRECK);
-            com.divinerpgextended.boss.BossProgress.revoke(zo, com.divinerpgextended.boss.Boss.RAGLOK);
-            net.divinerpg.entities.vethea.EntityRaglok zr = new net.divinerpg.entities.vethea.EntityRaglok(vw);
-            zr.setPosition(462, 40, 300);
-            vw.spawnEntityInWorld(zr);
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(zr, DamageSource.causePlayerDamage(zo)));
-            boolean early = com.divinerpgextended.boss.BossProgress.has(zo, com.divinerpgextended.boss.Boss.RAGLOK);
+        t("Ветея - прохождение", "Раглок, Крушитель, Луна: очередь держит снаряжение; перки Странника", () -> {
+            TestPlayer zo = join(player(vd, "TestOrder", 460, 20, 300), true);
             net.divinerpg.entities.vethea.EntityWreck zw = new net.divinerpg.entities.vethea.EntityWreck(vw);
-            zw.setPosition(464, 40, 300);
+            zw.setPosition(464, 20, 300);
             vw.spawnEntityInWorld(zw);
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(zw, DamageSource.causePlayerDamage(zo)));
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(zr, DamageSource.causePlayerDamage(zo)));
-            boolean inOrder = com.divinerpgextended.boss.BossProgress.has(zo, com.divinerpgextended.boss.Boss.WRECK)
-                && com.divinerpgextended.boss.BossProgress.has(zo, com.divinerpgextended.boss.Boss.RAGLOK);
-            zr.setDead();
+            java.util.function.Function<Item, Float> hit = it -> {
+                hold(zo, new ItemStack(it));
+                net.minecraftforge.event.entity.living.LivingHurtEvent zh = new net.minecraftforge.event.entity.living.LivingHurtEvent(zw, DamageSource.causePlayerDamage(zo), 20);
+                MinecraftForge.EVENT_BUS.post(zh);
+                return zh.ammount;
+            };
+            float teaker = hit.apply(com.divinerpgextended.vethea.Infusion.vethea("teakerSword"));
+            float karos = hit.apply(com.divinerpgextended.vethea.Infusion.vethea("karosSword", "karosWarsword"));
+            float helio = hit.apply(com.divinerpgextended.vethea.Infusion.vethea("heliosisSword", "heliosisWrathsword"));
             zw.setDead();
-            boolean perks = com.divinerpgextended.perk.Perk.REGENERATION.unlock == com.divinerpgextended.boss.Boss.WRECK
-                && com.divinerpgextended.perk.Perk.ARCANA_FLOW.unlock == com.divinerpgextended.boss.Boss.RAGLOK
+            net.divinerpg.entities.vethea.EntityLadyLuna zl = new net.divinerpg.entities.vethea.EntityLadyLuna(vw);
+            zl.setPosition(468, 20, 300);
+            vw.spawnEntityInWorld(zl);
+            hold(zo, new ItemStack(com.divinerpgextended.vethea.Infusion.vethea("heliosisSword", "heliosisWrathsword")));
+            net.minecraftforge.event.entity.living.LivingHurtEvent zh = new net.minecraftforge.event.entity.living.LivingHurtEvent(zl, DamageSource.causePlayerDamage(zo), 20);
+            MinecraftForge.EVENT_BUS.post(zh);
+            float lunaHelio = zh.ammount;
+            hold(zo, new ItemStack(com.divinerpgextended.vethea.Infusion.lunar()[0][0]));
+            zh = new net.minecraftforge.event.entity.living.LivingHurtEvent(zl, DamageSource.causePlayerDamage(zo), 20);
+            MinecraftForge.EVENT_BUS.post(zh);
+            float lunaArk = zh.ammount;
+            zl.setDead();
+            boolean perks = com.divinerpgextended.perk.Perk.REGENERATION.unlock == com.divinerpgextended.boss.Boss.RAGLOK
+                && com.divinerpgextended.perk.Perk.ARCANA_FLOW.unlock == com.divinerpgextended.boss.Boss.WRECK
                 && com.divinerpgextended.perk.Perk.ANGEL_FLIGHT.unlock == com.divinerpgextended.boss.Boss.LADY_LUNA;
-            check(!early && inOrder && perks, "Раглок до Крушителя засчитан " + early + ", по очереди " + inOrder + ", перки " + perks);
-            return "Раглок до Крушителя не засчитывается; по очереди - да; Крушитель открывает Восстановление (Vemos), Раглок - Поток арканы (Korma), Луна - Ангельский полёт";
+            check(Math.abs(teaker - 0.1F) < 0.001 && Math.abs(karos - 0.5F) < 0.001 && helio >= 20 && Math.abs(lunaHelio - 0.5F) < 0.001 && lunaArk >= 20 && perks,
+                "Крушитель: тикер " + teaker + ", карос " + karos + ", гелиозис " + helio + "; Луна: гелиозис " + lunaHelio + ", арксиан " + lunaArk + "; перки " + perks);
+            return "удар 20: Крушителю тикер " + teaker + ", карос " + karos + ", гелиозис " + helio + "; Луне гелиозис " + lunaHelio + ", арксиан " + lunaArk
+                + "; Раглок - Восстановление, Крушитель - Поток арканы, Луна - Ангельский полёт";
         });
         t("Ветея - этажи", "Крылья вне Ветеи", () -> {
             TestPlayer o = player(0, "TestWing", p.posX, p.posY, p.posZ);

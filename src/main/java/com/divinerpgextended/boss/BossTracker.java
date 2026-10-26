@@ -64,13 +64,6 @@ public class BossTracker {
                 com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.forBoss(boss), event.entityLiving);
                 com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.extraForBoss(boss), event.entityLiving);
             }
-            if (ids.contains(player.getUniqueID()) && boss.requires() != null && !BossProgress.has(player, boss.requires())) {
-                ChatComponentTranslation msg = new ChatComponentTranslation("dre.chat.boss_order", new ChatComponentTranslation(boss.langKey()),
-                    new ChatComponentTranslation(boss.requires().langKey()));
-                msg.getChatStyle().setColor(EnumChatFormatting.GRAY);
-                player.addChatMessage(msg);
-                continue;
-            }
             if (ids.contains(player.getUniqueID()) && BossProgress.grant(player, boss)) {
                 ProgressSync.send(player);
                 com.divinerpgextended.DreAchievements.give(player, com.divinerpgextended.DreAchievements.forBoss(boss));
