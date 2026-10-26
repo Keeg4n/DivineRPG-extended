@@ -48,14 +48,65 @@ public class FastTeleporter extends DivineTeleporter {
         return super.placeInExistingPortal(entity, x, y, z, rotation);
     }
 
-    /** Новый портал на этой стороне: его рамку (и площадку) отмечаем - добытая, она ничего не роняет ({@link PortalFrames}). */
+    /** Как далеко искать остров под новый портал в мирах островов. */
+    static final int ISLAND_SEARCH = 112;
+
+    /**
+     * Новый портал на этой стороне: его рамку (и площадку) отмечаем - добытая, она ничего не роняет ({@link PortalFrames}).
+     * В мирах островов Divine ищет землю лишь в 16 блоках и над пустотой строит портал с площадкой в небе - сначала
+     * переносим точку на ближайший ровный участок острова.
+     */
     @Override
     public boolean makePortal(Entity entity) {
+        com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.of(field_85192_a.provider.dimensionId);
+        if (tw != null && tw != com.divinerpgextended.world.twilight.TwilightWorld.MORTUM) {
+            int[] land = island(tw, MathHelper.floor_double(entity.posX), MathHelper.floor_double(entity.posZ));
+            if (land != null) entity.setLocationAndAngles(land[0] + 0.5, land[1] + 1, land[2] + 0.5, entity.rotationYaw, entity.rotationPitch);
+        }
         int ex = MathHelper.floor_double(entity.posX), ez = MathHelper.floor_double(entity.posZ), r = 20;
         java.util.Set<Long> before = PortalFrames.snapshot(field_85192_a, frameBlock, ex, ez, r);
         boolean made = super.makePortal(entity);
         PortalFrames.mark(field_85192_a, frameBlock, before, ex, ez, r);
         return made;
+    }
+
+    /**
+     * Ближайший ровный участок острова (5 x 5, перепад не больше 1, под ним не меньше 3 блоков земли) в радиусе
+     * {@link #ISLAND_SEARCH}: {x, y земли, z}; null - нет (тогда как у Divine). Под самой точкой входа остров есть - она же.
+     */
+    int[] island(com.divinerpgextended.world.twilight.TwilightWorld tw, int x0, int z0) {
+        for (int r = 0; r <= ISLAND_SEARCH; r += 4) {
+            int[] best = null;
+            double bd = Double.MAX_VALUE;
+            for (int dx = -r; dx <= r; dx += 4) for (int dz = -r; dz <= r; dz += 4) {
+                if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue; // только кольцо радиуса r
+                int x = x0 + dx, z = z0 + dz;
+                int y = flat(tw, x, z);
+                if (y < 0) continue;
+                double d = dx * dx + dz * dz;
+                if (d < bd) {
+                    bd = d;
+                    best = new int[] { x, y, z };
+                }
+            }
+            if (best != null) return best;
+        }
+        return null;
+    }
+
+    /** Высота ровной земли 5 x 5 вокруг (x, z) или -1. */
+    private int flat(com.divinerpgextended.world.twilight.TwilightWorld tw, int x, int z) {
+        int lo = 999, hi = -1;
+        for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) {
+            int y = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.surface(field_85192_a, tw, x + dx, z + dz);
+            if (y < 0) return -1;
+            lo = Math.min(lo, y);
+            hi = Math.max(hi, y);
+        }
+        if (hi - lo > 1) return -1;
+        for (int y = hi - 3; y < hi; y++) if (field_85192_a.isAirBlock(x, y, z)) return -1;
+        for (int y = hi + 1; y <= hi + 5; y++) if (!field_85192_a.isAirBlock(x, y, z) && !field_85192_a.getBlock(x, y, z).isReplaceable(field_85192_a, x, y, z)) return -1;
+        return hi;
     }
 
     /** Ближайший блок портала (нижний в своём столбе) в квадрате радиуса 128, как у Divine; null - нет. */

@@ -25,9 +25,22 @@ public class VetheaLakes implements IWorldGenerator {
     /** Поверхности этажей. */
     public static final int[] FLOORS = { 16, 64, 112, 160 };
 
+    /** Для замеров: сколько наносекунд ушло на озёра и на сколько чанков. */
+    public static long nanos, chunks;
+
     @Override
     public void generate(Random random, int chunkX, int chunkZ, World w, IChunkProvider gen, IChunkProvider prov) {
         if (w.provider.dimensionId != ConfigurationHelper.vethea || Config.vetheaLakeRarity <= 0) return;
+        long t0 = System.nanoTime();
+        try {
+            lakes(chunkX, chunkZ, w);
+        } finally {
+            nanos += System.nanoTime() - t0;
+            chunks++;
+        }
+    }
+
+    private void lakes(int chunkX, int chunkZ, World w) {
         Random r = new Random(w.getSeed() ^ chunkX * 341873128712L ^ chunkZ * 132897987541L ^ 0x1A4EL);
         for (int f : FLOORS) {
             if (r.nextInt(Config.vetheaLakeRarity) != 0) continue;

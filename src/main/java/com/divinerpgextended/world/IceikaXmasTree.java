@@ -35,6 +35,8 @@ public class IceikaXmasTree implements IWorldGenerator {
         Random r = new Random(world.getSeed() ^ chunkX * 341873128712L ^ chunkZ * 132897987541L ^ 0x0C0FFEEL);
         if (r.nextInt(RARITY) != 0) return;
         int x = chunkX * 16 + 16, z = chunkZ * 16 + 16; // середина области заселения: ёлка целиком в загруженных чанках
+        // расчистка вокруг ёлки (радиус BASE_R+2, высота HEIGHT+3) выгрызла бы стену купола Ледяного Трона
+        if (WorldGenThrone.near(world, x, z, BASE_R + 4)) return;
         if (build(world, r, x, z)) trees++;
     }
 

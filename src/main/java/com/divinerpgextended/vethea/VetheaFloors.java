@@ -172,7 +172,23 @@ public class VetheaFloors {
         }
     }
 
+    /** Для замеров: время прорубки разломов и проверок вокруг игроков. */
+    public static long carveNanos, carves, nearNanos;
+
+    public static void carveNearForTest(EntityPlayer p) {
+        carveNear(p);
+    }
+
     private static void carveNear(EntityPlayer p) {
+        long t0 = System.nanoTime();
+        try {
+            carveNear0(p);
+        } finally {
+            nearNanos += System.nanoTime() - t0;
+        }
+    }
+
+    private static void carveNear0(EntityPlayer p) {
         World w = p.worldObj;
         Rifts rifts = Rifts.get(w);
         int rx0 = floorDiv(((int) Math.floor(p.posX)) >> 4, REGION), rz0 = floorDiv(((int) Math.floor(p.posZ)) >> 4, REGION);
@@ -185,7 +201,10 @@ public class VetheaFloors {
                     if (!w.getChunkProvider().chunkExists(c[0] >> 4, c[1] >> 4)) continue;
                     // только в населённом чанке: иначе деревья и постройки Divine потом перезапишут край (а то и шахту)
                     if (!w.getChunkFromChunkCoords(c[0] >> 4, c[1] >> 4).isTerrainPopulated) continue;
+                    long c0 = System.nanoTime();
                     carve(w, c[0], c[1], f);
+                    carveNanos += System.nanoTime() - c0;
+                    carves++;
                     com.divinerpgextended.debug.Debug.note(p, "Разлом прорублен: плита " + f + ", центр " + c[0] + " " + c[1]);
                     rifts.carved.add(key);
                     rifts.markDirty();

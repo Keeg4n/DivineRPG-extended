@@ -293,4 +293,47 @@ public class BlockSkyRail extends Block {
     public static boolean track(Block b) {
         return b instanceof BlockSkyRail || SkyTrack.floor(b);
     }
+
+    /** Запомнить нынешнюю форму старого рельса (без сохранённой): дальше он держит поворот и работает стрелкой, как новые. */
+    public static boolean adopt(World w, int x, int y, int z) {
+        if (!(w.getBlock(x, y, z) instanceof BlockSkyRail)) return false;
+        TileSkyRail t = tile(w, x, y, z);
+        if (t == null || t.hasShape()) return false;
+        ForgeDirection[] l = dynamicLinks(w, x, y, z);
+        ForgeDirection a = l.length > 0 ? l[0] : defaultAxis(w.getBlockMetadata(x, y, z));
+        t.set(a, l.length > 1 ? l[1] : a.getOpposite());
+        return true;
+    }
+
+    /**
+     * Рельсы, поставленные до 0.99.13 (без сохранённой формы), при загрузке чанка запоминают свою нынешнюю форму - на
+     * следующем тике, когда соседние чанки уже на месте.
+     */
+    public static class Adopt {
+
+        private final java.util.ArrayDeque<Object[]> queue = new java.util.ArrayDeque<Object[]>();
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onLoad(net.minecraftforge.event.world.ChunkEvent.Load e) {
+            if (e.world.isRemote) return;
+            net.minecraft.world.chunk.Chunk c = e.getChunk();
+            for (net.minecraft.world.chunk.storage.ExtendedBlockStorage s : c.getBlockStorageArray()) {
+                if (s == null || s.isEmpty()) continue;
+                for (int ly = 0; ly < 16; ly++) for (int lx = 0; lx < 16; lx++) for (int lz = 0; lz < 16; lz++)
+                    if (s.getBlockByExtId(lx, ly, lz) instanceof BlockSkyRail)
+                        queue.add(new Object[] { e.world, (c.xPosition << 4) + lx, s.getYLocation() + ly, (c.zPosition << 4) + lz });
+            }
+        }
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onTick(cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent e) {
+            if (e.phase != cpw.mods.fml.common.gameevent.TickEvent.Phase.END) return;
+            for (int n = 0; n < 256 && !queue.isEmpty(); n++) {
+                Object[] q = queue.poll();
+                World w = (World) q[0];
+                int x = (Integer) q[1], y = (Integer) q[2], z = (Integer) q[3];
+                if (w.getChunkProvider().chunkExists(x >> 4, z >> 4)) adopt(w, x, y, z);
+            }
+        }
+    }
 }

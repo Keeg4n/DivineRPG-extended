@@ -14,9 +14,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Стены крабьей норы: на вид песчаник (мета 0) и песок (мета 1). Не ломаются и не взрываются (раньше пролом засыпало
- * песком - его можно было копать без конца). Блоки норы, гнездо и сердце не добыть: попавшие в инвентарь игрока
- * становятся обычными песчаником, песком и резным песчаником ({@link Convert}), поставленные в выживании - тоже.
+ * Стены крабьей норы: на вид песчаник (мета 0) и песок (мета 1). Сломал в выживании или взорвал - нора обрушивается:
+ * проход вокруг засыпает песком. Сами блоки норы, гнездо и сердце не унести: в инвентаре игрока сразу становятся обычными
+ * песчаником, песком и резным песчаником ({@link Convert}), поставленные в выживании - тоже.
  */
 public class BlockBurrow extends Block {
 
@@ -24,8 +24,8 @@ public class BlockBurrow extends Block {
 
     public BlockBurrow() {
         super(Material.rock);
-        setBlockUnbreakable();
-        setResistance(6000000.0F);
+        setHardness(2.5F);
+        setResistance(10.0F);
         setStepSound(soundTypeStone);
         setBlockName("dre.burrow");
     }

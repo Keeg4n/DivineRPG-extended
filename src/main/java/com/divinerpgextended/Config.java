@@ -57,7 +57,7 @@ public class Config {
 
     public static boolean requireBossUnlocks = true;
     public static boolean replaceTwilightClock = true;
-    public static boolean snowGlobeOnlyFromBoss = true;
+    public static boolean snowGlobeOnlyFromBoss = true, scatterInModBiomes = true;
     public static boolean snowflakesInSummons = true;
     public static boolean warnVetheaInventory = true;
     public static boolean progressSpawns = true, lowRankNoDrops = true;
@@ -180,6 +180,8 @@ public class Config {
             "Карты логов: место ближе N блоков считается найденным - карта ведёт к следующему");
         mapCooldownSeconds = cfg.getInt("mapCooldownSeconds", "worldgen", mapCooldownSeconds, 0, 600,
             "Карты логов: перезарядка в секундах (поиск по карте биомов нагружает сервер)");
+        scatterInModBiomes = cfg.getBoolean("scatterInModBiomes", "worldgen", scatterInModBiomes,
+            "Пирамиды и храмы джунглей обычного мира - и в биомах других модов (Biomes O' Plenty): пирамида в любом жарком песке, храм в любых джунглях, а если джунглей у спавна нет - в тёплых зелёных землях. Под ними гробница и логово Древнего драмкрикса");
         snowGlobeOnlyFromBoss = cfg.getBoolean("snowGlobeOnlyFromBoss", Configuration.CATEGORY_GENERAL,
             snowGlobeOnlyFromBoss, "Убрать рецепт Снежного шара Divine: шар падает только со Снежного Глакона");
         snowflakesInSummons = cfg.getBoolean("snowflakesInSummons", Configuration.CATEGORY_GENERAL,

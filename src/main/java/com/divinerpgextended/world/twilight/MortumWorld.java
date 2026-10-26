@@ -72,6 +72,30 @@ public class MortumWorld {
         }
     }
 
+    /**
+     * Моб в Лете: раз в секунду тот же урон, что игроку. Не трогает нежить и жителей Мортума (кто появляется в биоме
+     * Мортума сам, боссы Мортума, Харон).
+     */
+    public static void mobInLethe(net.minecraft.entity.EntityLivingBase e, int x, int z) {
+        if (e.isDead || e.getCreatureAttribute() == net.minecraft.entity.EnumCreatureAttribute.UNDEAD || native_(e, x, z)) return;
+        long now = e.worldObj.getTotalWorldTime();
+        NBTTagCompound d = e.getEntityData();
+        if (d.getLong(LAST) == now) return;
+        d.setLong(LAST, now);
+        if (now % 20 == 0) e.attackEntityFrom(LETHE, BITE);
+    }
+
+    /** Житель Мортума: в списках спавна его биома, босс Мортума или Харон. */
+    static boolean native_(net.minecraft.entity.EntityLivingBase e, int x, int z) {
+        if (e instanceof com.divinerpgextended.entity.EntityCharon) return true;
+        if (e instanceof net.minecraft.entity.boss.IBossDisplayData && e.worldObj.provider.dimensionId == net.divinerpg.utils.config.ConfigurationHelper.mortum) return true;
+        net.minecraft.world.biome.BiomeGenBase b = e.worldObj.getBiomeGenForCoords(x, z);
+        for (net.minecraft.entity.EnumCreatureType t : net.minecraft.entity.EnumCreatureType.values())
+            for (Object o : b.getSpawnableList(t)) if (((net.minecraft.world.biome.BiomeGenBase.SpawnListEntry) o).entityClass == e.getClass()) return true;
+        for (Class<?> c : TwilightWorld.MORTUM.mobs()) if (c == e.getClass()) return true;
+        return false;
+    }
+
     /** Обычная лодка в Лете разъедается за BOAT_ROT тиков (ладья Харона - нет). */
     public static void boatInLethe(net.minecraft.entity.item.EntityBoat b) {
         if (b instanceof com.divinerpgextended.entity.EntityGondola || b.isDead) return;

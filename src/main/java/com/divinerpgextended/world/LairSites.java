@@ -191,7 +191,7 @@ public final class LairSites {
      * если вышло время.
      */
     private static int snowField(WorldChunkManager wcm, int x, int z, int m, long deadline) {
-        if (m == 0 && !Biomes.snowsAt(wcm.getBiomeGenAt(x, z), x, z)) return SNOW_NO;
+        if (m == 0 && !Biomes.coldLand(wcm.getBiomeGenAt(x, z), x, z)) return SNOW_NO;
         int i = 0, bare = 0;
         for (int dx = -16; dx <= 176; dx += 32) for (int dz = -64; dz <= 64; dz += 32) {
             if (++i <= m) continue;
@@ -200,20 +200,22 @@ public final class LairSites {
             if (b == null || Biomes.ocean(b) || Biomes.beach(b) || BiomeDictionary.isBiomeOfType(b, BiomeDictionary.Type.RIVER)
                 || BiomeDictionary.isBiomeOfType(b, BiomeDictionary.Type.SWAMP) || b.rootHeight < 0.0F || b.heightVariation > 0.45F) return SNOW_NO;
             // над пещерой - снежное поле: бесснежных точек не больше четверти (продолжение после паузы считает заново)
-            if (!Biomes.snowsAt(b, x + dx, z + dz) && ++bare > 8) return SNOW_NO;
+            if (!Biomes.coldLand(b, x + dx, z + dz) && ++bare > 8) return SNOW_NO;
         }
         return SNOW_YES;
     }
 
     /**
      * Пустынная пирамида в регионе 32 x 32 чанка - как её ставит MapGenScatteredFeature (тот же сид и сдвиг 0..23 чанка),
-     * если в этом месте пустыня или пустынные холмы. @return центр чанка пирамиды
+     * если в этом месте пустыня (с {@link ScatterGen} - любой жаркий песок, и BoP тоже). @return центр чанка пирамиды
      */
     static int[] pyramid(World w, int rx, int rz) {
         Random r = new Random(rx * 341873128712L + rz * 132897987541L + w.getWorldInfo().getSeed() + 14357617L);
         int cx = rx * 32 + r.nextInt(24), cz = rz * 32 + r.nextInt(24);
         BiomeGenBase b = w.getWorldChunkManager().getBiomeGenAt(cx * 16 + 8, cz * 16 + 8);
-        return b == BiomeGenBase.desert || b == BiomeGenBase.desertHills ? new int[] { cx * 16 + 8, cz * 16 + 8 } : null;
+        boolean desert = com.divinerpgextended.Config.scatterInModBiomes ? ScatterGen.desert(b) && !Biomes.jungle(b)
+            : b == BiomeGenBase.desert || b == BiomeGenBase.desertHills;
+        return desert ? new int[] { cx * 16 + 8, cz * 16 + 8 } : null;
     }
 
     /**

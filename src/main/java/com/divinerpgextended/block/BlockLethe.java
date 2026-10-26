@@ -57,6 +57,7 @@ public class BlockLethe extends BlockFluidClassic {
     public void onEntityCollidedWithBlock(World w, int x, int y, int z, Entity e) {
         if (w.isRemote) return;
         if (e instanceof EntityPlayer) com.divinerpgextended.world.twilight.MortumWorld.inLethe((EntityPlayer) e);
+        else if (e instanceof net.minecraft.entity.EntityLivingBase) com.divinerpgextended.world.twilight.MortumWorld.mobInLethe((net.minecraft.entity.EntityLivingBase) e, x, z);
         else if (e instanceof net.minecraft.entity.item.EntityBoat) com.divinerpgextended.world.twilight.MortumWorld.boatInLethe((net.minecraft.entity.item.EntityBoat) e);
     }
 

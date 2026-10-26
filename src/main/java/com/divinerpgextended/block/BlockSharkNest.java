@@ -20,8 +20,7 @@ public class BlockSharkNest extends BlockContainer {
 
     public BlockSharkNest() {
         super(Material.sand);
-        setBlockUnbreakable(); // не добыть (см. BlockBurrow)
-        setResistance(6000000.0F);
+        setHardness(2.5F);
         setStepSound(soundTypeSand);
         setBlockName("dre.sharkNest");
         setBlockTextureName("minecraft:sand");

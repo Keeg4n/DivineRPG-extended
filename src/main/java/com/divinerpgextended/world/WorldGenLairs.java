@@ -544,6 +544,7 @@ public class WorldGenLairs implements IWorldGenerator {
         }
 
         igloo(world, c, cx, g, cz);
+        snowCover(world, rand, cx, cz);
 
         // снег на полу и сосульки с потолка
         for (int[] p : c.cells) {
@@ -679,6 +680,22 @@ public class WorldGenLairs implements IWorldGenerator {
     }
 
     /** Иглу из снежных блоков с входом-туннелем на запад; в полу - яма спуска в пещеру. */
+    /** Радиус снега вокруг иглу, если снег там сам не лежит (холодный, но не снежный биом). */
+    static final int SNOW_COVER = 18;
+
+    /** Снег вокруг иглу: слой снега на земле и листве, вода - лёд; к краю реже. */
+    static void snowCover(World w, Random r, int cx, int cz) {
+        if (Biomes.snowsAt(w.getBiomeGenForCoords(cx, cz), cx, cz)) return;
+        for (int dx = -SNOW_COVER; dx <= SNOW_COVER; dx++) for (int dz = -SNOW_COVER; dz <= SNOW_COVER; dz++) {
+            double d = Math.sqrt(dx * dx + dz * dz) / SNOW_COVER;
+            if (d > 1 || d > 0.7 && r.nextDouble() < (d - 0.7) / 0.3) continue;
+            int x = cx + dx, z = cz + dz, y = w.getTopSolidOrLiquidBlock(x, z);
+            Block top = w.getBlock(x, y - 1, z);
+            if (top.getMaterial() == Material.water) w.setBlock(x, y - 1, z, Blocks.ice, 0, 2);
+            else if (w.isAirBlock(x, y, z) && (top.isOpaqueCube() || top.isLeaves(w, x, y - 1, z))) w.setBlock(x, y, z, Blocks.snow_layer, 0, 2);
+        }
+    }
+
     private static void igloo(World world, Carver c, int cx, int g, int cz) {
         for (int dx = -8; dx <= 6; dx++) {
             for (int dz = -6; dz <= 6; dz++) {

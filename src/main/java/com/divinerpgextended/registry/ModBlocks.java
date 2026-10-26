@@ -50,7 +50,7 @@ public final class ModBlocks {
     public static final Block[] worldLamp = new Block[5];
     /** Доски дерева Ветеи (по {@link com.divinerpgextended.block.BlockVetheaPlanks.Wood}). */
     public static final Block[] vetheaPlanks = new Block[4];
-    private static final int[] TORCH_COLOR = { 0xFFD84A, 0x5AA8FF, 0xC070FF, 0xE8ECF4, 0xE04040 };
+    private static final int[] TORCH_COLOR = { 0xFFD23F, 0x7FC4E6, 0xFF4FD8, 0xA8DCFF, 0xE01010 }; // искры под эмблемы: солнце, луна, разлом, небо, кровь
 
     private ModBlocks() {}
 
@@ -132,9 +132,11 @@ public final class ModBlocks {
         GameRegistry.registerItem(ModItems.letheBucket, "letheBucket");
         net.minecraftforge.fluids.FluidContainerRegistry.registerFluidContainer(letheFluid, new net.minecraft.item.ItemStack(ModItems.letheBucket),
             new net.minecraft.item.ItemStack(net.minecraft.init.Items.bucket));
-        netherTorch = new com.divinerpgextended.block.BlockWorldTorch(0xFF8A1E);
+        netherTorch = new com.divinerpgextended.block.BlockWorldTorch(0xFF6A1A);
         GameRegistry.registerBlock(netherTorch, "worldTorch_nether");
-        GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(netherTorch, 4), net.minecraft.init.Items.blaze_rod);
+        for (int coal = 0; coal < 2; coal++) // уголь или древесный уголь над стержнем ифрита (вместо палки)
+            GameRegistry.addRecipe(new net.minecraft.item.ItemStack(netherTorch, 4), "C", "B", 'C', new net.minecraft.item.ItemStack(net.minecraft.init.Items.coal, 1, coal),
+                'B', net.minecraft.init.Items.blaze_rod);
         dreamCarrots = new com.divinerpgextended.block.DreamCrops.Carrot();
         GameRegistry.registerBlock(dreamCarrots, "dreamCarrots");
         dreamMelon = new com.divinerpgextended.block.DreamCrops.Melon();

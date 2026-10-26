@@ -21,8 +21,9 @@ import com.divinerpgextended.world.CadillionWorld;
  * и зовёт подмогу на пол арены. Вокруг на разной высоте ({@link #HEIGHTS}) появляются 4 ветряных тотема на облачных
  * площадках (в храме ветров - на постаментах с лестницей).
  * Тотем заряжается {@link #CHARGE} тиков, пока игрок стоит рядом (правый клик - начать): Повелитель бьёт порывами
- * именно его. Заряженный тотем бьёт Повелителя молнией на четверть здоровья; четыре тотема - конец. До высоких тотемов
- * удобно добраться ковром Хозяина ветров (сет Скайтерна).
+ * именно его. Заряженный тотем бьёт Повелителя молнией на четверть здоровья. После четвёртого у него остаётся 1 здоровья:
+ * он опускается на землю, ветер стихает, и добить его можно чем угодно (так победа засчитывается бившим). До высоких
+ * тотемов удобно добраться ковром Хозяина ветров (сет Скайтерна).
  */
 public class EntityWindLord extends EntityGroveGuardian {
 
@@ -38,6 +39,8 @@ public class EntityWindLord extends EntityGroveGuardian {
     private EntityPlayer charger;
     private int gustTimer = 100, shotTimer = 50, fiendTimer = 200;
     private double orbit;
+    /** Все тотемы горят: сбит на землю, уязвим для всего. */
+    private boolean grounded;
 
     public EntityWindLord(World world) {
         super(world);
@@ -147,9 +150,13 @@ public class EntityWindLord extends EntityGroveGuardian {
         return chargeTime >= 0;
     }
 
+    public boolean grounded() {
+        return grounded;
+    }
+
     @Override
     public boolean attackEntityFrom(DamageSource src, float amount) {
-        if (src == TOTEM || src == DamageSource.outOfWorld) return super.attackEntityFrom(src, amount);
+        if (src == TOTEM || src == DamageSource.outOfWorld || grounded) return super.attackEntityFrom(src, amount);
         if (!worldObj.isRemote && src.getEntity() instanceof EntityPlayer) {
             // неуязвим: удар расходится ветром
             ((WorldServer) worldObj).func_147487_a("cloud", posX, posY + height * 0.5, posZ, 10, 0.5, 0.8, 0.5, 0.05);
@@ -160,6 +167,15 @@ public class EntityWindLord extends EntityGroveGuardian {
 
     @Override
     public void onLivingUpdate() {
+        if (grounded) { // сбит: стоит на земле, ни ветра, ни стрел, ни подмоги
+            super.onLivingUpdate();
+            fallDistance = 0;
+            motionX *= 0.5;
+            motionZ *= 0.5;
+            if (!worldObj.isRemote && ticksExisted % 10 == 0)
+                ((WorldServer) worldObj).func_147487_a("cloud", posX, posY + 0.5, posZ, 4, 0.6, 0.2, 0.6, 0.01);
+            return;
+        }
         motionY = motionY * 0.6 + 0.08; // парит: гасим гравитацию
         super.onLivingUpdate();
         fallDistance = 0;
@@ -225,7 +241,14 @@ public class EntityWindLord extends EntityGroveGuardian {
         worldObj.addWeatherEffect(new EntityLightningBolt(worldObj, posX, posY, posZ));
         int lit = litTotems();
         hurtResistantTime = 0; // молния тотема проходит всегда
-        super.attackEntityFrom(TOTEM, lit >= 4 ? getHealth() + 1 : getMaxHealth() * 0.25F);
+        if (lit >= 4) { // последний тотем: 1 здоровья, падает на землю - добивают чем угодно
+            if (getHealth() > 1) super.attackEntityFrom(TOTEM, getHealth() - 1);
+            grounded = true;
+            motionY = -0.5;
+            setAttackTarget(null);
+            worldObj.playSoundAtEntity(this, "mob.enderdragon.growl", 2.0F, 0.6F);
+            FrostPowers.tell(this, "dre.chat.wind_lord_grounded");
+        } else super.attackEntityFrom(TOTEM, getMaxHealth() * 0.25F);
         com.divinerpgextended.debug.Debug.note(this, "Повелитель ветров: тотем заряжен, всего " + lit);
     }
 
@@ -282,6 +305,7 @@ public class EntityWindLord extends EntityGroveGuardian {
         super.writeEntityToNBT(tag);
         tag.setIntArray("Center", new int[] { cx, cy, cz });
         tag.setBoolean("Placed", placed);
+        tag.setBoolean("Grounded", grounded);
     }
 
     @Override
@@ -294,5 +318,6 @@ public class EntityWindLord extends EntityGroveGuardian {
             cz = c[2];
         }
         placed = tag.getBoolean("Placed");
+        grounded = tag.getBoolean("Grounded");
     }
 }

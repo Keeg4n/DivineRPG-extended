@@ -384,6 +384,10 @@ public class SelfTest {
         }
     }
 
+    private static boolean isTorch(ItemStack st) {
+        return st != null && st.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.netherTorch);
+    }
+
     private static float hit(EntityLivingBase victim, DamageSource s, float amount) {
         victim.hurtResistantTime = 0;
         float before = hp(victim);
@@ -2203,7 +2207,7 @@ public class SelfTest {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.skythern);
             loadAround(w, 9980, 9980, 3);
             for (int i = -16; i <= 16; i++) for (int wk = -16; wk <= 16; wk++) for (int h = 99; h < 125; h++) w.setBlockToAir(9980 + i, h, 9980 + wk);
-            TestPlayer wv = player(ConfigurationHelper.skythern, "TestWind", 9980, 100, 9975);
+            TestPlayer wv = join(player(ConfigurationHelper.skythern, "TestWind", 9980, 100, 9975), true);
             com.divinerpgextended.entity.EntityWindLord lord = new com.divinerpgextended.entity.EntityWindLord(w);
             lord.setPosition(9980.5, 100, 9980.5);
             w.spawnEntityInWorld(lord);
@@ -2231,11 +2235,22 @@ public class SelfTest {
                 }
                 log += "тотем " + (i + 1) + " " + isTotem + " горит " + lord.litTotems() + ", здоровье " + (int) lord.getHealth() + "; ";
             }
+            // после четвёртого: 1 здоровья, на земле, добивается чем угодно - и победа засчитывается
+            boolean grounded = lord.grounded() && lord.getHealth() > 0 && lord.getHealth() <= 1.01F;
+            for (int wk = 0; wk < 60; wk++) lord.onLivingUpdate();
+            boolean noWind = !lord.charging();
+            lord.hurtResistantTime = 0;
+            lord.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(wv), 2);
             boolean dead = lord.getHealth() <= 0;
+            boolean credited = com.divinerpgextended.boss.BossProgress.has(wv, com.divinerpgextended.boss.Boss.CADILLION_SKYTHERN);
             lord.setDead();
+            server.getConfigurationManager().playerEntityList.remove(wv);
+            w.removeEntity(wv);
             for (int i = -16; i <= 16; i++) for (int wk = -16; wk <= 16; wk++) for (int h = 99; h < 125; h++) w.setBlockToAir(9980 + i, h, 9980 + wk);
-            check(immune && dead && log.contains("зарядка false") && log.contains("тотем 3 true горит 3") && log.contains("тотем 4 true горит 0"), "неуязвим " + immune + "; " + log + "убит " + dead);
-            return "оружие Повелителя не берёт; 4 тотема на разной высоте, зарядка сбрасывается, если отойти, а от повторных кликов - нет; каждый заряженный - молния на четверть здоровья, четвёртый добивает, тотемы убираются";
+            check(immune && grounded && dead && credited && log.contains("зарядка false") && log.contains("тотем 3 true горит 3") && log.contains("тотем 4 true горит 4"),
+                "неуязвим " + immune + "; " + log + "после 4-го на земле с 1 здоровья " + grounded + ", добит ударом " + dead + ", победа засчитана " + credited);
+            return "оружие Повелителя не берёт; 4 тотема на разной высоте, зарядка сбрасывается, если отойти, а от повторных кликов - нет; каждый заряженный - молния на четверть здоровья; "
+                + "после четвёртого он на земле с 1 здоровья, добит ударом - победа засчитана";
         });
         t("Логова", "Демон сумерек: дилемма", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
@@ -2924,10 +2939,10 @@ public class SelfTest {
                 + ", с 2 блоков " + nearHit + ", после смерти босса живых крабов " + left);
             return "Карцинус держит не больше " + com.divinerpgextended.entity.EntityCarcinus.MAX_CRABS + " крабов (набрал " + full + "), после гибели краба 15 с не зовёт новых, крабы без лута и гибнут с боссом; клешнями достаёт с 2 блоков, с 5 - нет";
         });
-        t("Прохождение", "Блоки норы Карцинуса не добыть", () -> {
+        t("Прохождение", "Блоки норы Карцинуса ломаются, но не уносятся", () -> {
             WorldServer w = server.worldServerForDimension(0);
-            boolean hard = com.divinerpgextended.registry.ModBlocks.burrow.getBlockHardness(w, 0, 0, 0) < 0
-                && com.divinerpgextended.registry.ModBlocks.sharkNest.getBlockHardness(w, 0, 0, 0) < 0;
+            boolean hard = com.divinerpgextended.registry.ModBlocks.burrow.getBlockHardness(w, 0, 0, 0) > 0
+                && com.divinerpgextended.registry.ModBlocks.sharkNest.getBlockHardness(w, 0, 0, 0) > 0;
             TestPlayer bp14 = join(player(0, "TestBurrowInv", sx + 80.5, sy, sz + 0.5), true);
             bp14.inventory.mainInventory[3] = new ItemStack(com.divinerpgextended.registry.ModBlocks.burrow, 5, 0);
             bp14.inventory.mainInventory[4] = new ItemStack(com.divinerpgextended.registry.ModBlocks.burrow, 2, 1);
@@ -2947,8 +2962,8 @@ public class SelfTest {
             w.setBlockToAir(bx, by, bz);
             server.getConfigurationManager().playerEntityList.remove(bp14);
             w.removeEntity(bp14);
-            check(hard && conv && placed, "не ломаются " + hard + ", в инвентаре стали ванильными " + conv + ", поставленное гнездо - песок " + placed);
-            return "песчаник норы и гнездо не ломаются; в инвентаре: песчаник норы - песчаник (песчаный - песок), сердце - резной песчаник, гнездо - песок; поставленное игроком - обычный блок";
+            check(hard && conv && placed, "ломаются " + hard + ", в инвентаре стали ванильными " + conv + ", поставленное гнездо - песок " + placed);
+            return "песчаник норы и гнездо ломаются, как раньше (пролом засыпает песком); в инвентаре: песчаник норы - песчаник (песчаный - песок), сердце - резной песчаник, гнездо - песок; поставленное игроком - обычный блок";
         });
         t("Прохождение", "Факелы гонят монстров своего мира; адский факел", () -> {
             WorldServer ow14 = server.worldServerForDimension(0), wild = server.worldServerForDimension(ConfigurationHelper.wildwood),
@@ -3153,6 +3168,56 @@ public class SelfTest {
             for (int y = y0 - 3; y <= y0 + 3; y++) for (int z = z0 - 3; z <= z0 + 3; z++) for (int x = x0 - 1; x <= x0 + 1; x++) w.setBlockToAir(x, y, z);
             check(curve && kept && switched, "поворот " + l1 + ", после поломки соседа " + l2 + "; развилка: было " + before + ", с сигналом " + on + ", без сигнала " + off);
             return "на стене поворот держится, когда убрали соседа; на развилке сигнал перекидывает ветку и обратно (" + before + " -> " + on + ")";
+        });
+        t("Прохождение", "Рельсы на потолке и старые рельсы держат поворот и стрелку", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            loadAround(w, 9540, 9560, 1);
+            int x0 = 9540, y0 = 100, z0 = 9560;
+            for (int x = x0 - 3; x <= x0 + 3; x++) for (int z = z0 - 3; z <= z0 + 3; z++) {
+                w.setBlock(x, y0 + 1, z, Blocks.stone); // потолок
+                w.setBlock(x, y0, z, Blocks.air);
+                w.setBlock(x, y0 - 1, z, Blocks.air);
+            }
+            net.minecraft.block.Block rail = com.divinerpgextended.registry.ModBlocks.skyRail;
+            int ceil = net.minecraftforge.common.util.ForgeDirection.UP.ordinal(); // опора - потолок
+            TestPlayer rp = player(ConfigurationHelper.apalachia, "TestCeilRail", x0 + 0.5, y0 - 2, z0 + 0.5);
+            net.minecraftforge.common.util.ForgeDirection E = net.minecraftforge.common.util.ForgeDirection.EAST, S = net.minecraftforge.common.util.ForgeDirection.SOUTH;
+            int[][] order = { { 1, 0 }, { 0, 1 }, { 0, 0 } }; // восток, юг, центр
+            for (int[] o : order) {
+                w.setBlock(x0 + o[0], y0, z0 + o[1], rail, ceil, 3);
+                rail.onBlockPlacedBy(w, x0 + o[0], y0, z0 + o[1], rp, new ItemStack(com.divinerpgextended.registry.ModItems.apalachiaRails));
+            }
+            java.util.List<Object> l1 = java.util.Arrays.asList((Object[]) com.divinerpgextended.block.BlockSkyRail.links(w, x0, y0, z0));
+            boolean curve = l1.contains(E) && l1.contains(S);
+            w.setBlockToAir(x0 + 1, y0, z0);
+            java.util.List<Object> l2 = java.util.Arrays.asList((Object[]) com.divinerpgextended.block.BlockSkyRail.links(w, x0, y0, z0));
+            boolean kept = l2.contains(E) && l2.contains(S);
+            // развилка на потолке: вернули восточный, добавили западный; сигнал перекидывает
+            w.setBlock(x0 + 1, y0, z0, rail, ceil, 3);
+            rail.onBlockPlacedBy(w, x0 + 1, y0, z0, rp, new ItemStack(com.divinerpgextended.registry.ModItems.apalachiaRails));
+            w.setBlock(x0 - 1, y0, z0, rail, ceil, 3);
+            rail.onBlockPlacedBy(w, x0 - 1, y0, z0, rp, new ItemStack(com.divinerpgextended.registry.ModItems.apalachiaRails));
+            java.util.Set<Object> before = new java.util.HashSet<Object>(java.util.Arrays.asList((Object[]) com.divinerpgextended.block.BlockSkyRail.links(w, x0, y0, z0)));
+            w.setBlock(x0, y0 - 1, z0, Blocks.redstone_block);
+            java.util.Set<Object> on = new java.util.HashSet<Object>(java.util.Arrays.asList((Object[]) com.divinerpgextended.block.BlockSkyRail.links(w, x0, y0, z0)));
+            w.setBlockToAir(x0, y0 - 1, z0);
+            boolean switched = !before.equals(on);
+            // старый рельс (без формы): после загрузки запоминает нынешний поворот и держит его
+            for (int x = x0 - 2; x <= x0 + 2; x++) for (int z = z0 - 2; z <= z0 + 2; z++) w.setBlockToAir(x, y0, z);
+            int[][] old = { { 1, 0 }, { 0, 1 }, { 0, 0 } };
+            for (int[] o : old) {
+                w.setBlock(x0 + o[0], y0, z0 + o[1], rail, ceil, 3);
+                net.minecraft.tileentity.TileEntity te = w.getTileEntity(x0 + o[0], y0, z0 + o[1]);
+                if (te != null) te.readFromNBT(new net.minecraft.nbt.NBTTagCompound()); // формы нет, как у рельсов до 0.99.13
+            }
+            for (int[] o : old) com.divinerpgextended.block.BlockSkyRail.adopt(w, x0 + o[0], y0, z0 + o[1]);
+            w.setBlockToAir(x0 + 1, y0, z0);
+            java.util.List<Object> l3 = java.util.Arrays.asList((Object[]) com.divinerpgextended.block.BlockSkyRail.links(w, x0, y0, z0));
+            boolean adopted = l3.contains(E) && l3.contains(S);
+            for (int x = x0 - 3; x <= x0 + 3; x++) for (int z = z0 - 3; z <= z0 + 3; z++) for (int y = y0 - 1; y <= y0 + 1; y++) w.setBlockToAir(x, y, z);
+            check(curve && kept && switched && adopted, "потолок: поворот " + l1 + ", после поломки соседа " + l2 + "; развилка " + before + " -> " + on
+                + "; старый рельс после загрузки " + l3);
+            return "на потолке поворот держится и развилка переключается сигналом; старые рельсы (до 0.99.13) запоминают форму при загрузке и тоже держат поворот";
         });
         t("Прохождение", "Рельсы снаружи: через рёбра блока", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
@@ -4467,10 +4532,11 @@ public class SelfTest {
             com.divinerpgextended.portal.FastTeleporter tp = new com.divinerpgextended.portal.FastTeleporter(w, ConfigurationHelper.wildwood,
                 net.divinerpg.utils.blocks.TwilightBlocks.wildwoodPortal, frame);
             tp.makePortal(pp);
+            int px0 = (int) Math.floor(pp.posX), pz0 = (int) Math.floor(pp.posZ); // портал мог переехать на остров
             com.divinerpgextended.portal.PortalFrames pf = com.divinerpgextended.portal.PortalFrames.get(w);
             int marked = 0;
             int[] one = null;
-            for (int x = x0 - 20; x <= x0 + 20; x++) for (int z = z0 - 20; z <= z0 + 20; z++) for (int y = 1; y < 255; y++)
+            for (int x = px0 - 20; x <= px0 + 20; x++) for (int z = pz0 - 20; z <= pz0 + 20; z++) for (int y = 1; y < 255; y++)
                 if (w.getBlock(x, y, z) == frame && pf.has(x, y, z)) {
                     marked++;
                     if (one == null) one = new int[] { x, y, z };
@@ -4484,6 +4550,49 @@ public class SelfTest {
             w.setBlockToAir(x0 + 30, 120, z0);
             check(marked >= 10 && d1.isEmpty() && !d2.isEmpty(), "отмечено блоков рамки " + marked + ", дроп отмеченного " + d1 + ", дроп своего " + d2);
             return "портал телепорта в Диком лесу: " + marked + " блоков Эдема в рамке, добытые - пусто; свой блок Эдема роняет себя";
+        });
+        t("Сумеречные миры", "Новый портал над пустотой встаёт на остров", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.EDEN;
+            // ищем пустоту рядом с островом: столб без земли, в 100 блоках от него - земля
+            int vx = 0, vz = 0;
+            boolean found = false;
+            for (int t = 0; t < 400 && !found; t++) {
+                int x = 7000 + (t % 20) * 48, z = 7000 + (t / 20) * 48;
+                loadAround(w, x, z, 0);
+                if (com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.surface(w, tw, x, z) >= 0) continue;
+                vx = x;
+                vz = z;
+                found = true;
+            }
+            loadAround(w, vx, vz, 7);
+            TestPlayer vp = player(ConfigurationHelper.eden, "TestVoidPortal", vx + 0.5, 100, vz + 0.5);
+            net.minecraft.block.Block edenFrame = cpw.mods.fml.relauncher.ReflectionHelper.getPrivateValue(net.divinerpg.blocks.base.portal.BlockModPortal.class,
+                (net.divinerpg.blocks.base.portal.BlockModPortal) net.divinerpg.utils.blocks.TwilightBlocks.edenPortal, "blockFrame");
+            com.divinerpgextended.portal.FastTeleporter tp2 = new com.divinerpgextended.portal.FastTeleporter(w, ConfigurationHelper.eden,
+                net.divinerpg.utils.blocks.TwilightBlocks.edenPortal, edenFrame);
+            tp2.makePortal(vp);
+            int px = (int) Math.floor(vp.posX), pz = (int) Math.floor(vp.posZ);
+            // портал рядом с новым местом, под рамкой - земля острова
+            int[] low = null;
+            for (int x = px - 18; x <= px + 18; x++) for (int z = pz - 18; z <= pz + 18; z++) for (int y = 1; y < 255; y++)
+                if (w.getBlock(x, y, z) == net.divinerpg.utils.blocks.TwilightBlocks.edenPortal && (low == null || y < low[1])) low = new int[] { x, y, z };
+            boolean grounded = false;
+            if (low != null) for (int d = 2; d <= 4 && !grounded; d++) {
+                net.minecraft.block.Block under = w.getBlock(low[0], low[1] - d, low[2]);
+                grounded = under == tw.grass() || under == tw.dirt() || under == net.divinerpg.utils.blocks.TwilightBlocks.twilightStone;
+            }
+            double moved = Math.sqrt((px - vx) * (px - vx) + (pz - vz) * (pz - vz));
+            int frames = 0, portals = 0;
+            String fr = "";
+            for (int x = vx - 60; x <= vx + 60; x++) for (int z = vz - 60; z <= vz + 60; z++) for (int y = 1; y < 255; y++) {
+                net.minecraft.block.Block bb = w.getBlock(x, y, z);
+                if (bb == edenFrame) { frames++; if (fr.isEmpty()) fr = x + "," + y + "," + z; }
+                if (bb == net.divinerpg.utils.blocks.TwilightBlocks.edenPortal) portals++;
+            }
+            check(found && low != null && grounded, "пустота " + vx + "," + vz + " найдена " + found + "; портал " + java.util.Arrays.toString(low) + " в " + (int) moved
+                + " блоках, под рамкой земля острова " + grounded + "; в 60 блоках рамки " + frames + " (" + fr + "), портала " + portals + "; игрок " + px + "," + (int) vp.posY + "," + pz);
+            return "вход над пустотой в Эдеме: новый портал построен на ближайшем острове (" + (int) moved + " блоков), под рамкой земля";
         });
         t("Прохождение", "Вагонетка Апалачии: крен вида и мышь на стене и потолке", () -> {
             StringBuilder sb = new StringBuilder();
@@ -4599,6 +4708,19 @@ public class SelfTest {
             check(ward && heard && empty, "спавн циклопа у факела " + res[0] + ", в 60 блоках " + res[1] + ", после поломки факела " + res[2]
                 + "; Айрако: рядом услышал " + !nearP.chat.isEmpty() + ", в 300 блоках " + !farP.chat.isEmpty() + "; краб Карцинуса пустой " + empty);
             return "у факела Divine мобы Divine не спавнятся (дальше и после поломки - как обычно); призыв Айрако слышно только рядом; крабы из боя с Карцинусом ничего не роняют";
+        });
+        t("Логова", "Iceika: весь Ледяной Трон по чертежу (чанки в случайном порядке)", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
+            int[] c = com.divinerpgextended.world.WorldGenThrone.nearest(w.getSeed(), 6000, -6000);
+            int r = com.divinerpgextended.world.WorldGenThrone.R + 24;
+            java.util.List<int[]> chunks = new java.util.ArrayList<int[]>();
+            for (int cx = (c[0] - r) >> 4; cx <= (c[0] + r) >> 4; cx++) for (int cz = (c[2] - r) >> 4; cz <= (c[2] + r) >> 4; cz++) chunks.add(new int[] { cx, cz });
+            java.util.Collections.shuffle(chunks, new java.util.Random(7)); // как при беготне вокруг: соседи появляются в любом порядке
+            for (int[] ch : chunks) w.theChunkProviderServer.loadChunk(ch[0], ch[1]);
+            StringBuilder ex = new StringBuilder();
+            int[] bad = com.divinerpgextended.world.WorldGenThrone.audit(w, c[0], c[2], ex);
+            check(bad[0] == 0 && bad[1] == 0, "Трон " + c[0] + "," + c[2] + ", чанков " + chunks.size() + ": лишних блоков " + bad[0] + ", дыр " + bad[1] + " (" + ex + ")");
+            return "весь Трон (" + chunks.size() + " чанков в случайном порядке) совпадает с чертежом: ни лишних блоков внутри, ни дыр в стенах и своде";
         });
         t("Логова", "Iceika: Ледяной Трон - заселение Divine мимо, всё освещено", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
@@ -5716,14 +5838,14 @@ public class SelfTest {
                 inv[i] = com.divinerpgextended.block.BlockDreamWater.inverted(sw);
             }
             sw.setPosition(vx + 0.5, surface + 0.6 - sw.height, vz + 0.5);
-            jf.setBoolean(sw, true);
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sw));
-            double letGo = sw.motionY;
-            jf.setBoolean(sw, false);
             sw.setSneaking(true);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sw));
-            double dive = sw.motionY;
+            double letGo = sw.motionY;
             sw.setSneaking(false);
+            jf.setBoolean(sw, true);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sw));
+            double dive = sw.motionY;
+            jf.setBoolean(sw, false);
             sw.setAir(10);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sw));
             boolean breathes = sw.getAir() == 300; // голова (низ хитбокса) в воздухе
@@ -5755,15 +5877,76 @@ public class SelfTest {
             v.removeEntity(sw);
             boolean zone = com.divinerpgextended.fishing.Zone.at(v, vx, surface, vz, false) == com.divinerpgextended.fishing.Zone.DREAM;
             for (int i = -9; i <= 9; i++) for (int kk = -9; kk <= 9; kk++) for (int h = vf + 1; h < ceil + 8; h++) v.setBlockToAir(vx + i, h, vz + kk);
-            boolean physics = !inv[0] && my[0] > 0 && inv[1] && Math.abs(my[1] - 0.02) < 0.01 && my[2] < 0 && inv[3] && my[3] > 0.03 && letGo < -0.3 && dive > 0.1;
+            boolean physics = inv[0] && my[0] > 0 && inv[1] && Math.abs(my[1] - 0.02) < 0.01 && my[2] < 0 && inv[3] && my[3] > 0.03 && letGo < -0.3 && dive > 0.1;
             check(built && water >= 60 && column == 0 && surface == ceil && rises && infinite && physics && breathes && bucket && zone && floats,
                 "построено " + built + ", воды " + water + ", гладь на " + surface + " (потолок " + ceil + "), блоков под потолком " + column
                 + "; течёт вверх " + rises + ", бесконечная " + infinite + "; на глубине 0.2/0.6/0.9/1.6: перевёрнут " + java.util.Arrays.toString(inv)
-                + ", скорость " + String.format("%.3f/%.3f/%.3f/%.3f", my[0], my[1], my[2], my[3]) + ", прыжок " + String.format("%.2f", letGo)
-                + ", shift " + String.format("%.2f", dive) + ", дышит у глади " + breathes + "; ведро " + bucket + ", зона " + zone + ", поплавок у глади " + floats
+                + ", скорость " + String.format("%.3f/%.3f/%.3f/%.3f", my[0], my[1], my[2], my[3]) + ", Shift " + String.format("%.2f", letGo)
+                + ", прыжок у глади " + String.format("%.2f", dive) + ", дышит у глади " + breathes + "; ведро " + bucket + ", зона " + zone + ", поплавок у глади " + floats
                 + String.format(" (%.2f..%.2f)", lo, hi));
-            return "озеро вырезано в потолке (" + water + " воды мечтаний), течёт вверх, бесконечная; подплыл снизу - тянет к глади, с 0.4 блока ног в воде - перевёрнут и висит, "
-                + "прыжок - отпустился, shift - нырнул; голова в воздухе - дышит; ведро; поплавок держится у глади";
+            return "озеро вырезано в потолке (" + water + " воды мечтаний), течёт вверх, бесконечная; коснулся - сразу перевёрнут и висит у глади, "
+                + "Shift - отпустился, прыжок - нырнул; голова в воздухе - дышит; ведро; поплавок держится у глади";
+        });
+        t("Сумеречные миры", "Лунный волк, Лета для мобов, климат биомов, адский факел", () -> {
+            WorldServer m = server.worldServerForDimension(ConfigurationHelper.mortum);
+            // лунный волк: приручённый с 20 здоровья поднимается до здоровья дикого
+            net.divinerpg.entities.twilight.EntityMoonWolf mw = new net.divinerpg.entities.twilight.EntityMoonWolf(m);
+            float wildHp = mw.getMaxHealth();
+            mw.setTamed(true);
+            mw.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(20);
+            mw.setHealth(20);
+            mw.ticksExisted = 20;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(mw));
+            boolean wolf = mw.getMaxHealth() >= wildHp - 0.01F && wildHp > 20 && mw.getHealth() >= wildHp - 0.01F;
+            // Лета: зомби в реке получает урон, скелет (нежить) и паук душ (житель Мортума) - нет
+            int x0 = 9700, y0 = 100, z0 = 9700;
+            loadAround(m, x0, z0, 1);
+            m.setBlock(x0, y0 - 1, z0, Blocks.stone);
+            m.setBlock(x0, y0, z0, com.divinerpgextended.registry.ModBlocks.lethe, 0, 2);
+            net.minecraft.entity.EntityLivingBase[] mobs = { new net.minecraft.entity.passive.EntityPig(m), new net.minecraft.entity.monster.EntitySkeleton(m),
+                new net.divinerpg.entities.twilight.EntitySoulSpider(m) };
+            float[] lost = new float[3];
+            for (int i = 0; i < 3; i++) {
+                mobs[i].setPosition(x0 + 0.5, y0, z0 + 0.5);
+                float hp = mobs[i].getHealth();
+                long t0 = m.getTotalWorldTime();
+                server.worldServerForDimension(0).getWorldInfo().incrementTotalWorldTime((t0 / 20 + 1) * 20); // ровная секунда
+                com.divinerpgextended.registry.ModBlocks.lethe.onEntityCollidedWithBlock(m, x0, y0, z0, mobs[i]);
+                lost[i] = hp - mobs[i].getHealth();
+            }
+            m.setBlockToAir(x0, y0, z0);
+            boolean lethe = lost[0] > 0 && lost[1] == 0 && lost[2] == 0;
+            // климат: Эдем жаркий и сухой, Скайтерн - влажный
+            float[] eden = null, sky = null;
+            for (net.minecraft.world.biome.BiomeGenBase b : net.minecraft.world.biome.BiomeGenBase.getBiomeGenArray()) {
+                if (b == null) continue;
+                if (b.getClass().getSimpleName().equals("BiomeGenEden")) eden = new float[] { b.temperature, b.rainfall };
+                if (b.getClass().getSimpleName().equals("BiomeGenSkythern")) sky = new float[] { b.temperature, b.rainfall };
+            }
+            boolean climate = eden != null && sky != null && Math.abs(eden[0] - 1.7F) < 0.01 && Math.abs(eden[1] - 0.1F) < 0.01 && Math.abs(sky[1] - 1.9F) < 0.01;
+            // адский факел: уголь над стержнем ифрита
+            net.minecraft.inventory.InventoryCrafting grid = new net.minecraft.inventory.InventoryCrafting(new net.minecraft.inventory.Container() {
+                @Override
+                public boolean canInteractWith(EntityPlayer pl) {
+                    return true;
+                }
+            }, 3, 3);
+            grid.setInventorySlotContents(1, new ItemStack(Items.coal));
+            grid.setInventorySlotContents(4, new ItemStack(Items.blaze_rod));
+            ItemStack torch = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(grid, m);
+            net.minecraft.inventory.InventoryCrafting rodOnly = new net.minecraft.inventory.InventoryCrafting(new net.minecraft.inventory.Container() {
+                @Override
+                public boolean canInteractWith(EntityPlayer pl) {
+                    return true;
+                }
+            }, 3, 3);
+            rodOnly.setInventorySlotContents(4, new ItemStack(Items.blaze_rod));
+            boolean recipe = torch != null && torch.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.netherTorch) && torch.stackSize == 4
+                && !isTorch(net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(rodOnly, m)); // один стержень - огненный порошок, не факел
+            check(wolf && lethe && climate && recipe, "волк: дикий " + wildHp + ", приручённый " + mw.getMaxHealth() + "/" + mw.getHealth() + "; Лета: свинья -" + lost[0]
+                + ", скелет -" + lost[1] + ", паук душ -" + lost[2] + "; Эдем " + java.util.Arrays.toString(eden) + ", Скайтерн " + java.util.Arrays.toString(sky)
+                + "; факел " + torch);
+            return "приручённый лунный волк сохраняет " + (int) wildHp + " здоровья; Лета грызёт мобов, кроме нежити и жителей Мортума; климат Эдема 1.7/0.1, Скайтерна 0.5/1.9; адский факел - уголь над стержнем ифрита";
         });
         t("Прохождение", "Призывы боссов Divine - приспешники", () -> {
             WorldServer w = server.worldServerForDimension(-1);
@@ -5788,6 +5971,63 @@ public class SelfTest {
             check(minion && free && died && alive, "скорчер, появившийся в ход Короля, - приспешник " + minion + ", в чужой ход - свободен " + free
                 + "; со смертью Короля приспешник погиб " + died + ", свободный жив " + alive);
             return "моб, появившийся в ход босса Divine рядом с ним, - его приспешник (без лута и опыта, гибнет с боссом); остальные - как были";
+        });
+        t("Ветея - этажи", "Быстрый полёт по Ветее: генерация без цепочки чанков", () -> {
+            long[] took = new long[2], worstStep = new long[2];
+            long skip0 = com.divinerpgextended.asm.VetheaGenHooks.skipped;
+            int[] dims = { ConfigurationHelper.vethea, 0 };
+            for (int di = 0; di < 2; di++) {
+                WorldServer v = server.worldServerForDimension(dims[di]);
+                TestPlayer run = join(player(dims[di], "TestRunner" + di, 42000.5, di == 0 ? 70 : 120, 42000.5), true);
+                for (int i = 0; i < 40; i++) {
+                    run.setPosition(42000.5 + i * 16, run.posY, 42000.5);
+                    long t0 = System.nanoTime();
+                    int cx = (int) Math.floor(run.posX) >> 4, cz = (int) Math.floor(run.posZ) >> 4;
+                    for (int dx = -4; dx <= 4; dx++) for (int dz = -4; dz <= 4; dz++) v.theChunkProviderServer.loadChunk(cx + dx, cz + dz);
+                    if (di == 0) com.divinerpgextended.vethea.VetheaFloors.carveNearForTest(run);
+                    long dt = System.nanoTime() - t0;
+                    took[di] += dt;
+                    worstStep[di] = Math.max(worstStep[di], dt);
+                }
+                server.getConfigurationManager().playerEntityList.remove(run);
+                v.removeEntity(run);
+            }
+            long skipped = com.divinerpgextended.asm.VetheaGenHooks.skipped - skip0;
+            double ratio = (double) took[0] / Math.max(1, took[1]);
+            check(skipped > 0 && ratio < 3.0 && worstStep[0] < 4000000000L, String.format("Ветея %d мс (худший шаг %d мс), обычный мир %d мс, в %.1f раза; отсечено обращений к несозданным чанкам %d",
+                took[0] / 1000000, worstStep[0] / 1000000, took[1] / 1000000, ratio, skipped));
+            return String.format("40 шагов по чанку: Ветея %d мс (худший %d мс), обычный мир %d мс - в %.1f раза (было в 2-10); отсечено обращений украшений к несозданным чанкам: %d",
+                took[0] / 1000000, worstStep[0] / 1000000, took[1] / 1000000, ratio, skipped);
+        });
+        t("Логова", "Логова для прохождения есть в квадрате 10000 x 10000", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            boolean jungles = com.divinerpgextended.world.ScatterGen.hasJungles(w);
+            int[] kinds = new int[3];
+            int[] firstJungle = null;
+            for (int rx = -5000 / 512; rx <= 5000 / 512; rx++) for (int rz = -5000 / 512; rz <= 5000 / 512; rz++) {
+                int[] sp = com.divinerpgextended.world.ScatterGen.spot(w, rx, rz);
+                if (Math.abs(sp[0] * 16) > 5000 || Math.abs(sp[1] * 16) > 5000) continue;
+                int sk = com.divinerpgextended.world.ScatterGen.kind(w.getWorldChunkManager().getBiomeGenAt(sp[0] * 16 + 8, sp[1] * 16 + 8), jungles);
+                if (sk >= 0) kinds[sk]++;
+                if (sk == com.divinerpgextended.world.ScatterGen.JUNGLE && (firstJungle == null || Math.abs(sp[0]) + Math.abs(sp[1]) < Math.abs(firstJungle[0]) + Math.abs(firstJungle[1])))
+                    firstJungle = sp;
+            }
+            int[] snow = com.divinerpgextended.world.LairSites.nearest(w, com.divinerpgextended.world.LairSites.SNOW, 0, 0, 5000, 0);
+            int[] tomb = com.divinerpgextended.world.LairSites.nearest(w, com.divinerpgextended.world.LairSites.TOMB, 0, 0, 5000, 0);
+            int[] crab = com.divinerpgextended.world.LairSites.nearest(w, com.divinerpgextended.world.LairSites.CARCINUS, 0, 0, 5000, 0);
+            // храм джунглей правда встаёт в найденном месте
+            boolean temple = false;
+            if (firstJungle != null) {
+                for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) w.theChunkProviderServer.loadChunk(firstJungle[0] + dx, firstJungle[1] + dz);
+                for (net.minecraft.world.gen.structure.StructureBoundingBox bb : com.divinerpgextended.world.WorldGenJungleLair.temples(w.theChunkProviderServer.currentChunkProvider))
+                    if (bb.minX >> 4 == firstJungle[0] || bb.minX >> 4 == firstJungle[0] - 1 || bb.minX >> 4 == firstJungle[0] + 1) temple = true;
+            }
+            check(kinds[0] > 0 && kinds[1] > 0 && snow != null && tomb != null && crab != null && temple,
+                "джунгли в мире " + jungles + "; мест под пирамиды " + kinds[0] + ", храмы джунглей " + kinds[1] + ", хижины " + kinds[2]
+                + "; ближайшие: снежное подземелье " + java.util.Arrays.toString(snow) + ", гробница " + java.util.Arrays.toString(tomb) + ", Карцинус " + java.util.Arrays.toString(crab)
+                + "; храм джунглей в " + java.util.Arrays.toString(firstJungle) + " построен " + temple);
+            return "в квадрате 10000 x 10000 есть всё для прохождения: пирамиды " + kinds[0] + ", храмы джунглей " + kinds[1] + (jungles ? "" : " (джунглей нет - в тёплых землях)")
+                + ", снежное подземелье, гробница, логово Карцинуса";
         });
         t("Логова", "Лагерь странника", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.skythern);
@@ -5816,9 +6056,14 @@ public class SelfTest {
             boolean back = com.divinerpgextended.world.twilight.Campfire.respawn(v);
             double dist = Math.abs(v.posX - (x + 7.5)) + Math.abs(v.posZ - (z + 3.5));
             for (Object o : traders) ((net.minecraft.entity.Entity) o).setDead();
-            check(built && traders.size() == 1 && deals >= 7 && fire && mark != null && back && dist < 1.5,
+            boolean sealDeal = false;
+            for (Object o : com.divinerpgextended.entity.EntityWanderer.trades(com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA)) {
+                net.minecraft.village.MerchantRecipe mr = (net.minecraft.village.MerchantRecipe) o;
+                if (mr.getItemToSell().getItem() == com.divinerpgextended.registry.ModItems.sanctumSeal) sealDeal = true;
+            }
+            check(built && traders.size() == 1 && deals >= 7 && fire && mark != null && back && dist < 1.5 && sealDeal,
                 "построено " + built + ", странников " + traders.size() + ", сделок " + deals + ", костёр " + fire + ", метка " + (mark != null)
-                    + ", возврат " + back + " (" + dist + ")");
+                    + ", возврат " + back + " (" + dist + "), печать святилища у Странника Апалачии " + sealDeal);
             return "лагерь в Скайтерне: Странник (" + deals + " сделок), горящий костёр; костёр запомнил - возрождение у него";
         });
         t("Логова", "Обсерватория Смотрителя", () -> {
@@ -5893,7 +6138,13 @@ public class SelfTest {
                 ItemStack map = new ItemStack(com.divinerpgextended.registry.ModItems.lairMap, 1, 0);
                 mp.getEntityData().removeTag("dreLairMapUsed");
                 map.getItem().onItemRightClick(map, w, mp);
-                String first = mp.chat.isEmpty() ? "" : mp.chat.get(0);
+                // поиск мог уйти по частям ("карта разворачивается") - дождаться ответа
+                com.divinerpgextended.item.ItemLairMap.Unfold firstWait = new com.divinerpgextended.item.ItemLairMap.Unfold();
+                for (int i = 0; i < 2000 && !mp.chat.isEmpty() && mp.chat.get(mp.chat.size() - 1).startsWith("dre.chat.map_unfolding"); i++)
+                    firstWait.onTick(new cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END));
+                String first = mp.chat.isEmpty() ? "" : mp.chat.get(mp.chat.size() - 1);
+                mp.chat.clear();
+                mp.chat.add(first);
                 // карта исследователя: в инвентаре обычная карта с центром на найденном логове и меткой на нём
                 for (ItemStack is : mp.inventory.mainInventory) {
                     int[] tg = com.divinerpgextended.item.ExplorerMaps.target(is);

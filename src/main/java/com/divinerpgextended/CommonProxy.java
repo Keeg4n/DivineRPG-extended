@@ -45,6 +45,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 public class CommonProxy {
 
     public void preInit(FMLPreInitializationEvent event) {
+        com.divinerpgextended.world.ScatterGen.register();
         Config.load(event.getSuggestedConfigurationFile());
         ModItems.register();
         ModBlocks.register();
@@ -99,6 +100,10 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.TwilightDrops());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.WholeGear());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.BossMinions());
+        com.divinerpgextended.block.BlockSkyRail.Adopt railAdopt = new com.divinerpgextended.block.BlockSkyRail.Adopt();
+        MinecraftForge.EVENT_BUS.register(railAdopt);
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(railAdopt);
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.twilight.MoonWolfHealth());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.block.BlockDreamWater.Swim());
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.block.BlockBurrow.Convert());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.block.DreamCrops.Planting());
@@ -110,6 +115,7 @@ public class CommonProxy {
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(campfire);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.PopulationResend.Installer());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.SkyRepair());
+        MinecraftForge.TERRAIN_GEN_BUS.register(new com.divinerpgextended.world.ScatterGen.Init());
         MinecraftForge.EVENT_BUS.register(new BossDamage());
         MinecraftForge.EVENT_BUS.register(new BossLoot());
         MinecraftForge.EVENT_BUS.register(new ProgressSpawns());
@@ -237,6 +243,7 @@ public class CommonProxy {
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.vethea.VetheaLakes(), 100);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.IceikaXmasTree(), 101);
         GameRegistry.registerWorldGenerator(new WorldGenThrone(), 60);
+        GameRegistry.registerWorldGenerator(new WorldGenThrone.Seal(), 100000); // последним, после генераторов других модов
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new WorldGenThrone.Relight());
         MinecraftForge.EVENT_BUS.register(new WorldGenThrone.NoSpawns());
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.WorldGenNests(), 62);
@@ -331,6 +338,7 @@ public class CommonProxy {
 
     public void postInit(FMLPostInitializationEvent event) {
         HatsCompat.apply();
+        com.divinerpgextended.world.twilight.TwilightClimate.apply();
         if (Config.replaceTwilightClock) removeRecipes(TwilightItemsOther.twilightClock);
         if (Config.snowGlobeOnlyFromBoss) removeRecipes(IceikaItems.snowGlobe);
         if (Config.snowflakesInSummons) {

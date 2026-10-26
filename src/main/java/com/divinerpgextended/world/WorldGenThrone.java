@@ -113,6 +113,34 @@ public class WorldGenThrone implements IWorldGenerator {
         }
     }
 
+    /**
+     * Запечатать стены и свод: после всех генераторов заселения (и чужих модов, их в сборке много) там, где по чертежу
+     * стена, свод или пол, а стоит воздух, - вернуть блок. Работает только при заселении новых чанков рядом (правки
+     * игроков в уже построенном Троне не трогает) и только в уже построенных кусках.
+     */
+    public static class Seal implements IWorldGenerator {
+
+        @Override
+        public void generate(Random rand, int chunkX, int chunkZ, World w, IChunkProvider gen, IChunkProvider prov) {
+            if (w.provider.dimensionId != ConfigurationHelper.iceika || Config.throneSpacing <= 0) return;
+            int x0 = chunkX * 16 + 8, z0 = chunkZ * 16 + 8;
+            int[] c = nearest(w.getSeed(), x0 + 8, z0 + 8);
+            if (c == null || Math.abs(c[0] - (x0 + 8)) > R + 48 || Math.abs(c[2] - (z0 + 8)) > R + 48) return;
+            int[] col = new int[256 * 2];
+            for (int x = x0 - 16; x < x0 + 32; x++) for (int z = z0 - 16; z < z0 + 32; z++) {
+                int dx = x - c[0], dz = z - c[2];
+                if (!w.getChunkProvider().chunkExists(x >> 4, z >> 4)) continue;
+                int ax = (x - 8) >> 4, az = (z - 8) >> 4; // кусок столбца уже построен
+                if (!w.getChunkProvider().chunkExists(ax, az) || !w.getChunkFromChunkCoords(ax, az).isTerrainPopulated || !column(dx, dz, col)) continue;
+                for (int y = FLOOR; y < 250; y++) {
+                    int code = col[y * 2];
+                    if (code == KEEP || code == AIR || code == LAMP || code == BRAZIER || !w.isAirBlock(x, y, z)) continue;
+                    w.setBlock(x, y, z, block(code), col[y * 2 + 1], 2);
+                }
+            }
+        }
+    }
+
     // ---------------------------------------------------------------- запись в чанки
 
     private static void buildSlice(World w, int cx, int cz, int x0, int z0) {
@@ -277,12 +305,25 @@ public class WorldGenThrone implements IWorldGenerator {
      * Точка внутри Трона или впритык к нему: купол арены со сводом (с запасом на размер озера или подземелья) и цитадель
      * со шпилями. Генераторы заселения Iceika сюда не ставят ({@link com.divinerpgextended.asm.IceikaThroneHooks}).
      */
+    /** На сколько блоков от своей точки дотягиваются генераторы заселения Iceika. */
+    static final int REACH = 32;
+
     public static boolean shields(World w, int x, int y, int z) {
         if (w.provider.dimensionId != ConfigurationHelper.iceika || Config.throneSpacing <= 0) return false;
         int[] c = nearest(w.getSeed(), x, z);
         double d = Math.sqrt((x - c[0]) * (x - c[0]) + (z - c[2]) * (z - c[2]));
         if (d <= CITADEL + 16) return y <= TOP + 64;
-        return d <= R + 20 && y <= ceil(Math.min(d, R - 1)) + 3 + 12;
+        // постройки Divine (подземелье Роллума и т.п.) тянутся от точки до ~24 блоков: свод берём в самой внутренней
+        // точке, докуда они достанут (замер: подземелье в 172 блоках от центра выгрызло стену у края купола)
+        return d <= R + REACH && y <= ceil(Math.min(Math.max(d - REACH, 0), R - 1)) + 3 + 20;
+    }
+
+    /** Точка в Троне или ближе margin блоков к его краю (по горизонтали, на любой высоте). */
+    public static boolean near(World w, int x, int z, int margin) {
+        if (w.provider.dimensionId != ConfigurationHelper.iceika || Config.throneSpacing <= 0) return false;
+        int[] c = nearest(w.getSeed(), x, z);
+        double dx = x - c[0], dz = z - c[2];
+        return dx * dx + dz * dz <= (double) (R + 4 + margin) * (R + 4 + margin);
     }
 
     /** Нижняя граница свода арены над точкой на расстоянии r от центра. */
@@ -304,6 +345,30 @@ public class WorldGenThrone implements IWorldGenerator {
     private static double hourglass(int y, int lo, int hi, double rMid, double rEnd) {
         double t = (y - lo) / (double) Math.max(1, hi - lo);
         return rMid + (rEnd - rMid) * Math.abs(t - 0.5) * 2;
+    }
+
+    /**
+     * Сверка построенного Трона с чертежом (для автотеста): {лишних блоков там, где по чертежу воздух; дыр - воздуха там,
+     * где по чертежу стена или свод}; в out - первые примеры. Только столбцы в загруженных чанках.
+     */
+    public static int[] audit(World w, int cx, int cz, StringBuilder out) {
+        int[] col = new int[256 * 2], n = new int[2];
+        for (int dx = -R; dx <= R; dx++) for (int dz = -R; dz <= R; dz++) {
+            int x = cx + dx, z = cz + dz;
+            if (!w.getChunkProvider().chunkExists(x >> 4, z >> 4) || !column(dx, dz, col)) continue;
+            for (int y = FLOOR; y < 250; y++) {
+                int code = col[y * 2];
+                if (code == KEEP) continue;
+                boolean air = w.isAirBlock(x, y, z);
+                if (code == AIR && !air) {
+                    if (n[0]++ < 4) out.append("лишний ").append(dx).append(",").append(y).append(",").append(dz).append(" ")
+                        .append(Block.blockRegistry.getNameForObject(w.getBlock(x, y, z))).append("; ");
+                } else if (code != AIR && air && code != LAMP && code != BRAZIER) {
+                    if (n[1]++ < 4) out.append("дыра ").append(dx).append(",").append(y).append(",").append(dz).append(" код ").append(code).append("; ");
+                }
+            }
+        }
+        return n;
     }
 
     /** Заполняет col[y] = {код блока, мета} для столбца (dx, dz) от центра. false - столбец не трогаем. */

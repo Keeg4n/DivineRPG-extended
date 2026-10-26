@@ -47,7 +47,8 @@ public class IceikaDecor implements IWorldGenerator {
                 chunkX * 16 + 8 + rand.nextInt(16), 6 + rand.nextInt(40), chunkZ * 16 + 8 + rand.nextInt(16));
         }
         // пещеры и озёра - не внутри Ледяного Трона (прорезали бы купол и арену)
-        boolean throne = WorldGenThrone.shields(world, chunkX * 16 + 16, 30, chunkZ * 16 + 16);
+        // пещера расходится от центра до ~30 блоков: проверяем с запасом, а не одну точку (иначе грызла стену купола)
+        boolean throne = WorldGenThrone.near(world, chunkX * 16 + 16, chunkZ * 16 + 16, 36);
         if (rand.nextInt(10) == 0 && !throne) cavern(world, rand, chunkX * 16 + 16, chunkZ * 16 + 16);
         if (rand.nextInt(18) == 0 && !throne) lake(world, rand, chunkX * 16 + 16, chunkZ * 16 + 16);
         chests(world, rand, chunkX, chunkZ);
@@ -77,7 +78,7 @@ public class IceikaDecor implements IWorldGenerator {
     /** Вырезать полость, не задевая данжи, воду и бедрок. */
     private static void carve(World w, WorldGenLairs.Carver c) {
         for (int[] p : c.cells) {
-            if (p[1] < 6) continue;
+            if (p[1] < 6 || WorldGenThrone.near(w, p[0], p[2], 6)) continue; // стены и свод Трона не трогаем
             if (!protectedBlock(w.getBlock(p[0], p[1], p[2]))) w.setBlock(p[0], p[1], p[2], Blocks.air, 0, 2);
         }
     }

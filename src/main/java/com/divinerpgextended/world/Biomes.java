@@ -46,6 +46,15 @@ public final class Biomes {
         return snowyLand(b) && b.getFloatTemperature(x, 72, z) < 0.15F;
     }
 
+    /**
+     * Холодная суша: снег лежит у земли или холодно (у поверхности ниже 0.3 - тайга, горы, холодные леса BoP). Под пещеру
+     * Снежного Глакона - со сборкой BoP снежных биомов у спавна может не быть совсем; тогда иглу засыпается снегом сам.
+     */
+    public static boolean coldLand(BiomeGenBase b, int x, int z) {
+        if (b == null || ocean(b) || beach(b) || is(b, Type.RIVER) || is(b, Type.NETHER) || is(b, Type.END) || is(b, Type.SWAMP)) return false;
+        return snowsAt(b, x, z) || b.getFloatTemperature(x, 72, z) < 0.3F || is(b, Type.SNOWY) || is(b, Type.COLD);
+    }
+
     public static boolean jungle(BiomeGenBase b) {
         return b instanceof net.minecraft.world.biome.BiomeGenJungle || is(b, Type.JUNGLE);
     }
