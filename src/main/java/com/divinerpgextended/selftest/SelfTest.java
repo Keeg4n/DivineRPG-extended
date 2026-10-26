@@ -5945,20 +5945,34 @@ public class SelfTest {
                 }
             }
             boolean floats = !hook.isDead && lo > surface - 1.2 && hi < surface + 1.5;
+            // клюёт только на удочку Голода: у обычной ожидание поклёвки так и не началось
+            java.lang.reflect.Field wait = cpw.mods.fml.relauncher.ReflectionHelper.findField(com.divinerpgextended.fishing.EntityDreHook.class, "ticksCaughtDelay");
+            boolean plainIdle = wait.getInt(hook) == 0;
             hook.setDead();
+            com.divinerpgextended.fishing.EntityDreHook hh = new com.divinerpgextended.fishing.EntityDreHook(v, sw, com.divinerpgextended.fishing.Rod.HUNGER);
+            hh.setPosition(vx + 0.5, surface - 1.0, vz + 0.5);
+            hh.motionX = hh.motionZ = 0;
+            hh.motionY = 0.5;
+            v.spawnEntityInWorld(hh);
+            boolean hungerBites = false;
+            for (int i = 0; i < 200 && !hungerBites; i++) {
+                hh.onUpdate();
+                hungerBites = wait.getInt(hh) > 0;
+            }
+            hh.setDead();
             server.getConfigurationManager().playerEntityList.remove(sw);
             v.removeEntity(sw);
             boolean zone = com.divinerpgextended.fishing.Zone.at(v, vx, surface, vz, false) == com.divinerpgextended.fishing.Zone.DREAM;
             for (int i = -9; i <= 9; i++) for (int kk = -9; kk <= 9; kk++) for (int h = vf + 1; h < ceil + 8; h++) v.setBlockToAir(vx + i, h, vz + kk);
             boolean physics = inv[0] && my[0] > 0 && inv[1] && Math.abs(my[1] - 0.02) < 0.01 && my[2] < 0 && inv[3] && my[3] > 0.03 && letGo < -0.3 && dive > 0.1 && rise < 0 && held > -0.1;
-            check(built && water >= 60 && column == 0 && surface == ceil && rises && infinite && physics && breathes && bucket && zone && floats,
+            check(built && water >= 60 && column == 0 && surface == ceil && rises && infinite && physics && breathes && bucket && zone && floats && plainIdle && hungerBites,
                 "построено " + built + ", воды " + water + ", гладь на " + surface + " (потолок " + ceil + "), блоков под потолком " + column
                 + "; течёт вверх " + rises + ", бесконечная " + infinite + "; на глубине 0.2/0.6/0.9/1.6: перевёрнут " + java.util.Arrays.toString(inv)
                 + ", скорость " + String.format("%.3f/%.3f/%.3f/%.3f", my[0], my[1], my[2], my[3]) + ", Shift " + String.format("%.2f", dive)
                 + ", пробел у глади " + String.format("%.2f", letGo) + ", пробел в глубине/после всплытия " + String.format("%.2f/%.2f", rise, held) + ", дышит у глади " + breathes + "; ведро " + bucket + ", зона " + zone + ", поплавок у глади " + floats
-                + String.format(" (%.2f..%.2f)", lo, hi));
+                + String.format(" (%.2f..%.2f)", lo, hi) + "; обычная удочка не клюёт " + plainIdle + ", удочка Голода клюёт " + hungerBites);
             return "озеро вырезано в потолке (" + water + " воды мечтаний), течёт вверх, бесконечная; коснулся - сразу перевёрнут и висит у глади, "
-                + "Shift - нырнул глубже, пробел - вынырнул, всплыл с пробелом - висит у глади; голова в воздухе - дышит; ведро; поплавок держится у глади";
+                + "Shift - нырнул глубже, пробел - вынырнул, всплыл с пробелом - висит у глади; голова в воздухе - дышит; ведро; поплавок держится у глади; клюёт только на удочку Голода";
         });
         t("Сумеречные миры", "Лунный волк, Лета для мобов, климат биомов, адский факел", () -> {
             WorldServer m = server.worldServerForDimension(ConfigurationHelper.mortum);

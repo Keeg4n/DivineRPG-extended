@@ -15,7 +15,7 @@ import org.lwjgl.opengl.GL11;
 import com.divinerpgextended.fishing.EntityDreHook;
 import com.divinerpgextended.fishing.Rod;
 
-/** Поплавок как у ванильной удочки, но со своим спрайтом и цветной (у поздних - светящейся) леской. */
+/** Поплавок как у ванильной удочки, но со своим спрайтом и цветной (у поздних - светящейся) леской; в воде мечтаний - вверх ногами. */
 public class RenderDreHook extends Render {
 
     private static final ResourceLocation VANILLA = new ResourceLocation("textures/particle/particles.png");
@@ -43,6 +43,8 @@ public class RenderDreHook extends Render {
         if (rod.glowingLine()) OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240F, 240F);
         GL11.glRotatef(180.0F - renderManager.playerViewY, 0.0F, 1.0F, 0.0F);
         GL11.glRotatef(-renderManager.playerViewX, 1.0F, 0.0F, 0.0F);
+        boolean flip = hook.dreamWaterAbove(); // у глади озера в потолке поплавок висит вверх ногами
+        if (flip) GL11.glRotatef(180.0F, 0.0F, 0.0F, 1.0F);
         Tessellator t = Tessellator.instance;
         t.startDrawingQuads();
         t.setNormal(0.0F, 1.0F, 0.0F);
@@ -74,7 +76,8 @@ public class RenderDreHook extends Render {
             hz = p.prevPosZ + (p.posZ - p.prevPosZ) * pt - s * 0.35 + c * 0.85;
         }
         double bx = hook.prevPosX + (hook.posX - hook.prevPosX) * pt;
-        double by = hook.prevPosY + (hook.posY - hook.prevPosY) * pt + 0.25;
+        double tip = flip ? -0.25 : 0.25; // леска - к верху спрайта, у перевёрнутого он внизу
+        double by = hook.prevPosY + (hook.posY - hook.prevPosY) * pt + tip;
         double bz = hook.prevPosZ + (hook.posZ - hook.prevPosZ) * pt;
         double dx = (float) (hx - bx), dy = (float) (hy - by), dz = (float) (hz - bz);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -85,7 +88,7 @@ public class RenderDreHook extends Render {
         int n = 16;
         for (int i = 0; i <= n; i++) {
             float f = (float) i / n;
-            t.addVertex(x + dx * f, y + dy * (f * f + f) * 0.5 + 0.25, z + dz * f);
+            t.addVertex(x + dx * f, y + dy * (f * f + f) * 0.5 + tip, z + dz * f);
         }
         t.draw();
         GL11.glLineWidth(1.0F);

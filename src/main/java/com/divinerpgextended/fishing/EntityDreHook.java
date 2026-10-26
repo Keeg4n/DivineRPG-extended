@@ -229,8 +229,8 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
         setPosition(posX, posY, posZ);
     }
 
-    /** Поплавок в воде мечтаний или вплотную под ней. */
-    private boolean dreamWaterAbove() {
+    /** Поплавок в воде мечтаний или вплотную под ней (висит вверх ногами - так и рисуется). */
+    public boolean dreamWaterAbove() {
         int x = MathHelper.floor_double(posX), z = MathHelper.floor_double(posZ);
         for (int y = MathHelper.floor_double(boundingBox.minY); y <= MathHelper.floor_double(boundingBox.maxY + 0.6); y++)
             if (worldObj.getBlock(x, y, z) instanceof com.divinerpgextended.block.BlockDreamWater) return true;
@@ -251,8 +251,21 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
         return slot < 0 ? null : Bait.of(field_146042_b.inventory.mainInventory[slot].getItem());
     }
 
-    /** Ванильная логика поклёвки, ожидание сокращено силой рыбалки. */
+    /** Сказано рыбаку, что вода мечтаний не клюёт на эту удочку. */
+    private boolean toldDream;
+
+    /** Ванильная логика поклёвки, ожидание сокращено силой рыбалки. В воде мечтаний клюёт только на удочку Голода. */
     private void bite(WorldServer ws) {
+        if (!lava && rod != Rod.HUNGER && dreamWaterAbove()) {
+            ticksCaughtDelay = ticksCatchableDelay = ticksCatchable = 0;
+            if (!toldDream && field_146042_b != null) {
+                toldDream = true;
+                net.minecraft.util.ChatComponentTranslation m = new net.minecraft.util.ChatComponentTranslation("dre.chat.dream_water_rod");
+                m.getChatStyle().setColor(net.minecraft.util.EnumChatFormatting.DARK_AQUA).setItalic(true);
+                field_146042_b.addChatMessage(m);
+            }
+            return;
+        }
         int k = 1;
         int bx = MathHelper.floor_double(posX), by = MathHelper.floor_double(posY), bz = MathHelper.floor_double(posZ);
         if (!lava && rand.nextFloat() < 0.25F && worldObj.canLightningStrikeAt(bx, by + 1, bz)) k = 2;
