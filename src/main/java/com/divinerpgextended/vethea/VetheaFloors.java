@@ -252,6 +252,16 @@ public class VetheaFloors {
         return (persisted(p).getInteger(GIFT_DONE) & 1 << Gift.LADY_LUNA.ordinal()) != 0;
     }
 
+    /** Боссы Ветеи (дары за них). */
+    private static final Gift[] BOSSES = { Gift.HIVE_QUEEN, Gift.QUADRO, Gift.KAROS, Gift.WRECK, Gift.RAGLOK, Gift.LADY_LUNA };
+
+    /** Сон покорён: побеждены все боссы Ветеи - вещи сна работают наяву, а вещи яви - во сне. */
+    public static boolean allBosses(EntityPlayer p) {
+        int done = persisted(p).getInteger(GIFT_DONE);
+        for (Gift g : BOSSES) if ((done & 1 << g.ordinal()) == 0) return false;
+        return true;
+    }
+
     private static NBTTagCompound persisted(EntityPlayer p) {
         NBTTagCompound d = p.getEntityData();
         if (!d.hasKey(EntityPlayer.PERSISTED_NBT_TAG)) d.setTag(EntityPlayer.PERSISTED_NBT_TAG, new NBTTagCompound());
@@ -454,18 +464,5 @@ public class VetheaFloors {
         for (EntityPlayer p : near) mark(p, g);
     }
 
-    // ---------------- Рецепты крыльев ----------------
-
-    public static void registerRecipes() {
-        GameRegistry.addRecipe(wings(Trinket.DREAM_WINGS_1), "P P", "PTP", "PAP", 'P', VetheaItems.dirtyPearls, 'T',
-            VetheaItems.teakerLump, 'A', VetheaItems.amthirmisLump);
-        GameRegistry.addRecipe(wings(Trinket.DREAM_WINGS_2), "C C", "CWC", "DHD", 'C', VetheaItems.cleanPearls, 'W',
-            wings(Trinket.DREAM_WINGS_1), 'D', VetheaItems.darvenLump, 'H', VetheaItems.cermileLump);
-        GameRegistry.addRecipe(wings(Trinket.DREAM_WINGS_3), "P P", "PWP", "QKQ", 'P', VetheaItems.polishedPearls, 'W',
-            wings(Trinket.DREAM_WINGS_2), 'Q', VetheaItems.quadroticLump, 'K', VetheaItems.karosLump);
-    }
-
-    private static ItemStack wings(Trinket t) {
-        return new ItemStack(ModItems.trinket, 1, t.ordinal());
-    }
+    // Крылья делаются на алтаре наполнения ({@link Infusion}), верстачных рецептов нет.
 }

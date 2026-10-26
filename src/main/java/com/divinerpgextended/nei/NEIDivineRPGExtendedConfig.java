@@ -25,6 +25,9 @@ public class NEIDivineRPGExtendedConfig implements IConfigureNEI {
         API.registerUsageHandler(crates);
         API.registerRecipeHandler(trades);
         API.registerUsageHandler(trades);
+        InfusionHandler infusion = new InfusionHandler();
+        API.registerRecipeHandler(infusion);
+        API.registerUsageHandler(infusion);
         // служебные блоки рельсов (ставятся предметами-рельсами) и убранные рельсы Divine
         for (net.minecraft.block.Block b : new net.minecraft.block.Block[] { com.divinerpgextended.registry.ModBlocks.skyRail,
             com.divinerpgextended.registry.ModBlocks.apalachiaRail, com.divinerpgextended.registry.ModBlocks.skyBoostRail,

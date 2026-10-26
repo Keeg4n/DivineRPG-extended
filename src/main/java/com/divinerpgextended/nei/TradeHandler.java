@@ -110,6 +110,11 @@ public class TradeHandler extends DreHandler {
             trade("leorna", new ItemStack(ArcanaItems.arcanium, 12), rod(Rod.RUPEE), rod(Rod.ARCANA)),
             trade("jack", new ItemStack(Items.bone, 40), new ItemStack(Blocks.pumpkin, 16), rod(Rod.JACK)),
             trade("hunger", new ItemStack(VetheaItems.polishedPearls, 16), rod(Rod.MORTUM), rod(Rod.HUNGER)),
+            trade("hunger", new ItemStack(VetheaItems.polishedPearls, FishingEvents.HEIVA_BELT_PRICE), null, new ItemStack(VetheaItems.heivaBelt)),
+            trade("hunger", new ItemStack(VetheaItems.dirtyPearls, FishingEvents.WINGS_TEMPLATE_PRICE), null,
+                com.divinerpgextended.vethea.DreamItem.stack(com.divinerpgextended.vethea.DreamItem.WINGS_TEMPLATE)),
+            trade("hunger", new ItemStack(VetheaItems.cleanPearls, FishingEvents.MIDNIGHT_TEMPLATE_PRICE), null,
+                com.divinerpgextended.vethea.DreamItem.stack(com.divinerpgextended.vethea.DreamItem.QUEEN_TEMPLATE)),
             // рельсы арканы Divine у Датикона в инвентаре сразу становятся рельсами аддона
             trade("datticon", new ItemStack(ArcanaItems.arcanium, 5), null, new ItemStack(ModItems.arcanaRails, 8)),
             quest(), worms());

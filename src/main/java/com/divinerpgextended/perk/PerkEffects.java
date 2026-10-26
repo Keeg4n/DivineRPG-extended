@@ -118,6 +118,42 @@ public class PerkEffects {
             }
     }
 
+    private static final String ANGEL = "dreAngelFlight";
+
+    /** Ангельский полёт: пока надет сет с перком (не во сне) - можно летать; снял - полёт отбирается. */
+    private static void angelFlight(EntityPlayer p) {
+        boolean on = ArmorData.equippedTier(p) > 0 && ArmorData.hasEquippedPerk(p, Perk.ANGEL_FLIGHT)
+            && !com.divinerpgextended.vethea.Nightmare.inVethea(p);
+        boolean given = p.getEntityData().getBoolean(ANGEL);
+        if (on && !p.capabilities.allowFlying) {
+            p.capabilities.allowFlying = true;
+            p.getEntityData().setBoolean(ANGEL, true);
+            p.sendPlayerAbilities();
+        } else if (!on && given) {
+            p.getEntityData().setBoolean(ANGEL, false);
+            if (!p.capabilities.isCreativeMode) {
+                p.capabilities.allowFlying = false;
+                p.capabilities.isFlying = false;
+                p.sendPlayerAbilities();
+            }
+        }
+    }
+
+    private static java.lang.reflect.Method arcanaProps, arcanaRegen;
+
+    /** Аркана Divine (ArcanaHelper) - отражением. */
+    private static void arcana(EntityPlayer p, float amount) {
+        try {
+            if (arcanaProps == null) {
+                Class<?> c = Class.forName("net.divinerpg.utils.events.ArcanaHelper");
+                arcanaProps = c.getMethod("getProperties", EntityPlayer.class);
+                arcanaRegen = c.getMethod("regen", float.class);
+            }
+            Object h = arcanaProps.invoke(null, p);
+            if (h != null) arcanaRegen.invoke(h, amount);
+        } catch (Throwable ignored) {}
+    }
+
     /** Без урона от падения встроено в ступень R1 (элитный реалмит). */
     @SubscribeEvent
     public void onFall(LivingFallEvent event) {
@@ -147,7 +183,10 @@ public class PerkEffects {
             if (nv == null || nv.getDuration() < 220) player.addPotionEffect(new PotionEffect(Potion.nightVision.id, 300, 0, true));
         }
 
+        angelFlight(player);
         if (ArmorData.equippedTier(player) == 0) return;
+        if (player.getHealth() < player.getMaxHealth() && ArmorData.hasEquippedPerk(player, Perk.REGENERATION)) player.heal(0.1F);
+        if (ArmorData.hasEquippedPerk(player, Perk.ARCANA_FLOW)) arcana(player, 1.0F);
         if (player.isInsideOfMaterial(Material.water) && ArmorData.hasEquippedPerk(player, Perk.WATER_BREATHING)) {
             player.setAir(300);
         }

@@ -214,7 +214,8 @@ public class CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(floors);
-        com.divinerpgextended.vethea.VetheaFloors.registerRecipes();
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.vethea.VetheaCombat());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.vethea.LunaFight());
         FMLCommonHandler.instance()
             .bus()
             .register(new com.divinerpgextended.vethea.VetheaStash());
@@ -339,6 +340,7 @@ public class CommonProxy {
     public void postInit(FMLPostInitializationEvent event) {
         HatsCompat.apply();
         com.divinerpgextended.world.twilight.TwilightClimate.apply();
+        com.divinerpgextended.vethea.LunaFight.buffEverlight();
         if (Config.replaceTwilightClock) removeRecipes(TwilightItemsOther.twilightClock);
         if (Config.snowGlobeOnlyFromBoss) removeRecipes(IceikaItems.snowGlobe);
         if (Config.snowflakesInSummons) {

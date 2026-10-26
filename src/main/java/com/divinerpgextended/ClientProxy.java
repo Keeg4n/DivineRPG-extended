@@ -45,6 +45,8 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.TemperTooltip());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.ColorTooltip());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.PickTierTooltip());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.InfusionTooltip());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.LunaWings());
         ColdHud coldHud = new ColdHud();
         com.divinerpgextended.trinket.DoubleJump.Client airMoves = new com.divinerpgextended.trinket.DoubleJump.Client();
         MinecraftForge.EVENT_BUS.register(coldHud);

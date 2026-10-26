@@ -60,7 +60,22 @@ public enum Perk {
     /** Ночной жнец: +20% урона ночью (сет Jack o'Man). */
     NIGHT_REAPER(null, new Item[][] {
         { VanillaItemsArmor.jackOManHelmet, VanillaItemsArmor.jackOManBody, VanillaItemsArmor.jackOManLegs,
-            VanillaItemsArmor.jackOManBoots } });
+            VanillaItemsArmor.jackOManBoots } }),
+
+    /** Восстановление (сет Vemos): здоровье само растёт. Открывает Крушитель. */
+    REGENERATION(Boss.WRECK, new Item[][] {
+        { net.divinerpg.utils.items.ArcanaItems.vemosHelmet, net.divinerpg.utils.items.ArcanaItems.vemosBody,
+            net.divinerpg.utils.items.ArcanaItems.vemosLegs, net.divinerpg.utils.items.ArcanaItems.vemosBoots } }),
+
+    /** Поток арканы (сет Korma): аркана восстанавливается быстрее. Открывает Раглок (после Крушителя). */
+    ARCANA_FLOW(Boss.RAGLOK, new Item[][] {
+        { net.divinerpg.utils.items.ArcanaItems.kormaHelmet, net.divinerpg.utils.items.ArcanaItems.kormaBody,
+            net.divinerpg.utils.items.ArcanaItems.kormaLegs, net.divinerpg.utils.items.ArcanaItems.kormaBoots } }),
+
+    /** Ангельский полёт (сет Angelic). Открывает Леди Луна (после Раглока). Во сне (в Ветее) не работает. */
+    ANGEL_FLIGHT(Boss.LADY_LUNA, new Item[][] {
+        { VanillaItemsArmor.angelicHelmet, VanillaItemsArmor.angelicBody, VanillaItemsArmor.angelicLegs,
+            VanillaItemsArmor.angelicBoots } });
 
     /** Босс, убийство которого открывает перк, или null. */
     public final Boss unlock;

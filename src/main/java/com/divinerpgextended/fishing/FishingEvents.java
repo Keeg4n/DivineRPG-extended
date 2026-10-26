@@ -74,8 +74,33 @@ public class FishingEvents {
         } else if (v instanceof EntityJackOMan) {
             trade(v, p, new InfiniteTrade(new ItemStack(Items.bone, 40), new ItemStack(Blocks.pumpkin, 16), rod(Rod.JACK)));
         } else if (v instanceof EntityTheHunger) {
+            hunger(v, p);
             trade(v, p, new InfiniteTrade(new ItemStack(VetheaItems.polishedPearls, 16), rod(Rod.MORTUM), rod(Rod.HUNGER)));
         }
+    }
+
+    public static final int HEIVA_BELT_PRICE = 30, WINGS_TEMPLATE_PRICE = 8, MIDNIGHT_TEMPLATE_PRICE = 8;
+
+    /**
+     * Голод: Пояс хейвы - за 30 красного (полированного) жемчуга вместо 25 фиолетового (сделка на своём месте, номера не
+     * сдвигаются), шаблоны Крыльев сна (8 серого жемчуга) и Крыльев полуночи (8 голубого) - в конец, как удочки.
+     */
+    private static void hunger(EntityDivineRPGVillager v, EntityPlayer p) {
+        MerchantRecipeList list = v.getRecipes(p);
+        if (list == null) return;
+        for (int i = 0; i < list.size(); i++) {
+            ItemStack sell = ((MerchantRecipe) list.get(i)).getItemToSell();
+            if (sell != null && sell.getItem() == VetheaItems.heivaBelt)
+                list.set(i, new InfiniteTrade(new ItemStack(VetheaItems.polishedPearls, HEIVA_BELT_PRICE), null, new ItemStack(VetheaItems.heivaBelt)));
+        }
+        for (Iterator<?> it = list.iterator(); it.hasNext();) {
+            ItemStack sell = ((MerchantRecipe) it.next()).getItemToSell();
+            if (sell != null && sell.getItem() == ModItems.dreamItem) it.remove();
+        }
+        list.add(new InfiniteTrade(new ItemStack(VetheaItems.dirtyPearls, WINGS_TEMPLATE_PRICE), null,
+            com.divinerpgextended.vethea.DreamItem.stack(com.divinerpgextended.vethea.DreamItem.WINGS_TEMPLATE)));
+        list.add(new InfiniteTrade(new ItemStack(VetheaItems.cleanPearls, MIDNIGHT_TEMPLATE_PRICE), null,
+            com.divinerpgextended.vethea.DreamItem.stack(com.divinerpgextended.vethea.DreamItem.QUEEN_TEMPLATE)));
     }
 
     private static boolean holdsFish(EntityPlayer p) {

@@ -72,8 +72,18 @@ public class Nightmare {
         return e != null && e.dimension == ConfigurationHelper.vethea;
     }
 
+    public static boolean inVetheaWorld(net.minecraft.world.World w) {
+        return w != null && w.provider.dimensionId == ConfigurationHelper.vethea;
+    }
+
+    /** Кошмар действует: в Ветее, не в творческом и пока не побеждены все боссы Ветеи (после - сон покорён). */
     public static boolean active(EntityPlayer p) {
-        return Config.vetheaNightmare && inVethea(p) && !p.capabilities.isCreativeMode;
+        return Config.vetheaNightmare && inVethea(p) && !p.capabilities.isCreativeMode && !VetheaFloors.allBosses(p);
+    }
+
+    /** Наяву (вне Ветеи) вещи сна не работают, пока не побеждены все боссы Ветеи. */
+    public static boolean awake(EntityPlayer p) {
+        return Config.vetheaNightmare && !inVethea(p) && !p.capabilities.isCreativeMode && !VetheaFloors.allBosses(p);
     }
 
     /** Оператор сервера (или хозяин одиночной игры с читами). */
@@ -96,6 +106,7 @@ public class Nightmare {
             }
         }
         s.add(ModItems.nightmareDrill);
+        s.add(ModItems.dreamItem);
         for (String name : Config.vetheaWhitelist) {
             Object o = GameData.getItemRegistry().getObject(name.trim());
             if (o instanceof Item) s.add((Item) o);
@@ -198,7 +209,11 @@ public class Nightmare {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onAttack(LivingAttackEvent e) {
-        if (e.isCanceled() || e.entityLiving.worldObj.isRemote || !inVethea(e.entityLiving) || !Config.vetheaNightmare) return;
+        if (e.isCanceled() || e.entityLiving.worldObj.isRemote || !Config.vetheaNightmare) return;
+        if (!inVethea(e.entityLiving)) {
+            awakeAttack(e);
+            return;
+        }
         if (e.source instanceof Unarmored || e.source instanceof UnarmoredEntity) return;
         Entity src = e.source.getEntity();
         // чужое оружие (или выстрел, пока в руке чужая вещь) лечит
@@ -242,6 +257,32 @@ public class Nightmare {
             p.attackEntityFrom(again, (float) (e.ammount * (1 + Math.min(guard, 1.0))));
             hint(p, "armor");
         }
+    }
+
+    /** Наяву до победы над всеми боссами Ветеи: оружие сна не ранит, броня сна не защищает. */
+    private static void awakeAttack(LivingAttackEvent e) {
+        if (e.source instanceof Unarmored || e.source instanceof UnarmoredEntity) return;
+        Entity src = e.source.getEntity();
+        if (src instanceof EntityPlayer && awake((EntityPlayer) src) && WeaponKind.of(e.source) != null) {
+            e.setCanceled(true);
+            com.divinerpgextended.debug.Debug.note(src, "Наяву: оружие сна не ранит (не все боссы Ветеи побеждены)");
+            hint((EntityPlayer) src, "awake_weapon");
+            return;
+        }
+        if (!(e.entityLiving instanceof EntityPlayer) || e.source.isUnblockable()) return;
+        EntityPlayer p = (EntityPlayer) e.entityLiving;
+        if (!awake(p)) return;
+        boolean dream = false;
+        for (int slot = 0; slot < 4; slot++) {
+            ItemStack a = p.inventory.armorInventory[slot];
+            if (a != null && a.getItem() instanceof net.minecraft.item.ItemArmor && vethean(a)) dream = true;
+        }
+        if (!dream) return;
+        e.setCanceled(true);
+        com.divinerpgextended.debug.Debug.note(p, "Наяву: броня сна не защищает, удар сквозь броню");
+        DamageSource again = e.source.getEntity() != null || e.source.getSourceOfDamage() != null ? new UnarmoredEntity(e.source) : new Unarmored(e.source);
+        p.attackEntityFrom(again, e.ammount);
+        hint(p, "awake_armor");
     }
 
     /** Какую долю урона вещь сняла бы обычно: особая броня (Divine и др.) - по её свойствам, обычная - 4% за очко. */
@@ -322,7 +363,7 @@ public class Nightmare {
     @SubscribeEvent
     public void onBreakSpeed(BreakSpeed e) {
         EntityPlayer p = e.entityPlayer;
-        if (!Config.vetheaNightmare || !inVethea(p) || p.capabilities.isCreativeMode) return;
+        if (!Config.vetheaNightmare || !inVethea(p) || p.capabilities.isCreativeMode || VetheaFloors.allBosses(p)) return;
         ItemStack held = p.getHeldItem();
         if (held == null || vethean(held)) return;
         if (held.getItem() instanceof ItemTool || held.getItem().getDigSpeed(held, e.block, e.metadata) > 1.0F) {

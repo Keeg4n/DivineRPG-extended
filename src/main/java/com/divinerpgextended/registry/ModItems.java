@@ -73,6 +73,8 @@ public final class ModItems {
     public static Item worldStick;
     public static Item guardianHeart;
     public static Item skyCart, apalachiaRails, arcanaRails, gondola;
+    /** Вещи Ветеи аддона: шаблоны крыльев, лунный осколок ({@link com.divinerpgextended.vethea.DreamItem}). */
+    public static Item dreamItem;
 
     private ModItems() {}
 
@@ -174,6 +176,8 @@ public final class ModItems {
         GameRegistry.registerItem(gondola, "gondola");
         arcanaRails = new com.divinerpgextended.item.ItemApalachiaRails(true);
         GameRegistry.registerItem(arcanaRails, "arcanaRails");
+        dreamItem = new com.divinerpgextended.halite.ItemMeta("dreamItem", com.divinerpgextended.vethea.DreamItem.keys(), 64, false);
+        GameRegistry.registerItem(dreamItem, "dreamItem");
 
         EntityRegistry.registerModEntity(EntityGreatCadillion.class, "GreatCadillion", 0, DivineRPGExtended.instance,
             80, 3, true);

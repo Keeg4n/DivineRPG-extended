@@ -1187,3 +1187,34 @@ item.dre.dreamWaterBucket.name=Dream Water Bucket
 fluid.dre_dreamwater=Dream Water
 dre.chat.wind_lord_grounded=The last totem knocked the Wind Lord down - the wind is gone, finish him!
 dre.chat.dream_water_rod=Dream water ignores this tackle - only the Vethean Hunger rod gets a bite here.
+dre.boss.wreck=Wreck
+dre.boss.raglok=Raglok
+dre.boss.lady_luna=Lady Luna
+dre.perk.regeneration=Regeneration
+dre.perk.arcana_flow=Arcana Flow
+dre.perk.angel_flight=Angelic Flight
+dre.chat.boss_order=%s not counted: defeat %s first.
+item.dre.dreamItem.wings_template.name=Dream Wings Template
+dre.tooltip.dreamItem.wings_template=Infusion Table: template + 8 Amthirmis Lumps = Dreamer's Wings
+item.dre.dreamItem.queen_template.name=Midnight Wings Template
+dre.tooltip.dreamItem.queen_template=Sold by The Hunger. Infusion Table: template + 12 Cermile Lumps (from the Hive Queen) = Midnight Wings
+item.dre.dreamItem.lunar_shard.name=Lunar Shard
+dre.tooltip.dreamItem.lunar_shard=From Lady Luna. Infusion Table: Arksiane weapon + 4 shards = her weapon
+dre.tooltip.infusion=Infusion Table (lumps on top, this below):
+dre.tooltip.accessory_slot=Worn in an accessory slot
+dre.tooltip.heiva_rhythm=Rhythm: a hit with a different weapon kind +%s%% damage (up to +%s%%), resets after 3 s
+dre.tooltip.wings_tempered=Tempered with Karos: + 16 Quadrotic Lumps at the Infusion Table = Nightmare Wings
+dre.weapon_kind.sword=Kind: sword (melee)
+dre.weapon_kind.claw=Kind: claws (melee)
+dre.weapon_kind.hammer=Kind: hammer (melee)
+dre.weapon_kind.bow=Kind: bow (ranged)
+dre.weapon_kind.disk=Kind: disk (ranged)
+dre.weapon_kind.staff=Kind: staff (arcana)
+dre.weapon_kind.cannon=Kind: cannon (ranged)
+dre.nightmare.awake_weapon=Awake, dream weapons do no harm - until every Vethea boss is defeated.
+dre.nightmare.awake_armor=Awake, dream armor gives no protection - until every Vethea boss is defeated.
+dre.nightmare.luna_1=Lady Luna on the ground: only melee hurts her - sword, claws, hammer.
+dre.nightmare.luna_2=Lady Luna in the sky: only bows and staves hurt her (staff shots home in).
+dre.nightmare.luna_3=Lady Luna explodes: fight fire with fire - only cannons hurt her.
+dre.nei.infusion=Infusion Table
+dre.nei.infusion.how=Lumps - top slot (more is fine), template - bottom

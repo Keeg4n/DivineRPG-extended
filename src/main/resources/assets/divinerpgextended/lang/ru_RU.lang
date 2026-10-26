@@ -1254,3 +1254,34 @@ item.dre.dreamWaterBucket.name=Ведро воды мечтаний
 fluid.dre_dreamwater=Вода мечтаний
 dre.chat.wind_lord_grounded=Последний тотем сбил Повелителя ветров на землю - ветер стих, добей его!
 dre.chat.dream_water_rod=Вода мечтаний не чувствует эту снасть - здесь клюёт только на удочку Голода из Ветеи.
+dre.boss.wreck=Крушитель
+dre.boss.raglok=Раглок
+dre.boss.lady_luna=Леди Луна
+dre.perk.regeneration=Восстановление
+dre.perk.arcana_flow=Поток арканы
+dre.perk.angel_flight=Ангельский полёт
+dre.chat.boss_order=%s не засчитан: сначала одолей %s.
+item.dre.dreamItem.wings_template.name=Шаблон Крыльев сна
+dre.tooltip.dreamItem.wings_template=Алтарь наполнения: шаблон + 8 глыб амтирмиса = Крылья сновидца
+item.dre.dreamItem.queen_template.name=Шаблон Крыльев полуночи
+dre.tooltip.dreamItem.queen_template=У Голода. Алтарь наполнения: шаблон + 12 глыб цермила (с Королевы улья) = Крылья полуночи
+item.dre.dreamItem.lunar_shard.name=Лунный осколок
+dre.tooltip.dreamItem.lunar_shard=С Леди Луны. Алтарь наполнения: оружие из арксиана + 4 осколка = её оружие
+dre.tooltip.infusion=Алтарь наполнения (глыбы сверху, это - снизу):
+dre.tooltip.accessory_slot=Носится в слоте аксессуаров
+dre.tooltip.heiva_rhythm=Ритм: удар другим видом оружия +%s%% урона (до +%s%%), 3 с без ударов - сброс
+dre.tooltip.wings_tempered=Закалено каросом: + 16 глыб квадротика на алтаре = Крылья кошмара
+dre.weapon_kind.sword=Вид: меч (ближний бой)
+dre.weapon_kind.claw=Вид: когти (ближний бой)
+dre.weapon_kind.hammer=Вид: молот (ближний бой)
+dre.weapon_kind.bow=Вид: лук (дальний бой)
+dre.weapon_kind.disk=Вид: диск (дальний бой)
+dre.weapon_kind.staff=Вид: посох (аркана)
+dre.weapon_kind.cannon=Вид: пушка (дальний бой)
+dre.nightmare.awake_weapon=Наяву оружие сна не ранит - пока не побеждены все боссы Ветеи.
+dre.nightmare.awake_armor=Наяву броня сна не защищает - пока не побеждены все боссы Ветеи.
+dre.nightmare.luna_1=Леди Луна на земле: её ранит только ближний бой - меч, когти, молот.
+dre.nightmare.luna_2=Леди Луна в небе: её ранят только лук и посох (посох наводится сам).
+dre.nightmare.luna_3=Леди Луна взрывается: клин клином - её ранит только пушка.
+dre.nei.infusion=Алтарь наполнения
+dre.nei.infusion.how=Глыбы - верхний слот (можно больше), шаблон - нижний

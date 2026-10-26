@@ -311,6 +311,24 @@ public class SelfTest {
         p.inventory.mainInventory[8] = s;
     }
 
+    /** Алтарь наполнения Divine (исправленный аддоном): {глыбы после, шаблон после, результат}. */
+    private static ItemStack[] infuse(EntityPlayer pl, ItemStack lumps, ItemStack template) throws Exception {
+        net.minecraft.tileentity.TileEntity te = (net.minecraft.tileentity.TileEntity) Class.forName("net.divinerpg.blocks.vethea.container.tileentity.TileEntityInfusionTable").newInstance();
+        net.minecraft.inventory.IInventory inv = (net.minecraft.inventory.IInventory) te;
+        inv.setInventorySlotContents(0, lumps == null ? null : lumps.copy());
+        inv.setInventorySlotContents(1, template == null ? null : template.copy());
+        te.updateEntity();
+        ItemStack out = inv.getStackInSlot(2);
+        if (out != null) {
+            net.minecraft.inventory.Slot slot = (net.minecraft.inventory.Slot) Class.forName("net.divinerpg.blocks.vethea.container.SlotInfusion")
+                .getConstructor(EntityPlayer.class, net.minecraft.inventory.IInventory.class, int.class, int.class, int.class).newInstance(pl, inv, 2, 0, 0);
+            ItemStack taken = inv.decrStackSize(2, 1);
+            slot.onPickupFromSlot(pl, taken);
+            out = taken;
+        }
+        return new ItemStack[] { inv.getStackInSlot(0), inv.getStackInSlot(1), out };
+    }
+
     private static ItemStack trinket(Trinket t) {
         return new ItemStack(ModItems.trinket, 1, t.ordinal());
     }
@@ -1231,20 +1249,244 @@ public class SelfTest {
             return "плита убрана из взрыва, остальное нет";
         });
         t("Ветея - этажи", "Крафт Крыльев сновидца", () -> {
-            ItemStack r1 = craft(vw, new Object[] { VetheaItems.dirtyPearls, null, VetheaItems.dirtyPearls, VetheaItems.dirtyPearls, VetheaItems.teakerLump,
-                VetheaItems.dirtyPearls, VetheaItems.dirtyPearls, VetheaItems.amthirmisLump, VetheaItems.dirtyPearls });
-            check(r1 != null && r1.getItem() == ModItems.trinket && r1.getItemDamage() == Trinket.DREAM_WINGS_1.ordinal(), "рецепт дал " + r1);
-            return "P_P / PTP / PAP = Крылья сновидца";
+            // на настоящем алтаре Divine (исправленном аддоном): глыб больше нужного - уходит ровно сколько надо
+            ItemStack[] r1 = infuse(v, new ItemStack(VetheaItems.amthirmisLump, 20), com.divinerpgextended.vethea.DreamItem.stack(com.divinerpgextended.vethea.DreamItem.WINGS_TEMPLATE));
+            boolean bench = craft(vw, new Object[] { VetheaItems.dirtyPearls, null, VetheaItems.dirtyPearls, VetheaItems.dirtyPearls, VetheaItems.teakerLump,
+                VetheaItems.dirtyPearls, VetheaItems.dirtyPearls, VetheaItems.amthirmisLump, VetheaItems.dirtyPearls }) != null;
+            check(r1[2] != null && r1[2].getItem() == ModItems.trinket && r1[2].getItemDamage() == Trinket.DREAM_WINGS_1.ordinal() && r1[0] != null
+                && r1[0].stackSize == 12 && r1[1] == null && !bench, "алтарь дал " + r1[2] + ", глыб осталось " + (r1[0] == null ? 0 : r1[0].stackSize)
+                + ", шаблон " + r1[1] + ", верстак " + bench);
+            return "алтарь: шаблон крыльев + 20 глыб амтирмиса = Крылья I, ушло 8 глыб и шаблон; на верстаке крылья не крафтятся";
         });
         t("Ветея - этажи", "Ступени II и III", () -> {
-            ItemStack w1 = trinket(Trinket.DREAM_WINGS_1), w2 = trinket(Trinket.DREAM_WINGS_2);
-            ItemStack r2 = craft(vw, new Object[] { VetheaItems.cleanPearls, null, VetheaItems.cleanPearls, VetheaItems.cleanPearls, w1, VetheaItems.cleanPearls,
-                VetheaItems.darvenLump, VetheaItems.cermileLump, VetheaItems.darvenLump });
-            ItemStack r3 = craft(vw, new Object[] { VetheaItems.polishedPearls, null, VetheaItems.polishedPearls, VetheaItems.polishedPearls, w2,
-                VetheaItems.polishedPearls, VetheaItems.quadroticLump, VetheaItems.karosLump, VetheaItems.quadroticLump });
-            check(r2 != null && r2.getItemDamage() == Trinket.DREAM_WINGS_2.ordinal() && r3 != null && r3.getItemDamage() == Trinket.DREAM_WINGS_3.ordinal(),
-                "II: " + r2 + ", III: " + r3);
-            return "рецепты II и III собираются";
+            ItemStack[] r2 = infuse(v, new ItemStack(VetheaItems.cermileLump, 12), com.divinerpgextended.vethea.DreamItem.stack(com.divinerpgextended.vethea.DreamItem.QUEEN_TEMPLATE));
+            ItemStack[] rt = infuse(v, new ItemStack(VetheaItems.karosLump, 16), trinket(Trinket.DREAM_WINGS_2));
+            ItemStack[] r3 = infuse(v, new ItemStack(VetheaItems.quadroticLump, 16), rt[2]);
+            ItemStack[] raw = infuse(v, new ItemStack(VetheaItems.quadroticLump, 16), trinket(Trinket.DREAM_WINGS_2));
+            ItemStack[] lunar = infuse(v, com.divinerpgextended.vethea.DreamItem.stack(com.divinerpgextended.vethea.DreamItem.LUNAR_SHARD, 4),
+                new ItemStack(com.divinerpgextended.vethea.Infusion.lunar()[0][0]));
+            ItemStack[] divine = infuse(v, new ItemStack(VetheaItems.teakerLump, 9), new ItemStack(VetheaItems.bowTemplate));
+            check(r2[2] != null && r2[2].getItemDamage() == Trinket.DREAM_WINGS_2.ordinal() && com.divinerpgextended.vethea.Infusion.tempered(rt[2])
+                && r3[2] != null && r3[2].getItemDamage() == Trinket.DREAM_WINGS_3.ordinal() && raw[2] == null
+                && lunar[2] != null && lunar[2].getItem() == com.divinerpgextended.vethea.Infusion.lunar()[0][1]
+                && divine[2] != null && divine[0] != null && divine[0].stackSize == 5,
+                "II: " + r2[2] + ", закалка " + rt[2] + ", III: " + r3[2] + ", III без закалки " + raw[2] + ", лунный меч " + lunar[2] + ", лук Divine " + divine[2]);
+            return "шаблон Королевы + 12 цермила = II; II + 16 кароса = закалённые II; + 16 квадротика = III (без закалки - нет); "
+                + "меч из арксиана + 4 лунных осколка = Everlight; рецепты Divine тоже со стаком (лук: 9 глыб, ушло 4)";
+        });
+        t("Ветея - прохождение", "Слабости мобов, добивание своим видом, Лхейва без пояса", () -> {
+            TestPlayer zp = join(player(vd, "TestWeak", 300, 40, 300), true);
+            loadAround(vw, 300, 300, 1);
+            net.divinerpg.entities.vethea.EntityLorgaFlight zl = new net.divinerpg.entities.vethea.EntityLorgaFlight(vw);
+            zl.setPosition(302, 40, 300);
+            vw.spawnEntityInWorld(zl);
+            Item zsword = com.divinerpgextended.vethea.Infusion.vethea("teakerSword", "teakerBacksword"), zham = com.divinerpgextended.vethea.Infusion.vethea("teakerHammer");
+            hold(zp, new ItemStack(zsword));
+            net.minecraftforge.event.entity.living.LivingHurtEvent zh = new net.minecraftforge.event.entity.living.LivingHurtEvent(zl, DamageSource.causePlayerDamage(zp), 10);
+            MinecraftForge.EVENT_BUS.post(zh);
+            float weakDmg = zh.ammount;
+            hold(zp, new ItemStack(zham));
+            zh = new net.minecraftforge.event.entity.living.LivingHurtEvent(zl, DamageSource.causePlayerDamage(zp), 10);
+            MinecraftForge.EVENT_BUS.post(zh);
+            float otherDmg = zh.ammount;
+            // добит мечом - добыча дважды
+            hold(zp, new ItemStack(zsword));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(zl, DamageSource.causePlayerDamage(zp), 1));
+            java.util.ArrayList<net.minecraft.entity.item.EntityItem> zdrops = new java.util.ArrayList<net.minecraft.entity.item.EntityItem>();
+            zdrops.add(new net.minecraft.entity.item.EntityItem(vw, 302, 40, 300, new ItemStack(VetheaItems.polishedPearls)));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(zl, DamageSource.causePlayerDamage(zp), zdrops, 0, false, 0));
+            zl.setDead();
+            net.divinerpg.entities.vethea.EntityLheiva zhv = new net.divinerpg.entities.vethea.EntityLheiva(vw);
+            zhv.setPosition(304, 40, 300);
+            vw.spawnEntityInWorld(zhv);
+            zp.inventory.clearInventory(null, -1);
+            boolean lheiva = zhv.attackEntityFrom(DamageSource.causePlayerDamage(zp), 1);
+            zhv.setDead();
+            check(Math.abs(weakDmg - 20) < 0.01 && Math.abs(otherDmg - 2.5) < 0.01 && zdrops.size() == 2 && lheiva,
+                "Lorga на крыльях: мечом " + weakDmg + ", молотом " + otherDmg + "; добыча за добивание мечом " + zdrops.size() + "; Лхейва без пояса ранится " + lheiva);
+            return "Lorga на крыльях: меч x2 (" + weakDmg + "), молот x0.25 (" + otherDmg + "); добит мечом - добыча x2; Лхейву бьют без пояса";
+        });
+        t("Ветея - прохождение", "Пояс хейвы и Шахтёрский амулет в слотах аксессуаров, ритм", () -> {
+            TestPlayer zp = join(player(vd, "TestRhythm", 320, 40, 300), true);
+            Accessories za = Accessories.of(zp);
+            boolean place = za.canPlace(0, new ItemStack(VetheaItems.heivaBelt)) && za.canPlace(1, new ItemStack(VetheaItems.minersAmulet));
+            za.setInventorySlotContents(0, new ItemStack(VetheaItems.heivaBelt));
+            boolean amuletBefore = com.divinerpgextended.asm.VetheaHooks.has(zp.inventory, VetheaItems.minersAmulet);
+            za.setInventorySlotContents(1, new ItemStack(VetheaItems.minersAmulet));
+            boolean amulet = com.divinerpgextended.asm.VetheaHooks.has(zp.inventory, VetheaItems.minersAmulet);
+            net.divinerpg.entities.vethea.EntityBohemite zb = new net.divinerpg.entities.vethea.EntityBohemite(vw);
+            zb.setPosition(322, 40, 300);
+            vw.spawnEntityInWorld(zb);
+            Item[] seq = { com.divinerpgextended.vethea.Infusion.vethea("teakerSword"), com.divinerpgextended.vethea.Infusion.vethea("teakerHammer"),
+                com.divinerpgextended.vethea.Infusion.vethea("teakerClaw"), com.divinerpgextended.vethea.Infusion.vethea("teakerClaw"),
+                com.divinerpgextended.vethea.Infusion.vethea("teakerSword"), com.divinerpgextended.vethea.Infusion.vethea("teakerHammer"),
+                com.divinerpgextended.vethea.Infusion.vethea("teakerSword") };
+            StringBuilder zs = new StringBuilder();
+            float[] got = new float[seq.length + 1];
+            for (int i = 0; i < seq.length; i++) {
+                hold(zp, new ItemStack(seq[i]));
+                net.minecraftforge.event.entity.living.LivingHurtEvent zh = new net.minecraftforge.event.entity.living.LivingHurtEvent(zb, DamageSource.causePlayerDamage(zp), 10);
+                MinecraftForge.EVENT_BUS.post(zh);
+                got[i] = zh.ammount;
+                zs.append(String.format("%.1f ", zh.ammount));
+            }
+            server.worldServerForDimension(0).getWorldInfo().incrementTotalWorldTime(vw.getTotalWorldTime() + 100); // пауза больше 3 с - сброс (время Ветеи - от обычного мира)
+            hold(zp, new ItemStack(seq[1]));
+            net.minecraftforge.event.entity.living.LivingHurtEvent zh = new net.minecraftforge.event.entity.living.LivingHurtEvent(zb, DamageSource.causePlayerDamage(zp), 10);
+            MinecraftForge.EVENT_BUS.post(zh);
+            got[seq.length] = zh.ammount;
+            zb.setDead();
+            za.setInventorySlotContents(0, null);
+            za.setInventorySlotContents(1, null);
+            boolean rhythm = Math.abs(got[0] - 10) < 0.01 && Math.abs(got[1] - 11.5) < 0.01 && Math.abs(got[2] - 13) < 0.01 && Math.abs(got[3] - 13) < 0.01
+                && Math.abs(got[4] - 14.5) < 0.01 && Math.abs(got[5] - 16) < 0.01 && Math.abs(got[6] - 16) < 0.01 && Math.abs(got[seq.length] - 10) < 0.01;
+            check(place && !amuletBefore && amulet && rhythm, "в слоты " + place + ", амулет из инвентаря " + amuletBefore + ", из слота " + amulet + "; удары " + zs + "после паузы " + got[seq.length]);
+            return "пояс и амулет носятся в слотах (амулет работает только оттуда); ритм: " + zs + "- смена вида +15% до +60%, пауза - сброс (" + got[seq.length] + ")";
+        });
+        t("Ветея - прохождение", "Шлемы ветейской брони и взрывы", () -> {
+            TestPlayer zp = join(player(vd, "TestHelm", 340, 40, 300), true);
+            armor(zp, com.divinerpgextended.vethea.Infusion.vethea("tormentedHelmet"), com.divinerpgextended.vethea.Infusion.vethea("tormentedBody"),
+                com.divinerpgextended.vethea.Infusion.vethea("tormentedLegs"), com.divinerpgextended.vethea.Infusion.vethea("tormentedBoots"));
+            net.divinerpg.entities.vethea.EntityBohemite zb = new net.divinerpg.entities.vethea.EntityBohemite(vw);
+            zb.setPosition(342, 40, 300);
+            vw.spawnEntityInWorld(zb);
+            hold(zp, new ItemStack(com.divinerpgextended.vethea.Infusion.vethea("teakerSword")));
+            net.minecraftforge.event.entity.living.LivingHurtEvent zh = new net.minecraftforge.event.entity.living.LivingHurtEvent(zb, DamageSource.causePlayerDamage(zp), 10);
+            MinecraftForge.EVENT_BUS.post(zh);
+            float melee = zh.ammount;
+            armor(zp, com.divinerpgextended.vethea.Infusion.vethea("tormentedMask"), com.divinerpgextended.vethea.Infusion.vethea("tormentedBody"),
+                com.divinerpgextended.vethea.Infusion.vethea("tormentedLegs"), com.divinerpgextended.vethea.Infusion.vethea("tormentedBoots"));
+            zh = new net.minecraftforge.event.entity.living.LivingHurtEvent(zb, DamageSource.causePlayerDamage(zp), 10);
+            MinecraftForge.EVENT_BUS.post(zh);
+            float maskMelee = zh.ammount;
+            zh = new net.minecraftforge.event.entity.living.LivingHurtEvent(zp, DamageSource.setExplosionSource(null), 10);
+            MinecraftForge.EVENT_BUS.post(zh);
+            float blast = zh.ammount;
+            armor(zp, null, null, null, null);
+            zb.setDead();
+            net.minecraft.world.Explosion zx = new net.minecraft.world.Explosion(vw, null, 340, 40, 300, 3);
+            java.util.List<net.minecraft.entity.Entity> zl = new java.util.ArrayList<net.minecraft.entity.Entity>();
+            zl.add(new net.minecraft.entity.item.EntityItem(vw, 340, 40, 300, new ItemStack(VetheaItems.dirtyPearls)));
+            zl.add(zb);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.world.ExplosionEvent.Detonate(vw, zx, zl));
+            // у мучительского шлема Divine и сам даёт +9 ближнему; аддон - ещё +25% поверх
+            check(Math.abs(melee - 19 * 1.25F) < 0.01 && Math.abs(maskMelee - 10) < 0.01 && Math.abs(blast - 4) < 0.01 && zl.size() == 1,
+                "шлем и меч " + melee + ", маска и меч " + maskMelee + ", взрыв в сете " + blast + ", вещей во взрыве " + (zl.size() - 1));
+            return "мучительский сет: шлем - +9 Divine и +25% аддона ближнему (10 -> " + melee + "), маска ближнему не помогает; взрыв 10 -> " + blast + "; лежащие вещи взрыв не берёт";
+        });
+        t("Ветея - прохождение", "Леди Луна: меч, полёт, пушка; лунные осколки, Everlight", () -> {
+            TestPlayer zp = join(player(vd, "TestLuna", 400, 20, 300), true);
+            loadAround(vw, 400, 300, 2);
+            zp.inventory.clearInventory(null, -1);
+            net.divinerpg.entities.vethea.EntityLadyLuna zl = new net.divinerpg.entities.vethea.EntityLadyLuna(vw);
+            for (int zx = 395; zx <= 410; zx++) for (int zz = 293; zz <= 308; zz++) for (int zy = 20; zy < 45; zy++) vw.setBlockToAir(zx, zy, zz);
+            zl.setPosition(402, 20, 300);
+            vw.spawnEntityInWorld(zl);
+            hold(zp, new ItemStack(com.divinerpgextended.vethea.Infusion.vethea("teakerSword")));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(zl));
+            zl.hurtResistantTime = 0;
+            boolean p1sword = zl.attackEntityFrom(DamageSource.causePlayerDamage(zp), 5);
+            zl.setHealth(zl.getMaxHealth() * 0.5F);
+            zl.hurtResistantTime = 0;
+            boolean p2sword = zl.attackEntityFrom(DamageSource.causePlayerDamage(zp), 5);
+            double y0 = zl.posY;
+            for (int i = 0; i < 40; i++) {
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(zl));
+                zl.moveEntity(zl.motionX, zl.motionY, zl.motionZ);
+            }
+            boolean flies = zl.posY > y0 + 1;
+            zl.setHealth(zl.getMaxHealth() * 0.2F);
+            hold(zp, new ItemStack(com.divinerpgextended.vethea.Infusion.lunar()[4][0]));
+            net.minecraft.entity.Entity zbullet = (net.minecraft.entity.Entity) Class.forName("net.divinerpg.entities.vanilla.projectile.EntityShooterBullet")
+                .getConstructor(net.minecraft.world.World.class).newInstance(vw);
+            zl.hurtResistantTime = 0;
+            boolean p3cannon = zl.attackEntityFrom(new net.minecraft.util.EntityDamageSourceIndirect("thrown", zbullet, zp).setProjectile(), 5);
+            hold(zp, new ItemStack(com.divinerpgextended.vethea.Infusion.vethea("teakerSword")));
+            zl.hurtResistantTime = 0;
+            boolean p3sword = zl.attackEntityFrom(DamageSource.causePlayerDamage(zp), 5);
+            for (int i = 0; i < 60; i++) {
+                zl.ticksExisted++;
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(zl));
+            }
+            boolean marks = zl.getEntityData().getIntArray("dreLunaMarks").length > 0 || zl.ticksExisted > 0;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(zl, DamageSource.causePlayerDamage(zp)));
+            zl.setDead();
+            int shards = 0;
+            for (ItemStack it : zp.inventory.mainInventory) if (com.divinerpgextended.vethea.DreamItem.LUNAR_SHARD.is(it)) shards += it.stackSize;
+            Item ever = com.divinerpgextended.vethea.Infusion.vethea("everlight"), maul = com.divinerpgextended.vethea.Infusion.vethea("karosRockmaul");
+            java.lang.reflect.Field mat = cpw.mods.fml.relauncher.ReflectionHelper.findField(net.divinerpg.items.base.ItemModSword.class, "mat");
+            float everDmg = ((Item.ToolMaterial) mat.get(ever)).getDamageVsEntity() + 5, maulDmg = ((Item.ToolMaterial) mat.get(maul)).getDamageVsEntity() + 5;
+            check(p1sword && !p2sword && flies && p3cannon && !p3sword && marks && shards == com.divinerpgextended.vethea.LunaFight.SHARDS && everDmg >= 50 && everDmg > maulDmg,
+                "1: меч " + p1sword + "; 2: меч " + p2sword + ", летит " + flies + "; 3: пушка " + p3cannon + ", меч " + p3sword + "; осколков " + shards
+                    + "; Everlight " + everDmg + " / маул " + maulDmg);
+            return "фаза 1 - меч ранит; фаза 2 - взлетает, меч не ранит; фаза 3 - только пушка; каждому " + shards + " лунных осколка; Everlight " + everDmg
+                + " > маул " + maulDmg;
+        });
+        t("Ветея - прохождение", "Голод: Пояс хейвы за 30 красного жемчуга, шаблон крыльев", () -> {
+            TestPlayer zp = join(player(vd, "TestHungerShop", 420, 40, 300), true);
+            net.divinerpg.entities.vethea.EntityTheHunger zh = new net.divinerpg.entities.vethea.EntityTheHunger(vw);
+            zh.setPosition(421, 40, 300);
+            vw.spawnEntityInWorld(zh);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.EntityInteractEvent(zp, zh));
+            net.minecraft.village.MerchantRecipeList zr = zh.getRecipes(zp);
+            boolean belt = false, tpl = false, tpl2 = false;
+            for (Object o : zr) {
+                net.minecraft.village.MerchantRecipe r = (net.minecraft.village.MerchantRecipe) o;
+                if (r.getItemToSell().getItem() == VetheaItems.heivaBelt)
+                    belt = r.getItemToBuy().getItem() == VetheaItems.polishedPearls && r.getItemToBuy().stackSize == 30;
+                if (com.divinerpgextended.vethea.DreamItem.WINGS_TEMPLATE.is(r.getItemToSell())) tpl = r.getItemToBuy().getItem() == VetheaItems.dirtyPearls;
+                if (com.divinerpgextended.vethea.DreamItem.QUEEN_TEMPLATE.is(r.getItemToSell())) tpl2 = r.getItemToBuy().getItem() == VetheaItems.cleanPearls;
+            }
+            zh.setDead();
+            check(belt && tpl && tpl2, "пояс за 30 красного " + belt + ", шаблон крыльев за серый " + tpl + ", шаблон полуночи за голубой " + tpl2);
+            return "Пояс хейвы - 30 красного жемчуга, шаблон Крыльев сна - 8 серого, шаблон Крыльев полуночи - 8 голубого";
+        });
+        t("Ветея - прохождение", "Сон покорён: вещи сна наяву, вещи яви во сне", () -> {
+            TestPlayer zo = join(player(0, "TestAwake", p.posX + 3, p.posY, p.posZ), true);
+            persisted(zo).removeTag("dre_dream_done");
+            net.minecraft.entity.monster.EntityZombie zz = new net.minecraft.entity.monster.EntityZombie(zo.worldObj);
+            zz.setPosition(zo.posX + 1, zo.posY, zo.posZ);
+            zo.worldObj.spawnEntityInWorld(zz);
+            hold(zo, new ItemStack(com.divinerpgextended.vethea.Infusion.vethea("teakerSword")));
+            boolean before = zz.attackEntityFrom(DamageSource.causePlayerDamage(zo), 1);
+            int all = 0;
+            for (String g : new String[] { "HIVE_QUEEN", "QUADRO", "KAROS", "WRECK", "RAGLOK", "LADY_LUNA" })
+                all |= 1 << Enum.valueOf((Class) Class.forName("com.divinerpgextended.vethea.VetheaFloors$Gift"), g).ordinal();
+            persisted(zo).setInteger("dre_dream_done", all);
+            zz.hurtResistantTime = 0;
+            boolean after = zz.attackEntityFrom(DamageSource.causePlayerDamage(zo), 1);
+            TestPlayer zv = player(vd, "TestAwake2", 440, 40, 300);
+            persisted(zv).setInteger("dre_dream_done", all);
+            boolean freeInDream = !com.divinerpgextended.vethea.Nightmare.active(zv);
+            persisted(zv).removeTag("dre_dream_done");
+            boolean nightmare = com.divinerpgextended.vethea.Nightmare.active(zv);
+            zz.setDead();
+            check(!before && after && freeInDream && nightmare, "оружие сна наяву до " + before + ", после " + after + "; в Ветее кошмар после победы " + !freeInDream + ", до " + nightmare);
+            return "до победы над всеми боссами Ветеи меч сна наяву не ранит; после - ранит, а в Ветее кошмар для этого игрока снят";
+        });
+        t("Ветея - прохождение", "Крушитель, Раглок, Луна по очереди - перки Странника", () -> {
+            TestPlayer zo = join(player(vd, "TestOrder", 460, 40, 300), true);
+            com.divinerpgextended.boss.BossProgress.revoke(zo, com.divinerpgextended.boss.Boss.WRECK);
+            com.divinerpgextended.boss.BossProgress.revoke(zo, com.divinerpgextended.boss.Boss.RAGLOK);
+            net.divinerpg.entities.vethea.EntityRaglok zr = new net.divinerpg.entities.vethea.EntityRaglok(vw);
+            zr.setPosition(462, 40, 300);
+            vw.spawnEntityInWorld(zr);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(zr, DamageSource.causePlayerDamage(zo)));
+            boolean early = com.divinerpgextended.boss.BossProgress.has(zo, com.divinerpgextended.boss.Boss.RAGLOK);
+            net.divinerpg.entities.vethea.EntityWreck zw = new net.divinerpg.entities.vethea.EntityWreck(vw);
+            zw.setPosition(464, 40, 300);
+            vw.spawnEntityInWorld(zw);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(zw, DamageSource.causePlayerDamage(zo)));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(zr, DamageSource.causePlayerDamage(zo)));
+            boolean inOrder = com.divinerpgextended.boss.BossProgress.has(zo, com.divinerpgextended.boss.Boss.WRECK)
+                && com.divinerpgextended.boss.BossProgress.has(zo, com.divinerpgextended.boss.Boss.RAGLOK);
+            zr.setDead();
+            zw.setDead();
+            boolean perks = com.divinerpgextended.perk.Perk.REGENERATION.unlock == com.divinerpgextended.boss.Boss.WRECK
+                && com.divinerpgextended.perk.Perk.ARCANA_FLOW.unlock == com.divinerpgextended.boss.Boss.RAGLOK
+                && com.divinerpgextended.perk.Perk.ANGEL_FLIGHT.unlock == com.divinerpgextended.boss.Boss.LADY_LUNA;
+            check(!early && inOrder && perks, "Раглок до Крушителя засчитан " + early + ", по очереди " + inOrder + ", перки " + perks);
+            return "Раглок до Крушителя не засчитывается; по очереди - да; Крушитель открывает Восстановление (Vemos), Раглок - Поток арканы (Korma), Луна - Ангельский полёт";
         });
         t("Ветея - этажи", "Крылья вне Ветеи", () -> {
             TestPlayer o = player(0, "TestWing", p.posX, p.posY, p.posZ);
@@ -2328,17 +2570,30 @@ public class SelfTest {
                 + "; Карот бьёт голого " + out[0] + ", в алмазе " + out[1] + ", сила для трофеев " + power);
             return "голый игрок: Карот без брони и бьёт кулаком (" + out[0] + "); в алмазе с мечом: держит удар (10 > " + in[1] + ") и бьёт как меч (" + out[1] + "), трофеев больше";
         });
-        t("Ветея - кошмар", "Королева улья: выжить", () -> {
+        t("Ветея - кошмар", "Королева улья: бессмертна, гибнет от гибели роя", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.vethea);
             loadAround(w, 9000, 9000, 2);
             TestPlayer hq = join(player(ConfigurationHelper.vethea, "TestHive", 9000, 120, 8994), true);
+            hq.inventory.clearInventory(null, -1);
             net.divinerpg.entities.vethea.EntityHiveQueen queen = new net.divinerpg.entities.vethea.EntityHiveQueen(w);
             queen.setPosition(9000.5, 120, 9000.5);
             w.spawnEntityInWorld(queen);
             boolean hit = queen.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(hq), 1000);
-            String log = "удар " + hit;
-            int total = com.divinerpgextended.vethea.HiveTimer.DURATION;
-            for (int i = 0; i < total / 2; i++) MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(queen));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(queen));
+            int need = com.divinerpgextended.vethea.HiveTimer.left(queen);
+            String log = "удар " + hit + ", рой " + need;
+            java.util.function.IntConsumer kill = n -> {
+                for (int i = 0; i < n; i++) {
+                    net.divinerpg.entities.vethea.EntityHiveSoldier m = new net.divinerpg.entities.vethea.EntityHiveSoldier(w);
+                    m.setPosition(9002.5, 120, 9000.5);
+                    com.divinerpgextended.boss.BossMinions.mark(m, queen);
+                    w.spawnEntityInWorld(m);
+                    MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(m, net.minecraft.util.DamageSource.causePlayerDamage(hq)));
+                    m.setDead();
+                }
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(queen));
+            };
+            kill.accept(need / 2);
             float half = queen.getHealth() / queen.getMaxHealth();
             log += ", на половине " + half;
             hq.setPositionAndUpdate(9000, 120, 9060); // ушёл - сначала
@@ -2346,13 +2601,14 @@ public class SelfTest {
             boolean reset = com.divinerpgextended.vethea.HiveTimer.left(queen) == 0 && queen.getHealth() == queen.getMaxHealth();
             log += ", сброс " + reset;
             hq.setPositionAndUpdate(9000, 120, 8994);
-            for (int i = 0; i < total + 2 && queen.getHealth() > 0; i++) MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(queen));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(queen));
+            kill.accept(need);
             boolean dead = queen.getHealth() <= 0;
             queen.setDead();
             for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(8980, 100, 8980, 9020, 140, 9020)))
                 if (!(o instanceof EntityPlayer)) ((net.minecraft.entity.Entity) o).setDead();
-            check(!hit && Math.abs(half - 0.5F) < 0.02F && reset && dead, log + ", пробуждение " + dead);
-            return "Королеву не ранить; её полоска тает за 90 с (на половине " + half + "), ушёл с арены - отсчёт сначала, выжил - Королева погибает";
+            check(!hit && need == 20 && Math.abs(half - 0.5F) < 0.03F && reset && dead, log + ", гибель " + dead);
+            return "Королеву не ранить; полоска - сколько роя осталось (20 на одного, на половине " + half + "), ушёл - сначала; рой перебит - Королева гибнет";
         });
         t("Логова", "Покой арены", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);

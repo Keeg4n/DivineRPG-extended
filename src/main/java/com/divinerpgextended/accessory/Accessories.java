@@ -88,12 +88,25 @@ public class Accessories implements IInventory {
     public static boolean wears(EntityPlayer p, Trinket t) {
         if (p == null || p.worldObj.isRemote) return false;
         if (!t.vethean() && com.divinerpgextended.Config.vetheaNightmare
-            && p.dimension == net.divinerpg.utils.config.ConfigurationHelper.vethea) return false;
+            && p.dimension == net.divinerpg.utils.config.ConfigurationHelper.vethea && !com.divinerpgextended.vethea.VetheaFloors.allBosses(p)) return false;
         Accessories a = of(p);
         for (int i = 0; i < Math.min(a.unlocked, SIZE); i++) {
             ItemStack s = a.stacks[i];
             if (s != null && s.getItem() == ModItems.trinket && ItemTrinket.of(s).provides().contains(t)) return true;
         }
+        return false;
+    }
+
+    /** Вещи Divine, которые носятся в слоте аксессуаров (а не работают из инвентаря): Пояс хейвы, Шахтёрский амулет. */
+    public static boolean divineAccessory(ItemStack s) {
+        return s != null && (s.getItem() == net.divinerpg.utils.items.VetheaItems.heivaBelt || s.getItem() == net.divinerpg.utils.items.VetheaItems.minersAmulet);
+    }
+
+    /** Надета ли вещь Divine-аксессуар (в открытых слотах). */
+    public static boolean wearsItem(EntityPlayer p, net.minecraft.item.Item item) {
+        if (p == null || p.worldObj.isRemote) return false;
+        Accessories a = of(p);
+        for (int i = 0; i < Math.min(a.unlocked, SIZE); i++) if (a.stacks[i] != null && a.stacks[i].getItem() == item) return true;
         return false;
     }
 
@@ -127,7 +140,12 @@ public class Accessories implements IInventory {
     /** Можно ли положить эту вещь в слот: в слот боеприпасов - боеприпасы; в аксессуар - бижутерия, слот открыт, такой же вещи в других слотах нет. */
     public boolean canPlace(int slot, ItemStack s) {
         if (slot >= SIZE) return !readOnly && s != null && com.divinerpgextended.perk.Ammo.isAmmo(s.getItem());
-        if (readOnly || s == null || s.getItem() != ModItems.trinket || slot >= unlocked) return false;
+        if (readOnly || s == null || slot >= unlocked) return false;
+        if (divineAccessory(s)) { // такой же вещи в других слотах нет
+            for (int i = 0; i < SIZE; i++) if (i != slot && stacks[i] != null && stacks[i].getItem() == s.getItem()) return false;
+            return true;
+        }
+        if (s.getItem() != ModItems.trinket) return false;
         // один и тот же эффект дважды не надеть - ни саму вещь, ни объединённую с ней
         java.util.Set<Trinket> mine = ItemTrinket.of(s).provides();
         for (int i = 0; i < SIZE; i++) {

@@ -70,6 +70,9 @@ public class Config {
     public static String[] vetheaWhitelist = {};
     /** Оружие других модов, которое кошмар Ветеи сам не узнаёт (урон считает само, без ванильной основы). */
     public static String[] vetheaWeapons = {};
+    /** Слабости мобов Ветеи: "класс моба=вид[,вид]" (виды: sword claw hammer bow disk staff cannon). */
+    public static String[] vetheaWeakness = { "EntityLheiva=bow", "EntityLorgaFlight=sword,claw", "EntityDissiment=disk", "EntityHoverStinger=disk",
+        "EntityZoragon=bow", "EntityGalroid=hammer", "EntityVhraak=hammer", "EntityShadahier=staff", "EntityCymesoid=staff", "EntityKazrotic=cannon" };
     /** Журнал аудита для админов (logs/dre-audit.log) и запись в HawkEye, если он есть на сервере. */
     public static boolean auditLog = true, auditHawkEye = true;
 
@@ -218,6 +221,9 @@ public class Config {
             "Предметы других модов, которые в Ветее считаются своими (modid:name, по одному в строке)");
         vetheaWeapons = cfg.getStringList("vetheaWeapons", v, vetheaWeapons,
             "Оружие других модов, которое в Ветее не распознаётся само (modid:name): чужое оружие лечит мобов. Мечи, инструменты, луки, Tinkers' Construct, катана и разборщик Tainted Magic, мульти-инструмент Blood Magic узнаются без настройки");
+        vetheaWeakness = cfg.getStringList("vetheaWeakness", v, vetheaWeakness,
+            "Слабости мобов Ветеи (класс моба Divine=вид[,вид]): своим видом x2 урона и двойная добыча за добивание, остальным x0.25. "
+                + "Виды: sword claw hammer bow disk staff cannon. Пустой список - слабостей нет");
         auditLog = cfg.getBoolean("auditLog", "audit", auditLog,
             "Журнал действий для админов: logs/dre-audit.log (аксессуары, переноска питомцев, /dreinv, сделки и услуги торговцев, дары и возврат вещей Ветеи)");
         auditHawkEye = cfg.getBoolean("auditHawkEye", "audit", auditHawkEye,
