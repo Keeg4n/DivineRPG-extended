@@ -26,8 +26,9 @@ import cpw.mods.fml.relauncher.SideOnly;
  * новый (бесконечная, как вода).
  * <p>
  * Кто коснулся её верхом хитбокса, тот сразу перевёрнут ({@link #inverted}): висит вверх ногами, ноги в воде, голова в
- * воздухе - у глади держится сам, тут и рыбачат (поплавок закидывается вверх, в озеро). Прыжок - нырнуть глубже, Shift -
- * отпуститься и упасть. В глубине тянет к дну озера (вверх), прыжок - к дну быстрее, Shift - к глади.
+ * воздухе - у глади держится сам, тут и рыбачат (поплавок закидывается вверх, в озеро). Экран перевёрнут, клавиши - как в обычной воде по экрану: Shift -
+ * нырнуть глубже (в мире вверх), пробел - всплыть к глади (вниз), пробел у глади - вынырнуть и упасть. В глубине тянет к
+ * дну озера (вверх).
  */
 public class BlockDreamWater extends BlockFluidClassic {
 
@@ -106,25 +107,34 @@ public class BlockDreamWater extends BlockFluidClassic {
             } catch (Throwable ignored) {}
         }
 
+        /** Отпустил пробел у глади: следующее нажатие выкидывает из озера. */
+        private static final java.util.Map<EntityLivingBase, Boolean> ARMED = new java.util.WeakHashMap<EntityLivingBase, Boolean>();
+
         @SubscribeEvent
         public void onUpdate(LivingEvent.LivingUpdateEvent ev) {
             EntityLivingBase e = ev.entityLiving;
             double d = depth(e);
-            if (d <= 0) return;
+            if (d <= 0) {
+                ARMED.remove(e);
+                return;
+            }
             if (e instanceof EntityPlayer && ((EntityPlayer) e).capabilities.isFlying) return;
             e.fallDistance = 0;
             if (!e.worldObj.isRemote && e instanceof EntityPlayerMP) {
                 notFlying((EntityPlayerMP) e);
                 if (!headUnder(e)) e.setAir(300); // голова в воздухе (игра считает глаза у верха хитбокса - в воде)
             }
-            // для перевёрнутого прыжок - "вверх" по его телу, в озеро; Shift - вниз, из озера
-            boolean dive = jumping(e), out = e.isSneaking();
-            if (d >= DEEP) { // в глубине тянет к дну озера (вверх); Shift - к глади (вниз)
+            // как в обычной воде, но по перевёрнутому экрану: пробел - к глади (в мире вниз), Shift - глубже (вверх)
+            boolean surface = jumping(e), dive = e.isSneaking();
+            if (d >= DEEP) { // в глубине тянет к дну озера (вверх), как в обычной воде ко дну
                 e.motionY += 0.04; // вода тянет вниз на 0.02, прыжок воды поднимает на 0.04 - итог вверх
-                if (out) e.motionY -= 0.10;
+                if (surface) e.motionY -= 0.10;
+                if (dive) e.motionY += 0.03;
                 e.motionY = Math.max(-0.3, Math.min(0.3, e.motionY));
+                if (surface) ARMED.remove(e); // всплыл с зажатым пробелом - у глади держится, а не вываливается
             } else if (d >= FLIP || e.motionY > 0) { // у глади: держится ногами в воде
-                if (out) e.motionY = -0.35; // отпустился - падает
+                if (!surface) ARMED.put(e, Boolean.TRUE);
+                if (surface && ARMED.containsKey(e)) e.motionY = -0.35; // пробел у глади - вынырнуть: падает из озера
                 else if (dive) e.motionY = 0.12;
                 else e.motionY = (HOLD - d) * 0.3 + 0.02; // пружинит к глубине HOLD (+0.02 гасит тягу воды вниз)
             }

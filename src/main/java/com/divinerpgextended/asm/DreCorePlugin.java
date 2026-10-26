@@ -12,7 +12,7 @@ import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
  * портала в сумеречных мирах ({@link PortalTransformer}), ставит их деревья внутрь заселяемой области
  * ({@link TreeShiftTransformer}) и отмечает время их заселения (для пересылки чанков целиком), наклоняет вид в вагонетке
  * Апалачии ({@link CameraTransformer}), не даёт Айрако без братьев ронять сохранение ({@link AyeracoTransformer}), не пускает заселение Iceika в Ледяной Трон, даёт боссам Divine статус босса ({@link BossStatusTransformer})
- * ({@link IceikaThroneTransformer}), не даёт генерации Ветеи создавать соседние чанки по цепочке ({@link VetheaGenTransformer}); до загрузки
+ * ({@link IceikaThroneTransformer}), не даёт генерации Ветеи создавать соседние чанки по цепочке ({@link VetheaGenTransformer}), чинит выбор биома ритуалом Гайи Blood Magic ({@link BiomeRitualTransformer}); до загрузки
  * модов разводит ID биомов Divine с Biomes O Plenty ({@link BiomeIdGuard}).
  */
 @IFMLLoadingPlugin.MCVersion("1.7.10")
@@ -26,7 +26,7 @@ public class DreCorePlugin implements IFMLLoadingPlugin {
             ArmorSetTransformer.class.getName(), VetheaSwapTransformer.class.getName(),
             PortalTransformer.class.getName(), TreeShiftTransformer.class.getName(), CameraTransformer.class.getName(),
             AyeracoTransformer.class.getName(), IceikaThroneTransformer.class.getName(), BossStatusTransformer.class.getName(),
-            NearChatTransformer.class.getName(), VetheaGenTransformer.class.getName() };
+            NearChatTransformer.class.getName(), VetheaGenTransformer.class.getName(), BiomeRitualTransformer.class.getName() };
     }
 
     @Override

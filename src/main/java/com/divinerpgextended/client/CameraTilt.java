@@ -15,7 +15,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * Вид из вагонетки Апалачии: на стене и потолке картинка наклоняется вокруг оси взгляда так, чтобы "верх" вагонетки
  * был вверху экрана, а сам взгляд остаётся настоящим (раньше поворачивался весь мир, и на потолке игра считала взгляд
  * "вверх" взглядом "вниз" - удары и клики уходили не туда). Мышь поворачивается на тот же угол ({@link #angles}).
- * Перевёрнутый в воде мечтаний (ноги в озере в потолке Ветеи) смотрит из головы, а не из пяток.
+ * Перевёрнутый в воде мечтаний (ноги в озере в потолке Ветеи) видит картинку вверх ногами, камера - в голове, а не в пятках.
  */
 @SideOnly(Side.CLIENT)
 public class CameraTilt {
@@ -32,12 +32,16 @@ public class CameraTilt {
         Entity v = Minecraft.getMinecraft().renderViewEntity;
         EntitySkyCart c = cart(v);
         if (c == null) {
-            last = 0;
-            // в воде мечтаний игрок висит вниз головой: игра держит камеру в 1.62 над низом хитбокса (там пятки, в
-            // воде), опускаем её к голове - сдвиг мира вверх, переведённый в оси камеры (дальше поворот по наклону)
-            if (v != null && Minecraft.getMinecraft().gameSettings.thirdPersonView == 0 && com.divinerpgextended.block.BlockDreamWater.inverted(v)) {
-                double pitch = Math.toRadians(v.prevRotationPitch + (v.rotationPitch - v.prevRotationPitch) * pt), s = DreamWaterView.HEAD_DROP;
-                GL11.glTranslated(0, s * Math.cos(pitch), s * Math.sin(pitch));
+            // в воде мечтаний (висячие озёра Ветеи) верх и низ поменялись: картинка вверх ногами
+            last = v != null && com.divinerpgextended.block.BlockDreamWater.inverted(v) ? 180 : 0;
+            if (last != 0) {
+                GL11.glRotated(last, 0, 0, 1);
+                // игра держит камеру на высоте глаз от низа хитбокса - у перевёрнутого там пятки, в воде; опускаем её
+                // к голове: сдвиг мира вверх, переведённый в оси камеры (дальше идёт поворот по наклону взгляда)
+                if (Minecraft.getMinecraft().gameSettings.thirdPersonView == 0) {
+                    double pitch = Math.toRadians(v.prevRotationPitch + (v.rotationPitch - v.prevRotationPitch) * pt), s = DreamWaterView.HEAD_DROP;
+                    GL11.glTranslated(0, s * Math.cos(pitch), s * Math.sin(pitch));
+                }
             }
             return;
         }
@@ -50,7 +54,7 @@ public class CameraTilt {
 
     /** Вместо Entity.setAngles в EntityRenderer.updateCameraAndRender: сдвиг мыши - в осях наклонённого экрана. */
     public static void angles(Entity e, float dx, float dy) {
-        if (Math.abs(last) > 0.01 && cart(e) != null) {
+        if (Math.abs(last) > 0.01 && (cart(e) != null || last == 180)) {
             float[] m = SkyCartView.mouse(dx, dy, last);
             dx = m[0];
             dy = m[1];

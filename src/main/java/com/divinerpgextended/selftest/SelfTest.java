@@ -5790,6 +5790,72 @@ public class SelfTest {
                 + "), зона рыбалки " + zone + "; озеро Ветеи " + lake + ", воды " + vwater);
             return "пруд в Диком лесу: " + water + " воды, " + lily + " кувшинок, причал из 10 досок, ива; озеро на этаже Ветеи (" + vwater + " воды)";
         });
+        t("Прохождение", "Ритуал Гайи (Blood Magic) даёт биомы сумеречных миров", () -> {
+            if (!cpw.mods.fml.common.Loader.isModLoaded("AWWayofTime")) return "нет Blood Magic - пропущено";
+            check(com.divinerpgextended.asm.BiomeRitualTransformer.patched, "ритуал Гайи не исправлен при загрузке");
+            net.minecraft.world.WorldServer gw = server.worldServerForDimension(0);
+            Class<?> stone = Class.forName("WayofTime.alchemicalWizardry.api.rituals.IMasterRitualStone");
+            Object effect = Class.forName("WayofTime.alchemicalWizardry.common.rituals.RitualEffectBiomeChanger").newInstance();
+            java.lang.reflect.Method perform = effect.getClass().getMethod("performEffect", stone);
+            Block plinth = (Block) Class.forName("WayofTime.alchemicalWizardry.ModBlocks").getField("blockPlinth").get(null);
+            Class.forName("WayofTime.alchemicalWizardry.api.soulNetwork.SoulNetworkHandler").getMethod("setCurrentEssence", String.class, int.class)
+                .invoke(null, "TestGaia", 100000000);
+            ItemStack lava = new ItemStack(Items.lava_bucket), water = new ItemStack(Items.water_bucket), coalBlock = new ItemStack(Blocks.coal_block),
+                lapisBlock = new ItemStack(Blocks.lapis_block), lapis = new ItemStack(Items.dye, 1, 4), nrack = new ItemStack(Blocks.netherrack),
+                snowball = new ItemStack(Items.snowball);
+            // мир - класс биома, предметы на постаментах (температура и влажность от 0.5 / 0.5)
+            Object[][] cases = { { "BiomeGenEden", new ItemStack[] { lava, lava, lava, nrack } }, // 1.7 / 0.1
+                { "BiomeGenWildwood", new ItemStack[] { coalBlock, lapisBlock, lapisBlock, lapisBlock } }, // 0.7 / 1.7
+                { "BiomeGenApalachia", new ItemStack[] { lava, coalBlock, lapisBlock, water, lapis } }, // 1.1 / 1.2
+                { "BiomeGenSkythern", new ItemStack[] { lapisBlock, lapisBlock, lapisBlock, water } }, // 0.5 / 1.9
+                { "BiomeGenMortum", new ItemStack[] { new ItemStack(Blocks.snow), snowball, nrack } } }; // 0.2 / 0.1
+            StringBuilder sb = new StringBuilder();
+            boolean all = true;
+            int gk = 0;
+            for (Object[] c : cases) {
+                int x = 61000 + gk++ * 64, y = 120, z = 61000;
+                for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) if (i != 0 || j != 0) gw.setBlock(x + i, y, z + j, plinth);
+                ItemStack[] items = (ItemStack[]) c[1];
+                int slot = 0;
+                for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) {
+                    if (i == 0 && j == 0 || slot >= items.length) continue;
+                    ((net.minecraft.inventory.IInventory) gw.getTileEntity(x + i, y, z + j)).setInventorySlotContents(0, items[slot++].copy());
+                }
+                final int fx = x, fy = y, fz = z;
+                Object proxy = java.lang.reflect.Proxy.newProxyInstance(stone.getClassLoader(), new Class<?>[] { stone }, (pr, meth, args) -> {
+                    switch (meth.getName()) {
+                        case "getOwner": return "TestGaia";
+                        case "getWorld": return gw;
+                        case "getXCoord": return fx;
+                        case "getYCoord": return fy;
+                        case "getZCoord": return fz;
+                        case "getCooldown": case "getVar1": case "getDirection": case "getRunningTime": return 0;
+                        case "areTanksEmpty": return true;
+                        case "equals": return pr == args[0];
+                        case "hashCode": return 0;
+                        default: return null;
+                    }
+                });
+                perform.invoke(effect, proxy);
+                for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) gw.setBlockToAir(x + i, y, z + j);
+                net.minecraft.world.biome.BiomeGenBase got = gw.getBiomeGenForCoords(x, z);
+                boolean ok = got != null && got.getClass().getSimpleName().equals(c[0]);
+                all &= ok;
+                sb.append(String.valueOf(c[0]).substring(8)).append(" -> ").append(got == null ? "?" : got.biomeName + " (" + got.biomeID + ")").append(ok ? "" : " НЕ ТОТ").append("; ");
+            }
+            if (!all) { // свободные сочетания (ни один биом не ближе 0.1 по обоим)
+                sb.append("свободно: ");
+                for (int ti = 0; ti <= 20; ti++) for (int hi = 0; hi <= 20; hi++) {
+                    boolean free = true;
+                    for (net.minecraft.world.biome.BiomeGenBase b : net.minecraft.world.biome.BiomeGenBase.getBiomeGenArray())
+                        if (b != null && !b.getClass().getName().startsWith("net.divinerpg.dimensions.twilight.") && Math.abs(b.temperature - ti / 10F) < 0.1
+                            && Math.abs(b.rainfall - hi / 10F) < 0.1) free = false;
+                    if (free) sb.append(ti / 10F).append('/').append(hi / 10F).append(' ');
+                }
+            }
+            check(all, sb.toString());
+            return "ритуал на воздухе с постаментами: " + sb;
+        });
         t("Ветея - этажи", "Озеро в потолке: вода мечтаний течёт вверх, у глади висят вверх ногами", () -> {
             WorldServer v = server.worldServerForDimension(ConfigurationHelper.vethea);
             int vx = 9400, vz = 9400, vf = 64, ceil = 80;
@@ -5840,11 +5906,18 @@ public class SelfTest {
             sw.setPosition(vx + 0.5, surface + 0.6 - sw.height, vz + 0.5);
             sw.setSneaking(true);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sw));
-            double letGo = sw.motionY;
+            double dive = sw.motionY; // Shift - глубже (вверх)
             sw.setSneaking(false);
             jf.setBoolean(sw, true);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sw));
-            double dive = sw.motionY;
+            double letGo = sw.motionY; // пробел у глади - вынырнуть
+            // всплыл из глубины с зажатым пробелом - у глади держится
+            sw.setPosition(vx + 0.5, surface + 1.6 - sw.height, vz + 0.5);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sw));
+            double rise = sw.motionY;
+            sw.setPosition(vx + 0.5, surface + 0.6 - sw.height, vz + 0.5);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sw));
+            double held = sw.motionY;
             jf.setBoolean(sw, false);
             sw.setAir(10);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(sw));
@@ -5877,15 +5950,15 @@ public class SelfTest {
             v.removeEntity(sw);
             boolean zone = com.divinerpgextended.fishing.Zone.at(v, vx, surface, vz, false) == com.divinerpgextended.fishing.Zone.DREAM;
             for (int i = -9; i <= 9; i++) for (int kk = -9; kk <= 9; kk++) for (int h = vf + 1; h < ceil + 8; h++) v.setBlockToAir(vx + i, h, vz + kk);
-            boolean physics = inv[0] && my[0] > 0 && inv[1] && Math.abs(my[1] - 0.02) < 0.01 && my[2] < 0 && inv[3] && my[3] > 0.03 && letGo < -0.3 && dive > 0.1;
+            boolean physics = inv[0] && my[0] > 0 && inv[1] && Math.abs(my[1] - 0.02) < 0.01 && my[2] < 0 && inv[3] && my[3] > 0.03 && letGo < -0.3 && dive > 0.1 && rise < 0 && held > -0.1;
             check(built && water >= 60 && column == 0 && surface == ceil && rises && infinite && physics && breathes && bucket && zone && floats,
                 "построено " + built + ", воды " + water + ", гладь на " + surface + " (потолок " + ceil + "), блоков под потолком " + column
                 + "; течёт вверх " + rises + ", бесконечная " + infinite + "; на глубине 0.2/0.6/0.9/1.6: перевёрнут " + java.util.Arrays.toString(inv)
-                + ", скорость " + String.format("%.3f/%.3f/%.3f/%.3f", my[0], my[1], my[2], my[3]) + ", Shift " + String.format("%.2f", letGo)
-                + ", прыжок у глади " + String.format("%.2f", dive) + ", дышит у глади " + breathes + "; ведро " + bucket + ", зона " + zone + ", поплавок у глади " + floats
+                + ", скорость " + String.format("%.3f/%.3f/%.3f/%.3f", my[0], my[1], my[2], my[3]) + ", Shift " + String.format("%.2f", dive)
+                + ", пробел у глади " + String.format("%.2f", letGo) + ", пробел в глубине/после всплытия " + String.format("%.2f/%.2f", rise, held) + ", дышит у глади " + breathes + "; ведро " + bucket + ", зона " + zone + ", поплавок у глади " + floats
                 + String.format(" (%.2f..%.2f)", lo, hi));
             return "озеро вырезано в потолке (" + water + " воды мечтаний), течёт вверх, бесконечная; коснулся - сразу перевёрнут и висит у глади, "
-                + "Shift - отпустился, прыжок - нырнул; голова в воздухе - дышит; ведро; поплавок держится у глади";
+                + "Shift - нырнул глубже, пробел - вынырнул, всплыл с пробелом - висит у глади; голова в воздухе - дышит; ведро; поплавок держится у глади";
         });
         t("Сумеречные миры", "Лунный волк, Лета для мобов, климат биомов, адский факел", () -> {
             WorldServer m = server.worldServerForDimension(ConfigurationHelper.mortum);
