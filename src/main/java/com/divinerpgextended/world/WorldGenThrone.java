@@ -120,6 +120,14 @@ public class WorldGenThrone implements IWorldGenerator {
      */
     public static class Seal implements IWorldGenerator {
 
+        /** Чем генерация мира подменяла блоки Трона: жидкости и природные блоки Iceika и обычного мира. */
+        static boolean natural(Block b) {
+            if (b.getMaterial().isLiquid()) return true;
+            return b == net.divinerpg.utils.blocks.IceikaBlocks.frozenStone || b == net.divinerpg.utils.blocks.IceikaBlocks.frozenDirt
+                || b == net.divinerpg.utils.blocks.IceikaBlocks.frozenGrass || b == Blocks.stone || b == Blocks.dirt || b == Blocks.gravel
+                || b == Blocks.snow;
+        }
+
         @Override
         public void generate(Random rand, int chunkX, int chunkZ, World w, IChunkProvider gen, IChunkProvider prov) {
             if (w.provider.dimensionId != ConfigurationHelper.iceika || Config.throneSpacing <= 0) return;
@@ -134,8 +142,16 @@ public class WorldGenThrone implements IWorldGenerator {
                 if (!w.getChunkProvider().chunkExists(ax, az) || !w.getChunkFromChunkCoords(ax, az).isTerrainPopulated || !column(dx, dz, col)) continue;
                 for (int y = FLOOR; y < 250; y++) {
                     int code = col[y * 2];
-                    if (code == KEEP || code == AIR || code == LAMP || code == BRAZIER || !w.isAirBlock(x, y, z)) continue;
-                    w.setBlock(x, y, z, block(code), col[y * 2 + 1], 2);
+                    if (code == KEEP || code == LAMP || code == BRAZIER) continue;
+                    Block now = w.getBlock(x, y, z);
+                    // внутри зала - убрать натёкшее и наросшее (лава, вода, замороженный камень пещер Iceika)
+                    if (code == AIR) {
+                        if (natural(now)) w.setBlock(x, y, z, Blocks.air, 0, 2);
+                        continue;
+                    }
+                    // стена и свод: дыру - заложить, подменённый генерацией блок - вернуть по чертежу
+                    Block want = block(code);
+                    if (now != want && (w.isAirBlock(x, y, z) || natural(now))) w.setBlock(x, y, z, want, col[y * 2 + 1], 2);
                 }
             }
         }
@@ -349,10 +365,11 @@ public class WorldGenThrone implements IWorldGenerator {
 
     /**
      * Сверка построенного Трона с чертежом (для автотеста): {лишних блоков там, где по чертежу воздух; дыр - воздуха там,
-     * где по чертежу стена или свод}; в out - первые примеры. Только столбцы в загруженных чанках.
+     * где по чертежу стена или свод; подмен - природного блока или жидкости вместо стены}; в out - первые примеры.
+     * Только столбцы в загруженных чанках.
      */
     public static int[] audit(World w, int cx, int cz, StringBuilder out) {
-        int[] col = new int[256 * 2], n = new int[2];
+        int[] col = new int[256 * 2], n = new int[3];
         for (int dx = -R; dx <= R; dx++) for (int dz = -R; dz <= R; dz++) {
             int x = cx + dx, z = cz + dz;
             if (!w.getChunkProvider().chunkExists(x >> 4, z >> 4) || !column(dx, dz, col)) continue;
@@ -365,6 +382,9 @@ public class WorldGenThrone implements IWorldGenerator {
                         .append(Block.blockRegistry.getNameForObject(w.getBlock(x, y, z))).append("; ");
                 } else if (code != AIR && air && code != LAMP && code != BRAZIER) {
                     if (n[1]++ < 4) out.append("дыра ").append(dx).append(",").append(y).append(",").append(dz).append(" код ").append(code).append("; ");
+                } else if (code != AIR && code != LAMP && code != BRAZIER && !air && w.getBlock(x, y, z) != block(code) && Seal.natural(w.getBlock(x, y, z))) {
+                    if (n[2]++ < 4) out.append("подмена ").append(dx).append(",").append(y).append(",").append(dz).append(" ")
+                        .append(Block.blockRegistry.getNameForObject(w.getBlock(x, y, z))).append("; ");
                 }
             }
         }

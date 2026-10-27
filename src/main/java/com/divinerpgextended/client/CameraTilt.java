@@ -36,12 +36,12 @@ public class CameraTilt {
             last = v != null && com.divinerpgextended.block.BlockDreamWater.inverted(v) ? 180 : 0;
             if (last != 0) {
                 GL11.glRotated(last, 0, 0, 1);
-                // игра держит камеру на высоте глаз от низа хитбокса - у перевёрнутого там пятки, в воде; опускаем её
-                // к голове: сдвиг мира вверх, переведённый в оси камеры (дальше идёт поворот по наклону взгляда)
-                if (Minecraft.getMinecraft().gameSettings.thirdPersonView == 0) {
-                    double pitch = Math.toRadians(v.prevRotationPitch + (v.rotationPitch - v.prevRotationPitch) * pt), s = DreamWaterView.HEAD_DROP;
-                    GL11.glTranslated(0, s * Math.cos(pitch), s * Math.sin(pitch));
-                }
+                // игра держит камеру (и точку, вокруг которой ходит камера от третьего лица) на высоте глаз от низа хитбокса -
+                // у перевёрнутого там пятки, в воде; опускаем её к голове: сдвиг мира вверх, переведённый в оси камеры
+                // (дальше идут повороты по наклону взгляда; вид спереди развёрнут на 180 - знак по оси взгляда другой)
+                double pitch = Math.toRadians(v.prevRotationPitch + (v.rotationPitch - v.prevRotationPitch) * pt), s = DreamWaterView.HEAD_DROP;
+                int front = Minecraft.getMinecraft().gameSettings.thirdPersonView == 2 ? -1 : 1;
+                GL11.glTranslated(0, s * Math.cos(pitch), front * s * Math.sin(pitch));
             }
             return;
         }

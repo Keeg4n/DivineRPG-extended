@@ -141,6 +141,7 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         }
         w.setBlock(x + 4, base, z + 2, tw.lamp(), tw.lampMeta(), 2);
         chest(w, r, x + 4, base + 1, z + 4, TwilightLoot.ruins(tw), 5 + r.nextInt(3));
+        if (tw == TwilightWorld.APALACHIA) sealIn(w, x + 4, base + 1, z + 4, tw); // острова Апалачии тонкие, подземелий мало - печать и в руинах
         // стража
         int guards = 2 + r.nextInt(2);
         for (int i = 0; i < guards; i++) spawn(w, r, tw, x + 2 + r.nextInt(5), base + 1, z + 2 + r.nextInt(5));
@@ -245,6 +246,7 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
             if (i == 0) for (int y = 1; y < roof[k]; y++) w.setBlock(x, base + y, z + 1 + k, Blocks.wool, c, 2);
         }
         chest(w, r, x + 1, base + 1, z + 3, TwilightLoot.ruins(tw), 3 + r.nextInt(3));
+        if (tw == TwilightWorld.APALACHIA) sealIn(w, x + 1, base + 1, z + 3, tw); // острова Апалачии тонкие, подземелий мало - печать и в руинах
         // костёр с сиденьями
         w.setBlock(x + 6, base, z + 3, com.divinerpgextended.registry.ModBlocks.brazier, 1, 2);
         w.setBlock(x + 6, base + 1, z + 1, tw.log(), 8, 2);
@@ -371,7 +373,7 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
 
     // ---------------------------------------------------------------- общее
 
-    /** В сундуке подземелья всегда печать святилища мира (кроме Мортума - там вызывают кристаллами). */
+    /** В сундуке подземелья (а в Апалачии - и руин) всегда печать святилища мира (кроме Мортума - там вызывают кристаллами). */
     static void sealIn(World w, int x, int y, int z, TwilightWorld tw) {
         if (tw == TwilightWorld.MORTUM || !(w.getTileEntity(x, y, z) instanceof TileEntityChest)) return;
         TileEntityChest c = (TileEntityChest) w.getTileEntity(x, y, z);

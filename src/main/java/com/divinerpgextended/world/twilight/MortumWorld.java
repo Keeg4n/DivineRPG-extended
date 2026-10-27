@@ -73,8 +73,8 @@ public class MortumWorld {
     }
 
     /**
-     * Моб в Лете: раз в секунду тот же урон, что игроку. Не трогает нежить и жителей Мортума (кто появляется в биоме
-     * Мортума сам, боссы Мортума, Харон).
+     * Моб в Лете (в любом мире - и разлитой из ведра): раз в секунду тот же урон, что игроку. Не трогает нежить и жителей
+     * Мортума (кто появляется в биоме Мортума сам, боссы Мортума, Харон).
      */
     public static void mobInLethe(net.minecraft.entity.EntityLivingBase e, int x, int z) {
         if (e.isDead || e.getCreatureAttribute() == net.minecraft.entity.EnumCreatureAttribute.UNDEAD || native_(e, x, z)) return;
@@ -85,10 +85,16 @@ public class MortumWorld {
         if (now % 20 == 0) e.attackEntityFrom(LETHE, BITE);
     }
 
-    /** Житель Мортума: в списках спавна его биома, босс Мортума или Харон. */
+    /**
+     * Житель Мортума: в списках спавна биома Мортума, босс Мортума или Харон. Списки - только биома Мортума: в обычном
+     * мире зомби или свинья в списках местного биома, но Лета их грызёт.
+     */
     static boolean native_(net.minecraft.entity.EntityLivingBase e, int x, int z) {
         if (e instanceof com.divinerpgextended.entity.EntityCharon) return true;
-        if (e instanceof net.minecraft.entity.boss.IBossDisplayData && e.worldObj.provider.dimensionId == net.divinerpg.utils.config.ConfigurationHelper.mortum) return true;
+        boolean mortum = e.worldObj.provider.dimensionId == net.divinerpg.utils.config.ConfigurationHelper.mortum;
+        if (e instanceof net.minecraft.entity.boss.IBossDisplayData && mortum) return true;
+        for (Class<?> c : TwilightWorld.MORTUM.mobs()) if (c == e.getClass()) return true;
+        if (!mortum) return false;
         net.minecraft.world.biome.BiomeGenBase b = e.worldObj.getBiomeGenForCoords(x, z);
         for (net.minecraft.entity.EnumCreatureType t : net.minecraft.entity.EnumCreatureType.values())
             for (Object o : b.getSpawnableList(t)) if (((net.minecraft.world.biome.BiomeGenBase.SpawnListEntry) o).entityClass == e.getClass()) return true;

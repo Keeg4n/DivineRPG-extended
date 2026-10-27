@@ -73,10 +73,24 @@ public class FishingEvents {
             trade(v, p, new InfiniteTrade(new ItemStack(ArcanaItems.arcanium, 12), rod(Rod.RUPEE), rod(Rod.ARCANA)));
         } else if (v instanceof EntityJackOMan) {
             trade(v, p, new InfiniteTrade(new ItemStack(Items.bone, 40), new ItemStack(Blocks.pumpkin, 16), rod(Rod.JACK)));
+        } else if (v instanceof net.divinerpg.entities.arcana.EntityWarGeneral) {
+            arcanePick(v, p);
         } else if (v instanceof EntityTheHunger) {
             hunger(v, p);
             trade(v, p, new InfiniteTrade(new ItemStack(VetheaItems.polishedPearls, 16), rod(Rod.MORTUM), rod(Rod.HUNGER)));
         }
+    }
+
+    /** Генерал войны: арканитовая кирка за арканиум - тем, кто победил всех боссов Мортума. */
+    private static void arcanePick(EntityDivineRPGVillager v, EntityPlayer p) {
+        MerchantRecipeList list = v.getRecipes(p);
+        if (list == null) return;
+        for (Iterator<?> it = list.iterator(); it.hasNext();) {
+            ItemStack sell = ((MerchantRecipe) it.next()).getItemToSell();
+            if (sell != null && sell.getItem() == ModItems.arcanePick) it.remove();
+        }
+        if (com.divinerpgextended.item.ItemArcanePick.mortumDone(p))
+            list.add(new InfiniteTrade(new ItemStack(ArcanaItems.arcanium, com.divinerpgextended.item.ItemArcanePick.PRICE), null, new ItemStack(ModItems.arcanePick)));
     }
 
     public static final int HEIVA_BELT_PRICE = 30, WINGS_TEMPLATE_PRICE = 8, MIDNIGHT_TEMPLATE_PRICE = 8;

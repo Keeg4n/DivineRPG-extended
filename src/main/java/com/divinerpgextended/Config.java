@@ -70,6 +70,11 @@ public class Config {
     public static String[] vetheaWhitelist = {};
     /** Оружие других модов, которое кошмар Ветеи сам не узнаёт (урон считает само, без ванильной основы). */
     public static String[] vetheaWeapons = {};
+    /** Естественный спавн в мирах Divine - только мобы Divine, аддона и белого списка. */
+    public static boolean divineSpawnFilter = true;
+    /** Фонтанный зал Арканы: в среднем один на столько чанков (0 - нет). */
+    public static int arcanaFountainChance = 40;
+    public static String[] divineSpawnWhitelist = {};
     /** Слабости мобов Ветеи: "класс моба=вид[,вид]" (виды: sword claw hammer bow disk staff cannon). */
     public static String[] vetheaWeakness = { "EntityLheiva=bow", "EntityLorgaFlight=sword,claw", "EntityDissiment=disk", "EntityHoverStinger=disk",
         "EntityZoragon=bow", "EntityGalroid=hammer", "EntityVhraak=hammer", "EntityShadahier=staff", "EntityCymesoid=staff", "EntityKazrotic=cannon" };
@@ -221,6 +226,14 @@ public class Config {
             "Предметы других модов, которые в Ветее считаются своими (modid:name, по одному в строке)");
         vetheaWeapons = cfg.getStringList("vetheaWeapons", v, vetheaWeapons,
             "Оружие других модов, которое в Ветее не распознаётся само (modid:name): чужое оружие лечит мобов. Мечи, инструменты, луки, Tinkers' Construct, катана и разборщик Tainted Magic, мульти-инструмент Blood Magic узнаются без настройки");
+        arcanaFountainChance = cfg.getInt("arcanaFountainChance", "arcana", arcanaFountainChance, 0, 10000,
+            "Фонтанный зал Арканы (чаша арканного концентрата: восстанавливает аркану, только там рыба Арканы и только на арканную удочку): "
+                + "в среднем один на столько новых чанков; 0 - не строить");
+        divineSpawnFilter = cfg.getBoolean("divineSpawnFilter", v, divineSpawnFilter,
+            "Миры Divine (Iceika, сумеречные, Аркана, Ветея): сами по себе появляются только мобы Divine и аддона (и из divineSpawnWhitelist); "
+                + "мобы других модов (слизни Tinkers, Grimoire of Gaia...) - нет. Спавнеры и призыв не затронуты");
+        divineSpawnWhitelist = cfg.getStringList("divineSpawnWhitelist", v, divineSpawnWhitelist,
+            "Кому ещё можно появляться в мирах Divine: класс моба, имя сущности (как в /summon) или начало имени (modid - для всех мобов мода), по одному в строке");
         vetheaWeakness = cfg.getStringList("vetheaWeakness", v, vetheaWeakness,
             "Слабости мобов Ветеи (класс моба Divine=вид[,вид]): своим видом x2 урона и двойная добыча за добивание, остальным x0.25. "
                 + "Виды: sword claw hammer bow disk staff cannon. Пустой список - слабостей нет");

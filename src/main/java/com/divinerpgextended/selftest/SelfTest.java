@@ -2622,6 +2622,220 @@ public class SelfTest {
             check(!hit && need == 20 && Math.abs(half - 0.5F) < 0.03F && reset && dead, log + ", гибель " + dead);
             return "Королеву не ранить; полоска - сколько роя осталось (20 на одного, на половине " + half + "), ушёл - сначала; рой перебит - Королева гибнет";
         });
+        t("Прохождение", "Грядка мечтаний: посадки ломаются вместе с пашней", () -> {
+            WorldServer zw = server.worldServerForDimension(ConfigurationHelper.vethea);
+            loadAround(zw, 500, 500, 1);
+            TestPlayer zp = join(player(ConfigurationHelper.vethea, "TestCropProbe", 500.5, 21, 498.5), true);
+            StringBuilder hoe = new StringBuilder();
+            for (net.minecraft.block.Block soil : new net.minecraft.block.Block[] { net.divinerpg.utils.blocks.VetheaBlocks.dreamGrass, net.divinerpg.utils.blocks.VetheaBlocks.dreamDirt }) {
+                zw.setBlock(500, 20, 500, soil);
+                zw.setBlockToAir(500, 21, 500);
+                hold(zp, new ItemStack(Items.diamond_hoe));
+                Items.diamond_hoe.onItemUse(zp.getHeldItem(), zp, zw, 500, 20, 500, 1, 0.5F, 1, 0.5F);
+                hoe.append(soil.getUnlocalizedName()).append(" -> ").append(zw.getBlock(500, 20, 500).getUnlocalizedName()).append("; ");
+            }
+            net.minecraft.block.Block carrot = com.divinerpgextended.registry.ModBlocks.dreamCarrots, stem = com.divinerpgextended.registry.ModBlocks.dreamMelonStem;
+            zw.setBlock(500, 20, 500, Blocks.farmland);
+            zw.setBlock(500, 21, 500, carrot);
+            zw.setBlock(500, 20, 500, Blocks.dirt);
+            boolean dried = zw.getBlock(500, 21, 500) != carrot;
+            zw.setBlock(500, 20, 500, Blocks.farmland);
+            zw.setBlock(500, 21, 500, carrot);
+            Blocks.farmland.onFallenUpon(zw, 500, 20, 500, zp, 3);
+            boolean trampled = zw.getBlock(500, 20, 500) != Blocks.farmland && zw.getBlock(500, 21, 500) != carrot;
+            zw.setBlock(500, 20, 500, Blocks.farmland);
+            zw.setBlock(500, 21, 500, stem);
+            zw.setBlock(500, 20, 500, Blocks.dirt);
+            boolean stemGone = zw.getBlock(500, 21, 500) != stem;
+            // посадка - как у ванильной моркови: только на то, что держит посадки (пашня), по клику сверху
+            zw.setBlock(500, 20, 500, Blocks.farmland);
+            zw.setBlockToAir(500, 21, 500);
+            hold(zp, new ItemStack(VetheaItems.dreamCarrot));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(zp, net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, 500, 20, 500, 1, zw));
+            boolean planted = zw.getBlock(500, 21, 500) == carrot;
+            zw.setBlockToAir(500, 21, 500);
+            zw.setBlockToAir(500, 20, 500);
+            check(dried && trampled && stemGone && planted, "пашня -> земля: морковь " + dried + ", вытоптана " + trampled + ", стебель " + stemGone + ", посажена " + planted + "; мотыга: " + hoe);
+            return "на пашне сажается; пашня стала землёй (пересохла или вытоптана) - морковь и стебель арбуза мечтаний ломаются; мотыга: " + hoe;
+        });
+        t("Прохождение", "Вода мечтаний не держит потоки обычной воды", () -> {
+            WorldServer zw = server.worldServerForDimension(0);
+            int x0 = 9300, y0 = 120, z0 = 9300;
+            loadAround(zw, x0, z0, 1);
+            zw.setBlock(x0, y0, z0, com.divinerpgextended.registry.ModBlocks.dreamWater, 0, 2);
+            zw.setBlock(x0 + 1, y0, z0, Blocks.water, 0, 2);
+            java.lang.reflect.Method decay = cpw.mods.fml.relauncher.ReflectionHelper.findMethod(net.minecraft.block.BlockLiquid.class, null,
+                new String[] { "func_149804_e" }, net.minecraft.world.World.class, int.class, int.class, int.class);
+            int dream = (Integer) decay.invoke(Blocks.flowing_water, zw, x0, y0, z0), water = (Integer) decay.invoke(Blocks.flowing_water, zw, x0 + 1, y0, z0);
+            zw.setBlockToAir(x0, y0, z0);
+            zw.setBlockToAir(x0 + 1, y0, z0);
+            boolean eden = false;
+            for (net.minecraft.world.biome.BiomeGenBase b : net.minecraft.world.biome.BiomeGenBase.getBiomeGenArray())
+                if (b != null && b.getClass().getSimpleName().equals("BiomeGenEden")) eden = b.waterColorMultiplier == 0xFFFFFF;
+            check(dream == -1 && water == 0 && eden, "для ванильной воды: вода мечтаний " + dream + ", свой источник " + water + "; вода Эдема без чёрного множителя " + eden);
+            return "ванильная вода не считает воду мечтаний источником (" + dream + "), свой источник - да (" + water + "); вода Эдема без чёрного множителя (текстура золотая на клиенте)";
+        });
+        t("Прохождение", "Факелы Заснежья и Везеи, водный факел зова", () -> {
+            WorldServer zw = server.worldServerForDimension(0);
+            ItemStack ti = craft(zw, new Object[] { null, net.divinerpg.utils.items.IceikaItems.iceShards, null, null,
+                com.divinerpgextended.world.twilight.TwilightCrafts.stick(com.divinerpgextended.world.twilight.WorldWood.FROZEN), null, null, null, null });
+            ItemStack tv = craft(zw, new Object[] { null, VetheaItems.dirtyPearls, null, null, Items.stick, null, null, null, null });
+            ItemStack tl = craft(zw, new Object[] { null, net.divinerpg.utils.items.VanillaItemsOther.aquaticIngot, null, null, net.divinerpg.utils.items.VanillaItemsOther.aquaticBlazeRod, null, null, null, null });
+            boolean recipes = ti != null && ti.stackSize == 4 && ti.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.iceikaTorch)
+                && tv != null && tv.stackSize == 4 && tv.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.vetheaTorch)
+                && tl != null && tl.stackSize == 1 && tl.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.lureTorch);
+            boolean wards = com.divinerpgextended.boss.TorchWards.home(com.divinerpgextended.registry.ModBlocks.iceikaTorch) == ConfigurationHelper.iceika
+                && com.divinerpgextended.boss.TorchWards.home(com.divinerpgextended.registry.ModBlocks.vetheaTorch) == ConfigurationHelper.vethea
+                && !com.divinerpgextended.boss.TorchWards.isTorch(com.divinerpgextended.registry.ModBlocks.lureTorch);
+            // факел зова: арканиум - горит, ещё - дольше, догорел - потушен
+            int x0 = 9320, y0 = 120, z0 = 9300;
+            loadAround(zw, x0, z0, 1);
+            zw.setBlock(x0, y0 - 1, z0, Blocks.stone);
+            zw.setBlock(x0, y0, z0, com.divinerpgextended.registry.ModBlocks.lureTorch, 5, 3);
+            TestPlayer zp = join(player(0, "TestLure", x0 + 1.5, y0, z0 + 0.5), true);
+            hold(zp, new ItemStack(net.divinerpg.utils.items.ArcanaItems.arcanium, 3));
+            com.divinerpgextended.registry.ModBlocks.lureTorch.onBlockActivated(zw, x0, y0, z0, zp, 1, 0.5F, 0.5F, 0.5F);
+            boolean lit = zw.getBlock(x0, y0, z0) == com.divinerpgextended.registry.ModBlocks.lureTorchLit && zw.getBlockMetadata(x0, y0, z0) == 5;
+            com.divinerpgextended.block.BlockLureTorch.Tile te = (com.divinerpgextended.block.BlockLureTorch.Tile) zw.getTileEntity(x0, y0, z0);
+            long first = te.until - zw.getTotalWorldTime();
+            com.divinerpgextended.registry.ModBlocks.lureTorchLit.onBlockActivated(zw, x0, y0, z0, zp, 1, 0.5F, 0.5F, 0.5F);
+            long second = te.until - zw.getTotalWorldTime();
+            boolean paid = zp.getHeldItem() != null && zp.getHeldItem().stackSize == 1;
+            te.until = zw.getTotalWorldTime();
+            te.updateEntity();
+            boolean out = zw.getBlock(x0, y0, z0) == com.divinerpgextended.registry.ModBlocks.lureTorch;
+            zw.setBlockToAir(x0, y0, z0);
+            check(recipes && wards && lit && first == 1200 && second == 2400 && paid && out, "рецепты " + recipes + ", миры " + wards + "; зажёгся " + lit + ", минут " + first / 1200
+                + " -> " + second / 1200 + ", арканиум списан " + paid + ", догорел " + out);
+            return "факел Заснежья (ледяные осколки на морозной палке) и Везеи (серый жемчуг на палке) - по 4, гонят монстров в своём мире; "
+                + "водный факел зова - 1 из водного слитка и водного стержня ифрита, арканиум = минута горения (докидывается), догорел - потушен";
+        });
+        t("Прохождение", "Белый список спавна в мирах Divine", () -> {
+            WorldServer zi = server.worldServerForDimension(ConfigurationHelper.iceika);
+            net.minecraft.entity.monster.EntitySlime slime = new net.minecraft.entity.monster.EntitySlime(zi);
+            net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn cs = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(slime, zi, 0, 80, 0);
+            MinecraftForge.EVENT_BUS.post(cs);
+            boolean foreign = cs.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.DENY;
+            net.divinerpg.entities.iceika.EntityRollum rollum = new net.divinerpg.entities.iceika.EntityRollum(zi);
+            cs = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(rollum, zi, 0, 80, 0);
+            MinecraftForge.EVENT_BUS.post(cs);
+            boolean own = cs.getResult() != cpw.mods.fml.common.eventhandler.Event.Result.DENY;
+            net.minecraft.entity.monster.EntitySlime home = new net.minecraft.entity.monster.EntitySlime(server.worldServerForDimension(0));
+            cs = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(home, server.worldServerForDimension(0), 0, 80, 0);
+            MinecraftForge.EVENT_BUS.post(cs);
+            boolean overworld = cs.getResult() != cpw.mods.fml.common.eventhandler.Event.Result.DENY;
+            check(foreign && own && overworld, "слизень в Iceika запрещён " + foreign + ", роллум можно " + own + ", слизень в обычном мире можно " + overworld);
+            return "в мирах Divine сами по себе появляются только мобы Divine и аддона (слизень в Iceika - нет, роллум - да); обычный мир не затронут";
+        });
+        t("Прохождение", "Спавнеры Арканы и арканитовая кирка", () -> {
+            WorldServer za = server.worldServerForDimension(ConfigurationHelper.arcana);
+            net.minecraft.block.Block sp = net.divinerpg.utils.blocks.ArcanaBlocks.deathHoundSpawner;
+            float hard = sp.getBlockHardness(za, 0, 0, 0);
+            TestPlayer zp = join(player(ConfigurationHelper.arcana, "TestArcPick", 100, 60, 100), true);
+            hold(zp, new ItemStack(Items.diamond_pickaxe));
+            net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed bs = new net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed(zp, sp, 0, 8F, 100, 60, 100);
+            MinecraftForge.EVENT_BUS.post(bs);
+            float diamond = bs.newSpeed;
+            hold(zp, new ItemStack(ModItems.arcanePick));
+            bs = new net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed(zp, sp, 0, ModItems.arcanePick.getDigSpeed(zp.getHeldItem(), sp, 0), 100, 60, 100);
+            MinecraftForge.EVENT_BUS.post(bs);
+            float arcane = bs.newSpeed;
+            // торговля: Генерал войны - только после всех боссов Мортума
+            for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.item.ItemArcanePick.MORTUM) com.divinerpgextended.boss.BossProgress.revoke(zp, b);
+            com.divinerpgextended.boss.BossProgress.grant(zp, com.divinerpgextended.boss.Boss.CADILLION_APALACHIA); // Генерал говорит после Короля-воина
+            net.divinerpg.entities.arcana.EntityWarGeneral gen = new net.divinerpg.entities.arcana.EntityWarGeneral(za);
+            gen.setPosition(101, 60, 100);
+            hold(zp, null);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.EntityInteractEvent(zp, gen));
+            boolean before = false, after = false;
+            for (Object o : gen.getRecipes(zp)) if (((net.minecraft.village.MerchantRecipe) o).getItemToSell().getItem() == ModItems.arcanePick) before = true;
+            for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.item.ItemArcanePick.MORTUM) com.divinerpgextended.boss.BossProgress.grant(zp, b);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.EntityInteractEvent(zp, gen));
+            for (Object o : gen.getRecipes(zp)) if (((net.minecraft.village.MerchantRecipe) o).getItemToSell().getItem() == ModItems.arcanePick) after = true;
+            check(hard > 0 && diamond == 0 && arcane > 0 && !before && after, "прочность спавнера " + hard + ", алмазной киркой " + diamond + ", арканитовой " + arcane
+                + "; у Генерала до Мортума " + before + ", после " + after);
+            return "спавнеры Арканы ломаются только арканитовой киркой (прочность " + hard + ", алмазная - 0); кирку продаёт Генерал войны после всех боссов Мортума";
+        });
+        t("Прохождение", "Карта к храму джунглей, Странник, подозрительный песчаник, Повелитель ветров", () -> {
+            WorldServer zw = server.worldServerForDimension(0);
+            TestPlayer zp = join(player(0, "TestJungleMap", 0.5, 120, 0.5), true);
+            zp.inventory.clearInventory(null, -1);
+            zp.chat.clear();
+            ItemStack zm = new ItemStack(ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.JUNGLE);
+            hold(zp, zm);
+            ModItems.lairMap.onItemRightClick(zm, zw, zp);
+            boolean map = false;
+            for (ItemStack s : zp.inventory.mainInventory) if (com.divinerpgextended.item.ExplorerMaps.target(s) != null) map = true;
+            String said = zp.chat.isEmpty() ? "" : zp.chat.get(zp.chat.size() - 1);
+            ItemStack trap = craft(zw, new Object[] { new ItemStack(Blocks.sandstone, 1, 2), new ItemStack(Blocks.sandstone, 1, 2), new ItemStack(Blocks.sandstone, 1, 2),
+                new ItemStack(Blocks.sandstone, 1, 2), null, new ItemStack(Blocks.sandstone, 1, 2), null, null, null });
+            boolean trapOk = trap != null && trap.stackSize == 5 && trap.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.trapFloor);
+            com.divinerpgextended.entity.EntityWanderer wn = new com.divinerpgextended.entity.EntityWanderer(zw);
+            float wHp = wn.getMaxHealth();
+            net.minecraft.nbt.NBTTagCompound old = new net.minecraft.nbt.NBTTagCompound();
+            wn.writeToNBT(old);
+            net.minecraft.nbt.NBTTagList attrs = old.getTagList("Attributes", 10);
+            for (int i = 0; i < attrs.tagCount(); i++) if ("generic.maxHealth".equals(attrs.getCompoundTagAt(i).getString("Name"))) attrs.getCompoundTagAt(i).setDouble("Base", 20);
+            old.setFloat("HealF", 20);
+            com.divinerpgextended.entity.EntityWanderer wo = new com.divinerpgextended.entity.EntityWanderer(zw);
+            wo.readFromNBT(old);
+            float oldHp = wo.getMaxHealth();
+            // Повелитель ветров: звук победы - только бившим
+            com.divinerpgextended.entity.EntityWindLord lord = new com.divinerpgextended.entity.EntityWindLord(zw);
+            lord.setPosition(3, 120, 3);
+            lord.attackEntityFrom(DamageSource.causePlayerDamage(zp), 1);
+            int fighters = lord.fighterCount();
+            boolean quietDeath = !"mob.enderdragon.end".equals(cpw.mods.fml.relauncher.ReflectionHelper.findMethod(net.minecraft.entity.EntityLivingBase.class, lord,
+                new String[] { "func_70673_aS", "getDeathSound" }).invoke(lord));
+            ItemStack pick = new com.divinerpgextended.entity.EntitySkyCart(zw).getPickedResult(null);
+            boolean cartPick = pick != null && pick.getItem() == ModItems.skyCart;
+            check(map && trapOk && wHp == 1000 && oldHp == 1000 && fighters == 1 && quietDeath && cartPick, "карта к храму " + map + " (" + said + "); песчаник " + trap
+                + "; Странник " + wHp + ", старый " + oldHp + "; Повелитель: бивших " + fighters + ", звук смерти не драконий " + quietDeath + "; вагонетка по средней кнопке " + pick);
+            return "карта к храму джунглей ведёт к месту из сида (" + said + "); 5 гладкого песчаника шлемом = 5 подозрительного; Странник 1000 здоровья (и старые); "
+                + "звук победы над Повелителем ветров - только бившим; средняя кнопка по вагонетке Апалачии даёт её";
+        });
+        t("Прохождение", "Фонтанный зал Арканы: концентрат, аркана, рыба Арканы", () -> {
+            WorldServer za = server.worldServerForDimension(ConfigurationHelper.arcana);
+            int[] room = null;
+            for (int fc = 0; fc < 12 && room == null; fc++) {
+                int fcx = 40 + fc, fcz = 40;
+                za.theChunkProviderServer.loadChunk(fcx, fcz);
+                for (int fl = 0; fl < com.divinerpgextended.world.ArcanaFountain.LEVELS && room == null; fl++)
+                    if (com.divinerpgextended.world.ArcanaFountain.build(za, fcx * 16, fl * com.divinerpgextended.world.ArcanaFountain.H, fcz * 16))
+                        room = new int[] { fcx * 16, fl * com.divinerpgextended.world.ArcanaFountain.H, fcz * 16 };
+            }
+            check(room != null, "ни одной комнаты без тайников в 12 чанках");
+            int pool = 0;
+            for (int x = room[0]; x < room[0] + 16; x++) for (int z = room[2]; z < room[2] + 16; z++)
+                if (za.getBlock(x, room[1] + 1, z) == com.divinerpgextended.registry.ModBlocks.arcaneConcentrate) pool++;
+            int px = room[0] + 5, py = room[1] + 1, pz = room[2] + 5;
+            TestPlayer zp = join(player(ConfigurationHelper.arcana, "TestFountain", px + 0.5, py, pz + 0.5), true);
+            Class<?> ah = Class.forName("net.divinerpg.utils.events.ArcanaHelper");
+            Object props = ah.getMethod("getProperties", EntityPlayer.class).invoke(null, zp);
+            ah.getMethod("setBarValue", float.class).invoke(props, 0F);
+            com.divinerpgextended.registry.ModBlocks.arcaneConcentrate.onEntityCollidedWithBlock(za, px, py, pz, zp);
+            float bar = (Float) ah.getMethod("getBarValue").invoke(props);
+            boolean zone = com.divinerpgextended.fishing.Zone.at(za, px + 0.5, py + 0.5, pz + 0.5, false) == com.divinerpgextended.fishing.Zone.ARCANA
+                && com.divinerpgextended.fishing.Zone.at(za, room[0] + 2.5, room[1] + 2.5, room[2] + 2.5, false) != com.divinerpgextended.fishing.Zone.ARCANA;
+            java.lang.reflect.Field wait = cpw.mods.fml.relauncher.ReflectionHelper.findField(com.divinerpgextended.fishing.EntityDreHook.class, "ticksCaughtDelay");
+            int[] waits = new int[2];
+            com.divinerpgextended.fishing.Rod[] rods = { com.divinerpgextended.fishing.Rod.VANILLA, com.divinerpgextended.fishing.Rod.ARCANA };
+            for (int i = 0; i < 2; i++) {
+                hold(zp, new ItemStack(Items.fishing_rod));
+                com.divinerpgextended.fishing.EntityDreHook hk = new com.divinerpgextended.fishing.EntityDreHook(za, zp, rods[i]);
+                hk.setPosition(px + 0.5, py + 0.6, pz + 0.5);
+                hk.motionX = hk.motionY = hk.motionZ = 0;
+                za.spawnEntityInWorld(hk);
+                for (int kt = 0; kt < 60 && waits[i] == 0; kt++) {
+                    hk.onUpdate();
+                    waits[i] = wait.getInt(hk);
+                }
+                hk.setDead();
+            }
+            check(pool >= 30 && bar > 0 && zone && waits[0] == 0 && waits[1] > 0, "чаша " + pool + " блоков, аркана в концентрате " + bar + ", зона " + zone
+                + ", поклёвка: обычная удочка " + waits[0] + ", арканная " + waits[1]);
+            return "в комнате Арканы - зал с чашей концентрата (" + pool + " блоков): стоящий в нём восстанавливает аркану; рыба Арканы - только в концентрате и только на арканную удочку";
+        });
         t("Логова", "Покой арены", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
             loadAround(w, 9700, 9800, 2);
@@ -2826,6 +3040,9 @@ public class SelfTest {
             com.divinerpgextended.entity.EntitySkyCart cart = new com.divinerpgextended.entity.EntitySkyCart(w, x0 + 1, y0, z0, -90);
             w.spawnEntityInWorld(cart);
             rp.mountEntity(cart);
+            rp.rotationYaw = -90; // смотрит по ходу (на восток) и жмёт "вперёд"
+            rp.rotationPitch = 0;
+            rp.moveForward = 1;
             // клиентское сглаживание (как clientSmooth: позиция и нормаль догоняют серверные на 1/4 за тик)
             double[] cp = { cart.posX, cart.posY, cart.posZ };
             float[] cn = cart.normal();
@@ -2905,6 +3122,9 @@ public class SelfTest {
             com.divinerpgextended.entity.EntitySkyCart cart = new com.divinerpgextended.entity.EntitySkyCart(w, x0, y0, z0, -90);
             w.spawnEntityInWorld(cart);
             rp.mountEntity(cart);
+            rp.rotationYaw = -90; // смотрит по ходу (на восток) и жмёт "вперёд"
+            rp.rotationPitch = 0;
+            rp.moveForward = 1;
             double[] cp = { cart.posX, cart.posY, cart.posZ };
             float[] cn = cart.normal();
             int bodyIn = 0, camIn = 0, eyeIn = 0, ticks = 0, maxX = 0;
@@ -2994,7 +3214,8 @@ public class SelfTest {
             WorldServer w = server.worldServerForDimension(0);
             TestPlayer hp14 = join(player(0, "TestHellBlade", sx + 40.5, sy, sz + 0.5), true);
             hold(hp14, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.scorchingSword));
-            net.minecraft.entity.monster.EntityZombie zs = new net.minecraft.entity.monster.EntityZombie(w);
+            // моб самой Iceika (чужих там белый список и так не пускает)
+            net.divinerpg.entities.iceika.EntityRollum zs = new net.divinerpg.entities.iceika.EntityRollum(w);
             zs.setPosition(sx + 41.5, sy, sz + 0.5);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(zs, DamageSource.causePlayerDamage(hp14), 5));
             boolean lit = zs.isBurning();
@@ -3350,6 +3571,9 @@ public class SelfTest {
             com.divinerpgextended.entity.EntitySkyCart cart = new com.divinerpgextended.entity.EntitySkyCart(w, x0, y0, z0, -90); // лицом на восток
             w.spawnEntityInWorld(cart);
             rp.mountEntity(cart);
+            rp.rotationYaw = -90; // смотрит по ходу (на восток) и жмёт "вперёд"
+            rp.rotationPitch = 0;
+            rp.moveForward = 1;
             boolean ceiling = false, wall = false, back = false;
             int ticks = 0;
             for (; ticks < 200; ticks++) {
@@ -3502,6 +3726,9 @@ public class SelfTest {
             com.divinerpgextended.entity.EntitySkyCart oc = new com.divinerpgextended.entity.EntitySkyCart(w, x0, y0 + 4, z0, -90); // на восток
             w.spawnEntityInWorld(oc);
             op.mountEntity(oc);
+            op.rotationYaw = -90; // смотрит по ходу (на восток) и жмёт "вперёд"
+            op.rotationPitch = 0;
+            op.moveForward = 1;
             boolean right = false, under = false, left = false, home = false, inside = false;
             int ticks = 0;
             for (; ticks < 300; ticks++) {
@@ -3639,7 +3866,7 @@ public class SelfTest {
             com.divinerpgextended.item.ToolInfo.add(tip, multi, com.divinerpgextended.halite.HaliteTools.MULTI_SPEED);
             java.util.List<String> iceTip = new java.util.ArrayList<String>();
             com.divinerpgextended.item.ToolInfo.add(iceTip, new ItemStack(com.divinerpgextended.registry.ModItems.icePick), 6);
-            boolean tooltip = tip.size() == 2 && tip.get(0).equals(net.divinerpg.utils.TooltipLocalizer.efficiency(30))
+            boolean tooltip = tip.size() == 2 && tip.get(0).equals(net.divinerpg.utils.TooltipLocalizer.efficiency(60))
                 && tip.get(1).equals(net.divinerpg.utils.TooltipLocalizer.infiniteUses()) && iceTip.get(1).equals(net.divinerpg.utils.TooltipLocalizer.usesRemaining(1000));
             // подсказка уровня кирки у каждого предмета реестра (вкладка "Поиск" творческого режима строит её для всех)
             int pickTips = 0;
@@ -4015,6 +4242,9 @@ public class SelfTest {
             com.divinerpgextended.entity.EntitySkyCart cart = new com.divinerpgextended.entity.EntitySkyCart(w, x0, y0, z0, -90);
             w.spawnEntityInWorld(cart);
             cv.mountEntity(cart);
+            cv.rotationYaw = -90; // смотрит по ходу (на восток) и жмёт "вперёд"
+            cv.rotationPitch = 0;
+            cv.moveForward = 1;
             double top = 0;
             int far = 0;
             for (int i = 0; i < 40; i++) {
@@ -4145,6 +4375,8 @@ public class SelfTest {
                 com.divinerpgextended.entity.EntitySkyCart c = (com.divinerpgextended.entity.EntitySkyCart) carts.get(0);
                 c.interactFirst(rv);
                 sat = rv.ridingEntity == c;
+                rv.rotationPitch = 0; // смотрит по ходу и жмёт "вперёд"
+                rv.moveForward = 1;
                 double lx = c.posX, ly = c.posY, lz = c.posZ;
                 for (; ticks < 200; ticks++) {
                     c.onUpdate();
@@ -4987,8 +5219,22 @@ public class SelfTest {
             for (int[] ch : chunks) w.theChunkProviderServer.loadChunk(ch[0], ch[1]);
             StringBuilder ex = new StringBuilder();
             int[] bad = com.divinerpgextended.world.WorldGenThrone.audit(w, c[0], c[2], ex);
-            check(bad[0] == 0 && bad[1] == 0, "Трон " + c[0] + "," + c[2] + ", чанков " + chunks.size() + ": лишних блоков " + bad[0] + ", дыр " + bad[1] + " (" + ex + ")");
-            return "весь Трон (" + chunks.size() + " чанков в случайном порядке) совпадает с чертежом: ни лишних блоков внутри, ни дыр в стенах и своде";
+            // подмена генерацией: лава в зале, замороженный камень и вода в стене у края - печать после всех генераторов чинит
+            int[] spot = null;
+            for (int dz = 0; dz < 40 && spot == null; dz++) if (w.isAirBlock(c[0] + 40, 12, c[2] + dz) && w.isAirBlock(c[0] + 40, 13, c[2] + dz)) spot = new int[] { c[0] + 40, c[2] + dz };
+            int wx = c[0] + com.divinerpgextended.world.WorldGenThrone.R + 2, wz = c[2];
+            net.minecraft.block.Block wallWas = w.getBlock(wx, 10, wz);
+            if (spot != null) w.setBlock(spot[0], 12, spot[1], Blocks.lava, 0, 2);
+            w.setBlock(wx, 10, wz, net.divinerpg.utils.blocks.IceikaBlocks.frozenStone, 0, 2);
+            w.setBlock(wx, 11, wz, Blocks.water, 0, 2);
+            com.divinerpgextended.world.WorldGenThrone.Seal seal = new com.divinerpgextended.world.WorldGenThrone.Seal();
+            if (spot != null) seal.generate(w.rand, (spot[0] - 8) >> 4, (spot[1] - 8) >> 4, w, w.theChunkProviderServer, w.theChunkProviderServer);
+            seal.generate(w.rand, (wx - 8) >> 4, (wz - 8) >> 4, w, w.theChunkProviderServer, w.theChunkProviderServer);
+            boolean healed = (spot == null || w.isAirBlock(spot[0], 12, spot[1])) && w.getBlock(wx, 10, wz) == wallWas && w.getBlock(wx, 11, wz) == wallWas;
+            check(bad[0] == 0 && bad[1] == 0 && bad[2] == 0 && spot != null && healed, "Трон " + c[0] + "," + c[2] + ", чанков " + chunks.size() + ": лишних блоков " + bad[0]
+                + ", дыр " + bad[1] + ", подмен " + bad[2] + " (" + ex + "); лава в зале и камень с водой в стене убраны " + healed);
+            return "весь Трон (" + chunks.size() + " чанков в случайном порядке) совпадает с чертежом: ни лишних блоков внутри, ни дыр и подмен в стенах и своде; "
+                + "лава в зале, замороженный камень и вода в стене после всех генераторов возвращаются по чертежу";
         });
         t("Логова", "Iceika: Ледяной Трон - заселение Divine мимо, всё освещено", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
@@ -5048,7 +5294,8 @@ public class SelfTest {
                 }
             }
             // спавн в Троне запрещён при любом свете; снаружи - как обычно
-            net.minecraft.entity.monster.EntityZombie zs = new net.minecraft.entity.monster.EntityZombie(w);
+            // моб самой Iceika (чужих там белый список и так не пускает)
+            net.divinerpg.entities.iceika.EntityRollum zs = new net.divinerpg.entities.iceika.EntityRollum(w);
             net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn inSpawn = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(zs, w, px, fl, pz);
             MinecraftForge.EVENT_BUS.post(inSpawn);
             net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn outSpawn = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(zs, w, c[0] + 400, 70, c[2] + 400);
@@ -5649,16 +5896,22 @@ public class SelfTest {
             grid.setInventorySlotContents(1, com.divinerpgextended.halite.Halite.spirit(com.divinerpgextended.halite.Halite.Spirit.UNIVERSE));
             ItemStack newBed = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(grid, w);
             boolean bed = oldBed == null && newBed != null && newBed.getItem() == VetheaItems.nightmareBed;
-            // скорость: халитовая кирка 60, мультиинструмент 30 (на камне и на дереве)
+            // скорость: халитовая кирка 60, мультиинструмент 60 (на камне и на дереве); мультиинструмент пашет
             float pick = new ItemStack(ModItems.halitePickaxe).getItem().getDigSpeed(new ItemStack(ModItems.halitePickaxe), Blocks.stone, 0);
             float multiStone = ModItems.haliteMultitool.getDigSpeed(new ItemStack(ModItems.haliteMultitool), Blocks.stone, 0);
             float multiWood = ModItems.haliteMultitool.getDigSpeed(new ItemStack(ModItems.haliteMultitool), Blocks.log, 0);
-            boolean speeds = pick == 60 && multiStone == 30 && multiWood == 30;
+            w.setBlock(x0 + 4, y0 + 5, z0, Blocks.grass);
+            w.setBlockToAir(x0 + 4, y0 + 6, z0);
+            hp.setCurrentItemOrArmor(0, new ItemStack(ModItems.haliteMultitool));
+            ModItems.haliteMultitool.onItemUse(hp.getHeldItem(), hp, w, x0 + 4, y0 + 5, z0, 1, 0.5F, 1, 0.5F);
+            boolean hoe = w.getBlock(x0 + 4, y0 + 5, z0) == Blocks.farmland;
+            w.setBlockToAir(x0 + 4, y0 + 5, z0);
+            boolean speeds = pick == 60 && multiStone == 60 && multiWood == 60 && hoe;
             hp.inventory.clearInventory(null, -1);
             check(noHalite && shards >= 4 && shards <= 6 && trophy && spark && distinct && ingot != null && ingot.getItem() == ModItems.haliteMaterial && bed && speeds,
                 "готового халита нет " + noHalite + ", осколков " + shards + ", трофей (в инвентарь не кладут, чужой не поднимет) " + trophy + ", частичка " + spark + "; дух сумерек из разных " + (r1 != null) + ", из двух одинаковых нет " + (r2 == null)
-                    + "; слиток " + ingot + "; кровать: старый рецепт " + oldBed + ", новый " + newBed + "; скорость кирки " + pick + ", мульти камень " + multiStone + " дерево " + multiWood);
-            return "с босса Мортума каждому игроку рядом - своя доля на землю (осколки, трофей, частичка), чужую не поднять, в инвентарь ничего не кладётся, готового халита нет; дух сумерек - только из трёх разных частичек; слиток из осколков; Кровать кошмаров - только с Духом вселенной; кирка 60, мультиинструмент 30";
+                    + "; слиток " + ingot + "; кровать: старый рецепт " + oldBed + ", новый " + newBed + "; скорость кирки " + pick + ", мульти камень " + multiStone + " дерево " + multiWood + ", пашет " + hoe);
+            return "с босса Мортума каждому игроку рядом - своя доля на землю (осколки, трофей, частичка), чужую не поднять, в инвентарь ничего не кладётся, готового халита нет; дух сумерек - только из трёх разных частичек; слиток из осколков; Кровать кошмаров - только с Духом вселенной; кирка 60, мультиинструмент 60 и пашет";
         });
         t("Логова", "Джунгли: руда, тотем, логово, Древний драмкрикс", () -> {
             WorldServer w = server.worldServerForDimension(0);
@@ -6270,7 +6523,19 @@ public class SelfTest {
                 lost[i] = hp - mobs[i].getHealth();
             }
             m.setBlockToAir(x0, y0, z0);
-            boolean lethe = lost[0] > 0 && lost[1] == 0 && lost[2] == 0;
+            // в обычном мире Лета (из ведра) грызёт и местных мобов: корова в списках спавна равнин, но не житель Мортума
+            WorldServer ow0 = server.worldServerForDimension(0);
+            loadAround(ow0, x0, z0, 1);
+            ow0.setBlock(x0, y0 - 1, z0, Blocks.stone);
+            ow0.setBlock(x0, y0, z0, com.divinerpgextended.registry.ModBlocks.lethe, 0, 2);
+            net.minecraft.entity.passive.EntityCow cow = new net.minecraft.entity.passive.EntityCow(ow0);
+            cow.setPosition(x0 + 0.5, y0, z0 + 0.5);
+            float cowHp = cow.getHealth();
+            server.worldServerForDimension(0).getWorldInfo().incrementTotalWorldTime((ow0.getTotalWorldTime() / 20 + 1) * 20);
+            com.divinerpgextended.registry.ModBlocks.lethe.onEntityCollidedWithBlock(ow0, x0, y0, z0, cow);
+            boolean overworldLethe = cow.getHealth() < cowHp;
+            ow0.setBlockToAir(x0, y0, z0);
+            boolean lethe = lost[0] > 0 && lost[1] == 0 && lost[2] == 0 && overworldLethe;
             // климат: Эдем жаркий и сухой, Скайтерн - влажный
             float[] eden = null, sky = null;
             for (net.minecraft.world.biome.BiomeGenBase b : net.minecraft.world.biome.BiomeGenBase.getBiomeGenArray()) {
@@ -6301,7 +6566,7 @@ public class SelfTest {
             check(wolf && lethe && climate && recipe, "волк: дикий " + wildHp + ", приручённый " + mw.getMaxHealth() + "/" + mw.getHealth() + "; Лета: свинья -" + lost[0]
                 + ", скелет -" + lost[1] + ", паук душ -" + lost[2] + "; Эдем " + java.util.Arrays.toString(eden) + ", Скайтерн " + java.util.Arrays.toString(sky)
                 + "; факел " + torch);
-            return "приручённый лунный волк сохраняет " + (int) wildHp + " здоровья; Лета грызёт мобов, кроме нежити и жителей Мортума; климат Эдема 1.7/0.1, Скайтерна 0.5/1.9; адский факел - уголь над стержнем ифрита";
+            return "приручённый лунный волк сохраняет " + (int) wildHp + " здоровья; Лета грызёт мобов в любом мире (корова в обычном мире - тоже), кроме нежити и жителей Мортума; климат Эдема 1.7/0.1, Скайтерна 0.5/1.9; адский факел - уголь над стержнем ифрита";
         });
         t("Прохождение", "Призывы боссов Divine - приспешники", () -> {
             WorldServer w = server.worldServerForDimension(-1);
@@ -6429,12 +6694,19 @@ public class SelfTest {
             int f = com.divinerpgextended.world.WorldGenOuterLairs.FLOOR[type], R = com.divinerpgextended.world.WorldGenOuterLairs.RADIUS[type];
             boolean hall = w.getBlock(c[0], f, c[2]) == net.divinerpg.utils.blocks.VanillaBlocks.lamp2 && w.getBlockMetadata(c[0], f, c[2]) == 6 && w.isAirBlock(c[0] + 4, f + 6, c[2] + 4)
                 && w.isAirBlock(c[0] + R + 4, f + 2, c[2]);
+            // все четыре тоннеля проходят сквозь стену купола: от зала до выхода наружу на высоте 1-3 над полом - воздух
+            String wall = "";
+            for (int[] dir : new int[][] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } })
+                for (int r = 10; r <= R + 4; r++) for (int y = f + 1; y <= f + 3; y++)
+                    if (!w.isAirBlock(c[0] + dir[0] * r, y, c[2] + dir[1] * r) && wall.length() < 200)
+                        wall += (dir[0] * r) + "," + (y - f) + "," + (dir[1] * r) + "=" + w.getBlock(c[0] + dir[0] * r, y, c[2] + dir[1] * r).getUnlocalizedName() + " ";
+            hall &= wall.isEmpty();
             TestPlayer v = player(-1, "TestWatcher", c[0], f + 1, c[2]);
             net.minecraft.item.Item call = net.divinerpg.utils.items.VanillaItemsOther.callWatcher;
             String in = com.divinerpgextended.boss.LairSummons.refusal(v, call, c[0] + 3, f, c[2] - 2);
             String out = com.divinerpgextended.boss.LairSummons.refusal(v, call, c[0] + 200, 60, c[2]);
-            check(hall && in == null && "dre.chat.summon_lair_0".equals(out), "зал " + hall + ", внутри " + in + ", снаружи " + out);
-            return "зал в Аду в " + c[0] + "," + c[2] + " (пол y=" + f + ", тоннели наружу); Зов работает только внутри";
+            check(hall && in == null && "dre.chat.summon_lair_0".equals(out), "зал " + hall + ", стена в тоннелях " + wall + ", внутри " + in + ", снаружи " + out);
+            return "зал в Аду в " + c[0] + "," + c[2] + " (пол y=" + f + ", четыре тоннеля сквозь стену купола наружу); Зов работает только внутри";
         });
         t("Логова", "Огненная палата", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.SCORCHERS;

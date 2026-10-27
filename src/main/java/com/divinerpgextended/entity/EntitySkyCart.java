@@ -17,7 +17,8 @@ import com.divinerpgextended.registry.ModItems;
 /**
  * Вагонетка Апалачии: едет по рельсам Апалачии - по полу, вверх по стене и по потолку (заготовка под американские
  * горки). Путь - ломаная "середина рельса - стык - середина следующего" ({@link SkyTrack}): прямо, если можно, иначе
- * на другой соседний рельс; на углу пол - стена - горкой. Едет, пока в ней сидят; путь кончился - едет обратно.
+ * на другой соседний рельс; на углу пол - стена - горкой. С игроком едет, как ванильная: только пока жмут "вперёд" и
+ * туда, куда он смотрит (смотрит против хода - разворот); отпустил - катится по инерции. Путь кончился - едет обратно.
  * Седок сидит внутри и поворачивается вместе с ней (клиент рисует его по нормали пути).
  */
 public class EntitySkyCart extends Entity {
@@ -28,6 +29,8 @@ public class EntitySkyCart extends Entity {
     private double speed = SPEED;
     /** Разгон от толчка (без игрока внутри): катится по инерции и тормозит, как ванильная вагонетка. */
     private double momentum;
+    /** На прошлом тике ехала (газ или инерция): трогаться по взгляду - только с места. */
+    private boolean moving;
     public static final double PUSH = 0.25, FRICTION = 0.006;
     /** Середина вагонетки над точкой касания колёс; глаза седока над серединой (как у ванильной вагонетки). */
     public static final double BODY = 0.4, EYES = 0.82, SEAT = 0.8;
@@ -197,18 +200,35 @@ public class EntitySkyCart extends Entity {
         }
         if (lastRider != null && riddenByEntity != lastRider) safeDismount(lastRider);
         lastRider = riddenByEntity;
-        boolean driven = riddenByEntity instanceof net.minecraft.entity.player.EntityPlayer; // игрок едет сам
+        EntityPlayer pilot = riddenByEntity instanceof EntityPlayer ? (EntityPlayer) riddenByEntity : null;
+        // игрок газует кнопкой "вперёд", по взгляду: стоит - трогается туда, едет против взгляда - разворот
+        boolean driven = pilot != null && pilot.moveForward > 0;
+        if (driven && !moving) { // трогается: туда, куда смотрит (на ходу не разворачивается - на мёртвой петле взгляд не вдоль пути)
+            net.minecraft.util.Vec3 look = pilot.getLookVec();
+            if (t == 0) { // у середины рельса - выбрать выход заново
+                nx = cx;
+                ny = cy;
+                nz = cz;
+            }
+            push(look.xCoord, look.yCoord, look.zCoord);
+            if (nx == cx && ny == cy && nz == cz) driven = false; // туда, куда смотрит, пути нет
+        } else if (!driven && pilot != null && momentum < 0.01 && speed > 0.01) momentum = speed; // отпустил газ на ходу - по инерции
+        if (pilot != null && !driven) speed = Math.max(0, Math.min(speed, momentum));
         if (riddenByEntity != null) riddenByEntity.fallDistance = 0;
-        if (driven || momentum > 0.01) {
+        moving = driven || momentum > 0.01;
+        if (moving) {
             boolean still = nx == cx && ny == cy && nz == cz;
-            if (still || !rail(nx, ny, nz)) { // стояла без пути или следующий рельс убрали - искать заново
+            if (!driven && pilot == null && still || !rail(nx, ny, nz)) { // стояла без пути или следующий рельс убрали - искать заново
                 nx = cx;
                 ny = cy;
                 nz = cz;
                 t = 0;
                 start();
             }
-            if (driven) speed = SkyTrack.boost(worldObj, cx, cy, cz) ? Math.min(MAX_SPEED, speed + BOOST) : Math.max(SPEED, speed - DRAG);
+            if (driven) {
+                speed = SkyTrack.boost(worldObj, cx, cy, cz) ? Math.min(MAX_SPEED, Math.max(SPEED, speed) + BOOST) : Math.max(SPEED, speed - DRAG);
+                momentum = 0;
+            }
             else speed = momentum = SkyTrack.boost(worldObj, cx, cy, cz) ? Math.min(MAX_SPEED, momentum + BOOST) : Math.max(0, momentum - FRICTION);
             if (nx != cx || ny != cy || nz != cz) {
                 t += speed;
@@ -362,6 +382,12 @@ public class EntitySkyCart extends Entity {
     /** Разгон от толчков (для замеров и автотеста). */
     public double momentum() {
         return momentum;
+    }
+
+    /** Средняя кнопка в творческом - предмет вагонетки. */
+    @Override
+    public ItemStack getPickedResult(net.minecraft.util.MovingObjectPosition target) {
+        return new ItemStack(ModItems.skyCart);
     }
 
     @Override

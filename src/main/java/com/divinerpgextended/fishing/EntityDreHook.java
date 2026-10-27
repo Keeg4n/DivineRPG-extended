@@ -251,11 +251,27 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
         return slot < 0 ? null : Bait.of(field_146042_b.inventory.mainInventory[slot].getItem());
     }
 
-    /** Сказано рыбаку, что вода мечтаний не клюёт на эту удочку. */
-    private boolean toldDream;
+    /** Сказано рыбаку, что вода мечтаний (арканный концентрат) не клюёт на эту удочку. */
+    private boolean toldDream, toldArcane;
+
+    /** Поплавок в арканном концентрате. */
+    public boolean arcane() {
+        return com.divinerpgextended.block.BlockArcaneConcentrate.at(worldObj, posX, posY, posZ)
+            || com.divinerpgextended.block.BlockArcaneConcentrate.at(worldObj, posX, posY - 0.5, posZ);
+    }
 
     /** Ванильная логика поклёвки, ожидание сокращено силой рыбалки. В воде мечтаний клюёт только на удочку Голода. */
     private void bite(WorldServer ws) {
+        if (!lava && rod != Rod.ARCANA && arcane()) { // арканный концентрат клюёт только на арканную удочку
+            ticksCaughtDelay = ticksCatchableDelay = ticksCatchable = 0;
+            if (!toldArcane && field_146042_b != null) {
+                toldArcane = true;
+                net.minecraft.util.ChatComponentTranslation m = new net.minecraft.util.ChatComponentTranslation("dre.chat.arcane_rod");
+                m.getChatStyle().setColor(net.minecraft.util.EnumChatFormatting.LIGHT_PURPLE).setItalic(true);
+                field_146042_b.addChatMessage(m);
+            }
+            return;
+        }
         if (!lava && rod != Rod.HUNGER && dreamWaterAbove()) {
             ticksCaughtDelay = ticksCatchableDelay = ticksCatchable = 0;
             if (!toldDream && field_146042_b != null) {

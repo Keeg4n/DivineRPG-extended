@@ -23,6 +23,8 @@ public final class TwilightClimate {
                 b.temperature = (Float) c[1];
                 b.rainfall = (Float) c[2];
             }
+            // вода Эдема: у Divine почти чёрный множитель; текстура там своя, золотая (WaterTransformer) - множитель нейтральный
+            if (b.getClass().getSimpleName().equals("BiomeGenEden")) b.waterColorMultiplier = 0xFFFFFF;
         }
     }
 }

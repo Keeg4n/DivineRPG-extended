@@ -10,14 +10,14 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.util.EnumHelper;
 
 /**
- * Халитовые инструменты: кирка, топор, лопата чуть быстрее инструментов Мортума; мультиинструмент (кирка, топор и
- * лопата в одном) - на 10 быстрее божественного шикакса, но медленнее отдельных халитовых. Руду джунглей берут только
+ * Халитовые инструменты: кирка, топор, лопата чуть быстрее инструментов Мортума; мультиинструмент (кирка, топор,
+ * лопата и мотыга в одном: правой кнопкой пашет) - так же быстр, как отдельные халитовые. Руду джунглей берут только
  * халитовая кирка и мультиинструмент. Не ломаются.
  */
 public final class HaliteTools {
 
     /** Скорость копки: у кирки Мортума 55, у божественного шикакса 20. */
-    public static final float SPEED = 60F, MULTI_SPEED = 30F;
+    public static final float SPEED = 60F, MULTI_SPEED = 60F;
     public static final Item.ToolMaterial HALITE = EnumHelper.addToolMaterial("DRE_HALITE", 100, 8000, SPEED, 6F, 22);
     public static final Item.ToolMaterial MULTI = EnumHelper.addToolMaterial("DRE_HALITE_MULTI", 100, 12000, MULTI_SPEED, 7F, 22);
 
@@ -37,6 +37,24 @@ public final class HaliteTools {
         public void addInformation(ItemStack s, net.minecraft.entity.player.EntityPlayer p, java.util.List list, boolean adv) {
             com.divinerpgextended.item.ToolInfo.add(list, s, efficiencyOnProperMaterial);
         }
+
+        /** Мотыга: как ванильная (трава и земля - в пашню, событие UseHoeEvent для других модов). */
+        @Override
+        public boolean onItemUse(ItemStack s, net.minecraft.entity.player.EntityPlayer p, net.minecraft.world.World w, int x, int y, int z, int side,
+            float hx, float hy, float hz) {
+            if (!p.canPlayerEdit(x, y, z, side, s)) return false;
+            net.minecraftforge.event.entity.player.UseHoeEvent ev = new net.minecraftforge.event.entity.player.UseHoeEvent(p, s, w, x, y, z);
+            if (net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(ev)) return false;
+            if (ev.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.ALLOW) return true;
+            Block b = w.getBlock(x, y, z);
+            if (side == 0 || !w.getBlock(x, y + 1, z).isAir(w, x, y + 1, z) || b != net.minecraft.init.Blocks.grass && b != net.minecraft.init.Blocks.dirt)
+                return false;
+            Block farm = net.minecraft.init.Blocks.farmland;
+            w.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, farm.stepSound.getStepResourcePath(), (farm.stepSound.getVolume() + 1) / 2,
+                farm.stepSound.getPitch() * 0.8F);
+            if (!w.isRemote) w.setBlock(x, y, z, farm);
+            return true;
+        }
     }
 
     public static class Axe extends ItemAxe {
@@ -53,6 +71,24 @@ public final class HaliteTools {
         public void addInformation(ItemStack s, net.minecraft.entity.player.EntityPlayer p, java.util.List list, boolean adv) {
             com.divinerpgextended.item.ToolInfo.add(list, s, efficiencyOnProperMaterial);
         }
+
+        /** Мотыга: как ванильная (трава и земля - в пашню, событие UseHoeEvent для других модов). */
+        @Override
+        public boolean onItemUse(ItemStack s, net.minecraft.entity.player.EntityPlayer p, net.minecraft.world.World w, int x, int y, int z, int side,
+            float hx, float hy, float hz) {
+            if (!p.canPlayerEdit(x, y, z, side, s)) return false;
+            net.minecraftforge.event.entity.player.UseHoeEvent ev = new net.minecraftforge.event.entity.player.UseHoeEvent(p, s, w, x, y, z);
+            if (net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(ev)) return false;
+            if (ev.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.ALLOW) return true;
+            Block b = w.getBlock(x, y, z);
+            if (side == 0 || !w.getBlock(x, y + 1, z).isAir(w, x, y + 1, z) || b != net.minecraft.init.Blocks.grass && b != net.minecraft.init.Blocks.dirt)
+                return false;
+            Block farm = net.minecraft.init.Blocks.farmland;
+            w.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, farm.stepSound.getStepResourcePath(), (farm.stepSound.getVolume() + 1) / 2,
+                farm.stepSound.getPitch() * 0.8F);
+            if (!w.isRemote) w.setBlock(x, y, z, farm);
+            return true;
+        }
     }
 
     public static class Shovel extends ItemSpade {
@@ -68,6 +104,24 @@ public final class HaliteTools {
         @SuppressWarnings("rawtypes")
         public void addInformation(ItemStack s, net.minecraft.entity.player.EntityPlayer p, java.util.List list, boolean adv) {
             com.divinerpgextended.item.ToolInfo.add(list, s, efficiencyOnProperMaterial);
+        }
+
+        /** Мотыга: как ванильная (трава и земля - в пашню, событие UseHoeEvent для других модов). */
+        @Override
+        public boolean onItemUse(ItemStack s, net.minecraft.entity.player.EntityPlayer p, net.minecraft.world.World w, int x, int y, int z, int side,
+            float hx, float hy, float hz) {
+            if (!p.canPlayerEdit(x, y, z, side, s)) return false;
+            net.minecraftforge.event.entity.player.UseHoeEvent ev = new net.minecraftforge.event.entity.player.UseHoeEvent(p, s, w, x, y, z);
+            if (net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(ev)) return false;
+            if (ev.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.ALLOW) return true;
+            Block b = w.getBlock(x, y, z);
+            if (side == 0 || !w.getBlock(x, y + 1, z).isAir(w, x, y + 1, z) || b != net.minecraft.init.Blocks.grass && b != net.minecraft.init.Blocks.dirt)
+                return false;
+            Block farm = net.minecraft.init.Blocks.farmland;
+            w.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, farm.stepSound.getStepResourcePath(), (farm.stepSound.getVolume() + 1) / 2,
+                farm.stepSound.getPitch() * 0.8F);
+            if (!w.isRemote) w.setBlock(x, y, z, farm);
+            return true;
         }
     }
 
@@ -110,6 +164,24 @@ public final class HaliteTools {
         @SuppressWarnings("rawtypes")
         public void addInformation(ItemStack s, net.minecraft.entity.player.EntityPlayer p, java.util.List list, boolean adv) {
             com.divinerpgextended.item.ToolInfo.add(list, s, efficiencyOnProperMaterial);
+        }
+
+        /** Мотыга: как ванильная (трава и земля - в пашню, событие UseHoeEvent для других модов). */
+        @Override
+        public boolean onItemUse(ItemStack s, net.minecraft.entity.player.EntityPlayer p, net.minecraft.world.World w, int x, int y, int z, int side,
+            float hx, float hy, float hz) {
+            if (!p.canPlayerEdit(x, y, z, side, s)) return false;
+            net.minecraftforge.event.entity.player.UseHoeEvent ev = new net.minecraftforge.event.entity.player.UseHoeEvent(p, s, w, x, y, z);
+            if (net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(ev)) return false;
+            if (ev.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.ALLOW) return true;
+            Block b = w.getBlock(x, y, z);
+            if (side == 0 || !w.getBlock(x, y + 1, z).isAir(w, x, y + 1, z) || b != net.minecraft.init.Blocks.grass && b != net.minecraft.init.Blocks.dirt)
+                return false;
+            Block farm = net.minecraft.init.Blocks.farmland;
+            w.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, farm.stepSound.getStepResourcePath(), (farm.stepSound.getVolume() + 1) / 2,
+                farm.stepSound.getPitch() * 0.8F);
+            if (!w.isRemote) w.setBlock(x, y, z, farm);
+            return true;
         }
     }
 

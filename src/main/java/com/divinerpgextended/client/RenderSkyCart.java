@@ -163,8 +163,11 @@ public class RenderSkyCart extends Render {
             double mx = c.lastTickPosX + (c.posX - c.lastTickPosX) * pt - RenderManager.renderPosX;
             double my = c.lastTickPosY + (c.posY - c.lastTickPosY) * pt - RenderManager.renderPosY + c.height / 2;
             double mz = c.lastTickPosZ + (c.posZ - c.lastTickPosZ) * pt - RenderManager.renderPosZ;
+            // ноги моба - на той же высоте над серединой, что и на полу (EntitySkyCart.updateRiderPosition): иначе на стене и
+            // потолке он рисовался на полблока глубже и проваливался в вагонетку
+            double seat = 1.62 - 0.5 - EntitySkyCart.EYES - m.getYOffset();
             GL11.glPushMatrix();
-            GL11.glTranslated(mx - up[0] * EntitySkyCart.SEAT, my - up[1] * EntitySkyCart.SEAT, mz - up[2] * EntitySkyCart.SEAT);
+            GL11.glTranslated(mx - up[0] * seat, my - up[1] * seat, mz - up[2] * seat);
             double[] t = tilt(c, up);
             GL11.glRotated(t[0], t[1], 0, t[2]);
             GL11.glTranslated(-e.x, -e.y, -e.z);

@@ -116,6 +116,9 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         return type == AYERACO ? new Aerie(c[0], c[2]) : new Hall(type);
     }
 
+    /** С какого расстояния от центра режется тоннель (стена купола на высоте тоннеля - от ~12.6 у палаты, ~14.9 у обсерватории). */
+    static final double TUNNEL_FROM = 12.5;
+
     private static final int BRICK = 1, GLOW = 2, LAVA = 3, OBSIDIAN = 4, END_STONE = 5, QUARTZ = 6, FENCE = 7;
 
     private static Block block(int code) {
@@ -204,12 +207,15 @@ public class WorldGenOuterLairs implements IWorldGenerator {
                     if (ringDist(dx, dz, 7, 6, 0) < 0.6) put(col, floor + 10, GLOW, 0);
                 }
             }
-            // тоннели наружу (3 x 3, пол из кирпича)
-            if (tunnel && r >= R - 2.5) {
-                put(col, floor, BRICK, 0);
+            // тоннели наружу (3 x 3, пол из кирпича). Купол сферический: на высоте тоннеля его стена ближе к центру, чем
+            // край зала, - проход режем сквозь всю её толщу (с TUNNEL_FROM; ров и мостики палаты ближе к центру не трогаем)
+            if (tunnel && r > TUNNEL_FROM) {
                 for (int y = floor + 1; y <= floor + 3; y++) put(col, y, AIR, 0);
-                put(col, floor + 4, BRICK, 0);
-                if ((Math.abs(dx) == 1 || Math.abs(dz) == 1) && ((int) r) % 6 == 0) put(col, floor + 3, GLOW, 0);
+                if (r >= R - 2.5) {
+                    put(col, floor, BRICK, 0);
+                    put(col, floor + 4, BRICK, 0);
+                    if ((Math.abs(dx) == 1 || Math.abs(dz) == 1) && ((int) r) % 6 == 0) put(col, floor + 3, GLOW, 0);
+                }
             }
             return true;
         }

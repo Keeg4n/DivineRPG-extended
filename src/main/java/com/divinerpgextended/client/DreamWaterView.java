@@ -86,20 +86,40 @@ public class DreamWaterView {
 
     private final Set<EntityLivingBase> flipped = new HashSet<EntityLivingBase>();
 
-    /** Перевёрнутый игрок рисуется вверх ногами: поворот на 180 градусов вокруг оси взгляда через середину хитбокса. */
+    /** Настоящие повороты головы на время рисования: {yawHead, prevYawHead, pitch, prevPitch}. */
+    private final java.util.Map<EntityLivingBase, float[]> head = new java.util.HashMap<EntityLivingBase, float[]>();
+
+    /**
+     * Перевёрнутый (игрок и любое существо) рисуется вверх ногами: поворот на 180 градусов вокруг оси взгляда через
+     * середину хитбокса. Такой поворот зеркалит повороты головы (повернул голову влево - модель вправо), поэтому на время
+     * рисования поворот головы относительно тела и наклон берутся с обратным знаком: голова смотрит туда же, куда игрок.
+     */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onPre(RenderLivingEvent.Pre e) {
-        if (!(e.entity instanceof EntityPlayer) || !BlockDreamWater.inverted(e.entity)) return;
-        double yaw = Math.toRadians(e.entity.renderYawOffset), cy = e.y + e.entity.height / 2;
+        EntityLivingBase m = e.entity;
+        if (!BlockDreamWater.inverted(m)) return;
+        double yaw = Math.toRadians(m.renderYawOffset), cy = e.y + m.height / 2;
         GL11.glPushMatrix();
         GL11.glTranslated(e.x, cy, e.z);
         GL11.glRotated(180, -Math.sin(yaw), 0, Math.cos(yaw));
         GL11.glTranslated(-e.x, -cy, -e.z);
-        flipped.add(e.entity);
+        flipped.add(m);
+        head.put(m, new float[] { m.rotationYawHead, m.prevRotationYawHead, m.rotationPitch, m.prevRotationPitch });
+        m.rotationYawHead = 2 * m.renderYawOffset - m.rotationYawHead;
+        m.prevRotationYawHead = 2 * m.prevRenderYawOffset - m.prevRotationYawHead;
+        m.rotationPitch = -m.rotationPitch;
+        m.prevRotationPitch = -m.prevRotationPitch;
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public void onPost(RenderLivingEvent.Post e) {
-        if (flipped.remove(e.entity)) GL11.glPopMatrix();
+        if (!flipped.remove(e.entity)) return;
+        GL11.glPopMatrix();
+        float[] h = head.remove(e.entity);
+        if (h == null) return;
+        e.entity.rotationYawHead = h[0];
+        e.entity.prevRotationYawHead = h[1];
+        e.entity.rotationPitch = h[2];
+        e.entity.prevRotationPitch = h[3];
     }
 }

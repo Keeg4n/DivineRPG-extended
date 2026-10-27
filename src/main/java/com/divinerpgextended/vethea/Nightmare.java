@@ -107,6 +107,7 @@ public class Nightmare {
         }
         s.add(ModItems.nightmareDrill);
         s.add(ModItems.dreamItem);
+        s.add(Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.vetheaTorch));
         for (String name : Config.vetheaWhitelist) {
             Object o = GameData.getItemRegistry().getObject(name.trim());
             if (o instanceof Item) s.add((Item) o);

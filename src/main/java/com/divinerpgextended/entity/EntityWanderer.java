@@ -30,8 +30,17 @@ public class EntityWanderer extends EntityVillager {
     private static final int DW_HOME = 23;
     private MerchantRecipeList trades;
 
+    /** Здоровье Странника (у жителя - 20: в лагере его убивал любой случайный моб). */
+    public static final double HEALTH = 1000;
+
     public EntityWanderer(World w) {
         super(w, 2);
+    }
+
+    @Override
+    protected void applyEntityAttributes() {
+        super.applyEntityAttributes();
+        getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(HEALTH);
     }
 
     @Override
@@ -138,6 +147,12 @@ public class EntityWanderer extends EntityVillager {
     @Override
     public void readEntityFromNBT(NBTTagCompound tag) {
         super.readEntityFromNBT(tag);
+        // уже стоящие Странники (сохранены с 20 здоровья) - до полного
+        net.minecraft.entity.ai.attributes.IAttributeInstance hp = getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth);
+        if (hp.getBaseValue() < HEALTH) {
+            hp.setBaseValue(HEALTH);
+            setHealth(getMaxHealth());
+        }
         dataWatcher.updateObject(DW_HOME, Byte.valueOf((byte) (tag.hasKey("dreHome") ? tag.getInteger("dreHome") : -1)));
         trades = null;
     }

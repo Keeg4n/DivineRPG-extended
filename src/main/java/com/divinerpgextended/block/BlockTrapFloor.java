@@ -28,6 +28,7 @@ public class BlockTrapFloor extends Block {
         setHardness(0.8F);
         setStepSound(soundTypePiston);
         setBlockName("dre.trapFloor");
+        setCreativeTab(com.divinerpgextended.DreTab.TAB);
     }
 
     @Override

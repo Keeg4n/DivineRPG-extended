@@ -123,9 +123,12 @@ public class BlockDreamWater extends BlockFluidClassic {
             if (!e.worldObj.isRemote && e instanceof EntityPlayerMP) {
                 notFlying((EntityPlayerMP) e);
                 if (!headUnder(e)) e.setAir(300); // голова в воздухе (игра считает глаза у верха хитбокса - в воде)
+            } else if (!e.worldObj.isRemote && !headUnder(e)) {
+                e.setAir(300); // и моб: висит вверх ногами, голова в воздухе - не тонет
             }
             // как в обычной воде, но по перевёрнутому экрану: пробел - к глади (в мире вниз), Shift - глубже (вверх)
-            boolean surface = jumping(e), dive = e.isSneaking();
+            // мобы в воде всё время "прыгают" (ИИ плавания) - для них клавиш нет: просто висят у глади
+            boolean player = e instanceof EntityPlayer, surface = player && jumping(e), dive = player && e.isSneaking();
             if (d >= DEEP) { // в глубине тянет к дну озера (вверх), как в обычной воде ко дну
                 e.motionY += 0.04; // вода тянет вниз на 0.02, прыжок воды поднимает на 0.04 - итог вверх
                 if (surface) e.motionY -= 0.10;

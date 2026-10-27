@@ -156,6 +156,7 @@ public class EntityWindLord extends EntityGroveGuardian {
 
     @Override
     public boolean attackEntityFrom(DamageSource src, float amount) {
+        if (!worldObj.isRemote && src.getEntity() instanceof net.minecraft.entity.player.EntityPlayer) fighters.add(src.getEntity().getUniqueID());
         if (src == TOTEM || src == DamageSource.outOfWorld || grounded) return super.attackEntityFrom(src, amount);
         if (!worldObj.isRemote && src.getEntity() instanceof EntityPlayer) {
             // неуязвим: удар расходится ветром
@@ -276,10 +277,27 @@ public class EntityWindLord extends EntityGroveGuardian {
         worldObj.playSoundAtEntity(this, "random.bow", 1.0F, 0.6F);
     }
 
+    /** Кто бил Повелителя (им - звук победы). */
+    private final java.util.Set<java.util.UUID> fighters = new java.util.HashSet<java.util.UUID>();
+    /** Звук победы: голос гибели дракона клиент играет на весь мир, поэтому шлём его только бившим. */
+    public static final String VICTORY = "mob.enderdragon.end";
+
     @Override
     public void onDeath(DamageSource src) {
         super.onDeath(src);
-        if (!worldObj.isRemote) removeTotems();
+        if (worldObj.isRemote) return;
+        removeTotems();
+        if (src.getEntity() instanceof net.minecraft.entity.player.EntityPlayer) fighters.add(src.getEntity().getUniqueID());
+        for (Object o : worldObj.playerEntities) {
+            net.minecraft.entity.player.EntityPlayerMP p = (net.minecraft.entity.player.EntityPlayerMP) o;
+            if (!fighters.contains(p.getUniqueID()) || p.playerNetServerHandler == null) continue;
+            p.playerNetServerHandler.sendPacket(new net.minecraft.network.play.server.S29PacketSoundEffect(VICTORY, p.posX, p.posY, p.posZ, 1.0F, 1.0F));
+        }
+    }
+
+    /** Сколько игроков услышат звук победы (для самопроверки). */
+    public int fighterCount() {
+        return fighters.size();
     }
 
     @Override
@@ -297,7 +315,7 @@ public class EntityWindLord extends EntityGroveGuardian {
 
     @Override
     protected String getDeathSound() {
-        return "mob.enderdragon.end";
+        return "mob.blaze.death"; // голос дракона - только победителям (onDeath)
     }
 
     @Override

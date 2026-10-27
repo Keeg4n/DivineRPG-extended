@@ -20,7 +20,9 @@ public enum Zone {
         int d = w.provider.dimensionId;
         if (d == -1) return HELL;
         if (d == ConfigurationHelper.iceika) return ICEIKA;
-        if (d == ConfigurationHelper.arcana) return ARCANA;
+        // рыба Арканы - только в арканном концентрате (фонтанные залы), где бы он ни был; прочая вода Арканы - пресная
+        if (com.divinerpgextended.block.BlockArcaneConcentrate.at(w, px, py, pz) || com.divinerpgextended.block.BlockArcaneConcentrate.at(w, px, py - 0.5, pz)) return ARCANA;
+        if (d == ConfigurationHelper.arcana) return FRESH;
         if (d == ConfigurationHelper.eden) return EDEN;
         if (d == ConfigurationHelper.wildwood) return WILDWOOD;
         if (d == ConfigurationHelper.apalachia) return APALACHIA;

@@ -43,7 +43,8 @@ public final class ModBlocks {
     public static Block windTotem;
     public static Block cloud;
     public static Block skyRail, apalachiaRail, skyBoostRail, lethe, letheFlowing;
-    public static Block dreamCarrots, dreamMelon, dreamMelonStem, netherTorch, dreamWater;
+    public static Block dreamCarrots, dreamMelon, dreamMelonStem, netherTorch, dreamWater, iceikaTorch, vetheaTorch, lureTorch, lureTorchLit, arcaneConcentrate;
+    public static net.minecraftforge.fluids.Fluid arcaneFluid;
     public static net.minecraftforge.fluids.Fluid dreamWaterFluid;
     public static net.minecraftforge.fluids.Fluid letheFluid;
     /** Лампы сумеречных миров по номеру TwilightWorld; [EDEN] пусто - у Эдема лампа Divine. */
@@ -137,6 +138,29 @@ public final class ModBlocks {
         for (int coal = 0; coal < 2; coal++) // уголь или древесный уголь над стержнем ифрита (вместо палки)
             GameRegistry.addRecipe(new net.minecraft.item.ItemStack(netherTorch, 4), "C", "B", 'C', new net.minecraft.item.ItemStack(net.minecraft.init.Items.coal, 1, coal),
                 'B', net.minecraft.init.Items.blaze_rod);
+        // факелы Iceika (ледяные осколки на морозной палке) и Ветеи (серый жемчуг на палке): по 4
+        iceikaTorch = new com.divinerpgextended.block.BlockWorldTorch("iceika", 0x9FE0FF);
+        GameRegistry.registerBlock(iceikaTorch, "worldTorch_iceika");
+        GameRegistry.addRecipe(new net.minecraft.item.ItemStack(iceikaTorch, 4), "C", "S", 'C', net.divinerpg.utils.items.IceikaItems.iceShards, 'S',
+            com.divinerpgextended.world.twilight.TwilightCrafts.stick(com.divinerpgextended.world.twilight.WorldWood.FROZEN));
+        vetheaTorch = new com.divinerpgextended.block.BlockWorldTorch("vethea", 0xB070FF);
+        GameRegistry.registerBlock(vetheaTorch, "worldTorch_vethea");
+        GameRegistry.addRecipe(new net.minecraft.item.ItemStack(vetheaTorch, 4), "C", "S", 'C', net.divinerpg.utils.items.VetheaItems.dirtyPearls, 'S',
+            net.minecraft.init.Items.stick);
+        // арканный концентрат: жидкость фонтанных залов Арканы
+        arcaneFluid = new net.minecraftforge.fluids.Fluid("dre_arcane").setLuminosity(9);
+        net.minecraftforge.fluids.FluidRegistry.registerFluid(arcaneFluid);
+        arcaneFluid = net.minecraftforge.fluids.FluidRegistry.getFluid("dre_arcane");
+        arcaneConcentrate = new com.divinerpgextended.block.BlockArcaneConcentrate(arcaneFluid);
+        GameRegistry.registerBlock(arcaneConcentrate, "arcaneConcentrate");
+        // водный факел зова: водный слиток над водным стержнем ифрита, 1 штука; горит на арканиуме
+        lureTorch = new com.divinerpgextended.block.BlockLureTorch(false);
+        GameRegistry.registerBlock(lureTorch, "lureTorch");
+        lureTorchLit = new com.divinerpgextended.block.BlockLureTorch(true);
+        GameRegistry.registerBlock(lureTorchLit, "lureTorchLit");
+        GameRegistry.registerTileEntity(com.divinerpgextended.block.BlockLureTorch.Tile.class, "dreLureTorch");
+        GameRegistry.addRecipe(new net.minecraft.item.ItemStack(lureTorch), "I", "R", 'I', net.divinerpg.utils.items.VanillaItemsOther.aquaticIngot, 'R',
+            net.divinerpg.utils.items.VanillaItemsOther.aquaticBlazeRod);
         dreamCarrots = new com.divinerpgextended.block.DreamCrops.Carrot();
         GameRegistry.registerBlock(dreamCarrots, "dreamCarrots");
         dreamMelon = new com.divinerpgextended.block.DreamCrops.Melon();

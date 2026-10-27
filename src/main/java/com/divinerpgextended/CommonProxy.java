@@ -215,6 +215,8 @@ public class CommonProxy {
             .bus()
             .register(floors);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.vethea.VetheaCombat());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.DivineSpawns());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.item.ItemArcanePick.Handler());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.vethea.LunaFight());
         FMLCommonHandler.instance()
             .bus()
@@ -242,6 +244,7 @@ public class CommonProxy {
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenJungleLair(), 50);
         GameRegistry.registerWorldGenerator(new IceikaDecor(), 100);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.vethea.VetheaLakes(), 100);
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaFountain(), 100);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.IceikaXmasTree(), 101);
         GameRegistry.registerWorldGenerator(new WorldGenThrone(), 60);
         GameRegistry.registerWorldGenerator(new WorldGenThrone.Seal(), 100000); // последним, после генераторов других модов
@@ -267,6 +270,13 @@ public class CommonProxy {
         GameRegistry.addSmelting(ModBlocks.rimeOre, new ItemStack(ModItems.rimeIngot), 1.0F);
         GameRegistry.addRecipe(new ItemStack(ModItems.rimePick), "III", " S ", " S ", 'I', ModItems.rimeIngot, 'S',
             com.divinerpgextended.world.twilight.TwilightCrafts.stick(com.divinerpgextended.world.twilight.WorldWood.FROZEN));
+
+        // Подозрительный песчаник (ловушка гробницы): гладкий песчаник шлемом
+        GameRegistry.addRecipe(new ItemStack(ModBlocks.trapFloor, 5), "PPP", "P P", 'P', new ItemStack(Blocks.sandstone, 1, 2));
+
+        // Карта к храму джунглей (логово Древнего драмкрикса): бумага в какао-бобах
+        GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.JUNGLE), "SSS", "SPS", "SSS", 'S',
+            new ItemStack(Items.dye, 1, 3), 'P', Items.paper);
 
         // Карта к Древней гробнице: бумага в резном песчанике
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, 3), "SSS", "SPS", "SSS", 'S', new ItemStack(Blocks.sandstone,
@@ -341,6 +351,7 @@ public class CommonProxy {
         HatsCompat.apply();
         com.divinerpgextended.world.twilight.TwilightClimate.apply();
         com.divinerpgextended.vethea.LunaFight.buffEverlight();
+        com.divinerpgextended.item.ItemArcanePick.makeBreakable();
         if (Config.replaceTwilightClock) removeRecipes(TwilightItemsOther.twilightClock);
         if (Config.snowGlobeOnlyFromBoss) removeRecipes(IceikaItems.snowGlobe);
         if (Config.snowflakesInSummons) {

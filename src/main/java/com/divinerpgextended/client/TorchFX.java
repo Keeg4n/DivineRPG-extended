@@ -21,7 +21,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class TorchFX extends EntityFX {
 
     /** Текстуры частиц игры: дымка (0..7, по убыванию размера), капля, искра фейерверка (160..167, гаснет). */
-    static final int PUFF = 0, DROP = 113, SPARK = 160;
+    static final int PUFF = 0, DROP = 113, SPARK = 160, BUBBLE = 32;
 
     private final float size;
     private final int tex;
@@ -130,11 +130,34 @@ public class TorchFX extends EntityFX {
         return (r.nextDouble() - 0.5) * d;
     }
 
+    /** Пузыри горящего водного факела зова: поднимаются и лопаются (и на воздухе). */
+    public static void bubbles(World w, double x, double y, double z, Random r) {
+        int set = Minecraft.getMinecraft().gameSettings.particleSetting;
+        for (int i = set > 0 ? 1 : 3; i > 0; i--)
+            add(new TorchFX(w, x + jit(r, 0.2), y + jit(r, 0.1), z + jit(r, 0.2), jit(r, 0.01), 0.02 + r.nextDouble() * 0.02, jit(r, 0.01),
+                r.nextBoolean() ? 0xFFFFFF : 0xBFE8FF, BUBBLE, 0.5F, 20 + r.nextInt(15), 0, false));
+        if (r.nextInt(4) == 0) w.spawnParticle("dripWater", x, y - 0.1, z, 0, 0, 0);
+    }
+
     /** Частицы факела {@code world} (null - адский) у головки (x, y, z). */
-    public static void spawn(World w, TwilightWorld world, double x, double y, double z, Random r) {
+    public static void spawn(World w, TwilightWorld world, String key, double x, double y, double z, Random r) {
         int set = Minecraft.getMinecraft().gameSettings.particleSetting; // 0 - все, 1 - меньше, 2 - минимум
         if (set == 2 && r.nextInt(3) != 0) return;
         boolean less = set > 0;
+        if ("iceika".equals(key)) { // мороз: снежинки кружат и падают, иней искрит холодным светом
+            for (int i = less ? 1 : 2; i > 0; i--)
+                add(new TorchFX(w, x + jit(r, 0.5), y + 0.2 + r.nextDouble() * 0.3, z + jit(r, 0.5), jit(r, 0.01), -0.01, jit(r, 0.01),
+                    r.nextBoolean() ? 0xFFFFFF : 0xD8F0FF, PUFF, 0.35F, 40 + r.nextInt(20), 0.05F, false));
+            add(new TorchFX(w, x + jit(r, 0.2), y, z + jit(r, 0.2), 0, 0.01, 0, 0x9FE0FF, SPARK, 0.3F, 12 + r.nextInt(6), 0, true));
+            if (r.nextInt(3) == 0) w.spawnParticle("snowshovel", x, y, z, 0, 0, 0);
+            return;
+        }
+        if ("vethea".equals(key)) { // сон: лиловые и бирюзовые огоньки медленно кружат вокруг и тают
+            double a = r.nextDouble() * Math.PI * 2;
+            add(new TorchFX(w, x, y - 0.05, z, 0, 0.01, 0, r.nextBoolean() ? 0xB070FF : 0x50FFD0, SPARK, 0.35F, 40, 0, true).orbit(x, z, a, 0.25, 0.12));
+            if (!less) add(new TorchFX(w, x + jit(r, 0.3), y + jit(r, 0.2), z + jit(r, 0.3), jit(r, 0.005), 0.008, jit(r, 0.005), 0xE0C8FF, PUFF, 0.6F, 35, 0, true));
+            return;
+        }
         if (world == null) { // ад: угли рвутся вверх, иногда хлопок лавы
             w.spawnParticle("flame", x, y, z, 0, 0, 0);
             for (int i = less ? 1 : 2; i > 0; i--)

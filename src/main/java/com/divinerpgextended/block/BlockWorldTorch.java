@@ -13,12 +13,15 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 /**
  * Факел сумеречного мира: палка мира с пылью мира, светит ярче обычного и искрит цветом мира. Адский факел - из стержня
- * ифрита. Монстров Divine гонит только в своём мире ({@link com.divinerpgextended.boss.TorchWards}).
+ * ифрита, факелы Iceika и Ветеи - из ледяных осколков и серого жемчуга. Монстров Divine гонит только в своём мире
+ * ({@link com.divinerpgextended.boss.TorchWards}).
  */
 public class BlockWorldTorch extends BlockTorch {
 
-    /** Мир факела (null - адский). */
+    /** Мир факела (null - не сумеречный: ад, Iceika, Ветея - см. {@link #key}). */
     public final TwilightWorld world;
+    /** Ключ факела: мир сумерек, "nether", "iceika" или "vethea" (текстура, название, частицы). */
+    public final String key;
     private final float r, g, b;
 
     public BlockWorldTorch(TwilightWorld world, int color) {
@@ -30,8 +33,14 @@ public class BlockWorldTorch extends BlockTorch {
         this(null, "nether", color);
     }
 
+    /** Факел другого мира Divine: "iceika" или "vethea". */
+    public BlockWorldTorch(String key, int color) {
+        this(null, key, color);
+    }
+
     private BlockWorldTorch(TwilightWorld world, String key, int color) {
         this.world = world;
+        this.key = key;
         r = (color >> 16 & 255) / 255F;
         g = (color >> 8 & 255) / 255F;
         b = (color & 255) / 255F;
@@ -45,7 +54,10 @@ public class BlockWorldTorch extends BlockTorch {
 
     /** Измерение, где факел гонит монстров. */
     public int dimension() {
-        return world != null ? world.dimension() : -1;
+        if (world != null) return world.dimension();
+        if ("iceika".equals(key)) return net.divinerpg.utils.config.ConfigurationHelper.iceika;
+        if ("vethea".equals(key)) return net.divinerpg.utils.config.ConfigurationHelper.vethea;
+        return -1;
     }
 
     @Override
@@ -64,6 +76,6 @@ public class BlockWorldTorch extends BlockTorch {
         else if (meta == 2) { px += off; py += up; }
         else if (meta == 3) { pz -= off; py += up; }
         else if (meta == 4) { pz += off; py += up; }
-        com.divinerpgextended.client.TorchFX.spawn(w, world, px, py, pz, rand);
+        com.divinerpgextended.client.TorchFX.spawn(w, world, key, px, py, pz, rand);
     }
 }

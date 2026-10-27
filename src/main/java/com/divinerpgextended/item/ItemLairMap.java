@@ -26,9 +26,11 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class ItemLairMap extends Item {
 
     private static final String[] KEYS = { "carcinus", "snow", "throne", "tomb", "nest", "circle", "watcher", "scorchers", "ayeraco", "twins", "karot",
-        "archer", "fiend", "vamacheron" };
+        "archer", "fiend", "vamacheron", "jungle" };
     private static final int[] COLORS = { 0x4FA3C8, 0xDDEEFF, 0x6FC8FF, 0xE8C060, 0x7FD15A, 0xB0302A, 0x7A2E4E, 0xF07A20, 0xD0C890, 0xE0E0E0, 0x9050C0,
-        0xC09040, 0x50A070, 0xD8D0B8 };
+        0xC09040, 0x50A070, 0xD8D0B8, 0x3E8A2E };
+    /** Мета карты к храму джунглей с логовом Древнего драмкрикса. */
+    public static final int JUNGLE = 14;
     /** Карты к аренам Мортума (кроме Демонического круга - CIRCLE): близнецы, Карот, лучник, Пожиратель, Вамачерон. */
     public static final int ARENA = 9;
 
@@ -39,7 +41,7 @@ public class ItemLairMap extends Item {
 
     private static com.divinerpgextended.world.twilight.MortumArenas.Type arenaOf(int t) {
         if (t == CIRCLE) return com.divinerpgextended.world.twilight.MortumArenas.Type.DEMON;
-        return t >= ARENA ? com.divinerpgextended.world.twilight.MortumArenas.Type.values()[t - ARENA + 1] : null;
+        return t >= ARENA && t < JUNGLE ? com.divinerpgextended.world.twilight.MortumArenas.Type.values()[t - ARENA + 1] : null;
     }
     /** Мета карт к логовам Ада и Энда: Смотритель, Король скорчеров, орда Айрако. */
     public static final int WATCHER = 6, SCORCHERS = 7, AYERACO = 8;
@@ -93,6 +95,7 @@ public class ItemLairMap extends Item {
             return stack;
         }
         player.getEntityData().setLong(COOLDOWN, now);
+        if (t == JUNGLE) return jungle(stack, world, player);
         if (t == NEST || t == CIRCLE || t >= ARENA) return twilight(stack, world, player, t);
         if (t >= WATCHER) return outer(world, player, t);
         // логова - в обычном мире, Ледяной Трон - в Iceika
@@ -224,6 +227,37 @@ public class ItemLairMap extends Item {
         return stack;
     }
 
+    /** Есть ли у спавна джунгли (считается раз на мир: иначе храмы джунглей встают в тёплых зелёных землях). */
+    private static final java.util.Map<World, Boolean> JUNGLES = new java.util.WeakHashMap<World, Boolean>();
+
+    /**
+     * Храм джунглей с логовом Древнего драмкрикса: места храмов - из сида (сетка ванильного генератора), вид постройки - по
+     * биому места ({@link com.divinerpgextended.world.ScatterGen#kind}); биомы известны и в ещё не созданных краях.
+     */
+    private static ItemStack jungle(ItemStack stack, World world, EntityPlayer player) {
+        if (world.provider.dimensionId != 0) {
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.map_overworld"));
+            return stack;
+        }
+        Boolean has = JUNGLES.get(world);
+        if (has == null) JUNGLES.put(world, has = !com.divinerpgextended.Config.scatterInModBiomes || com.divinerpgextended.world.ScatterGen.hasJungles(world));
+        final boolean jungles = has;
+        final net.minecraft.world.biome.WorldChunkManager wcm = world.getWorldChunkManager();
+        int[] c = pick(16 * 32, player.posX, player.posZ, 8, (rx, rz) -> {
+            int[] s = com.divinerpgextended.world.ScatterGen.spot(world, rx, rz);
+            int x = s[0] * 16 + 8, z = s[1] * 16 + 8;
+            return com.divinerpgextended.world.ScatterGen.kind(wcm.getBiomeGenAt(x, z), jungles) == com.divinerpgextended.world.ScatterGen.JUNGLE
+                ? new int[] { x, 64, z } : null;
+        });
+        if (c == null) {
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.map_none_jungle"));
+            return stack;
+        }
+        player.addChatMessage(new ChatComponentTranslation("dre.chat.map_site_jungle", distance(player, c[0], c[2]), direction(player, c[0], c[2]), c[0], c[2]));
+        ExplorerMaps.give(world, player, JUNGLE, "item.dre.lairMap.jungle.name", c[0], c[2]);
+        return stack;
+    }
+
     /** Логова Ада и Энда - из сида. */
     private static ItemStack outer(World world, EntityPlayer player, int t) {
         int type = t - WATCHER;
@@ -295,9 +329,9 @@ public class ItemLairMap extends Item {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void getSubItems(Item item, CreativeTabs tab, List list) {
         // в порядке прохождения: Карцинус, снежная пещера, Трон, гробница, Ад, рощи, Мортум, Айрако
-        int[] order = { 0, 1, 2, 3, WATCHER, SCORCHERS, NEST, CIRCLE };
+        int[] order = { 0, 1, 2, 3, JUNGLE, WATCHER, SCORCHERS, NEST, CIRCLE };
         for (int m : order) list.add(new ItemStack(item, 1, m));
-        for (int i = ARENA; i < KEYS.length; i++) list.add(new ItemStack(item, 1, i));
+        for (int i = ARENA; i < JUNGLE; i++) list.add(new ItemStack(item, 1, i));
         list.add(new ItemStack(item, 1, AYERACO));
     }
 

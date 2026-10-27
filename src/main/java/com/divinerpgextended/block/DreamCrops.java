@@ -27,7 +27,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Грядка мечтаний: морковь мечтаний сажается на пашню, как обычная (урожай растёт с Удачей), арбуз мечтаний - из семечек:
+ * Грядка мечтаний: морковь мечтаний сажается на пашню и ведёт себя как ванильная (пашня пересохла или вытоптана - ломается;
+ * урожай растёт с Удачей), арбуз мечтаний - из семечек:
  * стебель, рядом вырастает блок арбуза, с него падают дольки (с Шёлковым касанием - сам блок).
  */
 public final class DreamCrops {
@@ -43,6 +44,15 @@ public final class DreamCrops {
         public Carrot() {
             setBlockName("dre.dreamCarrots");
             setBlockTextureName("divinerpgextended:dream_carrots");
+        }
+
+        /**
+         * Посадка (как у ванильной моркови): Forge узнаёт посадки по ссылке на ванильный блок, наш считал "травой" - и земля
+         * его держала: пересохшая или вытоптанная пашня не ломала морковь.
+         */
+        @Override
+        public net.minecraftforge.common.EnumPlantType getPlantType(net.minecraft.world.IBlockAccess w, int x, int y, int z) {
+            return net.minecraftforge.common.EnumPlantType.Crop;
         }
 
         @Override
@@ -123,6 +133,12 @@ public final class DreamCrops {
             setBlockTextureName("melon_stem");
         }
 
+        /** Посадка, как стебель ванильного арбуза (см. Carrot.getPlantType). */
+        @Override
+        public net.minecraftforge.common.EnumPlantType getPlantType(net.minecraft.world.IBlockAccess w, int x, int y, int z) {
+            return net.minecraftforge.common.EnumPlantType.Crop;
+        }
+
         @Override
         public ArrayList<ItemStack> getDrops(World w, int x, int y, int z, int meta, int fortune) {
             ArrayList<ItemStack> l = new ArrayList<ItemStack>();
@@ -163,7 +179,8 @@ public final class DreamCrops {
             ItemStack held = p.getHeldItem();
             if (held == null || held.getItem() != VetheaItems.dreamCarrot) return;
             World w = p.worldObj;
-            if (w.getBlock(e.x, e.y, e.z) != Blocks.farmland || !w.isAirBlock(e.x, e.y + 1, e.z)) return;
+            if (!w.isAirBlock(e.x, e.y + 1, e.z) || !w.getBlock(e.x, e.y, e.z).canSustainPlant(w, e.x, e.y, e.z, net.minecraftforge.common.util.ForgeDirection.UP,
+                (net.minecraftforge.common.IPlantable) ModBlocks.dreamCarrots)) return;
             p.getEntityData().setLong(TICK, w.getTotalWorldTime());
             if (w.isRemote) return;
             if (!p.canPlayerEdit(e.x, e.y + 1, e.z, 1, held)) return;
