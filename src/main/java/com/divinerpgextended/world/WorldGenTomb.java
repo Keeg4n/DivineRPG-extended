@@ -121,12 +121,18 @@ public class WorldGenTomb implements IWorldGenerator {
             if (p.list.isEmpty()) return;
             for (Iterator<int[]> it = p.list.iterator(); it.hasNext();) {
                 int[] t = it.next();
-                if (!ready(w, t[0], t[1], t[2])) continue;
+                if (!ready(w, t[0], t[1], t[2])) {
+                    // игрок у пирамиды, а площадь гробницы (до 110 блоков на восток) не вся заселена: при малой дальности
+                    // прорисовки она так и не построилась бы - догружаем недостающие чанки понемногу
+                    if (w.getClosestPlayer(t[0], t[1], t[2], 96) != null) fill(w, t[0], t[1], t[2], 12);
+                    continue;
+                }
                 it.remove();
                 p.markDirty();
                 if (w.getBlock(t[0], t[1], t[2]) == Blocks.stone_pressure_plate && build(w, w.rand, t[0], t[1], t[2])) {
                     DivineRPGExtended.LOG.info("Древняя гробница: " + t[0] + " " + t[2]);
                 }
+                release(w, t[0], t[1], t[2]);
             }
         }
     }
@@ -137,17 +143,48 @@ public class WorldGenTomb implements IWorldGenerator {
         return floor - Math.max(20, floor - 26);
     }
 
-    /** Вся площадь гробницы (лестница, лабиринт, зал) загружена и заселена. */
-    private static boolean ready(World w, int px, int py, int pz) {
+    /** Чанки площади гробницы (лестница, лабиринт, зал): {ax0, ax1, az0, az1}. */
+    private static int[] area(int px, int py, int pz) {
         int d = stairLength(py);
         int x0 = px - 12, x1 = px + d + 2 + W + 40, z0 = pz - 32, z1 = pz + 32;
-        for (int ax = (x0 - 8) >> 4; ax <= (x1 - 8) >> 4; ax++) {
-            for (int az = (z0 - 8) >> 4; az <= (z1 - 8) >> 4; az++) {
+        return new int[] { (x0 - 8) >> 4, (x1 - 8) >> 4, (z0 - 8) >> 4, (z1 - 8) >> 4 };
+    }
+
+    /** Вся площадь гробницы загружена и заселена. */
+    private static boolean ready(World w, int px, int py, int pz) {
+        int[] a = area(px, py, pz);
+        for (int ax = a[0]; ax <= a[1]; ax++) {
+            for (int az = a[2]; az <= a[3]; az++) {
                 if (!w.getChunkProvider()
                     .chunkExists(ax, az) || !w.getChunkFromChunkCoords(ax, az).isTerrainPopulated) return false;
             }
         }
         return true;
+    }
+
+    /** Загрузить (создать) до max недостающих чанков площади и кольца за ней - без кольца крайние не заселятся. */
+    private static void fill(World w, int px, int py, int pz, int max) {
+        int[] a = area(px, py, pz);
+        for (int ax = a[0]; ax <= a[1] + 1 && max > 0; ax++) for (int az = a[2]; az <= a[3] + 1 && max > 0; az++) {
+            if (w.getChunkProvider().chunkExists(ax, az)) continue;
+            w.getChunkProvider().loadChunk(ax, az);
+            max--;
+        }
+    }
+
+    /** После постройки: чанки площади, которые никто из игроков не видит (догруженные {@link #fill}), - в очередь на выгрузку. */
+    private static void release(World w, int px, int py, int pz) {
+        if (!(w instanceof net.minecraft.world.WorldServer)) return;
+        net.minecraft.world.WorldServer ws = (net.minecraft.world.WorldServer) w;
+        int[] a = area(px, py, pz);
+        for (int ax = a[0]; ax <= a[1] + 1; ax++) for (int az = a[2]; az <= a[3] + 1; az++)
+            if (ws.theChunkProviderServer.chunkExists(ax, az) && !ws.getPlayerManager().func_152621_a(ax, az)) ws.theChunkProviderServer.unloadChunksIfNotNearSpawn(ax, az);
+    }
+
+    /** Ждёт ли постройки гробница ближе r блоков (пирамида есть, площадь ещё не готова). */
+    static boolean pendingNear(World w, int x, int z, int r) {
+        for (int[] t : Pending.get(w).list) if ((long) (t[0] - x) * (t[0] - x) + (long) (t[2] - z) * (t[2] - z) <= (long) r * r) return true;
+        return false;
     }
 
     // ---------------------------------------------------------------- постройка

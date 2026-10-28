@@ -23,6 +23,7 @@ public class TooltipWrap {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onTooltip(ItemTooltipEvent e) {
         if (e.itemStack == null) return;
+        TooltipShift.apply(e); // сначала спрятать описания, потом переносить то, что осталось
         String id = Item.itemRegistry.getNameForObject(e.itemStack.getItem());
         if (id == null || !id.startsWith("divinerpgextended:")) return;
         Minecraft mc = Minecraft.getMinecraft();

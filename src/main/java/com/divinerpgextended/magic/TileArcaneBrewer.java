@@ -33,6 +33,7 @@ public class TileArcaneBrewer extends TileEntityBrewingStand {
         if (bottle.getItem() != com.divinerpgextended.registry.ModItems.arcanePotion) return null;
         int m = bottle.getItemDamage();
         ArcaneEffect e = ArcaneEffect.of(m);
+        if (e.removed()) return null;
         int add;
         if (ing.getItem() == Items.glowstone_dust && e.leveled()) add = ItemArcanePotion.STRONG;
         else if (ing.getItem() == Items.redstone && !e.instant()) add = ItemArcanePotion.LONG;

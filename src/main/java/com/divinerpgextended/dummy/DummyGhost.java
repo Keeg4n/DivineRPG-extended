@@ -76,6 +76,7 @@ public class DummyGhost extends FakePlayer {
         net.divinerpg.utils.events.ArcanaHelper h = net.divinerpg.utils.events.ArcanaHelper.getProperties(p);
         t.setFloat("Arcana", h == null ? 0 : h.getBarValue());
         t.setString("Name", p.getCommandSenderName());
+        t.setString("UUID", p.getUniqueID().toString());
         return t;
     }
 

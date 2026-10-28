@@ -26,7 +26,10 @@ import net.minecraft.world.WorldServer;
  */
 public class EntityTrainingDummy extends EntityLiving {
 
-    private static final int DW_NAME = 20, DW_LAST = 21, DW_DPS = 22;
+    private static final int DW_NAME = 20, DW_LAST = 21, DW_DPS = 22, DW_UUID = 23;
+    /** Урон от окружения и эффектов: манекен его не показывает. */
+    private static final java.util.Set<String> ENVIRONMENT = new java.util.HashSet<String>(java.util.Arrays.asList("inFire", "onFire", "lava", "cactus",
+        "fall", "drown", "inWall", "starve", "wither", "magic", "anvil", "fallingBlock"));
     /** Окно для урона в секунду. */
     static final int WINDOW = 100;
 
@@ -49,6 +52,12 @@ public class EntityTrainingDummy extends EntityLiving {
         dataWatcher.addObject(DW_NAME, "");
         dataWatcher.addObject(DW_LAST, Float.valueOf(0));
         dataWatcher.addObject(DW_DPS, Float.valueOf(0));
+        dataWatcher.addObject(DW_UUID, "");
+    }
+
+    /** UUID того, чья это копия (для скина и модели как у живого игрока); пусто у манекенов до 0.99.30. */
+    public String skinId() {
+        return dataWatcher.getWatchableObjectString(DW_UUID);
     }
 
     @Override
@@ -78,6 +87,7 @@ public class EntityTrainingDummy extends EntityLiving {
         snap = DummyGhost.snapshot(p);
         ghost = null;
         dataWatcher.updateObject(DW_NAME, p.getCommandSenderName());
+        dataWatcher.updateObject(DW_UUID, p.getUniqueID().toString());
         for (int i = 0; i < 4; i++) {
             ItemStack a = p.inventory.armorInventory[i];
             setCurrentItemOrArmor(i + 1, a == null ? null : a.copy()); // только вид: слотов у манекена нет
@@ -145,7 +155,9 @@ public class EntityTrainingDummy extends EntityLiving {
             return true;
         }
         Entity attacker = s.getEntity();
-        if (attacker == null) return false; // огонь, лава, кактус, падение - не в счёт
+        // огонь, лава, кактус, падение - не в счёт; взрывы (бомбы, метеоры, пушки модов: у взрыва в 1.7.10 нет атакующего) и
+        // прочий урон оружия без атакующего - в счёт
+        if (attacker == null && !s.isExplosion() && ENVIRONMENT.contains(s.damageType)) return false;
         if (attacker instanceof EntityPlayer && s.getSourceOfDamage() == attacker && ((EntityPlayer) attacker).isSneaking()) {
             EntityPlayer p = (EntityPlayer) attacker;
             if (placer != null && placer.equals(p.getUniqueID())) pickUp(p);
@@ -289,6 +301,7 @@ public class EntityTrainingDummy extends EntityLiving {
         super.readEntityFromNBT(t);
         snap = t.getCompoundTag("DreSnapshot");
         dataWatcher.updateObject(DW_NAME, snap.getString("Name"));
+        dataWatcher.updateObject(DW_UUID, snap.getString("UUID"));
         try {
             placer = t.hasKey("DrePlacer") ? UUID.fromString(t.getString("DrePlacer")) : null;
         } catch (IllegalArgumentException e) {

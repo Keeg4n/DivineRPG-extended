@@ -48,6 +48,20 @@ public class LairData extends WorldSavedData {
         return false;
     }
 
+    /** Убрать записи этого типа ближе r блоков (для автотеста); вернуть - {@link #add}. */
+    public java.util.List<int[]> forget(int type, int x, int z, int r) {
+        java.util.List<int[]> gone = new java.util.ArrayList<int[]>();
+        for (java.util.Iterator<int[]> it = lairs.iterator(); it.hasNext();) {
+            int[] l = it.next();
+            if (l[0] == type && (long) (l[1] - x) * (l[1] - x) + (long) (l[3] - z) * (l[3] - z) <= (long) r * r) {
+                gone.add(l);
+                it.remove();
+            }
+        }
+        if (!gone.isEmpty()) markDirty();
+        return gone;
+    }
+
     /** Все записи этого типа. */
     public java.util.List<int[]> all(int type) {
         java.util.List<int[]> out = new java.util.ArrayList<int[]>();

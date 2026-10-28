@@ -71,27 +71,29 @@ public class ItemArcanePotion extends Item {
         return "item.dre.arcanePotion." + ArcaneEffect.of(s.getItemDamage()).key();
     }
 
+    /** Зелье "Название" (общее - Общее зелье "Название"); сила и время - в подсказке, как у ванильных. */
     @Override
     public String getItemStackDisplayName(ItemStack s) {
         int m = s.getItemDamage();
-        StringBuilder n = new StringBuilder(StatCollector.translateToLocal(getUnlocalizedName(s) + ".name"));
-        if ((m & STRONG) != 0) n.append(' ').append(StatCollector.translateToLocal("dre.potion.strong"));
-        if ((m & LONG) != 0) n.append(' ').append(StatCollector.translateToLocal("dre.potion.long"));
-        if ((m & SHARED) != 0) n.append(' ').append(StatCollector.translateToLocal("dre.potion.shared"));
-        return n.toString();
+        return StatCollector.translateToLocalFormatted((m & SHARED) != 0 ? "dre.potion.name.shared" : "dre.potion.name",
+            StatCollector.translateToLocal(getUnlocalizedName(s) + ".name"));
     }
 
+    /** "Эффект II (4:00)" - видно сразу; что он делает - под Shift. */
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void addInformation(ItemStack s, EntityPlayer p, List list, boolean adv) {
         int m = s.getItemDamage();
         ArcaneEffect e = ArcaneEffect.of(m);
-        boolean strong = (m & STRONG) != 0 && e.leveled();
-        list.add(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("dre.potion." + e.key() + (strong ? ".desc2" : ".desc1")));
-        if (!e.instant()) {
-            int sec = e.seconds * ((m & LONG) != 0 ? 2 : 1);
-            list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("dre.potion.duration", String.format("%d:%02d", sec / 60, sec % 60)));
+        if (e.removed()) {
+            list.add(com.divinerpgextended.client.TooltipShift.KEEP + EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.potion.removed"));
+            return;
         }
+        boolean strong = (m & STRONG) != 0 && e.leveled();
+        int sec = e.seconds * ((m & LONG) != 0 ? 2 : 1);
+        list.add(com.divinerpgextended.client.TooltipShift.KEEP + EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.effect." + e.key())
+            + (strong ? " II" : "") + String.format(" (%d:%02d)", sec / 60, sec % 60));
+        list.add(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("dre.potion." + e.key() + (strong ? ".desc2" : ".desc1")));
         if ((m & SHARED) != 0) list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.potion.shared.desc"));
     }
 
@@ -100,6 +102,7 @@ public class ItemArcanePotion extends Item {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void getSubItems(Item item, CreativeTabs tab, List list) {
         for (ArcaneEffect e : ArcaneEffect.values()) {
+            if (e.removed()) continue;
             list.add(of(e, false, false, false));
             if (e.leveled()) list.add(of(e, true, false, false));
         }

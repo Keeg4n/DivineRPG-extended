@@ -181,7 +181,8 @@ public class ItemLairMap extends Item {
             built = l;
         }
         int[] site = com.divinerpgextended.world.LairSites.nearest(world, t, px, pz, radius, skip,
-            s -> inBounds(s[0], s[1]) && !data.near(t, s[0], s[1], 96) && !data.near(t + LairData.FAILED, s[0], s[1], 24), deadline);
+            s -> inBounds(s[0], s[1]) && !data.near(t, s[0], s[1], 96) && !data.near(t + LairData.FAILED, s[0], s[1], 24)
+                && !com.divinerpgextended.world.LairSites.stale(world, t, s[0], s[1]), deadline);
         if (site == com.divinerpgextended.world.LairSites.UNFINISHED) return false;
         double siteD = site == null ? Double.MAX_VALUE : (site[0] - px) * (site[0] - px) + (site[1] - pz) * (site[1] - pz);
         if (built == null && site == null) {

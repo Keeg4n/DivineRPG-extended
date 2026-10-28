@@ -77,7 +77,10 @@ public class BlockSkyRail extends Block {
         return new ForgeDirection[] { axis, axis.getOpposite() };
     }
 
-    /** Рядом поставили рельс: свободный конец формы (там пусто) поворачивается к новому соседу; занятые концы держатся. */
+    /**
+     * Рядом поставили рельс: как у ванильного - одинокий рельс (оба конца свободны) разворачивается к новому соседу прямо,
+     * у рельса с одним соседом свободный конец поворачивается к новому; занятые концы держатся, убранный сосед формы не меняет.
+     */
     static void relink(World w, int x, int y, int z, TileSkyRail t, java.util.List<ForgeDirection> c) {
         ForgeDirection[] s = t.shape();
         boolean free0 = !c.contains(s[0]), free1 = !c.contains(s[1]);
@@ -89,7 +92,7 @@ public class BlockSkyRail extends Block {
             if (best == null || d == keep.getOpposite()) best = d; // прямо - лучше, чем поворот
         }
         if (best == null) return;
-        if (free0 && free1) t.set(best, c.contains(best.getOpposite()) ? best.getOpposite() : keep);
+        if (free0 && free1) t.set(best, best.getOpposite());
         else t.set(keep, best);
     }
 

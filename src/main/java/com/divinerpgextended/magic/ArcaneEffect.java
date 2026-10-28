@@ -37,11 +37,11 @@ public enum ArcaneEffect {
     STEADY_HAND(0x6FA8DC, 240),
     /** Арканное оружие возвращает 5% (8%) нанесённого урона арканой. */
     ARCANE_HUNGER(0x9B1FA8, 240),
-    /** Сразу домой: к кровати (или точке появления мира). */
+    /** Убрано (путь домой). */
     WAY_HOME(0x5DE8B0, 0),
-    /** Мобов вокруг больше. */
+    /** Убрано (зов битвы). */
     CALL_TO_ARMS(0x6B1010, 300),
-    /** Мобов вокруг меньше. */
+    /** Убрано (затишье). */
     STILLNESS(0xCFF5FF, 300),
     /** Клюёт быстрее, редкая рыба чаще. */
     FISHERS_FORTUNE(0x2E7DD8, 300);
@@ -90,9 +90,14 @@ public enum ArcaneEffect {
         }
     }
 
+    /** Убранные зелья (0.99.30): не варятся, не видны, выпитые - пустые. Номера остаются за ними - метаданные не сдвигаются. */
+    public boolean removed() {
+        return this == WAY_HOME || this == CALL_TO_ARMS || this == STILLNESS;
+    }
+
     public static ArcaneEffect byIngredient(Item i) {
         if (i == null) return null;
-        for (ArcaneEffect e : values()) if (e.ingredient() == i) return e;
+        for (ArcaneEffect e : values()) if (!e.removed() && e.ingredient() == i) return e;
         return null;
     }
 

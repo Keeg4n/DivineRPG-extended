@@ -495,6 +495,7 @@ public class SelfTest {
         dummyTests(p);
         tabTests();
         arcanePhaseTests(p);
+        summonTests(p);
         twilightTests();
         vetheaTests(p, ow);
         serverTests(p, q);
@@ -1038,13 +1039,22 @@ public class SelfTest {
             com.divinerpgextended.magic.ArcanaPrices.apply(vat, vl);
             boolean sold = false;
             for (Object o : vl) if (((net.minecraft.village.MerchantRecipe) o).getItemToSell().getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.arcaneBrewer)) sold = true;
-            // у каждого из 16 зелий свой ингредиент
+            // у каждого из 13 зелий свой ингредиент; путь домой, зов битвы и затишье убраны - не варятся
             java.util.Set<Item> ings = new java.util.HashSet<Item>();
-            for (com.divinerpgextended.magic.ArcaneEffect e : com.divinerpgextended.magic.ArcaneEffect.values()) ings.add(e.ingredient());
-            check(brewed && charges == 3 && lamona == 1 && strong && noFuel && sold && ings.size() == 16 && !ings.contains(null),
+            int live = 0;
+            for (com.divinerpgextended.magic.ArcaneEffect e : com.divinerpgextended.magic.ArcaneEffect.values()) {
+                if (e.removed()) continue;
+                live++;
+                ings.add(e.ingredient());
+            }
+            ItemStack water = new ItemStack(Items.potionitem, 1, 0);
+            boolean goneBrews = com.divinerpgextended.magic.TileArcaneBrewer.result(water, new ItemStack(Items.ender_pearl)) == null
+                && com.divinerpgextended.magic.TileArcaneBrewer.result(water, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.apalachiaSoul)) == null
+                && com.divinerpgextended.magic.TileArcaneBrewer.result(water, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.edenSoul)) == null;
+            check(brewed && charges == 3 && lamona == 1 && strong && noFuel && sold && live == 13 && ings.size() == 13 && !ings.contains(null) && goneBrews,
                 "отвар чародея сварен " + brewed + " (зарядов " + charges + ", ламоны " + lamona + "), сильное " + strong + ", без арканиума не варится " + noFuel
-                    + ", Ваттикус продаёт стойку " + sold + ", разных ингредиентов " + ings.size());
-            return "склянки воды + ламона = отвар чародея (арканиум - 4 варки), + светопыль - сильное; без арканиума не варится; стойку продаёт Ваттикус; 16 зелий - 16 ингредиентов";
+                    + ", Ваттикус продаёт стойку " + sold + ", зелий " + live + ", разных ингредиентов " + ings.size() + ", убранные не варятся " + goneBrews);
+            return "склянки воды + ламона = отвар чародея (арканиум - 4 варки), + светопыль - сильное; без арканиума не варится; стойку продаёт Ваттикус; 13 зелий - 13 ингредиентов, путь домой, зов битвы и затишье не варятся";
         });
         t("Аркана", "Эффекты арканных зелий", () -> {
             reset(p);
@@ -1071,34 +1081,44 @@ public class SelfTest {
             // ясность из нового зелья - тот же эффект, что у зелий Divine
             com.divinerpgextended.magic.ArcaneEffects.drink(p, com.divinerpgextended.magic.ArcaneEffect.CLARITY, true, false, false);
             int clarity = com.divinerpgextended.magic.ArcanaRules.buffMult(p);
-            // затишье: враждебный моб рядом почти не появляется
+            // эффекты - настоящие эффекты Minecraft со своими номерами; убранное затишье ничего не даёт
+            net.minecraft.potion.Potion stonePot = com.divinerpgextended.magic.PotionArcane.of(com.divinerpgextended.magic.ArcaneEffect.STONE_SKIN);
+            net.minecraft.potion.PotionEffect fortPe = p.getActivePotionEffect(com.divinerpgextended.magic.PotionArcane.of(com.divinerpgextended.magic.ArcaneEffect.FORTITUDE));
+            boolean real = stonePot != null && p.isPotionActive(stonePot) && stonePot.id <= com.divinerpgextended.magic.PotionArcane.MAX_ID
+                && fortPe != null && fortPe.getAmplifier() == 1 && com.divinerpgextended.magic.PotionArcane.of(com.divinerpgextended.magic.ArcaneEffect.STILLNESS) == null;
+            java.util.Set<Integer> ids = new java.util.HashSet<Integer>();
+            for (com.divinerpgextended.magic.ArcaneEffect e : com.divinerpgextended.magic.ArcaneEffect.values())
+                if (com.divinerpgextended.magic.PotionArcane.of(e) != null) ids.add(com.divinerpgextended.magic.PotionArcane.of(e).id);
+            int effects0 = p.getActivePotionEffects().size();
             com.divinerpgextended.magic.ArcaneEffects.drink(p, com.divinerpgextended.magic.ArcaneEffect.STILLNESS, true, false, false);
-            int denied = 0;
-            @SuppressWarnings("unchecked")
-            java.util.List<Object> players = w.playerEntities;
-            boolean added = !players.contains(p);
-            if (added) players.add(p); // затишье ищет игроков мира
-            for (int i = 0; i < 100; i++) {
-                net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn cs = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(
-                    new net.minecraft.entity.monster.EntityZombie(w), w, (float) p.posX + 10, (float) p.posY, (float) p.posZ);
-                MinecraftForge.EVENT_BUS.post(cs);
-                if (cs.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.DENY) denied++;
-            }
-            if (added) players.remove(p);
+            boolean stillGone = p.getActivePotionEffects().size() == effects0;
             boolean warm = com.divinerpgextended.magic.ArcaneEffects.warm(p);
             com.divinerpgextended.magic.ArcaneEffects.drink(p, com.divinerpgextended.magic.ArcaneEffect.INNER_HEAT, false, false, false);
             boolean warmNow = com.divinerpgextended.magic.ArcaneEffects.warm(p);
             float bite = com.divinerpgextended.magic.ArcaneEffects.biteFactor(p);
             com.divinerpgextended.magic.ArcaneEffects.drink(p, com.divinerpgextended.magic.ArcaneEffect.FISHERS_FORTUNE, false, false, false);
             float biteNow = com.divinerpgextended.magic.ArcaneEffects.biteFactor(p);
+            // описание: Зелье "Название", "Эффект II (8:00)" видно сразу, остальное - под Shift
+            ItemStack strongLong = com.divinerpgextended.magic.ItemArcanePotion.of(com.divinerpgextended.magic.ArcaneEffect.STONE_SKIN, true, true, false);
+            String pname = strongLong.getDisplayName();
+            java.util.List<String> tip = new java.util.ArrayList<String>();
+            ((com.divinerpgextended.magic.ItemArcanePotion) strongLong.getItem()).addInformation(strongLong, p, tip, false); // у Item метод только клиентский
+            boolean format = pname.indexOf('"') > 0 && !tip.isEmpty() && tip.get(0).startsWith(com.divinerpgextended.client.TooltipShift.KEEP)
+                && tip.get(0).endsWith(" II (8:00)") && tip.size() >= 2 && !tip.get(1).startsWith(com.divinerpgextended.client.TooltipShift.KEEP);
+            // молоко снимает, как ванильные
+            p.curePotionEffects(new ItemStack(Items.milk_bucket));
+            boolean milked = !com.divinerpgextended.magic.ArcaneEffects.has(p, com.divinerpgextended.magic.ArcaneEffect.BATTLE_FERVOR)
+                && com.divinerpgextended.magic.ArcanaRules.buffMult(p) == 0 && com.divinerpgextended.magic.ArcaneEffects.biteFactor(p) == 1F;
             com.divinerpgextended.magic.ArcaneEffects.clear(p);
             float expectHurt = 20F * 0.85F * 0.85F;
-            check(near(hz.ammount, expectHurt) && near(hd.ammount, 11.5F) && fervorLeft > 9000 && near(shot, 3) && clarity == 3 && denied >= 80 && !warm && warmNow
-                && bite == 1F && near(biteNow, 0.6F),
+            check(near(hz.ammount, expectHurt) && near(hd.ammount, 11.5F) && fervorLeft > 9000 && near(shot, 3) && clarity == 3 && real && ids.size() == 13 && stillGone
+                && !warm && warmNow && bite == 1F && near(biteNow, 0.6F) && milked && format,
                 "удар 20 под каменной кожей и сильной стойкостью " + f(hz.ammount) + " (ждали " + f(expectHurt) + "), свой удар 10 под ражем " + f(hd.ammount)
-                    + ", долгий раж " + fervorLeft + " тиков; выстрел светлячка " + f(shot) + "; ясность x" + clarity + "; затишье отклонило " + denied
-                    + " из 100; жар " + warm + " -> " + warmNow + "; поклёвка x" + bite + " -> x" + biteNow);
-            return "каменная кожа и стойкость режут удар (20 -> " + f(expectHurt) + "), раж +15%, собранность -25% цены, ясность x3, затишье, жар, рыбацкий фарт";
+                    + ", долгий раж " + fervorLeft + " тиков; выстрел светлячка " + f(shot) + "; ясность x" + clarity + "; эффекты Minecraft " + real + " (номера " + ids
+                    + "); затишье пустое " + stillGone + "; жар " + warm + " -> " + warmNow + "; поклёвка x" + bite + " -> x" + biteNow + "; молоко сняло " + milked
+                    + "; описание " + format + " (" + pname + " / " + tip + ")");
+            return "каменная кожа и стойкость режут удар (20 -> " + f(expectHurt) + "), раж +15%, собранность -25% цены, ясность x3, жар, рыбацкий фарт; эффекты - настоящие (номера "
+                + ids + "), снимаются молоком; затишье убрано";
         });
     }
 
@@ -1161,6 +1181,101 @@ public class SelfTest {
                     + ", вещей рядом " + items0 + " -> " + items1);
             return "удар 10 по копии в алмазе: " + f(shown) + " - как по самому игроку; колючки не ранят бьющего; убрать может только хозяин и получает 1 манекен; /kill - без добычи";
         });
+        t("Прохождение", "Манекен: урон оружия Divine (мечи, снаряды, взрывы), несколько манекенов в мире", () -> {
+            reset(p);
+            net.minecraft.world.World w = p.worldObj;
+            ArcanaHelper.getProperties(p).setBarValue(200);
+            com.divinerpgextended.dummy.EntityTrainingDummy d = new com.divinerpgextended.dummy.EntityTrainingDummy(w);
+            d.setPosition(p.posX + 3, p.posY, p.posZ);
+            d.copy(p);
+            d.setPlacer(p);
+            w.spawnEntityInWorld(d);
+            p.rotationYaw = p.rotationYawHead = -90F;
+            p.rotationPitch = 0F;
+            StringBuilder sb = new StringBuilder();
+            boolean ok = true;
+            // мечи и булавы Divine - удар игрока с атрибутами оружия
+            Item[] melee = { net.divinerpg.utils.items.VanillaItemsWeapons.slimeSword, net.divinerpg.utils.items.VanillaItemsWeapons.bedrockMaul,
+                net.divinerpg.utils.items.ArcanaItems.arcaniumSaber, net.divinerpg.utils.items.ArcanaItems.arcaniteBlade };
+            for (Item it : melee) {
+                d.copy(p);
+                ItemStack held = new ItemStack(it);
+                hold(p, held);
+                p.getAttributeMap().applyAttributeModifiers(held.getAttributeModifiers()); // как на тике игрока
+                p.attackTargetEntityWithCurrentItem(d);
+                p.getAttributeMap().removeAttributeModifiers(held.getAttributeModifiers());
+                new com.divinerpgextended.magic.ArcanaCombat().onServerTick(new cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent(
+                    cpw.mods.fml.common.gameevent.TickEvent.Phase.END));
+                ok &= d.lastHit() > 4;
+                sb.append(it.getItemStackDisplayName(held)).append(' ').append(f(d.lastHit())).append(", ");
+            }
+            // снаряды Divine: выстрел, попадание в манекен (звезда и метеор - взрывом, у взрыва нет атакующего)
+            Item[] ranged = { net.divinerpg.utils.items.VanillaItemsWeapons.shuriken, net.divinerpg.utils.items.VanillaItemsWeapons.vileStorm,
+                net.divinerpg.utils.items.ArcanaItems.firefly, net.divinerpg.utils.items.ArcanaItems.starlight, net.divinerpg.utils.items.ArcanaItems.meteorMash };
+            for (Item it : ranged) {
+                d.copy(p);
+                ArcanaHelper.getProperties(p).setBarValue(200);
+                com.divinerpgextended.magic.ArcanaRules.resetCooldowns();
+                java.util.Set<Object> before = new java.util.HashSet<Object>(w.loadedEntityList);
+                ItemStack s = new ItemStack(it);
+                hold(p, s);
+                s.getItem().onItemRightClick(s, w, p);
+                java.util.List<net.minecraft.entity.Entity> fresh = new java.util.ArrayList<net.minecraft.entity.Entity>();
+                for (Object o : w.loadedEntityList) if (!before.contains(o) && o != d) fresh.add((net.minecraft.entity.Entity) o);
+                for (net.minecraft.entity.Entity e : fresh) { // попадание - сразу, как при столкновении в полёте
+                    for (Class<?> c = e.getClass(); c != null && c != Object.class; c = c.getSuperclass()) {
+                        java.lang.reflect.Method hitM = null;
+                        for (java.lang.reflect.Method m : c.getDeclaredMethods())
+                            if (m.getParameterTypes().length == 1 && m.getParameterTypes()[0] == net.minecraft.util.MovingObjectPosition.class && m.getReturnType() == void.class) hitM = m;
+                        if (hitM == null) continue;
+                        hitM.setAccessible(true);
+                        hitM.invoke(e, new net.minecraft.util.MovingObjectPosition(d));
+                        break;
+                    }
+                    e.setDead();
+                }
+                if (fresh.isEmpty()) { // в этой сборке выстрел не вышел (падает с неба вне загруженного) - не в счёт
+                    sb.append(it.getItemStackDisplayName(s)).append(" -, ");
+                    continue;
+                }
+                ok &= d.lastHit() > 0;
+                sb.append(it.getItemStackDisplayName(s)).append(' ').append(f(d.lastHit())).append(", ");
+            }
+            // взрыв без атакующего - в счёт; лава - нет
+            d.copy(p);
+            d.attackEntityFrom(DamageSource.setExplosionSource(new net.minecraft.world.Explosion(w, null, d.posX, d.posY, d.posZ, 3F)), 10F);
+            float boom = d.lastHit();
+            d.copy(p);
+            boolean lava = d.attackEntityFrom(DamageSource.lava, 10F);
+            d.setDead();
+            ok &= boom > 0 && !lava;
+            sb.append("взрыв ").append(f(boom)).append(", лава ").append(lava ? "засчитана" : "нет").append("; ");
+            // несколько манекенов предметом: в обычном мире и в Эдеме
+            for (int dim : new int[] { 0, ConfigurationHelper.eden }) {
+                WorldServer ws = server.worldServerForDimension(dim);
+                int bx = 7000 + dim * 7, bz = 7000;
+                loadAround(ws, bx, bz, 1);
+                int by = 120;
+                for (int i = 0; i < 9; i++) {
+                    ws.setBlock(bx + i, by, bz, Blocks.stone);
+                    ws.setBlockToAir(bx + i, by + 1, bz);
+                    ws.setBlockToAir(bx + i, by + 2, bz);
+                }
+                TestPlayer pp = player(dim, "TestDummyPlacer", bx + 0.5, by + 1, bz - 2.5);
+                ItemStack st = new ItemStack(com.divinerpgextended.registry.ModItems.trainingDummy, 4);
+                for (int i = 0; i < 3; i++) st.getItem().onItemUse(st, pp, ws, bx + i * 3, by, bz, 1, 0.5F, 1F, 0.5F);
+                int n = 0;
+                for (Object o : ws.loadedEntityList) if (o instanceof com.divinerpgextended.dummy.EntityTrainingDummy && !((net.minecraft.entity.Entity) o).isDead
+                    && ((net.minecraft.entity.Entity) o).getDistanceSq(bx, by, bz) < 150) {
+                    n++;
+                    ((net.minecraft.entity.Entity) o).setDead();
+                }
+                ok &= n == 3 && st.stackSize == 1;
+                sb.append("мир ").append(dim).append(": манекенов ").append(n).append(" из 3; ");
+            }
+            check(ok, sb.toString());
+            return sb.toString();
+        });
     }
 
     private void arcanePhaseTests(final TestPlayer p) {
@@ -1213,6 +1328,71 @@ public class SelfTest {
         });
     }
 
+    private void summonTests(final TestPlayer p) {
+        t("Аркана", "Кость призрака: призрак-призыв летает сквозь стены и бьёт цель хозяина", () -> {
+            reset(p);
+            net.minecraft.world.World w = p.worldObj;
+            int bx = net.minecraft.util.MathHelper.floor_double(p.posX), by = net.minecraft.util.MathHelper.floor_double(p.posY),
+                bz = net.minecraft.util.MathHelper.floor_double(p.posZ);
+            ArcanaHelper a = ArcanaHelper.getProperties(p);
+            a.setBarValue(200);
+            com.divinerpgextended.magic.ArcaneSummons.dismissAll(p);
+            // призрак Divine с хозяином - становится призывом аддона (хозяин Divine ищется по имени среди игроков мира)
+            // на время спавна в мире только этот игрок: тестовые игроки других проверок носят то же имя и стоят там же
+            @SuppressWarnings("unchecked")
+            java.util.List<Object> players = w.playerEntities;
+            java.util.List<Object> saved = new java.util.ArrayList<Object>(players);
+            players.clear();
+            players.add(p);
+            boolean spawnedDivine;
+            try {
+                net.divinerpg.entities.arcana.EntityWraith dw = new net.divinerpg.entities.arcana.EntityWraith(w, p);
+                dw.setPosition(p.posX, p.posY + 1, p.posZ); // как ставит кость призрака (без позиции - в 0,0,0, где чанк может быть не загружен)
+                spawnedDivine = w.spawnEntityInWorld(dw);
+            } finally {
+                players.clear();
+                players.addAll(saved);
+            }
+            int afterDivine = com.divinerpgextended.magic.ArcaneSummons.count(p);
+            StringBuilder ghosts = new StringBuilder();
+            for (Object o : w.loadedEntityList) if (o instanceof net.divinerpg.entities.arcana.EntityWraith) {
+                net.divinerpg.entities.arcana.EntityWraith gw = (net.divinerpg.entities.arcana.EntityWraith) o;
+                ghosts.append(gw.getClass().getSimpleName()).append(gw.isDead ? "(мёртв)" : "").append(" владелец ").append(gw.func_152113_b()).append("; ");
+            }
+            ghosts.append("игрок ").append(p.getCommandSenderName()).append('/').append(p.getDisplayName());
+            com.divinerpgextended.magic.ArcaneSummons.summon(p, p.posX, p.posY, p.posZ);
+            com.divinerpgextended.magic.ArcaneSummons.summon(p, p.posX, p.posY, p.posZ);
+            int capped = com.divinerpgextended.magic.ArcaneSummons.count(p);
+            com.divinerpgextended.magic.EntityArcaneWraith g = null;
+            for (Object o : w.loadedEntityList) if (o instanceof com.divinerpgextended.magic.EntityArcaneWraith && !((net.minecraft.entity.Entity) o).isDead) g = (com.divinerpgextended.magic.EntityArcaneWraith) o;
+            check(g != null, "призрака нет в мире");
+            // цель за каменной стеной
+            for (int yy = by; yy <= by + 3; yy++) for (int zz = bz - 2; zz <= bz + 2; zz++) w.setBlock(bx + 3, yy, zz, net.minecraft.init.Blocks.stone);
+            net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w);
+            z.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(500);
+            z.setHealth(500);
+            z.setPosition(bx + 6.5, by, bz + 0.5);
+            w.spawnEntityInWorld(z);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(z, DamageSource.causePlayerDamage(p), 1)); // хозяин ударил - цель
+            g.setPosition(bx + 0.5, by + 1, bz + 0.5);
+            float hp0 = z.getHealth(), bar0 = a.getBarValue();
+            for (int i = 0; i < 60; i++) g.onUpdate();
+            boolean through = g.posX > bx + 4; // прошёл сквозь стену
+            float dealt = hp0 - z.getHealth(), paid = bar0 - a.getBarValue();
+            boolean hurtable = g.attackEntityFrom(DamageSource.causePlayerDamage(p), 100);
+            for (int yy = by; yy <= by + 3; yy++) for (int zz = bz - 2; zz <= bz + 2; zz++) w.setBlockToAir(bx + 3, yy, zz);
+            z.setDead();
+            com.divinerpgextended.magic.ArcaneSummons.dismissAll(p);
+            float hit = com.divinerpgextended.magic.EntityArcaneWraith.BASE_DAMAGE * com.divinerpgextended.magic.ArcanaRules.stage(p);
+            check(!spawnedDivine && afterDivine == 1 && capped == 2 && through && dealt >= hit - 0.01F && paid >= com.divinerpgextended.magic.EntityArcaneWraith.UPKEEP * 2 - 0.01F
+                && paid <= com.divinerpgextended.magic.EntityArcaneWraith.UPKEEP * 4 + 0.01F && !hurtable,
+                "призрак Divine заменён " + (!spawnedDivine && afterDivine == 1) + " (в мир " + spawnedDivine + ", призывов " + afterDivine + ": " + ghosts + "), после трёх вызовов призраков " + capped + "; сквозь стену " + through + " (x=" + f((float) g.posX)
+                    + "), урон цели " + f(dealt) + " (удар " + f(hit) + "), плата за 3 с " + f(paid) + ", ранить призрака " + hurtable);
+            return "призрак-призыв: летит к цели хозяина сквозь стены, бьёт на " + f(hit) + " арканного урона, не больше двух, " + (int) com.divinerpgextended.magic.EntityArcaneWraith.UPKEEP
+                + " арканы в секунду, неуязвим";
+        });
+    }
+
     private static float hurt(net.minecraft.entity.EntityLivingBase e, DamageSource s, float a) {
         net.minecraftforge.event.entity.living.LivingHurtEvent h = new net.minecraftforge.event.entity.living.LivingHurtEvent(e, s, a);
         MinecraftForge.EVENT_BUS.post(h);
@@ -1238,6 +1418,16 @@ public class SelfTest {
         int n = 0;
         for (ItemStack s : p.inventory.mainInventory) if (s != null && s.getItem() == item) n += s.stackSize;
         return n;
+    }
+
+    /** Запланированные обновления блоков в чанках квадрата. */
+    private static int pending(WorldServer w, int x0, int z0, int n) {
+        int c = 0;
+        for (int cx = (x0 - 1) >> 4; cx <= (x0 + n) >> 4; cx++) for (int cz = (z0 - 1) >> 4; cz <= (z0 + n) >> 4; cz++) {
+            java.util.List<?> l = w.getPendingBlockUpdates(w.getChunkFromChunkCoords(cx, cz), false);
+            if (l != null) c += l.size();
+        }
+        return c;
     }
 
     private static int itemsNear(net.minecraft.world.World w, net.minecraft.entity.Entity e) {
@@ -4165,6 +4355,137 @@ public class SelfTest {
             for (int y = y0 - 3; y <= y0 + 3; y++) for (int z = z0 - 3; z <= z0 + 3; z++) for (int x = x0 - 1; x <= x0 + 1; x++) w.setBlockToAir(x, y, z);
             check(curve && kept && switched, "поворот " + l1 + ", после поломки соседа " + l2 + "; развилка: было " + before + ", с сигналом " + on + ", без сигнала " + off);
             return "на стене поворот держится, когда убрали соседа; на развилке сигнал перекидывает ветку и обратно (" + before + " -> " + on + ")";
+        });
+        t("Прохождение", "Навесной рельс как ванильный: одинокий встаёт прямо к соседу, угол держится без соседей", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            loadAround(w, 9540, 9640, 1);
+            final int x0 = 9540, y0 = 100, z0 = 9640;
+            final net.minecraft.block.Block rail = com.divinerpgextended.registry.ModBlocks.skyRail;
+            final int wall = net.minecraftforge.common.util.ForgeDirection.WEST.ordinal();
+            final TestPlayer rp = player(ConfigurationHelper.apalachia, "TestRailVanilla", x0 + 2.5, y0, z0 + 0.5);
+            Runnable clear = () -> {
+                for (int y = y0 - 3; y <= y0 + 3; y++) for (int z = z0 - 3; z <= z0 + 3; z++) {
+                    w.setBlock(x0 - 1, y, z, Blocks.stone);
+                    w.setBlockToAir(x0, y, z);
+                    w.setBlockToAir(x0 + 1, y, z);
+                }
+            };
+            java.util.function.BiConsumer<Integer, Integer> put = (dy, dz) -> {
+                w.setBlock(x0, y0 + dy, z0 + dz, rail, wall, 3);
+                rail.onBlockPlacedBy(w, x0, y0 + dy, z0 + dz, rp, new ItemStack(com.divinerpgextended.registry.ModItems.apalachiaRails));
+            };
+            java.util.function.Function<int[], java.util.Set<Object>> links = o -> new java.util.HashSet<Object>(
+                java.util.Arrays.asList((Object[]) com.divinerpgextended.block.BlockSkyRail.links(w, x0, y0 + o[0], z0 + o[1])));
+            net.minecraftforge.common.util.ForgeDirection U = net.minecraftforge.common.util.ForgeDirection.UP, D = net.minecraftforge.common.util.ForgeDirection.DOWN,
+                S = net.minecraftforge.common.util.ForgeDirection.SOUTH, N = net.minecraftforge.common.util.ForgeDirection.NORTH;
+            // вдоль стены (смотрит прямо), потом сверху ещё один - нижний встаёт вертикально, без поворота
+            clear.run();
+            rp.rotationPitch = 0;
+            put.accept(0, 0);
+            java.util.Set<Object> lone = links.apply(new int[] { 0, 0 });
+            put.accept(1, 0);
+            java.util.Set<Object> up = links.apply(new int[] { 0, 0 });
+            // поворот на 90: вертикальный (смотрит вверх), сбоку ещё один - встаёт вдоль стены
+            clear.run();
+            rp.rotationPitch = -60;
+            put.accept(0, 0);
+            java.util.Set<Object> vert = links.apply(new int[] { 0, 0 });
+            put.accept(0, 1);
+            java.util.Set<Object> side = links.apply(new int[] { 0, 0 });
+            // YZ0 / X00: Y, справа Z, под Y - X; Y - поворот, и держит его без X, без Z и без обоих
+            clear.run();
+            rp.rotationPitch = 0;
+            put.accept(0, 0);
+            put.accept(0, 1);
+            put.accept(-1, 0);
+            java.util.Set<Object> corner = links.apply(new int[] { 0, 0 });
+            w.setBlockToAir(x0, y0 - 1, z0);
+            java.util.Set<Object> noX = links.apply(new int[] { 0, 0 });
+            put.accept(-1, 0);
+            w.setBlockToAir(x0, y0, z0 + 1);
+            java.util.Set<Object> noZ = links.apply(new int[] { 0, 0 });
+            w.setBlockToAir(x0, y0 - 1, z0);
+            java.util.Set<Object> none = links.apply(new int[] { 0, 0 });
+            java.util.Set<Object> vSet = new java.util.HashSet<Object>(java.util.Arrays.asList(U, D)), hSet = new java.util.HashSet<Object>(java.util.Arrays.asList(N, S)),
+                cSet = new java.util.HashSet<Object>(java.util.Arrays.asList(S, D));
+            clear.run();
+            for (int y = y0 - 3; y <= y0 + 3; y++) for (int z = z0 - 3; z <= z0 + 3; z++) w.setBlockToAir(x0 - 1, y, z);
+            check(lone.equals(hSet) && up.equals(vSet) && vert.equals(vSet) && side.equals(hSet) && corner.equals(cSet) && noX.equals(cSet) && noZ.equals(cSet)
+                && none.equals(cSet), "вдоль стены " + lone + ", с соседом сверху " + up + "; вертикальный " + vert + ", с соседом сбоку " + side + "; YZ/X: поворот "
+                    + corner + ", без X " + noX + ", без Z " + noZ + ", без обоих " + none);
+            return "одинокий рельс на стене разворачивается прямо к соседу сверху или сбоку; поворот Y в схеме YZ/X держится без X, без Z и без обоих";
+        });
+        t("Прохождение", "Карта логова не ведёт к месту в старом чанке, где логова нет", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int T = com.divinerpgextended.world.LairSites.CARCINUS;
+            com.divinerpgextended.world.LairData data = com.divinerpgextended.world.LairData.get(w);
+            int[] site = null;
+            boolean builtStale = true;
+            StringBuilder tried = new StringBuilder();
+            // ищем место Карцинуса подальше от прочих тестов, создаём его чанки - логово строится при заселении
+            for (int at = 0; at < 6 && site == null; at++) {
+                int[] s = com.divinerpgextended.world.LairSites.nearest(w, T, -3000 + at * 900, 3500, 2500, 0,
+                    cand -> !data.near(T + com.divinerpgextended.world.LairData.FAILED, cand[0], cand[1], 24));
+                if (s == null) continue;
+                for (int i = -1; i <= 2; i++) for (int j = -1; j <= 2; j++) w.theChunkProviderServer.loadChunk((s[0] >> 4) + i, (s[1] >> 4) + j);
+                tried.append(s[0]).append(',').append(s[1]).append(data.near(T, s[0], s[1], 96) ? " построено; " : " не подошло; ");
+                if (data.near(T, s[0], s[1], 96)) {
+                    site = s;
+                    builtStale = com.divinerpgextended.world.LairSites.stale(w, T, s[0], s[1]);
+                }
+            }
+            check(site != null, "не нашлось построенного логова Карцинуса: " + tried);
+            // как в старом мире: чанк заселён, записи о логове нет
+            java.util.List<int[]> gone = data.forget(T, site[0], site[1], 96);
+            boolean oldStale = com.divinerpgextended.world.LairSites.stale(w, T, site[0], site[1]);
+            boolean remembered = data.near(T + com.divinerpgextended.world.LairData.FAILED, site[0], site[1], 24);
+            data.forget(T + com.divinerpgextended.world.LairData.FAILED, site[0], site[1], 24);
+            for (int[] l : gone) data.add(l[0], l[1], l[2], l[3]);
+            // место в несозданных краях - карта ведёт туда, логово там будет
+            int[] far = null;
+            for (int[] at : new int[][] { { 4600, -4600 }, { -4600, -4600 }, { 4600, 4600 }, { 0, -4600 } }) // не во всех сборках биомов пляжи рядом
+                if (far == null) far = com.divinerpgextended.world.LairSites.nearest(w, T, at[0], at[1], 2000, 0);
+            boolean farStale = far != null && com.divinerpgextended.world.LairSites.stale(w, T, far[0], far[1]);
+            check(!builtStale && oldStale && remembered && !farStale, "построенное " + site[0] + "," + site[1] + ": пропущено " + builtStale
+                + "; без записи (старый чанк): пропущено " + oldStale + ", запомнено " + remembered + "; несозданное " + (far == null ? "нет" : far[0] + "," + far[1])
+                + ": пропущено " + farStale);
+            return "место с построенным логовом карта показывает; место в уже созданном чанке без логова (старый мир) пропускает и запоминает; место в несозданных краях остаётся целью";
+        });
+        t("Нагрузка", "Жидкости аддона в покое (озеро, море) не нагружают сервер", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            final int x0 = 30016, z0 = 30016, y0 = 200, N = 32, H = 6;
+            for (int cx = (x0 - 1) >> 4; cx <= (x0 + N) >> 4; cx++) for (int cz = (z0 - 1) >> 4; cz <= (z0 + N) >> 4; cz++) w.getChunkProvider().loadChunk(cx, cz);
+            net.minecraft.block.Block[] fluids = { Blocks.water, com.divinerpgextended.registry.ModBlocks.lethe, com.divinerpgextended.registry.ModBlocks.letheFlowing,
+                com.divinerpgextended.registry.ModBlocks.dreamWater, com.divinerpgextended.registry.ModBlocks.arcaneConcentrate };
+            StringBuilder sb = new StringBuilder();
+            boolean ok = true;
+            double waterNs = 0;
+            java.util.Random r = new java.util.Random(1);
+            for (net.minecraft.block.Block f : fluids) {
+                // закрытая стеклянная чаша (вода мечтаний течёт вверх - открытая сверху для неё не покой), вся налита источниками,
+                // без обновлений соседей - как спокойное озеро после генерации
+                for (int x = x0 - 1; x <= x0 + N; x++) for (int z = z0 - 1; z <= z0 + N; z++) for (int y = y0 - 1; y <= y0 + H; y++) {
+                    boolean shell = x < x0 || x >= x0 + N || z < z0 || z >= z0 + N || y < y0 || y == y0 + H;
+                    w.setBlock(x, y, z, shell ? Blocks.glass : f, 0, 2);
+                }
+                int pending0 = pending(w, x0, z0, N);
+                // худший случай: каждый блок получил тик (случайных тиков на деле - 3 на секцию 16x16x16 за тик)
+                long t0 = System.nanoTime();
+                for (int round = 0; round < 3; round++)
+                    for (int x = x0; x < x0 + N; x++) for (int z = z0; z < z0 + N; z++) for (int y = y0; y < y0 + H; y++) w.getBlock(x, y, z).updateTick(w, x, y, z, r);
+                double ns = (System.nanoTime() - t0) / (3.0 * N * N * H);
+                int changed = 0;
+                for (int x = x0; x < x0 + N; x++) for (int z = z0; z < z0 + N; z++) for (int y = y0; y < y0 + H; y++)
+                    if (w.getBlock(x, y, z) != f || w.getBlockMetadata(x, y, z) != 0) changed++;
+                int added = pending(w, x0, z0, N) - pending0;
+                if (f == Blocks.water) waterNs = ns;
+                else ok &= changed == 0 && added == 0 && ns < Math.max(2000, waterNs * 20);
+                sb.append(f.getLocalizedName()).append(": ").append(String.format("%.0f", ns)).append(" нс на блок, изменилось ").append(changed)
+                    .append(", новых обновлений ").append(added).append("; ");
+            }
+            for (int x = x0 - 1; x <= x0 + N; x++) for (int z = z0 - 1; z <= z0 + N; z++) for (int y = y0 - 1; y <= y0 + H; y++) w.setBlock(x, y, z, Blocks.air, 0, 2);
+            check(ok, sb.toString());
+            return "озеро 32x32x6 каждой жидкости в покое: тик блока не меняет озеро и не ставит новых обновлений (" + sb + ")";
         });
         t("Прохождение", "Рельсы на потолке и старые рельсы держат поворот и стрелку", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
@@ -7661,8 +7982,105 @@ public class SelfTest {
             net.minecraft.item.Item horn = net.divinerpg.utils.items.VanillaItemsOther.hordeHorn;
             String in = com.divinerpgextended.boss.LairSummons.refusal(v, horn, c[0] + 2, f, c[2] + 3);
             String out = com.divinerpgextended.boss.LairSummons.refusal(v, horn, 0, 64, 0);
-            check(nest && in == null && "dre.chat.summon_lair_2".equals(out), "гнездовье " + nest + ", внутри " + in + ", снаружи " + out);
-            return "гнездовье в Энде в " + c[0] + "," + c[2] + " (" + (int) Math.sqrt(c[0] * c[0] + c[2] * c[2]) + " блоков от центра); рог только там";
+            int dist = (int) Math.sqrt(c[0] * c[0] + c[2] * c[2]);
+            // столпы пяти цветов на скалах вокруг
+            int pillars = 0;
+            for (com.divinerpgextended.boss.AyeracoHorde.Hue h : com.divinerpgextended.boss.AyeracoHorde.Hue.values()) {
+                int[] pa = com.divinerpgextended.boss.AyeracoHorde.pillarAt(c[0], f, c[2], h);
+                if (w.getBlock(pa[0], pa[1], pa[2]) == net.minecraft.init.Blocks.stained_hardened_clay && w.getBlockMetadata(pa[0], pa[1], pa[2]) == h.clay()) pillars++;
+            }
+            // первый островок-передышка - по пути к центру Энда
+            double len = Math.sqrt((double) c[0] * c[0] + (double) c[2] * c[2]);
+            int ix = (int) Math.round(c[0] - c[0] / len * com.divinerpgextended.world.WorldGenOuterLairs.ISLET_STEP),
+                iz = (int) Math.round(c[2] - c[2] / len * com.divinerpgextended.world.WorldGenOuterLairs.ISLET_STEP);
+            loadAround(w, ix, iz, 1);
+            boolean islet = false;
+            for (int ddx = -1; ddx <= 1 && !islet; ddx++) for (int ddz = -1; ddz <= 1 && !islet; ddz++)
+                islet = w.getBlock(ix + ddx, f + 1, iz + ddz) == net.minecraft.init.Blocks.obsidian;
+            boolean overVoid = w.isAirBlock(c[0], f - 20, c[2]) && w.isAirBlock(c[0] + 40, f, c[2] + 40);
+            check(nest && in == null && "dre.chat.summon_lair_2".equals(out) && dist > 900 && pillars == 5 && islet && overVoid,
+                "гнездовье " + nest + " в " + dist + " блоках, внутри " + in + ", снаружи " + out + "; столпов " + pillars + "/5, островок-передышка " + islet
+                    + ", остров над бездной " + overVoid);
+            return "гнездовье - дальний остров над бездной в " + c[0] + "," + c[2] + " (" + dist + " блоков от центра), 5 цветных столпов на скалах, островки-передышки через "
+                + com.divinerpgextended.world.WorldGenOuterLairs.ISLET_STEP + "; рог только там";
+        });
+        t("Логова", "Орда Айрако: коршуны, ауры, столпы; броня Энда: цвета, шаг, спасение", () -> {
+            int type = com.divinerpgextended.world.WorldGenOuterLairs.AYERACO;
+            WorldServer w = server.worldServerForDimension(1);
+            int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
+            int f = com.divinerpgextended.world.WorldGenOuterLairs.FLOOR[type];
+            loadAround(w, c[0], c[2], 3);
+            com.divinerpgextended.boss.AyeracoHorde.reset();
+            TestPlayer v = join(player(1, "TestHorde", c[0] + 0.5, f + 1, c[2] + 0.5), true);
+            @SuppressWarnings("unchecked")
+            java.util.List<Object> players = w.playerEntities;
+            boolean added = !players.contains(v);
+            if (added) players.add(v);
+            net.divinerpg.entities.vanilla.EntityAyeracoRed red = new net.divinerpg.entities.vanilla.EntityAyeracoRed(w);
+            net.divinerpg.entities.vanilla.EntityAyeracoBlue blue = new net.divinerpg.entities.vanilla.EntityAyeracoBlue(w);
+            red.setPosition(c[0] + 5, f + 12, c[2]);
+            blue.setPosition(c[0] - 5, f + 12, c[2]);
+            w.spawnEntityInWorld(red);
+            w.spawnEntityInWorld(blue);
+            boolean member = com.divinerpgextended.boss.AyeracoHorde.member(red) && com.divinerpgextended.boss.AyeracoHorde.member(blue);
+            boolean steers = com.divinerpgextended.asm.AyeracoHooks.steer(red);
+            double speed = Math.sqrt(red.motionX * red.motionX + red.motionZ * red.motionZ);
+            // фиолетовый телепорт - только над островом
+            red.setPosition(c[0] + 300, f - 40, c[2]);
+            com.divinerpgextended.asm.AyeracoHooks.blink(red);
+            double rx = red.posX - c[0], rz = red.posZ - c[2];
+            boolean blinkIn = rx * rx + rz * rz <= 20 * 20 && red.posY > f;
+            // ярость красного: удар по игроку x1.5, красная броня Энда снимает
+            float rage = hurt(v, DamageSource.causeMobDamage(red), 10);
+            v.inventory.armorInventory[2] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.redEnderBody);
+            float rageRed = hurt(v, DamageSource.causeMobDamage(red), 10);
+            // синий отбивает снаряды, синяя броня пробивает
+            net.minecraft.entity.projectile.EntityArrow arrow = new net.minecraft.entity.projectile.EntityArrow(w, v, 1F);
+            net.minecraftforge.event.entity.living.LivingAttackEvent la = new net.minecraftforge.event.entity.living.LivingAttackEvent(red, DamageSource.causeArrowDamage(arrow, v), 5);
+            MinecraftForge.EVENT_BUS.post(la);
+            boolean deflected = la.isCanceled();
+            v.inventory.armorInventory[1] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.blueEnderLegs);
+            la = new net.minecraftforge.event.entity.living.LivingAttackEvent(red, DamageSource.causeArrowDamage(arrow, v), 5);
+            MinecraftForge.EVENT_BUS.post(la);
+            boolean pierced = !la.isCanceled();
+            // красная вещь - удар по красному сильнее
+            float vsRed = hurt(red, DamageSource.causePlayerDamage(v), 10);
+            boolean pillar = com.divinerpgextended.boss.AyeracoHorde.pillar(w, c[0], f, c[2], com.divinerpgextended.boss.AyeracoHorde.Hue.RED);
+            red.setDead();
+            blue.setDead();
+            // броня Энда полным сетом: пустотный шаг и спасение из пустоты
+            v.inventory.armorInventory[0] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.grayEnderBoots);
+            v.inventory.armorInventory[3] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.enderHelmet);
+            hold(v, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.enderSword));
+            ArcanaHelper a = ArcanaHelper.getProperties(v);
+            a.setBarValue(100);
+            com.divinerpgextended.magic.ArcanaRules.resetCooldowns();
+            v.setPositionAndRotation(c[0] + 0.5, f + 1, c[2] + 0.5, -90F, 0F); // смотрит на восток (+x) над островом
+            double x0 = v.posX;
+            boolean blink = com.divinerpgextended.boss.EnderGear.blink(v);
+            double moved = v.posX - x0;
+            float spent = 100 - a.getBarValue();
+            v.setPositionAndRotation(c[0] + 300.5, f + 40, c[2] + 0.5, -90F, 0F); // над бездной
+            boolean voidBlink = com.divinerpgextended.boss.EnderGear.blink(v);
+            v.getEntityData().setDouble("dreSafeX", c[0] + 0.5);
+            v.getEntityData().setDouble("dreSafeY", f + 1);
+            v.getEntityData().setDouble("dreSafeZ", c[2] + 0.5);
+            v.getEntityData().setBoolean("dreSafe", true);
+            v.getEntityData().setLong("dreRescueAt", 0);
+            v.setPosition(c[0] + 300.5, -10, c[2] + 0.5);
+            v.onGround = false;
+            new com.divinerpgextended.boss.EnderGear().onTick(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, v));
+            boolean rescued = Math.abs(v.posX - (c[0] + 0.5)) < 1 && v.posY > f - 1;
+            for (int i = 0; i < 4; i++) v.inventory.armorInventory[i] = null;
+            if (added) players.remove(v);
+            check(member && steers && speed > 0.05 && blinkIn && near(rage, 15) && near(rageRed, 10) && deflected && pierced && near(vsRed, 15) && pillar && blink
+                && moved > 5 && near(spent, 25) && !voidBlink && rescued,
+                "орда " + member + ", полёт ведёт аддон " + steers + " (скорость " + f((float) speed) + "), телепорт над островом " + blinkIn + "; ярость " + f(rage)
+                    + ", в красной броне " + f(rageRed) + "; синий отбил стрелу " + deflected + ", синей бронёй пробил " + pierced + "; по красному в красном+сером "
+                    + f(vsRed) + "; столп красного цел " + pillar + "; шаг " + blink + " на " + f((float) moved) + " за " + f(spent) + " арканы, в бездну " + voidBlink
+                    + "; спасение из пустоты " + rescued);
+            return "орда кружит под управлением аддона и телепортируется только над островом; красный бьёт x1.5 (красная броня Энда снимает), синий отбивает стрелы "
+                + "(синяя пробивает); броня цвета +50% по своему Айрако, серая +10%; полный сет: шаг на " + f((float) moved) + " блока за 25 арканы, не в бездну, спасение из пустоты";
         });
         t("Логова", "Мягкая привязь", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);

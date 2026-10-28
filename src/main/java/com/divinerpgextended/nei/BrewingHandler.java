@@ -52,7 +52,7 @@ public class BrewingHandler extends DreHandler {
 
     private List<Page> pages() {
         List<Page> l = new ArrayList<Page>();
-        for (ArcaneEffect e : ArcaneEffect.values()) l.add(page(e));
+        for (ArcaneEffect e : ArcaneEffect.values()) if (!e.removed()) l.add(page(e));
         return l;
     }
 
@@ -64,7 +64,7 @@ public class BrewingHandler extends DreHandler {
 
     @Override
     public void loadCraftingRecipes(ItemStack result) {
-        if (result == null || result.getItem() != com.divinerpgextended.registry.ModItems.arcanePotion) return;
+        if (result == null || result.getItem() != com.divinerpgextended.registry.ModItems.arcanePotion || ArcaneEffect.of(result.getItemDamage()).removed()) return;
         arecipes.add(page(ArcaneEffect.of(result.getItemDamage())));
     }
 

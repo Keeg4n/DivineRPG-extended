@@ -18,49 +18,6 @@ public final class MerchantMessages {
         ColdHandler.NET.registerMessage(OpenHandler.class, Open.class, 1, Side.CLIENT);
         ColdHandler.NET.registerMessage(SummonHandler.class, Summon.class, 2, Side.SERVER);
         ColdHandler.NET.registerMessage(ArcanaMaxHandler.class, ArcanaMax.class, 3, Side.CLIENT);
-        ColdHandler.NET.registerMessage(EffectsHandler.class, Effects.class, 12, Side.CLIENT);
-    }
-
-    /** Сервер -> клиент: эффекты арканных зелий (сколько тиков осталось и уровень по каждому), для значков у полоски. */
-    public static class Effects implements IMessage {
-
-        public int[] ticks, levels;
-
-        public Effects() {}
-
-        public Effects(int[] ticks, int[] levels) {
-            this.ticks = ticks;
-            this.levels = levels;
-        }
-
-        @Override
-        public void fromBytes(ByteBuf buf) {
-            int n = buf.readByte();
-            ticks = new int[n];
-            levels = new int[n];
-            for (int i = 0; i < n; i++) {
-                ticks[i] = buf.readInt();
-                levels[i] = buf.readByte();
-            }
-        }
-
-        @Override
-        public void toBytes(ByteBuf buf) {
-            buf.writeByte(ticks.length);
-            for (int i = 0; i < ticks.length; i++) {
-                buf.writeInt(ticks[i]);
-                buf.writeByte(levels[i]);
-            }
-        }
-    }
-
-    public static class EffectsHandler implements IMessageHandler<Effects, IMessage> {
-
-        @Override
-        public IMessage onMessage(Effects msg, MessageContext ctx) {
-            com.divinerpgextended.client.ArcaneEffectsHud.set(msg.ticks, msg.levels);
-            return null;
-        }
     }
 
     /** Сервер -> клиент: максимум арканы игрока (задания Ваттикуса поднимают его выше 200). */

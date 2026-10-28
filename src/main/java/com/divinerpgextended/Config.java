@@ -74,6 +74,8 @@ public class Config {
     public static boolean divineSpawnFilter = true;
     /** Фонтанный зал Арканы: в среднем один на столько чанков (0 - нет). */
     public static int arcanaFountainChance = 40;
+    /** Номера эффектов арканных зелий (пусто - свободные сами, от 127 вниз). */
+    public static int[] arcanePotionIds = {};
     public static String[] divineSpawnWhitelist = {};
     /** Слабости мобов Ветеи: "класс моба=вид[,вид]" (виды: sword claw hammer bow disk staff cannon). */
     public static String[] vetheaWeakness = { "EntityLheiva=bow", "EntityLorgaFlight=sword,claw", "EntityDissiment=disk", "EntityHoverStinger=disk",
@@ -229,6 +231,10 @@ public class Config {
         arcanaFountainChance = cfg.getInt("arcanaFountainChance", "arcana", arcanaFountainChance, 0, 10000,
             "Фонтанный зал Арканы (чаша арканного концентрата: восстанавливает аркану, только там рыба Арканы и только на арканную удочку): "
                 + "в среднем один на столько новых чанков; 0 - не строить");
+        arcanePotionIds = cfg.get("arcana", "arcanePotionIds", arcanePotionIds,
+            "Номера эффектов арканных зелий (1-127, по порядку: ясность, чародейство, собранность, оберег от чар, каменная кожа, отвод стрел, стойкость, "
+                + "колючая шкура, внутренний жар, боевой раж, твёрдая рука, жажда арканы, рыбацкий фарт). Пусто - берутся свободные от 127 вниз; "
+                + "занятый номер тоже заменяется свободным. Задавать, только если эффекты конфликтуют с другим модом").getIntList();
         divineSpawnFilter = cfg.getBoolean("divineSpawnFilter", v, divineSpawnFilter,
             "Миры Divine (Iceika, сумеречные, Аркана, Ветея): сами по себе появляются только мобы Divine и аддона (и из divineSpawnWhitelist); "
                 + "мобы других модов (слизни Tinkers, Grimoire of Gaia...) - нет. Спавнеры и призыв не затронуты");

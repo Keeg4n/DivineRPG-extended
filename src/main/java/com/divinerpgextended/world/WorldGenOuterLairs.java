@@ -33,8 +33,10 @@ public class WorldGenOuterLairs implements IWorldGenerator {
     public static final int[] RADIUS = { 20, 17, 18 }, FLOOR = { 56, 40, 62 };
     private static final int[] CENTER_Y = { 68, 50, 0 };
     private static final long[] SALT = { 0x5A7C4L, 0x5C0BCL, 0xA7E2AL };
-    /** Гнездовье Айрако - одно на мир, на этом расстоянии от центра Энда. */
-    public static final int AYERACO_DIST = 120;
+    /** Гнездовье Айрако - одно на мир: дальний остров на этом расстоянии от центра Энда (долететь - на ангельской броне). */
+    public static final int AYERACO_DIST = 1000;
+    /** Островки-передышки по пути к гнездовью: через столько блоков, сколько их. */
+    public static final int ISLET_STEP = 170, ISLETS = 5;
 
     /**
      * Мир логова (как в конфиге Divine); логово строится только в Аду / Энде. Настройки миров боссов есть только с
@@ -119,7 +121,7 @@ public class WorldGenOuterLairs implements IWorldGenerator {
     /** С какого расстояния от центра режется тоннель (стена купола на высоте тоннеля - от ~12.6 у палаты, ~14.9 у обсерватории). */
     static final double TUNNEL_FROM = 12.5;
 
-    private static final int BRICK = 1, GLOW = 2, LAVA = 3, OBSIDIAN = 4, END_STONE = 5, QUARTZ = 6, FENCE = 7;
+    private static final int BRICK = 1, GLOW = 2, LAVA = 3, OBSIDIAN = 4, END_STONE = 5, QUARTZ = 6, FENCE = 7, CLAY = 8;
 
     private static Block block(int code) {
         switch (code) {
@@ -130,6 +132,7 @@ public class WorldGenOuterLairs implements IWorldGenerator {
             case END_STONE: return Blocks.end_stone;
             case QUARTZ: return Blocks.quartz_block;
             case FENCE: return Blocks.nether_brick_fence;
+            case CLAY: return Blocks.stained_hardened_clay;
             default: return Blocks.air;
         }
     }
@@ -253,25 +256,43 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         protected boolean column(int dx, int dz, int[] col) {
             int R = RADIUS[AYERACO], top = FLOOR[AYERACO];
             double r = Math.sqrt(dx * dx + dz * dz);
-            // дорога к центру острова: вдоль направления на (0, 0), шириной 3, на высоте пола
+            // островки-передышки по пути к центру Энда: чтобы на ангельской броне перевести дух (аркана)
             double along = dx * toX + dz * toZ, across = Math.abs(dx * toZ - dz * toX);
-            boolean road = along > R - 2 && along < AYERACO_DIST - 30 && across <= 1.5;
-            if (r > R + 0.5 && !road) return false;
-            if (road && r > R - 2) {
-                put(col, top, END_STONE, 0);
-                put(col, top - 1, END_STONE, 0);
-                if (across > 1.0 && ((int) along) % 5 == 0) put(col, top + 1, OBSIDIAN, 0);
+            for (int k = 1; k <= ISLETS; k++) {
+                double at = k * ISLET_STEP, ir = Math.sqrt((along - at) * (along - at) + across * across);
+                if (ir > 4.5) continue;
+                int depth = 1 + (int) (4 * Math.sqrt(Math.max(0, 1 - (ir / 4.5) * (ir / 4.5))));
+                for (int y = top - depth; y <= top; y++) put(col, y, END_STONE, 0);
+                if (ir < 0.8) {
+                    put(col, top, GLOW, 0);
+                    for (int y = top + 1; y <= top + 3; y++) put(col, y, OBSIDIAN, 0); // веха: видно издалека
+                    put(col, top + 4, GLOW, 0);
+                }
                 return true;
             }
-            int bottom = top - 2 - (int) (10 * Math.sqrt(Math.max(0, 1 - (r / R) * (r / R))));
+            // скалы со столпами орды: пять цветов вокруг острова, выше него
+            for (com.divinerpgextended.boss.AyeracoHorde.Hue h : com.divinerpgextended.boss.AyeracoHorde.Hue.values()) {
+                int[] pa = com.divinerpgextended.boss.AyeracoHorde.pillarAt(0, top, 0, h);
+                double pr = Math.sqrt((dx - pa[0]) * (dx - pa[0]) + (dz - pa[2]) * (dz - pa[2]));
+                if (pr > 3.5) continue;
+                int rockTop = pa[1] - 1, depth = 1 + (int) (3 * Math.sqrt(Math.max(0, 1 - (pr / 3.5) * (pr / 3.5))));
+                for (int y = rockTop - depth; y <= rockTop; y++) put(col, y, END_STONE, 0);
+                if (pr < 0.5) {
+                    for (int y = pa[1]; y < pa[1] + com.divinerpgextended.boss.AyeracoHorde.PILLAR_H; y++) put(col, y, CLAY, h.clay());
+                    put(col, pa[1] + com.divinerpgextended.boss.AyeracoHorde.PILLAR_H, GLOW, 0);
+                }
+                return true;
+            }
+            // сам остров гнездовья - висит над бездной
+            if (r > R + 0.5) return false;
+            int bottom = top - 2 - (int) (14 * Math.sqrt(Math.max(0, 1 - (r / R) * (r / R))));
             for (int y = bottom; y < top; y++) put(col, y, END_STONE, 0);
             put(col, top, ((int) r) % 4 == 0 ? OBSIDIAN : END_STONE, 0);
             for (int y = top + 1; y <= top + 20; y++) put(col, y, AIR, 0);
             if (r < 1.5) put(col, top, GLOW, 0);
             if (ringDist(dx, dz, 9, 6, 0) < 0.5) put(col, top, GLOW, 0);
-            // обсидиановые зубцы по краю (кроме прохода к дороге)
-            boolean gate = along > 0 && across <= 2.5;
-            if (r >= R - 1.5 && !gate && ringDist(dx, dz, R - 1, 16, 0) < 1.2) {
+            // обсидиановые зубцы по краю
+            if (r >= R - 1.5 && ringDist(dx, dz, R - 1, 16, 0) < 1.2) {
                 int h = 3 + hash(dx, dz) % 4;
                 for (int y = top + 1; y <= top + h; y++) put(col, y, OBSIDIAN, 0);
             }

@@ -69,6 +69,11 @@ public class CommonProxy {
         FMLCommonHandler.instance().bus().register(arcanaCombat);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcanaPrices());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcanePhases());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcaneSummons());
+        com.divinerpgextended.boss.AyeracoHorde horde = new com.divinerpgextended.boss.AyeracoHorde();
+        MinecraftForge.EVENT_BUS.register(horde);
+        FMLCommonHandler.instance().bus().register(horde);
+        FMLCommonHandler.instance().bus().register(new com.divinerpgextended.boss.EnderGear());
         com.divinerpgextended.magic.ArcaneEffects arcaneEffects = new com.divinerpgextended.magic.ArcaneEffects();
         MinecraftForge.EVENT_BUS.register(arcaneEffects);
         FMLCommonHandler.instance().bus().register(arcaneEffects);
@@ -362,6 +367,7 @@ public class CommonProxy {
 
     public void postInit(FMLPostInitializationEvent event) {
         HatsCompat.apply();
+        com.divinerpgextended.magic.PotionArcane.register(Config.arcanePotionIds); // после всех модов: их эффекты уже на местах
         com.divinerpgextended.world.twilight.TwilightClimate.apply();
         com.divinerpgextended.vethea.LunaFight.buffEverlight();
         com.divinerpgextended.item.ItemArcanePick.makeBreakable();

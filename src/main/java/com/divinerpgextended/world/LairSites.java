@@ -122,6 +122,29 @@ public final class LairSites {
         return h * 0xBF58476D1CE4E5B9L;
     }
 
+    /**
+     * Место из сида, где логова не будет: его чанк уже заселён (создан раньше - до этой версии, без аддона или до смены
+     * настроек), а логова рядом нет и гробница не ждёт постройки. Карте такое место не годится; запоминается как неудачное.
+     */
+    public static boolean stale(World w, int type, int x, int z) {
+        if (!(w instanceof net.minecraft.world.WorldServer)) return false;
+        LairData d = LairData.get(w);
+        if (d.near(type, x, z, 96) || type == TOMB && WorldGenTomb.pendingNear(w, x, z, 96)) return false;
+        if (!settled((net.minecraft.world.WorldServer) w, x >> 4, z >> 4)) return false;
+        d.fail(type, x, z);
+        return true;
+    }
+
+    /** Чанк заселён: загружен и заселён, или на диске он и соседи, без которых заселения не бывает (+x, +z). */
+    static boolean settled(net.minecraft.world.WorldServer w, int cx, int cz) {
+        net.minecraft.world.gen.ChunkProviderServer p = w.theChunkProviderServer;
+        if (p.chunkExists(cx, cz)) return w.getChunkFromChunkCoords(cx, cz).isTerrainPopulated;
+        if (!(p.currentChunkLoader instanceof net.minecraft.world.chunk.storage.AnvilChunkLoader)) return false;
+        net.minecraft.world.chunk.storage.AnvilChunkLoader l = (net.minecraft.world.chunk.storage.AnvilChunkLoader) p.currentChunkLoader;
+        for (int i = 0; i <= 1; i++) for (int k = 0; k <= 1; k++) if (!p.chunkExists(cx + i, cz + k) && !l.chunkExists(w, cx + i, cz + k)) return false;
+        return true;
+    }
+
     /** Место в регионе этого чанка, если оно в этом чанке. */
     public static int[] siteInChunk(World w, int type, int chunkX, int chunkZ) {
         int size = spacing(type);

@@ -42,6 +42,7 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(dreamView);
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(dreamView);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.AccessoryButton());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.TooltipShift());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.TooltipWrap());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.TemperTooltip());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.ColorTooltip());
@@ -49,9 +50,6 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.InfusionTooltip());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.LunaWings());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.EdenWater());
-        com.divinerpgextended.client.ArcaneEffectsHud arcanaBuff = new com.divinerpgextended.client.ArcaneEffectsHud();
-        MinecraftForge.EVENT_BUS.register(arcanaBuff);
-        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(arcanaBuff);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcanaTooltips());
         ColdHud coldHud = new ColdHud();
         com.divinerpgextended.trinket.DoubleJump.Client airMoves = new com.divinerpgextended.trinket.DoubleJump.Client();
