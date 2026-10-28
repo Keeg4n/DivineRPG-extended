@@ -83,6 +83,8 @@ public final class ModItems {
     public static Item mageStaff;
     /** Арканные зелья (с арканной стойки). */
     public static Item arcanePotion;
+    /** Манекен для битья. */
+    public static Item trainingDummy;
 
     private ModItems() {}
 
@@ -194,6 +196,11 @@ public final class ModItems {
         GameRegistry.registerItem(mageStaff, "mageStaff");
         arcanePotion = new com.divinerpgextended.magic.ItemArcanePotion();
         GameRegistry.registerItem(arcanePotion, "arcanePotion");
+        trainingDummy = new com.divinerpgextended.dummy.ItemTrainingDummy();
+        GameRegistry.registerItem(trainingDummy, "trainingDummy");
+        // тыква на тюке сена на палке
+        GameRegistry.addRecipe(new net.minecraft.item.ItemStack(trainingDummy), "P", "H", "S", 'P', net.minecraft.init.Blocks.pumpkin, 'H', net.minecraft.init.Blocks.hay_block, 'S',
+            net.minecraft.init.Items.stick);
 
         EntityRegistry.registerModEntity(EntityGreatCadillion.class, "GreatCadillion", 0, DivineRPGExtended.instance,
             80, 3, true);
@@ -220,6 +227,7 @@ public final class ModItems {
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWindLord.class, "WindLord", 13, DivineRPGExtended.instance, 112, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityBoulder.class, "Boulder", 14, DivineRPGExtended.instance, 64, 5, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntitySkyCart.class, "SkyCart", 15, DivineRPGExtended.instance, 80, 1, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.dummy.EntityTrainingDummy.class, "TrainingDummy", 20, DivineRPGExtended.instance, 64, 20, false);
         bossEgg = new com.divinerpgextended.item.ItemBossEgg();
         GameRegistry.registerItem(bossEgg, "bossEgg");
     }

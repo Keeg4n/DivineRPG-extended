@@ -206,7 +206,8 @@ public final class ArcanaRules {
         if (h == null || amount <= 0) return amount;
         float per = shieldCost(p), want = amount * shieldShare(p), can = h.getBarValue() / per, took = Math.min(want, can);
         if (took <= 0) return amount;
-        h.setBarValue(h.getBarValue() - took * per);
+        if (p instanceof com.divinerpgextended.dummy.DummyGhost) com.divinerpgextended.dummy.DummyGhost.setBar(h, h.getBarValue() - took * per);
+        else h.setBarValue(h.getBarValue() - took * per);
         h.regenDelay = Math.max(h.regenDelay, delay(p));
         return amount - took;
     }

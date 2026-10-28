@@ -84,7 +84,7 @@ public class ArcaneEffects {
     }
 
     public static void sync(EntityPlayer p) {
-        if (!(p instanceof EntityPlayerMP)) return;
+        if (!(p instanceof EntityPlayerMP) || p instanceof net.minecraftforge.common.util.FakePlayer) return;
         ArcaneEffect[] all = ArcaneEffect.values();
         int[] ticks = new int[all.length], lv = new int[all.length];
         for (ArcaneEffect e : all) {

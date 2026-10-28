@@ -74,6 +74,7 @@ public class ClientProxy extends CommonProxy {
             .bus()
             .register(debugClient);
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWanderer.class, new com.divinerpgextended.client.RenderWanderer());
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.dummy.EntityTrainingDummy.class, new com.divinerpgextended.client.RenderTrainingDummy());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityCharon.class, new com.divinerpgextended.client.RenderCharon());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityGondola.class, new com.divinerpgextended.client.RenderGondola());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityShadowBolt.class,

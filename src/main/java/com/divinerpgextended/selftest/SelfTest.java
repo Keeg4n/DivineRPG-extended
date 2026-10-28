@@ -492,6 +492,7 @@ public class SelfTest {
         tradeTests(p, ow, sx, sy, sz);
         arcanaTests(p);
         brewingTests(p);
+        dummyTests(p);
         twilightTests();
         vetheaTests(p, ow);
         serverTests(p, q);
@@ -1097,6 +1098,77 @@ public class SelfTest {
                     + " из 100; жар " + warm + " -> " + warmNow + "; поклёвка x" + bite + " -> x" + biteNow);
             return "каменная кожа и стойкость режут удар (20 -> " + f(expectHurt) + "), раж +15%, собранность -25% цены, ясность x3, затишье, жар, рыбацкий фарт";
         });
+    }
+
+    private void dummyTests(final TestPlayer p) {
+        t("Прохождение", "Манекен для битья: урон как по игроку, без дюпов и выгоды", () -> {
+            reset(p);
+            net.minecraft.world.World w = p.worldObj;
+            Item[] dia = { Items.diamond_boots, Items.diamond_leggings, Items.diamond_chestplate, Items.diamond_helmet };
+            for (int i = 0; i < 4; i++) p.inventory.armorInventory[i] = new ItemStack(dia[i]);
+            com.divinerpgextended.magic.ArcaneEffects.clear(p);
+            com.divinerpgextended.magic.ArcaneEffects.drink(p, com.divinerpgextended.magic.ArcaneEffect.BRAMBLE_HIDE, false, false, false);
+            com.divinerpgextended.dummy.EntityTrainingDummy d = new com.divinerpgextended.dummy.EntityTrainingDummy(w);
+            d.setPosition(p.posX + 2, p.posY, p.posZ);
+            d.copy(p);
+            d.setPlacer(p);
+            w.spawnEntityInWorld(d);
+            boolean armorCopy = d.getEquipmentInSlot(3) != null && d.getEquipmentInSlot(3) != p.inventory.armorInventory[2] && d.getHeldItem() == null;
+            // тот же удар по самому игроку - эталон
+            TestPlayer a = join(player(p.dimension, "TestDummyHitter", p.posX + 3, p.posY, p.posZ), true);
+            a.setHealth(10);
+            java.lang.reflect.Method dmg = cpw.mods.fml.relauncher.ReflectionHelper.findMethod(net.minecraft.entity.EntityLivingBase.class, p,
+                new String[] { "damageEntity", "func_70665_d" }, DamageSource.class, float.class);
+            p.setHealth(p.getMaxHealth());
+            float hp0 = p.getHealth();
+            dmg.invoke(p, DamageSource.causePlayerDamage(a), 10F);
+            float real = hp0 - p.getHealth();
+            p.setHealth(p.getMaxHealth());
+            a.setHealth(10);
+            boolean hit = d.attackEntityFrom(DamageSource.causePlayerDamage(a), 10F);
+            float shown = d.lastHit();
+            float attackerHp = a.getHealth(); // колючки ранили бы бьющего - манекен возвращает как было
+            boolean alive = !d.isDead && d.getHealth() == d.getMaxHealth();
+            // чужой не уберёт, хозяин - один раз
+            a.setSneaking(true);
+            d.attackEntityFrom(DamageSource.causePlayerDamage(a), 1F);
+            boolean stays = !d.isDead;
+            a.setSneaking(false);
+            int before = count(p, ModItems.trainingDummy);
+            p.setSneaking(true);
+            d.attackEntityFrom(DamageSource.causePlayerDamage(p), 1F);
+            d.attackEntityFrom(DamageSource.causePlayerDamage(p), 1F);
+            p.setSneaking(false);
+            int got = count(p, ModItems.trainingDummy) - before;
+            // /kill - ничего не выпадает
+            com.divinerpgextended.dummy.EntityTrainingDummy d2 = new com.divinerpgextended.dummy.EntityTrainingDummy(w);
+            d2.setPosition(p.posX - 2, p.posY, p.posZ);
+            d2.copy(p);
+            w.spawnEntityInWorld(d2);
+            int items0 = itemsNear(w, d2);
+            d2.attackEntityFrom(DamageSource.outOfWorld, Float.MAX_VALUE); // как /kill
+            int items1 = itemsNear(w, d2);
+            for (int i = 0; i < 4; i++) p.inventory.armorInventory[i] = null;
+            com.divinerpgextended.magic.ArcaneEffects.clear(p);
+            server.getConfigurationManager().playerEntityList.remove(a);
+            w.removeEntity(a);
+            check(armorCopy && hit && near(shown, real) && real > 0 && real < 10 && near(attackerHp, 10) && alive && stays && d.isDead && got == 1 && d2.isDead
+                && items1 == items0,
+                "броня скопирована отдельно " + armorCopy + "; удар 10 по игроку в алмазе " + f(real) + ", манекен показал " + f(shown) + "; здоровье бьющего " + f(attackerHp)
+                    + " (было 10), манекен цел " + alive + "; чужой не убрал " + stays + ", хозяин убрал " + d.isDead + " и получил " + got + "; /kill: убит " + d2.isDead
+                    + ", вещей рядом " + items0 + " -> " + items1);
+            return "удар 10 по копии в алмазе: " + f(shown) + " - как по самому игроку; колючки не ранят бьющего; убрать может только хозяин и получает 1 манекен; /kill - без добычи";
+        });
+    }
+
+    private static int count(TestPlayer p, Item item) {
+        int n = 0;
+        for (ItemStack s : p.inventory.mainInventory) if (s != null && s.getItem() == item) n += s.stackSize;
+        return n;
+    }
+
+    private static int itemsNear(net.minecraft.world.World w, net.minecraft.entity.Entity e) {
+        return w.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, e.boundingBox.expand(4, 4, 4)).size();
     }
 
     private static java.util.List<net.minecraft.entity.Entity> nearbyFireflies(TestPlayer p) {
