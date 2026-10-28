@@ -163,7 +163,8 @@ public class ArcaneEffects {
     }
 
     static boolean melee(DamageSource s) {
-        return s.getEntity() != null && s.getEntity() == s.getSourceOfDamage() && !s.isProjectile() && !s.isMagicDamage() && !s.isExplosion();
+        return s.getEntity() != null && s.getEntity() == s.getSourceOfDamage() && !s.isProjectile() && !s.isMagicDamage() && !s.isExplosion()
+            && !ArcanaCombat.ARCANE.equals(s.damageType);
     }
 
     /** По игроку: оберег от чар, каменная кожа, отвод снарядов, стойкость, колючки. До защиты арканой. */
@@ -190,7 +191,7 @@ public class ArcaneEffects {
         if (e.entityLiving.worldObj.isRemote || !(e.source.getEntity() instanceof EntityPlayer)) return;
         EntityPlayer p = (EntityPlayer) e.source.getEntity();
         Entity src = e.source.getSourceOfDamage();
-        boolean arcane = src != null && src.getEntityData().hasKey(ArcanaCombat.DMG);
+        boolean arcane = src != null && src.getEntityData().hasKey(ArcanaCombat.DMG) || ArcanaCombat.ARCANE.equals(e.source.damageType);
         int l;
         if (arcane && (l = level(p, ArcaneEffect.SORCERY)) > 0) e.ammount *= l == 1 ? 1.2F : 1.35F;
         if (melee(e.source) && (l = level(p, ArcaneEffect.BATTLE_FERVOR)) > 0) e.ammount *= l == 1 ? 1.15F : 1.25F;

@@ -494,6 +494,7 @@ public class SelfTest {
         brewingTests(p);
         dummyTests(p);
         tabTests();
+        arcanePhaseTests(p);
         twilightTests();
         vetheaTests(p, ow);
         serverTests(p, q);
@@ -1160,6 +1161,62 @@ public class SelfTest {
                     + ", вещей рядом " + items0 + " -> " + items1);
             return "удар 10 по копии в алмазе: " + f(shown) + " - как по самому игроку; колючки не ранят бьющего; убрать может только хозяин и получает 1 манекен; /kill - без добычи";
         });
+    }
+
+    private void arcanePhaseTests(final TestPlayer p) {
+        t("Аркана", "Меч Арканы бьёт арканным уроном отдельным ударом", () -> {
+            reset(p);
+            net.minecraft.world.World w = p.worldObj;
+            hold(p, new ItemStack(net.divinerpg.utils.items.ArcanaItems.arcaniumSaber));
+            net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w);
+            z.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(500);
+            z.setHealth(500);
+            z.setCurrentItemOrArmor(3, new ItemStack(Items.diamond_chestplate));
+            z.setPosition(p.posX + 2, p.posY, p.posZ);
+            w.spawnEntityInWorld(z);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(z, DamageSource.causePlayerDamage(p), 10));
+            float before = z.getHealth();
+            // обработчик напрямую: событие тика сервера на общей шине разбудило бы и сам прогон автотестов
+            new com.divinerpgextended.magic.ArcanaCombat().onServerTick(new cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent(
+                cpw.mods.fml.common.gameevent.TickEvent.Phase.END));
+            float edge = before - z.getHealth();
+            float expect = com.divinerpgextended.magic.ArcanaCombat.SWORD_BONUS * com.divinerpgextended.magic.ArcanaRules.stage(p);
+            z.setDead();
+            check(near(edge, expect), "арканный удар сабли по зомби в алмазном нагруднике " + f(edge) + " (ждали " + f(expect) + " сквозь броню)");
+            return "после удара саблей Арканы - отдельный арканный удар " + f(expect) + " сквозь броню, с фиолетовыми искрами";
+        });
+        t("Аркана", "Фазы боссов под аркану: Драмикс, Парасекта, души Пожирателя", () -> {
+            net.minecraft.world.World w = p.worldObj;
+            DamageSource plain = DamageSource.causePlayerDamage(p), arc = com.divinerpgextended.magic.ArcanaCombat.arcaneSource(p);
+            net.divinerpg.entities.arcana.EntityDramix dr = new net.divinerpg.entities.arcana.EntityDramix(w);
+            dr.setInvisible(true);
+            float drPlain = hurt(dr, plain, 10), drArc = hurt(dr, arc, 10);
+            dr.setInvisible(false);
+            float drSeen = hurt(dr, plain, 10);
+            net.divinerpg.entities.arcana.EntityParasecta pa = new net.divinerpg.entities.arcana.EntityParasecta(w);
+            pa.setPosition(p.posX, p.posY, p.posZ);
+            pa.setHealth(pa.getMaxHealth() * 0.8F);
+            hurt(pa, plain, pa.getMaxHealth() * 0.06F); // ниже 75% - кокон
+            boolean shell = com.divinerpgextended.magic.ArcanePhases.shelled(pa);
+            float paPlain = hurt(pa, plain, 100);
+            float paCrack = hurt(pa, arc, 1000); // аркана раскалывает
+            boolean cracked = !com.divinerpgextended.magic.ArcanePhases.shelled(pa);
+            float paExposed = hurt(pa, plain, 10);
+            net.divinerpg.entities.twilight.EntitySoulSpider soul = new net.divinerpg.entities.twilight.EntitySoulSpider(w);
+            soul.getEntityData().setBoolean(com.divinerpgextended.boss.MortumArenaBosses.SOUL, true);
+            float soulArc = hurt(soul, arc, 10), soulPlain = hurt(soul, plain, 10);
+            check(near(drPlain, 2) && near(drArc, 15) && near(drSeen, 10) && shell && near(paPlain, 10) && cracked && near(paExposed, 15) && near(soulArc, 30)
+                && near(soulPlain, 5), "Драмикс невидим: обычный " + f(drPlain) + ", арканный " + f(drArc) + ", видим " + f(drSeen) + "; Парасекта: кокон " + shell
+                    + ", обычный 100 -> " + f(paPlain) + ", аркана раскалывает " + cracked + " (" + f(paCrack) + "), открыта: 10 -> " + f(paExposed)
+                    + "; душа: аркана 10 -> " + f(soulArc) + ", обычный 10 -> " + f(soulPlain));
+            return "Драмикс в невидимости: обычный урон x0.2, арканный x1.5; Парасекта в коконе x0.1, аркана раскалывает и открывает (x1.5); души Пожирателя: аркана x3, обычный x0.5";
+        });
+    }
+
+    private static float hurt(net.minecraft.entity.EntityLivingBase e, DamageSource s, float a) {
+        net.minecraftforge.event.entity.living.LivingHurtEvent h = new net.minecraftforge.event.entity.living.LivingHurtEvent(e, s, a);
+        MinecraftForge.EVENT_BUS.post(h);
+        return h.ammount;
     }
 
     private void tabTests() {

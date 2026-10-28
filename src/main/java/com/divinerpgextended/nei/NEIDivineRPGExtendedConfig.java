@@ -28,6 +28,9 @@ public class NEIDivineRPGExtendedConfig implements IConfigureNEI {
         InfusionHandler infusion = new InfusionHandler();
         API.registerRecipeHandler(infusion);
         API.registerUsageHandler(infusion);
+        BrewingHandler brewing = new BrewingHandler();
+        API.registerRecipeHandler(brewing);
+        API.registerUsageHandler(brewing);
         // служебные блоки рельсов (ставятся предметами-рельсами) и убранные рельсы Divine
         for (net.minecraft.block.Block b : new net.minecraft.block.Block[] { com.divinerpgextended.registry.ModBlocks.skyRail,
             com.divinerpgextended.registry.ModBlocks.apalachiaRail, com.divinerpgextended.registry.ModBlocks.skyBoostRail,
@@ -38,7 +41,7 @@ public class NEIDivineRPGExtendedConfig implements IConfigureNEI {
             if (b != null) API.hideItem(new net.minecraft.item.ItemStack(b));
         if (!Nei.gtnh()) return;
         try {
-            NeiGtnh.setup(fishing);
+            NeiGtnh.setup(fishing, brewing);
         } catch (Throwable t) {
             com.divinerpgextended.DivineRPGExtended.LOG.warn("NEI: катализаторы и описания вкладок не подключены - " + t);
         }

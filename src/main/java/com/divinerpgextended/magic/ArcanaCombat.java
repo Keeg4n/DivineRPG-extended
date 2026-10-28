@@ -193,16 +193,61 @@ public class ArcanaCombat {
             e.ammount *= MAGE_RESIST;
             return;
         }
+        if (ARCANE.equals(e.source.damageType)) { // арканный удар мечом
+            if (mage) e.ammount *= MAGE_RESIST;
+            return;
+        }
         Entity a = e.source.getEntity();
         if (a instanceof EntityPlayer && e.source.getSourceOfDamage() == a && "player".equals(e.source.damageType)) {
-            ItemStack h = ((EntityPlayer) a).getHeldItem();
-            if (h != null && arcanaSword(h.getItem())) e.ammount += SWORD_BONUS * ArcanaRules.stage((EntityPlayer) a) * (mage ? MAGE_RESIST : 1F);
+            EntityPlayer p = (EntityPlayer) a;
+            ItemStack h = p.getHeldItem();
+            if (h != null && arcanaSword(h.getItem()) && edgePaid(p, h.getItem())) {
+                // отдельным ударом следующим тиком: в этот тик цель уже неуязвима, а прибавка к обычному удару резалась бы бронёй
+                PENDING.add(new Object[] { e.entityLiving, p, SWORD_BONUS * ArcanaRules.stage(p) });
+            }
+        }
+    }
+
+    /** Арканный удар мечом: свой тип урона, сквозь броню. */
+    public static final String ARCANE = "dre.arcane";
+    private static final java.util.List<Object[]> PENDING = new java.util.ArrayList<Object[]>();
+
+    public static DamageSource arcaneSource(EntityPlayer p) {
+        return new net.minecraft.util.EntityDamageSource(ARCANE, p).setDamageBypassesArmor();
+    }
+
+    /**
+     * Оплачен ли арканный удар: сабля и клинок Арканы списывают аркану сами до удара (иначе удара нет), теневой меч - после
+     * (нужно, чтобы её хватало), Storm Sword - 6 арканы на сам арканный удар.
+     */
+    static boolean edgePaid(EntityPlayer p, Item sword) {
+        ArcanaHelper h = ArcanaHelper.getProperties(p);
+        if (h == null) return false;
+        if (sword == ArcanaItems.arcaniumSaber || sword == ArcanaItems.arcaniteBlade) return true;
+        if (sword == ArcanaItems.shadowSword) return h.getBarValue() >= ArcanaRules.cost("ItemShadowSword", 12F);
+        return ArcanaRules.useBar(h, 6F, "ArcaneEdge");
+    }
+
+    /** Отложенные арканные удары мечей. */
+    @SubscribeEvent
+    public void onServerTick(TickEvent.ServerTickEvent e) {
+        if (e.phase != TickEvent.Phase.END || PENDING.isEmpty()) return;
+        java.util.List<Object[]> now = new java.util.ArrayList<Object[]>(PENDING);
+        PENDING.clear();
+        for (Object[] h : now) {
+            EntityLivingBase t = (EntityLivingBase) h[0];
+            EntityPlayer p = (EntityPlayer) h[1];
+            if (t.isDead || t.getHealth() <= 0) continue;
+            t.hurtResistantTime = 0;
+            t.attackEntityFrom(arcaneSource(p), (Float) h[2]);
+            if (t.worldObj instanceof net.minecraft.world.WorldServer) ((net.minecraft.world.WorldServer) t.worldObj).func_147487_a("witchMagic", t.posX,
+                t.posY + t.height * 0.6, t.posZ, 12, t.width * 0.4, t.height * 0.3, t.width * 0.4, 0.05);
         }
     }
 
     /** Арканный ли этот удар по игроку. */
     public static boolean incoming(DamageSource s) {
-        if ("arcana".equals(s.damageType)) return true;
+        if ("arcana".equals(s.damageType) || ARCANE.equals(s.damageType)) return true;
         NBTTagCompound t = tagOf(s);
         if (t != null && (t.getBoolean(MOB) || t.hasKey(DMG))) return true;
         Entity a = s.getEntity();

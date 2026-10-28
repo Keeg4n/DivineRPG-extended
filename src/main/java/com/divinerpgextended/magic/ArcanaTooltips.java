@@ -21,6 +21,9 @@ public class ArcanaTooltips {
     public void onTooltip(ItemTooltipEvent e) {
         if (e.itemStack == null || e.itemStack.getItem() instanceof ItemMageStaff) return;
         Item i = e.itemStack.getItem();
+        ArcaneEffect ing = ArcaneEffect.byIngredient(i);
+        if (ing != null) e.toolTip.add(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocalFormatted("dre.tooltip.potion_ingredient",
+            StatCollector.translateToLocal("item.dre.arcanePotion." + ing.key() + ".name")));
         if (i == ArcanaItems.weakArcanaPotion || i == ArcanaItems.strongArcanaPotion) { // не мгновенная аркана, а эффект
             boolean strong = i == ArcanaItems.strongArcanaPotion;
             strip(e);

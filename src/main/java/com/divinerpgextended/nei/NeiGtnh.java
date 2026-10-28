@@ -23,10 +23,12 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  */
 public class NeiGtnh {
 
-    static void setup(FishingHandler fishing) {
+    static void setup(FishingHandler fishing, BrewingHandler brewing) {
         // удочки - катализаторы рыбалки: в NEI видно, чем ловить, и по удочке открывается вкладка
         API.addRecipeCatalyst(new ItemStack(Items.fishing_rod), fishing);
         for (Item rod : ModItems.rods) if (rod != null) API.addRecipeCatalyst(new ItemStack(rod), fishing);
+        // арканная стойка - катализатор зельеварения
+        API.addRecipeCatalyst(new ItemStack(com.divinerpgextended.registry.ModBlocks.arcaneBrewer), brewing);
         infos();
         MinecraftForge.EVENT_BUS.register(new NeiGtnh());
     }
@@ -41,6 +43,7 @@ public class NeiGtnh {
         put(FishingHandler.class, new ItemStack(ModItems.rods[Rod.ARCANA.ordinal()]), FishingHandler.maxHeight());
         put(CrateHandler.class, new ItemStack(ModItems.crate, 1, Zone.OCEAN.ordinal()), CrateHandler.maxHeight());
         put(TradeHandler.class, new ItemStack(ModItems.rods[Rod.GOLDEN.ordinal()]), TradeHandler.maxHeight());
+        put(BrewingHandler.class, new ItemStack(com.divinerpgextended.registry.ModBlocks.arcaneBrewer), BrewingHandler.maxHeight());
     }
 
     private static void put(Class<? extends IRecipeHandler> c, ItemStack icon, int height) {
