@@ -18,6 +18,41 @@ public final class MerchantMessages {
         ColdHandler.NET.registerMessage(OpenHandler.class, Open.class, 1, Side.CLIENT);
         ColdHandler.NET.registerMessage(SummonHandler.class, Summon.class, 2, Side.SERVER);
         ColdHandler.NET.registerMessage(ArcanaMaxHandler.class, ArcanaMax.class, 3, Side.CLIENT);
+        ColdHandler.NET.registerMessage(ArcanaBuffHandler.class, ArcanaBuff.class, 12, Side.CLIENT);
+    }
+
+    /** Сервер -> клиент: эффект "Регенерация арканы" (сколько тиков осталось и множитель), для значка у полоски. */
+    public static class ArcanaBuff implements IMessage {
+
+        public int ticks, mult;
+
+        public ArcanaBuff() {}
+
+        public ArcanaBuff(int ticks, int mult) {
+            this.ticks = ticks;
+            this.mult = mult;
+        }
+
+        @Override
+        public void fromBytes(ByteBuf buf) {
+            ticks = buf.readInt();
+            mult = buf.readByte();
+        }
+
+        @Override
+        public void toBytes(ByteBuf buf) {
+            buf.writeInt(ticks);
+            buf.writeByte(mult);
+        }
+    }
+
+    public static class ArcanaBuffHandler implements IMessageHandler<ArcanaBuff, IMessage> {
+
+        @Override
+        public IMessage onMessage(ArcanaBuff msg, MessageContext ctx) {
+            com.divinerpgextended.client.ArcanaBuffHud.set(msg.ticks, msg.mult);
+            return null;
+        }
     }
 
     /** Сервер -> клиент: максимум арканы игрока (задания Ваттикуса поднимают его выше 200). */

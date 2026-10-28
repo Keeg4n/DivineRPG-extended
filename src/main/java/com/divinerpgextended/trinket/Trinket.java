@@ -49,7 +49,11 @@ public enum Trinket {
     ENDLESS_QUIVER, DUST_POUCH, SLICER_SLING,
     /** Знаки охотника - за закрытые главы бестиария (у торговца скотом): сильнее в своём мире ({@link com.divinerpgextended.bestiary.Bestiary}). */
     HUNTER_OVERWORLD, HUNTER_NETHER, HUNTER_END, HUNTER_ICEIKA, HUNTER_EDEN, HUNTER_WILDWOOD, HUNTER_APALACHIA, HUNTER_SKYTHERN, HUNTER_MORTUM,
-    HUNTER_ARCANA, HUNTER_VETHEA;
+    HUNTER_ARCANA, HUNTER_VETHEA,
+    /** Арканный щит (у Ваттикуса): аркана берёт на себя 75% арканного урона по 1 аркане за единицу (без него 60% по 2). */
+    ARCANE_WARD,
+    /** Кристалл ясности (у Ваттикуса): задержка восстановления арканы 0.75 с вместо 2, восстановление +50%. */
+    CLARITY_CRYSTAL;
 
     /** Заказ у Джека: сколько голов [скелет, визер-скелет, зомби, крипер]; null - не заказ Джека. */
     public final int[] heads;

@@ -24,7 +24,8 @@ public final class ArcanaHooks {
     }
 
     public static float max(EntityPlayer p) {
-        return BASE + PER_TASK * tasks(p);
+        // полный сет Кормы - +50 к запасу
+        return BASE + PER_TASK * tasks(p) + (com.divinerpgextended.magic.ArcanaRules.korma(p) ? com.divinerpgextended.magic.ArcanaRules.KORMA_MAX : 0);
     }
 
     public static float clientMax() {

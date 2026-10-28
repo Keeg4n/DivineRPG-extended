@@ -62,6 +62,13 @@ public class CommonProxy {
         net.minecraft.init.Items.snowball.setMaxStackSize(64);
         NetworkRegistry.INSTANCE.registerGuiHandler(DivineRPGExtended.instance, new GuiHandler());
 
+        com.divinerpgextended.magic.ArcanaCombat.init();
+        com.divinerpgextended.magic.ArcanaPrices.init();
+        com.divinerpgextended.magic.ArcanaCombat arcanaCombat = new com.divinerpgextended.magic.ArcanaCombat();
+        MinecraftForge.EVENT_BUS.register(arcanaCombat);
+        FMLCommonHandler.instance().bus().register(arcanaCombat);
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcanaPrices());
+
         PerkEffects perks = new PerkEffects();
         MinecraftForge.EVENT_BUS.register(perks);
         FMLCommonHandler.instance()

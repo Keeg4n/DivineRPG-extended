@@ -848,6 +848,162 @@ public class SelfTest {
             check(near(v, 325), "после смены мира аркана " + f(v) + " (ждали 325 = максимум с 5 исследованиями)");
             return "максимум 325, после смены мира полная 325 (Divine ставил 200)";
         });
+        t("Аркана", "Цены, откат и задержка по правилам аддона", () -> {
+            reset(p);
+            ArcanaHelper a = ArcanaHelper.getProperties(p);
+            com.divinerpgextended.magic.ArcanaRules.resetCooldowns();
+            hold(p, new ItemStack(net.divinerpg.utils.items.ArcanaItems.firefly));
+            a.setBarValue(200);
+            net.divinerpg.utils.items.ArcanaItems.firefly.onItemRightClick(p.getHeldItem(), p.worldObj, p); // код Divine - через трансформер
+            float afterOne = a.getBarValue();
+            net.divinerpg.utils.items.ArcanaItems.firefly.onItemRightClick(p.getHeldItem(), p.worldObj, p); // сразу же - откат
+            float afterTwo = a.getBarValue();
+            int delay = a.regenDelay;
+            a.setBarValue(200);
+            boolean staff = com.divinerpgextended.magic.ArcanaRules.useBar(a, 25F, "net.divinerpg.items.arcana.ItemStaffStarlight");
+            float staffCost = 200 - a.getBarValue();
+            a.setBarValue(200);
+            com.divinerpgextended.magic.ArcanaRules.useBar(a, 0.5F, "net.divinerpg.utils.events.EventArmorTick");
+            float angelic = 200 - a.getBarValue();
+            // не хватило - ничего не тратится, задержка восстановления не сбрасывается
+            a.setBarValue(2);
+            a.regenDelay = 0;
+            boolean poor = com.divinerpgextended.magic.ArcanaRules.useBar(a, 25F, "net.divinerpg.items.arcana.ItemMeteorMash");
+            int poorDelay = a.regenDelay;
+            for (net.minecraft.entity.Entity en : new java.util.ArrayList<net.minecraft.entity.Entity>(nearbyFireflies(p))) en.setDead();
+            check(near(200 - afterOne, 4) && near(afterTwo, afterOne) && delay == com.divinerpgextended.magic.ArcanaRules.DELAY && staff && near(staffCost, 15)
+                && near(angelic, 0.15F) && !poor && poorDelay == 0,
+                "светлячок: потрачено " + f(200 - afterOne) + ", повтор сразу " + f(afterOne - afterTwo) + ", задержка " + delay + "; посох звёзд " + f(staffCost)
+                    + "; полёт ангела за вызов " + f(angelic) + "; без арканы потрачено " + poor + ", задержка " + poorDelay);
+            return "светлячок 4 арканы с откатом 0.3 с, посох звёздного света 15, ангельский полёт 0.15 за вызов (6/с вместо 20), задержка 2 с; не хватило - ни траты, ни сброса задержки";
+        });
+        t("Аркана", "Арканный урон сквозь броню, залп без неуязвимости, маги держат вдвое", () -> {
+            reset(p);
+            net.minecraft.world.World w = p.worldObj;
+            hold(p, new ItemStack(net.divinerpg.utils.items.ArcanaItems.captainsSparkler));
+            net.divinerpg.entities.arcana.projectile.EntitySparkler sp = new net.divinerpg.entities.arcana.projectile.EntitySparkler(w, p);
+            w.spawnEntityInWorld(sp);
+            float tag = sp.getEntityData().getFloat(com.divinerpgextended.magic.ArcanaCombat.DMG);
+            float expect = 14F * com.divinerpgextended.magic.ArcanaRules.stage(p);
+            net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w);
+            z.setPosition(p.posX + 2, p.posY, p.posZ);
+            z.hurtResistantTime = 15;
+            DamageSource ds = DamageSource.causeThrownDamage(sp, p);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(z, ds, 20));
+            int iframes = z.hurtResistantTime;
+            net.minecraftforge.event.entity.living.LivingHurtEvent he = new net.minecraftforge.event.entity.living.LivingHurtEvent(z, ds, 20);
+            MinecraftForge.EVENT_BUS.post(he);
+            net.divinerpg.entities.twilight.EntityMage mage = new net.divinerpg.entities.twilight.EntityMage(w);
+            DamageSource ds2 = DamageSource.causeThrownDamage(sp, p);
+            net.minecraftforge.event.entity.living.LivingHurtEvent hm = new net.minecraftforge.event.entity.living.LivingHurtEvent(mage, ds2, 20);
+            MinecraftForge.EVENT_BUS.post(hm);
+            sp.setDead();
+            check(near(tag, expect) && iframes == 0 && near(he.ammount, expect) && ds.isUnblockable() && near(hm.ammount, expect / 2),
+                "метка " + f(tag) + " (ждали " + f(expect) + "), неуязвимость после попадания " + iframes + ", урон " + f(he.ammount) + ", сквозь броню " + ds.isUnblockable()
+                    + ", по магу " + f(hm.ammount));
+            return "искра капитана: " + f(expect) + " арканного урона сквозь броню, залп не упирается в неуязвимость, маг получает " + f(hm.ammount);
+        });
+        t("Аркана", "Защита арканой и маги стреляют реже", () -> {
+            reset(p);
+            net.minecraft.world.World w = p.worldObj;
+            ArcanaHelper a = ArcanaHelper.getProperties(p);
+            net.divinerpg.entities.twilight.EntityMage mage = new net.divinerpg.entities.twilight.EntityMage(w);
+            mage.setPosition(p.posX + 3, p.posY, p.posZ);
+            net.divinerpg.entities.twilight.projectile.EntityTwilightMageShot s1 = new net.divinerpg.entities.twilight.projectile.EntityTwilightMageShot(w, mage, 62, 212, 254);
+            boolean first = w.spawnEntityInWorld(s1);
+            net.divinerpg.entities.twilight.projectile.EntityTwilightMageShot s2 = new net.divinerpg.entities.twilight.projectile.EntityTwilightMageShot(w, mage, 62, 212, 254);
+            boolean second = w.spawnEntityInWorld(s2);
+            a.setBarValue(100);
+            net.minecraftforge.event.entity.living.LivingHurtEvent hp1 = new net.minecraftforge.event.entity.living.LivingHurtEvent(p, DamageSource.causeThrownDamage(s1, mage), 10);
+            MinecraftForge.EVENT_BUS.post(hp1);
+            float bar = a.getBarValue();
+            a.setBarValue(0);
+            net.minecraftforge.event.entity.living.LivingHurtEvent hp2 = new net.minecraftforge.event.entity.living.LivingHurtEvent(p, DamageSource.causeThrownDamage(s1, mage), 10);
+            MinecraftForge.EVENT_BUS.post(hp2);
+            // ближний удар моба Арканы - тоже арканный
+            a.setBarValue(100);
+            net.divinerpg.entities.arcana.EntityRoamer roamer = new net.divinerpg.entities.arcana.EntityRoamer(w);
+            net.minecraftforge.event.entity.living.LivingHurtEvent hp3 = new net.minecraftforge.event.entity.living.LivingHurtEvent(p, DamageSource.causeMobDamage(roamer), 20);
+            MinecraftForge.EVENT_BUS.post(hp3);
+            s1.setDead();
+            check(first && !second && near(hp1.ammount, 4) && near(bar, 88) && near(hp2.ammount, 10) && near(hp3.ammount, 8),
+                "маг: первый выстрел " + first + ", второй сразу " + second + "; выстрел 10 при 100 арканы - в здоровье " + f(hp1.ammount) + ", арканы осталось " + f(bar)
+                    + "; без арканы " + f(hp2.ammount) + "; удар бродяги 20 - в здоровье " + f(hp3.ammount));
+            return "маг не стреляет чаще раза в 1-1.5 с; арканный удар 10: в здоровье 4, аркана -12 (60% по 2 за единицу); без арканы - целиком; мобы Арканы бьют арканным";
+        });
+        t("Аркана", "Зелья арканы - эффект восстановления, перезаход не обнуляет шкалу", () -> {
+            reset(p);
+            ArcanaHelper a = ArcanaHelper.getProperties(p);
+            a.setBarValue(50);
+            a.regenDelay = 40;
+            ItemStack pot = new ItemStack(net.divinerpg.utils.items.ArcanaItems.weakArcanaPotion);
+            net.divinerpg.utils.items.ArcanaItems.weakArcanaPotion.onEaten(pot, p.worldObj, p);
+            float instant = a.getBarValue();
+            int mult = com.divinerpgextended.magic.ArcanaRules.buffMult(p);
+            FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, p));
+            int delay = a.regenDelay;
+            float regen = a.getBarValue() - instant;
+            p.getEntityData().removeTag(com.divinerpgextended.magic.ArcanaRules.BUFF_UNTIL);
+            // перезаход: Divine обнуляет шкалу при входе - аддон возвращает
+            a.setBarValue(77);
+            FMLCommonHandler.instance().bus().post(new PlayerEvent.PlayerLoggedOutEvent(p));
+            a.setBarValue(0);
+            FMLCommonHandler.instance().bus().post(new PlayerEvent.PlayerLoggedInEvent(p));
+            if (p.ticksExisted < 3) p.ticksExisted = 3;
+            FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, p));
+            float restored = a.getBarValue();
+            check(near(instant, 50) && mult == 2 && delay == 0 && regen > 0.5F && near(restored, 77),
+                "после зелья сразу " + f(instant) + " (было 50), эффект x" + mult + ", задержка " + delay + ", за тик +" + f(regen) + "; после перезахода " + f(restored));
+            return "зелье арканы даёт не мгновенную аркану, а эффект: без задержки, восстановление x2; шкала переживает перезаход";
+        });
+        t("Аркана", "Ваттикус и цены, посох мага", () -> {
+            reset(p);
+            net.minecraft.world.World w = p.worldObj;
+            net.divinerpg.entities.arcana.EntityVatticus vat = new net.divinerpg.entities.arcana.EntityVatticus(w);
+            net.minecraft.village.MerchantRecipeList vl = vat.getRecipes(p);
+            com.divinerpgextended.magic.ArcanaPrices.apply(vat, vl);
+            boolean potions = false, ward = false, clarity = false;
+            for (Object o : vl) {
+                ItemStack out = ((net.minecraft.village.MerchantRecipe) o).getItemToSell();
+                if (out.getItem() == net.divinerpg.utils.items.ArcanaItems.weakArcanaPotion || out.getItem() == net.divinerpg.utils.items.ArcanaItems.strongArcanaPotion) potions = true;
+                if (out.getItem() == ModItems.trinket && out.getItemDamage() == com.divinerpgextended.trinket.Trinket.ARCANE_WARD.ordinal()) ward = true;
+                if (out.getItem() == ModItems.trinket && out.getItemDamage() == com.divinerpgextended.trinket.Trinket.CLARITY_CRYSTAL.ordinal()) clarity = true;
+            }
+            net.divinerpg.entities.arcana.EntityCaptianMerik mk = new net.divinerpg.entities.arcana.EntityCaptianMerik(w);
+            net.minecraft.village.MerchantRecipeList ml = mk.getRecipes(p);
+            com.divinerpgextended.magic.ArcanaPrices.apply(mk, ml);
+            String starPrice = "-";
+            for (Object o : ml) {
+                net.minecraft.village.MerchantRecipe r = (net.minecraft.village.MerchantRecipe) o;
+                if (r.getItemToSell().getItem() == net.divinerpg.utils.items.ArcanaItems.staffStarlight) starPrice = r.getItemToBuy().stackSize + " " + r.getItemToBuy().getItem().getUnlocalizedName();
+            }
+            // посох мага: 8 арканы, заряд мага с арканным уроном
+            ArcanaHelper a = ArcanaHelper.getProperties(p);
+            a.setBarValue(200);
+            com.divinerpgextended.magic.ArcanaRules.resetCooldowns();
+            ItemStack staff = new ItemStack(ModItems.mageStaff, 1, 3);
+            hold(p, staff);
+            int before = w.loadedEntityList.size();
+            ModItems.mageStaff.onItemRightClick(staff, w, p);
+            float shotDmg = 0;
+            for (Object o : w.loadedEntityList) {
+                if (o instanceof net.divinerpg.entities.twilight.projectile.EntityTwilightMageShot && ((net.divinerpg.entities.twilight.projectile.EntityTwilightMageShot) o).getThrower() == p) {
+                    shotDmg = ((net.minecraft.entity.Entity) o).getEntityData().getFloat(com.divinerpgextended.magic.ArcanaCombat.DMG);
+                    ((net.minecraft.entity.Entity) o).setDead();
+                }
+            }
+            float expect = 24F * com.divinerpgextended.magic.ArcanaRules.stage(p);
+            check(!potions && ward && clarity && starPrice.startsWith("15 ") && near(200 - a.getBarValue(), 8) && near(shotDmg, expect) && w.loadedEntityList.size() >= before,
+                "у Ваттикуса зелья " + potions + ", щит " + ward + ", кристалл " + clarity + "; посох звёзд у Мерика за " + starPrice + "; посох колдуна: аркана "
+                    + f(200 - a.getBarValue()) + ", урон заряда " + f(shotDmg) + " (ждали " + f(expect) + ")");
+            return "Ваттикус продаёт Арканный щит и Кристалл ясности вместо зелий; посох звёздного света - 15 жетонов; посох колдуна Мортума: 8 арканы, " + f(expect) + " арканного урона";
+        });
+    }
+
+    private static java.util.List<net.minecraft.entity.Entity> nearbyFireflies(TestPlayer p) {
+        java.util.List<net.minecraft.entity.Entity> l = new java.util.ArrayList<net.minecraft.entity.Entity>();
+        for (Object o : p.worldObj.loadedEntityList) if (o instanceof net.divinerpg.entities.arcana.projectile.EntityFirefly) l.add((net.minecraft.entity.Entity) o);
+        return l;
     }
 
     private void twilightTests() {
