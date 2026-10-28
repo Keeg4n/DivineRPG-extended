@@ -4451,6 +4451,15 @@ public class SelfTest {
                 + ": пропущено " + farStale);
             return "место с построенным логовом карта показывает; место в уже созданном чанке без логова (старый мир) пропускает и запоминает; место в несозданных краях остаётся целью";
         });
+        t("Совместимость", "Morph: форма моба Divine не выкидывает из мира (удаление списков модели без вылета)", () -> {
+            byte[] raw = net.minecraft.launchwrapper.Launch.classLoader.getClassBytes("morph.client.model.ModelHelper"); // байты, без загрузки клиентского класса
+            if (raw == null) return "Morph не установлен - нечего чинить";
+            byte[] out = new com.divinerpgextended.asm.MorphModelTransformer().transform("morph.client.model.ModelHelper", "morph.client.model.ModelHelper", raw);
+            String s = new String(out, "ISO-8859-1");
+            check(out != raw && s.contains("com/divinerpgextended/asm/MorphHooks") && !s.contains("func_74523_b"),
+                "класс Morph не исправлен: изменён " + (out != raw) + ", вызов хука " + s.contains("com/divinerpgextended/asm/MorphHooks"));
+            return "ModelHelper Morph удаляет списки модели через хук аддона: повторное удаление (Skythern Golem) больше не роняет клиент";
+        });
         t("Нагрузка", "Жидкости аддона в покое (озеро, море) не нагружают сервер", () -> {
             WorldServer w = server.worldServerForDimension(0);
             final int x0 = 30016, z0 = 30016, y0 = 200, N = 32, H = 6;
