@@ -54,6 +54,7 @@ public class CommonProxy {
         com.divinerpgextended.accessory.AccessoryMessages.register();
         com.divinerpgextended.boss.ProgressSync.register();
         com.divinerpgextended.trinket.DoubleJump.register();
+        com.divinerpgextended.boss.EnderGear.register();
         com.divinerpgextended.perk.RangedRoles.registerMessages();
         com.divinerpgextended.debug.Debug.register();
     }

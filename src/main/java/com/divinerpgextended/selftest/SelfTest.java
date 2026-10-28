@@ -8069,8 +8069,23 @@ public class SelfTest {
             boolean blink = com.divinerpgextended.boss.EnderGear.blink(v);
             double moved = v.posX - x0;
             float spent = 100 - a.getBarValue();
+            // сразу второй шаг (откат короткий, 8 тиков) - тихо отклонён, причина пустая
+            String again = com.divinerpgextended.boss.EnderGear.tryBlink(v);
+            // взгляд чуть вниз и ступенька в 2 блока впереди: шаг не обрывается, а поднимает на уступ
+            int lx = net.minecraft.util.MathHelper.floor_double(v.posX) + 3, ly = net.minecraft.util.MathHelper.floor_double(v.boundingBox.minY), lz = net.minecraft.util.MathHelper.floor_double(v.posZ);
+            for (int dx = 0; dx < 8; dx++) for (int dz = -1; dz <= 1; dz++) for (int dy = 0; dy < 2; dy++) w.setBlock(lx + dx, ly + dy, lz + dz, Blocks.end_stone);
+            com.divinerpgextended.magic.ArcanaRules.resetCooldowns();
+            a.setBarValue(100);
+            double y0 = v.boundingBox.minY;
+            v.rotationPitch = 10F;
+            String ledge = com.divinerpgextended.boss.EnderGear.tryBlink(v);
+            double rose = v.boundingBox.minY - y0;
+            for (int dx = 0; dx < 8; dx++) for (int dz = -1; dz <= 1; dz++) for (int dy = 0; dy < 2; dy++) w.setBlockToAir(lx + dx, ly + dy, lz + dz);
+            v.rotationPitch = 0F;
+            com.divinerpgextended.magic.ArcanaRules.resetCooldowns();
             v.setPositionAndRotation(c[0] + 300.5, f + 40, c[2] + 0.5, -90F, 0F); // над бездной
-            boolean voidBlink = com.divinerpgextended.boss.EnderGear.blink(v);
+            String voidWhy = com.divinerpgextended.boss.EnderGear.tryBlink(v);
+            boolean voidBlink = voidWhy == null;
             v.getEntityData().setDouble("dreSafeX", c[0] + 0.5);
             v.getEntityData().setDouble("dreSafeY", f + 1);
             v.getEntityData().setDouble("dreSafeZ", c[2] + 0.5);
@@ -8083,11 +8098,11 @@ public class SelfTest {
             for (int i = 0; i < 4; i++) v.inventory.armorInventory[i] = null;
             if (added) players.remove(v);
             check(member && steers && speed > 0.05 && blinkIn && near(rage, 15) && near(rageRed, 10) && deflected && pierced && near(vsRed, 15) && pillar && blink
-                && moved > 5 && near(spent, 25) && !voidBlink && rescued,
+                && moved > 5 && near(spent, 25) && !voidBlink && "dre.blink.void".equals(voidWhy) && "".equals(again) && ledge == null && rose > 1.9 && rescued,
                 "орда " + member + ", полёт ведёт аддон " + steers + " (скорость " + f((float) speed) + "), телепорт над островом " + blinkIn + "; ярость " + f(rage)
                     + ", в красной броне " + f(rageRed) + "; синий отбил стрелу " + deflected + ", синей бронёй пробил " + pierced + "; по красному в красном+сером "
                     + f(vsRed) + "; столп красного цел " + pillar + "; шаг " + blink + " на " + f((float) moved) + " за " + f(spent) + " арканы, в бездну " + voidBlink
-                    + "; спасение из пустоты " + rescued);
+                    + " (" + voidWhy + "), сразу второй (" + again + "), на уступ " + ledge + " поднял на " + f((float) rose) + "; спасение из пустоты " + rescued);
             return "орда кружит под управлением аддона и телепортируется только над островом; красный бьёт x1.5 (красная броня Энда снимает), синий отбивает стрелы "
                 + "(синяя пробивает); броня цвета +50% по своему Айрако, серая +10%; полный сет: шаг на " + f((float) moved) + " блока за 25 арканы, не в бездну, спасение из пустоты";
         });

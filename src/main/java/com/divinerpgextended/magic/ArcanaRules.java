@@ -66,7 +66,7 @@ public final class ArcanaRules {
         SPECS.put("ItemReflector", new Spec(10, 6));
         SPECS.put("ItemStaffStarlight", new Spec(-1, 5));
         SPECS.put(ItemMageStaff.OWNER, new Spec(MAGE_STAFF, MAGE_STAFF_COOLDOWN));
-        SPECS.put("EnderBlink", new Spec(25, 30)); // пустотный шаг брони Энда
+        SPECS.put("EnderBlink", new Spec(25, 8)); // пустотный шаг брони Энда: короткий откат - шаг за шагом на бегу
     }
 
     private static final Map<String, Long> LAST_USE = new HashMap<String, Long>();
