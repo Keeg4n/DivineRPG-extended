@@ -320,7 +320,7 @@ dre.quest.thanks=Leorna: thank you! Quests done: %s.
 dre.quest.golden=Leorna: the tenth fish! Take my golden rod, you have earned it.
 entity.divinerpgextended.DreHook.name=Bobber
 # NEI
-itemGroup.divinerpgextended=DivineRPG Extended
+itemGroup.divinerpgextended=DivineRPG Extended: Main
 dre.nei.fishing=Fishing
 dre.nei.crates=Fishing Crates
 dre.nei.trades=Merchants and Leorna
@@ -1312,3 +1312,8 @@ dre.dummy.not_yours=Only the player who placed the dummy can remove it.
 dre.dummy.idle=Hit me
 dre.dummy.hit=Hit: %s
 dre.dummy.dps=Per second: %s
+itemGroup.dre_gear=DivineRPG Extended: Gear
+itemGroup.dre_trinkets=DivineRPG Extended: Accessories
+itemGroup.dre_fishing=DivineRPG Extended: Fishing
+itemGroup.dre_magic=DivineRPG Extended: Arcana and Potions
+itemGroup.dre_bosses=DivineRPG Extended: Bosses and Progress

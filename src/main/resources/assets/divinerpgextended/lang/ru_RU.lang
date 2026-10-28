@@ -320,7 +320,7 @@ dre.quest.thanks=Леорна: спасибо! Выполнено заданий
 dre.quest.golden=Леорна: десятая рыба! Держи мою золотую удочку, она твоя по праву.
 entity.divinerpgextended.DreHook.name=Поплавок
 # NEI
-itemGroup.divinerpgextended=DivineRPG Extended
+itemGroup.divinerpgextended=DivineRPG Extended: основное
 dre.nei.fishing=Рыбалка
 dre.nei.crates=Рыболовные ящики
 dre.nei.trades=Торговцы и Леорна
@@ -1627,3 +1627,8 @@ dre.dummy.not_yours=Убрать манекен может только тот, 
 dre.dummy.idle=Ударь меня
 dre.dummy.hit=Удар: %s
 dre.dummy.dps=В секунду: %s
+itemGroup.dre_gear=DivineRPG Extended: снаряжение
+itemGroup.dre_trinkets=DivineRPG Extended: аксессуары
+itemGroup.dre_fishing=DivineRPG Extended: рыбалка
+itemGroup.dre_magic=DivineRPG Extended: аркана и зелья
+itemGroup.dre_bosses=DivineRPG Extended: боссы и прогресс

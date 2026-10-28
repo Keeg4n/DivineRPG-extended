@@ -493,6 +493,7 @@ public class SelfTest {
         arcanaTests(p);
         brewingTests(p);
         dummyTests(p);
+        tabTests();
         twilightTests();
         vetheaTests(p, ow);
         serverTests(p, q);
@@ -1158,6 +1159,21 @@ public class SelfTest {
                     + " (было 10), манекен цел " + alive + "; чужой не убрал " + stays + ", хозяин убрал " + d.isDead + " и получил " + got + "; /kill: убит " + d2.isDead
                     + ", вещей рядом " + items0 + " -> " + items1);
             return "удар 10 по копии в алмазе: " + f(shown) + " - как по самому игроку; колючки не ранят бьющего; убрать может только хозяин и получает 1 манекен; /kill - без добычи";
+        });
+    }
+
+    private void tabTests() {
+        t("Прохождение", "Вкладки творческого режима", () -> {
+            Object[][] cases = { { "rod_hunger", com.divinerpgextended.DreTab.FISHING }, { "anglerHat", com.divinerpgextended.DreTab.FISHING },
+                { "arcanePotion", com.divinerpgextended.DreTab.MAGIC }, { "arcaneBrewer", com.divinerpgextended.DreTab.MAGIC },
+                { "trinket", com.divinerpgextended.DreTab.TRINKETS }, { "wandererHelmet", com.divinerpgextended.DreTab.GEAR },
+                { "halitePickaxe", com.divinerpgextended.DreTab.GEAR }, { "bossEgg", com.divinerpgextended.DreTab.BOSSES },
+                { "lairMap", com.divinerpgextended.DreTab.BOSSES }, { "wandererClock", com.divinerpgextended.DreTab.TAB },
+                { "trainingDummy", com.divinerpgextended.DreTab.TAB }, { "worldTorch_eden", com.divinerpgextended.DreTab.TAB } };
+            StringBuilder bad = new StringBuilder();
+            for (Object[] c : cases) if (com.divinerpgextended.DreTab.of((String) c[0]) != c[1]) bad.append(c[0]).append(' ');
+            check(bad.length() == 0, "не в своей вкладке: " + bad);
+            return "основное, снаряжение, аксессуары, рыбалка, аркана и зелья, боссы и прогресс: удочки и одежда рыбака - в рыбалке, зелья и стойка - в аркане, яйца боссов и карты - в боссах";
         });
     }
 
