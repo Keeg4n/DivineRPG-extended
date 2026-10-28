@@ -49,9 +49,29 @@ public class EntityWanderer extends EntityVillager {
         dataWatcher.addObject(DW_HOME, Byte.valueOf((byte) -1));
     }
 
+    /** Странник без мира (призван яйцом не в родном биоме сумеречного мира): зелёная роба, сделок нет. */
+    public static final int STRAY = -2;
+
     public void setHome(TwilightWorld tw) {
         dataWatcher.updateObject(DW_HOME, Byte.valueOf((byte) tw.ordinal()));
         trades = null;
+    }
+
+    public void setStray() {
+        dataWatcher.updateObject(DW_HOME, Byte.valueOf((byte) STRAY));
+        trades = null;
+    }
+
+    public boolean stray() {
+        return dataWatcher.getWatchableObjectByte(DW_HOME) == STRAY;
+    }
+
+    /** Без мира торговать нечем: окно торговли не открывается. */
+    @Override
+    public boolean interact(EntityPlayer p) {
+        if (!stray()) return super.interact(p);
+        if (!worldObj.isRemote) playSound("mob.villager.no", 0.6F, 0.8F);
+        return true;
     }
 
     public TwilightWorld world() {
@@ -63,7 +83,7 @@ public class EntityWanderer extends EntityVillager {
 
     @Override
     public MerchantRecipeList getRecipes(EntityPlayer player) {
-        if (trades == null) trades = trades(world());
+        if (trades == null) trades = stray() ? new MerchantRecipeList() : trades(world());
         return trades;
     }
 

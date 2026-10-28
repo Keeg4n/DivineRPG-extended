@@ -162,6 +162,8 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
                 EntityLiving m = (EntityLiving) pick.entityClass.getConstructor(World.class).newInstance(w);
                 m.setLocationAndAngles(sx + 0.5, sy, sz + 0.5, r.nextFloat() * 360, 0);
                 if (!m.getCanSpawnHere()) continue;
+                // ранги: моба не по сюжету рядом стоящих игроков факел не зовёт (как и естественный спавн)
+                if (com.divinerpgextended.boss.ProgressSpawns.denied(w, m, m.posX, m.posZ)) return null;
                 w.spawnEntityInWorld(m);
                 m.onSpawnWithEgg(null);
                 return m;

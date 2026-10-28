@@ -1296,7 +1296,9 @@ tile.dre.worldTorch.vethea.name=Факел Везеи
 tile.dre.lureTorch.name=Водный факел зова
 dre.tooltip.lure_torch=Арканиум правой кнопкой - горит минуту (до 10). Пока горит, в 24 блоках чаще появляются мобы Divine
 item.dre.arcanePick.name=Арканитовая кирка
-dre.tooltip.arcane_pick=Единственное, чем ломаются спавнеры подземелий Арканы
+item.dre.wandererEgg.name=Призвать: Странник
+dre.chat.wanderer_stray=Странник не узнаёт этих мест: он не из этого мира, и торговать ему нечем. Призови его в родном биоме сумеречного мира.
+dre.tooltip.arcane_pick=Единственное, чем ломаются блоки и спавнеры подземелий Арканы (выпадают целыми)
 # --- DivineRPG: недостающий перевод и общие названия (Везея, Небесный терн, Вамашерон, Пожиратель душ)
 entity.DRPGEnderWatcher.name=Смотритель Края
 entity.DRPGCrab.name=Краб

@@ -16,12 +16,16 @@ public class RenderWanderer extends RenderBiped {
             SKINS[w.ordinal()] = new ResourceLocation("divinerpgextended", "textures/entity/wanderer_" + w.key() + ".png");
     }
 
+    /** Странник без мира - в зелёной робе. */
+    private static final ResourceLocation STRAY = new ResourceLocation("divinerpgextended", "textures/entity/wanderer_stray.png");
+
     public RenderWanderer() {
         super(new ModelWanderer(), 0.5F);
     }
 
     @Override
     protected ResourceLocation getEntityTexture(Entity e) {
-        return SKINS[((EntityWanderer) e).world().ordinal()];
+        EntityWanderer v = (EntityWanderer) e;
+        return v.stray() ? STRAY : SKINS[v.world().ordinal()];
     }
 }

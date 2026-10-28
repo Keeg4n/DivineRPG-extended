@@ -92,19 +92,24 @@ public class ProgressSpawns {
 
     @SubscribeEvent
     public void onCheckSpawn(LivingSpawnEvent.CheckSpawn event) {
-        if (event.world.isRemote || !gated(event.world)) return;
-        int need = tier(event.entityLiving);
-        if (need == 0) return;
-        int cx = MathHelper.floor_double(event.x) >> 4, cz = MathHelper.floor_double(event.z) >> 4;
+        if (denied(event.world, event.entityLiving, event.x, event.z)) event.setResult(Event.Result.DENY);
+    }
+
+    /** Нельзя ли сейчас появиться этому мобу в этой точке по рангам игроков рядом (и для естественного спавна, и для зова факелом). */
+    public static boolean denied(World w, Entity mob, double x, double z) {
+        if (w.isRemote || !gated(w)) return false;
+        int need = tier(mob);
+        if (need == 0) return false;
+        int cx = MathHelper.floor_double(x) >> 4, cz = MathHelper.floor_double(z) >> 4;
         // в Энде решает самый сильный: игрок ниже рангом не мешает спавну тому, кому эти мобы нужны (его самого они не трогают)
-        boolean end = event.world.provider.dimensionId == 1, low = false;
-        for (Object o : event.world.playerEntities) {
+        boolean end = w.provider.dimensionId == 1, low = false;
+        for (Object o : w.playerEntities) {
             EntityPlayer p = (EntityPlayer) o;
             if (Math.abs(cx - (MathHelper.floor_double(p.posX) >> 4)) > SPAWN_CHUNKS || Math.abs(cz - (MathHelper.floor_double(p.posZ) >> 4)) > SPAWN_CHUNKS) continue;
             if (rank(p) < need) low = true;
-            else if (end) return;
+            else if (end) return false;
         }
-        if (low) event.setResult(Event.Result.DENY);
+        return low;
     }
 
     /** Моб не выбирает целью игрока ниже своего ранга. */

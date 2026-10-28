@@ -105,6 +105,7 @@ public class CommonProxy {
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(railAdopt);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.twilight.MoonWolfHealth());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.block.BlockDreamWater.Swim());
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.block.BlockDreamWater.Loose());
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.block.BlockBurrow.Convert());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.block.DreamCrops.Planting());
         com.divinerpgextended.perk.HomingArrows homing = new com.divinerpgextended.perk.HomingArrows();
@@ -116,6 +117,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.PopulationResend.Installer());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.SkyRepair());
         MinecraftForge.TERRAIN_GEN_BUS.register(new com.divinerpgextended.world.ScatterGen.Init());
+        MinecraftForge.TERRAIN_GEN_BUS.register(new com.divinerpgextended.world.VanillaClearance());
         MinecraftForge.EVENT_BUS.register(new BossDamage());
         MinecraftForge.EVENT_BUS.register(new BossLoot());
         MinecraftForge.EVENT_BUS.register(new ProgressSpawns());

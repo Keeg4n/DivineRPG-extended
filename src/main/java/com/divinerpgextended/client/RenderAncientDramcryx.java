@@ -4,7 +4,6 @@ import net.minecraft.client.renderer.entity.RenderLiving;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.boss.BossStatus;
 import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
@@ -26,7 +25,7 @@ public class RenderAncientDramcryx extends RenderLiving {
 
     @Override
     public void doRender(EntityLiving e, double x, double y, double z, float yaw, float partial) {
-        BossStatus.setBossStatus((EntityAncientDramcryx) e, true);
+        DreBossBar.show(e); // полоска как у боссов Divine, не ванильная
         super.doRender(e, x, y, z, yaw, partial);
     }
 

@@ -75,8 +75,10 @@ public final class ModItems {
     public static Item skyCart, apalachiaRails, arcanaRails, gondola;
     /** Вещи Ветеи аддона: шаблоны крыльев, лунный осколок ({@link com.divinerpgextended.vethea.DreamItem}). */
     public static Item dreamItem;
-    /** Арканитовая кирка: ломает спавнеры Арканы. */
+    /** Арканитовая кирка: ломает блоки и спавнеры подземелий Арканы. */
     public static Item arcanePick;
+    /** Яйцо призыва Странника. */
+    public static Item wandererEgg;
 
     private ModItems() {}
 
@@ -182,6 +184,8 @@ public final class ModItems {
         GameRegistry.registerItem(dreamItem, "dreamItem");
         arcanePick = new com.divinerpgextended.item.ItemArcanePick();
         GameRegistry.registerItem(arcanePick, "arcanePick");
+        wandererEgg = new com.divinerpgextended.item.ItemWandererEgg();
+        GameRegistry.registerItem(wandererEgg, "wandererEgg");
 
         EntityRegistry.registerModEntity(EntityGreatCadillion.class, "GreatCadillion", 0, DivineRPGExtended.instance,
             80, 3, true);

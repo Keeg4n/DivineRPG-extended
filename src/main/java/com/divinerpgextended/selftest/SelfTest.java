@@ -2756,6 +2756,111 @@ public class SelfTest {
                 + "; у Генерала до Мортума " + before + ", после " + after);
             return "спавнеры Арканы ломаются только арканитовой киркой (прочность " + hard + ", алмазная - 0); кирку продаёт Генерал войны после всех боссов Мортума";
         });
+        t("Прохождение", "Арканитовая кирка ломает все блоки Арканы и они выпадают", () -> {
+            WorldServer za = server.worldServerForDimension(ConfigurationHelper.arcana);
+            java.util.Set<net.minecraft.block.Block> locked = com.divinerpgextended.item.ItemArcanePick.locked();
+            java.util.Set<net.minecraft.block.Block> spawners = com.divinerpgextended.item.ItemArcanePick.spawners();
+            TestPlayer zp = join(player(ConfigurationHelper.arcana, "TestArcBlocks", 100, 60, 100), true);
+            int breakable = 0, diamondStuck = 0, drops = 0, other = 0;
+            StringBuilder bad = new StringBuilder();
+            for (net.minecraft.block.Block b : locked) {
+                if (spawners.contains(b)) continue;
+                other++;
+                if (b.getBlockHardness(za, 0, 0, 0) > 0) breakable++;
+                hold(zp, new ItemStack(Items.diamond_pickaxe));
+                net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed bs = new net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed(zp, b, 0, 8F, 100, 60, 100);
+                MinecraftForge.EVENT_BUS.post(bs);
+                if (bs.newSpeed == 0) diamondStuck++;
+                hold(zp, new ItemStack(ModItems.arcanePick));
+                java.util.ArrayList<ItemStack> list = new java.util.ArrayList<ItemStack>();
+                if (b.getItemDropped(0, za.rand, 0) != null) list.addAll(b.getDrops(za, 100, 60, 100, 0, 0));
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent(100, 60, 100, za, b, 0, 0, 1F, list, zp, false));
+                if (!list.isEmpty()) drops++;
+                else bad.append(b.getUnlocalizedName()).append(' ');
+            }
+            boolean portalSafe = true;
+            for (net.minecraft.block.Block b : locked) if (b instanceof net.minecraft.block.BlockPortal) portalSafe = false;
+            check(other >= 3 && breakable == other && diamondStuck == other && drops == other && portalSafe, "блоков Арканы кроме спавнеров " + other + ": ломаемы " + breakable
+                + ", алмазной не ломаются " + diamondStuck + ", выпадают " + drops + (bad.length() > 0 ? " (нет дропа: " + bad + ")" : "") + ", портал не тронут " + portalSafe);
+            return "неломаемых блоков Арканы (кроме спавнеров) " + other + ": все ломаются только арканитовой киркой и выпадают; портал не тронут";
+        });
+        t("Прохождение", "Факел зова не зовёт мобов выше ранга игроков рядом", () -> {
+            WorldServer zw = server.worldServerForDimension(0);
+            TestPlayer zp = join(player(0, "TestLureRank", 21000.5, 80, 21000.5), true);
+            com.divinerpgextended.boss.BossProgress.revoke(zp, com.divinerpgextended.boss.Boss.CARCINUS);
+            com.divinerpgextended.boss.BossProgress.revoke(zp, com.divinerpgextended.boss.Boss.LICH_KING);
+            net.divinerpg.entities.vanilla.EntityJungleSpider spider = new net.divinerpg.entities.vanilla.EntityJungleSpider(zw);
+            spider.setPosition(21010, 80, 21010);
+            boolean low = com.divinerpgextended.boss.ProgressSpawns.denied(zw, spider, spider.posX, spider.posZ);
+            com.divinerpgextended.boss.BossProgress.grant(zp, com.divinerpgextended.boss.Boss.CARCINUS);
+            com.divinerpgextended.boss.BossProgress.grant(zp, com.divinerpgextended.boss.Boss.LICH_KING);
+            boolean high = com.divinerpgextended.boss.ProgressSpawns.denied(zw, spider, spider.posX, spider.posZ);
+            server.getConfigurationManager().playerEntityList.remove(zp);
+            zw.removeEntity(zp);
+            check(low && !high, "паук джунглей у игрока ранга 0 запрещён " + low + ", у ранга 2 " + high);
+            return "факел зова (как и естественный спавн) не зовёт моба выше ранга игроков рядом: паук джунглей у ранга 0 - нет, у ранга 2 - да";
+        });
+        t("Прохождение", "Яйцо Странника: свой мир в родном биоме, иначе Странник без мира", () -> {
+            WorldServer eden = server.worldServerForDimension(ConfigurationHelper.eden);
+            int ex = 7000, ez = 7000;
+            loadAround(eden, ex, ez, 0);
+            com.divinerpgextended.world.twilight.TwilightWorld home = com.divinerpgextended.item.ItemWandererEgg.homeAt(eden, ex, ez);
+            net.minecraft.world.chunk.Chunk c = eden.getChunkFromBlockCoords(ex, ez);
+            byte[] arr = c.getBiomeArray();
+            int idx = (ez & 15) << 4 | ex & 15;
+            byte was = arr[idx];
+            arr[idx] = (byte) net.minecraft.world.biome.BiomeGenBase.plains.biomeID; // как после ритуала Гайи
+            com.divinerpgextended.world.twilight.TwilightWorld foreignBiome = com.divinerpgextended.item.ItemWandererEgg.homeAt(eden, ex, ez);
+            arr[idx] = was;
+            com.divinerpgextended.world.twilight.TwilightWorld overworld = com.divinerpgextended.item.ItemWandererEgg.homeAt(server.worldServerForDimension(0), 0, 0);
+            TestPlayer zp = join(player(0, "TestWandEgg", 0.5, 120, 0.5), true);
+            zp.chat.clear();
+            ItemStack egg = new ItemStack(ModItems.wandererEgg);
+            WorldServer zw = server.worldServerForDimension(0);
+            int gy = zw.getTopSolidOrLiquidBlock(0, 0) - 1;
+            ModItems.wandererEgg.onItemUse(egg, zp, zw, 0, gy, 0, 1, 0.5F, 1F, 0.5F);
+            com.divinerpgextended.entity.EntityWanderer stray = null;
+            for (Object o : zw.loadedEntityList) if (o instanceof com.divinerpgextended.entity.EntityWanderer && ((com.divinerpgextended.entity.EntityWanderer) o).posY > gy && Math.abs(((com.divinerpgextended.entity.EntityWanderer) o).posX - 0.5) < 1) stray = (com.divinerpgextended.entity.EntityWanderer) o;
+            boolean strayOk = stray != null && stray.stray() && stray.getRecipes(zp).isEmpty() && !zp.chat.isEmpty();
+            if (stray != null) stray.setDead();
+            com.divinerpgextended.entity.EntityWanderer edenOne = new com.divinerpgextended.entity.EntityWanderer(eden);
+            edenOne.setHome(com.divinerpgextended.world.twilight.TwilightWorld.EDEN);
+            boolean edenTrades = !edenOne.stray() && edenOne.getRecipes(zp).size() > 5;
+            server.getConfigurationManager().playerEntityList.remove(zp);
+            zw.removeEntity(zp);
+            check(home == com.divinerpgextended.world.twilight.TwilightWorld.EDEN && foreignBiome == null && overworld == null && strayOk && edenTrades,
+                "в Эдеме " + home + ", в Эдеме на чужом биоме " + foreignBiome + ", в обычном мире " + overworld + "; призван в обычном мире без мира и без сделок " + strayOk
+                + ", Странник Эдема торгует " + edenTrades);
+            return "яйцо в родном биоме мира - Странник этого мира со сделками; в обычном мире или на чужом биоме - Странник в зелёной робе без сделок";
+        });
+        t("Логова", "Ванильные шахты и подземелья со спавнером не ставятся у логов", () -> {
+            WorldServer zw = server.worldServerForDimension(0);
+            int[] site = com.divinerpgextended.world.LairSites.nearest(zw, com.divinerpgextended.world.LairSites.CARCINUS, 0, 0, 6000, 0);
+            check(site != null, "логово Карцинуса в 6000 блоках не найдено");
+            boolean nearSite = com.divinerpgextended.world.VanillaClearance.nearLair(zw, site[0] + 20, site[1] - 20, 0);
+            // далеко от всех логов: ищем точку, где ни одного логова рядом
+            int[] far = null;
+            for (int i = 0; i < 400 && far == null; i++) {
+                int fx = 3000 + i * 997 % 20000, fz = -5000 - i * 1543 % 20000;
+                if (!com.divinerpgextended.world.VanillaClearance.nearLair(zw, fx, fz, 200)) far = new int[] { fx, fz };
+            }
+            net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate pe = new net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate(zw.getChunkProvider(), zw, zw.rand,
+                (site[0] >> 4), (site[1] >> 4), false, net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate.EventType.DUNGEON);
+            MinecraftForge.TERRAIN_GEN_BUS.post(pe);
+            boolean dungeonDenied = pe.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.DENY;
+            boolean farAllowed = true;
+            if (far != null) {
+                pe = new net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate(zw.getChunkProvider(), zw, zw.rand, far[0] >> 4, far[1] >> 4, false,
+                    net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate.EventType.DUNGEON);
+                MinecraftForge.TERRAIN_GEN_BUS.post(pe);
+                farAllowed = pe.getResult() != cpw.mods.fml.common.eventhandler.Event.Result.DENY;
+            }
+            boolean shafts = net.minecraftforge.event.terraingen.TerrainGen.getModdedMapGen(new net.minecraft.world.gen.structure.MapGenMineshaft(),
+                net.minecraftforge.event.terraingen.InitMapGenEvent.EventType.MINESHAFT) instanceof com.divinerpgextended.world.VanillaClearance.Mineshafts;
+            check(nearSite && dungeonDenied && far != null && farAllowed && shafts, "у логова Карцинуса " + site[0] + "," + site[1] + ": рядом " + nearSite + ", подземелье запрещено " + dungeonDenied
+                + "; вдали от логов разрешено " + farAllowed + " (" + (far == null ? "точки не нашлось" : far[0] + "," + far[1]) + "); генератор шахт заменён " + shafts);
+            return "у логова Карцинуса " + site[0] + "," + site[1] + " подземелья со спавнером и начала шахт не ставятся, вдали - как обычно";
+        });
         t("Прохождение", "Карта к храму джунглей, Странник, подозрительный песчаник, Повелитель ветров", () -> {
             WorldServer zw = server.worldServerForDimension(0);
             TestPlayer zp = join(player(0, "TestJungleMap", 0.5, 120, 0.5), true);
@@ -3214,8 +3319,8 @@ public class SelfTest {
             WorldServer w = server.worldServerForDimension(0);
             TestPlayer hp14 = join(player(0, "TestHellBlade", sx + 40.5, sy, sz + 0.5), true);
             hold(hp14, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.scorchingSword));
-            // моб самой Iceika (чужих там белый список и так не пускает)
-            net.divinerpg.entities.iceika.EntityRollum zs = new net.divinerpg.entities.iceika.EntityRollum(w);
+            // обычный (не морозный) моб обычного мира: палящий поджигает любого, а морозным он не считается
+            net.minecraft.entity.monster.EntityZombie zs = new net.minecraft.entity.monster.EntityZombie(w);
             zs.setPosition(sx + 41.5, sy, sz + 0.5);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(zs, DamageSource.causePlayerDamage(hp14), 5));
             boolean lit = zs.isBurning();
@@ -6494,6 +6599,42 @@ public class SelfTest {
                 + String.format(" (%.2f..%.2f)", lo, hi) + "; обычная удочка не клюёт " + plainIdle + ", удочка Голода клюёт " + hungerBites);
             return "озеро вырезано в потолке (" + water + " воды мечтаний), течёт вверх, бесконечная; коснулся - сразу перевёрнут и висит у глади, "
                 + "Shift - нырнул глубже, пробел - вынырнул, всплыл с пробелом - висит у глади; голова в воздухе - дышит; ведро; поплавок держится у глади; клюёт только на удочку Голода";
+        });
+        t("Ветея - этажи", "Вода мечтаний: мелкие мобы не задыхаются, из глубины всплывают, вещи тонут к дну озера", () -> {
+            WorldServer v = server.worldServerForDimension(ConfigurationHelper.vethea);
+            int vx = 9600, vz = 9600, ceil = 80, surface = 76;
+            loadAround(v, vx, vz, 1);
+            Block dw = com.divinerpgextended.registry.ModBlocks.dreamWater;
+            for (int i = -3; i <= 3; i++) for (int kk = -3; kk <= 3; kk++) {
+                for (int h = 66; h < surface; h++) v.setBlockToAir(vx + i, h, vz + kk);
+                for (int h = surface; h < ceil; h++) v.setBlock(vx + i, h, vz + kk, dw, 0, 2);
+                for (int h = ceil; h < ceil + 3; h++) v.setBlock(vx + i, h, vz + kk, net.divinerpg.utils.blocks.VetheaBlocks.dreamStone, 0, 2);
+            }
+            // курица (0.7 блока) висит у глади на своей глубине: голова в воздухе - дышит
+            net.minecraft.entity.passive.EntityChicken ch = new net.minecraft.entity.passive.EntityChicken(v);
+            double hold = com.divinerpgextended.block.BlockDreamWater.hold(ch);
+            ch.setPosition(vx + 0.5, surface + hold - ch.height, vz + 0.5);
+            ch.setAir(10);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(ch));
+            boolean breathes = ch.getAir() == 300 && !com.divinerpgextended.block.BlockDreamWater.headUnder(ch);
+            double still = ch.motionY;
+            // занесло в глубину - всплывает к глади (в мире вниз), а не тянется к дну
+            ch.setPosition(vx + 0.5, surface + 2.5 - ch.height, vz + 0.5);
+            ch.motionY = 0;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(ch));
+            double rises = ch.motionY;
+            // выпавшая вещь в озере уходит вверх, к дну
+            net.minecraft.entity.item.EntityItem it = new net.minecraft.entity.item.EntityItem(v, vx + 0.5, surface + 1.5, vz + 0.5, new ItemStack(Items.apple));
+            v.spawnEntityInWorld(it);
+            it.motionY = 0;
+            com.divinerpgextended.block.BlockDreamWater.sinkLoose(v);
+            double item = it.motionY;
+            it.setDead();
+            for (int i = -3; i <= 3; i++) for (int kk = -3; kk <= 3; kk++) for (int h = surface; h < ceil; h++) v.setBlockToAir(vx + i, h, vz + kk);
+            check(hold < 0.3 && breathes && Math.abs(still) < 0.05 && rises < -0.2 && item > 0.01,
+                "глубина курицы у глади " + String.format("%.2f", hold) + ", дышит " + breathes + ", скорость у глади " + String.format("%.3f", still)
+                + ", из глубины " + String.format("%.3f", rises) + ", вещь " + String.format("%.3f", item));
+            return "курица висит у глади на " + String.format("%.2f", hold) + " блока и дышит; из глубины всплывает; яблоко в озере уходит вверх к дну";
         });
         t("Сумеречные миры", "Лунный волк, Лета для мобов, климат биомов, адский факел", () -> {
             WorldServer m = server.worldServerForDimension(ConfigurationHelper.mortum);

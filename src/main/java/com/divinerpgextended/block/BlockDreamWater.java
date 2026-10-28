@@ -78,10 +78,48 @@ public class BlockDreamWater extends BlockFluidClassic {
         return depth(e) >= FLIP;
     }
 
-    /** Голова перевёрнутого (низ хитбокса) в воде - тонет. */
+    /** Голова перевёрнутого (низ хитбокса) в воде - тонет. У мелких мобов голова - нижняя четверть хитбокса. */
     public static boolean headUnder(EntityLivingBase e) {
-        return e.worldObj.getBlock(MathHelper.floor_double(e.posX), MathHelper.floor_double(e.boundingBox.minY + 0.2),
+        return e.worldObj.getBlock(MathHelper.floor_double(e.posX), MathHelper.floor_double(e.boundingBox.minY + Math.min(0.2, e.height * 0.25)),
             MathHelper.floor_double(e.posZ)) instanceof BlockDreamWater;
+    }
+
+    /** На какой глубине держится у глади: игрок - {@link #HOLD}, мелкий моб - на треть роста (иначе голова под водой и тонет). */
+    public static double hold(EntityLivingBase e) {
+        return e instanceof EntityPlayer ? HOLD : Math.min(HOLD, e.height * 0.35);
+    }
+
+    /**
+     * Не живое (выпавшие вещи, опыт): в воде мечтаний тонет по-своему - уходит вверх, к дну озера, и там лежит. Вызывается
+     * каждый тик на сервере и на клиенте (движение вещей считают обе стороны).
+     */
+    public static void sinkLoose(World w) {
+        if (w == null) return;
+        for (Object o : w.loadedEntityList) {
+            if (!(o instanceof net.minecraft.entity.item.EntityItem) && !(o instanceof net.minecraft.entity.item.EntityXPOrb)) continue;
+            Entity e = (Entity) o;
+            if (!inside(e)) continue;
+            e.motionY += 0.04 + 0.02; // гасит тяжесть (0.04) и тянет вверх, к дну озера
+            e.motionY = Math.min(0.12, e.motionY);
+            e.fallDistance = 0;
+        }
+    }
+
+    public static class Loose {
+
+        @SubscribeEvent
+        public void onWorld(cpw.mods.fml.common.gameevent.TickEvent.WorldTickEvent ev) {
+            if (ev.phase == cpw.mods.fml.common.gameevent.TickEvent.Phase.START) sinkLoose(ev.world);
+        }
+
+        @SubscribeEvent
+        @SideOnly(Side.CLIENT)
+        public void onClient(cpw.mods.fml.common.gameevent.TickEvent.ClientTickEvent ev) {
+            if (ev.phase != cpw.mods.fml.common.gameevent.TickEvent.Phase.START) return;
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
+            if (mc.isGamePaused()) return;
+            sinkLoose(mc.theWorld);
+        }
     }
 
     /** Перевёрнутое плавание (на обеих сторонах: движение игрока считает клиент). */
@@ -129,6 +167,10 @@ public class BlockDreamWater extends BlockFluidClassic {
             // как в обычной воде, но по перевёрнутому экрану: пробел - к глади (в мире вниз), Shift - глубже (вверх)
             // мобы в воде всё время "прыгают" (ИИ плавания) - для них клавиш нет: просто висят у глади
             boolean player = e instanceof EntityPlayer, surface = player && jumping(e), dive = player && e.isSneaking();
+            if (!player) { // моб всплывает к глади из любой глубины (как в обычной воде) и висит головой в воздухе
+                if (d >= FLIP || e.motionY > 0) e.motionY = Math.max(-0.3, (hold(e) - d) * 0.3 + 0.02);
+                return;
+            }
             if (d >= DEEP) { // в глубине тянет к дну озера (вверх), как в обычной воде ко дну
                 e.motionY += 0.04; // вода тянет вниз на 0.02, прыжок воды поднимает на 0.04 - итог вверх
                 if (surface) e.motionY -= 0.10;

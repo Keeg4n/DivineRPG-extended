@@ -47,6 +47,7 @@ public class DreBossBar extends Gui {
         if (e instanceof com.divinerpgextended.entity.EntityAncientGolem) return "golem";
         if (e instanceof com.divinerpgextended.entity.EntityWarriorKing) return "king";
         if (e instanceof com.divinerpgextended.entity.EntityWindLord) return "windlord";
+        if (e instanceof com.divinerpgextended.entity.EntityAncientDramcryx) return "dramcryx";
         if (e instanceof EntityGreatCadillion) {
             String[] v = { "eden", "wildwood", "apalachia", "skythern" };
             return v[Math.max(0, Math.min(3, ((EntityGreatCadillion) e).getVariant()))];
