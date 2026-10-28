@@ -333,7 +333,8 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
             Bait bait = currentBait();
             Zone zone = Zone.at(worldObj, posX, posY, posZ, lava);
             int p = power(bait, zone);
-            float mult = 60F / (60F + p) * rod.waitMultiplier() * (bait == null ? 1.0F : bait.waitMultiplier());
+            float mult = 60F / (60F + p) * rod.waitMultiplier() * (bait == null ? 1.0F : bait.waitMultiplier())
+                * com.divinerpgextended.magic.ArcaneEffects.biteFactor(field_146042_b); // Рыбацкий фарт
             ticksCaughtDelay = (int) (MathHelper.getRandomIntegerInRange(rand, 100, 900) * mult);
             ticksCaughtDelay -= EnchantmentHelper.func_151387_h(field_146042_b) * 20 * 5;
             ticksCaughtDelay = Math.max(20, ticksCaughtDelay);
@@ -364,7 +365,8 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
             int count = rand.nextFloat() < rod.doubleChance() ? 2 : 1;
             StringBuilder caught = new StringBuilder();
             for (int i = 0; i < count; i++) {
-                ItemStack loot = FishingLoot.roll(rand, zone, power, bait != null, crate, rod.rareMultiplier());
+                ItemStack loot = FishingLoot.roll(rand, zone, power, bait != null, crate,
+                    rod.rareMultiplier() * com.divinerpgextended.magic.ArcaneEffects.rareFactor(p));
                 caught.append(caught.length() == 0 ? "" : ", ").append(loot == null ? "ничего" : loot.getDisplayName()
                     + (loot.stackSize > 1 ? " x" + loot.stackSize : ""));
                 if (loot != null) toss(p, loot);

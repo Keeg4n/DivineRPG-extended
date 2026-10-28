@@ -8,7 +8,6 @@ import net.divinerpg.utils.items.ArcanaItems;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 
 import com.divinerpgextended.asm.ArcanaHooks;
 import com.divinerpgextended.boss.Boss;
@@ -34,7 +33,6 @@ public final class ArcanaRules {
     public static final float ANGELIC = 0.3F, KORMA_DISCOUNT = 0.8F, KORMA_MAX = 50.0F;
     /** Эффект зелья: длительность (тики) и множитель восстановления у слабого и сильного. */
     public static final int BUFF_TICKS = 45 * 20, BUFF_TICKS_STRONG = 60 * 20;
-    public static final String BUFF_UNTIL = "dreArcBuffUntil", BUFF_MULT = "dreArcBuffMult";
 
     /** Цена (меньше 0 - как у Divine) и откат в тиках. */
     static final class Spec {
@@ -128,6 +126,7 @@ public final class ArcanaRules {
         boolean armor = "EventArmorTick".equals(s);
         float c = cost(owner, divineCost);
         if (!armor && korma(p)) c *= KORMA_DISCOUNT;
+        if (!armor) c *= ArcaneEffects.costFactor(p); // Собранность
         Spec sp = SPECS.get(s);
         String key = null;
         long now = 0;
@@ -165,22 +164,15 @@ public final class ArcanaRules {
         h.forceRegen(amount);
     }
 
-    /** Эффект "Регенерация арканы": без задержки восстановления, восстановление x mult. */
+    /** Эффект "Ясность" (зелья арканы): без задержки восстановления, восстановление x mult (2 или 3). */
     public static void buff(EntityPlayer p, int mult, int ticks) {
-        NBTTagCompound d = p.getEntityData();
-        d.setLong(BUFF_UNTIL, p.worldObj.getTotalWorldTime() + ticks);
-        d.setInteger(BUFF_MULT, mult);
-        ArcanaCombat.syncBuff(p);
+        ArcaneEffects.apply(p, ArcaneEffect.CLARITY, Math.max(1, mult - 1), ticks);
     }
 
-    /** Множитель восстановления под зельем или 0, если эффекта нет. */
+    /** Множитель восстановления под Ясностью или 0, если эффекта нет. */
     public static int buffMult(EntityPlayer p) {
-        NBTTagCompound d = p.getEntityData();
-        return d.getLong(BUFF_UNTIL) > p.worldObj.getTotalWorldTime() ? Math.max(1, d.getInteger(BUFF_MULT)) : 0;
-    }
-
-    public static int buffLeft(EntityPlayer p) {
-        return (int) Math.max(0, p.getEntityData().getLong(BUFF_UNTIL) - p.worldObj.getTotalWorldTime());
+        int l = ArcaneEffects.level(p, ArcaneEffect.CLARITY);
+        return l == 0 ? 0 : l + 1;
     }
 
     /** Боссы после входа в Аркану: каждый +8% к арканному урону игрока. */

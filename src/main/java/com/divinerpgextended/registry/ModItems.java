@@ -81,6 +81,8 @@ public final class ModItems {
     public static Item wandererEgg;
     /** Посохи магов сумеречных миров. */
     public static Item mageStaff;
+    /** Арканные зелья (с арканной стойки). */
+    public static Item arcanePotion;
 
     private ModItems() {}
 
@@ -190,6 +192,8 @@ public final class ModItems {
         GameRegistry.registerItem(wandererEgg, "wandererEgg");
         mageStaff = new com.divinerpgextended.magic.ItemMageStaff();
         GameRegistry.registerItem(mageStaff, "mageStaff");
+        arcanePotion = new com.divinerpgextended.magic.ItemArcanePotion();
+        GameRegistry.registerItem(arcanePotion, "arcanePotion");
 
         EntityRegistry.registerModEntity(EntityGreatCadillion.class, "GreatCadillion", 0, DivineRPGExtended.instance,
             80, 3, true);

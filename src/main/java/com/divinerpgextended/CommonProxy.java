@@ -68,6 +68,9 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(arcanaCombat);
         FMLCommonHandler.instance().bus().register(arcanaCombat);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcanaPrices());
+        com.divinerpgextended.magic.ArcaneEffects arcaneEffects = new com.divinerpgextended.magic.ArcaneEffects();
+        MinecraftForge.EVENT_BUS.register(arcaneEffects);
+        FMLCommonHandler.instance().bus().register(arcaneEffects);
 
         PerkEffects perks = new PerkEffects();
         MinecraftForge.EVENT_BUS.register(perks);

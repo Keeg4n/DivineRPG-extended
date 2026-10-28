@@ -43,7 +43,7 @@ public final class ModBlocks {
     public static Block windTotem;
     public static Block cloud;
     public static Block skyRail, apalachiaRail, skyBoostRail, lethe, letheFlowing;
-    public static Block dreamCarrots, dreamMelon, dreamMelonStem, netherTorch, dreamWater, iceikaTorch, vetheaTorch, lureTorch, lureTorchLit, arcaneConcentrate;
+    public static Block dreamCarrots, dreamMelon, dreamMelonStem, netherTorch, dreamWater, iceikaTorch, vetheaTorch, lureTorch, lureTorchLit, arcaneConcentrate, arcaneBrewer;
     public static net.minecraftforge.fluids.Fluid arcaneFluid;
     public static net.minecraftforge.fluids.Fluid dreamWaterFluid;
     public static net.minecraftforge.fluids.Fluid letheFluid;
@@ -159,6 +159,10 @@ public final class ModBlocks {
         lureTorchLit = new com.divinerpgextended.block.BlockLureTorch(true);
         GameRegistry.registerBlock(lureTorchLit, "lureTorchLit");
         GameRegistry.registerTileEntity(com.divinerpgextended.block.BlockLureTorch.Tile.class, "dreLureTorch");
+        // арканная стойка зельеварения (продаёт Ваттикус)
+        arcaneBrewer = new com.divinerpgextended.magic.BlockArcaneBrewer();
+        GameRegistry.registerBlock(arcaneBrewer, "arcaneBrewer");
+        GameRegistry.registerTileEntity(com.divinerpgextended.magic.TileArcaneBrewer.class, "dreArcaneBrewer");
         GameRegistry.addRecipe(new net.minecraft.item.ItemStack(lureTorch), "I", "R", 'I', net.divinerpg.utils.items.VanillaItemsOther.aquaticIngot, 'R',
             net.divinerpg.utils.items.VanillaItemsOther.aquaticBlazeRod);
         dreamCarrots = new com.divinerpgextended.block.DreamCrops.Carrot();

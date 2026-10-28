@@ -8,7 +8,7 @@ import cpw.mods.fml.common.network.IGuiHandler;
 
 public class GuiHandler implements IGuiHandler {
 
-    public static final int ANVIL = 0, ACCESSORIES = 1;
+    public static final int ANVIL = 0, ACCESSORIES = 1, BREWER = 2;
 
     @Override
     public Object getServerGuiElement(int id, EntityPlayer player, World world, int x, int y, int z) {
@@ -22,6 +22,9 @@ public class GuiHandler implements IGuiHandler {
             return new com.divinerpgextended.accessory.ContainerAccessories(player,
                 target != null ? target : com.divinerpgextended.accessory.Accessories.of(player));
         }
+        if (id == BREWER && te instanceof com.divinerpgextended.magic.TileArcaneBrewer) {
+            return new com.divinerpgextended.magic.ContainerArcaneBrewer(player.inventory, (com.divinerpgextended.magic.TileArcaneBrewer) te);
+        }
         return null;
     }
 
@@ -32,6 +35,9 @@ public class GuiHandler implements IGuiHandler {
             return new GuiWandererAnvil(player.inventory, (TileWandererAnvil) te);
         }
         if (id == ACCESSORIES) return new com.divinerpgextended.client.GuiAccessories(player, x, y == 1);
+        if (id == BREWER && te instanceof com.divinerpgextended.magic.TileArcaneBrewer) {
+            return new com.divinerpgextended.client.GuiArcaneBrewer(player.inventory, (com.divinerpgextended.magic.TileArcaneBrewer) te);
+        }
         return null;
     }
 }

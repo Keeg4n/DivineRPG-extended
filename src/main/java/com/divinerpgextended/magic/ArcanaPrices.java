@@ -31,7 +31,7 @@ public class ArcanaPrices {
 
     /** Вещь -> {валюта: 0 арканиум, 1 жетоны подземелий; сколько}. */
     static final Map<Item, int[]> PRICE = new HashMap<Item, int[]>();
-    public static final int WARD_PRICE = 20, CLARITY_PRICE = 25;
+    public static final int WARD_PRICE = 20, CLARITY_PRICE = 25, BREWER_PRICE = 32;
 
     public static void init() {
         put(ArcanaItems.attractor, 0, 3);
@@ -52,9 +52,7 @@ public class ArcanaPrices {
         put(ArcanaItems.generalsStaff, 0, 18);
         put(ArcanaItems.arcaniteBlade, 0, 30);
         put(ArcanaItems.liviciaSword, 1, 30);
-        // зелья арканы: варятся из грубого зелья и аквамарина (сильное - ещё и светопыль), лежат в сундуках
-        GameRegistry.addShapelessRecipe(new ItemStack(ArcanaItems.weakArcanaPotion), new ItemStack(Items.potionitem, 1, 16), new ItemStack(ArcanaItems.aquamarine));
-        GameRegistry.addShapelessRecipe(new ItemStack(ArcanaItems.strongArcanaPotion), new ItemStack(ArcanaItems.weakArcanaPotion), new ItemStack(Items.glowstone_dust));
+        // зелья арканы Divine (дают Ясность) лежат в сундуках; свои зелья варятся на арканной стойке
         for (String c : new String[] { ChestGenHooks.DUNGEON_CHEST, ChestGenHooks.MINESHAFT_CORRIDOR, ChestGenHooks.PYRAMID_DESERT_CHEST,
             ChestGenHooks.PYRAMID_JUNGLE_CHEST, ChestGenHooks.STRONGHOLD_CORRIDOR, ChestGenHooks.STRONGHOLD_CROSSING }) {
             ChestGenHooks.addItem(c, new WeightedRandomChestContent(new ItemStack(ArcanaItems.weakArcanaPotion), 1, 2, 8));
@@ -72,7 +70,8 @@ public class ArcanaPrices {
 
     /** Цена в списке сделок: правит покупку, у Ваттикуса заменяет зелья на аксессуары арканы. */
     public static void apply(EntityDivineRPGVillager v, MerchantRecipeList list) {
-        boolean ward = false, clarity = false;
+        boolean ward = false, clarity = false, brewer = false;
+        Item brewerItem = Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.arcaneBrewer);
         for (Iterator<?> it = list.iterator(); it.hasNext();) {
             MerchantRecipe r = (MerchantRecipe) it.next();
             ItemStack out = r.getItemToSell();
@@ -83,6 +82,7 @@ public class ArcanaPrices {
             }
             if (out.getItem() == ModItems.trinket && out.getItemDamage() == Trinket.ARCANE_WARD.ordinal()) ward = true;
             if (out.getItem() == ModItems.trinket && out.getItemDamage() == Trinket.CLARITY_CRYSTAL.ordinal()) clarity = true;
+            if (out.getItem() == brewerItem) brewer = true;
             int[] pr = PRICE.get(out.getItem());
             ItemStack buy = r.getItemToBuy();
             if (pr == null || buy == null) continue;
@@ -94,6 +94,7 @@ public class ArcanaPrices {
         if (v instanceof EntityVatticus) {
             if (!ward) list.add(new MerchantRecipe(new ItemStack(ArcanaItems.arcanium, WARD_PRICE), new ItemStack(ModItems.trinket, 1, Trinket.ARCANE_WARD.ordinal())));
             if (!clarity) list.add(new MerchantRecipe(new ItemStack(ArcanaItems.arcanium, CLARITY_PRICE), new ItemStack(ModItems.trinket, 1, Trinket.CLARITY_CRYSTAL.ordinal())));
+            if (!brewer) list.add(new MerchantRecipe(new ItemStack(ArcanaItems.arcanium, BREWER_PRICE), new ItemStack(brewerItem)));
         }
     }
 

@@ -124,7 +124,8 @@ public class ColdHandler {
             boolean nearHeat = nearHeat(p);
             heat = nearHeat ? heat + 1 : 0;
             if (heat >= HEAT_SECONDS) warm = WARM_SECONDS;
-            if (PerkEffects.wears(p, SANTA) || ArmorData.hasEquippedPerk(p, Perk.WARMTH)) cold -= 3; // Санта и "Тепло" отогревают
+            if (PerkEffects.wears(p, SANTA) || ArmorData.hasEquippedPerk(p, Perk.WARMTH)
+                || com.divinerpgextended.magic.ArcaneEffects.warm(p)) cold -= 3; // Санта, "Тепло" и зелье Внутреннего жара отогревают
             else if (nearHeat) cold -= 4;
             else if (warm > 0) cold -= 1;
             else {

@@ -258,10 +258,6 @@ public class ArcanaCombat {
         } else if (h.regenDelay == 0 && h.getBarValue() < max && com.divinerpgextended.accessory.Accessories.wears(p, com.divinerpgextended.trinket.Trinket.CLARITY_CRYSTAL)) {
             h.forceRegen(0.5F);
         }
-        if (p.ticksExisted % 20 == 0 && (mult > 0 || d.getBoolean("dreArcBuffShown"))) {
-            syncBuff(p);
-            d.setBoolean("dreArcBuffShown", mult > 0);
-        }
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -279,8 +275,9 @@ public class ArcanaCombat {
         if (ps.hasKey(SAVED)) e.player.getEntityData().setFloat(SAVED, ps.getFloat(SAVED));
     }
 
-    public static void syncBuff(EntityPlayer p) {
-        if (p instanceof EntityPlayerMP) ColdHandler.NET.sendTo(new com.divinerpgextended.arcana.MerchantMessages.ArcanaBuff(ArcanaRules.buffLeft(p),
-            ArcanaRules.buffMult(p)), (EntityPlayerMP) p);
+    /** Смерть снимает эффекты зелий. */
+    @SubscribeEvent
+    public void onDeath(net.minecraftforge.event.entity.living.LivingDeathEvent e) {
+        if (e.entityLiving instanceof EntityPlayer && !e.entityLiving.worldObj.isRemote) ArcaneEffects.clear((EntityPlayer) e.entityLiving);
     }
 }

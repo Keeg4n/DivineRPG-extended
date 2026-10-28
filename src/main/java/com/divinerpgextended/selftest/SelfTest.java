@@ -491,6 +491,7 @@ public class SelfTest {
         progressTests(p, ow, sx, sy, sz);
         tradeTests(p, ow, sx, sy, sz);
         arcanaTests(p);
+        brewingTests(p);
         twilightTests();
         vetheaTests(p, ow);
         serverTests(p, q);
@@ -943,7 +944,7 @@ public class SelfTest {
             FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, p));
             int delay = a.regenDelay;
             float regen = a.getBarValue() - instant;
-            p.getEntityData().removeTag(com.divinerpgextended.magic.ArcanaRules.BUFF_UNTIL);
+            com.divinerpgextended.magic.ArcaneEffects.clear(p);
             // перезаход: Divine обнуляет шкалу при входе - аддон возвращает
             a.setBarValue(77);
             FMLCommonHandler.instance().bus().post(new PlayerEvent.PlayerLoggedOutEvent(p));
@@ -997,6 +998,104 @@ public class SelfTest {
                 "у Ваттикуса зелья " + potions + ", щит " + ward + ", кристалл " + clarity + "; посох звёзд у Мерика за " + starPrice + "; посох колдуна: аркана "
                     + f(200 - a.getBarValue()) + ", урон заряда " + f(shotDmg) + " (ждали " + f(expect) + ")");
             return "Ваттикус продаёт Арканный щит и Кристалл ясности вместо зелий; посох звёздного света - 15 жетонов; посох колдуна Мортума: 8 арканы, " + f(expect) + " арканного урона";
+        });
+    }
+
+    private void brewingTests(final TestPlayer p) {
+        t("Аркана", "Арканная стойка: варка, усиление, продажа у Ваттикуса", () -> {
+            reset(p);
+            net.minecraft.world.World w = p.worldObj;
+            int bx = net.minecraft.util.MathHelper.floor_double(p.posX) + 3, by = net.minecraft.util.MathHelper.floor_double(p.posY), bz = net.minecraft.util.MathHelper.floor_double(p.posZ);
+            w.setBlock(bx, by, bz, com.divinerpgextended.registry.ModBlocks.arcaneBrewer);
+            com.divinerpgextended.magic.TileArcaneBrewer te = (com.divinerpgextended.magic.TileArcaneBrewer) w.getTileEntity(bx, by, bz);
+            check(te != null, "у арканной стойки нет своего хранилища");
+            for (int i = 0; i < 3; i++) te.setInventorySlotContents(i, new ItemStack(Items.potionitem, 1, 0));
+            te.setInventorySlotContents(3, new ItemStack(net.divinerpg.utils.items.ArcanaItems.lamona, 2));
+            te.setInventorySlotContents(4, new ItemStack(net.divinerpg.utils.items.ArcanaItems.arcanium, 1));
+            for (int i = 0; i <= com.divinerpgextended.magic.TileArcaneBrewer.BREW_TICKS + 1; i++) te.updateEntity();
+            ItemStack r = te.getStackInSlot(0);
+            boolean brewed = r != null && r.getItem() == ModItems.arcanePotion
+                && com.divinerpgextended.magic.ArcaneEffect.of(r.getItemDamage()) == com.divinerpgextended.magic.ArcaneEffect.SORCERY;
+            int charges = te.charges, lamona = te.getStackInSlot(3) == null ? 0 : te.getStackInSlot(3).stackSize;
+            te.setInventorySlotContents(3, new ItemStack(Items.glowstone_dust));
+            for (int i = 0; i <= com.divinerpgextended.magic.TileArcaneBrewer.BREW_TICKS + 1; i++) te.updateEntity();
+            ItemStack s = te.getStackInSlot(1);
+            boolean strong = s != null && (s.getItemDamage() & com.divinerpgextended.magic.ItemArcanePotion.STRONG) != 0;
+            // без арканиума не варится
+            te.setInventorySlotContents(0, new ItemStack(Items.potionitem, 1, 0));
+            te.setInventorySlotContents(3, new ItemStack(net.divinerpg.utils.items.ArcanaItems.veilo));
+            te.setInventorySlotContents(4, null);
+            te.charges = 0;
+            for (int i = 0; i <= com.divinerpgextended.magic.TileArcaneBrewer.BREW_TICKS + 1; i++) te.updateEntity();
+            boolean noFuel = te.getStackInSlot(0).getItem() == Items.potionitem;
+            w.setBlockToAir(bx, by, bz);
+            // Ваттикус продаёт стойку
+            net.divinerpg.entities.arcana.EntityVatticus vat = new net.divinerpg.entities.arcana.EntityVatticus(w);
+            net.minecraft.village.MerchantRecipeList vl = vat.getRecipes(p);
+            com.divinerpgextended.magic.ArcanaPrices.apply(vat, vl);
+            boolean sold = false;
+            for (Object o : vl) if (((net.minecraft.village.MerchantRecipe) o).getItemToSell().getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.arcaneBrewer)) sold = true;
+            // у каждого из 16 зелий свой ингредиент
+            java.util.Set<Item> ings = new java.util.HashSet<Item>();
+            for (com.divinerpgextended.magic.ArcaneEffect e : com.divinerpgextended.magic.ArcaneEffect.values()) ings.add(e.ingredient());
+            check(brewed && charges == 3 && lamona == 1 && strong && noFuel && sold && ings.size() == 16 && !ings.contains(null),
+                "отвар чародея сварен " + brewed + " (зарядов " + charges + ", ламоны " + lamona + "), сильное " + strong + ", без арканиума не варится " + noFuel
+                    + ", Ваттикус продаёт стойку " + sold + ", разных ингредиентов " + ings.size());
+            return "склянки воды + ламона = отвар чародея (арканиум - 4 варки), + светопыль - сильное; без арканиума не варится; стойку продаёт Ваттикус; 16 зелий - 16 ингредиентов";
+        });
+        t("Аркана", "Эффекты арканных зелий", () -> {
+            reset(p);
+            com.divinerpgextended.magic.ArcaneEffects.clear(p);
+            net.minecraft.world.World w = p.worldObj;
+            // каменная кожа и стойкость: удар зомби 20
+            com.divinerpgextended.magic.ArcaneEffects.drink(p, com.divinerpgextended.magic.ArcaneEffect.STONE_SKIN, false, false, false);
+            com.divinerpgextended.magic.ArcaneEffects.drink(p, com.divinerpgextended.magic.ArcaneEffect.FORTITUDE, true, false, false);
+            net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w);
+            net.minecraftforge.event.entity.living.LivingHurtEvent hz = new net.minecraftforge.event.entity.living.LivingHurtEvent(p, DamageSource.causeMobDamage(z), 20);
+            MinecraftForge.EVENT_BUS.post(hz);
+            // боевой раж: свой удар 10
+            com.divinerpgextended.magic.ArcaneEffects.drink(p, com.divinerpgextended.magic.ArcaneEffect.BATTLE_FERVOR, false, true, false);
+            net.minecraftforge.event.entity.living.LivingHurtEvent hd = new net.minecraftforge.event.entity.living.LivingHurtEvent(z, DamageSource.causePlayerDamage(p), 10);
+            MinecraftForge.EVENT_BUS.post(hd);
+            int fervorLeft = com.divinerpgextended.magic.ArcaneEffects.left(p, com.divinerpgextended.magic.ArcaneEffect.BATTLE_FERVOR);
+            // собранность: выстрел светлячка дешевле
+            com.divinerpgextended.magic.ArcaneEffects.drink(p, com.divinerpgextended.magic.ArcaneEffect.COMPOSURE, false, false, false);
+            ArcanaHelper a = ArcanaHelper.getProperties(p);
+            a.setBarValue(100);
+            com.divinerpgextended.magic.ArcanaRules.resetCooldowns();
+            com.divinerpgextended.magic.ArcanaRules.useBar(a, 5F, "net.divinerpg.items.arcana.ItemFirefly");
+            float shot = 100 - a.getBarValue();
+            // ясность из нового зелья - тот же эффект, что у зелий Divine
+            com.divinerpgextended.magic.ArcaneEffects.drink(p, com.divinerpgextended.magic.ArcaneEffect.CLARITY, true, false, false);
+            int clarity = com.divinerpgextended.magic.ArcanaRules.buffMult(p);
+            // затишье: враждебный моб рядом почти не появляется
+            com.divinerpgextended.magic.ArcaneEffects.drink(p, com.divinerpgextended.magic.ArcaneEffect.STILLNESS, true, false, false);
+            int denied = 0;
+            @SuppressWarnings("unchecked")
+            java.util.List<Object> players = w.playerEntities;
+            boolean added = !players.contains(p);
+            if (added) players.add(p); // затишье ищет игроков мира
+            for (int i = 0; i < 100; i++) {
+                net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn cs = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(
+                    new net.minecraft.entity.monster.EntityZombie(w), w, (float) p.posX + 10, (float) p.posY, (float) p.posZ);
+                MinecraftForge.EVENT_BUS.post(cs);
+                if (cs.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.DENY) denied++;
+            }
+            if (added) players.remove(p);
+            boolean warm = com.divinerpgextended.magic.ArcaneEffects.warm(p);
+            com.divinerpgextended.magic.ArcaneEffects.drink(p, com.divinerpgextended.magic.ArcaneEffect.INNER_HEAT, false, false, false);
+            boolean warmNow = com.divinerpgextended.magic.ArcaneEffects.warm(p);
+            float bite = com.divinerpgextended.magic.ArcaneEffects.biteFactor(p);
+            com.divinerpgextended.magic.ArcaneEffects.drink(p, com.divinerpgextended.magic.ArcaneEffect.FISHERS_FORTUNE, false, false, false);
+            float biteNow = com.divinerpgextended.magic.ArcaneEffects.biteFactor(p);
+            com.divinerpgextended.magic.ArcaneEffects.clear(p);
+            float expectHurt = 20F * 0.85F * 0.85F;
+            check(near(hz.ammount, expectHurt) && near(hd.ammount, 11.5F) && fervorLeft > 9000 && near(shot, 3) && clarity == 3 && denied >= 80 && !warm && warmNow
+                && bite == 1F && near(biteNow, 0.6F),
+                "удар 20 под каменной кожей и сильной стойкостью " + f(hz.ammount) + " (ждали " + f(expectHurt) + "), свой удар 10 под ражем " + f(hd.ammount)
+                    + ", долгий раж " + fervorLeft + " тиков; выстрел светлячка " + f(shot) + "; ясность x" + clarity + "; затишье отклонило " + denied
+                    + " из 100; жар " + warm + " -> " + warmNow + "; поклёвка x" + bite + " -> x" + biteNow);
+            return "каменная кожа и стойкость режут удар (20 -> " + f(expectHurt) + "), раж +15%, собранность -25% цены, ясность x3, затишье, жар, рыбацкий фарт";
         });
     }
 

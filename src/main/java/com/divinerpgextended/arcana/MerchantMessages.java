@@ -18,39 +18,47 @@ public final class MerchantMessages {
         ColdHandler.NET.registerMessage(OpenHandler.class, Open.class, 1, Side.CLIENT);
         ColdHandler.NET.registerMessage(SummonHandler.class, Summon.class, 2, Side.SERVER);
         ColdHandler.NET.registerMessage(ArcanaMaxHandler.class, ArcanaMax.class, 3, Side.CLIENT);
-        ColdHandler.NET.registerMessage(ArcanaBuffHandler.class, ArcanaBuff.class, 12, Side.CLIENT);
+        ColdHandler.NET.registerMessage(EffectsHandler.class, Effects.class, 12, Side.CLIENT);
     }
 
-    /** Сервер -> клиент: эффект "Регенерация арканы" (сколько тиков осталось и множитель), для значка у полоски. */
-    public static class ArcanaBuff implements IMessage {
+    /** Сервер -> клиент: эффекты арканных зелий (сколько тиков осталось и уровень по каждому), для значков у полоски. */
+    public static class Effects implements IMessage {
 
-        public int ticks, mult;
+        public int[] ticks, levels;
 
-        public ArcanaBuff() {}
+        public Effects() {}
 
-        public ArcanaBuff(int ticks, int mult) {
+        public Effects(int[] ticks, int[] levels) {
             this.ticks = ticks;
-            this.mult = mult;
+            this.levels = levels;
         }
 
         @Override
         public void fromBytes(ByteBuf buf) {
-            ticks = buf.readInt();
-            mult = buf.readByte();
+            int n = buf.readByte();
+            ticks = new int[n];
+            levels = new int[n];
+            for (int i = 0; i < n; i++) {
+                ticks[i] = buf.readInt();
+                levels[i] = buf.readByte();
+            }
         }
 
         @Override
         public void toBytes(ByteBuf buf) {
-            buf.writeInt(ticks);
-            buf.writeByte(mult);
+            buf.writeByte(ticks.length);
+            for (int i = 0; i < ticks.length; i++) {
+                buf.writeInt(ticks[i]);
+                buf.writeByte(levels[i]);
+            }
         }
     }
 
-    public static class ArcanaBuffHandler implements IMessageHandler<ArcanaBuff, IMessage> {
+    public static class EffectsHandler implements IMessageHandler<Effects, IMessage> {
 
         @Override
-        public IMessage onMessage(ArcanaBuff msg, MessageContext ctx) {
-            com.divinerpgextended.client.ArcanaBuffHud.set(msg.ticks, msg.mult);
+        public IMessage onMessage(Effects msg, MessageContext ctx) {
+            com.divinerpgextended.client.ArcaneEffectsHud.set(msg.ticks, msg.levels);
             return null;
         }
     }
