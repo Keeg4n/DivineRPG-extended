@@ -32,8 +32,21 @@ import net.minecraftforge.common.MinecraftForge;
 public class ClientProxy extends CommonProxy {
 
     @Override
+    public void preInit(cpw.mods.fml.common.event.FMLPreInitializationEvent event) {
+        super.preInit(event);
+        com.divinerpgextended.client.HevSounds.addPack(net.minecraft.client.Minecraft.getMinecraft().mcDataDir); // звуки Half-Life, если установлены
+    }
+
+    @Override
+    public void postInit(cpw.mods.fml.common.event.FMLPostInitializationEvent event) {
+        super.postInit(event);
+        com.divinerpgextended.client.EasterClient.postInit(); // после Divine: обёртки его рендеров
+    }
+
+    @Override
     public void init(FMLInitializationEvent event) {
         super.init(event);
+        com.divinerpgextended.client.EasterClient.init();
         com.divinerpgextended.DreTab.sort(); // вкладки творческого режима - только на клиенте
         ClientCommandHandler.instance.registerCommand(new CommandFlySpeed());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.DreBossBar());

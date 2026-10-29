@@ -2937,6 +2937,58 @@ public class SelfTest {
             check(hookOk && bad == 0, "чужих биомов на местах мутаций зарегистрировано: " + foreign + "; проверка хука " + hookOk + "; в генерации чужих " + bad + "; мутации в мире: " + seen);
             return "чужих биомов на местах мутаций: " + foreign.size() + " " + foreign + " - в обычный мир не попадают; ванильные мутации на месте: " + seen.keySet();
         });
+        t("Прохождение", "Пасхалки: H.E.V., crowbar, rpg по имени; голос костюма и морфин; диван с РПГ", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int x0 = 9420, y0 = 120, z0 = 9300;
+            loadAround(w, x0, z0, 1);
+            for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) {
+                w.setBlock(x0 + dx, y0 - 1, z0 + dz, Blocks.stone);
+                for (int dy = 0; dy < 3; dy++) w.setBlockToAir(x0 + dx, y0 + dy, z0 + dz);
+            }
+            net.minecraft.item.Item[] hevSet = { net.divinerpg.utils.items.VanillaItemsArmor.realmiteBoots, net.divinerpg.utils.items.VanillaItemsArmor.realmiteLegs,
+                net.divinerpg.utils.items.VanillaItemsArmor.realmiteBody, net.divinerpg.utils.items.VanillaItemsArmor.realmiteHelmet };
+            ItemStack plain = new ItemStack(hevSet[3]), named = new ItemStack(hevSet[3]).setStackDisplayName("H.E.V"), lower = new ItemStack(hevSet[3]).setStackDisplayName("hev");
+            ItemStack bar = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.realmiteSword).setStackDisplayName("Crowbar");
+            ItemStack rpg = new ItemStack(net.divinerpg.utils.items.ArcanaItems.meriksMissile).setStackDisplayName("RPG");
+            ItemStack wrong = new ItemStack(Items.iron_sword).setStackDisplayName("crowbar");
+            boolean names = com.divinerpgextended.easter.Easter.hev(named) && com.divinerpgextended.easter.Easter.hev(lower) && !com.divinerpgextended.easter.Easter.hev(plain)
+                && com.divinerpgextended.easter.Easter.crowbar(bar) && !com.divinerpgextended.easter.Easter.crowbar(wrong) && com.divinerpgextended.easter.Easter.rpg(rpg);
+            TestPlayer hp = join(player(0, "TestHev", x0 + 0.5, y0, z0 - 2.5), true);
+            for (int i = 0; i < 4; i++) hp.inventory.armorInventory[i] = new ItemStack(hevSet[i]).setStackDisplayName("H.E.V");
+            hp.chat.clear();
+            com.divinerpgextended.easter.Easter.tick(hp);
+            boolean logon = com.divinerpgextended.easter.Easter.fullHev(hp) && hp.heard("dre.hev.logon");
+            com.divinerpgextended.easter.Easter.tick(hp);
+            boolean once = hp.chat.size() == 1;
+            hp.setHealth(5);
+            com.divinerpgextended.easter.Easter.tick(hp);
+            boolean morphine = hp.isPotionActive(net.minecraft.potion.Potion.regeneration) && hp.heard("dre.hev.morphine");
+            hp.removePotionEffect(net.minecraft.potion.Potion.regeneration.id);
+            com.divinerpgextended.easter.Easter.tick(hp);
+            boolean cooldown = !hp.isPotionActive(net.minecraft.potion.Potion.regeneration);
+            hp.setHealth(20);
+            com.divinerpgextended.easter.Easter.hurt(hp, DamageSource.fall, 8);
+            boolean fracture = hp.heard("dre.hev.major_fracture");
+            for (int i = 0; i < 4; i++) hp.inventory.armorInventory[i] = null;
+            // диван: две половины, ПКМ - сидишь, сломал половину - пропал весь
+            boolean placed = com.divinerpgextended.easter.BlockSofa.place(w, x0, y0, z0, 2);
+            boolean halves = w.getBlock(x0, y0, z0) == com.divinerpgextended.registry.ModBlocks.sofa && w.getBlock(x0 + 1, y0, z0) == com.divinerpgextended.registry.ModBlocks.sofa
+                && w.getTileEntity(x0, y0, z0) instanceof com.divinerpgextended.easter.BlockSofa.TileSofa;
+            com.divinerpgextended.registry.ModBlocks.sofa.onBlockActivated(w, x0, y0, z0, hp, 1, 0.5F, 0.5F, 0.5F);
+            boolean sits = hp.ridingEntity instanceof com.divinerpgextended.easter.EntitySeat;
+            if (hp.ridingEntity != null) {
+                net.minecraft.entity.Entity seat = hp.ridingEntity;
+                hp.mountEntity(null);
+                seat.onUpdate();
+                sits &= seat.isDead;
+            }
+            w.setBlockToAir(x0 + 1, y0, z0);
+            boolean gone = w.isAirBlock(x0, y0, z0);
+            check(names && logon && once && morphine && cooldown && fracture && placed && halves && sits && gone,
+                "имена " + names + ", вход в систему " + logon + " (раз " + once + "), морфин " + morphine + ", перезарядка " + cooldown + ", перелом " + fracture
+                    + "; диван поставлен " + placed + ", обе половины " + halves + ", сел и встал " + sits + ", сломал половину - весь пропал " + gone + "; чат " + hp.chat);
+            return "реалмитовая броня с именем H.E.V - костюм (голос: вход в систему, морфин раз в 5 минут, перелом), реалмитовый меч crowbar, ракетница Мерика rpg; диван с РПГ: две половины, на нём сидят";
+        });
         t("Логова", "Ступень брони: божественная - R1 (на кадиллиона Эдема), элитный реалмит - R0", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             TestPlayer v = player(ConfigurationHelper.eden, "TestTier", 9700.5, 120, 9700.5);
@@ -4950,7 +5002,11 @@ public class SelfTest {
                     for (int i = 0; i < 20 && !a.isDead && em.getHealth() == hp; i++) a.onUpdate();
                     lost[b] = hp - em.getHealth();
                     double moved = Math.abs(em.posX - 9476.5) + Math.abs(em.posZ - 9890.5);
-                    if (b == 0) ok &= moved < 0.01;
+                    long bowPin = em.getEntityData().getLong(com.divinerpgextended.perk.EnderGear.PIN) - w.getTotalWorldTime();
+                    if (b == 0) {
+                        ok &= moved < 0.01 && bowPin == com.divinerpgextended.perk.EnderGear.PIN_TICKS;
+                        rep.append("прибит стрелой на ").append(bowPin).append(" тиков, ");
+                    }
                     a.setDead();
                     em.setDead();
                 }
@@ -4975,7 +5031,7 @@ public class SelfTest {
             fv.inventory.clearInventory(null, -1);
             boolean sword = !before.isCanceled() && pinned.isCanceled() && left == com.divinerpgextended.perk.EnderGear.PIN_TICKS && !after.isCanceled();
             check(ok && sword, rep + "меч: до удара телепорт " + !before.isCanceled() + ", после удара запрещён " + pinned.isCanceled() + " на " + left + " тиков, потом снова можно " + !after.isCanceled());
-            return "по эндермену, эндер-наблюдателю и эндер-пауку попадает только стрела эндер-лука (обычная - уворот телепортом); удар эндер-мечом - 3 секунды без телепорта";
+            return "по эндермену, эндер-наблюдателю и эндер-пауку попадает только стрела эндер-лука (обычная - уворот телепортом); попадание эндер-лука и удар эндер-мечом - 3 секунды без телепорта";
         });
         t("Броня", "Цвета Divine и бедрок", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
@@ -7096,6 +7152,10 @@ public class SelfTest {
             com.divinerpgextended.world.LairDomes.buildAll(w, jc[0], jc[2], false); // город под храмом (в игре - по чанкам при заселении)
             int[] altar = com.divinerpgextended.world.WorldGenJungleLair.build(w, rnd, tb);
             boolean lair = altar != null && w.getBlock(altar[0], altar[1], altar[2]) == com.divinerpgextended.registry.ModBlocks.jungleAltar;
+            int sofaX = jc[0] + com.divinerpgextended.world.LairDomes.JungleCity.HOME_IX * 16 + 7, sofaZ = jc[2] + com.divinerpgextended.world.LairDomes.JungleCity.HOME_IZ * 16 + 12;
+            boolean sofa = w.getBlock(sofaX, com.divinerpgextended.world.LairDomes.J_FL + 1, sofaZ) == com.divinerpgextended.registry.ModBlocks.sofa
+                && w.getBlock(sofaX + 1, com.divinerpgextended.world.LairDomes.J_FL + 1, sofaZ) == com.divinerpgextended.registry.ModBlocks.sofa
+                && w.getTileEntity(sofaX, com.divinerpgextended.world.LairDomes.J_FL + 1, sofaZ) instanceof com.divinerpgextended.easter.BlockSofa.TileSofa;
             dump(w, jc[0], com.divinerpgextended.world.LairDomes.J_FL + 25, jc[2], 76, "render-jungle");
             // проход из храма до зала: поиск по воздуху от колодца
             boolean reach = false;
@@ -7189,7 +7249,7 @@ public class SelfTest {
                 && com.divinerpgextended.halite.Halite.sparkOf(com.divinerpgextended.boss.Boss.JUNGLE_KING) == com.divinerpgextended.halite.Halite.Spark.JUNGLE;
             if (boss != null) boss.setDead();
             jp2.inventory.clearInventory(null, -1);
-            check(lair && reach && ore && summoned && shell && sweep && spirit, "логово " + lair + ", дошёл от храма до алтаря " + reach + " (" + reachInfo[0] + "); руда (алмазной нет, халитовой да) " + ore + "; призыв " + summoned
+            check(lair && reach && ore && summoned && shell && sweep && spirit && sofa, "логово " + lair + ", диван с РПГ в особом доме " + sofa + ", дошёл от храма до алтаря " + reach + " (" + reachInfo[0] + "); руда (алмазной нет, халитовой да) " + ore + "; призыв " + summoned
                 + "; шкура при порабощённых " + shell + "; хвост " + sweep + " (" + sweepInfo[0] + "); дух мира только с частичкой джунглей " + spirit);
             return "под храмом джунглей логово: колодец, ходы, зал с алтарём - дойти можно; руду берёт только халитовая кирка; тотем на алтаре зовёт Древнего драмкрикса; при порабощённых шкура держит урон, хвост бьёт по кругу; дух мира - Древняя сущность + босс джунглей";
         });

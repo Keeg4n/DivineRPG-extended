@@ -19,7 +19,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 
 public final class ModBlocks {
 
-    public static Block wandererAnvil;
+    public static Block wandererAnvil, sofa;
     public static Block carcinusAltar;
     public static Block glaconAltar, lairSpawner;
     public static Block burrow;
@@ -154,6 +154,9 @@ public final class ModBlocks {
         arcaneConcentrate = new com.divinerpgextended.block.BlockArcaneConcentrate(arcaneFluid);
         GameRegistry.registerBlock(arcaneConcentrate, "arcaneConcentrate");
         // водный факел зова: водный слиток над водным стержнем ифрита, 1 штука; горит на арканиуме
+        sofa = new com.divinerpgextended.easter.BlockSofa();
+        GameRegistry.registerBlock(sofa, com.divinerpgextended.easter.BlockSofa.ItemSofa.class, "sofa");
+        GameRegistry.registerTileEntity(com.divinerpgextended.easter.BlockSofa.TileSofa.class, "dreSofa");
         lureTorch = new com.divinerpgextended.block.BlockLureTorch(false);
         GameRegistry.registerBlock(lureTorch, "lureTorch");
         lureTorchLit = new com.divinerpgextended.block.BlockLureTorch(true);

@@ -343,10 +343,12 @@ public class LairDomes implements IWorldGenerator {
 
     // ---------------------------------------------------------------- заброшенный город под храмом джунглей
 
-    static final class JungleCity extends ColumnStructure {
+    public static final class JungleCity extends ColumnStructure {
 
         static final int SHELL = 1, GRASS = 2, DIRT = 3, BRICK = 4, COBBLE = 5, MOSSY = 6, GRAVEL = 7, LOG = 8, LEAVES = 9, GLOW = 10, FENCE = 11, FERN = 12,
             ALTAR = 13, STEP = 14;
+        /** Квартал особого дома: целый дом, внутри у дальней стены - диван с РПГ (пасхалка). */
+        public static final int HOME_IX = -3, HOME_IZ = 1;
 
         @Override
         protected Block block(int code, int meta) {
@@ -477,16 +479,23 @@ public class LairDomes implements IWorldGenerator {
             boolean near = Math.abs(ix * 16 + 8) < 16 && Math.abs(iz * 16 + 8) < 16 || ix * 16 + 16 > J_ARENA_DX - J_PLAZA - 2 && ix * 16 < J_ARENA_DX + J_PLAZA + 2 && iz * 16 + 16 > -J_PLAZA - 2 && iz * 16 < J_PLAZA + 2;
             int kind = far > J_R - 4 || near ? 9 : lh % 10;
             int a0 = 2 + (lh >> 4) % 3, a1 = 14 - (lh >> 6) % 3, b0 = 2 + (lh >> 8) % 3, b1 = 14 - (lh >> 10) % 3;
+            boolean home = ix == HOME_IX && iz == HOME_IZ;
+            if (home) {
+                kind = 0;
+                a0 = b0 = 3;
+                a1 = b1 = 13;
+            }
             boolean inRect = lx >= a0 && lx <= a1 && lz >= b0 && lz <= b1, edge = inRect && (lx == a0 || lx == a1 || lz == b0 || lz == b1);
             if (kind <= 4 && inRect) { // дом
-                int height = Math.min(5 + (lh >> 12) % 5, jungleCeil(far) - J_FL - 3);
+                int height = home ? 6 : Math.min(5 + (lh >> 12) % 5, jungleCeil(far) - J_FL - 3);
                 put(col, J_FL, MOSSY, 0);
                 if (!edge) {
-                    if ((lh >> 15) % 3 == 0 && h % 10 < 7) put(col, J_FL + height, LEAVES, 0); // заросшая крыша
+                    if (home) put(col, J_FL + height, BRICK, 1); // особый дом - под целой крышей
+                    else if ((lh >> 15) % 3 == 0 && h % 10 < 7) put(col, J_FL + height, LEAVES, 0); // заросшая крыша
                     else if (h % 11 == 0) put(col, J_FL + 1, LEAVES, 0);
                     return;
                 }
-                int top = J_FL + height - (h % 4 == 0 ? 1 + (h >> 3) % 3 : 0); // обвалившийся край стены
+                int top = J_FL + height - (!home && h % 4 == 0 ? 1 + (h >> 3) % 3 : 0); // обвалившийся край стены
                 int mid = (a0 + a1) / 2;
                 for (int y = J_FL + 1; y <= top; y++) {
                     boolean door = lz == b0 && (lx == mid || lx == mid + 1) && y <= J_FL + 2;
@@ -535,6 +544,10 @@ public class LairDomes implements IWorldGenerator {
 
         @Override
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
+            // особый дом: диван с РПГ у дальней стены, лицом к двери (на север)
+            int sx = HOME_IX * 16 + 7, sz = HOME_IZ * 16 + 12;
+            place(w, cx, cz, x0, z0, sx, J_FL + 1, sz, ModBlocks.sofa, 2);
+            place(w, cx, cz, x0, z0, sx + 1, J_FL + 1, sz, ModBlocks.sofa, 2 | com.divinerpgextended.easter.BlockSofa.SECOND);
             // сундуки в домах: в углу каждого третьего дома
             for (int x = x0; x < x0 + 16; x++) for (int z = z0; z < z0 + 16; z++) {
                 int dx = x - cx, dz = z - cz;

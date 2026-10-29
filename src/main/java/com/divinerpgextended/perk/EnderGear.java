@@ -28,7 +28,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * <ul>
  * <li>эндер-лук - единственный, чья стрела по ним попадает: пока стрела долетает, телепорт отменяется и урон стрелы
  * (как считает Divine) проходит напрямую;</li>
- * <li>эндер-мечи (все цвета) - после удара цель {@link #PIN_TICKS} тиков не может телепортироваться.</li>
+ * <li>эндер-мечи (все цвета) и стрела эндер-лука - после удара цель {@link #PIN_TICKS} тиков не может телепортироваться.</li>
  * </ul>
  */
 public class EnderGear {
@@ -139,8 +139,8 @@ public class EnderGear {
         Entity shooter = a.shootingEntity != null ? a.shootingEntity : a;
         a.setDead();
         hits++;
-        // Эндермен перебирает до 64 попыток телепорта за удар - до конца тика их тоже не пускаем, урон уже прошёл
-        long pin = v.worldObj.getTotalWorldTime() + 1;
+        // прибивает к месту, как удар эндер-мечом (заодно гасит до 64 попыток телепорта за этот удар)
+        long pin = v.worldObj.getTotalWorldTime() + PIN_TICKS;
         if (v.getEntityData().getLong(PIN) < pin) v.getEntityData().setLong(PIN, pin);
         v.attackEntityFrom(new EntityDamageSource("arrow", shooter).setProjectile(), dmg);
         a.worldObj.playSoundAtEntity(a, "random.bowhit", 1.0F, 1.2F / (a.worldObj.rand.nextFloat() * 0.2F + 0.9F));
