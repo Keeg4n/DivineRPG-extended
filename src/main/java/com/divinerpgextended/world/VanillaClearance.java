@@ -36,7 +36,8 @@ public class VanillaClearance {
         for (int i = -1; i <= 1; i++) for (int k = -1; k <= 1; k++) {
             int[] c = ScatterGen.spot(w, crx + i, crz + k);
             int x = c[0] * 16 + 8, z = c[1] * 16 + 8;
-            if (Math.abs(bx - x) > 48 + margin || Math.abs(bz - z) > 48 + margin) continue;
+            int reach = LairDomes.J_R + 8; // под храмом джунглей - подземный город ({@link LairDomes}), под пустынным - гробница
+            if (Math.abs(bx - x) > reach + margin || Math.abs(bz - z) > reach + margin) continue;
             BiomeGenBase b = w.getWorldChunkManager().getBiomeGenAt(x, z);
             if (lairKind(ScatterGen.kind(b, true)) || lairKind(ScatterGen.kind(b, false))) return true;
         }

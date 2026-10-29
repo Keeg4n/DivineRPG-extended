@@ -113,6 +113,7 @@ public class CommonProxy {
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.boss.BossNoFly());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.dummy.EntityTrainingDummy.Pickup());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.item.ItemPetWhistle.Events());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.LairDomes.NoSpawns());
         com.divinerpgextended.boss.BossArena arena = new com.divinerpgextended.boss.BossArena();
         MinecraftForge.EVENT_BUS.register(arena);
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(arena);
@@ -272,6 +273,7 @@ public class CommonProxy {
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.IceikaXmasTree(), 101);
         GameRegistry.registerWorldGenerator(new WorldGenThrone(), 60);
         GameRegistry.registerWorldGenerator(new WorldGenThrone.Seal(), 100000); // последним, после генераторов других модов
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.LairDomes(), 99000); // купола логов - поверх заселения чанка
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new WorldGenThrone.Relight());
         MinecraftForge.EVENT_BUS.register(new WorldGenThrone.NoSpawns());
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.WorldGenNests(), 62);

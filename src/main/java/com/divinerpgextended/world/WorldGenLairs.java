@@ -50,7 +50,7 @@ public class WorldGenLairs implements IWorldGenerator {
         }
         int[] snow = LairSites.siteInChunk(world, LairSites.SNOW, chunkX, chunkZ);
         if (snow != null) {
-            if (snowDungeon(world, rand, snow[0], snow[1]) != null) DivineRPGExtended.LOG.info("Снежное подземелье: " + snow[0] + " " + snow[1]);
+            if (snowDungeon(world, rand, snow[0], snow[1]) != null) DivineRPGExtended.LOG.info("Ледяной купол Глакона, вход: " + snow[0] + " " + snow[1]);
             else LairData.get(world).fail(LairData.SNOW, snow[0], snow[1]);
         }
     }
@@ -412,246 +412,31 @@ public class WorldGenLairs implements IWorldGenerator {
 
     // ---------------------------------------------------------------- ледяная пещера
 
-    /** Пещера: сетка узлов COLS x ROWS с шагом STEP, за последним столбцом - зал босса. */
-    private static final int CAVE_COLS = 6, CAVE_ROWS = 5, CAVE_STEP = 11, BOSS_R = 10, LEVEL_GAP = 13;
-
     /**
-     * Ледяная пещера Снежного Глакона. На поверхности иглу, из него петляет косой спуск в пещеру из пакового льда и
-     * мёрзлого камня: широкие кривые ходы, залы с колоннами-"песочными часами", сосульки, снег на полу, редкие
-     * ледяные лампы. Спавнеры Глаконов и Фростов вмёрзли в пол под снегом. В конце - купольный зал с алтарём
-     * Глакона на помосте у светящейся рунной стены.
+     * Вход в ледяной купол Снежного Глакона ({@link LairDomes.Glacon}): иглу на поверхности, из него вниз - шахта 3x3 с
+     * винтовой лестницей до тоннеля в купол (низ шахты и тоннель строит сам купол). @return {x, пол иглу, z} или null - место не подошло
      */
-    /** Построить ледяную пещеру (для самопроверки). @return клетки пещеры или null - место не подошло */
-    public List<int[]> buildSnowDungeon(World world, Random rand, int cx, int cz) {
-        Carver c = snowDungeon(world, rand, cx, cz);
-        return c == null ? null : c.cells;
+    public int[] buildSnowDungeon(World world, Random rand, int cx, int cz) {
+        return snowDungeon(world, rand, cx, cz);
     }
 
-    private Carver snowDungeon(World world, Random rand, int cx, int cz) {
+    private int[] snowDungeon(World world, Random rand, int cx, int cz) {
         int surface = world.getTopSolidOrLiquidBlock(cx, cz);
-        if (surface < 62 || world.getBlock(cx, surface - 1, cz)
-            .getMaterial()
-            .isLiquid()) return null;
+        if (surface < LairDomes.G_FL + 24 || world.getBlock(cx, surface - 1, cz).getMaterial().isLiquid()) return null;
         int g = surface - 1; // земля, на которой стоит иглу
-        // этажи пещеры: первый на 20 блоков ниже поверхности, дальше каждые 13 блоков, пока не ниже ~30 (до 3 этажей)
-        List<Integer> levels = new ArrayList<Integer>();
-        for (int ly = g - 20; ly >= 32 && levels.size() < 3; ly -= LEVEL_GAP) levels.add(ly);
-        if (levels.isEmpty()) return null;
-        int y0 = levels.get(0), yLast = levels.get(levels.size() - 1);
-        int mid = CAVE_ROWS / 2;
-        int x0 = cx + 28, z0 = cz + 10 - mid * CAVE_STEP; // узел (0, 0)
-        int bossX = x0 + (CAVE_COLS - 1) * CAVE_STEP + BOSS_R + 7, bossZ = cz + 10, yb = yLast - 1;
-        int zMax = z0 + (CAVE_ROWS - 1) * CAVE_STEP;
-
-        // над всей пещерой должна быть толща земли, а не вода
-        for (int x = cx - 6; x <= bossX + BOSS_R + 2; x += 6) {
-            for (int z = z0 - 10; z <= zMax + 10; z += 6) {
-                int top = world.getTopSolidOrLiquidBlock(x, z);
-                if (top < y0 + 9 || world.getBlock(x, top - 1, z)
-                    .getMaterial()
-                    .isLiquid()) return null;
-            }
+        igloo(world, new Carver(cx, 0, cz, 0, 0, 0, Integer.MAX_VALUE), cx, g, cz);
+        // шахта: ступени по кольцу 3x3 (как в куполе: на высоте y - клетка RING[y & 7]), стены из льда и мёрзлого камня
+        for (int y = LairDomes.G_FL + 9; y <= g; y++) for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) {
+            int x = cx + dx, z = cz + dz;
+            if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
+                int k = LairDomes.ringIndex(dx, dz);
+                set(world, x, y, z, k >= 0 && (y & 7) == k ? IceikaBlocks.icyBricks : Blocks.air);
+            } else if (y < g - 1) set(world, x, y, z, iceShell(x, y, z, false));
         }
-
-        int bx = cx - 10, bz = z0 - 16;
-        Carver c = new Carver(bx, yLast - 8, bz, bossX + BOSS_R + 4 - bx, g + 6 - (yLast - 8), zMax + 16 - bz,
-            Integer.MAX_VALUE);
-
-        int L = levels.size();
-        double[][][][] lnode = new double[L][CAVE_COLS][CAVE_ROWS][];
-        for (int l = 0; l < L; l++) {
-            int ly = levels.get(l);
-            for (int i = 0; i < CAVE_COLS; i++) {
-                for (int j = 0; j < CAVE_ROWS; j++) {
-                    lnode[l][i][j] = new double[] { x0 + i * CAVE_STEP + rand.nextInt(5) - 2 + 0.5,
-                        ly + 2 + rand.nextInt(3) - 1 + 0.5, z0 + j * CAVE_STEP + rand.nextInt(5) - 2 + 0.5 };
-                }
-            }
-        }
-        double[][][] node = lnode[0];
-        double[] start = node[0][mid] = new double[] { x0 + 0.5, y0 + 2.5, bossZ + 0.5 };
-        double[] last = lnode[L - 1][CAVE_COLS - 1][mid] = new double[] { x0 + (CAVE_COLS - 1) * CAVE_STEP + 0.5,
-            yLast + 2.5, bossZ + 0.5 };
-
-        // спуск из иглу: сначала яма в полу, дальше косой ход с поворотами
-        double[][] descent = { { cx + 0.5, g + 1.5, cz + 0.5 }, { cx + 4.5, g - 2.5, cz + 0.5 },
-            { cx + 11.5, g - 8.5, cz - 5.5 }, { cx + 20.5, g - 14.5, cz + 2.5 }, start };
-        c.line(descent[0], descent[1], rand, false, 1.6, 2.0, 1.8, 2.2);
-        for (int n = 1; n < descent.length - 1; n++) {
-            c.line(descent[n], descent[n + 1], rand, true, 2.0, 2.6, 2.0, 2.4);
-        }
-
-        // каждый этаж: ходы (дерево + петли), залы с колоннами, тупиковые карманы с сундуками
-        int[][] dirs = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
-        List<double[]> halls = new ArrayList<double[]>(), pockets = new ArrayList<double[]>();
-        for (int l = 0; l < L; l++) {
-            double[][][] ln = lnode[l];
-            List<int[]> edges = mazeEdges(rand, CAVE_COLS, CAVE_ROWS, 0, mid);
-            for (int n = 0; n < 5; n++) {
-                int i = rand.nextInt(CAVE_COLS), j = rand.nextInt(CAVE_ROWS);
-                int[] d = dirs[rand.nextInt(4)];
-                if (i + d[0] >= 0 && i + d[0] < CAVE_COLS && j + d[1] >= 0 && j + d[1] < CAVE_ROWS) {
-                    edges.add(new int[] { i, j, i + d[0], j + d[1] });
-                }
-            }
-            for (int[] e : edges) c.line(ln[e[0]][e[1]], ln[e[2]][e[3]], rand, true, 2.0, 2.8, 2.0, 2.6);
-            int hallsHere = 0;
-            for (int n = 0; n < 8 && hallsHere < 2; n++) {
-                double[] p = ln[1 + rand.nextInt(CAVE_COLS - 2)][rand.nextInt(CAVE_ROWS)];
-                if (halls.contains(p)) continue;
-                c.blob(p[0], p[1] + 0.8, p[2], 5.0 + rand.nextDouble() * 1.5, 3.4);
-                halls.add(p);
-                hallsHere++;
-            }
-            for (int n = 0; n < 6; n++) {
-                double[] p = ln[rand.nextInt(CAVE_COLS - 1)][rand.nextInt(CAVE_ROWS)];
-                double a = rand.nextDouble() * Math.PI * 2, len = 5 + rand.nextInt(4);
-                double[] q = { p[0] + Math.cos(a) * len, p[1], p[2] + Math.sin(a) * len };
-                c.line(p, q, rand, true, 1.6, 2.2, 1.8, 2.2);
-                c.blob(q[0], q[1] + 0.5, q[2], 2.6, 2.0);
-                pockets.add(q);
-            }
-            // два пологих спуска на этаж ниже (сдвиг на два узла - уклон около 1:2)
-            if (l + 1 < L) {
-                for (int n = 0; n < 2; n++) {
-                    int i = rand.nextInt(CAVE_COLS - 2), j = rand.nextInt(CAVE_ROWS);
-                    c.line(ln[i][j], lnode[l + 1][i + 2][j], rand, true, 2.0, 2.6, 2.0, 2.4);
-                }
-            }
-        }
-
-        // купольный зал босса и ход к нему
-        for (int dx = -BOSS_R; dx <= BOSS_R; dx++) {
-            for (int dz = -BOSS_R; dz <= BOSS_R; dz++) {
-                double r = Math.sqrt(dx * dx + dz * dz) / BOSS_R;
-                if (r >= 1.0) continue;
-                int h = (int) (1 + 7 * Math.sqrt(1 - r * r));
-                for (int y = yb + 1; y <= yb + h; y++) c.add(bossX + dx, y, bossZ + dz);
-            }
-        }
-        c.line(last, new double[] { bossX - BOSS_R + 1.5, yb + 2.5, bossZ + 0.5 }, rand, false, 2.0, 2.6, 2.0, 2.4);
-
-        // вырезаем и обкладываем льдом и мёрзлым камнем (у поверхности - не трогаем, там иглу)
-        for (int[] p : c.cells) set(world, p[0], p[1], p[2], Blocks.air);
-        for (int[] p : c.cells) {
-            for (int dx = -1; dx <= 1; dx++) for (int dy = -1; dy <= 1; dy++) for (int dz = -1; dz <= 1; dz++) {
-                int x = p[0] + dx, y = p[1] + dy, z = p[2] + dz;
-                if (y >= g || c.has(x, y, z)) continue;
-                Block b = world.getBlock(x, y, z);
-                if (b == Blocks.bedrock || b == Blocks.packed_ice || b == IceikaBlocks.frozenStone) continue;
-                set(world, x, y, z, iceShell(x, y, z, c.has(x, y + 1, z)));
-            }
-        }
-
-        igloo(world, c, cx, g, cz);
         snowCover(world, rand, cx, cz);
-
-        // снег на полу и сосульки с потолка
-        for (int[] p : c.cells) {
-            int x = p[0], y = p[1], z = p[2];
-            if (y >= g - 1) continue;
-            if (!c.has(x, y - 1, z) && rand.nextInt(100) < 55) world.setBlock(x, y, z, Blocks.snow_layer,
-                rand.nextInt(2), 2);
-            if (!c.has(x, y + 1, z) && rand.nextInt(14) == 0) {
-                int len = 1 + rand.nextInt(3);
-                boolean room = true;
-                for (int k = 0; k <= len + 2; k++) if (!c.has(x, y - k, z)) room = false;
-                if (room) for (int k = 0; k < len; k++) set(world, x, y - k, z, Blocks.packed_ice);
-            }
-        }
-
-        // ледяные лампы в потолке
-        List<int[]> lamps = new ArrayList<int[]>();
-        for (int[] p : c.path) {
-            if (rand.nextInt(7) != 0 || near(lamps, p, 10)) continue;
-            int y = p[1];
-            while (c.has(p[0], y + 1, p[2]) && y - p[1] < 5) y++;
-            if (c.has(p[0], y + 1, p[2]) || y + 1 >= g) continue;
-            world.setBlock(p[0], y + 1, p[2], VanillaBlocks.lamp2, 0, 2);
-            lamps.add(p);
-        }
-
-        // морозные сундуки в концах карманов
-        for (int n = 0; n < pockets.size(); n++) {
-            if (rand.nextInt(4) == 0) continue; // не в каждом кармане
-            double[] q = pockets.get(n);
-            int x = MathHelper.floor_double(q[0]), z = MathHelper.floor_double(q[2]), y = MathHelper.floor_double(q[1]);
-            if (!c.has(x, y, z)) continue;
-            while (c.has(x, y - 1, z)) y--;
-            LairLoot.chest(world, rand, x, y, z, true);
-        }
-
-        // спавнеры Глаконов и Фростов вмёрзли в пол, сверху снег
-        String glacon = (String) EntityList.classToStringMapping.get(EntityGlacon.class);
-        String frost = (String) EntityList.classToStringMapping.get(EntityFrost.class);
-        List<int[]> path = new ArrayList<int[]>(c.path);
-        Collections.shuffle(path, rand);
-        List<int[]> spawners = new ArrayList<int[]>();
-        for (int[] p : path) {
-            if (!com.divinerpgextended.Config.dungeonSpawners || spawners.size() >= 5 * L || glacon == null || frost == null) break;
-            if (p[0] < x0 + 6 || p[0] > bossX - BOSS_R - 3 || near(spawners, p, 12)) continue;
-            int y = p[1];
-            while (c.has(p[0], y - 1, p[2]) && p[1] - y < 5) y--;
-            if (c.has(p[0], y - 1, p[2])) continue;
-            lairSpawner(world, p[0], y - 1, p[2], spawners.size() % 3 == 2 ? frost : glacon);
-            world.setBlock(p[0], y, p[2], Blocks.snow_layer, 0, 2);
-            spawners.add(p);
-        }
-
-        // колонны в залах и кольцом в зале босса
-        for (double[] h : halls) {
-            int n = 2 + rand.nextInt(2);
-            for (int k = 0; k < n; k++) {
-                double a = rand.nextDouble() * Math.PI * 2, r = 2.0 + rand.nextDouble() * 1.8;
-                pillar(world, c, (int) Math.floor(h[0] + Math.cos(a) * r), (int) h[1],
-                    (int) Math.floor(h[2] + Math.sin(a) * r), rand);
-            }
-        }
-        double a0 = rand.nextDouble() * Math.PI;
-        for (int k = 0; k < 6; k++) {
-            double a = a0 + k * Math.PI / 3;
-            pillar(world, c, bossX + (int) Math.round(Math.cos(a) * 6.5), yb + 3,
-                bossZ + (int) Math.round(Math.sin(a) * 6.5), rand);
-        }
-        for (int[] l : new int[][] { { -4, -4 }, { -4, 4 }, { 3, -4 }, { 3, 4 } }) {
-            int y = yb + 1;
-            while (c.has(bossX + l[0], y + 1, bossZ + l[1])) y++;
-            world.setBlock(bossX + l[0], y + 1, bossZ + l[1], VanillaBlocks.lamp2, 0, 2);
-        }
-
-        // ступенчатый помост в центре зала: 5x5 без углов, сверху 3x3 и алтарь; по углам ледяные фонари
-        for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) {
-            boolean corner = Math.abs(dx) == 2 && Math.abs(dz) == 2;
-            if (!corner) set(world, bossX + dx, yb + 1, bossZ + dz, IceikaBlocks.snowBricks);
-            if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) set(world, bossX + dx, yb + 2, bossZ + dz, IceikaBlocks.icyBricks);
-        }
-        for (int[] k : new int[][] { { -3, -3 }, { -3, 3 }, { 3, -3 }, { 3, 3 } }) {
-            set(world, bossX + k[0], yb + 1, bossZ + k[1], Blocks.packed_ice);
-            set(world, bossX + k[0], yb + 2, bossZ + k[1], Blocks.packed_ice);
-            world.setBlock(bossX + k[0], yb + 3, bossZ + k[1], VanillaBlocks.lamp2, 0, 2);
-        }
-        set(world, bossX, yb + 3, bossZ, ModBlocks.glaconAltar);
-        for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) for (int y = yb + 4; y <= yb + 7; y++) {
-            if (c.has(bossX + dx, y, bossZ + dz)) set(world, bossX + dx, y, bossZ + dz, Blocks.air); // без сосулек над боссом
-        }
-        // светящаяся рунная плита в восточной стене
-        int ax = bossX + 6;
-        for (int dz = -2; dz <= 2; dz++) {
-            for (int dy = 0; dy <= 3; dy++) {
-                int y = yb + 2 + dy, x = ax + 1;
-                while (c.has(x, y, bossZ + dz)) x++;
-                boolean frame = Math.abs(dz) == 2 || dy == 0 || dy == 3;
-                set(world, x, y, bossZ + dz, frame ? IceikaBlocks.icyBricks : IceikaBlocks.workshopLamp);
-            }
-        }
-
-        // освещена вся пещера: в темноте спавнились бы чужие мобы (на серверах Grimoire of Gaia - во всех мирах), а
-        // Глаконов и Фростов ставят спавнеры логова, им свет не мешает
-        lightUp(world, c, g + 2); // до уровня пола иглу: верх шахты под ним тоже светлый
-
         LairData.get(world)
             .add(LairData.SNOW, cx - 7, g + 1, cz); // вход в иглу
-        return c;
+        return new int[] { cx, g, cz };
     }
 
     /** Стена пещеры: пятна пакового льда и мёрзлого камня; пол чаще каменный. */

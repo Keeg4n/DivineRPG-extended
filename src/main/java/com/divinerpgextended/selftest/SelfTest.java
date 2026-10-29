@@ -7027,7 +7027,7 @@ public class SelfTest {
         t("Логова", "Джунгли: руда, тотем, логово, Древний драмкрикс", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x0 = 30000, z0 = 33000, gy = 80;
-            loadAround(w, x0 + 50, z0, 6);
+            loadAround(w, x0 + 7, z0 + 7, 6);
             // ровная земля и храм джунглей Minecraft
             for (int x = x0 - 12; x <= x0 + 110; x++) for (int z = z0 - 40; z <= z0 + 40; z++) for (int y = 2; y <= gy + 20; y++) {
                 net.minecraft.block.Block want = y < gy - 3 ? Blocks.stone : y < gy ? Blocks.dirt : y == gy ? Blocks.grass : Blocks.air;
@@ -7038,9 +7038,11 @@ public class SelfTest {
             net.minecraft.world.gen.structure.StructureBoundingBox area = new net.minecraft.world.gen.structure.StructureBoundingBox(x0 - 16, z0 - 16, x0 + 32, z0 + 32);
             jp.addComponentParts(w, rnd, area);
             net.minecraft.world.gen.structure.StructureBoundingBox tb = jp.getBoundingBox();
+            int[] jc = com.divinerpgextended.world.LairDomes.jungleCenter(x0 >> 4, z0 >> 4);
+            com.divinerpgextended.world.LairDomes.buildAll(w, jc[0], jc[2], false); // город под храмом (в игре - по чанкам при заселении)
             int[] altar = com.divinerpgextended.world.WorldGenJungleLair.build(w, rnd, tb);
             boolean lair = altar != null && w.getBlock(altar[0], altar[1], altar[2]) == com.divinerpgextended.registry.ModBlocks.jungleAltar;
-            dump(w, x0 + 50, tb.minY, z0, 62, "render-jungle");
+            dump(w, jc[0], com.divinerpgextended.world.LairDomes.J_FL + 25, jc[2], 76, "render-jungle");
             // проход из храма до зала: поиск по воздуху от колодца
             boolean reach = false;
             String[] reachInfo = { "" };
@@ -7060,8 +7062,8 @@ public class SelfTest {
                     for (int[] d : nb) {
                         int x = pp[0] + d[0], y = pp[1] + d[1], z = pp[2] + d[2];
                         // только внутри рамки логова: колодец и ходы, а не открытый воздух и пещеры вокруг
-                        if (y < tb.minY - 60 || y > tb.minY + 1 || x < tb.minX - 8 || x > altar[0] + com.divinerpgextended.world.WorldGenJungleLair.BOSS_R + 4
-                            || Math.abs(z - altar[2]) > 50) continue;
+                        if (y < com.divinerpgextended.world.LairDomes.J_FL || y > tb.minY + 1 || x < tb.minX - 8 || x > altar[0] + com.divinerpgextended.world.WorldGenJungleLair.BOSS_R + 4
+                            || Math.abs(z - altar[2]) > 20) continue;
                         long key = ((long) x * 73856093L) ^ ((long) y * 19349663L) ^ ((long) z * 83492791L);
                         if (!seen.add(key)) continue;
                         net.minecraft.block.Block bl = w.getBlock(x, y, z);
@@ -8007,70 +8009,72 @@ public class SelfTest {
             return "Карцинус построен " + built[0] + " из " + tried[0] + ", ледяная пещера " + built[1] + " из " + tried[1] + " мест из сида; пирамида там, где её считает карта " + pyramid
                 + "; карта у найденного логова ведёт к следующему, повторный клик - перезарядка; дальний поиск по частям: " + ticksToAnswer + " тиков, тик до " + worst + " мс";
         });
-        t("Логова", "Ледяная пещера освещена, спавнеров нет", () -> {
+        t("Логова", "Ледяной купол Глакона: иглу, шахта, гнездо, озеро, сталактиты, без ковра ламп", () -> {
             WorldServer w = server.worldServerForDimension(0);
-            java.util.List<int[]> cells = null;
-            int cx = 0, cz = 0;
-            com.divinerpgextended.world.WorldGenLairs gen = new com.divinerpgextended.world.WorldGenLairs();
-            // по карте биомов (дёшево) ищем ровную сушу без воды на всей площади пещеры, только там строим
-            int tries = 0;
-            for (int t = 0; t < 3000 && cells == null && tries < 15; t++) {
-                cx = -24000 + (t % 60) * 400;
-                cz = 18000 + (t / 60) * 400;
-                boolean land = true;
-                for (int dx = -16; dx <= 176 && land; dx += 16) for (int dz = -64; dz <= 64 && land; dz += 16) {
-                    net.minecraft.world.biome.BiomeGenBase b = w.getWorldChunkManager().getBiomeGenAt(cx + dx, cz + dz);
-                    land = b != null && b.rootHeight > 0.05F && b.rootHeight < 0.6F && b.heightVariation < 0.3F && !com.divinerpgextended.world.Biomes.ocean(b)
-                        && !com.divinerpgextended.world.Biomes.beach(b) && !net.minecraftforge.common.BiomeDictionary.isBiomeOfType(b, net.minecraftforge.common.BiomeDictionary.Type.RIVER)
-                        && !net.minecraftforge.common.BiomeDictionary.isBiomeOfType(b, net.minecraftforge.common.BiomeDictionary.Type.SWAMP);
+            int[] site = com.divinerpgextended.world.LairSites.nearest(w, com.divinerpgextended.world.LairSites.SNOW, 0, 0, 6000, 0);
+            check(site != null, "нет места ледяного купола в 6000 блоков");
+            int[] c = com.divinerpgextended.world.LairDomes.glaconCenter(site);
+            int fl = com.divinerpgextended.world.LairDomes.G_FL, R = com.divinerpgextended.world.LairDomes.G_R;
+            // обычная генерация мира: чанки купола и иглу создаются и заселяются
+            loadAround(w, c[0] - 20, c[2], 6);
+            boolean altar = w.getBlock(c[0], fl + 3, c[2]) == com.divinerpgextended.registry.ModBlocks.glaconAltar;
+            int lakeIce = 0, lakeAll = 0, lamps = 0, hanging = 0, stalagnates = 0, lanterns = 0, wet = 0;
+            for (int dx = -R; dx <= R; dx++) for (int dz = -R; dz <= R; dz++) {
+                double r = Math.sqrt(dx * dx + dz * dz);
+                if (r >= R) continue;
+                int x = c[0] + dx, z = c[2] + dz, ceil = com.divinerpgextended.world.LairDomes.glaconCeil(r);
+                if (r >= 18 && r < 29) {
+                    lakeAll++;
+                    net.minecraft.block.Block b = w.getBlock(x, fl, z);
+                    if (b == Blocks.ice || b == Blocks.packed_ice) lakeIce++;
                 }
-                if (!land) continue;
-                tries++;
-                loadAround(w, cx + 80, cz, 9);
-                cells = gen.buildSnowDungeon(w, new java.util.Random(77 + t), cx, cz);
+                boolean full = true;
+                for (int y = fl + 1; y <= ceil; y++) {
+                    net.minecraft.block.Block b = w.getBlock(x, y, z);
+                    if (b == net.divinerpg.utils.blocks.IceikaBlocks.workshopLamp) lamps++;
+                    if (b == net.divinerpg.utils.blocks.IceikaBlocks.workshopLamp && y == fl + 2 && r > R - 4) lanterns++;
+                    if (b == Blocks.packed_ice && y > fl + 12) hanging++;
+                    if (b != Blocks.packed_ice) full = false;
+                    if (b.getMaterial().isLiquid()) wet++;
+                }
+                if (full && r > 16) stalagnates++;
             }
-            check(cells != null, "не нашлось места для пещеры");
-            int surface = w.getTopSolidOrLiquidBlock(cx, cz);
-            int dark = 0, checked = 0;
-            String firstDark = "";
-            for (int[] c : cells) {
-                if (c[1] >= surface - 3 || w.getBlock(c[0], c[1], c[2]).isOpaqueCube()) continue;
-                if (!w.getBlock(c[0], c[1] - 1, c[2]).isOpaqueCube()) continue; // только места, где может стоять моб
-                checked++;
-                int light = w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Block, c[0], c[1], c[2]);
-                if (light < 8) {
-                    dark++;
-                    if (firstDark.length() < 900) {
-                        firstDark += c[0] + "," + c[1] + "," + c[2] + " свет " + light + " пов " + surface + " [";
-                        for (int dy = 1; dy <= 4; dy++) firstDark += w.getBlock(c[0], c[1] + dy, c[2]).getUnlocalizedName().replace("tile.", "") + "/" + w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Block, c[0], c[1] + dy, c[2]) + " ";
-                        firstDark += "небо " + w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Sky, c[0], c[1], c[2]) + "]; ";
-                    }
+            // от иглу по шахте и тоннелю до алтаря - по воздуху, без воды
+            boolean reach = false;
+            int air = 0;
+            int gy = w.getTopSolidOrLiquidBlock(site[0], site[1]);
+            java.util.ArrayDeque<int[]> qq = new java.util.ArrayDeque<int[]>();
+            java.util.HashSet<Long> seen = new java.util.HashSet<Long>();
+            // внутри иглу: первый воздух под снежным куполом
+            for (int y = gy - 1; y > fl && qq.isEmpty(); y--) if (w.isAirBlock(site[0] + 1, y, site[1]) && !w.isAirBlock(site[0] + 1, y + 1, site[1])) qq.add(new int[] { site[0] + 1, y, site[1] });
+            int[][] nb = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
+            while (!qq.isEmpty() && air < 300000 && !reach) {
+                int[] pp = qq.poll();
+                for (int[] d : nb) {
+                    int x = pp[0] + d[0], y = pp[1] + d[1], z = pp[2] + d[2];
+                    if (y < fl || y > gy + 8 || x < site[0] - 4 || x > c[0] + 4 || Math.abs(z - c[2]) > 12) continue;
+                    if (!seen.add(((long) x * 73856093L) ^ ((long) y * 19349663L) ^ ((long) z * 83492791L))) continue;
+                    if (Math.abs(x - c[0]) <= 1 && Math.abs(z - c[2]) <= 1 && y == fl + 4) reach = true;
+                    net.minecraft.block.Block bl = w.getBlock(x, y, z);
+                    if (bl.getMaterial().blocksMovement() || bl.getMaterial().isLiquid()) continue;
+                    qq.add(new int[] { x, y, z });
+                    air++;
                 }
             }
-            // спавнер Глаконов на свету
-            String glacon = (String) net.minecraft.entity.EntityList.classToStringMapping.get(net.divinerpg.entities.vanilla.EntityGlacon.class);
-            net.minecraft.tileentity.TileEntityMobSpawner sp = null;
-            int spawners = 0;
-            for (int[] c : cells) {
-                int x = c[0], y = c[1] - 1, z = c[2];
-                if (w.getBlock(x, y, z) != com.divinerpgextended.registry.ModBlocks.lairSpawner) continue;
-                spawners++;
-                net.minecraft.tileentity.TileEntityMobSpawner te = (net.minecraft.tileentity.TileEntityMobSpawner) w.getTileEntity(x, y, z);
-                if (sp == null && te != null && glacon.equals(te.func_145881_a().getEntityNameToSpawn())) sp = te;
-            }
-            int got = 0, lightAt = -1;
-            if (sp != null) {
-                lightAt = w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Block, sp.xCoord, sp.yCoord + 1, sp.zCoord);
-                TestPlayer v = join(player(0, "TestSnowLight", sp.xCoord + 0.5, sp.yCoord + 1, sp.zCoord + 3.5), true);
-                for (int i = 0; i < 40; i++) sp.updateEntity();
-                got = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.EntityGlacon.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(sp.xCoord - 8, sp.yCoord - 4, sp.zCoord - 8, sp.xCoord + 8, sp.yCoord + 5, sp.zCoord + 8)).size();
-                for (Object o : w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.EntityGlacon.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(sp.xCoord - 8, sp.yCoord - 4, sp.zCoord - 8, sp.xCoord + 8, sp.yCoord + 5, sp.zCoord + 8))) ((net.minecraft.entity.Entity) o).setDead();
-            }
-            // спавнеры в постройках по умолчанию выключены (dungeonSpawners): их нет; включены - работают на свету
-            boolean sps = com.divinerpgextended.Config.dungeonSpawners ? spawners > 0 && sp != null && got > 0 : spawners == 0;
-            check(dark == 0 && checked > 200 && sps, "клеток проверено " + checked + ", тёмных " + dark + " (" + firstDark + "); спавнеров логова " + spawners + ", у спавнера Глаконов свет " + lightAt + ", появилось Глаконов " + got);
-            return "пещера у " + cx + "," + cz + ": все " + checked + " мест, где может встать моб, со светом 8+ (чужие мобы не спавнятся); спавнеров " + spawners
-                + (com.divinerpgextended.Config.dungeonSpawners ? ", Глакон появился на свету " + lightAt : " (выключены в конфиге)");
+            // внутри купола чужие монстры не появляются, снаружи - как обычно
+            net.minecraft.entity.monster.EntityZombie zz = new net.minecraft.entity.monster.EntityZombie(w);
+            net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn in = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(zz, w, c[0] + 35.5F, fl + 1, c[2] + 0.5F);
+            MinecraftForge.EVENT_BUS.post(in);
+            net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn outE = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(zz, w, c[0] + 200.5F, fl + 1, c[2] + 0.5F);
+            MinecraftForge.EVENT_BUS.post(outE);
+            boolean noSpawns = in.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.DENY && outE.getResult() != cpw.mods.fml.common.eventhandler.Event.Result.DENY;
+            dump(w, c[0], fl + 20, c[2], 60, "render-glacon");
+            check(altar && lakeIce * 10 >= lakeAll * 9 && hanging > 150 && stalagnates >= 3 && lamps > 0 && lamps <= 60 && lanterns > 0 && reach && noSpawns && wet == 0,
+                "алтарь в гнезде " + altar + " (там " + w.getBlock(c[0], fl + 3, c[2]).getUnlocalizedName() + "/" + w.getBlock(c[0], fl + 2, c[2]).getUnlocalizedName() + "/"
+                    + w.getBlock(c[0], fl + 1, c[2]).getUnlocalizedName() + " у " + c[0] + "," + c[2] + ", чанк заселён " + w.getChunkFromBlockCoords(c[0], c[2]).isTerrainPopulated + "), лёд озера " + lakeIce + "/" + lakeAll + ", льда со свода " + hanging + ", сталагнатов (столбцов) " + stalagnates + ", ламп " + lamps
+                    + ", фонарей " + lanterns + ", жидкости внутри " + wet + ", от иглу до алтаря дошёл " + reach + " (воздуха " + air + "), спавн внутри запрещён " + noSpawns);
+            return "купол у " + c[0] + "," + c[2] + ": иглу и шахта ведут к гнезду с алтарём, озеро подо льдом, сталактиты (" + hanging + " блоков) и сталагнаты (" + stalagnates
+                + "), ламп всего " + lamps + " - на концах сталактитов и в гнезде; чужие монстры внутри не появляются";
         });
         t("Сервер", "Айрако без братьев сохраняется", () -> {
             WorldServer w = server.worldServerForDimension(0);

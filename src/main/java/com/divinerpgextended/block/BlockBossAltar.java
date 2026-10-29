@@ -170,6 +170,8 @@ public class BlockBossAltar extends Block {
                 z - com.divinerpgextended.world.WorldGenThrone.ALTAR_DZ, 80);
         } else {
             boss.setLocationAndAngles(x + 0.5, y + 1, z + 0.5, world.rand.nextFloat() * 360, 0);
+            // Глакон встаёт на алтарь в центре гнезда: арена - гнездо и замёрзшее озеро вокруг
+            if (type == SNOW_GLACON) com.divinerpgextended.boss.BossArena.set(boss, x, y - 3, z, com.divinerpgextended.world.LairDomes.G_LAKE + 2);
         }
         if (!com.divinerpgextended.boss.BossArena.roomFor(boss)) { // место появления застроили
             player.addChatMessage(new ChatComponentTranslation("dre.chat.summon_blocked"));

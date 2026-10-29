@@ -47,6 +47,19 @@ public abstract class ColumnStructure {
         return b.getLightValue() > 0;
     }
 
+    /** Столбец чертежа снаружи (для проверок и запечатывания): то же, что {@link #column}. */
+    public boolean columnAt(int dx, int dz, int[] col) {
+        return column(dx, dz, col);
+    }
+
+    public Block blockAt(int code, int meta) {
+        return code == AIR ? Blocks.air : block(code, meta);
+    }
+
+    public int metaAt(int code, int meta) {
+        return code == AIR ? 0 : metaOf(code, meta);
+    }
+
     public static void put(int[] col, int y, int code, int meta) {
         if (y <= 0 || y >= 256) return;
         col[y * 2] = code;
