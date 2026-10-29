@@ -2907,6 +2907,36 @@ public class SelfTest {
             check(carpetLeft(e) > 0 && maxFall < 0.2F, "запас на сервере " + carpetLeft(e) + ", накоплено падения " + maxFall);
             return "клиент планирует, хотя у сервера запас ещё есть - высота падения всё равно не копится";
         });
+        t("Логова", "В обычном мире нет биомов других модов на месте мутаций (Сумеречный лес)", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            // чужие биомы на номерах мутаций (128+), например Thornlands Twilight Forest на 150 = холмы джунглей + 128
+            java.util.List<String> foreign = new java.util.ArrayList<String>();
+            boolean hookOk = true;
+            for (int id = 128; id < 168; id++) { // мутации - только у ванильных биомов 0..39
+                net.minecraft.world.biome.BiomeGenBase b = net.minecraft.world.biome.BiomeGenBase.getBiomeGenArray()[id];
+                if (b == null) continue;
+                boolean vanilla = b instanceof net.minecraft.world.biome.BiomeGenMutated || b.getClass().getName().startsWith("net.minecraft.");
+                if (!vanilla) {
+                    foreign.add(id + " " + b.biomeName);
+                    hookOk &= com.divinerpgextended.asm.BiomeHooks.mutation(id) == null;
+                } else hookOk &= com.divinerpgextended.asm.BiomeHooks.mutation(id) == b;
+            }
+            // генерация: 6000 x 6000 блоков с шагом 24 - ни одного чужого биома с номером 128+
+            net.minecraft.world.biome.WorldChunkManager wcm = w.getWorldChunkManager();
+            java.util.Map<String, Integer> seen = new java.util.TreeMap<String, Integer>();
+            int bad = 0;
+            for (int x = -3000; x < 3000; x += 24) for (int z = -3000; z < 3000; z += 24) {
+                net.minecraft.world.biome.BiomeGenBase b = wcm.getBiomeGenAt(x, z);
+                if (b == null || b.biomeID < 128) continue;
+                // свои биомы обычного мира на больших номерах бывают по задумке (Thaumcraft: Magical Forest, Tainted Land) - это не мутации
+                boolean vanilla = b.biomeID >= 168 || b instanceof net.minecraft.world.biome.BiomeGenMutated || b.getClass().getName().startsWith("net.minecraft.");
+                String bk = b.biomeID + " " + b.biomeName + (vanilla ? "" : " ЧУЖОЙ");
+                seen.put(bk, seen.containsKey(bk) ? seen.get(bk) + 1 : 1);
+                if (!vanilla) bad++;
+            }
+            check(hookOk && bad == 0, "чужих биомов на местах мутаций зарегистрировано: " + foreign + "; проверка хука " + hookOk + "; в генерации чужих " + bad + "; мутации в мире: " + seen);
+            return "чужих биомов на местах мутаций: " + foreign.size() + " " + foreign + " - в обычный мир не попадают; ванильные мутации на месте: " + seen.keySet();
+        });
         t("Логова", "Ступень брони: божественная - R1 (на кадиллиона Эдема), элитный реалмит - R0", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             TestPlayer v = player(ConfigurationHelper.eden, "TestTier", 9700.5, 120, 9700.5);
