@@ -5916,6 +5916,144 @@ public class SelfTest {
             check(ok, log);
             return "у Ледяного Колосса полёт выключается, без босса снова можно; в Скайтерне у Повелителя ветров летать можно";
         });
+        t("Логова", "Арена босса: у края бойца тянет к центру, без бойцов босс уходит через bossArenaLeaveSeconds", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
+            int x0 = 9500, y0 = 150, z0 = 9500;
+            loadAround(w, x0, z0, 2);
+            int keep = com.divinerpgextended.Config.bossArenaLeaveSeconds;
+            java.util.List<net.minecraft.entity.EntityLiving> made = new ArrayList<net.minecraft.entity.EntityLiving>();
+            try {
+                com.divinerpgextended.Config.bossArenaLeaveSeconds = 60;
+                TestPlayer f = join(player(ConfigurationHelper.iceika, "TestArena", x0 + 5.5, y0 + 1, z0 + 0.5), true);
+                com.divinerpgextended.entity.EntitySnowGlacon b = new com.divinerpgextended.entity.EntitySnowGlacon(w);
+                made.add(b);
+                b.setLocationAndAngles(x0 + 0.5, y0 + 1, z0 + 0.5, 0, 0);
+                com.divinerpgextended.boss.BossArena.set(b, x0, y0, z0, 20);
+                boolean applies = com.divinerpgextended.boss.BossArena.applies(b)
+                    && !com.divinerpgextended.boss.BossArena.applies(new net.divinerpg.entities.vethea.EntityHiveQueen(w));
+                com.divinerpgextended.boss.BossArena.tick(b);
+                boolean on = b.getEntityData().getBoolean(com.divinerpgextended.boss.BossArena.ON);
+                // у края - толчок к центру с подсказкой
+                f.setPosition(x0 + 22.5, y0 + 1, z0 + 0.5);
+                f.motionX = 0;
+                boolean pushed = com.divinerpgextended.boss.BossArena.hold(f) && f.motionX < 0 && f.heard("dre.chat.arena_hold");
+                // телепорт прочь - не тянет, босс ждёт минуту
+                f.setPosition(x0 + 60.5, y0 + 1, z0 + 0.5);
+                boolean farFree = !com.divinerpgextended.boss.BossArena.hold(f);
+                com.divinerpgextended.boss.BossArena.tick(b);
+                boolean warned = b.getEntityData().hasKey(com.divinerpgextended.boss.BossArena.EMPTY) && f.heard("dre.chat.arena_empty");
+                b.getEntityData().setLong(com.divinerpgextended.boss.BossArena.EMPTY, w.getTotalWorldTime() - 1190);
+                com.divinerpgextended.boss.BossArena.tick(b);
+                boolean waits = b.isEntityAlive();
+                // вернулся - ожидание сначала
+                f.setPosition(x0 + 3.5, y0 + 1, z0 + 0.5);
+                com.divinerpgextended.boss.BossArena.tick(b);
+                boolean reset = !b.getEntityData().hasKey(com.divinerpgextended.boss.BossArena.EMPTY);
+                // вышел из игры прямо на арене - тоже ушёл; минута прошла - босс исчезает
+                server.getConfigurationManager().playerEntityList.remove(f);
+                com.divinerpgextended.boss.BossArena.tick(b);
+                server.getConfigurationManager().playerEntityList.add(f);
+                f.setPosition(x0 + 60.5, y0 + 1, z0 + 0.5);
+                b.getEntityData().setLong(com.divinerpgextended.boss.BossArena.EMPTY, w.getTotalWorldTime() - 1200);
+                com.divinerpgextended.boss.BossArena.tick(b);
+                boolean gone = b.isDead && f.heard("dre.chat.arena_gone");
+
+                // Король-лич из Колосса остаётся на его арене и бой продолжается
+                com.divinerpgextended.entity.EntitySnowGlacon host = new com.divinerpgextended.entity.EntitySnowGlacon(w);
+                made.add(host);
+                host.setLocationAndAngles(x0 + 0.5, y0 + 1, z0 + 0.5, 0, 0);
+                com.divinerpgextended.boss.BossArena.set(host, x0, y0, z0, 20);
+                f.setPosition(x0 + 4.5, y0 + 1, z0 + 0.5);
+                com.divinerpgextended.boss.BossArena.tick(host);
+                com.divinerpgextended.entity.EntityLichKing lich = new com.divinerpgextended.entity.EntityLichKing(w);
+                made.add(lich);
+                lich.setLocationAndAngles(x0 + 9.5, y0 + 3, z0 + 0.5, 0, 0);
+                int[] lb = com.divinerpgextended.boss.BossArena.bounds(lich);
+                boolean inherits = lb[0] == x0 && lb[2] == z0 && lb[3] == 20 && lich.getEntityData().getBoolean(com.divinerpgextended.boss.BossArena.ON);
+
+                // 0 - сразу, как Гайа; -1 - никогда; творческий режим бой не начинает
+                com.divinerpgextended.Config.bossArenaLeaveSeconds = 0;
+                f.setPosition(x0 + 60.5, y0 + 1, z0 + 0.5);
+                com.divinerpgextended.boss.BossArena.tick(host);
+                boolean instant = host.isDead;
+                com.divinerpgextended.Config.bossArenaLeaveSeconds = -1;
+                com.divinerpgextended.boss.BossArena.tick(lich);
+                boolean never = lich.isEntityAlive() && !lich.getEntityData().hasKey(com.divinerpgextended.boss.BossArena.EMPTY);
+                com.divinerpgextended.entity.EntitySnowGlacon solo = new com.divinerpgextended.entity.EntitySnowGlacon(w);
+                made.add(solo);
+                solo.setLocationAndAngles(x0 + 200.5, y0 + 1, z0 + 0.5, 0, 0);
+                TestPlayer c = join(player(ConfigurationHelper.iceika, "TestArenaCr", x0 + 203.5, y0 + 1, z0 + 0.5), true);
+                c.capabilities.isCreativeMode = true;
+                com.divinerpgextended.boss.BossArena.tick(solo);
+                int[] sb = com.divinerpgextended.boss.BossArena.bounds(solo);
+                boolean creative = !solo.getEntityData().getBoolean(com.divinerpgextended.boss.BossArena.ON)
+                    && sb[3] == com.divinerpgextended.Config.bossArenaRadius;
+                check(applies && on && pushed && farFree && warned && waits && reset && gone && inherits && instant && never && creative,
+                    "босс с ареной " + applies + ", бой начат " + on + ", у края тянет " + pushed + ", издалека не тянет " + farFree + ", предупредил " + warned
+                        + ", за 59.5 с не ушёл " + waits + ", возврат сбросил " + reset + ", через минуту ушёл " + gone + ", лич на арене Колосса " + inherits
+                        + ", при 0 сразу " + instant + ", при -1 никогда " + never + ", творческий бой не начал " + creative + "; чат " + f.chat);
+                return "боец у края летит к центру; все ушли - минута ожидания (вернулся - сначала), потом босс исчезает; 0 - сразу, -1 - никогда";
+            } finally {
+                com.divinerpgextended.Config.bossArenaLeaveSeconds = keep;
+                for (net.minecraft.entity.EntityLiving m : made) m.setDead();
+            }
+        });
+        t("Логова", "Вызов босса вне логова - только на свободной площадке, как у Стража Гайи", () -> {
+            com.divinerpgextended.world.CadillionWorld cw = com.divinerpgextended.world.CadillionWorld.byMeta(0);
+            WorldServer w = server.worldServerForDimension(cw.dimension());
+            int x0 = 9300, y0 = 200, z0 = 9300;
+            loadAround(w, x0, z0, 2);
+            for (int dx = -12; dx <= 12; dx++) {
+                for (int dz = -12; dz <= 12; dz++) {
+                    w.setBlock(x0 + dx, y0, z0 + dz, net.minecraft.init.Blocks.stone);
+                    for (int dy = 1; dy <= 6; dy++) w.setBlockToAir(x0 + dx, y0 + dy, z0 + dz);
+                }
+            }
+            TestPlayer sp = join(player(cw.dimension(), "TestSummonSpace", x0 + 2.5, y0 + 1, z0 + 0.5), true);
+            sp.capabilities.isCreativeMode = true;
+            net.minecraft.util.AxisAlignedBB box = net.minecraft.util.AxisAlignedBB.getBoundingBox(x0 - 12, y0 - 4, z0 - 12, x0 + 13, y0 + 12, z0 + 13);
+            // две стены поперёк площадки
+            for (int dz = -8; dz <= 8; dz++) {
+                w.setBlock(x0 + 4, y0 + 1, z0 + dz, net.minecraft.init.Blocks.stone);
+                w.setBlock(x0 - 4, y0 + 3, z0 + dz, net.minecraft.init.Blocks.stone);
+            }
+            double clut = com.divinerpgextended.boss.BossArena.clutter(w, x0, y0 + 1, z0, com.divinerpgextended.Config.bossSummonClearRadius);
+            ItemStack call = new ItemStack(com.divinerpgextended.registry.ModItems.cadillionCall, 1, cw.ordinal());
+            call.getItem().onItemUse(call, sp, w, x0, y0, z0, 1, 0.5F, 1F, 0.5F);
+            boolean refused = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityGreatCadillion.class, box).isEmpty() && sp.heard("dre.chat.summon_space");
+            sp.inventory.setInventorySlotContents(sp.inventory.currentItem, new ItemStack(net.divinerpg.utils.items.VanillaItemsOther.callWatcher));
+            net.minecraftforge.event.entity.player.PlayerInteractEvent ev = new net.minecraftforge.event.entity.player.PlayerInteractEvent(sp,
+                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, x0, y0, z0, 1, w);
+            new com.divinerpgextended.boss.BossArena().onInteract(ev);
+            boolean divineRefused = ev.isCanceled();
+            // разобрали стены - вызов проходит
+            for (int dz = -8; dz <= 8; dz++) {
+                w.setBlockToAir(x0 + 4, y0 + 1, z0 + dz);
+                w.setBlockToAir(x0 - 4, y0 + 3, z0 + dz);
+            }
+            boolean clear = com.divinerpgextended.boss.BossArena.clearField(w, x0, y0 + 1, z0);
+            ev = new net.minecraftforge.event.entity.player.PlayerInteractEvent(sp,
+                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, x0, y0, z0, 1, w);
+            new com.divinerpgextended.boss.BossArena().onInteract(ev);
+            boolean divineOk = !ev.isCanceled();
+            call.getItem().onItemUse(call, sp, w, x0, y0, z0, 1, 0.5F, 1F, 0.5F);
+            @SuppressWarnings("unchecked")
+            List<net.minecraft.entity.Entity> spawned = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityGreatCadillion.class, box);
+            boolean summoned = !spawned.isEmpty();
+            // в рамке босса блок - "застроено"
+            com.divinerpgextended.entity.EntitySnowGlacon gl = new com.divinerpgextended.entity.EntitySnowGlacon(w);
+            gl.setLocationAndAngles(x0 + 6.5, y0 + 1, z0 + 6.5, 0, 0);
+            boolean room = com.divinerpgextended.boss.BossArena.roomFor(gl);
+            w.setBlock(x0 + 6, y0 + 2, z0 + 6, net.minecraft.init.Blocks.stone);
+            boolean blocked = !com.divinerpgextended.boss.BossArena.roomFor(gl);
+            w.setBlockToAir(x0 + 6, y0 + 2, z0 + 6);
+            for (net.minecraft.entity.Entity se : spawned) se.setDead();
+            check(clut > com.divinerpgextended.boss.BossArena.FIELD_CLUTTER && refused && divineRefused && clear && divineOk && summoned && room && blocked,
+                "застроено " + f((float) (clut * 100)) + "%, Зов отклонён " + refused + ", Зов Смотрителя отклонён " + divineRefused + ", после расчистки свободно " + clear
+                    + ", Смотритель пропущен " + divineOk + ", кадиллион вызван " + summoned + ", Глакону место есть " + room + ", блок в рамке мешает " + blocked
+                    + "; чат " + sp.chat);
+            return "две стены на площадке (" + f((float) (clut * 100)) + "% колонн) - Зов кадиллиона и Зов Смотрителя не срабатывают; на чистой - вызов идёт";
+        });
         t("Сумеречные миры", "Рамка портала, построенная телепортом, ничего не роняет", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
             int x0 = 9600, z0 = 9600;

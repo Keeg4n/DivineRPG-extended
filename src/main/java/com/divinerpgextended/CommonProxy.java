@@ -111,6 +111,9 @@ public class CommonProxy {
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.item.ItemLairMap.Unfold());
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.item.ExplorerMaps.Marks());
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.boss.BossNoFly());
+        com.divinerpgextended.boss.BossArena arena = new com.divinerpgextended.boss.BossArena();
+        MinecraftForge.EVENT_BUS.register(arena);
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(arena);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.ColorGear());
         FMLCommonHandler.instance().bus().register(rails);
         FMLCommonHandler.instance().bus().register(ranged);

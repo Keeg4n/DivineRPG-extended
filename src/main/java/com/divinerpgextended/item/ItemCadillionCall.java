@@ -63,9 +63,12 @@ public class ItemCadillionCall extends Item {
         }
         net.minecraft.entity.EntityLiving boss = com.divinerpgextended.entity.EntityGroveGuardian.create(world, w);
         boss.setLocationAndAngles(x + 0.5, y + 1, z + 0.5, player.rotationYaw, 0);
-        if (!world.getCollidingBoundingBoxes(boss, boss.boundingBox)
-            .isEmpty()) {
+        if (!com.divinerpgextended.boss.BossArena.roomFor(boss)) {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.call_no_space"));
+            return true;
+        }
+        if (!com.divinerpgextended.boss.BossArena.clearField(world, x, y + 1, z)) { // вне гнезда - нужна поляна, как у Гайи
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.summon_space", com.divinerpgextended.Config.bossSummonClearRadius));
             return true;
         }
         world.spawnEntityInWorld(boss);

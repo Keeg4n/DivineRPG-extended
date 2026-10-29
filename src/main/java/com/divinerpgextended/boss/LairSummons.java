@@ -122,6 +122,19 @@ public class LairSummons {
         com.divinerpgextended.debug.Debug.note(m, "Босс ушёл за край логова - вернулся в центр");
     }
 
+    /** Вызов предметом идёт в его логове (Демонический круг и арены Мортума, логова Ада и Энда). */
+    public static boolean inLair(EntityPlayer p, Item item, int x, int y, int z) {
+        if (item instanceof ItemTwilightSpawner) {
+            com.divinerpgextended.world.twilight.MortumArenas.Type t = com.divinerpgextended.world.twilight.MortumArenas.ofCrystal(item);
+            return t == null ? WorldGenNests.inCircle(p.worldObj, x + 0.5, y + 1, z + 0.5)
+                : com.divinerpgextended.world.twilight.MortumArenas.inArena(p.worldObj, t, x + 0.5, y + 1, z + 0.5);
+        }
+        int type = item instanceof net.divinerpg.items.vanilla.ItemCallOfTheWatcher ? WorldGenOuterLairs.WATCHER
+            : item instanceof net.divinerpg.items.vanilla.ItemInfernalFlame ? WorldGenOuterLairs.SCORCHERS
+                : item instanceof net.divinerpg.items.vanilla.ItemHordeHorn ? WorldGenOuterLairs.AYERACO : -1;
+        return type >= 0 && WorldGenOuterLairs.enabled(type) && WorldGenOuterLairs.inside(p.worldObj, type, x + 0.5, y + 1, z + 0.5);
+    }
+
     /** Ключ отказа или null, если здесь вызывать можно. */
     public static String refusal(EntityPlayer p, Item item, int x, int y, int z) {
         if (item instanceof ItemTwilightSpawner) {

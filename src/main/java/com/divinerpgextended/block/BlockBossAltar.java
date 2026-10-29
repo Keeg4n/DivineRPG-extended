@@ -107,13 +107,17 @@ public class BlockBossAltar extends Block {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.altar_cost", 1, need.getDisplayName()));
             return true;
         }
-        if (!player.capabilities.isCreativeMode) held.stackSize--;
         net.minecraft.entity.EntityLiving boss = com.divinerpgextended.entity.EntityGroveGuardian.create(world, w);
         com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.values()[w.ordinal()];
         int dzOff = com.divinerpgextended.world.twilight.WorldGenNests.altarDz(tw);
         // на кургане центр занят курганом - Король встаёт на пол сбоку от алтаря, мимо лестницы
         boolean mound = tw == com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA;
         boss.setLocationAndAngles(x + 0.5 + (mound ? 4 : 0), y - 1, z + 0.5 + (mound ? 3 : dzOff), 0, 0);
+        if (!com.divinerpgextended.boss.BossArena.roomFor(boss)) { // место появления застроили
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.summon_blocked"));
+            return true;
+        }
+        if (!player.capabilities.isCreativeMode) held.stackSize--;
         com.divinerpgextended.boss.LairSummons.leash(boss, x, y - 1, z + dzOff, com.divinerpgextended.world.twilight.WorldGenNests.leashRadius(tw));
         world.spawnEntityInWorld(boss);
         world.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, "mob.wither.spawn", 0.6F, 0.8F);
@@ -144,8 +148,7 @@ public class BlockBossAltar extends Block {
                 new ItemStack(cost()).getDisplayName()));
             return true;
         }
-        if (!player.capabilities.isCreativeMode) held.stackSize -= costCount();
-
+        int[] leashAt = null;
         EntityLiving boss = type == JUNGLE ? new com.divinerpgextended.entity.EntityAncientDramcryx(world) : type == CARCINUS ? new EntityCarcinus(world)
             : type == THRONE ? new EntityFrostColossus(world)
                 : type == TOMB ? new net.divinerpg.entities.vanilla.EntityAncientEntity(world) : new EntitySnowGlacon(world);
@@ -153,7 +156,7 @@ public class BlockBossAltar extends Block {
             // алтарь у северного края помоста, Древний драмкрикс встаёт в центре зала
             int dz = com.divinerpgextended.world.WorldGenJungleLair.ALTAR_DZ;
             boss.setLocationAndAngles(x + 0.5, y - 1, z + 0.5 + dz, 0, 0);
-            com.divinerpgextended.boss.LairSummons.leash(boss, x, y - 1, z + dz, com.divinerpgextended.world.WorldGenJungleLair.BOSS_R - 2);
+            leashAt = new int[] { x, y - 1, z + dz, com.divinerpgextended.world.WorldGenJungleLair.BOSS_R - 2 };
         } else if (type == TOMB) {
             // алтарь на помосте у восточной стены погребального зала, сущность встаёт в центре зала
             boss.setLocationAndAngles(x + 0.5 - com.divinerpgextended.world.WorldGenTomb.ALTAR_DX,
@@ -162,10 +165,19 @@ public class BlockBossAltar extends Block {
             // алтарь стоит на помосте у трона (север), Колосс поднимается в центре арены
             boss.setLocationAndAngles(x + 0.5, y - com.divinerpgextended.world.WorldGenThrone.ALTAR_DY,
                 z + 0.5 - com.divinerpgextended.world.WorldGenThrone.ALTAR_DZ, 180, 0);
-            com.divinerpgextended.entity.FrostPowers.tell(boss, "dre.chat.colossus_rises");
+            // арена - купол до кольца пилонов (на них прыгает Король-лич, он арену унаследует)
+            com.divinerpgextended.boss.BossArena.set(boss, x, y - com.divinerpgextended.world.WorldGenThrone.ALTAR_DY,
+                z - com.divinerpgextended.world.WorldGenThrone.ALTAR_DZ, 80);
         } else {
             boss.setLocationAndAngles(x + 0.5, y + 1, z + 0.5, world.rand.nextFloat() * 360, 0);
         }
+        if (!com.divinerpgextended.boss.BossArena.roomFor(boss)) { // место появления застроили
+            player.addChatMessage(new ChatComponentTranslation("dre.chat.summon_blocked"));
+            return true;
+        }
+        if (!player.capabilities.isCreativeMode) held.stackSize -= costCount();
+        if (leashAt != null) com.divinerpgextended.boss.LairSummons.leash(boss, leashAt[0], leashAt[1], leashAt[2], leashAt[3]);
+        if (type == THRONE) com.divinerpgextended.entity.FrostPowers.tell(boss, "dre.chat.colossus_rises");
         world.spawnEntityInWorld(boss);
         world.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, "mob.wither.spawn", 0.6F, type == CARCINUS ? 0.5F : 1.4F);
         return true;

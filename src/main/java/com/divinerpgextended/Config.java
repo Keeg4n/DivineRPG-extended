@@ -44,6 +44,9 @@ public class Config {
     /** Боссов вызывают только в их логовах (алтари, круг); выключить - вызов где угодно, как в Divine. */
     public static boolean summonOnlyInLairs = true;
     public static boolean bossNoFly = true;
+    /** Арена босса ({@link com.divinerpgextended.boss.BossArena}). */
+    public static boolean bossArenaHold = true;
+    public static int bossArenaLeaveSeconds = 60, bossArenaRadius = 24, bossSummonClearRadius = 8;
     public static boolean dungeonSpawners = false;
     public static int divineTorchRadius = 24;
     public static int mapWorldSize = 10000;
@@ -170,6 +173,14 @@ public class Config {
             "Спавнеры мобов в постройках аддона (Древняя гробница, ледяная пещера, логово под храмом джунглей, подземелья сумеречных миров, склепы Мортума, башня Сумеречного демона). false - без спавнеров: мобы приходят сами, как везде");
         bossNoFly = cfg.getBoolean("bossNoFly", b, bossNoFly,
             "Рядом с живым боссом (48 блоков) полёт выключается - кроме Скайтерна и творческого режима. false - летать можно");
+        bossArenaLeaveSeconds = cfg.getInt("bossArenaLeaveSeconds", b, bossArenaLeaveSeconds, -1, 3600,
+            "Арена босса: если на ней не осталось бойцов (ушли, телепортировались, умерли, вышли из игры), босс ждёт столько секунд и исчезает без трофеев. Вернулся хоть один - ожидание сначала. 0 - исчезает сразу, как Страж Гайи в Botania; -1 - не исчезает никогда");
+        bossArenaHold = cfg.getBoolean("bossArenaHold", b, bossArenaHold,
+            "Пока босс жив, бойца у края арены отталкивает обратно к центру (выйти можно только телепортом). false - выходить можно, остаётся только правило bossArenaLeaveSeconds");
+        bossArenaRadius = cfg.getInt("bossArenaRadius", b, bossArenaRadius, 8, 128,
+            "Радиус арены босса, вызванного не в логове аддона (Аркана, Ветея, вызов где угодно); у логов арена - их зал, у Ледяного Трона - купол до кольца пилонов (80)");
+        bossSummonClearRadius = cfg.getInt("bossSummonClearRadius", b, bossSummonClearRadius, 0, 32,
+            "Вызов босса вне логова (summonOnlyInLairs=false, логова выключены): в этом радиусе вокруг точки вызова на 4 блока вверх должно быть пусто, как у Стража Гайи (до 10% колонн можно занять). 0 - без проверки. В логове проверяется только, что место появления босса не застроено");
         summonOnlyInLairs = cfg.getBoolean("summonOnlyInLairs", b, summonOnlyInLairs,
             "Боссов вызывают только в их логовах: зов кадиллиона - на алтаре гнезда, кристаллы Мортума - в Демоническом круге, Таинственные часы - на алтаре гробницы. false - где угодно, как в Divine");
         worldCrafts = cfg.getBoolean("worldCrafts", b, worldCrafts,
