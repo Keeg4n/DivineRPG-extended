@@ -2907,6 +2907,30 @@ public class SelfTest {
             check(carpetLeft(e) > 0 && maxFall < 0.2F, "запас на сервере " + carpetLeft(e) + ", накоплено падения " + maxFall);
             return "клиент планирует, хотя у сервера запас ещё есть - высота падения всё равно не копится";
         });
+        t("Логова", "Ступень брони: божественная - R1 (на кадиллиона Эдема), элитный реалмит - R0", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            TestPlayer v = player(ConfigurationHelper.eden, "TestTier", 9700.5, 120, 9700.5);
+            com.divinerpgextended.entity.EntityGreatCadillion cad = new com.divinerpgextended.entity.EntityGreatCadillion(w);
+            cad.setVariant(0);
+            float[] got = new float[3];
+            int[] tiers = new int[3];
+            net.minecraft.item.Item[][] sets = {
+                { net.divinerpg.utils.items.VanillaItemsArmor.divineHelmet, net.divinerpg.utils.items.VanillaItemsArmor.divineBody, net.divinerpg.utils.items.VanillaItemsArmor.divineLegs, net.divinerpg.utils.items.VanillaItemsArmor.divineBoots },
+                { net.divinerpg.utils.items.VanillaItemsArmor.eliteRealmiteHelmet, net.divinerpg.utils.items.VanillaItemsArmor.eliteRealmiteBody, net.divinerpg.utils.items.VanillaItemsArmor.eliteRealmiteLegs, net.divinerpg.utils.items.VanillaItemsArmor.eliteRealmiteBoots },
+                { null, null, null, null } };
+            for (int ti = 0; ti < 3; ti++) {
+                armor(v, sets[ti][0], sets[ti][1], sets[ti][2], sets[ti][3]);
+                tiers[ti] = com.divinerpgextended.item.ArmorData.effectiveTier(v);
+                net.minecraftforge.event.entity.living.LivingHurtEvent ev = new net.minecraftforge.event.entity.living.LivingHurtEvent(v, DamageSource.causeMobDamage(cad), 10);
+                new com.divinerpgextended.boss.BossDamage().onHurt(ev);
+                got[ti] = ev.ammount;
+            }
+            armor(v, null, null, null, null);
+            float mult = (float) com.divinerpgextended.Config.underTierMultiplier;
+            check(tiers[0] == 1 && tiers[1] == 0 && tiers[2] == 0 && near(got[0], 10) && near(got[1], 10 * mult),
+                "ступень: божественная " + tiers[0] + ", элитный реалмит " + tiers[1] + ", без брони " + tiers[2] + "; удар 10 кадиллиона Эдема: " + f(got[0]) + " / " + f(got[1]) + " / " + f(got[2]));
+            return "божественная броня - ступень 1: кадиллион Эдема бьёт честно (" + f(got[0]) + "); элитный реалмит - ступень 0: x" + f(mult) + " (" + f(got[1]) + ")";
+        });
         t("Логова", "Кадиллион вне рощи неуязвим", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             int x = 9800, y = 100, z = 9800;

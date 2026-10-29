@@ -79,13 +79,14 @@ public final class ArmorData {
 
     /**
      * Ступень брони игрока для боссов: сет Странника - своя ступень; полные сеты Divine считаются эквивалентом
-     * (реалмит R0, элитный реалмит R1, Eden R2 ... Halite R7); всё остальное - R0.
+     * (реалмит и элитный реалмит R0, божественная R1, Eden R2 ... Halite R7); всё остальное - R0.
      */
     public static int effectiveTier(EntityPlayer player) {
         int wanderer = equippedTier(player);
         if (wanderer > 0) return wanderer;
-        if (wearsSet(player, new Item[] { VanillaItemsArmor.eliteRealmiteHelmet, VanillaItemsArmor.eliteRealmiteBody,
-            VanillaItemsArmor.eliteRealmiteLegs, VanillaItemsArmor.eliteRealmiteBoots })) return 1;
+        // R1 - божественная броня (её фармят, как и портал в Эдем); элитный реалмит - лишь улучшенный R0 и начало брони Странника
+        if (wearsSet(player, new Item[] { VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody,
+            VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots })) return 1;
         int best = 0;
         for (ArmorTier t : ArmorTier.values()) if (wearsSet(player, t.donorSet())) best = Math.max(best, t.tier);
         return best;
