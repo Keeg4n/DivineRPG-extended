@@ -8395,7 +8395,7 @@ public class SelfTest {
                 v.extinguish();
                 com.divinerpgextended.boss.AyeracoHorde.breatheAt(red, v, hit);
                 float burnt = 20 - v.getHealth();
-                boolean onFire = v.isBurning();
+                boolean onFire = com.divinerpgextended.boss.AyeracoHorde.burning(v) && !v.isBurning(); // пламя пустотное, не обычный огонь
                 // отошёл вбок на 90 градусов - конус не успевает довернуть
                 v.setHealth(20);
                 v.hurtResistantTime = 0;
@@ -8412,6 +8412,7 @@ public class SelfTest {
                 float resisted = 20 - v.getHealth();
                 v.removePotionEffect(net.minecraft.potion.Potion.fireResistance.id);
                 v.extinguish();
+                v.getEntityData().removeTag(com.divinerpgextended.boss.AyeracoHorde.BURN);
                 // снаряд навесом: летит, рвётся у цели, земля горит
                 v.setHealth(20);
                 v.hurtResistantTime = 0;
@@ -8433,11 +8434,55 @@ public class SelfTest {
                 int swept = com.divinerpgextended.boss.AyeracoHorde.sweepBeams(w, c[0], f, c[2]);
                 boolean beamsGone = w.isAirBlock(c[0] + 8, f + 1, c[2] + 8) && w.isAirBlock(c[0] - 8, f + 1, c[2] - 12);
                 boolean fireType = com.divinerpgextended.boss.AyeracoHorde.fire(red).isFireDamage();
-                check(turns && burnt > 0 && onFire && dodged == 0 && resisted == 0 && flying == 1 && ticks < 120 && shelled > 0 && burning == 1 && swept == 2 && beamsGone && fireType,
+                // лук Энда: x2 и якорь; шаг стрелка в броне Энда ведёт прямо к Айрако на якоре
+                net.divinerpg.entities.vanilla.EntityAyeraco blue = horde.get(1);
+                blue.setPosition(c[0] + 10.5, f + 9, c[2] + 12.5);
+                blue.getEntityData().setLong("dreNoHeal", 0);
+                hold(v, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.enderBow));
+                net.minecraft.entity.projectile.EntityArrow bowArrow = new net.minecraft.entity.projectile.EntityArrow(w, v, 1F);
+                net.minecraftforge.event.entity.living.LivingAttackEvent ba = new net.minecraftforge.event.entity.living.LivingAttackEvent(blue,
+                    DamageSource.causeArrowDamage(bowArrow, v), 5);
+                MinecraftForge.EVENT_BUS.post(ba);
+                boolean pierces = !ba.isCanceled();
+                float bow = hurt(blue, DamageSource.causeArrowDamage(bowArrow, v), 10);
+                boolean anchored = blue.getEntityData().getLong(com.divinerpgextended.boss.AyeracoHorde.ANCHOR) > w.getTotalWorldTime();
+                boolean noHeal = blue.getEntityData().getLong("dreNoHeal") > w.getTotalWorldTime();
+                v.inventory.armorInventory[0] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.blueEnderBoots);
+                v.inventory.armorInventory[1] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.blueEnderLegs);
+                v.inventory.armorInventory[2] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.blueEnderBody);
+                v.inventory.armorInventory[3] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.blueEnderHelmet);
+                boolean bowWeapon = com.divinerpgextended.boss.EnderColors.sword(v.getHeldItem())
+                    && com.divinerpgextended.boss.EnderColors.sword(new ItemStack(net.divinerpg.utils.items.IceikaItems.enderice));
+                ArcanaHelper ah = ArcanaHelper.getProperties(v);
+                ah.setBarValue(100);
+                com.divinerpgextended.magic.ArcanaRules.resetCooldowns();
+                v.setPosition(c[0] + 10.5, f + 1, c[2] + 0.5);
+                double ldx = blue.posX - v.posX, ldy = blue.posY + blue.height / 2 - (v.posY + v.getEyeHeight()), ldz = blue.posZ - v.posZ;
+                v.rotationYaw = (float) (Math.atan2(ldz, ldx) * 180 / Math.PI) - 90F;
+                v.rotationPitch = (float) -(Math.atan2(ldy, Math.sqrt(ldx * ldx + ldz * ldz)) * 180 / Math.PI);
+                String step = com.divinerpgextended.boss.EnderGear.tryBlink(v);
+                double toPrey = v.getDistanceToEntity(blue);
+                for (int i = 0; i < 4; i++) v.inventory.armorInventory[i] = null;
+                hold(v, null);
+                // подмога: тройня или наблюдатель Энда рядом с игроком, помечены; покой арены их не трогает, а чужого зомби убирает
+                v.setPosition(c[0] + 10.5, f + 1, c[2] + 0.5);
+                net.minecraft.entity.EntityLiving add = com.divinerpgextended.boss.AyeracoHorde.callAddFor(red, v);
+                boolean addOk = add != null && add.getEntityData().getBoolean(com.divinerpgextended.boss.AyeracoHorde.ADD) && add.getDistanceToEntity(v) < 12
+                    && (add instanceof net.divinerpg.entities.vanilla.EntityEnderTriplets || add instanceof net.divinerpg.entities.vanilla.EntityEnderWatcher);
+                net.minecraft.entity.monster.EntityEnderman stray = new net.minecraft.entity.monster.EntityEnderman(w);
+                stray.setPosition(c[0] - 6.5, f + 1, c[2] + 3.5);
+                w.spawnEntityInWorld(stray);
+                int calmed = com.divinerpgextended.boss.AyeracoHorde.calm(w, c[0], f, c[2]);
+                boolean calmOk = stray.isDead && add != null && !add.isDead;
+                if (add != null) add.setDead();
+                check(turns && burnt > 0 && onFire && dodged == 0 && resisted == 0 && flying == 1 && ticks < 120 && shelled > 0 && burning == 1 && swept == 2 && beamsGone && fireType
+                    && pierces && near(bow, 20) && anchored && noHeal && bowWeapon && step == null && toPrey < 4 && addOk && calmOk,
                     "подлетает " + engaged + " из 5 (очередь " + turns + "); дыхание " + f(burnt) + ", горит " + onFire + ", вбок " + f(dodged) + ", с огнестойкостью " + f(resisted)
-                        + "; снаряд в полёте " + flying + ", долетел за " + ticks + " тиков, урон " + f(shelled) + ", горящих мест " + burning + "; лучей убрано " + swept + ", чисто " + beamsGone);
-                return "подлетает по одному (при трёх и меньше - по двое); дыхание жжёт " + f(burnt) + " и поджигает, уйти вбок можно, огнестойкость спасает; снаряд навесом летит "
-                    + ticks + " тиков, бьёт на " + f(shelled) + " и поджигает землю; лучи Divine после боя убираются";
+                        + "; снаряд в полёте " + flying + ", долетел за " + ticks + " тиков, урон " + f(shelled) + ", горящих мест " + burning + "; лучей убрано " + swept + ", чисто " + beamsGone + "; лук сквозь щит " + pierces + ", урон " + f(bow) + " (ждали 20), якорь "
+                        + anchored + ", лечение снято " + noHeal + ", лук и ледяной меч - оружие шага " + bowWeapon + ", шаг к Айрако " + step + " (в " + f((float) toPrey) + ")"
+                        + "; подмога " + addOk + " (" + add + "), покой арены " + calmOk + " (убрано " + calmed + ")");
+                return "подлетает по одному (при трёх и меньше - по двое); пустотное пламя жжёт " + f(burnt) + " и поджигает, уйти вбок можно, огнестойкость спасает; снаряд навесом летит "
+                    + ticks + " тиков, бьёт на " + f(shelled) + " и поджигает землю; лучи Divine после боя убираются; лук Энда x2 с якорем, шаг к Айрако на якоре; подмога и покой арены";
             } finally {
                 for (net.divinerpg.entities.vanilla.EntityAyeraco a : horde) a.setDead();
                 v.extinguish();

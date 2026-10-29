@@ -34,7 +34,8 @@ public final class EnderColors {
         GRAY = new java.util.HashSet<Item>(java.util.Arrays.asList(VanillaItemsArmor.grayEnderHelmet, VanillaItemsArmor.grayEnderBody,
             VanillaItemsArmor.grayEnderLegs, VanillaItemsArmor.grayEnderBoots));
         SWORDS = new java.util.HashSet<Item>(java.util.Arrays.asList(VanillaItemsWeapons.enderSword, VanillaItemsWeapons.blueEnderSword,
-            VanillaItemsWeapons.grayEnderSword, VanillaItemsWeapons.greenEnderSword, VanillaItemsWeapons.redEnderSword, VanillaItemsWeapons.yellowEnderSword));
+            VanillaItemsWeapons.grayEnderSword, VanillaItemsWeapons.greenEnderSword, VanillaItemsWeapons.redEnderSword, VanillaItemsWeapons.yellowEnderSword,
+            VanillaItemsWeapons.enderBow, net.divinerpg.utils.items.IceikaItems.enderice)); // и лук Энда, и ледяной меч Энда
     }
 
     private static void put(Hue h, Item... items) {

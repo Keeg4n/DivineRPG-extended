@@ -122,6 +122,23 @@ public class EnderGear {
      */
     public static String tryBlink(EntityPlayer p) {
         World w = p.worldObj;
+        // Айрако на пустотном якоре этого стрелка перед глазами - шаг прямо к нему, вплотную
+        net.minecraft.entity.EntityLiving prey = AyeracoHorde.anchoredFor(p);
+        if (prey != null) {
+            double dx = p.posX - prey.posX, dz = p.posZ - prey.posZ, len = Math.max(0.1, Math.sqrt(dx * dx + dz * dz));
+            double gx = prey.posX + dx / len * (prey.width / 2 + 1.2), gz = prey.posZ + dz / len * (prey.width / 2 + 1.2), gy = prey.posY;
+            if (fits(w, gx, gy, gz)) {
+                ArcanaHelper h = ArcanaHelper.getProperties(p);
+                if (h == null) return "dre.blink.arcana";
+                if (!ArcanaRules.useBar(h, COST, "EnderBlink")) return h.getBarValue() < COST * 0.5F ? "dre.blink.arcana" : "";
+                particles(w, p.posX, p.boundingBox.minY, p.posZ);
+                moveTo(p, gx, gy + (p.posY - p.boundingBox.minY), gz);
+                p.fallDistance = 0;
+                w.playSoundEffect(gx, gy, gz, "mob.endermen.portal", 1F, 0.9F);
+                particles(w, gx, gy, gz);
+                return null;
+            }
+        }
         Vec3 look = p.getLookVec();
         double x = p.posX, y = p.boundingBox.minY, z = p.posZ;
         double tx = x, ty = y, tz = z, lift = 0;

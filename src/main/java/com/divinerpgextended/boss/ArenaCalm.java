@@ -76,7 +76,7 @@ public class ArenaCalm {
         for (EntityLiving m : list) {
             if (!(m instanceof IMob) || m instanceof IBossDisplayData || m instanceof net.divinerpg.entities.base.EntityDivineRPGBoss) continue;
             if (m.getEntityData().hasKey(com.divinerpgextended.entity.EntityGroveGuardian.ADD_TAG) || m.getEntityData().hasKey("dreCadillionAdd")
-                || m.getEntityData().hasKey("dreDemonAdd")) continue;
+                || m.getEntityData().hasKey("dreDemonAdd") || m.getEntityData().hasKey(AyeracoHorde.ADD)) continue;
             ((WorldServer) w).func_147487_a("largesmoke", m.posX, m.posY + m.height / 2, m.posZ, 10, 0.3, 0.5, 0.3, 0.02);
             m.setDead();
             n++;
