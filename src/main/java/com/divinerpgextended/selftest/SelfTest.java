@@ -7526,6 +7526,27 @@ public class SelfTest {
             return "озеро вырезано в потолке (" + water + " воды мечтаний), течёт вверх, бесконечная; коснулся - сразу перевёрнут и висит у глади, "
                 + "Shift - нырнул глубже, пробел - вынырнул, всплыл с пробелом - висит у глади; голова в воздухе - дышит; ведро; поплавок держится у глади; клюёт только на удочку Голода";
         });
+        t("Ветея - этажи", "Вода мечтаний: вещь на краю загруженного не догружает чанк и не роняет сервер", () -> {
+            WorldServer w = server.worldServerForDimension(1);
+            int cx = 1500001, cz = 1500001; // заведомо не загруженный чанк
+            boolean before = w.getChunkProvider().chunkExists(cx, cz);
+            net.minecraft.entity.item.EntityItem it = new net.minecraft.entity.item.EntityItem(w, cx * 16 + 8.5, 60, cz * 16 + 8.5,
+                new ItemStack(net.minecraft.init.Items.stick));
+            @SuppressWarnings("unchecked")
+            List<Object> list = w.loadedEntityList;
+            list.add(it);
+            String err = "";
+            try {
+                com.divinerpgextended.block.BlockDreamWater.sinkLoose(w);
+            } catch (RuntimeException ex) {
+                err = ex.toString();
+            } finally {
+                list.remove(it);
+            }
+            boolean after = w.getChunkProvider().chunkExists(cx, cz);
+            check(!before && !after && err.isEmpty(), "чанк был " + before + ", после обхода " + after + ", ошибка " + err);
+            return "вещь в незагруженном чанке пропущена: чанк не грузится, список сущностей не меняется посреди обхода";
+        });
         t("Ветея - этажи", "Вода мечтаний: мелкие мобы не задыхаются, из глубины всплывают, вещи тонут к дну озера", () -> {
             WorldServer v = server.worldServerForDimension(ConfigurationHelper.vethea);
             int vx = 9600, vz = 9600, ceil = 80, surface = 76;

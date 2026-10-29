@@ -95,10 +95,13 @@ public class BlockDreamWater extends BlockFluidClassic {
      */
     public static void sinkLoose(World w) {
         if (w == null) return;
-        for (Object o : w.loadedEntityList) {
+        // по копии и только в загруженных чанках: чтение блока на краю догружало чанк, его сущности вставали в список
+        // посреди обхода - сервер падал (ConcurrentModificationException, полёт к острову Энда)
+        for (Object o : w.loadedEntityList.toArray()) {
             if (!(o instanceof net.minecraft.entity.item.EntityItem) && !(o instanceof net.minecraft.entity.item.EntityXPOrb)) continue;
             Entity e = (Entity) o;
-            if (!inside(e)) continue;
+            int ex = MathHelper.floor_double(e.posX), ez = MathHelper.floor_double(e.posZ);
+            if (!w.checkChunksExist(ex - 1, 0, ez - 1, ex + 1, 0, ez + 1) || !inside(e)) continue;
             e.motionY += 0.04 + 0.02; // гасит тяжесть (0.04) и тянет вверх, к дну озера
             e.motionY = Math.min(0.12, e.motionY);
             e.fallDistance = 0;
