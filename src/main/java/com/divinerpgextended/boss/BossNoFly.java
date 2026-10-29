@@ -34,7 +34,8 @@ public class BossNoFly {
     @SubscribeEvent
     public void onTick(TickEvent.PlayerTickEvent e) {
         EntityPlayer p = e.player;
-        if (e.phase != TickEvent.Phase.END || p.worldObj.isRemote || !Config.bossNoFly || !p.capabilities.isFlying || p.capabilities.isCreativeMode) return;
+        if (e.phase != TickEvent.Phase.END || p.worldObj.isRemote || !Config.bossNoFly || !p.capabilities.isFlying || p.capabilities.isCreativeMode
+            || p.ticksExisted % 10 != 0) return; // поиск босса в 48 блоках - раз в полсекунды
         if (!near(p)) return;
         p.capabilities.isFlying = false;
         p.sendPlayerAbilities();

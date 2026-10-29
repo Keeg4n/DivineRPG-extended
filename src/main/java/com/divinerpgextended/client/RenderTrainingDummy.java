@@ -134,6 +134,9 @@ public class RenderTrainingDummy extends RenderBiped {
     protected void passSpecialRender(net.minecraft.entity.EntityLivingBase e, double x, double y, double z) {
         EntityTrainingDummy d = (EntityTrainingDummy) e;
         if (d.lastHit() <= 0 && d.dps() <= 0) {
+            // подсказка "Ударь меня" - только когда на манекен смотрят
+            net.minecraft.util.MovingObjectPosition mo = net.minecraft.client.Minecraft.getMinecraft().objectMouseOver;
+            if (mo == null || mo.entityHit != e) return;
             func_147906_a(e, EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.dummy.idle"), x, y, z, 16);
             return;
         }

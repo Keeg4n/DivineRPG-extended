@@ -166,12 +166,9 @@ public class EntityTrainingDummy extends EntityLiving {
         // огонь, лава, кактус, падение - не в счёт; взрывы (бомбы, метеоры, пушки модов: у взрыва в 1.7.10 нет атакующего) и
         // прочий урон оружия без атакующего - в счёт
         if (attacker == null && !s.isExplosion() && ENVIRONMENT.contains(s.damageType)) return false;
-        if (attacker instanceof EntityPlayer && s.getSourceOfDamage() == attacker && ((EntityPlayer) attacker).isSneaking()) {
-            EntityPlayer p = (EntityPlayer) attacker;
-            if (placer != null && placer.equals(p.getUniqueID())) pickUp(p);
-            else p.addChatMessage(new ChatComponentTranslation("dre.dummy.not_yours"));
-            return false;
-        }
+        // присел и ударил рукой - забрать: решает удар самого игрока ({@link Pickup}), а не урон - иначе манекен забирал
+        // удар питомца (или призрака) "от имени" присевшего хозяина
+        if (attacker instanceof EntityPlayer && ((EntityPlayer) attacker).isSneaking() && s.getSourceOfDamage() == attacker) return false;
         DummyGhost g = ghost();
         if (g == null) return false;
         // неуязвимость после удара - как у игрока: за полсекунды засчитывается только то, на сколько новый удар сильнее
@@ -255,6 +252,20 @@ public class EntityTrainingDummy extends EntityLiving {
         setDead();
         ItemStack it = new ItemStack(com.divinerpgextended.registry.ModItems.trainingDummy);
         if (!p.inventory.addItemStackToInventory(it)) entityDropItem(it, 0.5F);
+    }
+
+    /** Забрать манекен: игрок присел и сам ударил его (событие удара игрока, а не урон). */
+    public static class Pickup {
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onAttack(net.minecraftforge.event.entity.player.AttackEntityEvent e) {
+            if (!(e.target instanceof EntityTrainingDummy) || e.entityPlayer.worldObj.isRemote || !e.entityPlayer.isSneaking()) return;
+            EntityTrainingDummy d = (EntityTrainingDummy) e.target;
+            e.setCanceled(true);
+            if (d.isDead || d.removed) return;
+            if (d.placer != null && d.placer.equals(e.entityPlayer.getUniqueID())) d.pickUp(e.entityPlayer);
+            else e.entityPlayer.addChatMessage(new ChatComponentTranslation("dre.dummy.not_yours"));
+        }
     }
 
     @Override

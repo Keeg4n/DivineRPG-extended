@@ -335,7 +335,8 @@ public class BlockSkyRail extends Block {
                 Object[] q = queue.poll();
                 World w = (World) q[0];
                 int x = (Integer) q[1], y = (Integer) q[2], z = (Integer) q[3];
-                if (w.getChunkProvider().chunkExists(x >> 4, z >> 4)) adopt(w, x, y, z);
+                // связи смотрят соседей: без загруженных соседних чанков не трогаем (загрузятся - рельса встанет в очередь снова)
+                if (w.checkChunksExist(x - 1, y - 1, z - 1, x + 1, y + 1, z + 1)) adopt(w, x, y, z);
             }
         }
     }

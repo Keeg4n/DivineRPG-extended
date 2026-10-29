@@ -84,7 +84,7 @@ public final class ModItems {
     /** Арканные зелья (с арканной стойки). */
     public static Item arcanePotion;
     /** Манекен для битья. */
-    public static Item trainingDummy;
+    public static Item trainingDummy, petWhistle;
 
     private ModItems() {}
 
@@ -198,6 +198,11 @@ public final class ModItems {
         GameRegistry.registerItem(arcanePotion, "arcanePotion");
         trainingDummy = new com.divinerpgextended.dummy.ItemTrainingDummy();
         GameRegistry.registerItem(trainingDummy, "trainingDummy");
+        petWhistle = new com.divinerpgextended.item.ItemPetWhistle();
+        GameRegistry.registerItem(petWhistle, "petWhistle");
+        // железный свисток на шнурке, золотой мундштук
+        GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(petWhistle), net.minecraft.init.Items.iron_ingot, net.minecraft.init.Items.gold_nugget,
+            net.minecraft.init.Items.string);
         // тыква на тюке сена на палке
         GameRegistry.addRecipe(new net.minecraft.item.ItemStack(trainingDummy), "P", "H", "S", 'P', net.minecraft.init.Blocks.pumpkin, 'H', net.minecraft.init.Blocks.hay_block, 'S',
             net.minecraft.init.Items.stick);

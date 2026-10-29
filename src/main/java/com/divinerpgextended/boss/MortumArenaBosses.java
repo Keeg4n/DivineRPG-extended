@@ -113,8 +113,18 @@ public class MortumArenaBosses {
     }
 
     /** Чья сейчас дуэль; брат мёртв - выживший всегда дуэлянт. */
+    /** Жив ли брат (кэш на секунду: поиск по 129 блокам каждый тик у каждого близнеца - дорого). */
+    private static final java.util.Map<EntityLivingBase, long[]> HAS_BROTHER = new java.util.WeakHashMap<EntityLivingBase, long[]>();
+
+    static boolean hasBrother(EntityLivingBase t) {
+        long now = t.worldObj.getTotalWorldTime();
+        long[] c = HAS_BROTHER.get(t);
+        if (c == null || now - c[0] >= 20 || now < c[0]) HAS_BROTHER.put(t, c = new long[] { now, brother(t, 64) != null ? 1 : 0 });
+        return c[1] == 1;
+    }
+
     public static boolean duelist(EntityLivingBase t) {
-        if (brother(t, 64) == null) return true;
+        if (!hasBrother(t)) return true;
         boolean densosTurn = t.worldObj.getTotalWorldTime() / DUEL % 2 == 0;
         return t instanceof EntityDensos == densosTurn;
     }
@@ -420,7 +430,8 @@ public class MortumArenaBosses {
             if (ar.worldObj != w) continue;
             double sp = ar.motionX * ar.motionX + ar.motionY * ar.motionY + ar.motionZ * ar.motionZ;
             int done = ar.getEntityData().getInteger(PIERCED);
-            if (ar.isDead || ar.ticksExisted > 60 || sp < 0.04 || done >= PIERCE_BLOCKS) {
+            int ax = (int) Math.floor(ar.posX), ay = (int) Math.floor(ar.posY), az = (int) Math.floor(ar.posZ);
+            if (ar.isDead || ar.ticksExisted > 60 || sp < 0.04 || done >= PIERCE_BLOCKS || !w.checkChunksExist(ax - 2, ay - 2, az - 2, ax + 2, ay + 2, az + 2)) {
                 it.remove();
                 continue;
             }

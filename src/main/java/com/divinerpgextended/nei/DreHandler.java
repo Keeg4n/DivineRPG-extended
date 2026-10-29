@@ -176,14 +176,29 @@ public abstract class DreHandler extends TemplateRecipeHandler {
         GuiDraw.drawRect(x, y, 1, 16, 0xFF373737);
     }
 
+    /** Ширина текста на странице NEI: строки длиннее переносятся по словам, а не уезжают за край. */
+    static final int TEXT_W = 162;
+
+    /** Одна страница на экран: пояснения после переноса бывают в несколько строк и залезали на следующую. */
+    @Override
+    public int recipiesPerPage() {
+        return 1;
+    }
+
     @Override
     public void drawExtras(int recipe) {
         Page p = (Page) arecipes.get(recipe);
-        GuiDraw.drawString(p.title, 2, 1, 0x404040, false);
-        int y = p.noteY;
-        for (String n : p.notes) {
-            GuiDraw.drawString(n, 2, y, 0x505050, false);
+        int y = 1;
+        for (Object t : GuiDraw.fontRenderer.listFormattedStringToWidth(p.title, TEXT_W)) {
+            GuiDraw.drawString((String) t, 2, y, 0x404040, false);
             y += 10;
+        }
+        y = Math.max(y, p.noteY);
+        for (String n : p.notes) {
+            for (Object part : GuiDraw.fontRenderer.listFormattedStringToWidth(n, TEXT_W)) {
+                GuiDraw.drawString((String) part, 2, y, 0x505050, false);
+                y += 10;
+            }
         }
     }
 

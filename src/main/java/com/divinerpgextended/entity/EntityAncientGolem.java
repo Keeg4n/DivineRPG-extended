@@ -299,12 +299,13 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         long now = worldObj.getTotalWorldTime();
         WorldServer ws = (WorldServer) worldObj;
         java.util.Set<Integer> seen = new java.util.HashSet<Integer>();
+        List<EntityPlayer> near = players(30);
         for (int i = 0; i < 4; i++) {
             int[] s = com.divinerpgextended.world.twilight.WorldGenNests.spring(i);
             double sx = home[0] + s[0] + 0.5, sz = home[2] + s[1] + 0.5, sy = home[1] - 0.5;
             boolean awake = now >= springWake[i];
             if (awake && ticksExisted % 10 == 0) ws.func_147487_a("splash", sx, sy + 0.6, sz, 6, 0.6, 0.1, 0.6, 0);
-            for (EntityPlayer p : players(30)) {
+            for (EntityPlayer p : near) {
                 double dx = p.posX - sx, dz = p.posZ - sz;
                 if (dx * dx + dz * dz > 2.6 || Math.abs(p.posY - sy) > 1.5 || !p.isInWater() || !awake) continue;
                 seen.add(p.getEntityId());

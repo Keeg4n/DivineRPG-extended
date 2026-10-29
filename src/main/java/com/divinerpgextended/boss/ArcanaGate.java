@@ -56,6 +56,7 @@ public class ArcanaGate {
             sendBack((EntityPlayerMP) p);
             return;
         }
+        if (p.ticksExisted % 4 != 0) return;
         if (nearPortal(p)) {
             p.timeUntilPortal = 20; // портал Divine не перенесёт, пока пауза не кончилась
             if (p.ticksExisted % 60 == 0) p.addChatMessage(new ChatComponentTranslation("dre.chat.arcana_locked"));
@@ -70,7 +71,7 @@ public class ArcanaGate {
         int x0 = MathHelper.floor_double(p.boundingBox.minX) - 2, x1 = MathHelper.floor_double(p.boundingBox.maxX) + 2;
         int z0 = MathHelper.floor_double(p.boundingBox.minZ) - 2, z1 = MathHelper.floor_double(p.boundingBox.maxZ) + 2;
         int y1 = MathHelper.floor_double(p.boundingBox.minY) + 1;
-        int y0 = MathHelper.floor_double(p.boundingBox.minY + Math.min(0, p.motionY * 2)) - 2;
+        int y0 = MathHelper.floor_double(p.boundingBox.minY + Math.min(0, p.motionY * 4)) - 2; // раз в 4 тика: запас на падение за 4 тика
         for (int x = x0; x <= x1; x++)
             for (int z = z0; z <= z1; z++)
                 for (int y = y0; y <= y1; y++)

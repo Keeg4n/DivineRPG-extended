@@ -128,6 +128,7 @@ public class EnderGear {
             double dx = p.posX - prey.posX, dz = p.posZ - prey.posZ, len = Math.max(0.1, Math.sqrt(dx * dx + dz * dz));
             double gx = prey.posX + dx / len * (prey.width / 2 + 1.2), gz = prey.posZ + dz / len * (prey.width / 2 + 1.2), gy = prey.posY;
             if (fits(w, gx, gy, gz)) {
+                if (!com.divinerpgextended.portal.TeleportGuard.allowed(p, gx, gy, gz)) return "dre.blink.private";
                 ArcanaHelper h = ArcanaHelper.getProperties(p);
                 if (h == null) return "dre.blink.arcana";
                 if (!ArcanaRules.useBar(h, COST, "EnderBlink")) return h.getBarValue() < COST * 0.5F ? "dre.blink.arcana" : "";
@@ -161,6 +162,7 @@ public class EnderGear {
         }
         if ((tx - x) * (tx - x) + (ty - y) * (ty - y) + (tz - z) * (tz - z) < 2 * 2) return "dre.blink.wall";
         if (!groundBelow(w, tx, ty, tz)) return "dre.blink.void"; // в бездну не шагнуть
+        if (!com.divinerpgextended.portal.TeleportGuard.allowed(p, tx, ty, tz)) return "dre.blink.private"; // приват с запретом телепортов
         ArcanaHelper h = ArcanaHelper.getProperties(p);
         if (h == null) return "dre.blink.arcana";
         if (!ArcanaRules.useBar(h, COST, "EnderBlink")) return h.getBarValue() < COST * 0.5F ? "dre.blink.arcana" : ""; // мало арканы или откат
@@ -190,6 +192,7 @@ public class EnderGear {
     static void rescue(EntityPlayer p, NBTTagCompound d) {
         d.setLong(RESCUE_AT, p.worldObj.getTotalWorldTime() + RESCUE_CD);
         double x = d.getDouble(SAFE_X), y = d.getDouble(SAFE_Y), z = d.getDouble(SAFE_Z);
+        if (!com.divinerpgextended.portal.TeleportGuard.check(p, x, y, z)) return; // приват запрещает телепорты - и спасение тоже
         p.motionX = p.motionY = p.motionZ = 0;
         moveTo(p, x, y, z);
         p.fallDistance = 0;

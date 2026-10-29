@@ -165,8 +165,8 @@ public class AyeracoHorde {
         if (p.aliveAt == now) return p.alive;
         p.aliveAt = now;
         p.alive.clear();
-        for (Object o : w.getEntitiesWithinAABB(EntityAyeraco.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(p.x - 128, p.y - 48, p.z - 128, p.x + 128,
-            p.y + 96, p.z + 128))) {
+        for (Object o : w.getEntitiesWithinAABB(EntityAyeraco.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(p.x - LEASH - 8, p.y - 24, p.z - LEASH - 8, p.x + LEASH + 8,
+            p.y + 64, p.z + LEASH + 8))) {
             EntityLiving e = (EntityLiving) o;
             if (member(e) && e.isEntityAlive()) p.alive.add(e);
         }
@@ -568,6 +568,7 @@ public class AyeracoHorde {
     /** Столп цвета цел: в его колонне есть хоть один блок своей глины. */
     static boolean pillar(World w, Pack p, Hue h) {
         int[] at = pillarAt(p.x, p.y, p.z, h);
+        if (!w.blockExists(at[0], at[1], at[2])) return false; // чанк столпа не загружен - не грузим ради проверки
         for (int y = at[1]; y < at[1] + PILLAR_H; y++) if (w.getBlock(at[0], y, at[2]) == Blocks.stained_hardened_clay && w.getBlockMetadata(at[0], y, at[2]) == h.clay()) return true;
         return false;
     }

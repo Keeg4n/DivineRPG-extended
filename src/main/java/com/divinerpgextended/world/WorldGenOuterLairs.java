@@ -22,8 +22,8 @@ import cpw.mods.fml.common.IWorldGenerator;
  * светящимися кольцами, четыре тоннеля наружу. Зов Смотрителя - в зале.</li>
  * <li>Огненная палата Короля скорчеров (Ад): зал радиусом 17, лавовый ров с четырьмя мостиками, колонны. Инфернальное
  * пламя - в палате.</li>
- * <li>Гнездовье Айрако (Энд): большой остров в {@link #AYERACO_DIST} блоках от центра (до 0.99.35 - малый в 1000, в старых
- * мирах он остался передышкой по пути): рваный край, каплевидное основание, плоская арена с обсидиановыми кольцами,
+ * <li>Гнездовье Айрако (Энд): большой остров в {@link #AYERACO_DIST} блоках от центра по диагонали - целиком внутри границы
+ * мира {@link #WORLD_EDGE} (в 0.99.36-0.99.37 был в 1400, до того малый в 1000): рваный край, каплевидное основание, плоская арена с обсидиановыми кольцами,
  * пять башен со столпами орды, вокруг - пояс астероидов из эндерняка. Рог орды - на острове.</li>
  * </ul>
  */
@@ -35,9 +35,11 @@ public class WorldGenOuterLairs implements IWorldGenerator {
     private static final int[] CENTER_Y = { 68, 50, 0 };
     private static final long[] SALT = { 0x5A7C4L, 0x5C0BCL, 0xA7E2AL };
     /** Гнездовье Айрако - одно на мир: дальний остров на этом расстоянии от центра Энда (долететь - на ангельской броне). */
-    public static final int AYERACO_DIST = 1400;
+    public static final int AYERACO_DIST = 850;
+    /** Граница мира на сервере: всё гнездовье с поясом астероидов - внутри квадрата |x|, |z| <= WORLD_EDGE. */
+    public static final int WORLD_EDGE = 900;
     /** Островки-передышки по пути к гнездовью: через столько блоков, сколько их. */
-    public static final int ISLET_STEP = 170, ISLETS = 7;
+    public static final int ISLET_STEP = 170, ISLETS = 4;
     /** Гнездовье: плоская арена в центре острова; пояс астероидов - кольцо от BELT_IN до BELT_OUT, камней в нём. */
     public static final int ARENA = 32, BELT_IN = 78, BELT_OUT = 112, BELT_ROCKS = 110;
 
@@ -68,7 +70,8 @@ public class WorldGenOuterLairs implements IWorldGenerator {
     public static int[] center(long seed, int type, int rx, int rz) {
         Random r = new Random(seed ^ (rx * 341873128712L + rz * 132897987541L) ^ SALT[type]);
         if (type == AYERACO) {
-            double a = r.nextDouble() * Math.PI * 2;
+            // по диагонали (+-20 градусов): на 850 блоках от нуля и остров, и пояс астероидов не выходят за границу 900
+            double a = Math.PI / 4 + r.nextInt(4) * Math.PI / 2 + (r.nextDouble() - 0.5) * Math.toRadians(40);
             return new int[] { (int) (Math.cos(a) * AYERACO_DIST), FLOOR[type], (int) (Math.sin(a) * AYERACO_DIST) };
         }
         int g = Config.netherLairSpacing, margin = Math.min(g / 3, RADIUS[type] + 40);

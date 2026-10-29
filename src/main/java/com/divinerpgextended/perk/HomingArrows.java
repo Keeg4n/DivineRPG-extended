@@ -53,7 +53,7 @@ public class HomingArrows {
     public void onTick(TickEvent.ServerTickEvent e) {
         if (e.phase != TickEvent.Phase.END || arrows.isEmpty()) return;
         for (EntityDivineArrow a : new ArrayList<EntityDivineArrow>(arrows)) {
-            if (a.isDead || a.ticksExisted > 120 || inGround(a)) {
+            if (a.isDead || a.ticksExisted > 120 || inGround(a) || !a.worldObj.blockExists((int) Math.floor(a.posX), (int) Math.floor(a.posY), (int) Math.floor(a.posZ))) {
                 arrows.remove(a);
                 continue;
             }
@@ -61,9 +61,12 @@ public class HomingArrows {
         }
     }
 
+    private static java.lang.reflect.Field inGround;
+
     private static boolean inGround(EntityDivineArrow a) {
         try {
-            return ReflectionHelper.<Boolean, EntityDivineArrow>getPrivateValue(EntityDivineArrow.class, a, "field_70254_i");
+            if (inGround == null) inGround = ReflectionHelper.findField(EntityDivineArrow.class, "field_70254_i", "inGround");
+            return inGround.getBoolean(a);
         } catch (Throwable t) {
             return false;
         }

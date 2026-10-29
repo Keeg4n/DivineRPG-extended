@@ -25,7 +25,8 @@ public class ArcanaTooltips {
             com.divinerpgextended.boss.AyeracoHorde.Hue h = com.divinerpgextended.boss.EnderColors.hue(i);
             e.toolTip.add(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(h == null ? "dre.tooltip.ender_gray"
                 : "dre.tooltip.ender_vs." + h.name().toLowerCase()));
-            e.toolTip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.tooltip.ender_set"));
+            e.toolTip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("dre.tooltip.ender_set",
+                com.divinerpgextended.boss.EnderGear.RESCUE_CD / 20, (int) com.divinerpgextended.boss.EnderGear.RESCUE_HURT / 2));
         }
         if (com.divinerpgextended.boss.EnderColors.sword(e.itemStack)) e.toolTip.add(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("dre.tooltip.ender_sword"));
         ArcaneEffect ing = ArcaneEffect.byIngredient(i);

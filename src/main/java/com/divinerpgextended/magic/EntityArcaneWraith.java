@@ -34,7 +34,7 @@ public class EntityArcaneWraith extends EntityWraith {
         noClip = true;
     }
 
-    EntityPlayer owner() {
+    public EntityPlayer owner() {
         if (master != null && !master.isDead) return master;
         EntityLivingBase o = func_70902_q();
         return o instanceof EntityPlayer ? (EntityPlayer) o : null;

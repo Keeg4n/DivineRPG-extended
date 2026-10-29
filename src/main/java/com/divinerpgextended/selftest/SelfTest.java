@@ -1161,13 +1161,16 @@ public class SelfTest {
             boolean alive = !d.isDead && d.getHealth() == d.getMaxHealth();
             // чужой не уберёт, хозяин - один раз
             a.setSneaking(true);
-            d.attackEntityFrom(DamageSource.causePlayerDamage(a), 1F);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.AttackEntityEvent(a, d));
             boolean stays = !d.isDead;
             a.setSneaking(false);
             int before = count(p, ModItems.trainingDummy);
             p.setSneaking(true);
+            // хозяин присел, а бьёт его питомец (урон "от имени" хозяина) - манекен остаётся
             d.attackEntityFrom(DamageSource.causePlayerDamage(p), 1F);
-            d.attackEntityFrom(DamageSource.causePlayerDamage(p), 1F);
+            boolean petStays = !d.isDead;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.AttackEntityEvent(p, d));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.AttackEntityEvent(p, d));
             p.setSneaking(false);
             int got = count(p, ModItems.trainingDummy) - before;
             // /kill - ничего не выпадает
@@ -1182,10 +1185,10 @@ public class SelfTest {
             com.divinerpgextended.magic.ArcaneEffects.clear(p);
             server.getConfigurationManager().playerEntityList.remove(a);
             w.removeEntity(a);
-            check(armorCopy && hit && near(shown, real) && real > 0 && real < 10 && near(attackerHp, 10) && alive && stays && d.isDead && got == 1 && d2.isDead
+            check(armorCopy && hit && near(shown, real) && real > 0 && real < 10 && near(attackerHp, 10) && alive && stays && petStays && d.isDead && got == 1 && d2.isDead
                 && items1 == items0,
                 "броня скопирована отдельно " + armorCopy + "; удар 10 по игроку в алмазе " + f(real) + ", манекен показал " + f(shown) + "; здоровье бьющего " + f(attackerHp)
-                    + " (было 10), манекен цел " + alive + "; чужой не убрал " + stays + ", хозяин убрал " + d.isDead + " и получил " + got + "; /kill: убит " + d2.isDead
+                    + " (было 10), манекен цел " + alive + "; чужой не убрал " + stays + ", урон не рукой при присевшем хозяине не убрал " + petStays + ", хозяин убрал " + d.isDead + " и получил " + got + "; /kill: убит " + d2.isDead
                     + ", вещей рядом " + items0 + " -> " + items1);
             return "удар 10 по копии в алмазе: " + f(shown) + " - как по самому игроку; колючки не ранят бьющего; убрать может только хозяин и получает 1 манекен; /kill - без добычи";
         });
@@ -3351,14 +3354,83 @@ public class SelfTest {
             com.divinerpgextended.registry.ModBlocks.lureTorchLit.onBlockActivated(zw, x0, y0, z0, zp, 1, 0.5F, 0.5F, 0.5F);
             long second = te.until - zw.getTotalWorldTime();
             boolean paid = zp.getHeldItem() != null && zp.getHeldItem().stackSize == 1;
+            // таймер: клик пустой рукой по горящему - сколько ещё (2:00)
+            hold(zp, null);
+            zp.chat.clear();
+            com.divinerpgextended.registry.ModBlocks.lureTorchLit.onBlockActivated(zw, x0, y0, z0, zp, 1, 0.5F, 0.5F, 0.5F);
+            boolean timer = zp.heard("dre.chat.lure_left") && zp.heard("2:00");
             te.until = zw.getTotalWorldTime();
             te.updateEntity();
             boolean out = zw.getBlock(x0, y0, z0) == com.divinerpgextended.registry.ModBlocks.lureTorch;
             zw.setBlockToAir(x0, y0, z0);
-            check(recipes && wards && lit && first == 1200 && second == 2400 && paid && out, "рецепты " + recipes + ", миры " + wards + "; зажёгся " + lit + ", минут " + first / 1200
-                + " -> " + second / 1200 + ", арканиум списан " + paid + ", догорел " + out);
+            check(recipes && wards && lit && first == 1200 && second == 2400 && paid && timer && out, "рецепты " + recipes + ", миры " + wards + "; зажёгся " + lit + ", минут " + first / 1200
+                + " -> " + second / 1200 + ", арканиум списан " + paid + ", таймер " + timer + " " + zp.chat + ", догорел " + out);
             return "факел Заснежья (ледяные осколки на морозной палке) и Везеи (серый жемчуг на палке) - по 4, гонят монстров в своём мире; "
                 + "водный факел зова - 1 из водного слитка и водного стержня ифрита, арканиум = минута горения (докидывается), догорел - потушен";
+        });
+        t("Прохождение", "Свисток питомцев: зов, без драк между своими, отпустить в яйцо и выпустить того же", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int x0 = 9360, y0 = 120, z0 = 9300;
+            loadAround(w, x0, z0, 2);
+            for (int dx = -6; dx <= 26; dx++) for (int dz = -6; dz <= 6; dz++) {
+                w.setBlock(x0 + dx, y0 - 1, z0 + dz, Blocks.stone);
+                for (int dy = 0; dy < 4; dy++) w.setBlockToAir(x0 + dx, y0 + dy, z0 + dz);
+            }
+            TestPlayer o = join(player(0, "TestWhistle", x0 + 0.5, y0, z0 + 0.5), true);
+            @SuppressWarnings("unchecked")
+            java.util.List<Object> players = w.playerEntities;
+            boolean added = !players.contains(o);
+            if (added) players.add(o);
+            net.divinerpg.entities.vanilla.EntityGrizzle gz = new net.divinerpg.entities.vanilla.EntityGrizzle(w, o, 1);
+            gz.setLocationAndAngles(x0 + 20.5, y0, z0 + 0.5, 0, 0);
+            gz.setCustomNameTag("Мишка");
+            w.spawnEntityInWorld(gz);
+            net.divinerpg.entities.arcana.EntityFyracryx fy = new net.divinerpg.entities.arcana.EntityFyracryx(w, o);
+            fy.setLocationAndAngles(x0 + 18.5, y0, z0 + 2.5, 0, 0);
+            w.spawnEntityInWorld(fy);
+            try {
+                boolean pets = com.divinerpgextended.item.ItemPetWhistle.pet(gz) && com.divinerpgextended.item.ItemPetWhistle.owner(gz) == o
+                    && com.divinerpgextended.item.ItemPetWhistle.kin(gz, fy);
+                // свои не дерутся: цель на брата сбрасывается, удар не проходит
+                fy.setAttackTarget(gz);
+                boolean noTarget = fy.getAttackTarget() == null;
+                float hp = gz.getHealth();
+                gz.attackEntityFrom(DamageSource.causeMobDamage(fy), 5);
+                boolean noHurt = gz.getHealth() == hp;
+                // свисток: оба рядом с хозяином, без целей
+                gz.setAttackTarget(o);
+                ItemStack whistle = new ItemStack(com.divinerpgextended.registry.ModItems.petWhistle);
+                hold(o, whistle);
+                o.getEntityData().removeTag("dreWhistleAt");
+                whistle.getItem().onItemRightClick(whistle, w, o);
+                boolean called = gz.getDistanceToEntity(o) < 3 && fy.getDistanceToEntity(o) < 3 && gz.getAttackTarget() == null && o.heard("dre.chat.whistle");
+                // удар свистком - гризли уходит в яйцо (бурый, meta 1) с собой внутри
+                gz.setHealth(gz.getMaxHealth() - 3);
+                float hpIn = gz.getHealth();
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.AttackEntityEvent(o, gz));
+                ItemStack egg = null;
+                for (ItemStack it : o.inventory.mainInventory) if (it != null && it.getItem() == net.divinerpg.utils.items.VanillaItemsOther.grizzleEgg) egg = it;
+                boolean inEgg = gz.isDead && egg != null && egg.getItemDamage() == 1 && egg.hasTagCompound() && egg.getTagCompound().hasKey(com.divinerpgextended.item.ItemPetWhistle.PET);
+                // выпустить: тот же гризли (имя, здоровье), хозяин прежний, яйцо потрачено
+                hold(o, egg);
+                net.minecraftforge.event.entity.player.PlayerInteractEvent use = new net.minecraftforge.event.entity.player.PlayerInteractEvent(o,
+                    net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, x0 + 3, y0 - 1, z0, 1, w);
+                MinecraftForge.EVENT_BUS.post(use);
+                net.divinerpg.entities.vanilla.EntityGrizzle back = null;
+                for (Object ge : w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.EntityGrizzle.class, o.boundingBox.expand(8, 4, 8)))
+                    if (((net.divinerpg.entities.vanilla.EntityGrizzle) ge).isEntityAlive()) back = (net.divinerpg.entities.vanilla.EntityGrizzle) ge;
+                boolean same = back != null && "Мишка".equals(back.getCustomNameTag()) && near(back.getHealth(), hpIn) && back.getColor() == 1
+                    && com.divinerpgextended.item.ItemPetWhistle.owner(back) == o && (o.getHeldItem() == null || o.getHeldItem().stackSize == 0);
+                if (back != null) back.setDead();
+                check(pets && noTarget && noHurt && called && inEgg && same, "питомцы узнаны " + pets + ", брат не цель " + noTarget + ", брата не ранит " + noHurt
+                    + ", свисток позвал " + called + " " + o.chat + ", гризли в яйце " + inEgg + ", вышел он же " + same);
+                return "свисток зовёт питомцев к хозяину и снимает цели; свои не дерутся; удар свистком - гризли уходит в бурое яйцо и выходит из него тем же (имя, здоровье)";
+            } finally {
+                gz.setDead();
+                fy.setDead();
+                hold(o, null);
+                if (added) players.remove(o);
+            }
         });
         t("Прохождение", "Белый список спавна в мирах Divine", () -> {
             WorldServer zi = server.worldServerForDimension(ConfigurationHelper.iceika);
@@ -8254,8 +8326,9 @@ public class SelfTest {
                 steps = Math.max(steps, top - f);
             }
             boolean tower = w.getBlock(pr[0] + 1, pr[1] - 1, pr[2]) == Blocks.obsidian && steps >= com.divinerpgextended.boss.AyeracoHorde.PILLAR_LIFT - 1;
-            check(nest && in == null && "dre.chat.summon_lair_2".equals(out) && dist > 1300 && pillars == 5 && islet && overVoid && big && rocks > 30 && tower,
-                "гнездовье " + nest + " в " + dist + " блоках, внутри " + in + ", снаружи " + out + "; столпов " + pillars + "/5, островок-передышка " + islet
+            int far = Math.max(Math.abs(c[0]), Math.abs(c[2])) + com.divinerpgextended.world.WorldGenOuterLairs.BELT_OUT + 6;
+            check(nest && in == null && "dre.chat.summon_lair_2".equals(out) && dist >= 800 && dist <= 900 && far <= com.divinerpgextended.world.WorldGenOuterLairs.WORLD_EDGE && pillars == 5 && islet && overVoid && big && rocks > 30 && tower,
+                "гнездовье " + nest + " в " + dist + " блоках (дальний край пояса " + far + "), внутри " + in + ", снаружи " + out + "; столпов " + pillars + "/5, островок-передышка " + islet
                     + ", остров над бездной " + overVoid + ", большой " + big + ", направлений с астероидами " + rocks + "/180, башня с лестницей " + tower + " (ступеней " + steps + ")");
             return "гнездовье - большой остров над бездной в " + c[0] + "," + c[2] + " (" + dist + " блоков от центра), пояс астероидов (" + rocks
                 + "/180 направлений), 5 башен с лестницами и цветными столпами, островки-передышки через "

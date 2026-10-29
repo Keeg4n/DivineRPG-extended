@@ -69,11 +69,15 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
         return lit ? new Tile() : null;
     }
 
-    /** Арканиум: зажечь или подлить горения. */
+    /** Арканиум: зажечь или подлить горения; клик по горящему без арканиума - сколько ещё гореть. */
     @Override
     public boolean onBlockActivated(World w, int x, int y, int z, EntityPlayer p, int side, float hx, float hy, float hz) {
         ItemStack held = p.getHeldItem();
-        if (held == null || held.getItem() != net.divinerpg.utils.items.ArcanaItems.arcanium) return false;
+        if (held == null || held.getItem() != net.divinerpg.utils.items.ArcanaItems.arcanium) {
+            if (!lit) return false;
+            if (!w.isRemote) tellLeft(w, x, y, z, p);
+            return true;
+        }
         if (w.isRemote) return true;
         int meta = w.getBlockMetadata(x, y, z);
         if (!lit) w.setBlock(x, y, z, ModBlocks.lureTorchLit, meta, 3);
@@ -86,7 +90,19 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
         t.markDirty();
         if (!p.capabilities.isCreativeMode && --held.stackSize <= 0) p.inventory.setInventorySlotContents(p.inventory.currentItem, null);
         w.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, "random.splash", 0.5F, 1.4F);
+        tellLeft(w, x, y, z, p);
         return true;
+    }
+
+    /** Сколько ещё гореть, в тиках (0 - не горит). */
+    public static long left(World w, int x, int y, int z) {
+        TileEntity te = w.getTileEntity(x, y, z);
+        return te instanceof Tile ? Math.max(0, ((Tile) te).until - w.getTotalWorldTime()) : 0;
+    }
+
+    static void tellLeft(World w, int x, int y, int z, EntityPlayer p) {
+        long sec = left(w, x, y, z) / 20;
+        p.addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.lure_left", String.format("%d:%02d", sec / 60, sec % 60)));
     }
 
     /** Пузыри над головкой (только горящий). */
@@ -116,7 +132,8 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
                 worldObj.setBlock(xCoord, yCoord, zCoord, ModBlocks.lureTorch, worldObj.getBlockMetadata(xCoord, yCoord, zCoord), 3);
                 return;
             }
-            if (now % EVERY == 0) lure(worldObj, xCoord, yCoord, zCoord, worldObj.rand);
+            // звать некому показывать: без игрока в 48 блоках не зовём (и не трогаем окрестные чанки)
+            if (now % EVERY == 0 && worldObj.getClosestPlayer(xCoord + 0.5, yCoord + 0.5, zCoord + 0.5, 48) != null) lure(worldObj, xCoord, yCoord, zCoord, worldObj.rand);
         }
 
         @Override
@@ -145,6 +162,7 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
     public static EntityLiving lure(World w, int x, int y, int z, Random r) {
         if (divineNear(w, x, y, z) >= CAP) return null;
         int sx = x + r.nextInt(2 * RADIUS + 1) - RADIUS, sz = z + r.nextInt(2 * RADIUS + 1) - RADIUS;
+        if (!w.blockExists(sx, y, sz)) return null; // место в выгруженном чанке - пропуск, не грузим
         BiomeGenBase b = w.getBiomeGenForCoords(sx, sz);
         List<BiomeGenBase.SpawnListEntry> pool = new ArrayList<BiomeGenBase.SpawnListEntry>();
         for (EnumCreatureType t : new EnumCreatureType[] { EnumCreatureType.monster, EnumCreatureType.creature, EnumCreatureType.waterCreature })

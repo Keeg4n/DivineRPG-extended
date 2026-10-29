@@ -280,6 +280,8 @@ public class RangedRoles {
         for (Iterator<Entity> it = BLITZ_SHOTS.iterator(); it.hasNext();) {
             Entity b = it.next();
             if (b.worldObj != e.world) continue;
+            // чанк дробины выгрузили: она замерла и не стареет - убрать, а не держать в списке
+            if (!b.isDead && !e.world.blockExists((int) Math.floor(b.posX), (int) Math.floor(b.posY), (int) Math.floor(b.posZ))) b.setDead();
             if (!b.isDead && b.ticksExisted >= BLITZ_LIFE) b.setDead();
             if (b.isDead) it.remove();
         }
@@ -662,6 +664,11 @@ public class RangedRoles {
             if (b.worldObj != e.world) continue;
             World w = b.worldObj;
             int bx = (int) Math.floor(b.posX), by = (int) Math.floor(b.posY), bz = (int) Math.floor(b.posZ);
+            // слайсер в выгруженном чанке (или застрял): не читать блоки там - это грузило чанк каждый тик
+            if (b.ticksExisted > 200 || !w.checkChunksExist(bx - 1, by - 1, bz - 1, bx + 1, by + 1, bz + 1)) {
+                it.remove();
+                continue;
+            }
             for (int x = bx - 1; x <= bx + 1; x++) for (int y = by - 1; y <= by + 1; y++) for (int z = bz - 1; z <= bz + 1; z++) {
                 if (w.getBlock(x, y, z) != com.divinerpgextended.registry.ModBlocks.windTotem || w.getBlockMetadata(x, y, z) != 0) continue;
                 for (Object o : w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityWindLord.class,

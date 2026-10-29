@@ -105,12 +105,15 @@ public final class FrostPowers {
             bz = MathHelper.floor_double(boss.posZ);
         int[] best = null;
         double bestD = Double.MAX_VALUE;
-        for (int x = bx - r; x <= bx + r; x++) for (int z = bz - r; z <= bz + r; z++) for (int y = by - 3; y <= by + 6; y++) {
-            if (w.getBlock(x, y, z) != ModBlocks.brazier || !BlockBrazier.isLit(w, x, y, z)) continue;
-            double d = (x - bx) * (x - bx) + (z - bz) * (z - bz);
-            if (d < bestD) {
-                bestD = d;
-                best = new int[] { x, y, z };
+        for (int x = bx - r; x <= bx + r; x++) for (int z = bz - r; z <= bz + r; z++) {
+            if (!w.blockExists(x, by, z)) continue; // выгруженный край - не грузим
+            for (int y = by - 3; y <= by + 6; y++) {
+                if (w.getBlock(x, y, z) != ModBlocks.brazier || !BlockBrazier.isLit(w, x, y, z)) continue;
+                double d = (x - bx) * (x - bx) + (z - bz) * (z - bz);
+                if (d < bestD) {
+                    bestD = d;
+                    best = new int[] { x, y, z };
+                }
             }
         }
         if (best == null) return false;

@@ -287,8 +287,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
         EntityLivingBase target = getAttackTarget();
         if (target != null && (target.isDead || target instanceof EntityPlayer
             && ((EntityPlayer) target).capabilities.isCreativeMode)) target = null;
-        if (target == null && FrostPowers.players(this, 160)
-            .isEmpty()) return;
+        if (target == null && worldObj.getClosestPlayerToEntity(this, 160) == null) return;
         float hp = getHealth() / getMaxHealth();
         double[] sh = shoulder();
         // чем меньше здоровья, тем быстрее: до +80% скорости
@@ -406,6 +405,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
 
     /** Поставить ледяной шип высотой 2 на поверхности возле (x, y, z). */
     private void spike(int x, int y, int z) {
+        if (!worldObj.blockExists(x, y, z)) return; // волна дошла до выгруженного края
         for (int dy = 2; dy >= -2; dy--) {
             if (worldObj.isAirBlock(x, y + dy, z) && !worldObj.isAirBlock(x, y + dy - 1, z)) {
                 Block below = worldObj.getBlock(x, y + dy - 1, z);

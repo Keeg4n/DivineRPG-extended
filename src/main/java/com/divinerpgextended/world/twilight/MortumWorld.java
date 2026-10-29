@@ -77,12 +77,13 @@ public class MortumWorld {
      * Мортума (кто появляется в биоме Мортума сам, боссы Мортума, Харон).
      */
     public static void mobInLethe(net.minecraft.entity.EntityLivingBase e, int x, int z) {
-        if (e.isDead || e.getCreatureAttribute() == net.minecraft.entity.EnumCreatureAttribute.UNDEAD || native_(e, x, z)) return;
         long now = e.worldObj.getTotalWorldTime();
+        if (now % 20 != 0 || e.isDead) return; // кусает раз в секунду - в остальные тики ничего не считаем
         NBTTagCompound d = e.getEntityData();
-        if (d.getLong(LAST) == now) return;
+        if (d.getLong(LAST) == now) return; // касание нескольких блоков Леты за тик - один укус
         d.setLong(LAST, now);
-        if (now % 20 == 0) e.attackEntityFrom(LETHE, BITE);
+        if (e.getCreatureAttribute() == net.minecraft.entity.EnumCreatureAttribute.UNDEAD || native_(e, x, z)) return;
+        e.attackEntityFrom(LETHE, BITE);
     }
 
     /**

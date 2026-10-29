@@ -166,8 +166,7 @@ public class EntityLichKing extends EntityMob implements IBossDisplayData {
             return;
         }
         EntityLivingBase target = getAttackTarget();
-        if (target == null && FrostPowers.players(this, 160)
-            .isEmpty()) return;
+        if (target == null && worldObj.getClosestPlayerToEntity(this, 160) == null) return;
         boolean enraged = getHealth() / getMaxHealth() <= 0.5F;
 
         // ярость: телепортируется на пилоны и колонны арены и закидывает снегом сверху
