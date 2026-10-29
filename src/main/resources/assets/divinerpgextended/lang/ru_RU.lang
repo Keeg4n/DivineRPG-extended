@@ -1680,3 +1680,5 @@ dre.chat.arena_empty=На арене никого не осталось: %s жд
 dre.chat.arena_gone=%s покинул арену: бойцов не осталось.
 dre.chat.summon_space=Здесь тесно для боя: в %s блоках вокруг должно быть ровно и пусто.
 dre.chat.summon_blocked=Место, где встаёт хозяин алтаря, застроено - расчисти его.
+death.attack.dre.ayeracoFire=%1$s сгорел в пламени дракона %2$s
+death.attack.dre.ayeracoFire.item=%1$s сгорел в пламени дракона %2$s

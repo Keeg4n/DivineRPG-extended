@@ -390,6 +390,14 @@ public class SelfTest {
             for (int k = -r - 1; k <= r + 1; k++) w.theChunkProviderServer.loadChunk((x >> 4) + i, (z >> 4) + k);
     }
 
+    /** Выгрузить все чанки мира (тесты идут одним заходом: большие постройки иначе держат память до конца). */
+    private static int unloadAll(WorldServer w) {
+        int before = w.theChunkProviderServer.loadedChunks.size();
+        w.theChunkProviderServer.unloadAllChunks();
+        for (int i = 0; i < 100 && !w.theChunkProviderServer.loadedChunks.isEmpty(); i++) w.theChunkProviderServer.unloadQueuedChunks();
+        return before - w.theChunkProviderServer.loadedChunks.size();
+    }
+
     /** Телепорт свиньи с (x, 70, z); куда поставило - в at. */
     private static void placePig(net.minecraft.world.Teleporter t, WorldServer w, double x, double z, double[] at) {
         net.minecraft.entity.passive.EntityPig pig = new net.minecraft.entity.passive.EntityPig(w);
@@ -8201,8 +8209,9 @@ public class SelfTest {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.AYERACO;
             WorldServer w = server.worldServerForDimension(1);
             int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
-            loadAround(w, c[0], c[2], 3);
+            loadAround(w, c[0], c[2], 8);
             int f = com.divinerpgextended.world.WorldGenOuterLairs.FLOOR[type];
+            dump(w, c[0], f, c[2], 120, "render-aerie");
             boolean nest = w.getBlock(c[0], f, c[2]) == net.divinerpg.utils.blocks.VanillaBlocks.lamp1 && w.getBlockMetadata(c[0], f, c[2]) == 8 && w.isAirBlock(c[0] + 2, f + 4, c[2] + 2);
             TestPlayer v = player(1, "TestAerie", c[0], f + 1, c[2]);
             net.minecraft.item.Item horn = net.divinerpg.utils.items.VanillaItemsOther.hordeHorn;
@@ -8223,11 +8232,33 @@ public class SelfTest {
             boolean islet = false;
             for (int ddx = -1; ddx <= 1 && !islet; ddx++) for (int ddz = -1; ddz <= 1 && !islet; ddz++)
                 islet = w.getBlock(ix + ddx, f + 1, iz + ddz) == net.minecraft.init.Blocks.obsidian;
-            boolean overVoid = w.isAirBlock(c[0], f - 20, c[2]) && w.isAirBlock(c[0] + 40, f, c[2] + 40);
-            check(nest && in == null && "dre.chat.summon_lair_2".equals(out) && dist > 900 && pillars == 5 && islet && overVoid,
+            boolean overVoid = w.isAirBlock(c[0], f - 60, c[2]) && w.isAirBlock(c[0] + 130, f, c[2]);
+            boolean big = !w.isAirBlock(c[0] + 40, f, c[2]) && !w.isAirBlock(c[0], f, c[2] - 40) && !w.isAirBlock(c[0], f - 30, c[2]);
+            // пояс астероидов: по кругу в 80..110 блоках - куски эндерняка
+            int rocks = 0;
+            for (int deg = 0; deg < 360; deg += 2) {
+                boolean hit = false;
+                for (int rr = com.divinerpgextended.world.WorldGenOuterLairs.BELT_IN; rr <= com.divinerpgextended.world.WorldGenOuterLairs.BELT_OUT && !hit; rr += 2) {
+                    int bx = c[0] + (int) Math.round(Math.cos(Math.toRadians(deg)) * rr), bz = c[2] + (int) Math.round(Math.sin(Math.toRadians(deg)) * rr);
+                    for (int y = f - 20; y <= f + 28 && !hit; y++) hit = w.getBlock(bx, y, bz) == Blocks.end_stone;
+                }
+                if (hit) rocks++;
+            }
+            // к столпу ведёт винтовая лестница: с пола по ступеням до верха башни
+            int[] pr = com.divinerpgextended.boss.AyeracoHorde.pillarAt(c[0], f, c[2], com.divinerpgextended.boss.AyeracoHorde.Hue.RED);
+            int steps = 0;
+            for (int deg = 0; deg < 360; deg += 10) {
+                int bx = pr[0] + (int) Math.round(Math.cos(Math.toRadians(deg)) * 3.3), bz = pr[2] + (int) Math.round(Math.sin(Math.toRadians(deg)) * 3.3);
+                int top = f;
+                while (w.getBlock(bx, top + 1, bz) == Blocks.end_stone) top++;
+                steps = Math.max(steps, top - f);
+            }
+            boolean tower = w.getBlock(pr[0] + 1, pr[1] - 1, pr[2]) == Blocks.obsidian && steps >= com.divinerpgextended.boss.AyeracoHorde.PILLAR_LIFT - 1;
+            check(nest && in == null && "dre.chat.summon_lair_2".equals(out) && dist > 1300 && pillars == 5 && islet && overVoid && big && rocks > 30 && tower,
                 "гнездовье " + nest + " в " + dist + " блоках, внутри " + in + ", снаружи " + out + "; столпов " + pillars + "/5, островок-передышка " + islet
-                    + ", остров над бездной " + overVoid);
-            return "гнездовье - дальний остров над бездной в " + c[0] + "," + c[2] + " (" + dist + " блоков от центра), 5 цветных столпов на скалах, островки-передышки через "
+                    + ", остров над бездной " + overVoid + ", большой " + big + ", направлений с астероидами " + rocks + "/180, башня с лестницей " + tower + " (ступеней " + steps + ")");
+            return "гнездовье - большой остров над бездной в " + c[0] + "," + c[2] + " (" + dist + " блоков от центра), пояс астероидов (" + rocks
+                + "/180 направлений), 5 башен с лестницами и цветными столпами, островки-передышки через "
                 + com.divinerpgextended.world.WorldGenOuterLairs.ISLET_STEP + "; рог только там";
         });
         t("Логова", "Орда Айрако: коршуны, ауры, столпы; броня Энда: цвета, шаг, спасение", () -> {
@@ -8255,7 +8286,7 @@ public class SelfTest {
             red.setPosition(c[0] + 300, f - 40, c[2]);
             com.divinerpgextended.asm.AyeracoHooks.blink(red);
             double rx = red.posX - c[0], rz = red.posZ - c[2];
-            boolean blinkIn = rx * rx + rz * rz <= 20 * 20 && red.posY > f;
+            boolean blinkIn = rx * rx + rz * rz <= (com.divinerpgextended.boss.AyeracoHorde.ORBIT_R + 1) * (com.divinerpgextended.boss.AyeracoHorde.ORBIT_R + 1) && red.posY > f;
             // ярость красного: удар по игроку x1.5, красная броня Энда снимает
             float rage = hurt(v, DamageSource.causeMobDamage(red), 10);
             v.inventory.armorInventory[2] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.redEnderBody);
@@ -8322,6 +8353,98 @@ public class SelfTest {
                     + " (" + voidWhy + "), сразу второй (" + again + "), на уступ " + ledge + " поднял на " + f((float) rose) + "; спасение из пустоты " + rescued);
             return "орда кружит под управлением аддона и телепортируется только над островом; красный бьёт x1.5 (красная броня Энда снимает), синий отбивает стрелы "
                 + "(синяя пробивает); броня цвета +50% по своему Айрако, серая +10%; полный сет: шаг на " + f((float) moved) + " блока за 25 арканы, не в бездну, спасение из пустоты";
+        });
+        t("Логова", "Орда Айрако как Гидра: подлёт по очереди, огненное дыхание, снаряд навесом, лучи убираются", () -> {
+            int type = com.divinerpgextended.world.WorldGenOuterLairs.AYERACO;
+            WorldServer w = server.worldServerForDimension(1);
+            int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
+            int f = com.divinerpgextended.world.WorldGenOuterLairs.FLOOR[type];
+            loadAround(w, c[0], c[2], 3);
+            com.divinerpgextended.boss.AyeracoHorde.reset();
+            TestPlayer v = join(player(1, "TestHydra", c[0] + 10.5, f + 1, c[2] + 0.5), true);
+            @SuppressWarnings("unchecked")
+            java.util.List<Object> players = w.playerEntities;
+            boolean added = !players.contains(v);
+            if (added) players.add(v);
+            java.util.List<net.divinerpg.entities.vanilla.EntityAyeraco> horde = new ArrayList<net.divinerpg.entities.vanilla.EntityAyeraco>();
+            horde.add(new net.divinerpg.entities.vanilla.EntityAyeracoGreen(w));
+            horde.add(new net.divinerpg.entities.vanilla.EntityAyeracoBlue(w));
+            horde.add(new net.divinerpg.entities.vanilla.EntityAyeracoRed(w));
+            horde.add(new net.divinerpg.entities.vanilla.EntityAyeracoYellow(w));
+            horde.add(new net.divinerpg.entities.vanilla.EntityAyeracoPurple(w));
+            try {
+                for (int i = 0; i < horde.size(); i++) {
+                    double a = i * Math.PI * 2 / 5;
+                    horde.get(i).setPosition(c[0] + Math.cos(a) * 36, f + 20, c[2] + Math.sin(a) * 36);
+                    w.spawnEntityInWorld(horde.get(i));
+                }
+                // подлетает один, остальные кружат; при трёх и меньше - по двое
+                for (net.divinerpg.entities.vanilla.EntityAyeraco a : horde) com.divinerpgextended.asm.AyeracoHooks.steer(a);
+                int engaged = 0;
+                for (net.divinerpg.entities.vanilla.EntityAyeraco a : horde) if (com.divinerpgextended.boss.AyeracoHorde.phase(a) != com.divinerpgextended.boss.AyeracoHorde.ORBIT) engaged++;
+                boolean turns = engaged == 1 && com.divinerpgextended.boss.AyeracoHorde.maxEngaged(5) == 1 && com.divinerpgextended.boss.AyeracoHorde.maxEngaged(3) == 2;
+                // дыхание: красный в 8 блоках от цели, на высоте 4
+                net.divinerpg.entities.vanilla.EntityAyeraco red = horde.get(2);
+                red.setPosition(v.posX + 8, v.posY + 4, v.posZ);
+                red.rotationYawHead = red.rotationYaw = 90F; // смотрит на запад (-x), к цели
+                long now = w.getTotalWorldTime();
+                com.divinerpgextended.boss.AyeracoHorde.startBreath(red, v, now);
+                long hit = now + com.divinerpgextended.boss.AyeracoHorde.BREATH_WIND + 5 - (now + com.divinerpgextended.boss.AyeracoHorde.BREATH_WIND) % 5;
+                v.setHealth(20);
+                v.hurtResistantTime = 0;
+                v.extinguish();
+                com.divinerpgextended.boss.AyeracoHorde.breatheAt(red, v, hit);
+                float burnt = 20 - v.getHealth();
+                boolean onFire = v.isBurning();
+                // отошёл вбок на 90 градусов - конус не успевает довернуть
+                v.setHealth(20);
+                v.hurtResistantTime = 0;
+                v.setPosition(red.posX, v.posY, red.posZ + 8);
+                com.divinerpgextended.boss.AyeracoHorde.breatheAt(red, v, hit + 5);
+                float dodged = 20 - v.getHealth();
+                // огнестойкость гасит пламя
+                v.setPosition(c[0] + 10.5, f + 1, c[2] + 0.5);
+                com.divinerpgextended.boss.AyeracoHorde.startBreath(red, v, now);
+                v.setHealth(20);
+                v.hurtResistantTime = 0;
+                v.addPotionEffect(new net.minecraft.potion.PotionEffect(net.minecraft.potion.Potion.fireResistance.id, 200, 0));
+                com.divinerpgextended.boss.AyeracoHorde.breatheAt(red, v, hit);
+                float resisted = 20 - v.getHealth();
+                v.removePotionEffect(net.minecraft.potion.Potion.fireResistance.id);
+                v.extinguish();
+                // снаряд навесом: летит, рвётся у цели, земля горит
+                v.setHealth(20);
+                v.hurtResistantTime = 0;
+                red.setPosition(v.posX + 12, v.posY + 8, v.posZ);
+                v.prevPosX = v.posX; // стоит на месте
+                v.prevPosZ = v.posZ;
+                com.divinerpgextended.boss.AyeracoHorde.launchAt(red, v);
+                int flying = com.divinerpgextended.boss.AyeracoHorde.fireCount(red)[0];
+                int ticks = 0;
+                while (com.divinerpgextended.boss.AyeracoHorde.fireCount(red)[0] > 0 && ticks < 120) {
+                    com.divinerpgextended.boss.AyeracoHorde.tickFireFor(red);
+                    ticks++;
+                }
+                float shelled = 20 - v.getHealth();
+                int burning = com.divinerpgextended.boss.AyeracoHorde.fireCount(red)[1];
+                // лучи Divine после боя убираются
+                w.setBlock(c[0] + 8, f + 1, c[2] + 8, net.divinerpg.utils.blocks.VanillaBlocks.ayeracoBeamRed);
+                w.setBlock(c[0] - 8, f + 1, c[2] - 12, net.divinerpg.utils.blocks.VanillaBlocks.ayeracoBeamBlue);
+                int swept = com.divinerpgextended.boss.AyeracoHorde.sweepBeams(w, c[0], f, c[2]);
+                boolean beamsGone = w.isAirBlock(c[0] + 8, f + 1, c[2] + 8) && w.isAirBlock(c[0] - 8, f + 1, c[2] - 12);
+                boolean fireType = com.divinerpgextended.boss.AyeracoHorde.fire(red).isFireDamage();
+                check(turns && burnt > 0 && onFire && dodged == 0 && resisted == 0 && flying == 1 && ticks < 120 && shelled > 0 && burning == 1 && swept == 2 && beamsGone && fireType,
+                    "подлетает " + engaged + " из 5 (очередь " + turns + "); дыхание " + f(burnt) + ", горит " + onFire + ", вбок " + f(dodged) + ", с огнестойкостью " + f(resisted)
+                        + "; снаряд в полёте " + flying + ", долетел за " + ticks + " тиков, урон " + f(shelled) + ", горящих мест " + burning + "; лучей убрано " + swept + ", чисто " + beamsGone);
+                return "подлетает по одному (при трёх и меньше - по двое); дыхание жжёт " + f(burnt) + " и поджигает, уйти вбок можно, огнестойкость спасает; снаряд навесом летит "
+                    + ticks + " тиков, бьёт на " + f(shelled) + " и поджигает землю; лучи Divine после боя убираются";
+            } finally {
+                for (net.divinerpg.entities.vanilla.EntityAyeraco a : horde) a.setDead();
+                v.extinguish();
+                if (added) players.remove(v);
+                com.divinerpgextended.boss.AyeracoHorde.reset();
+                unloadAll(w); // остров с поясом - сотни чанков Энда
+            }
         });
         t("Логова", "Мягкая привязь", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
