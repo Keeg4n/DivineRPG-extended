@@ -23,6 +23,9 @@ import net.minecraft.world.WorldServer;
  * Без дюпов и выгоды: снять с него ничего нельзя (броня - только вид), он не умирает и ничего не роняет (ни вещей, ни
  * опыта); здоровье, аркана, сытость и поглощение бьющего игрока после удара возвращаются как были (никакой вампиризм не
  * лечит о манекен). Убрать может только поставивший: присесть и ударить - предмет возвращается один раз.
+ * <p>
+ * Как у игрока, после удара полсекунды неуязвим (больший удар за это время засчитывается разницей), питомцы бьющего
+ * игрока бьют манекен вместе с ним. На сервере - не больше {@link DummyLimit#MAX} манекенов.
  */
 public class EntityTrainingDummy extends EntityLiving {
 
@@ -37,7 +40,10 @@ public class EntityTrainingDummy extends EntityLiving {
     private NBTTagCompound snap = new NBTTagCompound();
     private DummyGhost ghost;
     private final ArrayDeque<long[]> hits = new ArrayDeque<long[]>();
-    private boolean removed;
+    private boolean removed, listed;
+    /** Питомцы, натравленные на манекен, и когда их хозяин бил последним. */
+    private final java.util.Set<Integer> pets = new java.util.HashSet<Integer>();
+    private long ownerHit;
 
     public EntityTrainingDummy(World w) {
         super(w);
@@ -102,6 +108,8 @@ public class EntityTrainingDummy extends EntityLiving {
 
     void resetStats() {
         hits.clear();
+        hurtResistantTime = 0;
+        lastDamage = 0;
         dataWatcher.updateObject(DW_LAST, Float.valueOf(0));
         dataWatcher.updateObject(DW_DPS, Float.valueOf(0));
     }
@@ -166,14 +174,24 @@ public class EntityTrainingDummy extends EntityLiving {
         }
         DummyGhost g = ghost();
         if (g == null) return false;
+        // неуязвимость после удара - как у игрока: за полсекунды засчитывается только то, на сколько новый удар сильнее
+        float counted = amount;
+        if (hurtResistantTime > maxHurtResistantTime / 2F) {
+            if (amount <= lastDamage) return false;
+            counted = amount - lastDamage;
+        } else {
+            hurtResistantTime = maxHurtResistantTime;
+        }
+        lastDamage = amount;
         Guard guard = attacker instanceof EntityPlayer ? new Guard((EntityPlayer) attacker) : null;
         float dealt;
         try {
-            dealt = g.measure(s, amount, snap);
+            dealt = g.measure(s, counted, snap);
         } finally {
             if (guard != null) guard.restore();
         }
         record(dealt);
+        if (attacker instanceof EntityPlayer) callPets((EntityPlayer) attacker);
         worldObj.setEntityState(this, (byte) 2); // вздрогнуть
         playSound("dig.cloth", 0.8F, 1.0F);
         return true;
@@ -188,6 +206,46 @@ public class EntityTrainingDummy extends EntityLiving {
         long span = Math.max(20, now - hits.peekFirst()[0] + 1);
         dataWatcher.updateObject(DW_LAST, Float.valueOf(dealt));
         dataWatcher.updateObject(DW_DPS, Float.valueOf(sum * 20F / span));
+    }
+
+    /** Питомцы игрока рядом (не сидящие) бьют манекен, пока бьёт хозяин. */
+    void callPets(EntityPlayer p) {
+        ownerHit = worldObj.getTotalWorldTime();
+        for (Object o : worldObj.getEntitiesWithinAABB(net.minecraft.entity.passive.EntityTameable.class, boundingBox.expand(24, 12, 24))) {
+            net.minecraft.entity.passive.EntityTameable t = (net.minecraft.entity.passive.EntityTameable) o;
+            if (!t.isTamed() || t.isSitting() || !owns(p, t)) continue;
+            t.setAttackTarget(this); // новый ИИ
+            t.setTarget(this); // старый ИИ
+            pets.add(t.getEntityId());
+        }
+        com.divinerpgextended.magic.ArcaneSummons.mark(p, this); // призраки кости призрака (удар по манекену не проходит через событие атаки)
+    }
+
+    /** Divine пишет в поле владельца имя игрока, ваниль - UUID. */
+    private static boolean owns(EntityPlayer p, net.minecraft.entity.passive.EntityTameable t) {
+        String n = t.func_152113_b();
+        return n != null && (n.equals(p.getUniqueID().toString()) || n.equals(p.getCommandSenderName()) || n.equals(p.getDisplayName()));
+    }
+
+    /** Хозяин перестал бить - питомцы отстают. */
+    private void releasePets() {
+        for (Integer id : pets) {
+            Entity e = worldObj.getEntityByID(id);
+            if (!(e instanceof net.minecraft.entity.EntityCreature)) continue;
+            net.minecraft.entity.EntityCreature c = (net.minecraft.entity.EntityCreature) e;
+            if (c.getAttackTarget() == this) c.setAttackTarget(null);
+            if (c.getEntityToAttack() == this) c.setTarget(null);
+        }
+        pets.clear();
+    }
+
+    @Override
+    public void setDead() {
+        super.setDead();
+        if (!worldObj.isRemote) {
+            releasePets();
+            DummyLimit.get().remove(getUniqueID());
+        }
     }
 
     /** Убрать манекен: предмет возвращается один раз. */
@@ -220,6 +278,11 @@ public class EntityTrainingDummy extends EntityLiving {
         super.onLivingUpdate();
         if (!worldObj.isRemote && getHealth() < getMaxHealth()) setHealth(getMaxHealth());
         if (!worldObj.isRemote && !hits.isEmpty() && worldObj.getTotalWorldTime() - hits.peekLast()[0] > WINDOW) resetStats();
+        if (!worldObj.isRemote && !pets.isEmpty() && worldObj.getTotalWorldTime() - ownerHit > WINDOW) releasePets();
+        if (!worldObj.isRemote && !listed && !isDead) { // стоявшие до 0.99.33 - в счёт при первом тике
+            listed = true;
+            DummyLimit.get().add(getUniqueID());
+        }
     }
 
     @Override

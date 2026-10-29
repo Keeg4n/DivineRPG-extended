@@ -29,7 +29,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  */
 public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
 
-    public static final int RADIUS = 24, CAP = 12, PER_ARCANIUM = 1200, MAX_TICKS = 12000, EVERY = 40;
+    public static final int RADIUS = 24, CAP = 12, PER_ARCANIUM = 1200, MAX_TICKS = 9600, EVERY = 40;
     private final boolean lit;
 
     public BlockLureTorch(boolean lit) {

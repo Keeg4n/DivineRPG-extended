@@ -1098,12 +1098,12 @@ public class SelfTest {
             float bite = com.divinerpgextended.magic.ArcaneEffects.biteFactor(p);
             com.divinerpgextended.magic.ArcaneEffects.drink(p, com.divinerpgextended.magic.ArcaneEffect.FISHERS_FORTUNE, false, false, false);
             float biteNow = com.divinerpgextended.magic.ArcaneEffects.biteFactor(p);
-            // описание: Зелье "Название", "Эффект II (8:00)" видно сразу, остальное - под Shift
+            // описание: Зелье Название (без кавычек, не стакается), "Эффект II (8:00)" видно сразу, остальное - под Shift
             ItemStack strongLong = com.divinerpgextended.magic.ItemArcanePotion.of(com.divinerpgextended.magic.ArcaneEffect.STONE_SKIN, true, true, false);
             String pname = strongLong.getDisplayName();
             java.util.List<String> tip = new java.util.ArrayList<String>();
             ((com.divinerpgextended.magic.ItemArcanePotion) strongLong.getItem()).addInformation(strongLong, p, tip, false); // у Item метод только клиентский
-            boolean format = pname.indexOf('"') > 0 && !tip.isEmpty() && tip.get(0).startsWith(com.divinerpgextended.client.TooltipShift.KEEP)
+            boolean format = pname.indexOf('"') < 0 && strongLong.getMaxStackSize() == 1 && !tip.isEmpty() && tip.get(0).startsWith(com.divinerpgextended.client.TooltipShift.KEEP)
                 && tip.get(0).endsWith(" II (8:00)") && tip.size() >= 2 && !tip.get(1).startsWith(com.divinerpgextended.client.TooltipShift.KEEP);
             // молоко снимает, как ванильные
             p.curePotionEffects(new ItemStack(Items.milk_bucket));
@@ -1250,7 +1250,8 @@ public class SelfTest {
             d.setDead();
             ok &= boom > 0 && !lava;
             sb.append("взрыв ").append(f(boom)).append(", лава ").append(lava ? "засчитана" : "нет").append("; ");
-            // несколько манекенов предметом: в обычном мире и в Эдеме
+            // несколько манекенов предметом: в обычном мире и в Эдеме; на сервере не больше 3 - четвёртый не ставится
+            java.util.Set<java.util.UUID> wasListed = com.divinerpgextended.dummy.DummyLimit.get().clear();
             for (int dim : new int[] { 0, ConfigurationHelper.eden }) {
                 WorldServer ws = server.worldServerForDimension(dim);
                 int bx = 7000 + dim * 7, bz = 7000;
@@ -1263,18 +1264,69 @@ public class SelfTest {
                 }
                 TestPlayer pp = player(dim, "TestDummyPlacer", bx + 0.5, by + 1, bz - 2.5);
                 ItemStack st = new ItemStack(com.divinerpgextended.registry.ModItems.trainingDummy, 4);
-                for (int i = 0; i < 3; i++) st.getItem().onItemUse(st, pp, ws, bx + i * 3, by, bz, 1, 0.5F, 1F, 0.5F);
+                boolean fourth = true;
+                for (int i = 0; i < 4; i++) fourth = st.getItem().onItemUse(st, pp, ws, bx + i * 2, by, bz, 1, 0.5F, 1F, 0.5F);
+                int listed = com.divinerpgextended.dummy.DummyLimit.get().count();
                 int n = 0;
                 for (Object o : ws.loadedEntityList) if (o instanceof com.divinerpgextended.dummy.EntityTrainingDummy && !((net.minecraft.entity.Entity) o).isDead
                     && ((net.minecraft.entity.Entity) o).getDistanceSq(bx, by, bz) < 150) {
                     n++;
                     ((net.minecraft.entity.Entity) o).setDead();
                 }
-                ok &= n == 3 && st.stackSize == 1;
-                sb.append("мир ").append(dim).append(": манекенов ").append(n).append(" из 3; ");
+                int after = com.divinerpgextended.dummy.DummyLimit.get().count();
+                ok &= n == 3 && st.stackSize == 1 && !fourth && listed == 3 && after == 0;
+                sb.append("мир ").append(dim).append(": манекенов ").append(n).append(" из 4 (лимит 3, в списке ").append(listed).append(", после уборки ")
+                    .append(after).append("); ");
             }
+            for (java.util.UUID id : wasListed) com.divinerpgextended.dummy.DummyLimit.get().add(id);
             check(ok, sb.toString());
             return sb.toString();
+        });
+        t("Прохождение", "Манекен: неуязвимость после удара как у игрока, питомцы бьют вместе с хозяином", () -> {
+            reset(p);
+            net.minecraft.world.World w = p.worldObj;
+            com.divinerpgextended.dummy.EntityTrainingDummy d = new com.divinerpgextended.dummy.EntityTrainingDummy(w);
+            d.setPosition(p.posX + 2, p.posY, p.posZ);
+            d.copy(p);
+            d.setPlacer(p);
+            w.spawnEntityInWorld(d);
+            // удар 8, сразу же 5 (слабее - не в счёт) и 12 (в счёт разница 4), после неуязвимости 5 - целиком
+            boolean first = d.attackEntityFrom(DamageSource.causePlayerDamage(p), 8F);
+            float h1 = d.lastHit();
+            boolean weak = d.attackEntityFrom(DamageSource.causePlayerDamage(p), 5F);
+            float h2 = d.lastHit();
+            boolean strong = d.attackEntityFrom(DamageSource.causePlayerDamage(p), 12F);
+            float h3 = d.lastHit();
+            d.hurtResistantTime = 0;
+            boolean later = d.attackEntityFrom(DamageSource.causePlayerDamage(p), 5F);
+            float h4 = d.lastHit();
+            // питомцы: волк (хозяин по UUID) и гризли Divine (хозяин по имени), сидящий не идёт
+            net.minecraft.entity.passive.EntityWolf wolf = new net.minecraft.entity.passive.EntityWolf(w);
+            wolf.setTamed(true);
+            wolf.func_152115_b(p.getUniqueID().toString());
+            wolf.setPosition(p.posX - 2, p.posY, p.posZ);
+            w.spawnEntityInWorld(wolf);
+            net.divinerpg.entities.vanilla.EntityGrizzle griz = new net.divinerpg.entities.vanilla.EntityGrizzle(w, p, 0);
+            griz.setPosition(p.posX - 3, p.posY, p.posZ);
+            w.spawnEntityInWorld(griz);
+            net.minecraft.entity.passive.EntityWolf sitter = new net.minecraft.entity.passive.EntityWolf(w);
+            sitter.setTamed(true);
+            sitter.func_152115_b(p.getUniqueID().toString());
+            sitter.setSitting(true);
+            sitter.setPosition(p.posX - 2, p.posY, p.posZ + 2);
+            w.spawnEntityInWorld(sitter);
+            d.hurtResistantTime = 0;
+            d.attackEntityFrom(DamageSource.causePlayerDamage(p), 3F);
+            boolean wolfGo = wolf.getAttackTarget() == d, grizGo = griz.getAttackTarget() == d, sits = sitter.getAttackTarget() == null;
+            d.setDead(); // убрали манекен - питомцы отстают
+            boolean released = wolf.getAttackTarget() == null && griz.getAttackTarget() == null;
+            wolf.setDead();
+            griz.setDead();
+            sitter.setDead();
+            check(first && h1 > 0 && !weak && near(h2, h1) && strong && near(h3, h1 / 2) && later && near(h4, h1 * 5 / 8) && wolfGo && grizGo && sits && released,
+                "удары 8 / сразу 5 / сразу 12 / после 5: " + first + " " + f(h1) + ", " + weak + " " + f(h2) + ", " + strong + " " + f(h3) + ", " + later + " " + f(h4)
+                    + "; волк " + wolfGo + ", гризли " + grizGo + ", сидящий не пошёл " + sits + ", после уборки отстали " + released);
+            return "удар 8, сразу 5 - не в счёт, сразу 12 - в счёт 4, через полсекунды 5 - целиком; волк и гризли Divine идут бить манекен за хозяином, сидящий - нет";
         });
     }
 
@@ -5413,10 +5465,16 @@ public class SelfTest {
             boolean ore = false;
             for (int id : net.minecraftforge.oredict.OreDictionary.getOreIDs(com.divinerpgextended.world.twilight.TwilightCrafts.stick(com.divinerpgextended.world.twilight.WorldWood.EDEN)))
                 if ("stickWood".equals(net.minecraftforge.oredict.OreDictionary.getOreName(id))) ore = true;
+            // обычных палок из досок миров нет ни одним рецептом (и в NEI), из дубовых - есть
+            StringBuilder vanilla = new StringBuilder();
+            for (com.divinerpgextended.world.twilight.WorldWood ww : com.divinerpgextended.world.twilight.WorldWood.values())
+                if (com.divinerpgextended.world.twilight.TwilightCrafts.vanillaSticksFrom(server.worldServers[0], ww.planks())) vanilla.append(ww.key()).append(' ');
+            boolean oak = com.divinerpgextended.world.twilight.TwilightCrafts.vanillaSticksFrom(server.worldServers[0], Blocks.planks);
             check(st != null && st.getItem() == com.divinerpgextended.registry.ModItems.worldStick && st.getItemDamage() == com.divinerpgextended.world.twilight.WorldWood.EDEN.ordinal()
-                && st.stackSize == 4 && torch != null && torch.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.worldTorch[0]) && ore,
-                "из досок Эдема " + st + ", факел " + torch + ", stickWood " + ore);
-            return "2 доски Эдема - 4 палки Эдема (не ванильные), пыль Эдема на палке - 4 факела Эдема; палка мира годится как обычная";
+                && st.stackSize == 4 && torch != null && torch.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.worldTorch[0]) && ore
+                && vanilla.length() == 0 && oak,
+                "из досок Эдема " + st + ", факел " + torch + ", stickWood " + ore + "; обычные палки из досок миров: [" + vanilla + "], из дубовых " + oak);
+            return "2 доски Эдема - 4 палки Эдема, пыль Эдема на палке - 4 факела Эдема; палка мира годится как обычная; обычных палок из досок 8 миров нет";
         });
         t("Прогрессия", "Цепочка крафтов", () -> {
             Item chunk = net.divinerpg.utils.items.TwilightItemsOther.wildwoodChunk;

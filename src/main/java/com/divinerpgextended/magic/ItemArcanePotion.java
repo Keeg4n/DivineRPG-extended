@@ -30,7 +30,7 @@ public class ItemArcanePotion extends Item {
 
     public ItemArcanePotion() {
         setHasSubtypes(true);
-        setMaxStackSize(16);
+        setMaxStackSize(1); // как ванильные зелья - не стакаются
         setUnlocalizedName("dre.arcanePotion");
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
     }
@@ -71,7 +71,7 @@ public class ItemArcanePotion extends Item {
         return "item.dre.arcanePotion." + ArcaneEffect.of(s.getItemDamage()).key();
     }
 
-    /** Зелье "Название" (общее - Общее зелье "Название"); сила и время - в подсказке, как у ванильных. */
+    /** Зелье Название (общее - Общее зелье Название); сила и время - в подсказке, как у ванильных. */
     @Override
     public String getItemStackDisplayName(ItemStack s) {
         int m = s.getItemDamage();

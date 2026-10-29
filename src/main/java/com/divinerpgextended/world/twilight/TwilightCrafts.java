@@ -192,6 +192,7 @@ public final class TwilightCrafts {
             list.remove(r);
             list.add(0, r);
         }
+        noVanillaSticks(list);
         for (TwilightWorld w : TwilightWorld.values()) {
             if (ModBlocks.worldLamp[w.ordinal()] != null)
                 GameRegistry.addRecipe(new ItemStack(ModBlocks.worldLamp[w.ordinal()]), "III", "IFI", "III", 'I', Items.iron_ingot, 'F', w.fragments());
@@ -201,6 +202,54 @@ public final class TwilightCrafts {
                 GameRegistry.addRecipe(new ItemStack(w.arrow(), 8), "F", "S", "Z", 'F', w.fragments(), 'S', stick(WorldWood.of(w)), 'Z', Items.feather);
             }
         }
+    }
+
+    /**
+     * Обычные палки из досок миров не делаются (и в NEI их нет): рецепты палок только из досок мира убираются, из
+     * словарных рецептов (доски любого дерева) доски миров вычёркиваются.
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private static void noVanillaSticks(List<IRecipe> list) {
+        java.util.Set<Item> world = new java.util.HashSet<Item>();
+        for (WorldWood w : WorldWood.values()) world.add(Item.getItemFromBlock(w.planks()));
+        for (Iterator<IRecipe> it = list.iterator(); it.hasNext();) {
+            IRecipe r = it.next();
+            ItemStack out = r.getRecipeOutput();
+            if (out == null || out.getItem() != Items.stick) continue;
+            Object[] in = r instanceof net.minecraftforge.oredict.ShapedOreRecipe ? ((net.minecraftforge.oredict.ShapedOreRecipe) r).getInput()
+                : r instanceof net.minecraftforge.oredict.ShapelessOreRecipe ? ((net.minecraftforge.oredict.ShapelessOreRecipe) r).getInput().toArray()
+                : r instanceof net.minecraft.item.crafting.ShapedRecipes ? ((net.minecraft.item.crafting.ShapedRecipes) r).recipeItems
+                : r instanceof net.minecraft.item.crafting.ShapelessRecipes ? ((net.minecraft.item.crafting.ShapelessRecipes) r).recipeItems.toArray() : null;
+            if (in == null) continue;
+            boolean worldOnly = false;
+            for (int k = 0; k < in.length; k++) {
+                if (in[k] instanceof ItemStack && world.contains(((ItemStack) in[k]).getItem())) worldOnly = true;
+                if (!(in[k] instanceof List)) continue;
+                List filtered = new java.util.ArrayList();
+                for (Object o : (List) in[k]) if (!(o instanceof ItemStack && world.contains(((ItemStack) o).getItem()))) filtered.add(o);
+                if (filtered.size() == ((List) in[k]).size()) continue;
+                if (r instanceof net.minecraftforge.oredict.ShapedOreRecipe) in[k] = filtered;
+                else { // у бесформенного getInput - сам список рецепта
+                    List live = ((net.minecraftforge.oredict.ShapelessOreRecipe) r).getInput();
+                    live.set(live.indexOf(in[k]), filtered);
+                }
+            }
+            if (worldOnly) it.remove();
+        }
+    }
+
+    /** Есть ли рецепт обычных палок, принимающий эти доски (для автотеста). */
+    public static boolean vanillaSticksFrom(net.minecraft.world.World w, Block planks) {
+        net.minecraft.inventory.InventoryCrafting g = new net.minecraft.inventory.InventoryCrafting(new net.minecraft.inventory.Container() {
+            @Override
+            public boolean canInteractWith(net.minecraft.entity.player.EntityPlayer p) {
+                return false;
+            }
+        }, 3, 3);
+        g.setInventorySlotContents(0, new ItemStack(planks));
+        g.setInventorySlotContents(3, new ItemStack(planks));
+        for (IRecipe r : recipes()) if (r.getRecipeOutput() != null && r.getRecipeOutput().getItem() == Items.stick && r.matches(g, w)) return true;
+        return false;
     }
 
     private static void world(TwilightWorld w) {

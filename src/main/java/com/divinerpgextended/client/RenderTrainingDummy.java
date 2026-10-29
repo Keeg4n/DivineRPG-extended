@@ -39,7 +39,7 @@ public class RenderTrainingDummy extends RenderBiped {
         EntityTrainingDummy d = (EntityTrainingDummy) e;
         EntityOtherPlayerMP t = broken ? null : twin(d);
         if (t == null) {
-            super.doRender(e, x, y, z, yaw, pt);
+            drawFallback(e, x, y, z, yaw, pt);
             return;
         }
         try {
@@ -48,7 +48,7 @@ public class RenderTrainingDummy extends RenderBiped {
         } catch (Throwable ex) { // чужой рендер игрока не принял двойника - дальше старой моделью
             broken = true;
             com.divinerpgextended.DivineRPGExtended.LOG.warn("Манекен: рендер игрока не сработал, рисую простой моделью: " + ex);
-            super.doRender(e, x, y, z, yaw, pt);
+            drawFallback(e, x, y, z, yaw, pt);
             return;
         }
         passSpecialRender(d, x, y, z);
@@ -80,6 +80,12 @@ public class RenderTrainingDummy extends RenderBiped {
         t.prevRotationYawHead = d.prevRotationYawHead;
         t.rotationPitch = t.prevRotationPitch = 0;
         t.limbSwing = t.limbSwingAmount = t.prevLimbSwingAmount = 0;
+        // плащ: двойник не тикает, и "догоняющая" плащ точка осталась бы там, где он создан, - плащ заворачивался бы внутрь
+        t.field_71091_bM = t.field_71094_bP = d.posX;
+        t.field_71096_bN = t.field_71095_bQ = d.posY;
+        t.field_71097_bO = t.field_71085_bR = d.posZ;
+        t.cameraYaw = t.prevCameraYaw = 0;
+        t.distanceWalkedModified = t.prevDistanceWalkedModified = 0;
         t.hurtTime = d.hurtTime;
         t.maxHurtTime = d.maxHurtTime;
         t.ticksExisted = d.ticksExisted;
@@ -95,8 +101,28 @@ public class RenderTrainingDummy extends RenderBiped {
         return UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes());
     }
 
+    /**
+     * Своя текстура (соломенное чучело) - её берут миникарты для значка, чтобы манекен не выглядел игроком. Сам манекен
+     * рисуется рендером игрока со скином копии, старая модель - скином по имени.
+     */
     @Override
     protected ResourceLocation getEntityTexture(Entity e) {
+        return fallback ? skin(e) : ICON;
+    }
+
+    private static final ResourceLocation ICON = new ResourceLocation("divinerpgextended", "textures/entity/training_dummy.png");
+    private boolean fallback;
+
+    private void drawFallback(Entity e, double x, double y, double z, float yaw, float pt) {
+        fallback = true;
+        try {
+            super.doRender(e, x, y, z, yaw, pt);
+        } finally {
+            fallback = false;
+        }
+    }
+
+    private static ResourceLocation skin(Entity e) {
         String name = ((EntityTrainingDummy) e).skinName();
         if (name == null || name.isEmpty()) return AbstractClientPlayer.locationStevePng;
         ResourceLocation loc = AbstractClientPlayer.getLocationSkin(name);

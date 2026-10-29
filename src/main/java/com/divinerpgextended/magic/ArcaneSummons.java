@@ -62,7 +62,7 @@ public class ArcaneSummons {
         return e;
     }
 
-    static void mark(EntityPlayer p, Entity t) {
+    public static void mark(EntityPlayer p, Entity t) {
         if (t instanceof EntityArcaneWraith || t == p) return;
         TARGET.put(p.getUniqueID(), new Object[] { t, p.worldObj.getTotalWorldTime() });
     }

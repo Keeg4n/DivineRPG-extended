@@ -9,7 +9,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
-/** Манекен для битья: ПКМ по верху блока - поставить свою копию. */
+/** Манекен для битья: ПКМ по верху блока - поставить свою копию (на сервере - не больше {@link DummyLimit#MAX}). */
 public class ItemTrainingDummy extends Item {
 
     public ItemTrainingDummy() {
@@ -24,12 +24,18 @@ public class ItemTrainingDummy extends Item {
         if (side != 1) return false;
         if (w.isRemote) return true;
         if (!w.isAirBlock(x, y + 1, z) || !w.isAirBlock(x, y + 2, z)) return false;
+        DummyLimit limit = DummyLimit.get();
+        if (limit.full()) {
+            p.addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.dummy.limit", DummyLimit.MAX));
+            return false;
+        }
         EntityTrainingDummy d = new EntityTrainingDummy(w);
         d.setLocationAndAngles(x + 0.5, y + 1, z + 0.5, p.rotationYaw + 180F, 0F);
         d.rotationYawHead = d.renderYawOffset = d.rotationYaw;
         d.copy(p);
         d.setPlacer(p);
-        w.spawnEntityInWorld(d);
+        if (!w.spawnEntityInWorld(d)) return false;
+        limit.add(d.getUniqueID());
         if (!p.capabilities.isCreativeMode) s.stackSize--;
         return true;
     }

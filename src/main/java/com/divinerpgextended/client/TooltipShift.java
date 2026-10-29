@@ -17,19 +17,17 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Описания предметов Divine и аддона - под Shift. Без Shift видны название, ванильные строки (чары, атрибуты), цифры
- * Divine (урон, применения, цена арканы, защита), "Из Везеи" и строки с меткой {@link #KEEP}; остальное - описания из
- * самих предметов и подсказки, дописанные событиями, - прячется, вместо них строка "Shift - описание".
+ * Описания предметов Divine и аддона - под Shift. Без Shift видны название, ванильные строки (чары, атрибуты), имя мода
+ * (Waila и др.) и строки с меткой {@link #KEEP}; остальное - описания из самих предметов (вместе с цифрами Divine: урон,
+ * применения, эффекты брони) и подсказки, дописанные событиями, - прячется, вместо них строка "Shift - описание".
  */
 @SideOnly(Side.CLIENT)
 public class TooltipShift {
 
     /** Метка строки, которая видна и без Shift (невидимые коды сброса цвета). */
     public static final String KEEP = "§r§r";
-    /** Ключи Divine с цифрами - их строки остаются. */
-    private static final String[] STATS = { "tooltip.uses", "tooltip.arcana", "tooltip.damage.melee", "tooltip.damage.ranged", "tooltip.damage.arcana",
-        "tooltip.ammo", "tooltip.ammo.infinite", "tooltip.uses.infinite", "tooltip.damage.both", "tooltip.arcana.regen", "tooltip.damage.reduction",
-        "tooltip.noprotection", "tooltip.efficiency", "tooltip.vethean" };
+    /** Начало строки с именем мода (Waila, NEI). */
+    private static final String MOD_NAME = "§9§o";
     private static ItemTooltipEvent seen;
     private static List<String> base;
 
@@ -65,23 +63,15 @@ public class TooltipShift {
             for (String l : e.toolTip) {
                 Integer n = was.get(l);
                 if (n != null && n > 0) was.put(l, n - 1);
-                else if (own || !l.startsWith("§9§o")) bump(hide, l, 1); // имя мода (Waila и др.) не трогаем
+                else bump(hide, l, 1);
             }
-        }
-        List<String> keepPrefix = new ArrayList<String>();
-        for (String k : STATS) {
-            String t = StatCollector.translateToLocal(k);
-            if (t.equals(k)) continue;
-            int cut = t.length();
-            for (char c : new char[] { '#', '|' }) if (t.indexOf(c) >= 0) cut = Math.min(cut, t.indexOf(c));
-            if (cut > 2) keepPrefix.add(t.substring(0, cut).trim());
         }
         boolean hidden = false;
         List<String> out = new ArrayList<String>();
         for (int i = 0; i < e.toolTip.size(); i++) {
             String l = e.toolTip.get(i);
             Integer n = hide.get(l);
-            if (i > 0 && n != null && n > 0 && !l.startsWith(KEEP) && !stat(l, keepPrefix)) {
+            if (i > 0 && n != null && n > 0 && !l.startsWith(KEEP) && !l.startsWith(MOD_NAME)) {
                 hide.put(l, n - 1);
                 if (EnumChatFormatting.getTextWithoutFormattingCodes(l).trim().length() > 0) hidden = true;
                 continue;
@@ -90,15 +80,11 @@ public class TooltipShift {
         }
         if (!hidden) return;
         while (out.size() > 1 && EnumChatFormatting.getTextWithoutFormattingCodes(out.get(out.size() - 1)).trim().isEmpty()) out.remove(out.size() - 1);
-        out.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.tooltip.shift"));
+        int at = out.size(); // над именем мода, если оно в конце
+        while (at > 1 && out.get(at - 1).startsWith(MOD_NAME)) at--;
+        out.add(at, EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("dre.tooltip.shift"));
         e.toolTip.clear();
         e.toolTip.addAll(out);
-    }
-
-    private static boolean stat(String line, List<String> prefixes) {
-        String s = EnumChatFormatting.getTextWithoutFormattingCodes(line).trim();
-        for (String p : prefixes) if (s.startsWith(p)) return true;
-        return false;
     }
 
     private static void bump(Map<String, Integer> m, String k, int d) {
