@@ -2953,6 +2953,10 @@ public class SelfTest {
             ItemStack wrong = new ItemStack(Items.iron_sword).setStackDisplayName("crowbar");
             boolean names = com.divinerpgextended.easter.Easter.hev(named) && com.divinerpgextended.easter.Easter.hev(lower) && !com.divinerpgextended.easter.Easter.hev(plain)
                 && com.divinerpgextended.easter.Easter.crowbar(bar) && !com.divinerpgextended.easter.Easter.crowbar(wrong) && com.divinerpgextended.easter.Easter.rpg(rpg);
+            com.divinerpgextended.easter.Easter.enabled = false; // пасхалки выключены в конфиге - вещи обычные
+            boolean off = !com.divinerpgextended.easter.Easter.hev(named) && !com.divinerpgextended.easter.Easter.crowbar(bar) && !com.divinerpgextended.easter.Easter.rpg(rpg);
+            com.divinerpgextended.easter.Easter.enabled = true;
+            names &= off;
             TestPlayer hp = join(player(0, "TestHev", x0 + 0.5, y0, z0 - 2.5), true);
             for (int i = 0; i < 4; i++) hp.inventory.armorInventory[i] = new ItemStack(hevSet[i]).setStackDisplayName("H.E.V");
             hp.chat.clear();

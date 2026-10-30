@@ -552,8 +552,8 @@ public class LairDomes implements IWorldGenerator {
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
             // особый дом: диван с РПГ у дальней стены, лицом к двери (на север)
             int sx = HOME_IX * 16 + 7, sz = HOME_IZ * 16 + 12;
-            place(w, cx, cz, x0, z0, sx, J_FL + 1, sz, ModBlocks.sofa, 2);
-            place(w, cx, cz, x0, z0, sx + 1, J_FL + 1, sz, ModBlocks.sofa, 2 | com.divinerpgextended.easter.BlockSofa.SECOND);
+            if (com.divinerpgextended.Config.easterEggs) place(w, cx, cz, x0, z0, sx, J_FL + 1, sz, ModBlocks.sofa, 2);
+            if (com.divinerpgextended.Config.easterEggs) place(w, cx, cz, x0, z0, sx + 1, J_FL + 1, sz, ModBlocks.sofa, 2 | com.divinerpgextended.easter.BlockSofa.SECOND);
             // сундуки в домах: в углу каждого третьего дома
             for (int x = x0; x < x0 + 16; x++) for (int z = z0; z < z0 + 16; z++) {
                 int dx = x - cx, dz = z - cz;

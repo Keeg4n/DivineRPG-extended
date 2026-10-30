@@ -39,6 +39,48 @@ public final class Easter {
 
     private Easter() {}
 
+    /** Пасхалки включены: на сервере - из конфига, у игрока - как решил сервер ({@link Toggle}). */
+    public static volatile boolean enabled = true;
+
+    public static boolean on() {
+        return enabled;
+    }
+
+    /** Сервер говорит игроку при входе, включены ли пасхалки. */
+    public static class Toggle implements cpw.mods.fml.common.network.simpleimpl.IMessage {
+
+        boolean on;
+
+        public Toggle() {}
+
+        Toggle(boolean on) {
+            this.on = on;
+        }
+
+        @Override
+        public void fromBytes(io.netty.buffer.ByteBuf buf) {
+            on = buf.readBoolean();
+        }
+
+        @Override
+        public void toBytes(io.netty.buffer.ByteBuf buf) {
+            buf.writeBoolean(on);
+        }
+    }
+
+    public static class ToggleHandler implements cpw.mods.fml.common.network.simpleimpl.IMessageHandler<Toggle, cpw.mods.fml.common.network.simpleimpl.IMessage> {
+
+        @Override
+        public cpw.mods.fml.common.network.simpleimpl.IMessage onMessage(Toggle m, cpw.mods.fml.common.network.simpleimpl.MessageContext ctx) {
+            enabled = m.on;
+            return null;
+        }
+    }
+
+    public static void registerMessages() {
+        com.divinerpgextended.cold.ColdHandler.NET.registerMessage(ToggleHandler.class, Toggle.class, 20, cpw.mods.fml.relauncher.Side.CLIENT);
+    }
+
     static boolean named(ItemStack s, String... names) {
         if (s == null || !s.hasDisplayName()) return false;
         String n = s.getDisplayName().trim();
@@ -52,7 +94,7 @@ public final class Easter {
 
     /** Часть костюма H.E.V.: реалмитовая броня с именем H.E.V. */
     public static boolean hev(ItemStack s) {
-        return s != null && realmiteArmor(s.getItem()) && named(s, "H.E.V", "H.E.V.", "HEV");
+        return enabled && s != null && realmiteArmor(s.getItem()) && named(s, "H.E.V", "H.E.V.", "HEV");
     }
 
     /** Шлем костюма в виде очков Гордона (иначе - шлем Mark IV). */
@@ -115,12 +157,12 @@ public final class Easter {
 
     /** Монтировка: реалмитовый меч с именем crowbar. */
     public static boolean crowbar(ItemStack s) {
-        return s != null && s.getItem() == VanillaItemsWeapons.realmiteSword && named(s, "crowbar");
+        return enabled && s != null && s.getItem() == VanillaItemsWeapons.realmiteSword && named(s, "crowbar");
     }
 
     /** РПГ-7: ракетница Мерика с именем rpg. */
     public static boolean rpg(ItemStack s) {
-        return s != null && s.getItem() == ArcanaItems.meriksMissile && named(s, "rpg", "rpg-7", "rpg7");
+        return enabled && s != null && s.getItem() == ArcanaItems.meriksMissile && named(s, "rpg", "rpg-7", "rpg7");
     }
 
     static void say(EntityPlayer p, String key) {
@@ -131,6 +173,12 @@ public final class Easter {
 
     /** Голос костюма и морфин (сервер). */
     public static class Events {
+
+        @SubscribeEvent
+        public void onLogin(cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent e) {
+            if (e.player instanceof net.minecraft.entity.player.EntityPlayerMP)
+                com.divinerpgextended.cold.ColdHandler.NET.sendTo(new Toggle(com.divinerpgextended.Config.easterEggs), (net.minecraft.entity.player.EntityPlayerMP) e.player);
+        }
 
         @SubscribeEvent
         public void onTick(TickEvent.PlayerTickEvent e) {

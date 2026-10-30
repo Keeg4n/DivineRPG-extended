@@ -58,6 +58,23 @@ public final class EasterClient {
             : i == net.divinerpg.utils.items.VanillaItemsArmor.realmiteLegs ? hevLegs : hevBoots;
     }
 
+    /** Часть костюма по вещи брони: helmet/goggles, chest, legs, boots. */
+    static String piece(ItemStack s) {
+        int type = ((net.minecraft.item.ItemArmor) s.getItem()).armorType;
+        return type == 0 ? (Easter.goggles(s) ? "goggles" : "helmet") : type == 1 ? "chest" : type == 2 ? "legs" : "boots";
+    }
+
+    /** Модель брони костюма для стоек и мобов ({@link com.divinerpgextended.asm.EasterHooks}); не костюм - null. */
+    public static net.minecraft.client.model.ModelBiped armorModel(ItemStack s) {
+        if (!Easter.hev(s) || !(s.getItem() instanceof net.minecraft.item.ItemArmor)) return null;
+        HEV_MODEL.piece = piece(s);
+        return HEV_MODEL;
+    }
+
+    public static String armorTexture(ItemStack s) {
+        return Easter.hev(s) ? HEV.toString() : null;
+    }
+
     public static void init() {
         Events ev = new Events();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(ev);
@@ -117,9 +134,8 @@ public final class EasterClient {
         @SubscribeEvent
         public void onArmor(RenderPlayerEvent.SetArmorModel e) {
             if (!Easter.hev(e.stack) || !(e.stack.getItem() instanceof net.minecraft.item.ItemArmor)) return;
-            int type = ((net.minecraft.item.ItemArmor) e.stack.getItem()).armorType;
             EasterModels.HevArmor m = HEV_MODEL;
-            m.piece = type == 0 ? (Easter.goggles(e.stack) ? "goggles" : "helmet") : type == 1 ? "chest" : type == 2 ? "legs" : "boots";
+            m.piece = piece(e.stack);
             net.minecraft.client.model.ModelBiped main = e.renderer.modelBipedMain;
             m.onGround = main.onGround;
             m.isRiding = main.isRiding;
