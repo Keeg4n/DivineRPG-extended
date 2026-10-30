@@ -470,7 +470,7 @@ public class LairDomes implements IWorldGenerator {
                     put(col, J_FL + 1, FENCE, 0);
                     put(col, J_FL + 2, FENCE, 0);
                     put(col, J_FL + 3, GLOW, 0);
-                } else if (h % 23 == 0) put(col, J_FL + 1, FERN, 0);
+                } else if (h % 23 == 0) fern(col); // пробился сквозь мостовую
                 return;
             }
             int lh = hash(ix * 7919 + 13, iz * 104729 - 7);
@@ -513,8 +513,14 @@ public class LairDomes implements IWorldGenerator {
                     put(col, J_FL + 1, LOG, 0);
                     put(col, J_FL + 2, LEAVES, 0);
                 } else if (h % 5 == 0) put(col, J_FL + 1, LEAVES, 0);
-                else if (h % 3 == 0) put(col, J_FL + 1, FERN, 0);
+                else if (h % 3 == 0) fern(col);
             }
+        }
+
+        /** Папоротник - всегда на траве (пол сада с тем же хешем кладётся землёй). */
+        private static void fern(int[] col) {
+            put(col, J_FL, GRASS, 0);
+            put(col, J_FL + 1, FERN, 0);
         }
 
         /** Корни со свода: стволы джунглей вниз, листва у конца; у некоторых - светящийся конец. */

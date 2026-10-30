@@ -7156,6 +7156,13 @@ public class SelfTest {
             boolean sofa = w.getBlock(sofaX, com.divinerpgextended.world.LairDomes.J_FL + 1, sofaZ) == com.divinerpgextended.registry.ModBlocks.sofa
                 && w.getBlock(sofaX + 1, com.divinerpgextended.world.LairDomes.J_FL + 1, sofaZ) == com.divinerpgextended.registry.ModBlocks.sofa
                 && w.getTileEntity(sofaX, com.divinerpgextended.world.LairDomes.J_FL + 1, sofaZ) instanceof com.divinerpgextended.easter.BlockSofa.TileSofa;
+            // папоротники города - только на траве (не на земле и не на мостовой)
+            int ferns = 0, badFerns = 0, fy = com.divinerpgextended.world.LairDomes.J_FL + 1, jr = com.divinerpgextended.world.LairDomes.J_R;
+            for (int fx = jc[0] - jr; fx <= jc[0] + jr; fx++) for (int fz = jc[2] - jr; fz <= jc[2] + jr; fz++) {
+                if (!w.blockExists(fx, fy, fz) || w.getBlock(fx, fy, fz) != Blocks.tallgrass) continue;
+                ferns++;
+                if (w.getBlock(fx, fy - 1, fz) != Blocks.grass) badFerns++;
+            }
             dump(w, jc[0], com.divinerpgextended.world.LairDomes.J_FL + 25, jc[2], 76, "render-jungle");
             // проход из храма до зала: поиск по воздуху от колодца
             boolean reach = false;
@@ -7249,7 +7256,8 @@ public class SelfTest {
                 && com.divinerpgextended.halite.Halite.sparkOf(com.divinerpgextended.boss.Boss.JUNGLE_KING) == com.divinerpgextended.halite.Halite.Spark.JUNGLE;
             if (boss != null) boss.setDead();
             jp2.inventory.clearInventory(null, -1);
-            check(lair && reach && ore && summoned && shell && sweep && spirit && sofa, "логово " + lair + ", диван с РПГ в особом доме " + sofa + ", дошёл от храма до алтаря " + reach + " (" + reachInfo[0] + "); руда (алмазной нет, халитовой да) " + ore + "; призыв " + summoned
+            check(lair && reach && ore && summoned && shell && sweep && spirit && sofa && ferns > 50 && badFerns == 0, "логово " + lair + ", диван с РПГ в особом доме " + sofa
+                + ", папоротников " + ferns + " (не на траве " + badFerns + "), дошёл от храма до алтаря " + reach + " (" + reachInfo[0] + "); руда (алмазной нет, халитовой да) " + ore + "; призыв " + summoned
                 + "; шкура при порабощённых " + shell + "; хвост " + sweep + " (" + sweepInfo[0] + "); дух мира только с частичкой джунглей " + spirit);
             return "под храмом джунглей логово: колодец, ходы, зал с алтарём - дойти можно; руду берёт только халитовая кирка; тотем на алтаре зовёт Древнего драмкрикса; при порабощённых шкура держит урон, хвост бьёт по кругу; дух мира - Древняя сущность + босс джунглей";
         });
