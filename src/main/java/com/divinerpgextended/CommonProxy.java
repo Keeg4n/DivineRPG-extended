@@ -118,6 +118,7 @@ public class CommonProxy {
         com.divinerpgextended.boss.WatcherHunt watcherHunt = new com.divinerpgextended.boss.WatcherHunt();
         MinecraftForge.EVENT_BUS.register(watcherHunt);
         FMLCommonHandler.instance().bus().register(watcherHunt);
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.KingRace());
         com.divinerpgextended.boss.NetherArsenal arsenal = new com.divinerpgextended.boss.NetherArsenal();
         MinecraftForge.EVENT_BUS.register(arsenal);
         FMLCommonHandler.instance().bus().register(arsenal);

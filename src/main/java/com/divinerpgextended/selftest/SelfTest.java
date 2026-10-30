@@ -8402,10 +8402,51 @@ public class SelfTest {
             int clash = 0;
             for (int rx = -6; rx <= 6; rx++) for (int rz = -6; rz <= 6; rz++)
                 if (com.divinerpgextended.world.WorldGenOuterLairs.clashesWithWatcher(w.getSeed(), com.divinerpgextended.world.WorldGenOuterLairs.center(w.getSeed(), type, rx, rz))) clash++;
-            check(shell && track && posts && gate && walk.isEmpty() && in && "dre.chat.summon_lair_1".equals(out) && clash == 0,
+            // бой: король гоняет по треку, оставляет след, зовёт скорчеров, встаёт на пит-стоп; урон по нему и от него
+            TestPlayer kp = join(player(-1, "TestKing", cx + 0.5, F + 1, cz + 0.5), true);
+            net.divinerpg.entities.vanilla.EntityKingOfScorchers king = new net.divinerpg.entities.vanilla.EntityKingOfScorchers(w);
+            king.setPosition(cx + com.divinerpgextended.boss.KingRace.PIT_DX + 0.5, F + 1, cz + 0.5);
+            w.spawnEntityInWorld(king);
+            double a0 = Math.atan2(king.posZ - cz - 0.5, king.posX - cx - 0.5);
+            for (int i = 0; i < 60; i++) king.onUpdate();
+            double r1 = Math.hypot(king.posX - cx - 0.5, king.posZ - cz - 0.5), a1 = Math.atan2(king.posZ - cz - 0.5, king.posX - cx - 0.5);
+            boolean races = com.divinerpgextended.boss.KingRace.driven(king) && Math.abs(r1 - com.divinerpgextended.boss.KingRace.LAP_R) < 3 && Math.abs(a1 - a0) > 0.5
+                && com.divinerpgextended.boss.KingRace.trail(king) > 10;
+            com.divinerpgextended.boss.KingRace.spawnScorchersFor(king);
+            int scorchers = com.divinerpgextended.boss.KingRace.minions(king);
+            com.divinerpgextended.boss.KingRace.toPit(king);
+            boolean pit = false;
+            for (int i = 0; i < 400 && !pit; i++) {
+                king.onUpdate();
+                pit = com.divinerpgextended.boss.KingRace.pitStop(king);
+            }
+            hold(kp, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.aquaticDagger));
+            net.minecraftforge.event.entity.living.LivingHurtEvent aqPit = new net.minecraftforge.event.entity.living.LivingHurtEvent(king, DamageSource.causePlayerDamage(kp), 10F);
+            MinecraftForge.EVENT_BUS.post(aqPit);
+            hold(kp, new ItemStack(Items.diamond_sword));
+            net.minecraftforge.event.entity.living.LivingHurtEvent swPit = new net.minecraftforge.event.entity.living.LivingHurtEvent(king, DamageSource.causePlayerDamage(kp), 10F);
+            MinecraftForge.EVENT_BUS.post(swPit);
+            com.divinerpgextended.boss.KingRace.reset(king);
+            net.minecraftforge.event.entity.living.LivingHurtEvent swRace = new net.minecraftforge.event.entity.living.LivingHurtEvent(king, DamageSource.causePlayerDamage(kp), 10F);
+            MinecraftForge.EVENT_BUS.post(swRace);
+            hold(kp, null);
+            armor(kp, net.divinerpg.utils.items.VanillaItemsArmor.infernoHelmet, net.divinerpg.utils.items.VanillaItemsArmor.infernoBody, net.divinerpg.utils.items.VanillaItemsArmor.infernoLegs,
+                net.divinerpg.utils.items.VanillaItemsArmor.infernoBoots);
+            net.minecraftforge.event.entity.living.LivingHurtEvent shot = new net.minecraftforge.event.entity.living.LivingHurtEvent(kp,
+                DamageSource.causeThrownDamage(new net.divinerpg.entities.vanilla.projectile.EntityKingOfScorchersShot(w, king), king), 14F);
+            MinecraftForge.EVENT_BUS.post(shot);
+            armor(kp, null, null, null, null);
+            boolean damage = Math.abs(aqPit.ammount - 25F) < 0.01 && Math.abs(swPit.ammount - 10F) < 0.01 && Math.abs(swRace.ammount - 5F) < 0.01 && Math.abs(shot.ammount - 7F) < 0.01;
+            king.setDead();
+            for (Object o : new java.util.ArrayList<Object>(w.loadedEntityList)) if (o instanceof net.divinerpg.entities.vanilla.EntityScorcher) ((net.minecraft.entity.Entity) o).setDead();
+            server.getConfigurationManager().playerEntityList.remove(kp);
+            w.removeEntity(kp);
+            check(shell && track && posts && gate && walk.isEmpty() && in && "dre.chat.summon_lair_1".equals(out) && clash == 0 && races && scorchers >= 2 && pit && damage,
                 "оболочка " + shell + ", трек (клетка, ров, мостки, финиш) " + track + ", огненные столбы " + posts + ", ворота с флагом " + gate + ", непроходимо:" + walk
-                    + ", внутри " + in + ", снаружи " + out + ", наложений на Смотрителя " + clash);
-            return "палата в Аду в " + cx + "," + cz + ": трек под лавой - клетчатый помост за рвом, финиш, огненные столбы, ворота с клетчатым флагом; пламя вне палаты не работает";
+                    + ", внутри " + in + ", снаружи " + out + ", наложений на Смотрителя " + clash + "; гонка " + races + " (радиус " + String.format("%.1f", r1) + ", угол "
+                    + String.format("%.2f -> %.2f", a0, a1) + ", след " + com.divinerpgextended.boss.KingRace.trail(king) + "), скорчеров " + scorchers + ", пит-стоп " + pit
+                    + "; урон: водный кинжал на пит-стопе " + aqPit.ammount + ", меч на пит-стопе " + swPit.ammount + ", меч на ходу " + swRace.ammount + ", выстрел по Inferno " + shot.ammount);
+            return "палата в Аду в " + cx + "," + cz + ": трек под лавой - клетчатый помост за рвом, финиш, огненные столбы, ворота с клетчатым флагом; пламя вне палаты не работает; король гоняет по треку со следом, зовёт скорчеров, встаёт на пит-стоп; водное оружие гасит щит, Inferno вдвое режет его урон";
         });
         t("Логова", "Места логов из сида: строятся, карта видит заранее", () -> {
             WorldServer w = server.worldServerForDimension(0);

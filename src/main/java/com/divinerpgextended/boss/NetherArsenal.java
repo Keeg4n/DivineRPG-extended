@@ -5,7 +5,6 @@ import java.util.WeakHashMap;
 
 import net.divinerpg.entities.iceika.projectile.EntityCarol;
 import net.divinerpg.entities.iceika.projectile.EntityMusic;
-import net.divinerpg.entities.vanilla.EntityKingOfScorchers;
 import net.divinerpg.entities.vanilla.projectile.EntityShooterBullet;
 import net.divinerpg.utils.items.VanillaItemsOther;
 import net.divinerpg.utils.items.VanillaItemsWeapons;
@@ -44,7 +43,7 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
  * <li>Sound of Music и Sound of Carols: не чаще раза в {@link #MUSIC_EVERY} тиков (звук больше не накладывается, лишний
  * клик не тратит заряд), ноты летят без падения и до {@link #BOUNCES} раз отскакивают от стен. Music по приспешникам
  * боссов - вдвое; Carols замедляет цель, по Ледяному Колоссу и Снежному Глакону - в полтора раза.</li>
- * <li>Король скорчеров в пламенном щите: удары вплотную - вполовину, Maelstrom и Sound of Music - в полтора раза.</li>
+ * <li>Король скорчеров - см. {@link KingRace} (там же Maelstrom и Sound of Music против него).</li>
  * <li>Перезарядка ({@link Reload}): пушка гаста + слёзы гаста, Maelstrom + фиолетовые сгустки - по {@link #RELOAD}
  * выстрелов за штуку; только тем, кто победил Короля скорчеров.</li>
  * </ul>
@@ -52,7 +51,7 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
 public class NetherArsenal {
 
     public static final int PIERCE = 3, MUSIC_EVERY = 8, BOUNCES = 2, RELOAD = 50;
-    public static final float MINION_MULT = 2F, ICE_MULT = 1.5F, SCORCHER_MELEE = 0.5F, SCORCHER_RANGED = 1.5F;
+    public static final float MINION_MULT = 2F, ICE_MULT = 1.5F;
     static final String PIERCED = "drePierced", BOUNCED = "dreBounced";
 
     // ---------------------------------------------------------------- что чем стреляло
@@ -82,11 +81,6 @@ public class NetherArsenal {
         EntityLivingBase v = e.entityLiving;
         if (v.worldObj.isRemote) return;
         Entity proj = e.source.getSourceOfDamage();
-        // король скорчеров в пламенном щите
-        if (v instanceof EntityKingOfScorchers) {
-            if (com.divinerpgextended.entity.ThroneCombat.melee(e.source) != null) e.ammount *= SCORCHER_MELEE;
-            else if (maelstrom(e.source) || proj instanceof EntityMusic) e.ammount *= SCORCHER_RANGED;
-        }
         if (proj instanceof EntityMusic && BossMinions.isMinion(v)) e.ammount *= MINION_MULT;
         if (proj instanceof EntityCarol) {
             v.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 60, 1));

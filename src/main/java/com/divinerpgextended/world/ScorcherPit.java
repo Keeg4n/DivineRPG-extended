@@ -9,13 +9,14 @@ import net.minecraft.world.World;
  * окна с лавой и вход (тоннель, ворота в скальном холме, крыльцо) - как у логова Смотрителя ({@link WatcherVault}); свой
  * зал: в центре помост в чёрно-белую клетку Divine, вокруг лавовый ров с четырьмя мостками в клетку; дальше трек из адского
  * кирпича - белая пунктирная разметка, финишная полоса в клетку на западе, бордюр по краю из красных и белых блоков. По
- * внутренней бровке трека - шесть огненных столбов в клетку, на них вечный огонь. Над воротами вместо ока - клетчатый флаг.
+ * внутренней бровке трека - восемь огненных столбов в клетку (не на осях: по осям король срезает через мостки), на них
+ * вечный огонь. Над воротами вместо ока - клетчатый флаг. Бой - {@link com.divinerpgextended.boss.KingRace}.
  */
 public class ScorcherPit extends WatcherVault {
 
     /** Помост, ров (от и до), столбы (круг, толщина), разметка трека. */
     public static final double DAIS = 6, MOAT_IN = 6, MOAT_OUT = 9.5, POSTS = 12, POST_R = 1.3, LANE = 15.3;
-    public static final int POST_COUNT = 6, POST_H = 8;
+    public static final int POST_COUNT = 8, POST_H = 8;
 
     public ScorcherPit(int cx, int cz) {
         super(cx, cz);
@@ -59,10 +60,6 @@ public class ScorcherPit extends WatcherVault {
                 put(col, y, FIRE, 0); // вечный огонь на незерраке
                 continue;
             }
-            if (r < MOAT_OUT && r >= MOAT_IN && bridge && h == 1 && (Math.abs(dx) == 1 || Math.abs(dz) == 1) && Math.abs(dx) != Math.abs(dz)) {
-                put(col, y, FENCE, 0); // перила мостков
-                continue;
-            }
             if (r < 1 && h == 1) {
                 put(col, y, AIR, 0);
                 continue;
@@ -75,7 +72,7 @@ public class ScorcherPit extends WatcherVault {
 
     /** Расстояние до ближайшего огненного столба. */
     static double postDist(double dx, double dz) {
-        return com.divinerpgextended.world.LairDomes.ringDist(dx, dz, POSTS, POST_COUNT, Math.PI / POST_COUNT);
+        return com.divinerpgextended.world.LairDomes.ringDist(dx, dz, POSTS, POST_COUNT, Math.PI / POST_COUNT); // не на осях: по ним король срезает
     }
 
     /** Над воротами - клетчатый флаг в рамке из адского кирпича. */

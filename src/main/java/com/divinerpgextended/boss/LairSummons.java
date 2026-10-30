@@ -99,6 +99,10 @@ public class LairSummons {
                 com.divinerpgextended.boss.WatcherHunt.upgrade(e.world, c);
                 e.entity.setPosition(c[0] + 0.5, com.divinerpgextended.world.WatcherVault.bossY() - e.entity.height / 2, c[2] + 0.5);
             }
+            // король скорчеров в новой палате - на финишной полосе, оттуда стартует
+            if (type == WorldGenOuterLairs.SCORCHERS && e.entity instanceof net.divinerpg.entities.vanilla.EntityKingOfScorchers
+                && com.divinerpgextended.world.ScorcherPit.isNew(e.world, c[0], c[2]))
+                e.entity.setPosition(c[0] + com.divinerpgextended.boss.KingRace.PIT_DX + 0.5, com.divinerpgextended.world.WatcherVault.FLOOR + 1, c[2] + 0.5);
             // орда кружит над всем островом (круг шире острова не бывает) - привязь шире зала
             leash(e.entity, c[0], WorldGenOuterLairs.floor(e.world, type, c) + 1, c[2], WorldGenOuterLairs.RADIUS[type] + (type == WorldGenOuterLairs.AYERACO ? 6 : -3));
             return;
