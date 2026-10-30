@@ -1,6 +1,7 @@
 package com.divinerpgextended.boss;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import com.divinerpgextended.world.WorldGenOuterLairs;
 
 import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
  * Смотритель в своём логове ({@link WatcherVault}) - охотник, а не болтающийся глаз: летит к ближайшему бойцу и пробивает
@@ -46,6 +48,10 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * перегревает; пули пушки гаста и прочее адское оружие бьют его в полтора раза сильнее; огненное (мечи Inferno, Molten,
  * Пылающая ярость, стрелы Inferno-лука) копит жар - {@link #WARMTH} попаданий подряд перегревают; стрела Bluefire-лука
  * ослепляет на {@link #BLIND} тиков (теряет цель, не стреляет), а её взрывы, как и его, прорубают завал.
+ * <p>
+ * Завал живёт, пока жив Смотритель: погиб или исчез (все ушли с арены) - зал пустеет ({@link #sweep}). Выгрузился вместе с
+ * чанком - завал остаётся до его возвращения. Логово, созданное ещё с завалом (старые миры), пустеет, когда туда зайдёт игрок,
+ * а Смотрителя нет ({@link #tidy}).
  */
 public class WatcherHunt {
 
@@ -63,6 +69,14 @@ public class WatcherHunt {
     }
 
     static final Map<Entity, State> STATES = new WeakHashMap<Entity, State>();
+    /** Смотрители в бою и центры их логов (сильные ссылки - мёртвого надо успеть увидеть). */
+    static final Map<EntityTheWatcher, int[]> FIGHTS = new HashMap<EntityTheWatcher, int[]>();
+    /** Логова, уже пустые без боя (за этот запуск сервера): x и z центра. */
+    static final java.util.Set<Long> TIDY = new java.util.HashSet<Long>();
+
+    static long key(int[] c) {
+        return (long) c[0] << 32 ^ (c[2] & 0xffffffffL);
+    }
 
     static State state(Entity e) {
         State s = STATES.get(e);
@@ -121,6 +135,7 @@ public class WatcherHunt {
         if (w.worldObj.isRemote) return false;
         int[] c = vault(w.worldObj, w.posX, w.posY + w.height / 2, w.posZ);
         if (c == null) return false;
+        if (!w.isDead && FIGHTS.put(w, c) == null) TIDY.remove(key(c));
         State s = state(w);
         EntityPlayer target = target(w, c);
         double ex = w.posX, ey = w.posY + w.height * 0.5, ez = w.posZ;
@@ -178,6 +193,69 @@ public class WatcherHunt {
         }
         if (w.getHealth() / w.getMaxHealth() <= DEBRIS_AT) debris(w, s, c, target);
         return true;
+    }
+
+    @SubscribeEvent
+    public void onTick(TickEvent.WorldTickEvent e) {
+        if (e.phase != TickEvent.Phase.END || e.world.isRemote || e.world.getTotalWorldTime() % 20 != 0) return;
+        if (!FIGHTS.isEmpty()) sweep(e.world);
+        if (e.world.getTotalWorldTime() % 100 == 0 && e.world.provider.dimensionId == WorldGenOuterLairs.dim(WorldGenOuterLairs.WATCHER)) tidy(e.world);
+    }
+
+    /** Бой кончен - убрать завал: Смотритель погиб или исчез; выгруженного (не мёртвого) просто забываем. */
+    public static int sweep(World world) {
+        int cleared = 0;
+        for (Iterator<Map.Entry<EntityTheWatcher, int[]>> it = FIGHTS.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<EntityTheWatcher, int[]> en = it.next();
+            EntityTheWatcher w = en.getKey();
+            if (w.worldObj != world) continue;
+            if (w.isDead) {
+                int[] c = en.getValue();
+                if (!world.blockExists(c[0], WatcherVault.FLOOR, c[2])) continue; // вернёмся, когда загрузят
+                it.remove();
+                if (alive(world, c, w)) continue; // вызвали нового - его завал
+                List<EntityPlayer> ps = new ArrayList<EntityPlayer>();
+                for (Object o : world.playerEntities) if (vault(world, ((EntityPlayer) o).posX, ((EntityPlayer) o).posY + 1, ((EntityPlayer) o).posZ) != null) ps.add((EntityPlayer) o);
+                cleared += new WatcherVault(c[0], c[2]).clear(world, c[0], c[2], ps);
+                TIDY.add(key(c));
+                ((WorldServer) world).func_147487_a("largesmoke", c[0] + 0.5, WatcherVault.bossY(), c[2] + 0.5, 60, 8, 4, 8, 0.02);
+            } else if (!world.loadedEntityList.contains(w)) it.remove();
+        }
+        return cleared;
+    }
+
+    /** Игрок в логове без Смотрителя, а зал ещё не убран (создан с завалом или бой шёл до перезапуска) - убрать. */
+    public static int tidy(World world) {
+        int cleared = 0;
+        for (Object o : world.playerEntities) {
+            EntityPlayer p = (EntityPlayer) o;
+            int[] c = vault(world, p.posX, p.posY + 1, p.posZ);
+            if (c == null || TIDY.contains(key(c))) continue;
+            boolean boss = false;
+            for (Object en : world.loadedEntityList)
+                if (en instanceof EntityTheWatcher && !((EntityTheWatcher) en).isDead) {
+                    int[] bc = vault(world, ((Entity) en).posX, ((Entity) en).posY + 2, ((Entity) en).posZ);
+                    if (bc != null && key(bc) == key(c)) boss = true;
+                }
+            if (boss) continue;
+            List<EntityPlayer> ps = new ArrayList<EntityPlayer>();
+            for (Object q : world.playerEntities) if (vault(world, ((EntityPlayer) q).posX, ((EntityPlayer) q).posY + 1, ((EntityPlayer) q).posZ) != null) ps.add((EntityPlayer) q);
+            cleared += new WatcherVault(c[0], c[2]).clear(world, c[0], c[2], ps);
+            TIDY.add(key(c));
+        }
+        return cleared;
+    }
+
+    /** Для проверок: забыть, какие логова уже убраны. */
+    public static void forgetTidy() {
+        TIDY.clear();
+    }
+
+    /** В том же логове есть другой живой Смотритель. */
+    static boolean alive(World world, int[] c, EntityTheWatcher dead) {
+        for (Map.Entry<EntityTheWatcher, int[]> en : FIGHTS.entrySet())
+            if (en.getKey() != dead && !en.getKey().isDead && en.getValue()[0] == c[0] && en.getValue()[2] == c[2]) return true;
+        return false;
     }
 
     /** Цель: ближайший живой боец в логове (творческий режим не в счёт). */

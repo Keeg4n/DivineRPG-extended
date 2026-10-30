@@ -25,9 +25,11 @@ import cpw.mods.fml.common.IWorldGenerator;
  * <li>Ледяной купол Снежного Глакона ({@link Glacon}) под иглу (место - {@link LairSites#SNOW}): в центре арена-гнездо из
  * снега и льда с алтарём, вокруг замёрзшее озеро, дальше снежный берег; со свода свисают ледяные сталактиты, местами
  * срастаясь с полом в сталагнаты; на концах некоторых - лампы. Из иглу вниз ведёт шахта с винтовой лестницей и тоннель в купол.</li>
- * <li>Заброшенный подземный город под храмом джунглей ({@link JungleCity}): купол вдвое меньше Трона, улицы сеткой,
- * заросшие дома с обвалившимися стенами, сады; со свода свисают корни, некоторые светятся. В центре под храмом -
- * башня с винтовой лестницей (продолжение колодца из храма), на востоке - площадь-арена Древнего драмкрикса с алтарём.</li>
+ * <li>Заброшенный подземный город у храма джунглей ({@link JungleCity}): купол вдвое меньше Трона, в центре - круглая
+ * арена Древнего драмкрикса с алтарём за разрушенной оградой, вокруг неё кольцевой бульвар, дальше кольцом город: улицы
+ * сеткой, заросшие дома с обвалившимися стенами, сады. Под храмом (в городе, западнее арены) - башня с винтовой лестницей,
+ * продолжение колодца из храма. Со свода свисают изогнутые корни в лианах, сужаются книзу; некоторые светятся на конце,
+ * некоторые дорастают до пола.</li>
  * </ul>
  */
 public class LairDomes implements IWorldGenerator {
@@ -37,8 +39,8 @@ public class LairDomes implements IWorldGenerator {
     /** Купол Глакона: радиус, пол, высота свода; центр - на G_DX восточнее иглу; гнездо и озеро - радиусы. */
     public static final int G_R = 46, G_FL = 14, G_H = 26, G_DX = 56, G_NEST = 13, G_LAKE = 30;
     // ---------------------------------------------------------------- джунгли
-    /** Город: радиус, пол, высота свода; площадь-арена - на J_ARENA_DX восточнее центра, полуширина J_PLAZA. */
-    public static final int J_R = 72, J_FL = 10, J_H = 34, J_ARENA_DX = 38, J_PLAZA = 15;
+    /** Город: радиус, пол, высота свода; арена в центре радиусом J_ARENA; башня под храмом - на J_TOWER_DX западнее центра. */
+    public static final int J_R = 72, J_FL = 10, J_H = 34, J_ARENA = 20, J_TOWER_DX = 38;
 
     static final Glacon GLACON = new Glacon();
     static final JungleCity JUNGLE = new JungleCity();
@@ -48,9 +50,19 @@ public class LairDomes implements IWorldGenerator {
         return new int[] { site[0] + G_DX, G_FL, site[1] };
     }
 
-    /** Центр города под храмом джунглей в чанке (sx, sz): храм стоит от угла чанка, центр - внутри него. */
-    public static int[] jungleCenter(int sx, int sz) {
+    /** Колодец храма джунглей в чанке (sx, sz): храм стоит от угла чанка, колодец - внутри него. */
+    public static int[] jungleWell(int sx, int sz) {
         return new int[] { sx * 16 + 7, J_FL, sz * 16 + 7 };
+    }
+
+    /** Центр города (и арены) у храма джунглей в чанке (sx, sz): восточнее колодца на J_TOWER_DX. */
+    public static int[] jungleCenter(int sx, int sz) {
+        return new int[] { sx * 16 + 7 + J_TOWER_DX, J_FL, sz * 16 + 7 };
+    }
+
+    /** Свод над башней (у неё свод ровный, колодец из храма доходит до него). */
+    public static int towerCeil() {
+        return jungleCeil(J_TOWER_DX - 4);
     }
 
     public static int glaconCeil(double r) {
@@ -346,9 +358,11 @@ public class LairDomes implements IWorldGenerator {
     public static final class JungleCity extends ColumnStructure {
 
         static final int SHELL = 1, GRASS = 2, DIRT = 3, BRICK = 4, COBBLE = 5, MOSSY = 6, GRAVEL = 7, LOG = 8, LEAVES = 9, GLOW = 10, FENCE = 11, FERN = 12,
-            ALTAR = 13, STEP = 14;
+            ALTAR = 13, STEP = 14, VINE = 15, ROOT = 16;
         /** Квартал особого дома: целый дом, внутри у дальней стены - диван с РПГ (пасхалка). */
         public static final int HOME_IX = -3, HOME_IZ = 1;
+        /** Кольцевой бульвар вокруг арены: до этого радиуса - мостовая, кварталы начинаются дальше. */
+        static final int RING = J_ARENA + 4;
 
         @Override
         protected Block block(int code, int meta) {
@@ -360,13 +374,14 @@ public class LairDomes implements IWorldGenerator {
                 case COBBLE: return Blocks.cobblestone;
                 case MOSSY: return Blocks.mossy_cobblestone;
                 case GRAVEL: return Blocks.gravel;
-                case LOG: return Blocks.log;
+                case LOG: case ROOT: return Blocks.log;
                 case LEAVES: return Blocks.leaves;
                 case GLOW: return Blocks.glowstone;
                 case FENCE: return Blocks.fence;
                 case FERN: return Blocks.tallgrass;
                 case ALTAR: return ModBlocks.jungleAltar;
                 case STEP: return Blocks.stonebrick;
+                case VINE: return Blocks.vine;
                 default: return Blocks.air;
             }
         }
@@ -375,6 +390,7 @@ public class LairDomes implements IWorldGenerator {
         protected int metaOf(int code, int meta) {
             if (code == SHELL) return 0;
             if (code == LOG) return 3; // ствол джунглей
+            if (code == ROOT) return 3 | 12; // корень: кора со всех сторон
             if (code == LEAVES) return 3 | 4; // листва джунглей, не опадает
             if (code == FERN) return 2;
             if (code == STEP) return 1;
@@ -386,12 +402,14 @@ public class LairDomes implements IWorldGenerator {
             put(col, y, SHELL, v < 5 ? 0 : v < 8 ? 1 : 2);
         }
 
+        /** Башня под колодцем храма (координаты от центра города). */
         static boolean tower(int dx, int dz) {
-            return dx * dx + dz * dz < 4.2 * 4.2;
+            int tx = dx + J_TOWER_DX;
+            return tx * tx + dz * dz < 4.2 * 4.2;
         }
 
-        static boolean plaza(int dx, int dz) {
-            return Math.abs(dx - J_ARENA_DX) <= J_PLAZA && Math.abs(dz) <= J_PLAZA;
+        static boolean arena(int dx, int dz) {
+            return dx * dx + dz * dz < J_ARENA * J_ARENA;
         }
 
         @Override
@@ -404,15 +422,16 @@ public class LairDomes implements IWorldGenerator {
                 for (int y = J_FL; y <= J_FL + 12; y++) shell(col, y, dx, dz);
                 return true;
             }
-            int ceil = tower(dx, dz) ? jungleCeil(0) : jungleCeil(r);
+            int ceil = tower(dx, dz) ? towerCeil() : jungleCeil(r);
             for (int y = J_FL + 1; y <= ceil; y++) put(col, y, AIR, 0);
             for (int y = ceil + 1; y <= ceil + 3; y++) shell(col, y, dx, dz);
             // пол: трава и земля
             put(col, J_FL, h % 3 == 0 ? DIRT : GRASS, 0);
-            if (tower(dx, dz)) tower(dx, dz, ceil, h, col);
-            else if (plaza(dx, dz)) plaza(dx, dz, h, col);
+            if (tower(dx, dz)) tower(dx + J_TOWER_DX, dz, ceil, h, col);
+            else if (arena(dx, dz)) arena(dx, dz, r, h, col);
+            else if (r < RING) ring(dx, dz, h, col);
             else city(dx, dz, r, h, col);
-            if (!tower(dx, dz) && !plaza(dx, dz) && dx * dx + dz * dz > 7 * 7) roots(dx, dz, r, ceil, col);
+            if (!tower(dx, dz) && r >= J_ARENA + 2) roots(dx, dz, ceil, col);
             return true;
         }
 
@@ -437,26 +456,41 @@ public class LairDomes implements IWorldGenerator {
             }
         }
 
-        /** Площадь-арена Древнего драмкрикса: мощёная, кольцо обломанных колонн, помост с алтарём на севере, фонари. */
-        private void plaza(int dx, int dz, int h, int[] col) {
-            int px = dx - J_ARENA_DX;
+        /**
+         * Арена Древнего драмкрикса в центре: мощёный круг, кольцо обломанных колонн, помост с алтарём на севере, фонари;
+         * по краю - обвалившаяся ограда с проходами на четыре главные улицы.
+         */
+        private void arena(int dx, int dz, double r, int h, int[] col) {
             put(col, J_FL, BRICK, h % 3);
-            double pr = Math.sqrt(px * px + dz * dz);
-            if (ringDist(px, dz, 13, 12, 0.13) < 0.8) {
+            if (ringDist(dx, dz, 13, 12, 0.13) < 0.8) {
                 int top = J_FL + 3 + h % 7;
                 for (int y = J_FL + 1; y <= top; y++) put(col, y, BRICK, (y + h) % 3);
                 put(col, top + 1, LEAVES, 0);
             }
-            if (dz == -WorldGenJungleLair.ALTAR_DZ && Math.abs(px) <= 1) {
+            if (dz == -WorldGenJungleLair.ALTAR_DZ && Math.abs(dx) <= 1) {
                 put(col, J_FL + 1, BRICK, 3);
-                if (px == 0) put(col, J_FL + 2, ALTAR, 0);
+                if (dx == 0) put(col, J_FL + 2, ALTAR, 0);
             }
-            if (Math.abs(px) == 10 && Math.abs(dz) == 10) {
+            if (Math.abs(dx) == 10 && Math.abs(dz) == 10) {
                 put(col, J_FL + 1, FENCE, 0);
                 put(col, J_FL + 2, FENCE, 0);
                 put(col, J_FL + 3, GLOW, 0);
             }
-            if (pr > J_PLAZA - 1 && h % 4 == 0) put(col, J_FL + 1, LEAVES, 0); // кусты по краю площади
+            if (r >= J_ARENA - 1.5 && Math.abs(dx) > 2 && Math.abs(dz) > 2) { // ограда, местами обвалилась до основания
+                int top = J_FL + 1 + h % 3 - (hash(dx * 7, dz * 3) % 5 == 0 ? 1 : 0);
+                for (int y = J_FL + 1; y <= top; y++) put(col, y, h % 4 == 0 ? MOSSY : BRICK, (y + h) % 3);
+                if (top > J_FL && h % 3 == 0) put(col, top + 1, LEAVES, 0);
+            }
+        }
+
+        /** Кольцевой бульвар между ареной и кварталами: мостовая, фонари через 30°, редкие папоротники. */
+        private void ring(int dx, int dz, int h, int[] col) {
+            put(col, J_FL, h % 4 == 0 ? GRAVEL : h % 4 == 1 ? MOSSY : BRICK, 2);
+            if (ringDist(dx, dz, RING - 1, 12, Math.PI / 12) < 0.6) {
+                put(col, J_FL + 1, FENCE, 0);
+                put(col, J_FL + 2, FENCE, 0);
+                put(col, J_FL + 3, GLOW, 0);
+            } else if (h % 29 == 0) fern(col);
         }
 
         /** Квартал: улица, дом, развалины или сад. */
@@ -474,9 +508,10 @@ public class LairDomes implements IWorldGenerator {
                 return;
             }
             int lh = hash(ix * 7919 + 13, iz * 104729 - 7);
-            // квартал целиком внутри купола и не у башни и площади
+            // квартал целиком внутри купола, за бульваром и не у башни
             double far = Math.max(Math.max(Math.hypot(ix * 16, iz * 16), Math.hypot(ix * 16 + 16, iz * 16)), Math.max(Math.hypot(ix * 16, iz * 16 + 16), Math.hypot(ix * 16 + 16, iz * 16 + 16)));
-            boolean near = Math.abs(ix * 16 + 8) < 16 && Math.abs(iz * 16 + 8) < 16 || ix * 16 + 16 > J_ARENA_DX - J_PLAZA - 2 && ix * 16 < J_ARENA_DX + J_PLAZA + 2 && iz * 16 + 16 > -J_PLAZA - 2 && iz * 16 < J_PLAZA + 2;
+            double nx = Math.max(ix * 16, Math.min(0, ix * 16 + 16)), nz = Math.max(iz * 16, Math.min(0, iz * 16 + 16));
+            boolean near = Math.hypot(nx, nz) < RING + 2 || Math.abs(ix * 16 + 8 + J_TOWER_DX) < 16 && Math.abs(iz * 16 + 8) < 16;
             int kind = far > J_R - 4 || near ? 9 : lh % 10;
             int a0 = 2 + (lh >> 4) % 3, a1 = 14 - (lh >> 6) % 3, b0 = 2 + (lh >> 8) % 3, b1 = 14 - (lh >> 10) % 3;
             boolean home = ix == HOME_IX && iz == HOME_IZ;
@@ -523,28 +558,79 @@ public class LairDomes implements IWorldGenerator {
             put(col, J_FL + 1, FERN, 0);
         }
 
-        /** Корни со свода: стволы джунглей вниз, листва у конца; у некоторых - светящийся конец. */
-        private void roots(int dx, int dz, double r, int ceil, int[] col) {
-            final int cell = 9;
-            int cx0 = Math.floorDiv(dx, cell), cz0 = Math.floorDiv(dz, cell);
+        // ------------------------------------------------------------ корни со свода
+
+        static final int ROOT_CELL = 11;
+
+        /**
+         * Корень с узла сетки (gx, gz) или null: {x, z основания, свод, длина, угол изгиба, вынос, толщина у свода, до пола 0/1,
+         * светящийся конец 0/1}. Корень растёт из свода раструбом, сужается книзу и уходит вбок по дуге; часть дорастает до
+         * пола и расходится там подпорками - только в глубине кварталов, улицы и бульвар остаются свободными.
+         */
+        static double[] root(int gx, int gz) {
+            int ch = hash(gx * 37 + 11, gz * 23 + 5);
+            if (ch % 3 == 0) return null;
+            double px = gx * ROOT_CELL + 2 + ch % 7 + 0.5, pz = gz * ROOT_CELL + 2 + (ch >> 3) % 7 + 0.5, pr = Math.sqrt(px * px + pz * pz);
+            if (pr > J_R - 6 || pr < J_ARENA + 10) return null;
+            double tx = px + J_TOWER_DX;
+            if (tx * tx + pz * pz < 14 * 14) return null;
+            int ix = Math.floorDiv((int) Math.floor(px), 16), iz = Math.floorDiv((int) Math.floor(pz), 16);
+            if (Math.abs(ix - HOME_IX) + Math.abs(iz - HOME_IZ) == 0) return null; // целый дом с диваном не протыкаем
+            int top = jungleCeil(pr);
+            int lx = (int) Math.floor(px) - ix * 16, lz = (int) Math.floor(pz) - iz * 16;
+            boolean floor = pr > RING + 6 && lx >= 6 && lx <= 10 && lz >= 6 && lz <= 10 && (ch >> 5) % 2 == 0;
+            int len = floor ? top - J_FL : Math.min(5 + (ch >> 6) % 13, top - J_FL - 5);
+            if (len < 3) return null;
+            double thick = (ch >> 11) % 3 == 0 ? 1.9 : 1.2;
+            return new double[] { px, pz, top, len, ((ch >> 14) % 360) * Math.PI / 180, floor ? 0.3 : 1.5 + (ch >> 9) % 3, thick, floor ? 1 : 0,
+                !floor && (ch >> 17) % 4 == 0 ? 1 : 0 };
+        }
+
+        /** Корень в клетке (dx, y, dz) от центра: ROOT, LEAVES (листва у свода), GLOW (светящийся конец) или -1. */
+        static int rootAt(int dx, int y, int dz) {
+            int cx0 = Math.floorDiv(dx, ROOT_CELL), cz0 = Math.floorDiv(dz, ROOT_CELL);
             for (int i = -1; i <= 1; i++) for (int k = -1; k <= 1; k++) {
-                int gx = cx0 + i, gz = cz0 + k;
-                int ch = hash(gx * 37 + 11, gz * 23 + 5);
-                if (ch % 3 == 0) continue;
-                double px = gx * cell + ch % 7 + 0.5, pz = gz * cell + (ch >> 3) % 7 + 0.5, pr = Math.sqrt(px * px + pz * pz);
-                if (pr > J_R - 6 || pr < 8 || plaza((int) Math.floor(px), (int) Math.floor(pz))) continue;
-                double d = Math.sqrt((dx + 0.5 - px) * (dx + 0.5 - px) + (dz + 0.5 - pz) * (dz + 0.5 - pz));
-                if (d > 1.8) continue;
-                int top = jungleCeil(pr), len = Math.min(3 + (ch >> 6) % 12, top - J_FL - 8);
-                if (len < 2) continue;
-                int tip = top - len + 1;
-                boolean thick = (ch >> 11) % 3 == 0;
-                if (d <= (thick ? 1.1 : 0.6)) {
-                    for (int y = tip; y <= top; y++) put(col, y, LOG, 0);
-                    if ((ch >> 14) % 4 == 0 && d < 0.6) put(col, tip - 1, GLOW, 0); // светящийся корень
-                } else if (d <= 1.8) {
-                    for (int y = tip - 1; y <= tip + 1; y++) if ((y + (int) (d * 7)) % 2 == 0 || y == tip) put(col, y, LEAVES, 0);
+                double[] rt = root(cx0 + i, cz0 + k);
+                if (rt == null) continue;
+                int top = (int) rt[2], len = (int) rt[3];
+                double t = top - y;
+                if (t < -4 || t > len) continue; // выше основания - раструб уходит в свод, где он ниже
+                double tt = Math.max(0, t), f = tt / len;
+                double off = rt[5] * f * f * len / 6 + Math.sin(tt * 0.45 + rt[4] * 3) * 0.6;
+                double ox = rt[0] + Math.cos(rt[4]) * off, oz = rt[1] + Math.sin(rt[4]) * off;
+                double d = Math.sqrt((dx + 0.5 - ox) * (dx + 0.5 - ox) + (dz + 0.5 - oz) * (dz + 0.5 - oz));
+                double rad = rt[6] * (1 - 0.7 * f) + 0.35 + 1.6 * Math.max(0, 1 - tt / 3.0); // раструб у свода
+                if (rt[7] > 0) rad += 1.4 * Math.max(0, 1 - (len - tt) / 3.0); // подпорки у пола
+                if (rt[8] > 0 && tt >= len - 1 && d < 0.9) return GLOW;
+                if (d <= rad) return ROOT;
+                if (tt < 2 && d <= rad + 1.2 && hash(dx * 7 + y, dz * 13) % 4 == 0) return LEAVES;
+            }
+            return -1;
+        }
+
+        /** Корни столбца и лианы на них: лиана держится за корень сбоку и свешивается ниже его конца. */
+        private void roots(int dx, int dz, int ceil, int[] col) {
+            int[][] side = { { 1, 0, 8 }, { -1, 0, 2 }, { 0, 1, 1 }, { 0, -1, 4 } }; // сосед и бит лианы (держится за него)
+            int vine = 0, below = 0;
+            for (int y = ceil; y > J_FL; y--) {
+                int c = rootAt(dx, y, dz);
+                if (c >= 0) {
+                    if (c == ROOT || col[y * 2] == AIR) put(col, y, c, 0); // корень пробивает крыши и стены
+                    vine = 0;
+                    continue;
                 }
+                if (col[y * 2] != AIR) {
+                    vine = 0;
+                    continue;
+                }
+                int bits = 0;
+                for (int[] sd : side) if (hash(dx * 31 + sd[2], dz * 17 + y / 3) % 3 == 0 && rootAt(dx + sd[0], y, dz + sd[1]) == ROOT) bits |= sd[2];
+                if (bits != 0) {
+                    vine = bits;
+                    below = 2 + hash(dx, dz * 3) % 4;
+                } else if (vine != 0 && below-- > 0) bits = vine; // свисает ниже корня
+                else vine = 0;
+                if (bits != 0) put(col, y, VINE, bits);
             }
         }
 

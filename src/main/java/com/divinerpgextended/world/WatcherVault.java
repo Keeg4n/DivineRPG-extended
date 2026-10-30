@@ -11,11 +11,12 @@ import com.divinerpgextended.world.twilight.ColumnStructure;
 
 /**
  * Логово Смотрителя: засыпанная обсерватория под лавовым озером Ада. Зал радиусом {@link #R} у самого дна, оболочка из
- * обсидиана (его не берут ни взрывы босса, ни лава сверху), над сводом - слой лавы. Внутри - завал: незеррак с пещерами,
- * песок душ, обломки адского кирпича, светокамень, обломанные колонны старой обсерватории; в центре - карман, где висит
- * босс, у входа - прихожая. Бой прорубает арену сам: игрок прокапывается, Смотритель взрывами пробивает дорогу к нему
- * ({@link com.divinerpgextended.boss.WatcherHunt}). При каждом вызове завал собирается заново ({@link #refill}). Вход -
- * наклонный тоннель со ступенями-полублоками от берега (+X), на выходе - причал над лавой.
+ * обсидиана (его не берут ни взрывы босса, ни лава сверху), над сводом - слой лавы. Без боя зал пуст: обломанные колонны
+ * старой обсерватории и помост с оком. Завал (незеррак с пещерами, песок душ, обломки адского кирпича, светокамень; в центре -
+ * карман, где висит босс, у входа - прихожая) обрушивается при вызове ({@link #refill}) и уходит, когда Смотритель погиб или
+ * исчез ({@link #clear}). Бой прорубает арену сам: игрок прокапывается, Смотритель взрывами пробивает дорогу к нему
+ * ({@link com.divinerpgextended.boss.WatcherHunt}). Вход - наклонный тоннель со ступенями-полублоками от берега (+X), на
+ * выходе - причал над лавой.
  */
 public class WatcherVault extends ColumnStructure {
 
@@ -27,6 +28,8 @@ public class WatcherVault extends ColumnStructure {
     static final int OBSIDIAN = 1, NETHERRACK = 2, SOUL = 3, BRICK = 4, GLOWSTONE = 5, QUARTZ = 6, LAMP = 7, LAVA = 8, SLAB = 9;
 
     final int salt;
+    /** Чертёж с завалом (на время боя) или пустой зал. */
+    private boolean rubble;
 
     public WatcherVault(int cx, int cz) {
         salt = hash(cx * 31 + 7, cz * 17 - 3);
@@ -95,7 +98,7 @@ public class WatcherVault extends ColumnStructure {
         return t * t * (3 - 2 * t);
     }
 
-    /** Код блока завала в точке зала. */
+    /** Код блока в точке зала (с завалом или без - {@link #rubble}). */
     int fill(int dx, int y, int dz) {
         double r = Math.sqrt(dx * dx + dz * dz);
         // карман босса и помост с оком под ним
@@ -105,13 +108,14 @@ public class WatcherVault extends ColumnStructure {
         // прихожая у тоннеля (+X)
         double ax = dx - (R - 4), ay = y - (FLOOR + 2);
         if (ax * ax + ay * ay * 2 + dz * dz < 3.2 * 3.2 || dx >= R - 4 && Math.abs(dz) <= 1 && y <= FLOOR + 3) return AIR;
-        // обломанные колонны старой обсерватории
+        // обломанные колонны старой обсерватории (стоят и без боя)
         double a = Math.atan2(dz, dx), step = Math.PI / 4, k = Math.round((a - Math.PI / 8) / step), ca = k * step + Math.PI / 8;
         double pd = Math.hypot(dx - Math.cos(ca) * 13, dz - Math.sin(ca) * 13);
         if (pd < 1.3) {
             int broken = FLOOR + 5 + hash((int) k + 11, salt) % 12;
             if (y <= broken) return (y - FLOOR) % 5 == 0 ? LAMP : QUARTZ;
         }
+        if (!rubble) return AIR;
         double n = noise(dx, y * 1.3, dz, 6.0) * 0.7 + noise(dx + 101, y * 1.3, dz - 57, 2.7) * 0.3;
         if (n < 0.43) return AIR;
         if (y == FLOOR + 1 && n < 0.5) return AIR; // проходы по полу чаще
@@ -190,6 +194,24 @@ public class WatcherVault extends ColumnStructure {
      * замуровало. Оболочку и тоннель не трогает.
      */
     public int refill(World w, int cx, int cz, List<EntityPlayer> keepFree) {
+        return apply(w, cx, cz, keepFree, true);
+    }
+
+    /**
+     * Завал уходит (босс погиб или исчез): зал снова пуст, сбитые колонны встают. Трогает только воздух, огонь и блоки
+     * завала - поставленное игроками остаётся; у игроков в зале - как было, чтобы колонной никого не замуровало.
+     */
+    public int clear(World w, int cx, int cz, List<EntityPlayer> keepFree) {
+        return apply(w, cx, cz, keepFree, false);
+    }
+
+    static boolean debris(Block b) {
+        return b == Blocks.air || b == Blocks.fire || b == Blocks.netherrack || b == Blocks.soul_sand || b == Blocks.nether_brick || b == Blocks.glowstone
+            || b == Blocks.quartz_block || b == net.divinerpg.utils.blocks.VanillaBlocks.lamp2;
+    }
+
+    private int apply(World w, int cx, int cz, List<EntityPlayer> keepFree, boolean withRubble) {
+        rubble = withRubble;
         int[] col = new int[256 * 2];
         int changed = 0;
         for (int dx = -R; dx <= R; dx++) {
@@ -203,13 +225,16 @@ public class WatcherVault extends ColumnStructure {
                     if (near(keepFree, x, y, z)) continue;
                     Block b = blockAt(col[y * 2], col[y * 2 + 1]);
                     int meta = metaAt(col[y * 2], col[y * 2 + 1]);
-                    if (w.getBlock(x, y, z) == b && w.getBlockMetadata(x, y, z) == meta) continue;
-                    if (w.getBlock(x, y, z).hasTileEntity(w.getBlockMetadata(x, y, z))) continue; // чужие сундуки не трогаем
+                    Block was = w.getBlock(x, y, z);
+                    if (was == b && w.getBlockMetadata(x, y, z) == meta) continue;
+                    if (was.hasTileEntity(w.getBlockMetadata(x, y, z))) continue; // чужие сундуки не трогаем
+                    if (!withRubble && !debris(was)) continue;
                     w.setBlock(x, y, z, b, meta, 2);
                     changed++;
                 }
             }
         }
+        rubble = false;
         return changed;
     }
 

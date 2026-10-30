@@ -385,6 +385,18 @@ public class SelfTest {
     }
 
     /** Загрузить и заселить чанки вокруг точки (радиус в чанках + 1 на заселение краёв). */
+    /** Логово Смотрителя: {занятых клеток, всего клеток} по сетке через 2 внутри зала. */
+    private static int[] watcherFill(WorldServer w, int cx, int cz) {
+        int R = com.divinerpgextended.world.WatcherVault.R, F = com.divinerpgextended.world.WatcherVault.FLOOR, TOP = com.divinerpgextended.world.WatcherVault.TOP;
+        int solid = 0, cells = 0;
+        for (int dx = -R; dx <= R; dx += 2) for (int dz = -R; dz <= R; dz += 2) for (int y = F + 1; y <= TOP; y += 2) {
+            if (!com.divinerpgextended.world.WatcherVault.interior(dx, y, dz)) continue;
+            cells++;
+            if (!w.isAirBlock(cx + dx, y, cz + dz)) solid++;
+        }
+        return new int[] { solid, cells };
+    }
+
     private static void loadAround(WorldServer w, int x, int z, int r) {
         for (int i = -r - 1; i <= r + 1; i++)
             for (int k = -r - 1; k <= r + 1; k++) w.theChunkProviderServer.loadChunk((x >> 4) + i, (z >> 4) + k);
@@ -7224,6 +7236,16 @@ public class SelfTest {
                 ferns++;
                 if (w.getBlock(fx, fy - 1, fz) != Blocks.grass) badFerns++;
             }
+            // арена в центре купола; корни со свода (кора со всех сторон), часть до пола, лианы на них
+            boolean centered = altar != null && altar[0] == jc[0] && altar[2] == jc[2] - com.divinerpgextended.world.WorldGenJungleLair.ALTAR_DZ;
+            int rootBlocks = 0, rootFloor = 0, vines = 0;
+            for (int fx = jc[0] - jr; fx <= jc[0] + jr; fx++) for (int fz = jc[2] - jr; fz <= jc[2] + jr; fz++) for (int y = fy; y <= fy + com.divinerpgextended.world.LairDomes.J_H; y++) {
+                net.minecraft.block.Block bl = w.getBlock(fx, y, fz);
+                if (bl == Blocks.log && w.getBlockMetadata(fx, y, fz) == 15) {
+                    rootBlocks++;
+                    if (y == fy) rootFloor++;
+                } else if (bl == Blocks.vine) vines++;
+            }
             dump(w, jc[0], com.divinerpgextended.world.LairDomes.J_FL + 25, jc[2], 76, "render-jungle");
             // проход из храма до зала: поиск по воздуху от колодца
             boolean reach = false;
@@ -7317,10 +7339,11 @@ public class SelfTest {
                 && com.divinerpgextended.halite.Halite.sparkOf(com.divinerpgextended.boss.Boss.JUNGLE_KING) == com.divinerpgextended.halite.Halite.Spark.JUNGLE;
             if (boss != null) boss.setDead();
             jp2.inventory.clearInventory(null, -1);
-            check(lair && reach && ore && summoned && shell && sweep && spirit && sofa && ferns > 50 && badFerns == 0, "логово " + lair + ", диван с РПГ в особом доме " + sofa
+            check(lair && reach && ore && summoned && shell && sweep && spirit && sofa && ferns > 50 && badFerns == 0 && centered && rootBlocks > 2000 && rootFloor > 0 && vines > 100, "логово " + lair + ", арена в центре " + centered
+                + ", корней " + rootBlocks + " (у пола " + rootFloor + "), лиан " + vines + ", диван с РПГ в особом доме " + sofa
                 + ", папоротников " + ferns + " (не на траве " + badFerns + "), дошёл от храма до алтаря " + reach + " (" + reachInfo[0] + "); руда (алмазной нет, халитовой да) " + ore + "; призыв " + summoned
                 + "; шкура при порабощённых " + shell + "; хвост " + sweep + " (" + sweepInfo[0] + "); дух мира только с частичкой джунглей " + spirit);
-            return "под храмом джунглей логово: колодец, ходы, зал с алтарём - дойти можно; руду берёт только халитовая кирка; тотем на алтаре зовёт Древнего драмкрикса; при порабощённых шкура держит урон, хвост бьёт по кругу; дух мира - Древняя сущность + босс джунглей";
+            return "под храмом джунглей логово: колодец, город кольцом, арена с алтарём в центре - дойти можно; корней " + rootBlocks + ", лиан " + vines + "; руду берёт только халитовая кирка; тотем на алтаре зовёт Древнего драмкрикса; при порабощённых шкура держит урон, хвост бьёт по кругу; дух мира - Древняя сущность + босс джунглей";
         });
         t("Логова", "РЕНДЕР карта Леты", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
@@ -8053,13 +8076,9 @@ public class SelfTest {
             boolean shell = w.getBlock(cx, F, cz) == Blocks.obsidian && w.getBlock(cx, F + 4, cz - R - 1) == Blocks.obsidian && w.getBlock(cx, TOP + 1, cz) == Blocks.obsidian
                 && w.getBlock(cx, TOP + 3, cz).getMaterial() == net.minecraft.block.material.Material.lava;
             boolean pocket = w.isAirBlock(cx, com.divinerpgextended.world.WatcherVault.bossY(), cz) && w.getBlock(cx, F + 1, cz) == net.divinerpg.utils.blocks.VanillaBlocks.lamp2;
-            int solid = 0, cells = 0;
-            for (int dx = -R; dx <= R; dx += 2) for (int dz = -R; dz <= R; dz += 2) for (int y = F + 1; y <= TOP; y += 2) {
-                if (!com.divinerpgextended.world.WatcherVault.interior(dx, y, dz)) continue;
-                cells++;
-                if (!w.isAirBlock(cx + dx, y, cz + dz)) solid++;
-            }
-            boolean rubble = solid > cells * 0.35 && solid < cells * 0.85;
+            // без боя зал пуст (только колонны); завал - при вызове, после боя уходит
+            int[] fill0 = watcherFill(w, cx, cz);
+            boolean empty = fill0[0] < fill0[1] * 0.08;
             // тоннель: прихожая у стены, ступени вверх, причал над лавой
             String tun = "" + (w.isAirBlock(cx + R - 3, F + 2, cz) ? 1 : 0) + (w.isAirBlock(cx + R + 2, F + 3, cz) ? 1 : 0) + (w.getBlock(cx + R + 2, F + 2, cz + 2) == Blocks.obsidian ? 1 : 0)
                 + (w.isAirBlock(cx + end, TY + 1, cz) ? 1 : 0) + (w.getBlock(cx + end + 2, TY - 1, cz) == Blocks.nether_brick ? 1 : 0);
@@ -8078,7 +8097,9 @@ public class SelfTest {
             java.util.List<net.minecraft.entity.player.EntityPlayer> ps = new java.util.ArrayList<net.minecraft.entity.player.EntityPlayer>();
             ps.add(v);
             int changed = new com.divinerpgextended.world.WatcherVault(cx, cz).refill(w, cx, cz, ps);
-            int[] col = new int[512];
+            int[] fill1 = watcherFill(w, cx, cz);
+            int solid = fill1[0], cells = fill1[1];
+            boolean rubble = solid > cells * 0.35 && solid < cells * 0.85;
             boolean restored = changed > 0 && w.isAirBlock((int) Math.floor(v.posX), F + 1, cz) && w.isAirBlock((int) Math.floor(v.posX), F + 2, cz);
             // охота: Смотритель в кармане, боец у входа - заряд, выстрел, перегрев
             net.divinerpg.entities.vanilla.EntityTheWatcher wt = new net.divinerpg.entities.vanilla.EntityTheWatcher(w);
@@ -8136,13 +8157,22 @@ public class SelfTest {
             loot.setDead();
             w.setBlockToAir(ex + 1, ey, ez);
             wt.setDead();
+            int swept = com.divinerpgextended.boss.WatcherHunt.sweep(w);
+            int[] fill2 = watcherFill(w, cx, cz);
+            boolean gone = swept > 0 && fill2[0] < fill2[1] * 0.08;
+            // старый мир: логово создано с завалом - игрок зашёл, Смотрителя нет, зал пустеет
+            new com.divinerpgextended.world.WatcherVault(cx, cz).refill(w, cx, cz, ps);
+            com.divinerpgextended.boss.WatcherHunt.forgetTidy();
+            int tidied = com.divinerpgextended.boss.WatcherHunt.tidy(w), again = com.divinerpgextended.boss.WatcherHunt.tidy(w);
+            int[] fill3 = watcherFill(w, cx, cz);
+            gone &= tidied > 0 && again == 0 && fill3[0] < fill3[1] * 0.08;
             server.getConfigurationManager().playerEntityList.remove(v);
             w.removeEntity(v);
-            check(shell && pocket && rubble && tunnel && in == null && "dre.chat.summon_lair_0".equals(out) && restored && charged && shot && doubled && cannon && warm && nether && blast,
-                "оболочка и лава " + shell + ", карман и око " + pocket + ", завал " + solid + "/" + cells + ", тоннель " + tunnel + " (" + tun + "), вызов внутри " + in + " снаружи " + out
+            check(shell && pocket && empty && rubble && gone && tunnel && in == null && "dre.chat.summon_lair_0".equals(out) && restored && charged && shot && doubled && cannon && warm && nether && blast,
+                "оболочка и лава " + shell + ", карман и око " + pocket + ", до вызова " + fill0[0] + "/" + fill0[1] + ", завал " + solid + "/" + cells + ", после смерти убрано " + swept + " (" + fill2[0] + "/" + fill2[1] + "), старый мир " + tidied + "/" + again + " (" + fill3[0] + "/" + fill3[1] + "), тоннель " + tunnel + " (" + tun + "), вызов внутри " + in + " снаружи " + out
                     + "; завал заново " + changed + " блоков, у бойца пусто " + restored + "; заряд " + charged + ", выстрел и перегрев " + shot + ", двойной урон " + doubled + " (" + hot.ammount + ")"
                     + "; пушка гаста " + cannon + " (" + gc.ammount + "), огненный меч " + warm + ", адский меч " + nether + " (" + bg.ammount + "); взрыв " + blast + " (предметов " + items + ")");
-            return "логово в Аду в " + cx + "," + cz + ": обсидиановый зал R" + R + " под лавой, завал " + (solid * 100 / Math.max(1, cells)) + "%, тоннель от берега с причалом; вызов пересобирает завал;"
+            return "логово в Аду в " + cx + "," + cz + ": обсидиановый зал R" + R + " под лавой, без боя пусто (" + (fill0[0] * 100 / Math.max(1, fill0[1])) + "%), при вызове завал " + (solid * 100 / Math.max(1, cells)) + "%, после смерти (и в старых мирах без босса) уходит; тоннель от берега с причалом;"
                 + " Смотритель заряжается и стреляет, перегретый получает x2; пушка гаста сбивает заряд, огненное оружие перегревает, адское +50%; взрывы ломают только завал";
         });
         t("Логова", "Огненная палата", () -> {

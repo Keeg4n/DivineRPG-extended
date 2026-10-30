@@ -31,7 +31,7 @@ import cpw.mods.fml.common.IWorldGenerator;
  * Джунгли: руда джунглей (только в джунглях, глубоко) и логово Древнего драмкрикса под ванильным храмом джунглей.
  * Храм находим в генераторе ванильных построек (рефлексией по типам полей - имена разные в разработке и в игре); логово
  * строим, когда все чанки храма уже заселены (иначе храм при достройке засыпал бы спуск). Из храма вниз ведёт обложенный
- * мхом колодец с винтовой лестницей в заброшенный подземный город ({@link LairDomes.JungleCity}); алтарь - на площади-арене
+ * мхом колодец с винтовой лестницей в заброшенный подземный город ({@link LairDomes.JungleCity}); алтарь - на арене в центре
  * города ({@link #ALTAR_DZ} к северу от её центра; босс встаёт в центре).
  */
 public class WorldGenJungleLair implements IWorldGenerator {
@@ -103,21 +103,20 @@ public class WorldGenJungleLair implements IWorldGenerator {
         return true;
     }
 
-    /** Центр города под храмом (по рамке храма: храм стоит от угла своего чанка). */
+    /** Колодец храма в город (по рамке храма: храм стоит от угла своего чанка). */
     static int[] center(StructureBoundingBox t) {
-        return LairDomes.jungleCenter(t.minX >> 4, t.minZ >> 4);
+        return LairDomes.jungleWell(t.minX >> 4, t.minZ >> 4);
     }
 
     /** Центр площади-арены по рамке храма: {центр x, пол y, центр z}; алтарь - на ALTAR_DZ к северу, на 2 выше пола. */
     public static int[] hall(StructureBoundingBox t) {
-        int[] c = center(t);
-        return new int[] { c[0] + LairDomes.J_ARENA_DX, LairDomes.J_FL, c[2] };
+        return LairDomes.jungleCenter(t.minX >> 4, t.minZ >> 4); // арена - в центре города
     }
 
     /** Колодец уже прорыт: в его середине под сводом города воздух. */
     static boolean isBuilt(World w, StructureBoundingBox t) {
         int[] c = center(t);
-        return w.isAirBlock(c[0], LairDomes.jungleCeil(0) + 6, c[2]);
+        return w.isAirBlock(c[0], LairDomes.towerCeil() + 6, c[2]);
     }
 
     // ---------------------------------------------------------------- колодец
@@ -138,7 +137,7 @@ public class WorldGenJungleLair implements IWorldGenerator {
     public static int[] build(World world, Random rand, StructureBoundingBox t) {
         int g = t.minY; // низ храма
         int[] c = center(t);
-        int cx = c[0], cz = c[2], top = LairDomes.jungleCeil(0) + 4;
+        int cx = c[0], cz = c[2], top = LairDomes.towerCeil() + 4;
         if (g - top < 6) return null;
         for (int y = top; y <= g + 1; y++) for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) {
             int x = cx + dx, z = cz + dz;
