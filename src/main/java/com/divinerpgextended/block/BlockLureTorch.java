@@ -23,13 +23,13 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Водный факел зова: потушен - просто стоит; арканиум правой кнопкой - горит минуту (ещё арканиум - дольше, до
- * {@link #MAX_TICKS}), и пока горит, в {@link #RADIUS} блоках вокруг чаще появляются мобы Divine этого биома (не больше
+ * Водный факел зова: потушен - просто стоит; арканиум правой кнопкой - горит {@link #MAX_TICKS} (8 минут; ещё арканиум -
+ * снова на полные 8 минут), и пока горит, в {@link #RADIUS} блоках вокруг чаще появляются мобы Divine этого биома (не больше
  * {@link #CAP} рядом). Вместо дыма - пузыри. Горящий - отдельный блок со счётчиком ({@link Tile}); догорел - снова потушен.
  */
 public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
 
-    public static final int RADIUS = 24, CAP = 12, PER_ARCANIUM = 1200, MAX_TICKS = 9600, EVERY = 40;
+    public static final int RADIUS = 24, CAP = 12, MAX_TICKS = 9600, EVERY = 40;
     private final boolean lit;
 
     public BlockLureTorch(boolean lit) {
@@ -86,7 +86,7 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
         Tile t = (Tile) te;
         long now = w.getTotalWorldTime();
         if (t.until - now >= MAX_TICKS) return true; // уже горит на полную - арканиум не тратим
-        t.until = Math.min(now + MAX_TICKS, Math.max(t.until, now) + PER_ARCANIUM);
+        t.until = now + MAX_TICKS;
         t.markDirty();
         if (!p.capabilities.isCreativeMode && --held.stackSize <= 0) p.inventory.setInventorySlotContents(p.inventory.currentItem, null);
         w.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, "random.splash", 0.5F, 1.4F);

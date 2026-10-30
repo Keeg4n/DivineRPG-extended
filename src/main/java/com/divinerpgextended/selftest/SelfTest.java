@@ -3457,22 +3457,25 @@ public class SelfTest {
             boolean lit = zw.getBlock(x0, y0, z0) == com.divinerpgextended.registry.ModBlocks.lureTorchLit && zw.getBlockMetadata(x0, y0, z0) == 5;
             com.divinerpgextended.block.BlockLureTorch.Tile te = (com.divinerpgextended.block.BlockLureTorch.Tile) zw.getTileEntity(x0, y0, z0);
             long first = te.until - zw.getTotalWorldTime();
+            com.divinerpgextended.registry.ModBlocks.lureTorchLit.onBlockActivated(zw, x0, y0, z0, zp, 1, 0.5F, 0.5F, 0.5F); // горит на полную - не тратит
+            boolean kept = zp.getHeldItem() != null && zp.getHeldItem().stackSize == 2;
+            te.until = zw.getTotalWorldTime() + 1200; // почти догорел - арканиум снова на полные 8 минут
             com.divinerpgextended.registry.ModBlocks.lureTorchLit.onBlockActivated(zw, x0, y0, z0, zp, 1, 0.5F, 0.5F, 0.5F);
             long second = te.until - zw.getTotalWorldTime();
-            boolean paid = zp.getHeldItem() != null && zp.getHeldItem().stackSize == 1;
-            // таймер: клик пустой рукой по горящему - сколько ещё (2:00)
+            boolean paid = kept && zp.getHeldItem() != null && zp.getHeldItem().stackSize == 1;
+            // таймер: клик пустой рукой по горящему - сколько ещё (8:00)
             hold(zp, null);
             zp.chat.clear();
             com.divinerpgextended.registry.ModBlocks.lureTorchLit.onBlockActivated(zw, x0, y0, z0, zp, 1, 0.5F, 0.5F, 0.5F);
-            boolean timer = zp.heard("dre.chat.lure_left") && zp.heard("2:00");
+            boolean timer = zp.heard("dre.chat.lure_left") && zp.heard("8:00");
             te.until = zw.getTotalWorldTime();
             te.updateEntity();
             boolean out = zw.getBlock(x0, y0, z0) == com.divinerpgextended.registry.ModBlocks.lureTorch;
             zw.setBlockToAir(x0, y0, z0);
-            check(recipes && wards && lit && first == 1200 && second == 2400 && paid && timer && out, "рецепты " + recipes + ", миры " + wards + "; зажёгся " + lit + ", минут " + first / 1200
-                + " -> " + second / 1200 + ", арканиум списан " + paid + ", таймер " + timer + " " + zp.chat + ", догорел " + out);
+            check(recipes && wards && lit && first == 9600 && second == 9600 && paid && timer && out, "рецепты " + recipes + ", миры " + wards + "; зажёгся " + lit + ", минут " + first / 1200
+                + ", подлит с 1 минуты до " + second / 1200 + ", арканиум списан (на полном не тратится) " + paid + ", таймер " + timer + " " + zp.chat + ", догорел " + out);
             return "факел Заснежья (ледяные осколки на морозной палке) и Везеи (серый жемчуг на палке) - по 4, гонят монстров в своём мире; "
-                + "водный факел зова - 1 из водного слитка и водного стержня ифрита, арканиум = минута горения (докидывается), догорел - потушен";
+                + "водный факел зова - 1 из водного слитка и водного стержня ифрита, арканиум = 8 минут горения (подлить - снова 8), догорел - потушен";
         });
         t("Прохождение", "Свисток питомцев: зов, без драк между своими, отпустить в яйцо и выпустить того же", () -> {
             WorldServer w = server.worldServerForDimension(0);
@@ -3685,7 +3688,16 @@ public class SelfTest {
             }
             boolean shafts = net.minecraftforge.event.terraingen.TerrainGen.getModdedMapGen(new net.minecraft.world.gen.structure.MapGenMineshaft(),
                 net.minecraftforge.event.terraingen.InitMapGenEvent.EventType.MINESHAFT) instanceof com.divinerpgextended.world.VanillaClearance.Mineshafts;
-            check(nearSite && dungeonDenied && far != null && farAllowed && shafts, "у логова Карцинуса " + site[0] + "," + site[1] + ": рядом " + nearSite + ", подземелье запрещено " + dungeonDenied
+            // охват настоящих шахт: насколько далеко от центра чанка начала уходят коридоры
+            int reach = 0;
+            for (int i = 0; i < 3000; i++) {
+                net.minecraft.world.gen.structure.StructureBoundingBox bb = new net.minecraft.world.gen.structure.StructureMineshaftStart(zw, new java.util.Random(i * 341873128712L + 17), 100, -100).getBoundingBox();
+                int c0 = 100 * 16 + 8, c1 = -100 * 16 + 8;
+                reach = Math.max(reach, Math.max(Math.max(c0 - bb.minX, bb.maxX - c0), Math.max(c1 - bb.minZ, bb.maxZ - c1)));
+            }
+            boolean reachOk = reach <= com.divinerpgextended.world.VanillaClearance.MINESHAFT_REACH;
+            check(nearSite && dungeonDenied && far != null && farAllowed && shafts && reachOk, "охват шахт " + reach + " при отступе " + com.divinerpgextended.world.VanillaClearance.MINESHAFT_REACH
+                + "; у логова Карцинуса " + site[0] + "," + site[1] + ": рядом " + nearSite + ", подземелье запрещено " + dungeonDenied
                 + "; вдали от логов разрешено " + farAllowed + " (" + (far == null ? "точки не нашлось" : far[0] + "," + far[1]) + "); генератор шахт заменён " + shafts);
             return "у логова Карцинуса " + site[0] + "," + site[1] + " подземелья со спавнером и начала шахт не ставятся, вдали - как обычно";
         });
