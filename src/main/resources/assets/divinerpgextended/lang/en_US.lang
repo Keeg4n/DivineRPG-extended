@@ -1385,3 +1385,5 @@ dre.hev.morphine=H.E.V.: Morphine administered.
 dre.hev.major_fracture=H.E.V.: Major fracture detected.
 dre.hev.minor_fracture=H.E.V.: Minor fracture detected.
 dre.hev.health_critical=H.E.V.: Warning: vital signs critical. Seek medical attention.
+dre.tooltip.hev_helmet=Look: Mark IV helmet (alone in a crafting grid - glasses)
+dre.tooltip.hev_goggles=Look: glasses (alone in a crafting grid - Mark IV helmet)

@@ -2984,10 +2984,55 @@ public class SelfTest {
             }
             w.setBlockToAir(x0 + 1, y0, z0);
             boolean gone = w.isAirBlock(x0, y0, z0);
-            check(names && logon && once && morphine && cooldown && fracture && placed && halves && sits && gone,
+            // шлем костюма один в верстаке: шлем Mark IV <-> очки
+            net.minecraft.inventory.InventoryCrafting grid = new net.minecraft.inventory.InventoryCrafting(new net.minecraft.inventory.Container() {
+
+                @Override
+                public boolean canInteractWith(net.minecraft.entity.player.EntityPlayer pl) {
+                    return true;
+                }
+            }, 3, 3);
+            ItemStack helm = new ItemStack(hevSet[3]).setStackDisplayName("H.E.V");
+            grid.setInventorySlotContents(4, helm);
+            ItemStack toGoggles = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(grid, w);
+            grid.setInventorySlotContents(4, toGoggles);
+            ItemStack back = toGoggles == null ? null : net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(grid, w);
+            grid.setInventorySlotContents(4, new ItemStack(hevSet[3]));
+            boolean plainNo = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(grid, w) == null;
+            boolean style = !com.divinerpgextended.easter.Easter.goggles(helm) && toGoggles != null && com.divinerpgextended.easter.Easter.goggles(toGoggles)
+                && com.divinerpgextended.easter.Easter.hev(toGoggles) && back != null && !com.divinerpgextended.easter.Easter.goggles(back) && plainNo;
+            // детальные модели: все части костюма и монтировка
+            java.util.Map<String, Integer> groups = new java.util.TreeMap<String, Integer>();
+            for (String mf : new String[] { "hev", "crowbar" }) {
+                java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(
+                    com.divinerpgextended.easter.Easter.class.getResourceAsStream("/assets/divinerpgextended/models/easter/" + mf + ".mesh"), "UTF-8"));
+                String grp = null;
+                for (String line; (line = br.readLine()) != null;) {
+                    if (line.startsWith("p ")) grp = line.split(" ")[1];
+                    else if (line.startsWith("q ") && grp != null && line.trim().split("\\s+").length == 24) groups.put(grp, (groups.containsKey(grp) ? groups.get(grp) : 0) + 1);
+                }
+                br.close();
+            }
+            boolean meshes = true;
+            for (String grp : new String[] { "helmet", "goggles", "chest", "legs", "boots", "crowbar" }) meshes &= groups.containsKey(grp) && groups.get(grp) >= 24;
+            // звуки из игр Valve: если игры стоят (на этой машине - /mnt/d/SteamLibrary), события собираются, WAV - моно 16 бит
+            java.io.File hl1 = com.divinerpgextended.easter.HalfLifeMount.halfLife(), hl2 = com.divinerpgextended.easter.HalfLifeMount.halfLife2();
+            int events = 0;
+            for (String[][] v : com.divinerpgextended.easter.HalfLifeMount.EVENTS.values()) {
+                for (String[] c : v) if (com.divinerpgextended.easter.HalfLifeMount.resolve(c) != null) {
+                    events++;
+                    break;
+                }
+            }
+            byte[] cbar = com.divinerpgextended.easter.HalfLifeMount.wav("hl1/weapons/cbar_hit1"), sprint = com.divinerpgextended.easter.HalfLifeMount.wav("hl2/player/suit_sprint");
+            boolean wavOk = cbar == null || (cbar[22] == 1 && cbar[34] == 16 && cbar.length > 1000);
+            boolean sounds = (hl1 == null || cbar != null && wavOk && events >= 15) && (hl2 == null || sprint != null && sprint[22] == 1);
+            check(names && logon && once && morphine && cooldown && fracture && placed && halves && sits && gone && style && meshes && sounds,
                 "имена " + names + ", вход в систему " + logon + " (раз " + once + "), морфин " + morphine + ", перезарядка " + cooldown + ", перелом " + fracture
-                    + "; диван поставлен " + placed + ", обе половины " + halves + ", сел и встал " + sits + ", сломал половину - весь пропал " + gone + "; чат " + hp.chat);
-            return "реалмитовая броня с именем H.E.V - костюм (голос: вход в систему, морфин раз в 5 минут, перелом), реалмитовый меч crowbar, ракетница Мерика rpg; диван с РПГ: две половины, на нём сидят";
+                    + "; диван поставлен " + placed + ", обе половины " + halves + ", сел и встал " + sits + ", сломал половину - весь пропал " + gone + "; чат " + hp.chat
+                    + "; вид шлема в верстаке " + style + "; модели " + groups + "; звуки: HL " + hl1 + ", HL2 " + hl2 + ", событий " + events + ", WAV " + wavOk);
+            return "реалмитовая броня с именем H.E.V - костюм (голос: вход в систему, морфин раз в 5 минут, перелом; шлем в верстаке - очки и обратно), реалмитовый меч crowbar, ракетница Мерика rpg; диван с РПГ: две половины, на нём сидят; модели " + groups
+                + "; звуки из Half-Life " + (hl1 != null) + " и Half-Life 2 " + (hl2 != null) + ": событий " + events + "/" + com.divinerpgextended.easter.HalfLifeMount.EVENTS.size();
         });
         t("Логова", "Ступень брони: божественная - R1 (на кадиллиона Эдема), элитный реалмит - R0", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);

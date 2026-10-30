@@ -1,24 +1,45 @@
 package com.divinerpgextended.client;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.ISound;
+import net.minecraft.client.audio.ISoundEventAccessor;
 import net.minecraft.client.audio.PositionedSoundRecord;
-import net.minecraft.client.resources.FolderResourcePack;
+import net.minecraft.client.audio.SoundCategory;
+import net.minecraft.client.audio.SoundEventAccessorComposite;
+import net.minecraft.client.audio.SoundHandler;
+import net.minecraft.client.audio.SoundPoolEntry;
+import net.minecraft.client.audio.SoundRegistry;
+import net.minecraft.client.resources.IReloadableResourceManager;
+import net.minecraft.client.resources.IResourceManager;
+import net.minecraft.client.resources.IResourceManagerReloadListener;
 import net.minecraft.client.resources.IResourcePack;
+import net.minecraft.client.resources.data.IMetadataSection;
+import net.minecraft.client.resources.data.IMetadataSerializer;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ChatComponentTranslation;
+import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.sound.PlaySoundEvent17;
-import net.minecraftforge.event.entity.player.AttackEntityEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.divinerpgextended.easter.Easter;
+import com.divinerpgextended.easter.HalfLifeMount;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -26,18 +47,22 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Звуки Half-Life для пасхалок. Сами файлы Valve в мод не входят: их кладёт ~/mc/tools/hev_sounds.py из своей установленной
- * Half-Life в папку config/divinerpgextended/hevsounds - она подключается как ресурсы. Нет файла - звук Minecraft.
+ * Звуки Half-Life для пасхалок - прямо из установленных у игрока Half-Life и Half-Life 2 ({@link HalfLifeMount}): свой
+ * набор ресурсов отдаёт их файлы как {@code divinerpgextended:sounds/hev/hl1/...wav}, события {@code hev.*} собираются в коде
+ * после каждой перезагрузки ресурсов (WAV играет кодек WAV из Minecraft). Нет игр - звуки Minecraft.
  * <ul>
- * <li>Игрок в полном костюме H.E.V.: шаги, боль, падение, плавание - звуки Half-Life; при беге дыхание; голос костюма (вход
- * в систему, морфин, переломы, критическое здоровье) - по сообщению костюма в чате.</li>
- * <li>Монтировка: удары по мобам и блокам. РПГ-7: выстрел.</li>
+ * <li>Полный костюм H.E.V.: шаги по поверхности (Half-Life 2), боль и падение, смерть - писк монитора, в воде - плеск; начал
+ * бежать - звук костюма из Half-Life 2; голос костюма (вход в систему, морфин, переломы, критическое здоровье) - по его
+ * сообщению в чате.</li>
+ * <li>Монтировка: каждый взмах - по мобу, по блоку или по воздуху, как в Half-Life. РПГ-7: выстрел.</li>
  * </ul>
  */
 public final class HevSounds {
 
     private HevSounds() {}
 
+    static final Logger LOG = LogManager.getLogger("divinerpgextended");
+    static final String DOMAIN = "divinerpgextended", PREFIX = "sounds/hev/";
     static final Map<String, String> PLAYER = new HashMap<String, String>();
     static final Map<String, String> VOICE = new HashMap<String, String>();
     static {
@@ -45,11 +70,16 @@ public final class HevSounds {
         PLAYER.put("game.player.hurt.fall.big", "hev.fallpain");
         PLAYER.put("game.player.hurt.fall.small", "hev.fallpain");
         PLAYER.put("game.player.die", "hev.flatline");
-        PLAYER.put("game.player.swim", "hev.wade");
-        PLAYER.put("game.player.swim.splash", "hev.slosh");
-        for (String s : new String[] { "stone", "wood" }) PLAYER.put("step." + s, "hev.step");
-        for (String s : new String[] { "grass", "gravel", "sand", "snow", "cloth" }) PLAYER.put("step." + s, "hev.dirt");
-        PLAYER.put("step.ladder", "hev.ladder");
+        PLAYER.put("game.player.swim", "hev.step.wade");
+        PLAYER.put("game.player.swim.splash", "hev.step.slosh");
+        PLAYER.put("step.stone", "hev.step.concrete");
+        PLAYER.put("step.wood", "hev.step.wood");
+        PLAYER.put("step.grass", "hev.step.grass");
+        PLAYER.put("step.gravel", "hev.step.gravel");
+        PLAYER.put("step.sand", "hev.step.sand");
+        PLAYER.put("step.snow", "hev.step.dirt");
+        PLAYER.put("step.cloth", "hev.step.dirt");
+        PLAYER.put("step.ladder", "hev.step.ladder");
         VOICE.put("dre.hev.logon", "hev.logon");
         VOICE.put("dre.hev.morphine", "hev.morphine");
         VOICE.put("dre.hev.major_fracture", "hev.major_fracture");
@@ -57,59 +87,140 @@ public final class HevSounds {
         VOICE.put("dre.hev.health_critical", "hev.health_critical");
     }
 
-    /** Первый файл каждого события (по нему проверяем, установлены ли звуки). */
-    static final Map<String, String> FIRST = new HashMap<String, String>();
-    static {
-        String[][] f = { { "hev.pain", "pain2" }, { "hev.fallpain", "fallpain1" }, { "hev.flatline", "flatline" }, { "hev.wade", "wade1" },
-            { "hev.slosh", "slosh1" }, { "hev.step", "step1" }, { "hev.dirt", "dirt1" }, { "hev.ladder", "ladder1" }, { "hev.breathe", "breathe1" },
-            { "hev.logon", "logon" }, { "hev.morphine", "morphine" }, { "hev.major_fracture", "major_fracture" }, { "hev.minor_fracture", "minor_fracture" },
-            { "hev.health_critical", "health_critical" }, { "hev.cbar_hit", "cbar_hit1" }, { "hev.cbar_hitbod", "cbar_hitbod1" }, { "hev.rocketfire", "rocketfire1" } };
-        for (String[] e : f) FIRST.put(e[0], e[1]);
-    }
+    /** Собранные события (есть хоть один файл). */
+    static final Set<String> READY = Collections.synchronizedSet(new HashSet<String>());
 
-    static final Map<String, Boolean> HAVE = new HashMap<String, Boolean>();
-
-    /** Звук события установлен (есть его файл в ресурсах). */
     public static boolean have(String event) {
-        Boolean b = HAVE.get(event);
-        if (b == null) {
-            String f = FIRST.get(event);
-            try {
-                Minecraft.getMinecraft().getResourceManager().getResource(new ResourceLocation("divinerpgextended", "sounds/hev/" + f + ".ogg"));
-                b = f != null;
-            } catch (Exception missing) {
-                b = false;
-            }
-            HAVE.put(event, b);
-        }
-        return b;
+        return READY.contains(event);
     }
 
-    /** Подключить папку со звуками Half-Life как ресурсы (до первой загрузки ресурсов). */
+    /** До первой загрузки ресурсов: кодек WAV и набор ресурсов с файлами игр Valve. */
     @SuppressWarnings("unchecked")
     public static void addPack(File gameDir) {
-        File dir = new File(gameDir, "config/divinerpgextended/hevsounds");
-        if (!new File(dir, "assets").isDirectory()) return;
+        try {
+            paulscode.sound.SoundSystemConfig.setCodec("wav", paulscode.sound.codecs.CodecWav.class);
+        } catch (Throwable t) {
+            LOG.warn("H.E.V.: кодек WAV не подключён: " + t);
+        }
         try {
             List<IResourcePack> packs = ReflectionHelper.getPrivateValue(Minecraft.class, Minecraft.getMinecraft(), "defaultResourcePacks", "field_110449_ao");
-            packs.add(new FolderResourcePack(dir));
+            packs.add(new Pack());
         } catch (Throwable t) {
-            org.apache.logging.log4j.LogManager.getLogger("divinerpgextended").warn("Звуки H.E.V. не подключены: " + t);
+            LOG.warn("H.E.V.: набор звуков не подключён: " + t);
         }
-    }
-
-    static void play(String event, double x, double y, double z, float volume) {
-        if (!have(event)) return;
-        Minecraft.getMinecraft().getSoundHandler().playSound(new PositionedSoundRecord(new ResourceLocation("divinerpgextended", event), volume, 1.0F, (float) x, (float) y, (float) z));
     }
 
     public static void init() {
         Events e = new Events();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(e);
         FMLCommonHandler.instance().bus().register(e);
+        // после SoundHandler: он при перезагрузке чистит реестр звуков, мы дописываем свои события
+        ((IReloadableResourceManager) Minecraft.getMinecraft().getResourceManager()).registerReloadListener(new Registrar());
     }
 
-    /** Звук игрока, рядом с которым он прозвучал (шаги и боль звучат у ног). */
+    /** Файлы игр Valve как ресурсы мода: {@code divinerpgextended:sounds/hev/hl1/player/pl_pain2.wav}. */
+    static class Pack implements IResourcePack {
+
+        static String name(ResourceLocation r) {
+            if (!DOMAIN.equals(r.getResourceDomain())) return null;
+            String p = r.getResourcePath();
+            return p.startsWith(PREFIX) && p.endsWith(".wav") ? p.substring(PREFIX.length(), p.length() - 4) : null;
+        }
+
+        @Override
+        public InputStream getInputStream(ResourceLocation r) throws IOException {
+            String n = name(r);
+            byte[] b = n == null ? null : HalfLifeMount.wav(n);
+            if (b == null) throw new FileNotFoundException(r.toString());
+            return new ByteArrayInputStream(b);
+        }
+
+        @Override
+        public boolean resourceExists(ResourceLocation r) {
+            String n = name(r);
+            return n != null && HalfLifeMount.has(n);
+        }
+
+        @Override
+        public Set<String> getResourceDomains() {
+            return Collections.singleton(DOMAIN);
+        }
+
+        @Override
+        public IMetadataSection getPackMetadata(IMetadataSerializer s, String section) {
+            return null;
+        }
+
+        @Override
+        public BufferedImage getPackImage() throws IOException {
+            throw new FileNotFoundException("pack.png");
+        }
+
+        @Override
+        public String getPackName() {
+            return "Half-Life (Steam)";
+        }
+    }
+
+    /** Один файл события. */
+    static class Entry implements ISoundEventAccessor {
+
+        final SoundPoolEntry entry;
+
+        Entry(String file) {
+            entry = new SoundPoolEntry(new ResourceLocation(DOMAIN, PREFIX + file + ".wav"), 1.0, 1.0, false);
+        }
+
+        @Override
+        public int func_148721_a() {
+            return 1;
+        }
+
+        @Override
+        public Object func_148720_g() {
+            return new SoundPoolEntry(entry);
+        }
+    }
+
+    /** После каждой перезагрузки ресурсов: события hev.* из найденных файлов. */
+    static class Registrar implements IResourceManagerReloadListener {
+
+        @Override
+        public void onResourceManagerReload(IResourceManager m) {
+            READY.clear();
+            SoundRegistry reg;
+            try {
+                reg = ReflectionHelper.getPrivateValue(SoundHandler.class, Minecraft.getMinecraft().getSoundHandler(), "sndRegistry", "field_147697_e");
+            } catch (Throwable t) {
+                LOG.warn("H.E.V.: реестр звуков недоступен: " + t);
+                return;
+            }
+            int files = 0;
+            for (Map.Entry<String, String[][]> e : HalfLifeMount.EVENTS.entrySet()) {
+                SoundEventAccessorComposite c = new SoundEventAccessorComposite(new ResourceLocation(DOMAIN, e.getKey()), 1.0, 1.0, SoundCategory.PLAYERS);
+                int n = 0;
+                for (String[] variant : e.getValue()) {
+                    String f = HalfLifeMount.resolve(variant);
+                    if (f == null) continue;
+                    c.addSoundToEventPool(new Entry(f));
+                    n++;
+                }
+                if (n == 0) continue;
+                reg.registerSound(c);
+                READY.add(e.getKey());
+                files += n;
+            }
+            LOG.info("H.E.V.: звуки из игр Valve - событий " + READY.size() + "/" + HalfLifeMount.EVENTS.size() + ", файлов " + files + " (Half-Life: "
+                + HalfLifeMount.halfLife() + ", Half-Life 2: " + HalfLifeMount.halfLife2() + ")");
+        }
+    }
+
+    static void play(String event, double x, double y, double z, float volume) {
+        if (!have(event)) return;
+        Minecraft.getMinecraft().getSoundHandler().playSound(new PositionedSoundRecord(new ResourceLocation(DOMAIN, event), volume, 1.0F, (float) x, (float) y, (float) z));
+    }
+
+    /** Игрок, у ног которого прозвучал звук (шаги и боль). */
     static EntityPlayer near(ISound s) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.theWorld == null) return null;
@@ -117,8 +228,9 @@ public final class HevSounds {
         double bd = 2.5 * 2.5;
         for (Object o : mc.theWorld.playerEntities) {
             EntityPlayer p = (EntityPlayer) o;
-            double dx = p.posX - s.getXPosF(), dz = p.posZ - s.getZPosF(), dy = p.boundingBox.minY - s.getYPosF();
-            double d = dx * dx + dz * dz + Math.min(dy * dy, (p.posY - s.getYPosF()) * (p.posY - s.getYPosF()));
+            double dx = p.posX - s.getXPosF(), dz = p.posZ - s.getZPosF();
+            double dy = Math.min(Math.abs(p.boundingBox.minY - s.getYPosF()), Math.abs(p.posY - s.getYPosF()));
+            double d = dx * dx + dz * dz + dy * dy;
             if (d < bd) {
                 bd = d;
                 best = p;
@@ -129,7 +241,8 @@ public final class HevSounds {
 
     public static class Events {
 
-        int sprint, swing;
+        boolean sprinting, swinging;
+        int lastSwing;
 
         @SubscribeEvent
         public void onSound(PlaySoundEvent17 e) {
@@ -140,11 +253,12 @@ public final class HevSounds {
             EntityPlayer p = near(e.sound);
             if (p == null) return;
             if (bow) {
-                if (!Easter.rpg(p.getHeldItem()) || !have("hev.rocketfire")) return;
+                if (!Easter.rpg(p.getHeldItem())) return;
                 to = "hev.rocketfire";
-            } else if (!Easter.fullHev(p) || !have(to)) return;
-            e.result = new PositionedSoundRecord(new ResourceLocation("divinerpgextended", to), e.sound.getVolume(), 1.0F, e.sound.getXPosF(),
-                e.sound.getYPosF(), e.sound.getZPosF());
+            } else if (!Easter.fullHev(p)) return;
+            if (!have(to)) return;
+            float vol = to.startsWith("hev.step.") ? Math.max(e.sound.getVolume(), 0.5F) : e.sound.getVolume();
+            e.result = new PositionedSoundRecord(new ResourceLocation(DOMAIN, to), vol, 1.0F, e.sound.getXPosF(), e.sound.getYPosF(), e.sound.getZPosF());
         }
 
         /** Голос костюма: сообщение костюма в чате. */
@@ -156,32 +270,28 @@ public final class HevSounds {
             if (to != null && p != null) play(to, p.posX, p.posY, p.posZ, 1.0F);
         }
 
-        /** Монтировка: удар по мобу. */
-        @SubscribeEvent
-        public void onAttack(AttackEntityEvent e) {
-            if (!e.entityPlayer.worldObj.isRemote || !Easter.crowbar(e.entityPlayer.getHeldItem())) return;
-            play("hev.cbar_hitbod", e.target.posX, e.target.posY + e.target.height / 2, e.target.posZ, 1.0F);
-        }
-
-        /** Монтировка: удар по блоку (не чаще раза в 5 тиков, пока зажата кнопка). */
-        @SubscribeEvent
-        public void onClickBlock(PlayerInteractEvent e) {
-            if (e.action != PlayerInteractEvent.Action.LEFT_CLICK_BLOCK || !e.entityPlayer.worldObj.isRemote || !Easter.crowbar(e.entityPlayer.getHeldItem())) return;
-            if (e.entityPlayer.ticksExisted - swing < 5 && e.entityPlayer.ticksExisted >= swing) return;
-            swing = e.entityPlayer.ticksExisted;
-            play("hev.cbar_hit", e.x + 0.5, e.y + 0.5, e.z + 0.5, 0.8F);
-        }
-
-        /** Бег в костюме - тяжёлое дыхание раз в 3 секунды. */
+        /** Свой игрок: рывок в костюме и взмахи монтировкой. */
         @SubscribeEvent
         public void onTick(TickEvent.ClientTickEvent e) {
-            EntityPlayer p = Minecraft.getMinecraft().thePlayer;
-            if (e.phase != TickEvent.Phase.END || p == null || Minecraft.getMinecraft().isGamePaused()) return;
-            if (!p.isSprinting() || !Easter.fullHev(p)) {
-                sprint = 0;
-                return;
-            }
-            if (++sprint % 60 == 40) play("hev.breathe", p.posX, p.posY, p.posZ, 0.6F);
+            Minecraft mc = Minecraft.getMinecraft();
+            EntityPlayer p = mc.thePlayer;
+            if (e.phase != TickEvent.Phase.END || p == null || mc.isGamePaused()) return;
+            boolean run = p.isSprinting();
+            if (run && !sprinting && Easter.fullHev(p)) play("hev.sprint", p.posX, p.posY, p.posZ, 0.7F);
+            sprinting = run;
+            // новый взмах: начался или пошёл заново (зажатая кнопка по блоку)
+            boolean swing = p.isSwingInProgress;
+            boolean fresh = swing && (!swinging || p.swingProgressInt < lastSwing);
+            swinging = swing;
+            lastSwing = p.swingProgressInt;
+            if (!fresh || !Easter.crowbar(p.getHeldItem())) return;
+            MovingObjectPosition mop = mc.objectMouseOver;
+            if (mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY && mop.entityHit != null)
+                play("hev.cbar_hitbod", mop.entityHit.posX, mop.entityHit.posY + mop.entityHit.height / 2, mop.entityHit.posZ, 1.0F);
+            else if (mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK)
+                play("hev.cbar_hit", mop.blockX + 0.5, mop.blockY + 0.5, mop.blockZ + 0.5, 0.9F);
+            else
+                play("hev.cbar_miss", p.posX, p.posY, p.posZ, 0.8F);
         }
     }
 }

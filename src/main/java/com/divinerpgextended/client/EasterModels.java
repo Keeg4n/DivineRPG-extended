@@ -5,64 +5,42 @@ import net.minecraft.client.model.ModelBiped;
 import net.minecraft.client.model.ModelRenderer;
 import net.minecraft.entity.Entity;
 
-/** Модели пасхалок (текстуры - ~/mc/tools/easter_tex.py, раскладка образцов цвета совпадает). */
+/** Модели пасхалок: костюм и монтировка - детальные меши ({@link EasterMesh}), диван и граната - коробки (текстуры - ~/mc/tools/easter_tex.py). */
 public final class EasterModels {
 
     private EasterModels() {}
 
     /**
-     * Костюм H.E.V. (текстура 64x64: верх - обычная раскладка брони, низ - образцы цвета деталей). main - шлем, торс, руки и
-     * ботинки (как нагрудник в игре, раздутие 1.0), legs - поножи (0.5). Шлема у Фримена нет: на голове - очки (текстура) и
-     * воротник костюма.
+     * Костюм H.E.V. из детальной модели ({@link EasterMesh}, ~/mc/tools/hev_model.py): поза - как у брони игрока (кости
+     * ModelBiped), на каждой кости - свои детали надетой части: шлем или очки, торс с руками, поножи с поясом, ботинки.
      */
-    public static class Hev extends ModelBiped {
+    public static class HevArmor extends ModelBiped {
 
-        public Hev(float s, boolean legs) {
-            super(s, 0, 64, 64);
-            if (legs) {
-                for (ModelRenderer leg : new ModelRenderer[] { bipedRightLeg, bipedLeftLeg }) {
-                    ModelRenderer knee = new ModelRenderer(this, 32, 32);
-                    knee.addBox(-2F, 4F, -3F - s, 4, 3, 1, 0.1F); // наколенник
-                    leg.addChild(knee);
-                }
-                return;
-            }
-            // торс: нагрудная пластина с лямбдой, ранец с двумя баллонами, воротник
-            ModelRenderer plate = new ModelRenderer(this, 48, 56);
-            plate.addBox(-3F, 1.5F, -3F - s, 6, 6, 1, 0.05F);
-            bipedBody.addChild(plate);
-            ModelRenderer pack = new ModelRenderer(this, 32, 32);
-            pack.addBox(-3.5F, 1F, 2F + s, 7, 8, 3, 0F);
-            bipedBody.addChild(pack);
-            for (float x : new float[] { -3.5F, 1.5F }) {
-                ModelRenderer tank = new ModelRenderer(this, 0, 48);
-                tank.addBox(x, 0F, 5F + s, 2, 9, 2, 0F);
-                bipedBody.addChild(tank);
-            }
-            ModelRenderer collar = new ModelRenderer(this, 32, 32);
-            collar.addBox(-4.5F, -1.5F, -2.5F, 9, 2, 5, s * 0.6F);
-            bipedBody.addChild(collar);
-            // руки: наплечники и серые перчатки
-            ModelRenderer padR = new ModelRenderer(this, 32, 48);
-            padR.addBox(-3.5F, -2.5F, -2.5F, 5, 4, 5, s * 0.5F);
-            bipedRightArm.addChild(padR);
-            ModelRenderer padL = new ModelRenderer(this, 32, 48);
-            padL.mirror = true;
-            padL.addBox(-1.5F, -2.5F, -2.5F, 5, 4, 5, s * 0.5F);
-            bipedLeftArm.addChild(padL);
-            ModelRenderer glR = new ModelRenderer(this, 0, 48);
-            glR.addBox(-3F, 6.5F, -2F, 4, 5, 4, s + 0.15F);
-            bipedRightArm.addChild(glR);
-            ModelRenderer glL = new ModelRenderer(this, 0, 48);
-            glL.mirror = true;
-            glL.addBox(-1F, 6.5F, -2F, 4, 5, 4, s + 0.15F);
-            bipedLeftArm.addChild(glL);
-            // ботинки: массивная подошва
-            for (ModelRenderer leg : new ModelRenderer[] { bipedRightLeg, bipedLeftLeg }) {
-                ModelRenderer sole = new ModelRenderer(this, 32, 32);
-                sole.addBox(-2.5F, 10.5F, -3.5F, 5, 2, 6, s * 0.5F);
-                leg.addChild(sole);
-            }
+        public static final EasterMesh MESH = new EasterMesh("hev");
+        /** Какая часть рисуется в этот проход брони: helmet, goggles, chest, legs, boots. */
+        public String piece = "chest";
+
+        public HevArmor() {
+            super(0F);
+        }
+
+        @Override
+        public void render(Entity e, float f, float f1, float f2, float f3, float f4, float scale) {
+            setRotationAngles(f, f1, f2, f3, f4, scale, e);
+            part(bipedHead, "head", scale);
+            part(bipedBody, "body", scale);
+            part(bipedRightArm, "rightArm", scale);
+            part(bipedLeftArm, "leftArm", scale);
+            part(bipedRightLeg, "rightLeg", scale);
+            part(bipedLeftLeg, "leftLeg", scale);
+        }
+
+        private void part(ModelRenderer bone, String name, float scale) {
+            if (!MESH.has(piece, name)) return;
+            org.lwjgl.opengl.GL11.glPushMatrix();
+            bone.postRender(scale);
+            MESH.render(piece, name, scale);
+            org.lwjgl.opengl.GL11.glPopMatrix();
         }
     }
 

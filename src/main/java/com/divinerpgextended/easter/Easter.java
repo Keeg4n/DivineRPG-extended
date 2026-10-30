@@ -23,7 +23,8 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * Пасхалки (как Экскалибур в Botania - переименованная вещь меняет только вид): предмет остаётся тем же предметом Divine
  * со всеми свойствами, вид и звуки - по имени, данному на наковальне.
  * <ul>
- * <li>Реалмитовая броня с именем "H.E.V" - костюм H.E.V. из Half-Life: своя модель, голос костюма в чате (вход в систему,
+ * <li>Реалмитовая броня с именем "H.E.V" - костюм H.E.V. из Half-Life: своя модель (у шлема два вида - шлем Mark IV или
+ * очки Гордона, переключаются в верстаке: шлем один в сетке), голос костюма в чате (вход в систему,
  * переломы, критическое здоровье), морфин при малом здоровье не чаще раза в {@link #MORPHINE_EVERY} тиков; со звуками
  * Half-Life, если они установлены ({@link com.divinerpgextended.client.HevSounds}).</li>
  * <li>Реалмитовый меч с именем "crowbar" - монтировка.</li>
@@ -52,6 +53,59 @@ public final class Easter {
     /** Часть костюма H.E.V.: реалмитовая броня с именем H.E.V. */
     public static boolean hev(ItemStack s) {
         return s != null && realmiteArmor(s.getItem()) && named(s, "H.E.V", "H.E.V.", "HEV");
+    }
+
+    /** Шлем костюма в виде очков Гордона (иначе - шлем Mark IV). */
+    public static boolean goggles(ItemStack s) {
+        return hev(s) && s.getItem() == VanillaItemsArmor.realmiteHelmet && s.hasTagCompound() && s.getTagCompound().getBoolean(STYLE);
+    }
+
+    public static final String STYLE = "DreHevGoggles";
+
+    /** Шлем костюма один в сетке верстака - тот же шлем другого вида (шлем Mark IV <-> очки). */
+    public static class StyleRecipe implements net.minecraft.item.crafting.IRecipe {
+
+        static ItemStack single(net.minecraft.inventory.InventoryCrafting inv) {
+            ItemStack found = null;
+            for (int i = 0; i < inv.getSizeInventory(); i++) {
+                ItemStack s = inv.getStackInSlot(i);
+                if (s == null) continue;
+                if (found != null) return null;
+                found = s;
+            }
+            return found != null && hev(found) && found.getItem() == VanillaItemsArmor.realmiteHelmet ? found : null;
+        }
+
+        @Override
+        public boolean matches(net.minecraft.inventory.InventoryCrafting inv, net.minecraft.world.World w) {
+            return single(inv) != null;
+        }
+
+        @Override
+        public ItemStack getCraftingResult(net.minecraft.inventory.InventoryCrafting inv) {
+            ItemStack s = single(inv);
+            if (s == null) return null;
+            ItemStack out = s.copy();
+            out.stackSize = 1;
+            out.getTagCompound().setBoolean(STYLE, !goggles(s));
+            return out;
+        }
+
+        @Override
+        public int getRecipeSize() {
+            return 1;
+        }
+
+        @Override
+        public ItemStack getRecipeOutput() {
+            return null;
+        }
+    }
+
+    public static void registerRecipes() {
+        cpw.mods.fml.common.registry.GameRegistry.addRecipe(new StyleRecipe());
+        net.minecraftforge.oredict.RecipeSorter.register("divinerpgextended:hev_style", StyleRecipe.class, net.minecraftforge.oredict.RecipeSorter.Category.SHAPELESS,
+            "after:minecraft:shapeless");
     }
 
     public static boolean fullHev(EntityPlayer p) {
@@ -83,6 +137,14 @@ public final class Easter {
             EntityPlayer p = e.player;
             if (e.phase != TickEvent.Phase.END || p.worldObj.isRemote || p.ticksExisted % 10 != 0) return;
             tick(p);
+        }
+
+        /** Шлем костюма: какой вид и как сменить. */
+        @SubscribeEvent
+        @SuppressWarnings("unchecked")
+        public void onTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent e) {
+            if (!hev(e.itemStack) || e.itemStack.getItem() != VanillaItemsArmor.realmiteHelmet) return;
+            e.toolTip.add(EnumChatFormatting.GOLD + net.minecraft.util.StatCollector.translateToLocal(goggles(e.itemStack) ? "dre.tooltip.hev_goggles" : "dre.tooltip.hev_helmet"));
         }
 
         @SubscribeEvent(priority = EventPriority.LOWEST)

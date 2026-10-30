@@ -34,16 +34,17 @@ import cpw.mods.fml.client.registry.RenderingRegistry;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
-/** Вид пасхалок ({@link Easter}): значки и модели переименованных вещей, костюм H.E.V., граната ПГ-7, диван с РПГ. */
+/** Вид пасхалок ({@link Easter}): значки и модели переименованных вещей, костюм H.E.V. (шлем или очки), монтировка, граната ПГ-7, диван с РПГ. */
 public final class EasterClient {
 
     private EasterClient() {}
 
     static final String D = "divinerpgextended:";
-    static final ResourceLocation HEV_1 = new ResourceLocation(D + "textures/models/easter/hev_1.png"), HEV_2 = new ResourceLocation(D + "textures/models/easter/hev_2.png"),
+    static final ResourceLocation HEV = new ResourceLocation(D + "textures/models/easter/hev.png"), CROWBAR = new ResourceLocation(D + "textures/models/easter/crowbar.png"),
         SOFA = new ResourceLocation(D + "textures/models/easter/sofa.png"), PG7 = new ResourceLocation(D + "textures/models/easter/pg7.png");
-    static IIcon crowbar, rpg, hevHelmet, hevChest, hevLegs, hevBoots;
-    static final EasterModels.Hev HEV_MAIN = new EasterModels.Hev(1.0F, false), HEV_LEGS = new EasterModels.Hev(0.5F, true);
+    static IIcon crowbar, rpg, hevHelmet, hevGoggles, hevChest, hevLegs, hevBoots;
+    static final EasterModels.HevArmor HEV_MODEL = new EasterModels.HevArmor();
+    static final EasterMesh CROWBAR_MESH = new EasterMesh("crowbar");
     static final EasterModels.Sofa SOFA_MODEL = new EasterModels.Sofa();
     static final EasterModels.Pg7 PG7_MODEL = new EasterModels.Pg7();
 
@@ -53,7 +54,7 @@ public final class EasterClient {
         if (Easter.rpg(s)) return rpg;
         if (!Easter.hev(s)) return null;
         Item i = s.getItem();
-        return i == net.divinerpg.utils.items.VanillaItemsArmor.realmiteHelmet ? hevHelmet : i == net.divinerpg.utils.items.VanillaItemsArmor.realmiteBody ? hevChest
+        return i == net.divinerpg.utils.items.VanillaItemsArmor.realmiteHelmet ? (Easter.goggles(s) ? hevGoggles : hevHelmet) : i == net.divinerpg.utils.items.VanillaItemsArmor.realmiteBody ? hevChest
             : i == net.divinerpg.utils.items.VanillaItemsArmor.realmiteLegs ? hevLegs : hevBoots;
     }
 
@@ -103,27 +104,31 @@ public final class EasterClient {
             crowbar = e.map.registerIcon(D + "easter/crowbar");
             rpg = e.map.registerIcon(D + "easter/rpg");
             hevHelmet = e.map.registerIcon(D + "easter/hev_helmet");
+            hevGoggles = e.map.registerIcon(D + "easter/hev_goggles");
             hevChest = e.map.registerIcon(D + "easter/hev_chest");
             hevLegs = e.map.registerIcon(D + "easter/hev_legs");
             hevBoots = e.map.registerIcon(D + "easter/hev_boots");
         }
 
-        /** Костюм H.E.V. на игроке - своя модель вместо реалмитовой брони. */
+        /**
+         * Костюм H.E.V. на игроке - своя модель вместо реалмитовой брони. Часть - по типу вещи брони (номер прохода в этом
+         * событии идёт задом наперёд: 3 - шлем, 0 - ботинки).
+         */
         @SubscribeEvent
         public void onArmor(RenderPlayerEvent.SetArmorModel e) {
-            if (!Easter.hev(e.stack)) return;
-            int slot = e.slot;
-            EasterModels.Hev m = slot == 2 ? HEV_LEGS : HEV_MAIN;
-            m.bipedHead.showModel = slot == 0;
-            m.bipedHeadwear.showModel = false;
-            m.bipedBody.showModel = slot == 1 || slot == 2;
-            m.bipedRightArm.showModel = m.bipedLeftArm.showModel = slot == 1;
-            m.bipedRightLeg.showModel = m.bipedLeftLeg.showModel = slot == 2 || slot == 3;
-            EntityPlayer p = e.entityPlayer;
-            m.heldItemRight = p.getHeldItem() != null ? 1 : 0;
-            m.isSneak = p.isSneaking();
-            m.aimedBow = p.getItemInUseCount() > 0 && p.getItemInUse() != null && p.getItemInUse().getItemUseAction() == EnumAction.bow;
-            Minecraft.getMinecraft().getTextureManager().bindTexture(slot == 2 ? HEV_2 : HEV_1);
+            if (!Easter.hev(e.stack) || !(e.stack.getItem() instanceof net.minecraft.item.ItemArmor)) return;
+            int type = ((net.minecraft.item.ItemArmor) e.stack.getItem()).armorType;
+            EasterModels.HevArmor m = HEV_MODEL;
+            m.piece = type == 0 ? (Easter.goggles(e.stack) ? "goggles" : "helmet") : type == 1 ? "chest" : type == 2 ? "legs" : "boots";
+            net.minecraft.client.model.ModelBiped main = e.renderer.modelBipedMain;
+            m.onGround = main.onGround;
+            m.isRiding = main.isRiding;
+            m.isChild = main.isChild;
+            m.heldItemLeft = main.heldItemLeft;
+            m.heldItemRight = main.heldItemRight;
+            m.isSneak = main.isSneak;
+            m.aimedBow = main.aimedBow;
+            Minecraft.getMinecraft().getTextureManager().bindTexture(HEV);
             e.renderer.setRenderPassModel(m);
             e.result = e.stack.isItemEnchanted() ? 15 : 1;
         }
@@ -165,6 +170,11 @@ public final class EasterClient {
                 return;
             }
             if (type == ItemRenderType.ENTITY) GL11.glTranslatef(-0.5F, -0.25F, 0F);
+            if (Easter.crowbar(s)) { // монтировка в руке и на земле - объёмная, в той же раскладке, что значок меча
+                Minecraft.getMinecraft().getTextureManager().bindTexture(CROWBAR);
+                CROWBAR_MESH.render("crowbar", "item", 1F / 16F);
+                return;
+            }
             ItemRenderer.renderItemIn2D(Tessellator.instance, i.getMaxU(), i.getMinV(), i.getMinU(), i.getMaxV(), i.getIconWidth(), i.getIconHeight(), 0.0625F);
         }
     }
