@@ -76,8 +76,24 @@ public class WorldGenOuterLairs implements IWorldGenerator {
             return new int[] { (int) (Math.cos(a) * AYERACO_DIST), FLOOR[type], (int) (Math.sin(a) * AYERACO_DIST) };
         }
         int g = Config.netherLairSpacing, margin = Math.min(g / 3, RADIUS[type] + 40);
-        return new int[] { rx * g + margin + r.nextInt(Math.max(1, g - 2 * margin)), FLOOR[type],
-            rz * g + margin + r.nextInt(Math.max(1, g - 2 * margin)) };
+        int[] c = new int[] { rx * g + margin + r.nextInt(Math.max(1, g - 2 * margin)), FLOOR[type], rz * g + margin + r.nextInt(Math.max(1, g - 2 * margin)) };
+        // палата скорчеров не должна лечь на логово Смотрителя (у того вход тянется на восток) - тогда другое место в области
+        for (int tries = 0; type == SCORCHERS && tries < 12 && clashesWithWatcher(seed, c); tries++) {
+            c[0] = rx * g + margin + r.nextInt(Math.max(1, g - 2 * margin));
+            c[2] = rz * g + margin + r.nextInt(Math.max(1, g - 2 * margin));
+        }
+        return c;
+    }
+
+    /** Палата скорчеров с центром c задевает логово Смотрителя (его зал, тоннель, ворота и причал) в соседних областях. */
+    static boolean clashesWithWatcher(long seed, int[] c) {
+        int g = Config.netherLairSpacing, rx = Math.floorDiv(c[0], g), rz = Math.floorDiv(c[2], g), pad = RADIUS[SCORCHERS] + 26 + 8;
+        for (int i = -1; i <= 1; i++) for (int k = -1; k <= 1; k++) {
+            int[] w = center(seed, WATCHER, rx + i, rz + k);
+            int x0 = w[0] - WatcherVault.R - 6, x1 = w[0] + WatcherVault.tunnelEnd() + 12, z0 = w[2] - WatcherVault.R - 6, z1 = w[2] + WatcherVault.R + 6;
+            if (c[0] + pad >= x0 && c[0] - pad <= x1 && c[2] + pad >= z0 && c[2] - pad <= z1) return true;
+        }
+        return false;
     }
 
     public static int[] nearest(long seed, int type, double x, double z) {
@@ -113,11 +129,16 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         for (int type = 0; type < 3; type++) {
             if (!enabled(type) || world.provider.dimensionId != dim(type)) continue;
             int[] c = nearest(world.getSeed(), type, x0 + 8, z0 + 8);
-            int reach = type == AYERACO ? AYERACO_DIST + 16 : type == WATCHER ? WatcherVault.tunnelEnd() + 3 + 16 : RADIUS[type] + 26 + 16;
+            int reach = type == AYERACO ? AYERACO_DIST + 16 : type == WATCHER ? WatcherVault.tunnelEnd() + 12 + 16 : RADIUS[type] + 26 + 16;
             if (c == null || Math.abs(c[0] - (x0 + 8)) > reach || Math.abs(c[2] - (z0 + 8)) > reach) continue;
             ColumnStructure s = shape(type, c);
             s.buildSlice(world, c[0], c[2], x0, z0);
-            if (type == WATCHER) s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, FLOOR[type] + 1, WatcherVault.TUNNEL_Y + 3);
+            if (type == WATCHER) {
+                s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, FLOOR[type] + 1, WatcherVault.TUNNEL_Y + 12);
+                // озёра лавы и крови (Ад BoP и др.) вырезают пол и стены уже готовых кусков - вернуть
+                s.restore(world, c[0], c[2], x0 - 16, z0 - 16, 48, FLOOR[type] - 1, WatcherVault.TUNNEL_Y + 12, net.minecraft.init.Blocks.netherrack,
+                    net.minecraft.init.Blocks.soul_sand, net.minecraft.init.Blocks.gravel);
+            }
             else if (type != AYERACO) s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, FLOOR[type] + 1, FLOOR[type] + 22);
         }
     }

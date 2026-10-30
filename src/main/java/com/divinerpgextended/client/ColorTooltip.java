@@ -36,5 +36,20 @@ public class ColorTooltip {
         if (com.divinerpgextended.perk.ColdMobs.isHellWeapon(it)) e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.hell_vs_cold"));
         if (e.itemStack.getItem() == VanillaItemsWeapons.bedrockSword) e.toolTip.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.tooltip.bedrock_sword"));
         if (e.itemStack.getItem() == VanillaItemsWeapons.bedrockMaul) e.toolTip.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.tooltip.bedrock_maul"));
+        // адское оружие дальнего боя - роль ({@link com.divinerpgextended.boss.NetherArsenal})
+        if (it == VanillaItemsWeapons.ghastCannon) e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.ghast_cannon"));
+        if (it == VanillaItemsWeapons.maelstrom) e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.maelstrom"));
+        if (it == VanillaItemsWeapons.ghastCannon || it == VanillaItemsWeapons.maelstrom)
+            e.toolTip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal(it == VanillaItemsWeapons.ghastCannon ? "dre.tooltip.reload_ghast" : "dre.tooltip.reload_maelstrom"));
+        if (it == net.divinerpg.utils.items.IceikaItems.soundOfMusic) e.toolTip.add(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("dre.tooltip.sound_of_music"));
+        if (it == net.divinerpg.utils.items.IceikaItems.soundOfCarols) e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.sound_of_carols"));
+        if (blastArmor(it)) e.toolTip.add(EnumChatFormatting.DARK_RED + StatCollector.translateToLocal("dre.tooltip.blast_after_watcher"));
+    }
+
+    /** Броня, полный сет которой защищает от взрывов (Bedrock и Ender любых цветов). */
+    static boolean blastArmor(net.minecraft.item.Item it) {
+        if (!(it instanceof net.minecraft.item.ItemArmor)) return false;
+        String n = it.getUnlocalizedName();
+        return n != null && (n.toLowerCase().contains("bedrock") || n.toLowerCase().contains("ender")) && it.getClass().getName().startsWith("net.divinerpg");
     }
 }

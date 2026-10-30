@@ -19,7 +19,9 @@ import org.objectweb.asm.tree.VarInsnNode;
 
 /**
  * Смотритель Divine в своём логове ведёт себя по правилам аддона ({@link com.divinerpgextended.boss.WatcherHunt}): в начало
- * его updateEntityActionState - "если логово - свой ход и выйти". Вне логова (вызов где угодно) - как в Divine.
+ * его onLivingUpdate - "если логово - свой ход, потом только общее для всех существ (super), и выйти": дрейф и выстрел
+ * Divine в логове не работают. (updateEntityActionState у мобов Divine не вызывается - у них ИИ на задачах.) Вне логова -
+ * как в Divine.
  */
 public class WatcherTransformer implements IClassTransformer, Opcodes {
 
@@ -34,12 +36,17 @@ public class WatcherTransformer implements IClassTransformer, Opcodes {
             new ClassReader(bytes).accept(node, 0);
             int patched = 0;
             for (MethodNode m : node.methods) {
-                if (!("func_70619_bc".equals(m.name) || "updateEntityActionState".equals(m.name)) || !"()V".equals(m.desc)) continue;
+                if (!("func_70636_d".equals(m.name) || "onLivingUpdate".equals(m.name)) || !"()V".equals(m.desc)) continue;
                 InsnList in = new InsnList();
                 LabelNode go = new LabelNode();
                 in.add(new VarInsnNode(ALOAD, 0));
-                in.add(new MethodInsnNode(INVOKESTATIC, "com/divinerpgextended/boss/WatcherHunt", "act", "(Lnet/divinerpg/entities/vanilla/EntityTheWatcher;)Z", false));
+                in.add(new MethodInsnNode(INVOKESTATIC, "com/divinerpgextended/boss/WatcherHunt", "lair", "(Lnet/divinerpg/entities/vanilla/EntityTheWatcher;)Z", false));
                 in.add(new JumpInsnNode(IFEQ, go));
+                in.add(new VarInsnNode(ALOAD, 0));
+                in.add(new MethodInsnNode(INVOKESTATIC, "com/divinerpgextended/boss/WatcherHunt", "act", "(Lnet/divinerpg/entities/vanilla/EntityTheWatcher;)Z", false));
+                in.add(new InsnNode(POP));
+                in.add(new VarInsnNode(ALOAD, 0));
+                in.add(new MethodInsnNode(INVOKESPECIAL, node.superName, m.name, "()V", false));
                 in.add(new InsnNode(RETURN));
                 in.add(go);
                 if ((node.version & 0xFFFF) >= 50) in.add(new FrameNode(F_SAME, 0, null, 0, null));
@@ -49,7 +56,7 @@ public class WatcherTransformer implements IClassTransformer, Opcodes {
             if (patched == 0) return bytes;
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Смотритель: в логове охотится по правилам аддона");
+            LOG.info("Смотритель: в логове охотится по правилам аддона (правок " + patched + ")");
             return w.toByteArray();
         } catch (Throwable t) {
             LOG.error("Смотритель: охота не подключена, класс без изменений", t);

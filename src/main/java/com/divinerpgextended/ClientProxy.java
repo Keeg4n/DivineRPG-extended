@@ -93,6 +93,10 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityShadowBolt.class,
             new net.minecraft.client.renderer.entity.RenderSnowball(net.minecraft.init.Items.ender_eye));
         RenderingRegistry.registerEntityRenderingHandler(EntityGreatCadillion.class, new RenderGreatCadillion());
+        // око-прислужник Смотрителя: уменьшенная модель Смотрителя Divine, багровое
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWatcherEye.class,
+            new com.divinerpgextended.client.RenderScaledBoss(new net.divinerpg.client.render.entity.vanilla.model.ModelWatcher(), 1.3F,
+                new net.minecraft.util.ResourceLocation("divinerpg", "textures/mobs/watcher.png"), 1.0F, 0.55F, 0.55F));
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityAncientGolem.class, new com.divinerpgextended.client.RenderAncientGolem());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityAncientDramcryx.class, new com.divinerpgextended.client.RenderAncientDramcryx());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWarriorKing.class, new com.divinerpgextended.client.RenderWarriorKing());

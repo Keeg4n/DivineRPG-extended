@@ -681,7 +681,7 @@ public class AyeracoHorde {
         if (!member(e.entityLiving) || e.entityLiving.worldObj.isRemote) return;
         Pack p = pack((EntityLiving) e.entityLiving);
         Entity shooter = e.source.getEntity();
-        if (e.source.isProjectile() && aura(p, e.entityLiving.worldObj, Hue.BLUE) && !enderBow(shooter)
+        if (e.source.isProjectile() && aura(p, e.entityLiving.worldObj, Hue.BLUE) && !enderBow(shooter) && !NetherArsenal.maelstrom(e.source)
             && !(shooter instanceof EntityPlayer && EnderColors.wears((EntityPlayer) shooter, Hue.BLUE))) {
             e.setCanceled(true);
             e.entityLiving.worldObj.playSoundAtEntity(e.entityLiving, "random.anvil_land", 0.6F, 1.8F);

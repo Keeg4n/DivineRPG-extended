@@ -23,7 +23,8 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * обработчике и только на сервере (у Divine общие поля, которые перетираются; см. ArmorSetTransformer). Работает,
  * только если правка класса Divine удалась, иначе свойства считал бы и Divine - вдвойне.
  * <p>
- * В Ветее сеты не из Ветеи ничего не дают (кошмар наоборот).
+ * В Ветее сеты не из Ветеи ничего не дают (кошмар наоборот). Защита от взрывов (Bedrock, Ender) - только у победивших
+ * Смотрителя: его бой - про взрывы, награда за него не должна заранее его отменять.
  */
 public class ArmorSets {
 
@@ -125,8 +126,9 @@ public class ArmorSets {
         DamageSource s = e.source;
         boolean dream = Nightmare.active(p);
         if (!dream) {
+            boolean blastProof = com.divinerpgextended.boss.BossProgress.has(p, com.divinerpgextended.boss.Boss.WATCHER); // защита от взрывов - после Смотрителя
             if (set(a, VanillaItemsArmor.bedrockBoots, VanillaItemsArmor.bedrockLegs, VanillaItemsArmor.bedrockBody,
-                VanillaItemsArmor.bedrockHelmet) && s.isExplosion()) {
+                VanillaItemsArmor.bedrockHelmet) && s.isExplosion() && blastProof) {
                 e.setCanceled(true);
                 note(p, "Сет Bedrock: взрыв не ранит");
                 return;
@@ -139,7 +141,7 @@ public class ArmorSets {
                     VanillaItemsArmor.greenEnderBody, VanillaItemsArmor.blueEnderBody, VanillaItemsArmor.grayEnderBody)
                 && any(a[3], VanillaItemsArmor.enderHelmet, VanillaItemsArmor.redEnderHelmet, VanillaItemsArmor.yellowEnderHelmet,
                     VanillaItemsArmor.greenEnderHelmet, VanillaItemsArmor.blueEnderHelmet, VanillaItemsArmor.grayEnderHelmet)
-                && s.isExplosion()) {
+                && s.isExplosion() && blastProof) {
                 e.setCanceled(true);
                 note(p, "Сет Ender: взрыв не ранит");
                 return;

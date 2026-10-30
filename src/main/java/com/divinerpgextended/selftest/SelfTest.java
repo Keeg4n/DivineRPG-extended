@@ -558,10 +558,13 @@ public class SelfTest {
         t("Броня", "Защита сетов", () -> {
             reset(p);
             DamageSource boom = new DamageSource("explosion").setExplosion();
+            boolean watcher = com.divinerpgextended.boss.BossProgress.has(p, com.divinerpgextended.boss.Boss.WATCHER);
+            com.divinerpgextended.boss.BossProgress.grant(p, com.divinerpgextended.boss.Boss.WATCHER); // защита от взрывов - после Смотрителя
             armor(p, VanillaItemsArmor.enderHelmet, VanillaItemsArmor.enderBody, VanillaItemsArmor.enderLegs, VanillaItemsArmor.enderBoots);
             float ender = hit(p, boom, 10);
             armor(p, VanillaItemsArmor.bedrockHelmet, VanillaItemsArmor.bedrockBody, VanillaItemsArmor.bedrockLegs, VanillaItemsArmor.bedrockBoots);
             float bedrock = hit(p, boom, 10);
+            if (!watcher) com.divinerpgextended.boss.BossProgress.revoke(p, com.divinerpgextended.boss.Boss.WATCHER);
             armor(p, VanillaItemsArmor.witherReaperHelmet, VanillaItemsArmor.witherReaperBody, VanillaItemsArmor.witherReaperLegs, VanillaItemsArmor.witherReaperBoots);
             float wither = hit(p, DamageSource.wither, 4);
             armor(p, VanillaItemsArmor.krakenHelmet, VanillaItemsArmor.krakenBody, VanillaItemsArmor.krakenLegs, VanillaItemsArmor.krakenBoots);
@@ -572,7 +575,7 @@ public class SelfTest {
             float cactus = hit(p, DamageSource.cactus, 4);
             check(ender == 0 && bedrock == 0 && wither == 0 && drown == 0 && poison == 0 && cactus == 0, "урон: Ender " + f(ender) + ", Bedrock " + f(bedrock)
                 + ", Wither Reaper " + f(wither) + ", Kraken " + f(drown) + ", Jungle " + f(poison) + ", Apalachia " + f(cactus));
-            return "взрыв (Ender, Bedrock), иссушение, утопление, яд, кактус - урон 0";
+            return "взрыв (Ender, Bedrock - после Смотрителя), иссушение, утопление, яд, кактус - урон 0";
         });
         t("Броня", "Arlemite и Rupee", () -> {
             reset(p);
@@ -595,7 +598,10 @@ public class SelfTest {
         t("Броня", "Сет из разных цветов", () -> {
             reset(p);
             armor(p, VanillaItemsArmor.redEnderHelmet, VanillaItemsArmor.blueEnderBody, VanillaItemsArmor.yellowEnderLegs, VanillaItemsArmor.enderBoots);
+            boolean watcher = com.divinerpgextended.boss.BossProgress.has(p, com.divinerpgextended.boss.Boss.WATCHER);
+            com.divinerpgextended.boss.BossProgress.grant(p, com.divinerpgextended.boss.Boss.WATCHER);
             float d = hit(p, new DamageSource("explosion").setExplosion(), 10);
+            if (!watcher) com.divinerpgextended.boss.BossProgress.revoke(p, com.divinerpgextended.boss.Boss.WATCHER);
             check(d == 0, "смешанный Ender: урон от взрыва " + f(d));
             return "Ender четырёх цветов: взрыв 0";
         });
@@ -8062,7 +8068,110 @@ public class SelfTest {
                     + ", возврат " + back + " (" + dist + "), печать святилища у Странника Апалачии " + sealDeal);
             return "лагерь в Скайтерне: Странник (" + deals + " сделок), горящий костёр; костёр запомнил - возрождение у него";
         });
-        t("Логова", "Логово Смотрителя: завал под лавой, охота, адское оружие", () -> {
+        t("Прохождение", "Адское оружие: пушка гаста, Maelstrom, музыкалки, перезарядка, защита от взрывов после Смотрителя", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int x0 = 30500, y0 = 120, z0 = 30500;
+            loadAround(w, x0, z0, 2);
+            for (int x = x0 - 12; x <= x0 + 12; x++) for (int z = z0 - 12; z <= z0 + 12; z++) for (int y = y0 - 1; y <= y0 + 8; y++) w.setBlock(x, y, z, y == y0 - 1 ? Blocks.stone : Blocks.air);
+            TestPlayer v = join(player(0, "TestArsenal", x0 + 0.5, y0, z0 + 0.5), true);
+            // Maelstrom: снаряд пробивает цель - дальше летит такой же (до 3 целей)
+            hold(v, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.maelstrom));
+            net.minecraft.entity.passive.EntityPig pig = new net.minecraft.entity.passive.EntityPig(w);
+            pig.setPosition(x0 + 4.5, y0, z0 + 0.5);
+            w.spawnEntityInWorld(pig);
+            net.divinerpg.entities.vanilla.projectile.EntityShooterBullet mb = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, v, 12F, "divinerpg:textures/projectiles/maelstrom.png");
+            mb.setPosition(x0 + 4, y0 + 0.5, z0 + 0.5);
+            mb.motionX = 1.5;
+            mb.motionY = mb.motionZ = 0;
+            int before = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, pig.boundingBox.expand(6, 6, 6)).size();
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(pig, DamageSource.causeThrownDamage(mb, v), 12F));
+            java.util.List<?> after = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, pig.boundingBox.expand(6, 6, 6));
+            boolean pierce = false;
+            for (Object o : after) {
+                net.divinerpg.entities.vanilla.projectile.EntityShooterBullet nb = (net.divinerpg.entities.vanilla.projectile.EntityShooterBullet) o;
+                if (nb.getEntityData().getInteger("drePierced") == 1 && nb.posX > pig.posX && nb.motionX > 1) pierce = true;
+                nb.setDead();
+            }
+            pierce &= after.size() == before + 1;
+            // король скорчеров в пламенном щите: мечом вполовину, Maelstrom в полтора раза
+            net.divinerpg.entities.vanilla.EntityKingOfScorchers king = new net.divinerpg.entities.vanilla.EntityKingOfScorchers(w);
+            hold(v, new ItemStack(Items.diamond_sword));
+            net.minecraftforge.event.entity.living.LivingHurtEvent km = new net.minecraftforge.event.entity.living.LivingHurtEvent(king, DamageSource.causePlayerDamage(v), 10F);
+            MinecraftForge.EVENT_BUS.post(km);
+            hold(v, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.maelstrom));
+            net.minecraftforge.event.entity.living.LivingHurtEvent kr = new net.minecraftforge.event.entity.living.LivingHurtEvent(king, DamageSource.causeThrownDamage(mb, v), 10F);
+            MinecraftForge.EVENT_BUS.post(kr);
+            boolean scorcher = Math.abs(km.ammount - 5F) < 0.01 && Math.abs(kr.ammount - 15F) < 0.01;
+            for (Object o : w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, pig.boundingBox.expand(12, 12, 12))) ((net.minecraft.entity.Entity) o).setDead();
+            // музыкалки: второй выстрел в тот же тик отменён и не тратит заряд; нота отскакивает от стены; по приспешнику - вдвое
+            ItemStack music = new ItemStack(net.divinerpg.utils.items.IceikaItems.soundOfMusic);
+            music.setItemDamage(5);
+            hold(v, music);
+            boolean first = w.spawnEntityInWorld(new net.divinerpg.entities.iceika.projectile.EntityMusic(w, v));
+            boolean second = w.spawnEntityInWorld(new net.divinerpg.entities.iceika.projectile.EntityMusic(w, v));
+            boolean cooldown = first && !second && v.getHeldItem().getItemDamage() == 4;
+            for (int y = y0; y <= y0 + 3; y++) w.setBlock(x0 + 6, y, z0, Blocks.stone);
+            net.divinerpg.entities.iceika.projectile.EntityMusic note = new net.divinerpg.entities.iceika.projectile.EntityMusic(w, v);
+            note.setPosition(x0 + 5.3, y0 + 1.5, z0 + 0.5);
+            note.motionX = 1.0;
+            note.motionY = note.motionZ = 0;
+            com.divinerpgextended.boss.NetherArsenal.bounce(w, note);
+            boolean bounce = note.motionX < 0 && note.getEntityData().getInteger("dreBounced") == 1;
+            note.setDead();
+            net.minecraft.entity.monster.EntityZombie minion = new net.minecraft.entity.monster.EntityZombie(w);
+            com.divinerpgextended.boss.BossMinions.mark(minion, king);
+            net.minecraftforge.event.entity.living.LivingHurtEvent mh = new net.minecraftforge.event.entity.living.LivingHurtEvent(minion,
+                DamageSource.causeThrownDamage(new net.divinerpg.entities.iceika.projectile.EntityMusic(w, v), v), 10F);
+            MinecraftForge.EVENT_BUS.post(mh);
+            com.divinerpgextended.entity.EntityFrostColossus colossus = new com.divinerpgextended.entity.EntityFrostColossus(w);
+            net.minecraftforge.event.entity.living.LivingHurtEvent ch = new net.minecraftforge.event.entity.living.LivingHurtEvent(colossus,
+                DamageSource.causeThrownDamage(new net.divinerpg.entities.iceika.projectile.EntityCarol(w, v), v), 10F);
+            MinecraftForge.EVENT_BUS.post(ch);
+            boolean notes = Math.abs(mh.ammount - 20F) < 0.01 && Math.abs(ch.ammount - 15F) < 0.01 && colossus.isPotionActive(net.minecraft.potion.Potion.moveSlowdown);
+            // дракон орды: пушка гаста сбивает дыхание, уходит на круг
+            net.divinerpg.entities.vanilla.EntityAyeracoGreen ay = new net.divinerpg.entities.vanilla.EntityAyeracoGreen(w);
+            ay.getEntityData().setBoolean(com.divinerpgextended.boss.AyeracoHorde.TAG, true);
+            ay.getEntityData().setLong("dreHordeBreath", w.getTotalWorldTime() + 40);
+            hold(v, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.ghastCannon));
+            net.divinerpg.entities.vanilla.projectile.EntityShooterBullet gb = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, v, 16F, "divinerpg:textures/projectiles/ghastCannon.png");
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(ay, DamageSource.causeThrownDamage(gb, v), 16F));
+            boolean dragon = ay.getEntityData().getLong("dreHordeBreath") == 0 && com.divinerpgextended.boss.AyeracoHorde.phase(ay) == com.divinerpgextended.boss.AyeracoHorde.RETREAT;
+            // перезарядка: без Короля скорчеров нет, с ним - +50 за слезу
+            com.divinerpgextended.boss.BossProgress.revoke(v, com.divinerpgextended.boss.Boss.KING_OF_SCORCHERS);
+            ItemStack gun = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.ghastCannon);
+            gun.setItemDamage(90);
+            ItemStack locked = com.divinerpgextended.boss.NetherArsenal.reloadFor(v, gun.copy(), new ItemStack(Items.ghast_tear), 1);
+            com.divinerpgextended.boss.BossProgress.grant(v, com.divinerpgextended.boss.Boss.KING_OF_SCORCHERS);
+            ItemStack loaded = com.divinerpgextended.boss.NetherArsenal.reloadFor(v, gun.copy(), new ItemStack(Items.ghast_tear), 1);
+            ItemStack m2 = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.maelstrom);
+            m2.setItemDamage(99);
+            ItemStack loadedM = com.divinerpgextended.boss.NetherArsenal.reloadFor(v, m2, new ItemStack(net.divinerpg.utils.items.VanillaItemsOther.purpleBlaze), 2);
+            ItemStack wrongAmmo = com.divinerpgextended.boss.NetherArsenal.reloadFor(v, gun.copy(), new ItemStack(net.divinerpg.utils.items.VanillaItemsOther.purpleBlaze), 1);
+            boolean reload = locked == null && loaded != null && loaded.getItemDamage() == 40 && loadedM != null && loadedM.getItemDamage() == 0 && wrongAmmo == null;
+            com.divinerpgextended.boss.BossProgress.revoke(v, com.divinerpgextended.boss.Boss.KING_OF_SCORCHERS);
+            // сет Bedrock: взрыв ранит, пока Смотритель не побеждён; после - нет
+            armor(v, net.divinerpg.utils.items.VanillaItemsArmor.bedrockHelmet, net.divinerpg.utils.items.VanillaItemsArmor.bedrockBody, net.divinerpg.utils.items.VanillaItemsArmor.bedrockLegs,
+                net.divinerpg.utils.items.VanillaItemsArmor.bedrockBoots);
+            hold(v, null);
+            com.divinerpgextended.boss.BossProgress.revoke(v, com.divinerpgextended.boss.Boss.WATCHER);
+            boolean hurtBefore = !MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(v, DamageSource.setExplosionSource(null), 10F));
+            com.divinerpgextended.boss.BossProgress.grant(v, com.divinerpgextended.boss.Boss.WATCHER);
+            boolean safeAfter = MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(v, DamageSource.setExplosionSource(null), 10F));
+            com.divinerpgextended.boss.BossProgress.revoke(v, com.divinerpgextended.boss.Boss.WATCHER);
+            boolean blastGate = hurtBefore && safeAfter;
+            armor(v, null, null, null, null);
+            pig.setDead();
+            server.getConfigurationManager().playerEntityList.remove(v);
+            w.removeEntity(v);
+            check(pierce && scorcher && cooldown && bounce && notes && dragon && reload && blastGate,
+                "Maelstrom пробил " + pierce + " (снарядов " + before + " -> " + after.size() + "); король скорчеров: меч " + km.ammount + ", Maelstrom " + kr.ammount + "; музыкалка: первый " + first + ", второй " + second
+                    + ", заряд " + v.inventory.mainInventory[8] + "; отскок " + bounce + "; приспешнику " + mh.ammount + ", Колоссу колядками " + ch.ammount + "; дракон сбит " + dragon
+                    + "; перезарядка без короля " + locked + ", с ним " + (loaded == null ? null : loaded.getItemDamage()) + ", Maelstrom " + (loadedM == null ? null : loadedM.getItemDamage())
+                    + ", не тот патрон " + wrongAmmo + "; Bedrock до Смотрителя ранит " + hurtBefore + ", после нет " + safeAfter);
+            return "Maelstrom пробивает и бьёт короля скорчеров x1.5 (меч x0.5); музыкалки раз в 8 тиков без траты заряда, ноты отскакивают, приспешникам x2, колядки замедляют и бьют Колосса x1.5;"
+                + " пушка гаста сбивает дыхание дракона орды; перезарядка слезами и сгустками - после короля скорчеров; защита Bedrock от взрывов - после Смотрителя";
+        });
+        t("Логова", "Логово Смотрителя: обсерватория Ока, две фазы, глаза, адское оружие", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.WATCHER;
             WorldServer w = server.worldServerForDimension(-1);
             int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
@@ -8072,61 +8181,85 @@ public class SelfTest {
             loadAround(w, c[0] + end / 2, c[2], 3);
             loadAround(w, c[0] + end, c[2], 2);
             int cx = c[0], cz = c[2];
-            // постройка: обсидиановые пол, стена и свод, лава над сводом, карман босса, око на полу, завал внутри
-            boolean shell = w.getBlock(cx, F, cz) == Blocks.obsidian && w.getBlock(cx, F + 4, cz - R - 1) == Blocks.obsidian && w.getBlock(cx, TOP + 1, cz) == Blocks.obsidian
+            dump(w, cx + 30, F + 30, cz, 58, "render-watcher");
+            // зал: обсидиан, окулюс под лавой, мозаика ока, колонны с лампами, окна с лавой; пусто
+            boolean shell = w.getBlock(cx, F - 1, cz) == Blocks.obsidian && w.getBlock(cx, F + 4, cz - R - 1) == Blocks.obsidian && w.getBlock(cx, TOP + 1, cz) == Blocks.glass
                 && w.getBlock(cx, TOP + 3, cz).getMaterial() == net.minecraft.block.material.Material.lava;
-            boolean pocket = w.isAirBlock(cx, com.divinerpgextended.world.WatcherVault.bossY(), cz) && w.getBlock(cx, F + 1, cz) == net.divinerpg.utils.blocks.VanillaBlocks.lamp2;
-            // без боя зал пуст (только колонны); завал - при вызове, после боя уходит
+            double[] pc = com.divinerpgextended.world.WatcherVault.pillar(14, 6);
+            int px = cx + (int) Math.floor(pc[0]), pz = cz + (int) Math.floor(pc[1]);
+            boolean mosaic = w.getBlock(cx, F, cz) == Blocks.obsidian && w.getBlock(cx + 4, F, cz) == Blocks.stained_hardened_clay && (w.getBlock(cx + 9, F, cz + 1) == Blocks.quartz_block || w.getBlock(cx + 9, F, cz + 1) == Blocks.stained_hardened_clay);
+            boolean pillar = w.getBlock(px, F + 4, pz) == Blocks.obsidian && w.getBlock(px, TOP - 6, pz) != Blocks.air;
+            int lamps = 0;
+            for (int dx = -R; dx <= R; dx++) for (int dz = -R; dz <= R; dz++) for (int y = F + 1; y <= F + 18; y += 6)
+                if (w.getBlock(cx + dx, y + 2, cz + dz) == net.divinerpg.utils.blocks.VanillaBlocks.lamp2) lamps++;
+            boolean windows = w.getBlock(cx, F + 4, cz + R - 1) == Blocks.stained_glass && w.getBlock(cx, F + 4, cz + R).getMaterial() == net.minecraft.block.material.Material.lava;
             int[] fill0 = watcherFill(w, cx, cz);
-            boolean empty = fill0[0] < fill0[1] * 0.08;
-            // тоннель: прихожая у стены, ступени вверх, причал над лавой
-            String tun = "" + (w.isAirBlock(cx + R - 3, F + 2, cz) ? 1 : 0) + (w.isAirBlock(cx + R + 2, F + 3, cz) ? 1 : 0) + (w.getBlock(cx + R + 2, F + 2, cz + 2) == Blocks.obsidian ? 1 : 0)
-                + (w.isAirBlock(cx + end, TY + 1, cz) ? 1 : 0) + (w.getBlock(cx + end + 2, TY - 1, cz) == Blocks.nether_brick ? 1 : 0);
-            for (int t = 0; t <= end - R + 4 && tun.length() < 400; t += 4) {
-                int x = cx + R - 1 + t;
-                for (int y = F - 1; y <= TY + 5; y++) if (!w.isAirBlock(x, y, cz) && w.getBlock(x, y, cz) != Blocks.obsidian && w.getBlock(x, y, cz) != Blocks.nether_brick
-                    && w.getBlock(x, y, cz) != Blocks.stone_slab && w.getBlock(x, y, cz) != Blocks.netherrack) tun += " " + t + ":" + y + "=" + w.getBlock(x, y, cz).getUnlocalizedName();
+            boolean empty = fill0[0] < fill0[1] * 0.12;
+            // что в зале не по чертежу (чужая генерация поверх)
+            java.util.Map<String, Integer> alien = new java.util.TreeMap<String, Integer>();
+            com.divinerpgextended.world.WatcherVault bp = new com.divinerpgextended.world.WatcherVault(cx, cz);
+            int[] bcol = new int[512];
+            int[] abox = { 99, -99, 99, -99 };
+            for (int dx = -R + 1; dx < R; dx++) for (int dz = -R + 1; dz < R; dz++) {
+                if (dx * dx + dz * dz >= (R - 1) * (R - 1)) continue;
+                for (int i = 0; i < bcol.length; i += 2) bcol[i] = com.divinerpgextended.world.twilight.ColumnStructure.KEEP;
+                bp.columnAt(dx, dz, bcol);
+                for (int y = F; y <= TOP; y++) {
+                    if (bcol[y * 2] == com.divinerpgextended.world.twilight.ColumnStructure.KEEP) continue;
+                    net.minecraft.block.Block want = bp.blockAt(bcol[y * 2], bcol[y * 2 + 1]), got = w.getBlock(cx + dx, y, cz + dz);
+                    if (want != got) {
+                        String ak = got.getUnlocalizedName() + "<" + want.getUnlocalizedName() + "@" + (y - F);
+                        alien.put(ak, alien.containsKey(ak) ? alien.get(ak) + 1 : 1);
+                        abox[0] = Math.min(abox[0], dx); abox[1] = Math.max(abox[1], dx); abox[2] = Math.min(abox[2], dz); abox[3] = Math.max(abox[3], dz);
+                    }
+                }
             }
-            boolean tunnel = tun.startsWith("11111");
-            TestPlayer v = join(player(-1, "TestWatcher", cx + R - 3.5, F + 1, cz + 0.5), true);
+            // вход: портал, ступени до верха, надвратная башня с оком, причал
+            String walk = "";
+            for (int t = 0; t <= end - (R - 1); t++) {
+                int rise = Math.min(t, (TY - (F + 1)) * 2), yb = F + 1 + rise / 2;
+                if (!w.isAirBlock(cx + R - 1 + t, yb + 1, cz) || !w.isAirBlock(cx + R - 1 + t, yb + 2, cz))
+                    walk += " " + t + "=" + w.getBlock(cx + R - 1 + t, yb + 1, cz).getUnlocalizedName() + "/" + w.getBlock(cx + R - 1 + t, yb + 2, cz).getUnlocalizedName();
+            }
+            boolean gate = w.getBlock(cx + end, TY + 5, cz + 4) == Blocks.obsidian && w.getBlock(cx + end, TY + 7, cz) == Blocks.quartz_block
+                && w.getBlock(cx + end, TY + 6, cz) == Blocks.obsidian && w.getBlock(cx + end + 3, TY - 1, cz) == Blocks.nether_brick
+                && w.getBlock(cx + end + 3, TY, cz + 4) == Blocks.nether_brick_fence && w.getBlock(cx + R - 1, F + 2, cz + 3) == Blocks.quartz_block;
+            boolean tunnel = walk.isEmpty() && gate;
+            TestPlayer v = join(player(-1, "TestWatcher", cx + 18.5, F + 1, cz + 0.5), true);
             net.minecraft.item.Item call = net.divinerpg.utils.items.VanillaItemsOther.callWatcher;
             String in = com.divinerpgextended.boss.LairSummons.refusal(v, call, cx + R - 4, F, cz);
             String out = com.divinerpgextended.boss.LairSummons.refusal(v, call, cx + 200, 60, cz);
-            // вызов: завал собирается заново (пробитая дыра заросла), у бойца - карман
-            for (int y = F + 3; y <= F + 8; y++) for (int dz = -2; dz <= 2; dz++) w.setBlockToAir(cx - 8, y, cz + dz);
-            java.util.List<net.minecraft.entity.player.EntityPlayer> ps = new java.util.ArrayList<net.minecraft.entity.player.EntityPlayer>();
-            ps.add(v);
-            int changed = new com.divinerpgextended.world.WatcherVault(cx, cz).refill(w, cx, cz, ps);
-            int[] fill1 = watcherFill(w, cx, cz);
-            int solid = fill1[0], cells = fill1[1];
-            boolean rubble = solid > cells * 0.35 && solid < cells * 0.85;
-            boolean restored = changed > 0 && w.isAirBlock((int) Math.floor(v.posX), F + 1, cz) && w.isAirBlock((int) Math.floor(v.posX), F + 2, cz);
-            // охота: Смотритель в кармане, боец у входа - заряд, выстрел, перегрев
+            // старый мир: зал с завалом и обсидиановым полом - игрок зашёл, Смотрителя нет: перестроен в новый
+            for (int dx = -11; dx <= 11; dx++) w.setBlock(cx + dx, F, cz, Blocks.obsidian);
+            for (int dx = -6; dx <= 6; dx++) for (int y = F + 1; y <= F + 6; y++) w.setBlock(cx + dx, y, cz - 5, Blocks.netherrack);
+            com.divinerpgextended.boss.WatcherHunt.forgetTidy();
+            int tidied = com.divinerpgextended.boss.WatcherHunt.tidy(w), again = com.divinerpgextended.boss.WatcherHunt.tidy(w);
+            boolean upgraded = tidied > 0 && again == 0 && w.getBlock(cx + 9, F, cz) != Blocks.obsidian && w.isAirBlock(cx, F + 3, cz - 5);
+            // первая фаза: заряд, выстрел, перегрев
             net.divinerpg.entities.vanilla.EntityTheWatcher wt = new net.divinerpg.entities.vanilla.EntityTheWatcher(w);
             wt.setPosition(cx + 0.5, com.divinerpgextended.world.WatcherVault.bossY() - 2, cz + 0.5);
             w.spawnEntityInWorld(wt);
             boolean charged = false, shot = false;
-            for (int i = 0; i < 120 && !shot; i++) {
-                com.divinerpgextended.boss.WatcherHunt.act(wt);
+            for (int i = 0; i < 160 && !shot; i++) {
+                wt.onUpdate();
                 charged |= com.divinerpgextended.boss.WatcherHunt.charging(wt);
                 shot = com.divinerpgextended.boss.WatcherHunt.overheated(wt);
             }
-            java.util.List<?> shots = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityWatcherShot.class, wt.boundingBox.expand(6, 6, 6));
-            for (Object o : shots) ((net.minecraft.entity.Entity) o).setDead();
-            // перегретый получает двойной урон
-            net.minecraftforge.event.entity.living.LivingHurtEvent hot = new net.minecraftforge.event.entity.living.LivingHurtEvent(wt, DamageSource.generic, 10F);
-            MinecraftForge.EVENT_BUS.post(hot);
-            boolean doubled = Math.abs(hot.ammount - 20F) < 0.01;
-            // пушка гаста во время заряда: заряд сбит, оглушён, перегрет; пуля в полтора раза сильнее
+            for (Object o : w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityWatcherShot.class, wt.boundingBox.expand(30, 30, 30))) ((net.minecraft.entity.Entity) o).setDead();
+            // открытый глаз: стрела вдвое; пушка гаста в открытый глаз - сбит, оглушён, перегрет (16 x1.5 x2)
             com.divinerpgextended.boss.WatcherHunt.reset(wt);
             com.divinerpgextended.boss.WatcherHunt.startCharge(wt);
+            net.minecraft.entity.projectile.EntityArrow arrow = new net.minecraft.entity.projectile.EntityArrow(w, v, 1F);
+            net.minecraftforge.event.entity.living.LivingHurtEvent ar = new net.minecraftforge.event.entity.living.LivingHurtEvent(wt, DamageSource.causeArrowDamage(arrow, v), 10F);
+            MinecraftForge.EVENT_BUS.post(ar);
+            boolean openEye = Math.abs(ar.ammount - 20F) < 0.01;
             hold(v, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.ghastCannon));
             net.divinerpg.entities.vanilla.projectile.EntityShooterBullet bullet = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, v, 16F, net.divinerpg.utils.items.VanillaItemsWeapons.ghastCannon);
             net.minecraftforge.event.entity.living.LivingHurtEvent gc = new net.minecraftforge.event.entity.living.LivingHurtEvent(wt, DamageSource.causeThrownDamage(bullet, v), 16F);
             MinecraftForge.EVENT_BUS.post(gc);
-            boolean cannon = !com.divinerpgextended.boss.WatcherHunt.charging(wt) && com.divinerpgextended.boss.WatcherHunt.stunned(wt) && Math.abs(gc.ammount - 24F) < 0.01
+            boolean cannon = !com.divinerpgextended.boss.WatcherHunt.charging(wt) && com.divinerpgextended.boss.WatcherHunt.stunned(wt) && Math.abs(gc.ammount - 48F) < 0.01
                 && com.divinerpgextended.boss.WatcherHunt.overheated(wt);
-            // огненный меч: четвёртый удар подряд перегревает; адский меч без огня - +50%
+            // огненный меч: четвёртый удар подряд перегревает; адский меч - +50%
             com.divinerpgextended.boss.WatcherHunt.reset(wt);
             hold(v, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.infernoSword));
             boolean warm = true;
@@ -8141,39 +8274,88 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(bg);
             boolean nether = Math.abs(bg.ammount - 15F) < 0.01;
             hold(v, null);
-            // взрыв в зале: завал ломается без выпадения, предмет на земле цел, сундук и обсидиан целы, сам Смотритель не ранен
-            int ex = cx - 12, ey = F + 4, ez = cz + 6;
-            for (int dx = -3; dx <= 3; dx++) for (int dy = -2; dy <= 2; dy++) for (int dz = -3; dz <= 3; dz++) w.setBlock(ex + dx, ey + dy, ez + dz, Blocks.netherrack);
-            w.setBlockToAir(ex, ey, ez);
-            w.setBlockToAir(ex, ey + 1, ez);
-            w.setBlock(ex + 1, ey, ez, Blocks.chest);
+            // боец за колонной: Смотритель выпускает глаза, глаз долетает и кусает
+            double pa = Math.atan2(pc[1], pc[0]);
+            v.setPosition(cx + 0.5 + Math.cos(pa) * 18.5, F + 1, cz + 0.5 + Math.sin(pa) * 18.5);
+            com.divinerpgextended.boss.WatcherHunt.reset(wt);
+            wt.setPosition(cx + 0.5, com.divinerpgextended.world.WatcherVault.bossY() - 2, cz + 0.5);
+            for (int i = 0; i < 60; i++) wt.onUpdate();
+            int eyes = com.divinerpgextended.boss.WatcherHunt.eyes(wt);
+            com.divinerpgextended.entity.EntityWatcherEye eye = com.divinerpgextended.boss.WatcherHunt.spawnEyeFor(wt);
+            int bites = 0;
+            double closest = 99;
+            String path = "";
+            if (eye != null) {
+                for (int i = 0; i < 300 && eye.bites == 0; i++) {
+                    eye.onUpdate();
+                    closest = Math.min(closest, eye.getDistanceToEntity(v));
+                    if (i % 25 == 0) path += String.format(" %.1f,%.1f,%.1f", eye.posX - cx, eye.posY - F, eye.posZ - cz);
+                }
+                bites = eye.bites;
+            }
+            // вторая фаза: рёв (неуязвим), стая глаз, рывок с ударом; рывок в колонну - оглушён и перегрет
+            com.divinerpgextended.boss.WatcherHunt.reset(wt);
+            wt.setHealth(wt.getMaxHealth() * 0.45F);
+            wt.onUpdate();
+            boolean roar = com.divinerpgextended.boss.WatcherHunt.phase(wt) == 0;
+            net.minecraftforge.event.entity.living.LivingAttackEvent roarHit = new net.minecraftforge.event.entity.living.LivingAttackEvent(wt, DamageSource.causePlayerDamage(v), 10F);
+            boolean roarImmune = MinecraftForge.EVENT_BUS.post(roarHit);
+            for (int i = 0; i < com.divinerpgextended.boss.WatcherHunt.ROAR + 2; i++) wt.onUpdate();
+            boolean phase2 = com.divinerpgextended.boss.WatcherHunt.phase(wt) == 2 && com.divinerpgextended.boss.WatcherHunt.eyes(wt) >= 4;
+            v.setPosition(cx + 14.5, F + 1, cz + 0.5); // на виду, по оси между колоннами
+            com.divinerpgextended.boss.WatcherHunt.reset(wt);
+            wt.setPosition(cx + 0.5, F + 3, cz + 0.5);
+            com.divinerpgextended.boss.WatcherHunt.startWind(wt);
+            boolean dashed = false;
+            int hits = 0;
+            for (int i = 0; i < 60; i++) {
+                wt.onUpdate();
+                dashed |= com.divinerpgextended.boss.WatcherHunt.dashing(wt);
+                hits = Math.max(hits, com.divinerpgextended.boss.WatcherHunt.dashHits(wt));
+            }
+            v.setPosition(cx + 0.5 + Math.cos(pa) * 18.5, F + 1, cz + 0.5 + Math.sin(pa) * 18.5); // за колонной
+            com.divinerpgextended.boss.WatcherHunt.reset(wt);
+            wt.setPosition(cx + 0.5, F + 3, cz + 0.5);
+            com.divinerpgextended.boss.WatcherHunt.startWind(wt);
+            boolean crashed = false;
+            for (int i = 0; i < 50 && !crashed; i++) {
+                wt.onUpdate();
+                crashed = com.divinerpgextended.boss.WatcherHunt.stunned(wt) && com.divinerpgextended.boss.WatcherHunt.overheated(wt);
+            }
+            // взрыв в логове: блоки целы, предмет цел, Смотритель цел; бойцу от взрыва - не больше потолка
+            int ex = cx - 8, ey = F + 2, ez = cz + 3;
+            w.setBlock(ex + 1, ey, ez, Blocks.netherrack);
             net.minecraft.entity.item.EntityItem loot = new net.minecraft.entity.item.EntityItem(w, ex + 0.5, ey + 0.2, ez + 0.5, new ItemStack(Items.diamond));
             w.spawnEntityInWorld(loot);
             wt.setPosition(ex + 0.5, ey, ez - 2.5);
             float hpBefore = wt.getHealth();
-            w.newExplosion(null, ex + 0.5, ey + 0.5, ez + 0.5, 5F, false, true);
-            int items = w.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(ex - 8, ey - 8, ez - 8, ex + 8, ey + 8, ez + 8)).size();
-            boolean blast = w.isAirBlock(ex - 2, ey, ez) && w.getBlock(ex + 1, ey, ez) == Blocks.chest && !loot.isDead && items == 1 && wt.getHealth() == hpBefore;
+            w.newExplosion(null, ex + 0.5, ey + 0.5, ez + 0.5, 5F, true, true);
+            net.minecraftforge.event.entity.living.LivingHurtEvent boom = new net.minecraftforge.event.entity.living.LivingHurtEvent(v, DamageSource.setExplosionSource(null), 40F);
+            MinecraftForge.EVENT_BUS.post(boom);
+            boolean blast = w.getBlock(ex + 1, ey, ez) == Blocks.netherrack && !loot.isDead && wt.getHealth() == hpBefore && boom.ammount <= com.divinerpgextended.boss.WatcherHunt.BLAST_CAP
+                && (w.getBlock(cx + 9, F, cz + 1) == Blocks.quartz_block || w.getBlock(cx + 9, F, cz + 1) == Blocks.stained_hardened_clay);
             loot.setDead();
             w.setBlockToAir(ex + 1, ey, ez);
+            // Смотритель пал - глаза рассеиваются
             wt.setDead();
-            int swept = com.divinerpgextended.boss.WatcherHunt.sweep(w);
-            int[] fill2 = watcherFill(w, cx, cz);
-            boolean gone = swept > 0 && fill2[0] < fill2[1] * 0.08;
-            // старый мир: логово создано с завалом - игрок зашёл, Смотрителя нет, зал пустеет
-            new com.divinerpgextended.world.WatcherVault(cx, cz).refill(w, cx, cz, ps);
-            com.divinerpgextended.boss.WatcherHunt.forgetTidy();
-            int tidied = com.divinerpgextended.boss.WatcherHunt.tidy(w), again = com.divinerpgextended.boss.WatcherHunt.tidy(w);
-            int[] fill3 = watcherFill(w, cx, cz);
-            gone &= tidied > 0 && again == 0 && fill3[0] < fill3[1] * 0.08;
+            boolean orphaned = true;
+            for (Object o : new java.util.ArrayList<Object>(w.loadedEntityList)) if (o instanceof com.divinerpgextended.entity.EntityWatcherEye) {
+                com.divinerpgextended.entity.EntityWatcherEye e2 = (com.divinerpgextended.entity.EntityWatcherEye) o;
+                for (int i = 0; i < 50 && !e2.isDead; i++) e2.onUpdate();
+                orphaned &= e2.isDead;
+            }
             server.getConfigurationManager().playerEntityList.remove(v);
             w.removeEntity(v);
-            check(shell && pocket && empty && rubble && gone && tunnel && in == null && "dre.chat.summon_lair_0".equals(out) && restored && charged && shot && doubled && cannon && warm && nether && blast,
-                "оболочка и лава " + shell + ", карман и око " + pocket + ", до вызова " + fill0[0] + "/" + fill0[1] + ", завал " + solid + "/" + cells + ", после смерти убрано " + swept + " (" + fill2[0] + "/" + fill2[1] + "), старый мир " + tidied + "/" + again + " (" + fill3[0] + "/" + fill3[1] + "), тоннель " + tunnel + " (" + tun + "), вызов внутри " + in + " снаружи " + out
-                    + "; завал заново " + changed + " блоков, у бойца пусто " + restored + "; заряд " + charged + ", выстрел и перегрев " + shot + ", двойной урон " + doubled + " (" + hot.ammount + ")"
-                    + "; пушка гаста " + cannon + " (" + gc.ammount + "), огненный меч " + warm + ", адский меч " + nether + " (" + bg.ammount + "); взрыв " + blast + " (предметов " + items + ")");
-            return "логово в Аду в " + cx + "," + cz + ": обсидиановый зал R" + R + " под лавой, без боя пусто (" + (fill0[0] * 100 / Math.max(1, fill0[1])) + "%), при вызове завал " + (solid * 100 / Math.max(1, cells)) + "%, после смерти (и в старых мирах без босса) уходит; тоннель от берега с причалом;"
-                + " Смотритель заряжается и стреляет, перегретый получает x2; пушка гаста сбивает заряд, огненное оружие перегревает, адское +50%; взрывы ломают только завал";
+            check(shell && mosaic && pillar && lamps >= 8 && windows && empty && tunnel && in == null && "dre.chat.summon_lair_0".equals(out) && upgraded && charged && shot && openEye && cannon
+                && warm && nether && eyes >= 2 && bites > 0 && roar && roarImmune && phase2 && dashed && hits > 0 && crashed && blast && orphaned,
+                "не по чертежу " + alien + " в x " + abox[0] + ".." + abox[1] + " z " + abox[2] + ".." + abox[3] + " (центр " + cx + "," + cz + "); оболочка и окулюс " + shell + ", мозаика " + mosaic + " (" + w.getBlock(cx, F, cz).getUnlocalizedName() + "/" + w.getBlock(cx + 4, F, cz).getUnlocalizedName() + "/" + w.getBlock(cx + 9, F, cz + 1).getUnlocalizedName() + "), колонна " + pillar + ", ламп " + lamps + ", окна " + windows + ", занято " + fill0[0] + "/" + fill0[1]
+                    + ", вход " + tunnel + " (непроходимо на шагах:" + walk + ", ворота и причал " + gate + "), вызов внутри " + in + " снаружи " + out
+                    + "; старый зал перестроен " + tidied + "/" + again + " " + upgraded + "; заряд " + charged + ", выстрел " + shot + ", стрела в открытый глаз " + openEye + " (" + ar.ammount + ")"
+                    + "; пушка гаста " + cannon + " (" + gc.ammount + "), огненный меч " + warm + ", адский меч " + nether + " (" + bg.ammount + ")"
+                    + "; за колонной глаз " + eyes + ", укусов " + bites + " (ближе всего " + String.format("%.1f", closest) + ", боец " + String.format("%.1f,%.1f,%.1f", v.posX - cx, v.posY - F, v.posZ - cz) + ", путь" + path + "); рёв " + roar + ", неуязвим " + roarImmune + ", вторая фаза " + phase2
+                    + ", рывок " + dashed + " задел " + hits + ", в колонну " + crashed + "; взрыв " + blast + " (бойцу " + boom.ammount + "); глаза без хозяина " + orphaned);
+            return "обсерватория Ока в Аду в " + cx + "," + cz + ": мозаика, колонны, окна с лавой, окулюс; вход с воротами и причалом; старый зал перестраивается; первая фаза - заряд, открытый глаз x2,"
+                + " пушка гаста сбивает; за колонной - глаза-прислужники кусают; на половине - рёв и рывки, в колонну - оглушён; взрывы блоков не ломают, бойцу не больше " + (int) com.divinerpgextended.boss.WatcherHunt.BLAST_CAP;
         });
         t("Логова", "Огненная палата", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.SCORCHERS;

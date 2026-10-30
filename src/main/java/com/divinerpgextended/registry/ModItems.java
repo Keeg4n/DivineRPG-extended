@@ -235,6 +235,7 @@ public final class ModItems {
         EntityRegistry.registerModEntity(com.divinerpgextended.dummy.EntityTrainingDummy.class, "TrainingDummy", 20, DivineRPGExtended.instance, 64, 20, false);
         EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntityArcaneWraith.class, "ArcaneWraith", 21, DivineRPGExtended.instance, 64, 2, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.easter.EntitySeat.class, "SofaSeat", 22, DivineRPGExtended.instance, 64, 20, false);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWatcherEye.class, "WatcherEye", 23, DivineRPGExtended.instance, 64, 2, true);
         bossEgg = new com.divinerpgextended.item.ItemBossEgg();
         GameRegistry.registerItem(bossEgg, "bossEgg");
     }

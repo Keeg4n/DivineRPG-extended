@@ -139,6 +139,7 @@ public abstract class ColumnStructure {
     static void resend(World w, List<int[]> changed) {
         if (!(w instanceof net.minecraft.world.WorldServer) || changed.isEmpty()) return;
         net.minecraft.server.management.PlayerManager pm = ((net.minecraft.world.WorldServer) w).getPlayerManager();
+        if (pm == null) return; // мир ещё создаётся (поиск точки спавна): игроков нет, рассылать некому
         for (int[] c : changed) pm.markBlockForUpdate(c[0], c[1], c[2]);
     }
 
@@ -154,6 +155,35 @@ public abstract class ColumnStructure {
         if (x < x0 || x >= x0 + 16 || z < z0 || z >= z0 + 16) return false;
         w.setBlock(x, y, z, b, meta, 2);
         return true;
+    }
+
+    /**
+     * Вернуть по чертежу твёрдые блоки готовых соседних кусков, которые испортила чужая генерация после постройки (озёра
+     * лавы и крови вырезают воздух и заливают жидкость, огонь, природный камень поверх) - в пределах yFrom..yTo. Меняется
+     * только воздух, жидкость, огонь и природные блоки (то, что ставит генерация мира); блоки с данными не трогаем.
+     */
+    public void restore(World w, int cx, int cz, int xFrom, int zFrom, int size, int yFrom, int yTo, Block... natural) {
+        int[] col = new int[256 * 2];
+        for (int x = xFrom; x < xFrom + size; x++) {
+            for (int z = zFrom; z < zFrom + size; z++) {
+                if (!w.getChunkProvider().chunkExists(x >> 4, z >> 4)) continue;
+                int ax = (x - 8) >> 4, az = (z - 8) >> 4; // кусок, к которому относится столбец, уже построен
+                if (!w.getChunkProvider().chunkExists(ax, az) || !w.getChunkFromChunkCoords(ax, az).isTerrainPopulated) continue;
+                for (int i = 0; i < col.length; i += 2) col[i] = KEEP;
+                if (!column(x - cx, z - cz, col)) continue;
+                for (int y = Math.max(1, yFrom); y <= yTo; y++) {
+                    int code = col[y * 2];
+                    if (code == KEEP || code == AIR || code == FOUNDATION) continue;
+                    Block want = block(code, col[y * 2 + 1]), was = w.getBlock(x, y, z);
+                    int meta = metaOf(code, col[y * 2 + 1]);
+                    if (was == want || want.getMaterial().isLiquid()) continue;
+                    boolean spoiled = was.isAir(w, x, y, z) || was.getMaterial().isLiquid() || was == Blocks.fire;
+                    for (Block n : natural) spoiled |= was == n;
+                    if (!spoiled || was.hasTileEntity(w.getBlockMetadata(x, y, z))) continue;
+                    w.setBlock(x, y, z, want, meta, 2);
+                }
+            }
+        }
     }
 
     /**

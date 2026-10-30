@@ -177,6 +177,7 @@ public class WorldGenTomb implements IWorldGenerator {
     private static void release(World w, int px, int py, int pz) {
         if (!(w instanceof net.minecraft.world.WorldServer)) return;
         net.minecraft.world.WorldServer ws = (net.minecraft.world.WorldServer) w;
+        if (ws.getPlayerManager() == null) return; // мир ещё создаётся (поиск точки спавна) - выгружать рано
         int[] a = area(px, py, pz);
         for (int ax = a[0]; ax <= a[1] + 1; ax++) for (int az = a[2]; az <= a[3] + 1; az++)
             if (ws.theChunkProviderServer.chunkExists(ax, az) && !ws.getPlayerManager().func_152621_a(ax, az)) ws.theChunkProviderServer.unloadChunksIfNotNearSpawn(ax, az);

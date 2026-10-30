@@ -117,6 +117,9 @@ public class CommonProxy {
         com.divinerpgextended.boss.WatcherHunt watcherHunt = new com.divinerpgextended.boss.WatcherHunt();
         MinecraftForge.EVENT_BUS.register(watcherHunt);
         FMLCommonHandler.instance().bus().register(watcherHunt);
+        com.divinerpgextended.boss.NetherArsenal arsenal = new com.divinerpgextended.boss.NetherArsenal();
+        MinecraftForge.EVENT_BUS.register(arsenal);
+        FMLCommonHandler.instance().bus().register(arsenal);
         com.divinerpgextended.easter.Easter.enabled = com.divinerpgextended.Config.easterEggs;
         com.divinerpgextended.easter.Easter.registerRecipes();
         com.divinerpgextended.easter.Easter.registerMessages();
@@ -197,6 +200,9 @@ public class CommonProxy {
         RecipeSorter.register("divinerpgextended:temper", com.divinerpgextended.item.TemperRecipe.class,
             RecipeSorter.Category.SHAPELESS, "after:minecraft:shapeless");
         GameRegistry.addRecipe(new com.divinerpgextended.item.TemperRecipe());
+        RecipeSorter.register("divinerpgextended:nether_reload", com.divinerpgextended.boss.NetherArsenal.Reload.class,
+            RecipeSorter.Category.SHAPELESS, "after:minecraft:shapeless");
+        GameRegistry.addRecipe(new com.divinerpgextended.boss.NetherArsenal.Reload());
 
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.fishing.FishingEvents());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.arcana.MerikForge());
@@ -287,7 +293,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new WorldGenThrone.NoSpawns());
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.WorldGenNests(), 62);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.WorldGenTwilightFeatures(), 64);
-        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenOuterLairs(), 66);
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenOuterLairs(), 99000); // логова Ада и Энда - после озёр и прочего других модов
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaDoors(), 70);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenTomb(), 55);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.ClockGuard());
