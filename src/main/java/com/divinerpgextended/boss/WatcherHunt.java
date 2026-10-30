@@ -46,6 +46,8 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * <li>Адское оружие ({@link #onHurt}): пуля пушки гаста в открытый глаз (заряд или замах) сбивает его и оглушает на
  * {@link #STUN} тиков; пушка гаста, Maelstrom и адское оружие ближнего боя бьют в полтора раза сильнее; огненные мечи и
  * стрелы Inferno копят жар - {@link #WARMTH} подряд перегревают; стрела Bluefire ослепляет на {@link #BLIND} тиков.</li>
+ * <li>Во второй фазе (тараны) снаряды наносят лишь {@link #RAM_RANGED} урона - бить надо вплотную; лучше всего мечами Энда и
+ * бедроковым оружием ({@link #RAM_MELEE}, в обеих фазах).</li>
  * <li>Взрывы в логове блоков не ломают, предметы и опыт на земле не трогают, урон от взрыва бойцу - не больше
  * {@link #BLAST_CAP} ({@link #onDetonate}).</li>
  * </ul>
@@ -61,6 +63,14 @@ public class WatcherHunt {
     public static final float PHASE2 = 0.5F, LOW = 0.2F, SHOT_SPEED = 1.3F, DASH_SPEED = 1.25F, DASH_HIT = 10F, BLAST_CAP = 14F;
     /** Множители: открытый глаз - снарядам; перегретому - всему; адскому оружию. */
     public static final float OPEN_MULT = 2.0F, HEAT_MULT = 2.0F, NETHER_MULT = 1.5F;
+    /** Вторая фаза (тараны): снаряды - доля урона; мечи Энда и бедроковое оружие - множитель. */
+    public static final float RAM_RANGED = 0.15F, RAM_MELEE = 2.0F;
+
+    /** Оружие, которым Смотрителя лучше всего бить вплотную: мечи Энда (любого цвета) и бедроковые меч и молот. */
+    public static boolean ramBreaker(net.minecraft.item.Item i) {
+        return com.divinerpgextended.perk.EnderGear.enderSword(new net.minecraft.item.ItemStack(i)) || i == net.divinerpg.utils.items.VanillaItemsWeapons.bedrockSword
+            || i == net.divinerpg.utils.items.VanillaItemsWeapons.bedrockMaul;
+    }
 
     /** Состояние боя (на время жизни босса; сохранять не нужно). */
     static final class State {
@@ -522,7 +532,9 @@ public class WatcherHunt {
         }
         if (melee != null && com.divinerpgextended.arcana.WeaponOrigin.of(new net.minecraft.item.ItemStack(melee)) == com.divinerpgextended.arcana.WeaponOrigin.NETHER)
             mult = Math.max(mult, NETHER_MULT);
+        if (melee != null && ramBreaker(melee)) mult = Math.max(mult, RAM_MELEE); // лучшее против него вплотную - Энд и бедрок
         if (wasOpen && e.source.isProjectile()) mult *= OPEN_MULT;
+        if (s.phase != 1 && e.source.isProjectile()) mult = RAM_RANGED; // на таранах снаряды почти не берут: только вплотную
         if (hot) mult *= HEAT_MULT;
         e.ammount *= mult;
     }
@@ -531,7 +543,11 @@ public class WatcherHunt {
     @SubscribeEvent
     public void onDetonate(ExplosionEvent.Detonate e) {
         World w = e.world;
-        if (w.isRemote || vault(w, e.explosion.explosionX, e.explosion.explosionY, e.explosion.explosionZ) == null) return;
+        if (w.isRemote) return;
+        if (vault(w, e.explosion.explosionX, e.explosion.explosionY, e.explosion.explosionZ) == null) {
+            if (WorldGenOuterLairs.inside(w, WorldGenOuterLairs.SCORCHERS, e.explosion.explosionX, e.explosion.explosionY, e.explosion.explosionZ)) e.getAffectedBlocks().clear();
+            return;
+        }
         for (Iterator<Entity> it = e.getAffectedEntities().iterator(); it.hasNext();) {
             Entity en = it.next();
             if (en instanceof EntityItem || en instanceof EntityXPOrb || en instanceof EntityTheWatcher || en instanceof EntityWatcherEye) it.remove();

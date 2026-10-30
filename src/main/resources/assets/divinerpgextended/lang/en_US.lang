@@ -839,8 +839,8 @@ dre.chat.map_end=This map only works in the End.
 dre.chat.map_none_watcher=There are no Nether lairs (disabled in the config).
 dre.chat.map_none_scorchers=There are no Nether lairs (disabled in the config).
 dre.chat.map_none_ayeraco=There is no Ayeraco Aerie (disabled in the config).
-dre.chat.map_found_watcher=Watcher's Lair under a lava lake: the entrance is a pier on the shore, %d blocks to the %s (y=%d), coordinates %d, %d. The tunnel leads down under the lake.
-dre.chat.map_found_scorchers=Fire Chamber of the King of Scorchers: %d blocks to the %s, deep in the netherrack (floor at y=%d), coordinates %d, %d.
+dre.chat.map_found_watcher=Watcher's Lair under a lava lake: the entrance is a gate in a rocky mound on the shore, %d blocks to the %s (y=%d), coordinates %d, %d. The tunnel leads down under the lake.
+dre.chat.map_found_scorchers=Fire Chamber of the King of Scorchers under a lava lake: the entrance is a gate in a rocky mound on the shore, %d blocks to the %s (y=%d), coordinates %d, %d. The tunnel leads down under the lake.
 dre.chat.map_found_ayeraco=Ayeraco Aerie: %d blocks to the %s, at the edge of the main island (floor at y=%d), coordinates %d, %d.
 dre.chat.summon_lair_0=The Call of the Watcher is heard only in its lair under a Nether lava lake (the Watcher's lair map shows the entrance).
 dre.chat.summon_lair_1=The Infernal Flame kindles only in the Fire Chamber in the Nether (the chamber map shows the way).

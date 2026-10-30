@@ -100,7 +100,7 @@ public class LairSummons {
                 e.entity.setPosition(c[0] + 0.5, com.divinerpgextended.world.WatcherVault.bossY() - e.entity.height / 2, c[2] + 0.5);
             }
             // орда кружит над всем островом (круг шире острова не бывает) - привязь шире зала
-            leash(e.entity, c[0], WorldGenOuterLairs.FLOOR[type] + 1, c[2], WorldGenOuterLairs.RADIUS[type] + (type == WorldGenOuterLairs.AYERACO ? 6 : -3));
+            leash(e.entity, c[0], WorldGenOuterLairs.floor(e.world, type, c) + 1, c[2], WorldGenOuterLairs.RADIUS[type] + (type == WorldGenOuterLairs.AYERACO ? 6 : -3));
             return;
         }
     }

@@ -21,8 +21,9 @@ import cpw.mods.fml.common.IWorldGenerator;
  * <li>Логово Смотрителя (Ад): засыпанная обсерватория под лавовым озером ({@link WatcherVault}) - обсидиановый зал у
  * дна, внутри завал, который бой прорубает сам; вход - наклонный тоннель от берега. Зов Смотрителя - в зале. (До 0.99.48
  * - купольная обсерватория радиусом 20 с четырьмя тоннелями: в уже созданных чанках она и осталась.)</li>
- * <li>Огненная палата Короля скорчеров (Ад): зал радиусом 17, лавовый ров с четырьмя мостиками, колонны. Инфернальное
- * пламя - в палате.</li>
+ * <li>Огненная палата Короля скорчеров (Ад): гоночный трек под лавовым озером ({@link ScorcherPit}) - зал как у
+ * обсерватории, в центре клетчатый помост за лавовым рвом. Инфернальное пламя - в палате. (До 0.99.51 - шар радиусом 17
+ * в небе Ада: в уже созданных чанках он остался и работает.)</li>
  * <li>Гнездовье Айрако (Энд): большой остров в {@link #AYERACO_DIST} блоках от центра по диагонали - целиком внутри границы
  * мира {@link #WORLD_EDGE} (в 0.99.36-0.99.37 был в 1400, до того малый в 1000): рваный край, каплевидное основание, плоская арена с обсидиановыми кольцами,
  * пять башен со столпами орды, вокруг - пояс астероидов из эндерняка. Рог орды - на острове.</li>
@@ -31,9 +32,15 @@ import cpw.mods.fml.common.IWorldGenerator;
 public class WorldGenOuterLairs implements IWorldGenerator {
 
     public static final int WATCHER = 0, SCORCHERS = 1, AYERACO = 2;
+    /** Радиус старой палаты скорчеров (шар в небе, до 0.99.51) - в уже созданных мирах она осталась и работает. */
+    public static final int OLD_SCORCHER_R = 17;
+
+    /** Пол логова этого типа у центра c (у старой палаты скорчеров - свой). */
+    public static int floor(World w, int type, int[] c) {
+        return type == SCORCHERS && ScorcherPit.isOld(w, c[0], c[2]) ? ScorcherPit.OLD_FLOOR : FLOOR[type];
+    }
     /** Радиус зала, высота пола. */
-    public static final int[] RADIUS = { WatcherVault.R, 17, 48 }, FLOOR = { WatcherVault.FLOOR, 40, 62 };
-    private static final int[] CENTER_Y = { 68, 50, 0 };
+    public static final int[] RADIUS = { WatcherVault.R, WatcherVault.R, 48 }, FLOOR = { WatcherVault.FLOOR, WatcherVault.FLOOR, 62 };
     private static final long[] SALT = { 0x5A7C4L, 0x5C0BCL, 0xA7E2AL };
     /** Гнездовье Айрако - одно на мир: дальний остров на этом расстоянии от центра Энда (долететь - на ангельской броне). */
     public static final int AYERACO_DIST = 850;
@@ -85,13 +92,13 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         return c;
     }
 
-    /** Палата скорчеров с центром c задевает логово Смотрителя (его зал, тоннель, ворота и причал) в соседних областях. */
-    static boolean clashesWithWatcher(long seed, int[] c) {
-        int g = Config.netherLairSpacing, rx = Math.floorDiv(c[0], g), rz = Math.floorDiv(c[2], g), pad = RADIUS[SCORCHERS] + 26 + 8;
+    /** Палата скорчеров с центром c задевает логово Смотрителя в соседних областях (у обоих зал и вход на восток). */
+    public static boolean clashesWithWatcher(long seed, int[] c) {
+        int g = Config.netherLairSpacing, rx = Math.floorDiv(c[0], g), rz = Math.floorDiv(c[2], g);
+        int west = WatcherVault.R + 8, east = WatcherVault.tunnelEnd() + 12, side = WatcherVault.R + 8;
         for (int i = -1; i <= 1; i++) for (int k = -1; k <= 1; k++) {
             int[] w = center(seed, WATCHER, rx + i, rz + k);
-            int x0 = w[0] - WatcherVault.R - 6, x1 = w[0] + WatcherVault.tunnelEnd() + 12, z0 = w[2] - WatcherVault.R - 6, z1 = w[2] + WatcherVault.R + 6;
-            if (c[0] + pad >= x0 && c[0] - pad <= x1 && c[2] + pad >= z0 && c[2] - pad <= z1) return true;
+            if (c[0] - west <= w[0] + east && c[0] + east >= w[0] - west && Math.abs(c[2] - w[2]) <= side * 2) return true;
         }
         return false;
     }
@@ -120,6 +127,10 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         int[] c = nearest(w.getSeed(), type, x, z);
         if (c == null) return false;
         double dx = x - c[0] - 0.5, dz = z - c[2] - 0.5, R = RADIUS[type] - 2;
+        if (type == SCORCHERS && ScorcherPit.isOld(w, c[0], c[2])) { // палата старого вида - шар в небе (до 0.99.51)
+            R = OLD_SCORCHER_R - 2;
+            return dx * dx + dz * dz <= R * R && y >= ScorcherPit.OLD_FLOOR - 2 && y <= ScorcherPit.OLD_FLOOR + 24;
+        }
         return dx * dx + dz * dz <= R * R && y >= FLOOR[type] - 2 && y <= FLOOR[type] + 24;
     }
 
@@ -129,26 +140,36 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         for (int type = 0; type < 3; type++) {
             if (!enabled(type) || world.provider.dimensionId != dim(type)) continue;
             int[] c = nearest(world.getSeed(), type, x0 + 8, z0 + 8);
-            int reach = type == AYERACO ? AYERACO_DIST + 16 : type == WATCHER ? WatcherVault.tunnelEnd() + 12 + 16 : RADIUS[type] + 26 + 16;
+            int reach = type == AYERACO ? AYERACO_DIST + 16 : WatcherVault.tunnelEnd() + 12 + 16;
             if (c == null || Math.abs(c[0] - (x0 + 8)) > reach || Math.abs(c[2] - (z0 + 8)) > reach) continue;
             ColumnStructure s = shape(type, c);
             s.buildSlice(world, c[0], c[2], x0, z0);
-            if (type == WATCHER) {
+            if (type != AYERACO) { // оба логова Ада
                 s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, FLOOR[type] + 1, WatcherVault.TUNNEL_Y + 12);
                 // озёра лавы и крови (Ад BoP и др.) вырезают пол и стены уже готовых кусков - вернуть
                 s.restore(world, c[0], c[2], x0 - 16, z0 - 16, 48, FLOOR[type] - 1, WatcherVault.TUNNEL_Y + 12, net.minecraft.init.Blocks.netherrack,
                     net.minecraft.init.Blocks.soul_sand, net.minecraft.init.Blocks.gravel);
             }
-            else if (type != AYERACO) s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, FLOOR[type] + 1, FLOOR[type] + 22);
+        }
+    }
+
+    /** В залах логов Ада (под лавой) сами не появляются ни гасты, ни прочие: их файерболы ломали бы зал. */
+    public static class NoSpawns {
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onCheckSpawn(net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn e) {
+            if (e.world.isRemote || e.y > WatcherVault.TOP + 4) return;
+            for (int type = 0; type < 2; type++)
+                if (inside(e.world, type, e.x, e.y, e.z)) {
+                    e.setResult(cpw.mods.fml.common.eventhandler.Event.Result.DENY);
+                    return;
+                }
         }
     }
 
     public static ColumnStructure shape(int type, int[] c) {
-        return type == AYERACO ? new Aerie(c[0], c[2]) : type == WATCHER ? new WatcherVault(c[0], c[2]) : new Hall(type);
+        return type == AYERACO ? new Aerie(c[0], c[2]) : type == WATCHER ? new WatcherVault(c[0], c[2]) : new ScorcherPit(c[0], c[2]);
     }
-
-    /** С какого расстояния от центра режется тоннель (стена купола на высоте тоннеля - от ~12.6 у палаты, ~14.9 у обсерватории). */
-    static final double TUNNEL_FROM = 12.5;
 
     private static final int BRICK = 1, GLOW = 2, LAVA = 3, OBSIDIAN = 4, END_STONE = 5, QUARTZ = 6, FENCE = 7, CLAY = 8;
 
@@ -174,84 +195,6 @@ public class WorldGenOuterLairs implements IWorldGenerator {
     }
 
     // ---------------------------------------------------------------- залы Ада
-
-    static class Hall extends ColumnStructure {
-
-        private final int type, R, cy, floor;
-
-        Hall(int type) {
-            this.type = type;
-            R = RADIUS[type];
-            cy = CENTER_Y[type];
-            floor = FLOOR[type];
-        }
-
-        @Override
-        protected Block block(int code, int meta) {
-            if (code == GLOW && type == WATCHER) return net.divinerpg.utils.blocks.VanillaBlocks.lamp2;
-            return WorldGenOuterLairs.block(code);
-        }
-
-        @Override
-        protected int metaOf(int code, int meta) {
-            return code == GLOW ? (type == WATCHER ? 6 : 2) : meta;
-        }
-
-        @Override
-        protected boolean lit(Block b) {
-            return b == net.divinerpg.utils.blocks.VanillaBlocks.lamp1 || b == net.divinerpg.utils.blocks.VanillaBlocks.lamp2 || b == Blocks.lava;
-        }
-
-        @Override
-        protected boolean column(int dx, int dz, int[] col) {
-            double r = Math.sqrt(dx * dx + dz * dz);
-            boolean tunnel = (Math.abs(dx) <= 1 && Math.abs(dz) <= R + 26) || (Math.abs(dz) <= 1 && Math.abs(dx) <= R + 26);
-            if (r > R + 1 && !tunnel) return false;
-            if (r <= R + 1) {
-                for (int y = cy - R - 1; y <= cy + R + 1; y++) {
-                    double d = Math.sqrt(r * r + (y - cy) * (y - cy));
-                    if (y < floor && d <= R) put(col, y, BRICK, 0); // под полом сплошь
-                    else if (d < R - 1.5) put(col, y, AIR, 0);
-                    else if (d <= R + 0.5) put(col, y, type == WATCHER && y > floor + 10 && (dx + dz & 3) == 0 ? QUARTZ : BRICK, 0);
-                }
-                if (r < R - 1) put(col, floor, ((int) r) % 5 == 0 ? GLOW : BRICK, 0);
-                if (type == WATCHER) {
-                    // кольцо колонн до свода и световое око в центре пола
-                    if (ringDist(dx, dz, 13, 8, Math.PI / 8) < 1.2) {
-                        for (int y = floor + 1; y < cy + R; y++) {
-                            double d = Math.sqrt(r * r + (y - cy) * (y - cy));
-                            if (d < R - 1.5) put(col, y, y % 6 == 0 ? GLOW : QUARTZ, 0);
-                        }
-                    }
-                    if (r < 2.5) put(col, floor, QUARTZ, 0);
-                    if (r < 1) put(col, floor, GLOW, 0);
-                } else {
-                    // лавовый ров с мостиками на четыре стороны, колонны с пламенем
-                    boolean bridge = Math.abs(dx) <= 1 || Math.abs(dz) <= 1;
-                    if (r >= 10 && r <= 12 && !bridge) {
-                        put(col, floor, LAVA, 0);
-                        put(col, floor - 1, BRICK, 0);
-                    }
-                    if (r >= 10 && r <= 12 && bridge) {
-                        if (Math.abs(dx) == 1 && Math.abs(dz) > 1 || Math.abs(dz) == 1 && Math.abs(dx) > 1) put(col, floor + 1, FENCE, 0);
-                    }
-                    if (ringDist(dx, dz, 7, 6, 0) < 1.1) for (int y = floor + 1; y <= floor + 9; y++) put(col, y, BRICK, 0);
-                    if (ringDist(dx, dz, 7, 6, 0) < 0.6) put(col, floor + 10, GLOW, 0);
-                }
-            }
-            // тоннели наружу (3 x 3, пол из кирпича). Купол сферический: на высоте тоннеля его стена ближе к центру, чем
-            // край зала, - проход режем сквозь всю её толщу (с TUNNEL_FROM; ров и мостики палаты ближе к центру не трогаем)
-            if (tunnel && r > TUNNEL_FROM) {
-                for (int y = floor + 1; y <= floor + 3; y++) put(col, y, AIR, 0);
-                if (r >= R - 2.5) {
-                    put(col, floor, BRICK, 0);
-                    put(col, floor + 4, BRICK, 0);
-                    if ((Math.abs(dx) == 1 || Math.abs(dz) == 1) && ((int) r) % 6 == 0) put(col, floor + 3, GLOW, 0);
-                }
-            }
-            return true;
-        }
-    }
 
     // ---------------------------------------------------------------- гнездовье Айрако
 

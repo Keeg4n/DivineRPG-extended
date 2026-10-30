@@ -279,8 +279,11 @@ public class ItemLairMap extends Item {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.map_none_" + KEYS[t]));
             return stack;
         }
-        // логово Смотрителя под лавой: карта ведёт ко входу - причалу на берегу, откуда тоннель уходит вниз
-        if (type == com.divinerpgextended.world.WorldGenOuterLairs.WATCHER)
+        // логова Смотрителя и скорчеров под лавой: карта ведёт ко входу - крыльцу у ворот, откуда тоннель уходит вниз
+        // (старая палата скорчеров - шар в небе в уже созданных чанках - по-прежнему к центру)
+        boolean oldPit = type == com.divinerpgextended.world.WorldGenOuterLairs.SCORCHERS && world.getChunkProvider().chunkExists(c[0] >> 4, c[2] >> 4)
+            && com.divinerpgextended.world.ScorcherPit.isOld(world, c[0], c[2]);
+        if (type == com.divinerpgextended.world.WorldGenOuterLairs.WATCHER || type == com.divinerpgextended.world.WorldGenOuterLairs.SCORCHERS && !oldPit)
             c = new int[] { c[0] + com.divinerpgextended.world.WatcherVault.tunnelEnd() + 2, com.divinerpgextended.world.WatcherVault.TUNNEL_Y - 1, c[2] };
         player.addChatMessage(new ChatComponentTranslation("dre.chat.map_found_" + KEYS[t], distance(player, c[0], c[2]),
             direction(player, c[0], c[2]), c[1] + 1, c[0], c[2]));

@@ -114,6 +114,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.dummy.EntityTrainingDummy.Pickup());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.item.ItemPetWhistle.Events());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.LairDomes.NoSpawns());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.WorldGenOuterLairs.NoSpawns());
         com.divinerpgextended.boss.WatcherHunt watcherHunt = new com.divinerpgextended.boss.WatcherHunt();
         MinecraftForge.EVENT_BUS.register(watcherHunt);
         FMLCommonHandler.instance().bus().register(watcherHunt);

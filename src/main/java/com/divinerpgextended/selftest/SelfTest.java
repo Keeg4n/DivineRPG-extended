@@ -8221,9 +8221,10 @@ public class SelfTest {
                 if (!w.isAirBlock(cx + R - 1 + t, yb + 1, cz) || !w.isAirBlock(cx + R - 1 + t, yb + 2, cz))
                     walk += " " + t + "=" + w.getBlock(cx + R - 1 + t, yb + 1, cz).getUnlocalizedName() + "/" + w.getBlock(cx + R - 1 + t, yb + 2, cz).getUnlocalizedName();
             }
-            boolean gate = w.getBlock(cx + end, TY + 5, cz + 4) == Blocks.obsidian && w.getBlock(cx + end, TY + 7, cz) == Blocks.quartz_block
-                && w.getBlock(cx + end, TY + 6, cz) == Blocks.obsidian && w.getBlock(cx + end + 3, TY - 1, cz) == Blocks.nether_brick
-                && w.getBlock(cx + end + 3, TY, cz + 4) == Blocks.nether_brick_fence && w.getBlock(cx + R - 1, F + 2, cz + 3) == Blocks.quartz_block;
+            boolean gate = w.getBlock(cx + end, TY + 5, cz + 3) == Blocks.obsidian && w.getBlock(cx + end, TY + 9, cz + 3) == Blocks.glowstone
+                && w.getBlock(cx + end, TY + 7, cz) == Blocks.quartz_block && w.getBlock(cx + end, TY + 6, cz) == Blocks.obsidian && w.getBlock(cx + end + 3, TY - 1, cz) == Blocks.nether_brick
+                && w.getBlock(cx + end + 3, TY, cz + 3) == Blocks.nether_brick_fence && w.isAirBlock(cx + end + 3, TY + 1, cz) && w.getBlock(cx + end - 3, TY + 2, cz + 5) == Blocks.netherrack
+                && w.getBlock(cx + R - 1, F + 2, cz + 3) == Blocks.quartz_block;
             boolean tunnel = walk.isEmpty() && gate;
             TestPlayer v = join(player(-1, "TestWatcher", cx + 18.5, F + 1, cz + 0.5), true);
             net.minecraft.item.Item call = net.divinerpg.utils.items.VanillaItemsOther.callWatcher;
@@ -8322,6 +8323,19 @@ public class SelfTest {
                 wt.onUpdate();
                 crashed = com.divinerpgextended.boss.WatcherHunt.stunned(wt) && com.divinerpgextended.boss.WatcherHunt.overheated(wt);
             }
+            // на таранах: стрела - 15%, меч Энда и бедроковый молот вплотную - вдвое (не перегретому)
+            com.divinerpgextended.boss.WatcherHunt.reset(wt);
+            com.divinerpgextended.boss.WatcherHunt.startWind(wt);
+            net.minecraftforge.event.entity.living.LivingHurtEvent ramArrow = new net.minecraftforge.event.entity.living.LivingHurtEvent(wt, DamageSource.causeArrowDamage(arrow, v), 10F);
+            MinecraftForge.EVENT_BUS.post(ramArrow);
+            hold(v, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.redEnderSword));
+            net.minecraftforge.event.entity.living.LivingHurtEvent ramEnder = new net.minecraftforge.event.entity.living.LivingHurtEvent(wt, DamageSource.causePlayerDamage(v), 10F);
+            MinecraftForge.EVENT_BUS.post(ramEnder);
+            hold(v, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.bedrockMaul));
+            net.minecraftforge.event.entity.living.LivingHurtEvent ramMaul = new net.minecraftforge.event.entity.living.LivingHurtEvent(wt, DamageSource.causePlayerDamage(v), 10F);
+            MinecraftForge.EVENT_BUS.post(ramMaul);
+            hold(v, null);
+            boolean ram = Math.abs(ramArrow.ammount - 1.5F) < 0.01 && Math.abs(ramEnder.ammount - 20F) < 0.01 && Math.abs(ramMaul.ammount - 20F) < 0.01;
             // взрыв в логове: блоки целы, предмет цел, Смотритель цел; бойцу от взрыва - не больше потолка
             int ex = cx - 8, ey = F + 2, ez = cz + 3;
             w.setBlock(ex + 1, ey, ez, Blocks.netherrack);
@@ -8347,27 +8361,51 @@ public class SelfTest {
             server.getConfigurationManager().playerEntityList.remove(v);
             w.removeEntity(v);
             check(shell && mosaic && pillar && lamps >= 8 && windows && empty && tunnel && in == null && "dre.chat.summon_lair_0".equals(out) && upgraded && charged && shot && openEye && cannon
-                && warm && nether && eyes >= 2 && bites > 0 && roar && roarImmune && phase2 && dashed && hits > 0 && crashed && blast && orphaned,
+                && warm && nether && eyes >= 2 && bites > 0 && roar && roarImmune && phase2 && dashed && hits > 0 && crashed && ram && blast && orphaned,
                 "не по чертежу " + alien + " в x " + abox[0] + ".." + abox[1] + " z " + abox[2] + ".." + abox[3] + " (центр " + cx + "," + cz + "); оболочка и окулюс " + shell + ", мозаика " + mosaic + " (" + w.getBlock(cx, F, cz).getUnlocalizedName() + "/" + w.getBlock(cx + 4, F, cz).getUnlocalizedName() + "/" + w.getBlock(cx + 9, F, cz + 1).getUnlocalizedName() + "), колонна " + pillar + ", ламп " + lamps + ", окна " + windows + ", занято " + fill0[0] + "/" + fill0[1]
                     + ", вход " + tunnel + " (непроходимо на шагах:" + walk + ", ворота и причал " + gate + "), вызов внутри " + in + " снаружи " + out
                     + "; старый зал перестроен " + tidied + "/" + again + " " + upgraded + "; заряд " + charged + ", выстрел " + shot + ", стрела в открытый глаз " + openEye + " (" + ar.ammount + ")"
                     + "; пушка гаста " + cannon + " (" + gc.ammount + "), огненный меч " + warm + ", адский меч " + nether + " (" + bg.ammount + ")"
                     + "; за колонной глаз " + eyes + ", укусов " + bites + " (ближе всего " + String.format("%.1f", closest) + ", боец " + String.format("%.1f,%.1f,%.1f", v.posX - cx, v.posY - F, v.posZ - cz) + ", путь" + path + "); рёв " + roar + ", неуязвим " + roarImmune + ", вторая фаза " + phase2
-                    + ", рывок " + dashed + " задел " + hits + ", в колонну " + crashed + "; взрыв " + blast + " (бойцу " + boom.ammount + "); глаза без хозяина " + orphaned);
+                    + ", рывок " + dashed + " задел " + hits + ", в колонну " + crashed + "; на таранах стрела " + ramArrow.ammount + ", меч Энда " + ramEnder.ammount + ", бедроковый молот " + ramMaul.ammount + "; взрыв " + blast + " (бойцу " + boom.ammount + "); глаза без хозяина " + orphaned);
             return "обсерватория Ока в Аду в " + cx + "," + cz + ": мозаика, колонны, окна с лавой, окулюс; вход с воротами и причалом; старый зал перестраивается; первая фаза - заряд, открытый глаз x2,"
-                + " пушка гаста сбивает; за колонной - глаза-прислужники кусают; на половине - рёв и рывки, в колонну - оглушён; взрывы блоков не ломают, бойцу не больше " + (int) com.divinerpgextended.boss.WatcherHunt.BLAST_CAP;
+                + " пушка гаста сбивает; за колонной - глаза-прислужники кусают; на половине - рёв и рывки, в колонну - оглушён, снаряды 15%, Энд и бедрок вплотную x2; взрывы блоков не ломают, бойцу не больше " + (int) com.divinerpgextended.boss.WatcherHunt.BLAST_CAP;
         });
-        t("Логова", "Огненная палата", () -> {
+        t("Логова", "Огненная палата: трек под лавой", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.SCORCHERS;
             WorldServer w = server.worldServerForDimension(-1);
             int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
+            int R = com.divinerpgextended.world.WatcherVault.R, F = com.divinerpgextended.world.WatcherVault.FLOOR, TOP = com.divinerpgextended.world.WatcherVault.TOP;
+            int end = com.divinerpgextended.world.WatcherVault.tunnelEnd(), TY = com.divinerpgextended.world.WatcherVault.TUNNEL_Y;
             loadAround(w, c[0], c[2], 3);
-            int f = com.divinerpgextended.world.WorldGenOuterLairs.FLOOR[type];
-            boolean moat = w.getBlock(c[0] + 8, f, c[2] + 8).getMaterial() == net.minecraft.block.material.Material.lava;
-            boolean bridge = w.getBlock(c[0] + 11, f, c[2]) == Blocks.nether_brick && w.isAirBlock(c[0] + 3, f + 3, c[2] + 3);
-            String out = com.divinerpgextended.boss.LairSummons.refusal(p, net.divinerpg.utils.items.VanillaItemsOther.infernalFlame, c[0] + 200, 60, c[2]);
-            check(moat && bridge && "dre.chat.summon_lair_1".equals(out), "ров " + moat + ", мостик " + bridge + ", снаружи " + out);
-            return "палата в Аду в " + c[0] + "," + c[2] + ": лавовый ров с мостиками; пламя вне палаты не работает";
+            loadAround(w, c[0] + end / 2, c[2], 3);
+            loadAround(w, c[0] + end, c[2], 2);
+            int cx = c[0], cz = c[2];
+            dump(w, cx + 30, F + 30, cz, 58, "render-scorchers");
+            net.minecraft.block.Block checker = net.divinerpg.utils.blocks.VanillaBlocks.checker;
+            boolean shell = w.getBlock(cx, TOP + 1, cz) == Blocks.glass && w.getBlock(cx, TOP + 3, cz).getMaterial() == net.minecraft.block.material.Material.lava
+                && w.getBlock(cx, F - 1, cz) == Blocks.obsidian;
+            boolean track = w.getBlock(cx, F, cz) == checker && w.getBlock(cx + 5, F, cz + 5).getMaterial() == net.minecraft.block.material.Material.lava
+                && w.getBlock(cx, F, cz + 7) == checker && w.getBlock(cx - 14, F, cz) == checker && w.isAirBlock(cx, F + 1, cz + 7);
+            boolean posts = false;
+            for (int dx = -14; dx <= 14 && !posts; dx++) for (int dz = -14; dz <= 14; dz++)
+                if (w.getBlock(cx + dx, F + 9, cz + dz) == Blocks.fire && w.getBlock(cx + dx, F + 8, cz + dz) == Blocks.netherrack) posts = true;
+            boolean gate = w.getBlock(cx + end, TY + 6, cz) == checker && w.getBlock(cx + end, TY + 5, cz + 3) == Blocks.obsidian && w.isAirBlock(cx + end, TY + 1, cz);
+            String walk = "";
+            for (int t = 0; t <= end - (R - 1); t++) {
+                int rise = Math.min(t, (TY - (F + 1)) * 2), yb = F + 1 + rise / 2;
+                if (!w.isAirBlock(cx + R - 1 + t, yb + 1, cz) || !w.isAirBlock(cx + R - 1 + t, yb + 2, cz)) walk += " " + t;
+            }
+            boolean in = com.divinerpgextended.world.WorldGenOuterLairs.inside(w, type, cx + 12.5, F + 1, cz + 0.5);
+            String out = com.divinerpgextended.boss.LairSummons.refusal(p, net.divinerpg.utils.items.VanillaItemsOther.infernalFlame, cx + 200, 60, cz);
+            // ни одна палата не ложится на логово Смотрителя
+            int clash = 0;
+            for (int rx = -6; rx <= 6; rx++) for (int rz = -6; rz <= 6; rz++)
+                if (com.divinerpgextended.world.WorldGenOuterLairs.clashesWithWatcher(w.getSeed(), com.divinerpgextended.world.WorldGenOuterLairs.center(w.getSeed(), type, rx, rz))) clash++;
+            check(shell && track && posts && gate && walk.isEmpty() && in && "dre.chat.summon_lair_1".equals(out) && clash == 0,
+                "оболочка " + shell + ", трек (клетка, ров, мостки, финиш) " + track + ", огненные столбы " + posts + ", ворота с флагом " + gate + ", непроходимо:" + walk
+                    + ", внутри " + in + ", снаружи " + out + ", наложений на Смотрителя " + clash);
+            return "палата в Аду в " + cx + "," + cz + ": трек под лавой - клетчатый помост за рвом, финиш, огненные столбы, ворота с клетчатым флагом; пламя вне палаты не работает";
         });
         t("Логова", "Места логов из сида: строятся, карта видит заранее", () -> {
             WorldServer w = server.worldServerForDimension(0);
@@ -8642,7 +8680,7 @@ public class SelfTest {
                 boolean oldOcean = b == net.minecraft.world.biome.BiomeGenBase.ocean || b == net.minecraft.world.biome.BiomeGenBase.deepOcean || b == net.minecraft.world.biome.BiomeGenBase.frozenOcean;
                 if (b == net.minecraft.world.biome.BiomeGenBase.beach || b == net.minecraft.world.biome.BiomeGenBase.coldBeach) c[0]++;
                 if (com.divinerpgextended.world.Biomes.sandBeach(b)) { c[1]++; beachNames.put(b.biomeName, (beachNames.containsKey(b.biomeName) ? beachNames.get(b.biomeName) : 0) + 1); }
-                if (!oldOcean && b.getEnableSnow()) c[2]++;
+                if (!oldOcean && b.getEnableSnow() && b != net.minecraft.world.biome.BiomeGenBase.coldBeach) c[2]++; // холодный пляж - пляж, не снежная земля
                 if (com.divinerpgextended.world.Biomes.snowyLand(b)) { c[3]++; snowNames.put(b.biomeName, (snowNames.containsKey(b.biomeName) ? snowNames.get(b.biomeName) : 0) + 1); }
                 if (b instanceof net.minecraft.world.biome.BiomeGenJungle) c[4]++;
                 if (com.divinerpgextended.world.Biomes.jungle(b)) c[5]++;

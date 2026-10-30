@@ -17,7 +17,8 @@ import com.divinerpgextended.world.twilight.ColumnStructure;
  * лавой за ними, на своде - звёзды из светокамня и лучи от окулюса.
  * <p>
  * Вход - наклонный тоннель от берега (+X): ступени-полублоки, рёбра из адского кирпича со светокамнем, лампы в стенах; у
- * зала - портал с кварцевыми колоннами. Снаружи - надвратная башня с оком над воротами и причал над лавой на сваях.
+ * зала - портал с кварцевыми колоннами. Снаружи - ворота в отвесной стене скального холма (пилоны, колонны, герб логова) и
+ * короткое крыльцо: в скале - просто вход в обрыве, над лавой - каменистый островок с мостками на сваях.
  * Зал постоянный: взрывы босса его не ломают ({@link com.divinerpgextended.boss.WatcherHunt}). Логово старого вида
  * (с завалом) перестраивается в новое, когда туда приходит игрок, а Смотрителя нет ({@link #rebuild}).
  */
@@ -30,11 +31,11 @@ public class WatcherVault extends ColumnStructure {
     /** Колонны-укрытия: число, радиус круга, толщина. */
     public static final int PILLARS = 8, PILLAR_RING = 15;
     public static final double PILLAR_R = 1.75;
-    /** Причал: длина от ворот; двор вокруг ворот и причала (полуширина, высота) - чтобы в скале вход был виден. */
-    static final int PIER = 7, COURT = 6, COURT_H = 12;
+    /** Крыльцо перед воротами (длина); скальный холм над воротами (длина вглубь, полуширина). */
+    static final int PIER = 5, MOUND_L = 12, MOUND_W = 7;
 
-    static final int OBSIDIAN = 1, NETHERRACK = 2, BRICK = 4, GLOWSTONE = 5, QUARTZ = 6, LAMP = 7, LAVA = 8, SLAB = 9, CLAY = 10, GLASS = 11,
-        FENCE = 12, CLEAR = 13;
+    protected static final int OBSIDIAN = 1, NETHERRACK = 2, BRICK = 4, GLOWSTONE = 5, QUARTZ = 6, LAMP = 7, LAVA = 8, SLAB = 9, CLAY = 10, GLASS = 11,
+        FENCE = 12, CLEAR = 13, CHECKER = 14, FIRE = 15;
 
     public WatcherVault(int cx, int cz) {}
 
@@ -53,6 +54,8 @@ public class WatcherVault extends ColumnStructure {
             case GLASS: return Blocks.stained_glass;
             case FENCE: return Blocks.nether_brick_fence;
             case CLEAR: return Blocks.glass;
+            case CHECKER: return net.divinerpg.utils.blocks.VanillaBlocks.checker; // чёрно-белая клетка Divine
+            case FIRE: return Blocks.fire;
             default: return Blocks.air;
         }
     }
@@ -69,7 +72,7 @@ public class WatcherVault extends ColumnStructure {
 
     @Override
     protected boolean lit(Block b) {
-        return b == Blocks.glowstone || b == Blocks.lava || b == net.divinerpg.utils.blocks.VanillaBlocks.lamp2;
+        return b == Blocks.glowstone || b == Blocks.lava || b == Blocks.fire || b == net.divinerpg.utils.blocks.VanillaBlocks.lamp2;
     }
 
     /** Верх зала на расстоянии r от центра: купол, у стен ниже. */
@@ -138,16 +141,43 @@ public class WatcherVault extends ColumnStructure {
     }
 
     /** Окно в стене: 11 штук через 30 градусов (на востоке - вход), по 3 блока в ширину. */
-    static boolean window(int dx, int dz, double r) {
+    protected static boolean window(int dx, int dz, double r) {
         double step = Math.PI / 6, a = Math.atan2(dz, dx);
         long k = Math.round(a / step);
         return k != 0 && Math.abs(a - k * step) * r <= 1.5;
     }
 
-    static final int WIN_LO = FLOOR + 2, WIN_HI = FLOOR + 7;
+    protected static final int WIN_LO = FLOOR + 2, WIN_HI = FLOOR + 7;
+
+    /** Ячейка у стены зала: окно (подоконник, стекло, перемычка); true - поставлена. glass - мета стекла. */
+    protected static boolean wallCell(int dx, int dz, double r, int y, int[] col, int glass) {
+        if (r < R - 1 || !window(dx, dz, r)) return false;
+        if (y == WIN_LO - 1 || y == WIN_HI + 1) put(col, y, QUARTZ, 1); // подоконник и перемычка
+        else if (y >= WIN_LO && y <= WIN_HI) put(col, y, GLASS, glass);
+        else return false;
+        return true;
+    }
+
+    /** Свод над залом: окулюс в лаву, кольцо и лучи вокруг, звёзды; выше - лавовое озеро. */
+    protected static void vault(int dx, int dz, double r, int t, int[] col) {
+        if (r < 3.5) {
+            put(col, t + 1, CLEAR, 0);
+            put(col, t + 2, CLEAR, 0);
+        } else {
+            int code = OBSIDIAN, meta = 0;
+            if (r < 4.6) {
+                code = QUARTZ;
+                meta = 1;
+            } else if (r < 11 && Math.abs(Math.sin(Math.atan2(dz, dx) * 6)) * r < 0.55) code = BRICK;
+            else if (hash(dx * 7 + 1, dz * 13 + 2) % 31 == 0) code = GLOWSTONE;
+            put(col, t + 1, code, meta);
+            put(col, t + 2, OBSIDIAN, 0);
+        }
+        for (int y = t + 3; y <= LAVA_TOP; y++) put(col, y, LAVA, 0);
+    }
 
     /** Столб зала (r < R): пол, колонна или воздух, свод с окулюсом, лава над ним. */
-    void hall(int dx, int dz, double r, int[] col) {
+    protected void hall(int dx, int dz, double r, int[] col) {
         int t = top(r);
         floor(dx, dz, r, col);
         double[] p = pillar(dx, dz);
@@ -163,38 +193,16 @@ public class WatcherVault extends ColumnStructure {
             } else if (h <= 2 && pd < PILLAR_R + 0.6) {
                 code = QUARTZ; // база
                 meta = h == 1 ? 0 : 1;
-            } else if (r >= R - 1 && window(dx, dz, r)) {
-                if (y == WIN_LO - 1 || y == WIN_HI + 1) {
-                    code = QUARTZ; // подоконник и перемычка
-                    meta = 1;
-                } else if (y >= WIN_LO && y <= WIN_HI) {
-                    code = GLASS;
-                    meta = 14;
-                }
-            }
+            } else if (wallCell(dx, dz, r, y, col, 14)) continue;
             put(col, y, code, meta);
         }
-        // свод: окулюс в лаву, кольцо и лучи вокруг, звёзды
-        if (r < 3.5) {
-            put(col, t + 1, CLEAR, 0);
-            put(col, t + 2, CLEAR, 0);
-        } else {
-            int code = OBSIDIAN, meta = 0;
-            if (r < 4.6) {
-                code = QUARTZ;
-                meta = 1;
-            } else if (r < 11 && Math.abs(Math.sin(Math.atan2(dz, dx) * 6)) * r < 0.55) code = BRICK;
-            else if (hash(dx * 7 + 1, dz * 13 + 2) % 31 == 0) code = GLOWSTONE;
-            put(col, t + 1, code, meta);
-            put(col, t + 2, OBSIDIAN, 0);
-        }
-        for (int y = t + 3; y <= LAVA_TOP; y++) put(col, y, LAVA, 0); // лавовое озеро над сводом
+        vault(dx, dz, r, t, col);
     }
 
     @Override
     protected boolean column(int dx, int dz, int[] col) {
         double r = Math.sqrt(dx * dx + dz * dz);
-        boolean tunnel = dx >= R - 4 && Math.abs(dz) <= COURT && dx <= tunnelEnd() + PIER + 2;
+        boolean tunnel = dx >= R - 4 && Math.abs(dz) <= MOUND_W && dx <= tunnelEnd() + PIER;
         if (r > R + 4 && !tunnel) return false;
         if (r < R) hall(dx, dz, r, col);
         else if (r < R + 2) {
@@ -211,24 +219,38 @@ public class WatcherVault extends ColumnStructure {
 
     // ---------------------------------------------------------------- вход
 
-    /** Последний столбец тоннеля (дальше причал). */
+    /** Последний столбец тоннеля - фасад ворот (дальше крыльцо). */
     public static int tunnelEnd() {
         return R - 1 + (TUNNEL_Y - (FLOOR + 1)) * 2 + TUNNEL_FLAT;
     }
 
-    /** Наклонный тоннель 5 x 5 в обсидиане, у зала портал, наверху надвратная башня и причал над лавой. */
+    /**
+     * Холм над воротами: скальный бугор из незеррака, обрезанный отвесной стеной по фасаду. В скале - просто стена с
+     * воротами; над открытой лавой - каменистый островок с воротами и мостками.
+     */
+    static int moundTop(int dx, int dz) {
+        int end = tunnelEnd();
+        if (dx > end || dx < end - MOUND_L) return -1;
+        double ex = (dx - (end - 2)) / (double) (MOUND_L - 2), ez = dz / (double) MOUND_W, e = ex * ex + ez * ez;
+        if (e >= 1) return -1;
+        return TUNNEL_Y + (int) Math.round((1 - e) * 9 + (hash(dx * 5, dz * 7) % 3) - 1);
+    }
+
+    /** Наклонный тоннель 5 x 5 в обсидиане, у зала портал; наверху - ворота в скальном холме и крыльцо. */
     private void tunnel(int dx, int dz, int[] col) {
         int t = dx - (R - 1), az = Math.abs(dz), end = tunnelEnd();
         if (t < 0) return; // внутри зала
+        int mt = moundTop(dx, dz);
+        if (mt > 0) for (int y = LAVA_TOP - 6; y <= mt; y++) put(col, y, NETHERRACK, 0);
         if (dx > end) {
-            pier(dx - end, az, col);
+            porch(dx - end, az, col);
             return;
         }
         if (dx > end - 6) {
             gate(end - dx, dz, az, col);
             return;
         }
-        if (az > 3) return; // двор - только у ворот и причала
+        if (az > 3) return;
         int rise = Math.min(t, (TUNNEL_Y - (FLOOR + 1)) * 2);
         int yb = FLOOR + 1 + rise / 2;
         boolean half = rise % 2 == 1, rib = t % 6 == 0 && t > 0;
@@ -253,56 +275,53 @@ public class WatcherVault extends ColumnStructure {
         put(col, yb + 6, OBSIDIAN, 0);
     }
 
-    /** Надвратная башня (k - столбцов от фасада внутрь): ворота, угловые обсидиановые башенки, око над воротами. */
+    /** Ворота (k - столбцов от фасада внутрь): проход в скале; на фасаде - пилоны, колонны, герб логова, карниз. */
     private void gate(int k, int dz, int az, int[] col) {
         int y0 = TUNNEL_Y;
-        for (int y = y0; y <= y0 + COURT_H; y++) put(col, y, AIR, 0); // двор вокруг башни
-        if (az > 4) return;
+        if (az > 3) return; // скала холма
         put(col, y0 - 1, BRICK, 0);
-        boolean corner = az == 4 && (k == 0 || k == 5);
-        if (az >= 3 && (k <= 1 || k >= 4)) { // башенки
+        if (k > 0) {
+            if (az == 3) {
+                for (int y = y0; y <= y0 + 5; y++) put(col, y, OBSIDIAN, 0);
+                if (k == 3) put(col, y0 + 2, LAMP, 0);
+            } else {
+                for (int y = y0; y <= y0 + 4; y++) put(col, y, AIR, 0);
+                put(col, y0 + 5, OBSIDIAN, 0);
+            }
+            return;
+        }
+        // фасад: обсидиановые пилоны со светокамнем, кварцевые колонны, перемычка, герб, карниз
+        if (az == 3) {
             for (int y = y0; y <= y0 + 8; y++) put(col, y, OBSIDIAN, 0);
-            put(col, y0 + 9, corner ? GLOWSTONE : BRICK, 0);
-            if (corner) put(col, y0 + 10, FENCE, 0);
-            put(col, y0 - 2, FOUNDATION, 0);
+            put(col, y0 + 9, GLOWSTONE, 0);
             return;
         }
-        if (az >= 3) { // боковые стены
-            for (int y = y0; y <= y0 + 6; y++) put(col, y, BRICK, 0);
-            if (az == 3) put(col, y0 + 3, LAMP, 0);
-            put(col, y0 + 7, SLAB, 6);
-            return;
+        if (az <= 1) for (int y = y0; y <= y0 + 3; y++) put(col, y, AIR, 0);
+        else for (int y = y0; y <= y0 + 3; y++) put(col, y, QUARTZ, 2);
+        put(col, y0 + 4, BRICK, 0);
+        for (int row = 0; row < 3; row++) {
+            int[] e = emblem(row, dz);
+            put(col, y0 + 7 - row, e[0], e[1]);
         }
-        for (int y = y0; y <= y0 + 4; y++) put(col, y, AIR, 0); // проход
-        put(col, y0 + 5, BRICK, 0);
-        put(col, y0 + 6, BRICK, 0);
-        put(col, y0 + 7, (dz + k) % 2 == 0 ? SLAB : AIR, 6); // зубцы
-        if (k == 0) { // фасад к причалу: колонны ворот и око над ними
-            if (az == 2) {
-                for (int y = y0; y <= y0 + 3; y++) put(col, y, QUARTZ, 2);
-                put(col, y0 + 4, BRICK, 0);
-            }
-            int[][] eye = { { 0, 6, 6, 6, 0 }, { 6, 14, 1, 14, 6 }, { 0, 6, 6, 6, 0 } }; // 6 - кварц, 14 - радужка, 1 - зрачок
-            for (int row = 0; row < 3; row++) {
-                int v = eye[row][dz + 2], y = y0 + 7 - row;
-                if (v == 0) put(col, y, BRICK, 0);
-                else if (v == 6) put(col, y, QUARTZ, 1);
-                else if (v == 1) put(col, y, OBSIDIAN, 0);
-                else put(col, y, CLAY, 14);
-            }
-        }
+        put(col, y0 + 8, BRICK, 0);
     }
 
-    /** Причал над лавой (k - столбцов от ворот): настил, перила с лампами, сваи; с дальнего края - проход. */
-    private void pier(int k, int az, int[] col) {
+    /** Герб над воротами: {код, мета} в строке row (0 - верх) и столбце dz (-2..2). У Смотрителя - око. */
+    protected int[] emblem(int row, int dz) {
+        int[][] eye = { { 0, 6, 6, 6, 0 }, { 6, 14, 1, 14, 6 }, { 0, 6, 6, 6, 0 } }; // 6 - кварц, 14 - радужка, 1 - зрачок
+        int v = eye[row][dz + 2];
+        return v == 0 ? new int[] { BRICK, 0 } : v == 6 ? new int[] { QUARTZ, 1 } : v == 1 ? new int[] { OBSIDIAN, 0 } : new int[] { CLAY, 14 };
+    }
+
+    /** Крыльцо перед воротами (k - столбцов от фасада): настил, перила по бокам, лампы на углах; проход вырублен невысоко. */
+    private void porch(int k, int az, int[] col) {
+        if (az > 3 || k > PIER) return;
         int y0 = TUNNEL_Y;
-        for (int y = y0; y <= y0 + COURT_H; y++) put(col, y, AIR, 0); // двор над причалом
-        if (az > 4 || k > PIER) return;
         put(col, y0 - 1, BRICK, 0);
-        boolean rail = az == 4 || k == PIER && az > 1;
-        if (rail) put(col, y0, FENCE, 0);
-        if (rail && az == 4 && (k == PIER || k == 4)) put(col, y0 + 1, LAMP, 0);
-        if ((k == 2 || k == PIER) && (az == 4 || az == 0)) put(col, y0 - 2, FOUNDATION, 0);
+        for (int y = y0; y <= y0 + 3; y++) put(col, y, AIR, 0);
+        if (az == 3) put(col, y0, FENCE, 0);
+        if (az == 3 && k == PIER) put(col, y0 + 1, LAMP, 0);
+        if ((k == 2 || k == PIER) && (az == 3 || az == 0)) put(col, y0 - 2, FOUNDATION, 0);
     }
 
     // ---------------------------------------------------------------- старые логова
