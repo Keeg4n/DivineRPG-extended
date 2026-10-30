@@ -27,6 +27,14 @@ public class EasterArmorTransformer implements IClassTransformer, Opcodes {
     private static final String ITEM = "net.minecraft.item.Item", HOOKS = "net.minecraftforge.client.ForgeHooksClient";
     private static final Logger LOG = LogManager.getLogger("divinerpgextended-core");
 
+    private static void loadArgs(InsnList in, Type[] args, boolean stat) {
+        int slot = stat ? 0 : 1;
+        for (Type t : args) {
+            in.add(new VarInsnNode(t.getOpcode(ILOAD), slot));
+            slot += t.getSize();
+        }
+    }
+
     @Override
     public byte[] transform(String name, String transformedName, byte[] bytes) {
         if (bytes == null || !(ITEM.equals(transformedName) || HOOKS.equals(transformedName))) return bytes;
@@ -40,19 +48,19 @@ public class EasterArmorTransformer implements IClassTransformer, Opcodes {
                 Type[] args = Type.getArgumentTypes(m.desc);
                 if (item ? !("getArmorModel".equals(m.name) && !stat && args.length == 3)
                     : !("getArmorTexture".equals(m.name) && stat && args.length == 5)) continue;
+                // "если хук ответил - вернуть его ответ": хук зовём второй раз, чтобы у метки перехода стек был пуст
+                // (кадр F_SAME, как у остальных правок - классы с таблицей кадров иначе не проходят проверку)
                 InsnList in = new InsnList();
-                int slot = stat ? 0 : 1;
-                for (Type t : args) {
-                    in.add(new VarInsnNode(t.getOpcode(ILOAD), slot));
-                    slot += t.getSize();
-                }
-                in.add(new MethodInsnNode(INVOKESTATIC, "com/divinerpgextended/asm/EasterHooks", item ? "armorModel" : "armorTexture", m.desc, false));
                 LabelNode keep = new LabelNode();
-                in.add(new InsnNode(DUP));
+                String hook = item ? "armorModel" : "armorTexture";
+                loadArgs(in, args, stat);
+                in.add(new MethodInsnNode(INVOKESTATIC, "com/divinerpgextended/asm/EasterHooks", hook, m.desc, false));
                 in.add(new JumpInsnNode(IFNULL, keep));
+                loadArgs(in, args, stat);
+                in.add(new MethodInsnNode(INVOKESTATIC, "com/divinerpgextended/asm/EasterHooks", hook, m.desc, false));
                 in.add(new InsnNode(ARETURN));
                 in.add(keep);
-                in.add(new InsnNode(POP));
+                if ((node.version & 0xFFFF) >= 50) in.add(new org.objectweb.asm.tree.FrameNode(F_SAME, 0, null, 0, null));
                 m.instructions.insert(in);
                 patched++;
             }

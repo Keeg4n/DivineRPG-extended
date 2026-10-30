@@ -28,7 +28,7 @@ public class DreCorePlugin implements IFMLLoadingPlugin {
             AyeracoTransformer.class.getName(), IceikaThroneTransformer.class.getName(), BossStatusTransformer.class.getName(),
             NearChatTransformer.class.getName(), VetheaGenTransformer.class.getName(), BiomeRitualTransformer.class.getName(),
             VetheaTransformer.class.getName(), WaterTransformer.class.getName(), ArcanaUseTransformer.class.getName(),
-            MorphModelTransformer.class.getName(), TeleportTransformer.class.getName(), BiomeMutationTransformer.class.getName(), EasterArmorTransformer.class.getName() };
+            MorphModelTransformer.class.getName(), TeleportTransformer.class.getName(), BiomeMutationTransformer.class.getName(), EasterArmorTransformer.class.getName(), WatcherTransformer.class.getName() };
     }
 
     @Override

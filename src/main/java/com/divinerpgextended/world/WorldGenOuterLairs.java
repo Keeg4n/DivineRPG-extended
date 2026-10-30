@@ -18,8 +18,9 @@ import cpw.mods.fml.common.IWorldGenerator;
  * столбцам ({@link ColumnStructure}). Предмет вызова Divine работает только внутри логова (см.
  * {@link com.divinerpgextended.boss.LairSummons}), сам вызов делает Divine.
  * <ul>
- * <li>Обсерватория Смотрителя (Ад): купольный зал радиусом 20 в толще незеррака, пол из адского кирпича со
- * светящимися кольцами, четыре тоннеля наружу. Зов Смотрителя - в зале.</li>
+ * <li>Логово Смотрителя (Ад): засыпанная обсерватория под лавовым озером ({@link WatcherVault}) - обсидиановый зал у
+ * дна, внутри завал, который бой прорубает сам; вход - наклонный тоннель от берега. Зов Смотрителя - в зале. (До 0.99.48
+ * - купольная обсерватория радиусом 20 с четырьмя тоннелями: в уже созданных чанках она и осталась.)</li>
  * <li>Огненная палата Короля скорчеров (Ад): зал радиусом 17, лавовый ров с четырьмя мостиками, колонны. Инфернальное
  * пламя - в палате.</li>
  * <li>Гнездовье Айрако (Энд): большой остров в {@link #AYERACO_DIST} блоках от центра по диагонали - целиком внутри границы
@@ -31,7 +32,7 @@ public class WorldGenOuterLairs implements IWorldGenerator {
 
     public static final int WATCHER = 0, SCORCHERS = 1, AYERACO = 2;
     /** Радиус зала, высота пола. */
-    public static final int[] RADIUS = { 20, 17, 48 }, FLOOR = { 56, 40, 62 };
+    public static final int[] RADIUS = { WatcherVault.R, 17, 48 }, FLOOR = { WatcherVault.FLOOR, 40, 62 };
     private static final int[] CENTER_Y = { 68, 50, 0 };
     private static final long[] SALT = { 0x5A7C4L, 0x5C0BCL, 0xA7E2AL };
     /** Гнездовье Айрако - одно на мир: дальний остров на этом расстоянии от центра Энда (долететь - на ангельской броне). */
@@ -112,16 +113,17 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         for (int type = 0; type < 3; type++) {
             if (!enabled(type) || world.provider.dimensionId != dim(type)) continue;
             int[] c = nearest(world.getSeed(), type, x0 + 8, z0 + 8);
-            int reach = type == AYERACO ? AYERACO_DIST + 16 : RADIUS[type] + 26 + 16;
+            int reach = type == AYERACO ? AYERACO_DIST + 16 : type == WATCHER ? WatcherVault.tunnelEnd() + 3 + 16 : RADIUS[type] + 26 + 16;
             if (c == null || Math.abs(c[0] - (x0 + 8)) > reach || Math.abs(c[2] - (z0 + 8)) > reach) continue;
             ColumnStructure s = shape(type, c);
             s.buildSlice(world, c[0], c[2], x0, z0);
-            if (type != AYERACO) s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, FLOOR[type] + 1, FLOOR[type] + 22);
+            if (type == WATCHER) s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, FLOOR[type] + 1, WatcherVault.TUNNEL_Y + 3);
+            else if (type != AYERACO) s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, FLOOR[type] + 1, FLOOR[type] + 22);
         }
     }
 
     public static ColumnStructure shape(int type, int[] c) {
-        return type == AYERACO ? new Aerie(c[0], c[2]) : new Hall(type);
+        return type == AYERACO ? new Aerie(c[0], c[2]) : type == WATCHER ? new WatcherVault(c[0], c[2]) : new Hall(type);
     }
 
     /** С какого расстояния от центра режется тоннель (стена купола на высоте тоннеля - от ~12.6 у палаты, ~14.9 у обсерватории). */

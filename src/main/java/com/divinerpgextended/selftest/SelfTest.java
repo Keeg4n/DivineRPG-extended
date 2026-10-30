@@ -8039,27 +8039,111 @@ public class SelfTest {
                     + ", возврат " + back + " (" + dist + "), печать святилища у Странника Апалачии " + sealDeal);
             return "лагерь в Скайтерне: Странник (" + deals + " сделок), горящий костёр; костёр запомнил - возрождение у него";
         });
-        t("Логова", "Обсерватория Смотрителя", () -> {
+        t("Логова", "Логово Смотрителя: завал под лавой, охота, адское оружие", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.WATCHER;
             WorldServer w = server.worldServerForDimension(-1);
             int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
+            int R = com.divinerpgextended.world.WatcherVault.R, F = com.divinerpgextended.world.WatcherVault.FLOOR, TOP = com.divinerpgextended.world.WatcherVault.TOP;
+            int end = com.divinerpgextended.world.WatcherVault.tunnelEnd(), TY = com.divinerpgextended.world.WatcherVault.TUNNEL_Y;
             loadAround(w, c[0], c[2], 3);
-            int f = com.divinerpgextended.world.WorldGenOuterLairs.FLOOR[type], R = com.divinerpgextended.world.WorldGenOuterLairs.RADIUS[type];
-            boolean hall = w.getBlock(c[0], f, c[2]) == net.divinerpg.utils.blocks.VanillaBlocks.lamp2 && w.getBlockMetadata(c[0], f, c[2]) == 6 && w.isAirBlock(c[0] + 4, f + 6, c[2] + 4)
-                && w.isAirBlock(c[0] + R + 4, f + 2, c[2]);
-            // все четыре тоннеля проходят сквозь стену купола: от зала до выхода наружу на высоте 1-3 над полом - воздух
-            String wall = "";
-            for (int[] dir : new int[][] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } })
-                for (int r = 10; r <= R + 4; r++) for (int y = f + 1; y <= f + 3; y++)
-                    if (!w.isAirBlock(c[0] + dir[0] * r, y, c[2] + dir[1] * r) && wall.length() < 200)
-                        wall += (dir[0] * r) + "," + (y - f) + "," + (dir[1] * r) + "=" + w.getBlock(c[0] + dir[0] * r, y, c[2] + dir[1] * r).getUnlocalizedName() + " ";
-            hall &= wall.isEmpty();
-            TestPlayer v = player(-1, "TestWatcher", c[0], f + 1, c[2]);
+            loadAround(w, c[0] + end / 2, c[2], 3);
+            loadAround(w, c[0] + end, c[2], 2);
+            int cx = c[0], cz = c[2];
+            // постройка: обсидиановые пол, стена и свод, лава над сводом, карман босса, око на полу, завал внутри
+            boolean shell = w.getBlock(cx, F, cz) == Blocks.obsidian && w.getBlock(cx, F + 4, cz - R - 1) == Blocks.obsidian && w.getBlock(cx, TOP + 1, cz) == Blocks.obsidian
+                && w.getBlock(cx, TOP + 3, cz).getMaterial() == net.minecraft.block.material.Material.lava;
+            boolean pocket = w.isAirBlock(cx, com.divinerpgextended.world.WatcherVault.bossY(), cz) && w.getBlock(cx, F + 1, cz) == net.divinerpg.utils.blocks.VanillaBlocks.lamp2;
+            int solid = 0, cells = 0;
+            for (int dx = -R; dx <= R; dx += 2) for (int dz = -R; dz <= R; dz += 2) for (int y = F + 1; y <= TOP; y += 2) {
+                if (!com.divinerpgextended.world.WatcherVault.interior(dx, y, dz)) continue;
+                cells++;
+                if (!w.isAirBlock(cx + dx, y, cz + dz)) solid++;
+            }
+            boolean rubble = solid > cells * 0.35 && solid < cells * 0.85;
+            // тоннель: прихожая у стены, ступени вверх, причал над лавой
+            String tun = "" + (w.isAirBlock(cx + R - 3, F + 2, cz) ? 1 : 0) + (w.isAirBlock(cx + R + 2, F + 3, cz) ? 1 : 0) + (w.getBlock(cx + R + 2, F + 2, cz + 2) == Blocks.obsidian ? 1 : 0)
+                + (w.isAirBlock(cx + end, TY + 1, cz) ? 1 : 0) + (w.getBlock(cx + end + 2, TY - 1, cz) == Blocks.nether_brick ? 1 : 0);
+            for (int t = 0; t <= end - R + 4 && tun.length() < 400; t += 4) {
+                int x = cx + R - 1 + t;
+                for (int y = F - 1; y <= TY + 5; y++) if (!w.isAirBlock(x, y, cz) && w.getBlock(x, y, cz) != Blocks.obsidian && w.getBlock(x, y, cz) != Blocks.nether_brick
+                    && w.getBlock(x, y, cz) != Blocks.stone_slab && w.getBlock(x, y, cz) != Blocks.netherrack) tun += " " + t + ":" + y + "=" + w.getBlock(x, y, cz).getUnlocalizedName();
+            }
+            boolean tunnel = tun.startsWith("11111");
+            TestPlayer v = join(player(-1, "TestWatcher", cx + R - 3.5, F + 1, cz + 0.5), true);
             net.minecraft.item.Item call = net.divinerpg.utils.items.VanillaItemsOther.callWatcher;
-            String in = com.divinerpgextended.boss.LairSummons.refusal(v, call, c[0] + 3, f, c[2] - 2);
-            String out = com.divinerpgextended.boss.LairSummons.refusal(v, call, c[0] + 200, 60, c[2]);
-            check(hall && in == null && "dre.chat.summon_lair_0".equals(out), "зал " + hall + ", стена в тоннелях " + wall + ", внутри " + in + ", снаружи " + out);
-            return "зал в Аду в " + c[0] + "," + c[2] + " (пол y=" + f + ", четыре тоннеля сквозь стену купола наружу); Зов работает только внутри";
+            String in = com.divinerpgextended.boss.LairSummons.refusal(v, call, cx + R - 4, F, cz);
+            String out = com.divinerpgextended.boss.LairSummons.refusal(v, call, cx + 200, 60, cz);
+            // вызов: завал собирается заново (пробитая дыра заросла), у бойца - карман
+            for (int y = F + 3; y <= F + 8; y++) for (int dz = -2; dz <= 2; dz++) w.setBlockToAir(cx - 8, y, cz + dz);
+            java.util.List<net.minecraft.entity.player.EntityPlayer> ps = new java.util.ArrayList<net.minecraft.entity.player.EntityPlayer>();
+            ps.add(v);
+            int changed = new com.divinerpgextended.world.WatcherVault(cx, cz).refill(w, cx, cz, ps);
+            int[] col = new int[512];
+            boolean restored = changed > 0 && w.isAirBlock((int) Math.floor(v.posX), F + 1, cz) && w.isAirBlock((int) Math.floor(v.posX), F + 2, cz);
+            // охота: Смотритель в кармане, боец у входа - заряд, выстрел, перегрев
+            net.divinerpg.entities.vanilla.EntityTheWatcher wt = new net.divinerpg.entities.vanilla.EntityTheWatcher(w);
+            wt.setPosition(cx + 0.5, com.divinerpgextended.world.WatcherVault.bossY() - 2, cz + 0.5);
+            w.spawnEntityInWorld(wt);
+            boolean charged = false, shot = false;
+            for (int i = 0; i < 120 && !shot; i++) {
+                com.divinerpgextended.boss.WatcherHunt.act(wt);
+                charged |= com.divinerpgextended.boss.WatcherHunt.charging(wt);
+                shot = com.divinerpgextended.boss.WatcherHunt.overheated(wt);
+            }
+            java.util.List<?> shots = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityWatcherShot.class, wt.boundingBox.expand(6, 6, 6));
+            for (Object o : shots) ((net.minecraft.entity.Entity) o).setDead();
+            // перегретый получает двойной урон
+            net.minecraftforge.event.entity.living.LivingHurtEvent hot = new net.minecraftforge.event.entity.living.LivingHurtEvent(wt, DamageSource.generic, 10F);
+            MinecraftForge.EVENT_BUS.post(hot);
+            boolean doubled = Math.abs(hot.ammount - 20F) < 0.01;
+            // пушка гаста во время заряда: заряд сбит, оглушён, перегрет; пуля в полтора раза сильнее
+            com.divinerpgextended.boss.WatcherHunt.reset(wt);
+            com.divinerpgextended.boss.WatcherHunt.startCharge(wt);
+            hold(v, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.ghastCannon));
+            net.divinerpg.entities.vanilla.projectile.EntityShooterBullet bullet = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, v, 16F, net.divinerpg.utils.items.VanillaItemsWeapons.ghastCannon);
+            net.minecraftforge.event.entity.living.LivingHurtEvent gc = new net.minecraftforge.event.entity.living.LivingHurtEvent(wt, DamageSource.causeThrownDamage(bullet, v), 16F);
+            MinecraftForge.EVENT_BUS.post(gc);
+            boolean cannon = !com.divinerpgextended.boss.WatcherHunt.charging(wt) && com.divinerpgextended.boss.WatcherHunt.stunned(wt) && Math.abs(gc.ammount - 24F) < 0.01
+                && com.divinerpgextended.boss.WatcherHunt.overheated(wt);
+            // огненный меч: четвёртый удар подряд перегревает; адский меч без огня - +50%
+            com.divinerpgextended.boss.WatcherHunt.reset(wt);
+            hold(v, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.infernoSword));
+            boolean warm = true;
+            for (int i = 1; i <= com.divinerpgextended.boss.WatcherHunt.WARMTH; i++) {
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(wt, DamageSource.causePlayerDamage(v), 5F));
+                if (i < com.divinerpgextended.boss.WatcherHunt.WARMTH) warm &= !com.divinerpgextended.boss.WatcherHunt.overheated(wt);
+            }
+            warm &= com.divinerpgextended.boss.WatcherHunt.overheated(wt);
+            com.divinerpgextended.boss.WatcherHunt.reset(wt);
+            hold(v, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.bloodgemSword));
+            net.minecraftforge.event.entity.living.LivingHurtEvent bg = new net.minecraftforge.event.entity.living.LivingHurtEvent(wt, DamageSource.causePlayerDamage(v), 10F);
+            MinecraftForge.EVENT_BUS.post(bg);
+            boolean nether = Math.abs(bg.ammount - 15F) < 0.01;
+            hold(v, null);
+            // взрыв в зале: завал ломается без выпадения, предмет на земле цел, сундук и обсидиан целы, сам Смотритель не ранен
+            int ex = cx - 12, ey = F + 4, ez = cz + 6;
+            for (int dx = -3; dx <= 3; dx++) for (int dy = -2; dy <= 2; dy++) for (int dz = -3; dz <= 3; dz++) w.setBlock(ex + dx, ey + dy, ez + dz, Blocks.netherrack);
+            w.setBlockToAir(ex, ey, ez);
+            w.setBlockToAir(ex, ey + 1, ez);
+            w.setBlock(ex + 1, ey, ez, Blocks.chest);
+            net.minecraft.entity.item.EntityItem loot = new net.minecraft.entity.item.EntityItem(w, ex + 0.5, ey + 0.2, ez + 0.5, new ItemStack(Items.diamond));
+            w.spawnEntityInWorld(loot);
+            wt.setPosition(ex + 0.5, ey, ez - 2.5);
+            float hpBefore = wt.getHealth();
+            w.newExplosion(null, ex + 0.5, ey + 0.5, ez + 0.5, 5F, false, true);
+            int items = w.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(ex - 8, ey - 8, ez - 8, ex + 8, ey + 8, ez + 8)).size();
+            boolean blast = w.isAirBlock(ex - 2, ey, ez) && w.getBlock(ex + 1, ey, ez) == Blocks.chest && !loot.isDead && items == 1 && wt.getHealth() == hpBefore;
+            loot.setDead();
+            w.setBlockToAir(ex + 1, ey, ez);
+            wt.setDead();
+            server.getConfigurationManager().playerEntityList.remove(v);
+            w.removeEntity(v);
+            check(shell && pocket && rubble && tunnel && in == null && "dre.chat.summon_lair_0".equals(out) && restored && charged && shot && doubled && cannon && warm && nether && blast,
+                "оболочка и лава " + shell + ", карман и око " + pocket + ", завал " + solid + "/" + cells + ", тоннель " + tunnel + " (" + tun + "), вызов внутри " + in + " снаружи " + out
+                    + "; завал заново " + changed + " блоков, у бойца пусто " + restored + "; заряд " + charged + ", выстрел и перегрев " + shot + ", двойной урон " + doubled + " (" + hot.ammount + ")"
+                    + "; пушка гаста " + cannon + " (" + gc.ammount + "), огненный меч " + warm + ", адский меч " + nether + " (" + bg.ammount + "); взрыв " + blast + " (предметов " + items + ")");
+            return "логово в Аду в " + cx + "," + cz + ": обсидиановый зал R" + R + " под лавой, завал " + (solid * 100 / Math.max(1, cells)) + "%, тоннель от берега с причалом; вызов пересобирает завал;"
+                + " Смотритель заряжается и стреляет, перегретый получает x2; пушка гаста сбивает заряд, огненное оружие перегревает, адское +50%; взрывы ломают только завал";
         });
         t("Логова", "Огненная палата", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.SCORCHERS;

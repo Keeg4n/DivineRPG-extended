@@ -94,6 +94,16 @@ public class LairSummons {
         for (int type = 0; type < 3; type++) {
             if (!WorldGenOuterLairs.inside(e.world, type, e.entity.posX, e.entity.posY, e.entity.posZ)) continue;
             int[] c = WorldGenOuterLairs.nearest(e.world.getSeed(), type, e.entity.posX, e.entity.posZ);
+            if (type == WorldGenOuterLairs.WATCHER && e.entity instanceof net.divinerpg.entities.vanilla.EntityTheWatcher) {
+                // завал заново (у бойцов - карманы), сам Смотритель - в свой карман над центром
+                java.util.List<EntityPlayer> ps = new java.util.ArrayList<EntityPlayer>();
+                for (Object o : e.world.playerEntities) {
+                    EntityPlayer p = (EntityPlayer) o;
+                    if (com.divinerpgextended.boss.WatcherHunt.vault(e.world, p.posX, p.posY + 1, p.posZ) != null) ps.add(p);
+                }
+                new com.divinerpgextended.world.WatcherVault(c[0], c[2]).refill(e.world, c[0], c[2], ps);
+                e.entity.setPosition(c[0] + 0.5, com.divinerpgextended.world.WatcherVault.bossY() - e.entity.height / 2, c[2] + 0.5);
+            }
             // орда кружит над всем островом (круг шире острова не бывает) - привязь шире зала
             leash(e.entity, c[0], WorldGenOuterLairs.FLOOR[type] + 1, c[2], WorldGenOuterLairs.RADIUS[type] + (type == WorldGenOuterLairs.AYERACO ? 6 : -3));
             return;
