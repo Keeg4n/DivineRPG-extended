@@ -211,7 +211,8 @@ public class WatcherVault extends ColumnStructure {
             if (r < R + 1 && window(dx, dz, r)) for (int y = WIN_LO; y <= WIN_HI; y++) put(col, y, LAVA, 0); // лава за стеклом
             for (int y = t + 3; y <= LAVA_TOP; y++) put(col, y, LAVA, 0);
         } else if (r <= R + 4) {
-            for (int y = FLOOR - 1; y <= LAVA_TOP; y++) put(col, y, NETHERRACK, 0); // берег озера
+            // берег озера - под лавой: верх кольца оставляем как есть, иначе сверху на лаве виден круг над логовом
+            for (int y = FLOOR - 1; y <= LAVA_TOP - 3; y++) put(col, y, NETHERRACK, 0);
         }
         if (tunnel) tunnel(dx, dz, col);
         return true;
