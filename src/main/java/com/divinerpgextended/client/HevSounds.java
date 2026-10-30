@@ -220,6 +220,21 @@ public final class HevSounds {
         Minecraft.getMinecraft().getSoundHandler().playSound(new PositionedSoundRecord(new ResourceLocation(DOMAIN, event), volume, 1.0F, (float) x, (float) y, (float) z));
     }
 
+    /** Звук у самого игрока (голос костюма, рывок, взмах мимо): без затухания, не остаётся на месте, где прозвучал. */
+    static class Self extends net.minecraft.client.audio.PositionedSound {
+
+        Self(String event, float volume) {
+            super(new ResourceLocation(DOMAIN, event));
+            this.volume = volume;
+            this.field_147663_c = 1.0F;
+            this.field_147666_i = ISound.AttenuationType.NONE;
+        }
+    }
+
+    static void playSelf(String event, float volume) {
+        if (have(event)) Minecraft.getMinecraft().getSoundHandler().playSound(new Self(event, volume));
+    }
+
     /** Игрок, у ног которого прозвучал звук (шаги и боль). */
     static EntityPlayer near(ISound s) {
         Minecraft mc = Minecraft.getMinecraft();
@@ -267,7 +282,7 @@ public final class HevSounds {
             if (!(e.message instanceof ChatComponentTranslation)) return;
             String to = VOICE.get(((ChatComponentTranslation) e.message).getKey());
             EntityPlayer p = Minecraft.getMinecraft().thePlayer;
-            if (to != null && p != null) play(to, p.posX, p.posY, p.posZ, 1.0F);
+            if (to != null && p != null) playSelf(to, 1.0F);
         }
 
         /** Свой игрок: рывок в костюме и взмахи монтировкой. */
@@ -277,7 +292,7 @@ public final class HevSounds {
             EntityPlayer p = mc.thePlayer;
             if (e.phase != TickEvent.Phase.END || p == null || mc.isGamePaused()) return;
             boolean run = p.isSprinting();
-            if (run && !sprinting && Easter.fullHev(p)) play("hev.sprint", p.posX, p.posY, p.posZ, 0.7F);
+            if (run && !sprinting && Easter.fullHev(p)) playSelf("hev.sprint", 0.7F);
             sprinting = run;
             // новый взмах: начался или пошёл заново (зажатая кнопка по блоку)
             boolean swing = p.isSwingInProgress;
@@ -291,7 +306,7 @@ public final class HevSounds {
             else if (mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK)
                 play("hev.cbar_hit", mop.blockX + 0.5, mop.blockY + 0.5, mop.blockZ + 0.5, 0.9F);
             else
-                play("hev.cbar_miss", p.posX, p.posY, p.posZ, 0.8F);
+                playSelf("hev.cbar_miss", 0.8F);
         }
     }
 }
