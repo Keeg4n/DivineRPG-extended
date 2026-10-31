@@ -204,11 +204,32 @@ public final class EasterClient {
             }
             if (Easter.musou(s)) { // Musou no Hitotachi - объёмный тати
                 Minecraft.getMinecraft().getTextureManager().bindTexture(MUSOU);
+                boolean cull = GL11.glIsEnabled(GL11.GL_CULL_FACE);
+                if (type == ItemRenderType.EQUIPPED) {
+                    swordGrip();
+                    GL11.glDisable(GL11.GL_CULL_FACE); // у хвата меча масштаб по Y отрицательный - грани вывернуты
+                }
                 MUSOU_MESH.render("musou", "item", 1F / 16F);
+                if (cull) GL11.glEnable(GL11.GL_CULL_FACE);
                 return;
             }
             ItemRenderer.renderItemIn2D(Tessellator.instance, i.getMaxU(), i.getMinV(), i.getMinU(), i.getMaxV(), i.getIconWidth(), i.getIconHeight(), 0.0625F);
         }
+    }
+
+    /**
+     * Серенада у Divine - не меч (isFull3D нет), и в руке у игрока и мобов ванилла держит её как простой предмет: в 0.6
+     * размера меча и плашмя перед собой. Снять преобразование предмета из RenderPlayer/RenderBiped и поставить хват меча.
+     */
+    static void swordGrip() {
+        GL11.glRotatef(-20F, 0, 0, 1); // обратное к хвату предмета: Rz(20), Rx(-90), Rz(60), масштаб 0.375, сдвиг
+        GL11.glRotatef(90F, 1, 0, 0);
+        GL11.glRotatef(-60F, 0, 0, 1);
+        GL11.glScalef(1F / 0.375F, 1F / 0.375F, 1F / 0.375F);
+        GL11.glTranslatef(-0.25F, 0F, 0.1875F); // минус сдвиг предмета (0.25, 0.1875, -0.1875) плюс сдвиг меча (0, 0.1875, 0)
+        GL11.glScalef(0.625F, -0.625F, 0.625F); // хват меча, как у isFull3D
+        GL11.glRotatef(-100F, 1, 0, 0);
+        GL11.glRotatef(45F, 0, 1, 0);
     }
 
     /** Ракета Мерика из РПГ-7 - граната ПГ-7 с дымным следом; остальные - рендером Divine. */
