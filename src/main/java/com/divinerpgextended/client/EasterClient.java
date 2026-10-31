@@ -202,14 +202,17 @@ public final class EasterClient {
                 RPG_MESH.render("rpg", "item", 1F / 16F);
                 return;
             }
-            if (Easter.musou(s)) { // Musou no Hitotachi - объёмный тати
+            if (Easter.musou(s)) { // Musou no Hitotachi - объёмная катана, клинок и эмблема светятся
                 Minecraft.getMinecraft().getTextureManager().bindTexture(MUSOU);
                 if (type != ItemRenderType.ENTITY) { // катана длиннее меча: в руке x KATANA вокруг середины рукояти
                     GL11.glTranslatef(13.7F / 16F, 2.3F / 16F, -0.03F); // середина рукояти меча бури на значке (2.3, 2.3)
                     GL11.glScalef(KATANA, KATANA, KATANA);
-                    GL11.glTranslatef(-13.25F / 16F, -2.75F / 16F, 0.03F); // середина рукояти катаны (2.75, 2.75)
+                    GL11.glTranslatef(-13.95F / 16F, -2.05F / 16F, 0.03F); // середина рукояти катаны (musou_model.py печатает)
                 }
                 MUSOU_MESH.render("musou", "item", 1F / 16F);
+                glow(true);
+                MUSOU_MESH.render("musou", "glow", 1F / 16F);
+                glow(false);
                 return;
             }
             ItemRenderer.renderItemIn2D(Tessellator.instance, i.getMaxU(), i.getMinV(), i.getMinU(), i.getMaxV(), i.getIconWidth(), i.getIconHeight(), 0.0625F);
@@ -217,7 +220,24 @@ public final class EasterClient {
     }
 
     /** Во сколько раз Musou в руке длиннее обычного меча. */
-    static final float KATANA = 1.4F;
+    static final float KATANA = 1.2F;
+
+    private static float lastX, lastY;
+    private static boolean lit;
+
+    /** Свечение: полная яркость и без теней (true), затем вернуть как было (false). */
+    static void glow(boolean on) {
+        if (on) {
+            lastX = net.minecraft.client.renderer.OpenGlHelper.lastBrightnessX;
+            lastY = net.minecraft.client.renderer.OpenGlHelper.lastBrightnessY;
+            lit = GL11.glIsEnabled(GL11.GL_LIGHTING);
+            net.minecraft.client.renderer.OpenGlHelper.setLightmapTextureCoords(net.minecraft.client.renderer.OpenGlHelper.lightmapTexUnit, 240F, 240F);
+            GL11.glDisable(GL11.GL_LIGHTING);
+        } else {
+            net.minecraft.client.renderer.OpenGlHelper.setLightmapTextureCoords(net.minecraft.client.renderer.OpenGlHelper.lightmapTexUnit, lastX, lastY);
+            if (lit) GL11.glEnable(GL11.GL_LIGHTING);
+        }
+    }
 
     /** Ракета Мерика из РПГ-7 - граната ПГ-7 с дымным следом; остальные - рендером Divine. */
     static class RocketRenderer extends Render {
