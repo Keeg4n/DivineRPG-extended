@@ -3069,7 +3069,7 @@ public class SelfTest {
                 && com.divinerpgextended.easter.Easter.hev(toGoggles) && back != null && !com.divinerpgextended.easter.Easter.goggles(back) && plainNo;
             // детальные модели: все части костюма и монтировка
             java.util.Map<String, Integer> groups = new java.util.TreeMap<String, Integer>();
-            for (String mf : new String[] { "hev", "crowbar", "musou" }) {
+            for (String mf : new String[] { "hev", "crowbar", "musou", "rpg" }) {
                 java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(
                     com.divinerpgextended.easter.Easter.class.getResourceAsStream("/assets/divinerpgextended/models/easter/" + mf + ".mesh"), "UTF-8"));
                 String grp = null;
@@ -3080,7 +3080,7 @@ public class SelfTest {
                 br.close();
             }
             boolean meshes = true;
-            for (String grp : new String[] { "helmet", "goggles", "chest", "legs", "boots", "crowbar", "musou" }) meshes &= groups.containsKey(grp) && groups.get(grp) >= 24;
+            for (String grp : new String[] { "helmet", "goggles", "chest", "legs", "boots", "crowbar", "musou", "rpg", "pg7" }) meshes &= groups.containsKey(grp) && groups.get(grp) >= 24;
             // Ударная серенада на земле + молния = Musou no Hitotachi (не горит); обычный меч - как был
             net.minecraft.entity.item.EntityItem ser = new net.minecraft.entity.item.EntityItem(w, 0.5, 120, 0.5, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.serenadeStriker));
             net.minecraft.entity.effect.EntityLightningBolt bolt = new net.minecraft.entity.effect.EntityLightningBolt(w, 0.5, 120, 0.5);

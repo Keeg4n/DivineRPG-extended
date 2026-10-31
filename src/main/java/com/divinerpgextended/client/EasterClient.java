@@ -41,14 +41,15 @@ public final class EasterClient {
 
     static final String D = "divinerpgextended:";
     static final ResourceLocation HEV = new ResourceLocation(D + "textures/models/easter/hev.png"), CROWBAR = new ResourceLocation(D + "textures/models/easter/crowbar.png"),
-        SOFA = new ResourceLocation(D + "textures/models/easter/sofa.png"), PG7 = new ResourceLocation(D + "textures/models/easter/pg7.png"),
+        SOFA = new ResourceLocation(D + "textures/models/easter/sofa.png"), RPG = new ResourceLocation(D + "textures/models/easter/rpg.png"),
         MUSOU = new ResourceLocation(D + "textures/models/easter/musou.png");
     static IIcon crowbar, rpg, musou, hevHelmet, hevGoggles, hevChest, hevLegs, hevBoots;
     static final EasterMesh MUSOU_MESH = new EasterMesh("musou");
     static final EasterModels.HevArmor HEV_MODEL = new EasterModels.HevArmor();
     static final EasterMesh CROWBAR_MESH = new EasterMesh("crowbar");
     static final EasterModels.Sofa SOFA_MODEL = new EasterModels.Sofa();
-    static final EasterModels.Pg7 PG7_MODEL = new EasterModels.Pg7();
+    /** РПГ-7 на диване (rpg/sofa) и граната ПГ-7 в полёте (pg7/flight) - по пропорциям настоящих. */
+    static final EasterMesh RPG_MESH = new EasterMesh("rpg");
 
     /** Значок пасхалки для вещи или null (обычная вещь). */
     static IIcon icon(ItemStack s) {
@@ -196,6 +197,11 @@ public final class EasterClient {
                 CROWBAR_MESH.render("crowbar", "item", 1F / 16F);
                 return;
             }
+            if (Easter.rpg(s)) { // РПГ-7 - объёмный, та же модель, что на диване
+                Minecraft.getMinecraft().getTextureManager().bindTexture(RPG);
+                RPG_MESH.render("rpg", "item", 1F / 16F);
+                return;
+            }
             if (Easter.musou(s)) { // Musou no Hitotachi - объёмный тати
                 Minecraft.getMinecraft().getTextureManager().bindTexture(MUSOU);
                 MUSOU_MESH.render("musou", "item", 1F / 16F);
@@ -243,15 +249,15 @@ public final class EasterClient {
             GL11.glTranslated(x, y, z);
             GL11.glRotatef(ry, 0, 1, 0);
             GL11.glRotatef(-rp, 1, 0, 0);
-            bindTexture(PG7);
-            PG7_MODEL.render(0.0625F);
+            bindTexture(RPG);
+            RPG_MESH.render("pg7", "flight", 0.0625F);
             GL11.glPopMatrix();
             if (e.worldObj.rand.nextBoolean()) e.worldObj.spawnParticle("smoke", e.posX - e.motionX * 0.5, e.posY - e.motionY * 0.5, e.posZ - e.motionZ * 0.5, 0, 0.01, 0);
         }
 
         @Override
         protected ResourceLocation getEntityTexture(Entity e) {
-            return PG7;
+            return RPG;
         }
     }
 
@@ -269,6 +275,14 @@ public final class EasterClient {
             GL11.glRotatef(180F, 0, 0, 1);
             bindTexture(SOFA);
             SOFA_MODEL.render(null, 0, 0, 0, 0, 0, 0.0625F);
+            // РПГ-7 на подушках: чуть по диагонали, на боку (рукояти к краю сиденья), граната на подлокотнике
+            GL11.glTranslatef(-2F / 16F, 10.3F / 16F, -2F / 16F);
+            GL11.glRotatef(-11.5F, 0, 0, 1);
+            GL11.glRotatef(17F, 0, 1, 0);
+            GL11.glRotatef(-90F, 1, 0, 0);
+            GL11.glTranslatef(-15F / 16F, 0, 0);
+            bindTexture(RPG);
+            RPG_MESH.render("rpg", "sofa", 0.0625F);
             GL11.glPopMatrix();
         }
     }
