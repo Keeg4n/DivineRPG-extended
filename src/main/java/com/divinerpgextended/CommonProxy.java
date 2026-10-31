@@ -88,6 +88,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.LairSummons());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.HomeArmor());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.MiningTiers());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.CorruptedGear());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.SetPerks());
         com.divinerpgextended.boss.MortumBosses mortumBosses = new com.divinerpgextended.boss.MortumBosses();
         MinecraftForge.EVENT_BUS.register(mortumBosses);

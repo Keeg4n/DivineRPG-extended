@@ -1397,3 +1397,5 @@ dre.tooltip.sound_of_carols=Notes bounce off walls and slow; x1.5 to the Frost C
 dre.tooltip.blast_after_watcher=The set's explosion protection works only after the Watcher is defeated
 dre.tooltip.aquatic_vs_king=King of Scorchers: water quenches his flame shield - this weapon hits him x1.5, x2.5 during his pit stop
 dre.tooltip.heatproof_vs_king=King of Scorchers: in the full set his fire trail can't hurt you, his ram, shots and meteors deal half
+dre.tooltip.corrupted_tool=Corruption loves darkness: the darker around you, the faster it digs (x2.5 in pitch black); in bright light it dulls (x0.8). Digging in the dark - Grue's eyes: you see as by day
+dre.tooltip.corrupted_weapon=Grue's eyes: striking in the dark lets you see as by day

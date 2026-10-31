@@ -43,6 +43,9 @@ public class ColorTooltip {
             e.toolTip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal(it == VanillaItemsWeapons.ghastCannon ? "dre.tooltip.reload_ghast" : "dre.tooltip.reload_maelstrom"));
         if (it == net.divinerpg.utils.items.IceikaItems.soundOfMusic) e.toolTip.add(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("dre.tooltip.sound_of_music"));
         if (it == net.divinerpg.utils.items.IceikaItems.soundOfCarols) e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.sound_of_carols"));
+        // вещи порчи - вещи тьмы ({@link com.divinerpgextended.perk.CorruptedGear})
+        if (com.divinerpgextended.perk.CorruptedGear.tool(it)) e.toolTip.add(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("dre.tooltip.corrupted_tool"));
+        if (com.divinerpgextended.perk.CorruptedGear.weapon(it)) e.toolTip.add(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("dre.tooltip.corrupted_weapon"));
         // против Короля скорчеров ({@link com.divinerpgextended.boss.KingRace})
         if (com.divinerpgextended.boss.KingRace.aquatic(it)) e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.aquatic_vs_king"));
         if (it == net.divinerpg.utils.items.VanillaItemsArmor.infernoHelmet || it == net.divinerpg.utils.items.VanillaItemsArmor.infernoBody

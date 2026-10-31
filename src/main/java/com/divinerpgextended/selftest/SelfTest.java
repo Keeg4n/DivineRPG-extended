@@ -605,6 +605,50 @@ public class SelfTest {
             check(d == 0, "смешанный Ender: урон от взрыва " + f(d));
             return "Ender четырёх цветов: взрыв 0";
         });
+        t("Броня", "Порча - вещи тьмы: скорость от света, глаза Груи", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int x0 = 30900, y0 = 140, z0 = 30900;
+            loadAround(w, x0, z0, 1);
+            for (int x = x0 - 3; x <= x0 + 3; x++) for (int z = z0 - 3; z <= z0 + 3; z++) for (int y = y0 - 1; y <= y0 + 4; y++) w.setBlock(x, y, z, Blocks.air);
+            TestPlayer cp = join(player(0, "TestCorrupt", x0 + 0.5, y0, z0 + 0.5), true);
+            hold(cp, new ItemStack(net.divinerpg.utils.items.VanillaItemsTools.corruptedPickaxe));
+            // на открытом месте: множитель по свету (днём - тупится)
+            int lightOpen = com.divinerpgextended.perk.CorruptedGear.light(cp);
+            net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed open = new net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed(cp, Blocks.stone, 0, 10F, x0, y0 - 1, z0);
+            MinecraftForge.EVENT_BUS.post(open);
+            boolean openOk = Math.abs(open.newSpeed - 10F * com.divinerpgextended.perk.CorruptedGear.speed(lightOpen)) < 0.01;
+            // в замурованной каменной клетке - тьма: в 2.5 раза быстрее и ночное зрение при копании
+            for (int x = x0 - 1; x <= x0 + 1; x++) for (int z = z0 - 1; z <= z0 + 1; z++) for (int y = y0 - 1; y <= y0 + 2; y++)
+                if (x != x0 || z != z0 || y == y0 - 1 || y == y0 + 2) w.setBlock(x, y, z, Blocks.stone);
+            int lightDark = com.divinerpgextended.perk.CorruptedGear.light(cp);
+            net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed dark = new net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed(cp, Blocks.stone, 0, 10F, x0 + 1, y0, z0);
+            MinecraftForge.EVENT_BUS.post(dark);
+            cp.removePotionEffect(net.minecraft.potion.Potion.nightVision.id);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.world.BlockEvent.BreakEvent(x0 + 1, y0, z0, w, Blocks.stone, 0, cp));
+            boolean digSight = cp.isPotionActive(net.minecraft.potion.Potion.nightVision);
+            // меч порчи: удар во тьме - ночное зрение; обычный меч - нет
+            cp.removePotionEffect(net.minecraft.potion.Potion.nightVision.id);
+            net.minecraft.entity.passive.EntityPig pig = new net.minecraft.entity.passive.EntityPig(w);
+            pig.setPosition(x0 + 0.5, y0, z0 + 0.5);
+            hold(cp, new ItemStack(Items.iron_sword));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(pig, DamageSource.causePlayerDamage(cp), 4F));
+            boolean plainSight = cp.isPotionActive(net.minecraft.potion.Potion.nightVision);
+            hold(cp, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.deathBringer));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(pig, DamageSource.causePlayerDamage(cp), 4F));
+            boolean hitSight = cp.isPotionActive(net.minecraft.potion.Potion.nightVision);
+            cp.removePotionEffect(net.minecraft.potion.Potion.nightVision.id);
+            hold(cp, null);
+            server.getConfigurationManager().playerEntityList.remove(cp);
+            w.removeEntity(cp);
+            boolean curve = Math.abs(com.divinerpgextended.perk.CorruptedGear.speed(0) - 2.5F) < 0.01 && Math.abs(com.divinerpgextended.perk.CorruptedGear.speed(12) - 1F) < 0.01
+                && Math.abs(com.divinerpgextended.perk.CorruptedGear.speed(15) - 0.8F) < 0.01;
+            check(curve && openOk && lightDark <= com.divinerpgextended.perk.CorruptedGear.DARK_MAX && Math.abs(dark.newSpeed - 10F * com.divinerpgextended.perk.CorruptedGear.speed(lightDark)) < 0.01
+                && dark.newSpeed >= 20F && digSight && !plainSight && hitSight,
+                "кривая " + curve + "; на открытом месте свет " + lightOpen + ", скорость " + open.newSpeed + "; в клетке свет " + lightDark + ", скорость " + dark.newSpeed
+                    + "; копаешь во тьме - ночное зрение " + digSight + "; удар во тьме: железным мечом " + plainSight + ", мечом порчи " + hitSight);
+            return "кирка порчи: свет " + lightOpen + " - x" + com.divinerpgextended.perk.CorruptedGear.speed(lightOpen) + ", тьма " + lightDark + " - x" + com.divinerpgextended.perk.CorruptedGear.speed(lightDark)
+                + "; копаешь или бьёшь мечом порчи во тьме - ночное зрение";
+        });
         t("Броня", "Сет без одной вещи", () -> {
             reset(p);
             armor(p, null, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots);
