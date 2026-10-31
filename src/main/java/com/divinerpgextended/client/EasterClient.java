@@ -207,7 +207,7 @@ public final class EasterClient {
                 if (type != ItemRenderType.ENTITY) { // катана длиннее меча: в руке x KATANA вокруг середины рукояти
                     GL11.glTranslatef(13.7F / 16F, 2.3F / 16F, -0.03F); // середина рукояти меча бури на значке (2.3, 2.3)
                     GL11.glScalef(KATANA, KATANA, KATANA);
-                    GL11.glTranslatef(-13.95F / 16F, -2.05F / 16F, 0.03F); // середина рукояти катаны (musou_model.py печатает)
+                    GL11.glTranslatef(-13.73F / 16F, -2.27F / 16F, 0.03F); // середина рукояти катаны (musou_model.py печатает)
                 }
                 MUSOU_MESH.render("musou", "item", 1F / 16F);
                 glow(true);
