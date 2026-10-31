@@ -149,6 +149,56 @@ public class WatcherVault extends ColumnStructure {
 
     protected static final int WIN_LO = FLOOR + 2, WIN_HI = FLOOR + 7;
 
+    /** Ячейка зала - стекло окна. */
+    static boolean glassCell(int dx, int dz) {
+        double r = Math.sqrt(dx * dx + dz * dz);
+        return r >= R - 1 && r < R && window(dx, dz, r);
+    }
+
+    /**
+     * Лава за стеклом окна - только если со стороны зала её со всех четырёх сторон закрывает стекло: на диагоналях круга
+     * соседняя ячейка зала бывает уже не окном, а воздухом - лава лилась в зал.
+     */
+    static boolean behindGlass(int dx, int dz, double r) {
+        if (!window(dx, dz, r)) return false;
+        int[][] n = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+        for (int[] d : n) {
+            int x = dx + d[0], z = dz + d[1];
+            if (x * x + z * z < R * R && !glassCell(x, z)) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Залатать окна готового логова (построенного до 0.99.56): лава без стекла со стороны зала - в обсидиан, натёкшая в зал
+     * текучая лава - убрать. @return сколько блоков поменяно
+     */
+    public static int seal(World w, int cx, int cz) {
+        int changed = 0;
+        for (int dx = -R - 1; dx <= R + 1; dx++) {
+            for (int dz = -R - 1; dz <= R + 1; dz++) {
+                double r = Math.sqrt(dx * dx + dz * dz);
+                int x = cx + dx, z = cz + dz;
+                if (r >= R && r < R + 1 && window(dx, dz, r) && !behindGlass(dx, dz, r)) {
+                    for (int y = WIN_LO; y <= WIN_HI; y++)
+                        if (w.getBlock(x, y, z).getMaterial() == net.minecraft.block.material.Material.lava) {
+                            w.setBlock(x, y, z, Blocks.obsidian, 0, 2);
+                            changed++;
+                        }
+                } else if (r < R) {
+                    for (int y = FLOOR + 1; y <= WIN_HI + 1; y++) {
+                        Block b = w.getBlock(x, y, z);
+                        if ((b == Blocks.flowing_lava || b == Blocks.lava) && w.getBlockMetadata(x, y, z) != 0) {
+                            w.setBlock(x, y, z, Blocks.air, 0, 2);
+                            changed++;
+                        }
+                    }
+                }
+            }
+        }
+        return changed;
+    }
+
     /** Ячейка у стены зала: окно (подоконник, стекло, перемычка); true - поставлена. glass - мета стекла. */
     protected static boolean wallCell(int dx, int dz, double r, int y, int[] col, int glass) {
         if (r < R - 1 || !window(dx, dz, r)) return false;
@@ -208,7 +258,7 @@ public class WatcherVault extends ColumnStructure {
         else if (r < R + 2) {
             int t = top(R - 0.5);
             for (int y = FLOOR - 1; y <= t + 2; y++) put(col, y, OBSIDIAN, 0); // стена
-            if (r < R + 1 && window(dx, dz, r)) for (int y = WIN_LO; y <= WIN_HI; y++) put(col, y, LAVA, 0); // лава за стеклом
+            if (r < R + 1 && behindGlass(dx, dz, r)) for (int y = WIN_LO; y <= WIN_HI; y++) put(col, y, LAVA, 0); // лава за стеклом
             for (int y = t + 3; y <= LAVA_TOP; y++) put(col, y, LAVA, 0);
         } else if (r <= R + 4) {
             // берег озера - под лавой: верх кольца оставляем как есть, иначе сверху на лаве виден круг над логовом

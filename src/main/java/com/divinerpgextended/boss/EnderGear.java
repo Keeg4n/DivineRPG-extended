@@ -127,7 +127,7 @@ public class EnderGear {
         if (prey != null) {
             double dx = p.posX - prey.posX, dz = p.posZ - prey.posZ, len = Math.max(0.1, Math.sqrt(dx * dx + dz * dz));
             double gx = prey.posX + dx / len * (prey.width / 2 + 1.2), gz = prey.posZ + dz / len * (prey.width / 2 + 1.2), gy = prey.posY;
-            if (fits(w, gx, gy, gz)) {
+            if (fits(w, gx, gy, gz) && clear(p, gx, gy, gz)) {
                 if (!com.divinerpgextended.portal.TeleportGuard.allowed(p, gx, gy, gz)) return "dre.blink.private";
                 ArcanaHelper h = ArcanaHelper.getProperties(p);
                 if (h == null) return "dre.blink.arcana";
@@ -145,12 +145,12 @@ public class EnderGear {
         double tx = x, ty = y, tz = z, lift = 0;
         for (double s = 0.5; s <= RANGE; s += 0.5) {
             double nx = x + look.xCoord * s, nz = z + look.zCoord * s, ny = y + look.yCoord * s + lift;
-            if (!fits(w, nx, ny, nz)) {
+            if (!fits(w, nx, ny, nz) || !clear(p, nx, ny, nz)) {
                 double up = -1;
                 double base = Math.floor(Math.max(ny, ty)); // от ног, а не от луча: взгляд вниз уводит луч под землю
                 for (int k = 0; k <= LEDGE && up < 0; k++) {
                     double c = base + k; // встать на верх блока
-                    if (c > ny && c - ty <= LEDGE + 0.01 && fits(w, nx, c, nz)) up = c;
+                    if (c > ny && c - ty <= LEDGE + 0.01 && fits(w, nx, c, nz) && clear(p, nx, c, nz)) up = c;
                 }
                 if (up < 0) break;
                 lift += up - ny;
@@ -161,6 +161,7 @@ public class EnderGear {
             tz = nz;
         }
         if ((tx - x) * (tx - x) + (ty - y) * (ty - y) + (tz - z) * (tz - z) < 2 * 2) return "dre.blink.wall";
+        if (!clear(p, tx, ty, tz)) return "dre.blink.wall"; // не в блоки
         if (!groundBelow(w, tx, ty, tz)) return "dre.blink.void"; // в бездну не шагнуть
         if (!com.divinerpgextended.portal.TeleportGuard.allowed(p, tx, ty, tz)) return "dre.blink.private"; // приват с запретом телепортов
         ArcanaHelper h = ArcanaHelper.getProperties(p);
@@ -174,9 +175,22 @@ public class EnderGear {
         return null;
     }
 
-    /** Помещается ли игрок (ноги на y): три блока столба свободны для движения. */
+    /** Полуширина игрока (0.3) чуть внутрь, чтобы стоящий вплотную к стене не считался в ней: в углу из блоков центр в воздухе, а края хитбокса - в стенах (задыхался). */
+    static final double HALF = 0.29;
+
+    /** Помещается ли игрок (ноги на y): все четыре угла хитбокса свободны на трёх высотах. */
     static boolean fits(World w, double x, double y, double z) {
-        return !solidAt(w, x, y, z) && !solidAt(w, x, y + 1, z) && !solidAt(w, x, y + 1.8, z);
+        for (int cx = -1; cx <= 1; cx += 2)
+            for (int cz = -1; cz <= 1; cz += 2) {
+                double ax = x + cx * HALF, az = z + cz * HALF;
+                if (solidAt(w, ax, y, az) || solidAt(w, ax, y + 1, az) || solidAt(w, ax, y + 1.8, az)) return false;
+            }
+        return true;
+    }
+
+    /** Хитбокс игрока в точке (ноги на y) ни во что не упирается - точная проверка по рамкам блоков перед переносом. */
+    static boolean clear(EntityPlayer p, double x, double y, double z) {
+        return p.worldObj.func_147461_a(p.boundingBox.getOffsetBoundingBox(x - p.posX, y - p.boundingBox.minY, z - p.posZ)).isEmpty();
     }
 
     static boolean solidAt(World w, double x, double y, double z) {

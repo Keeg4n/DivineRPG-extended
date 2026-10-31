@@ -175,7 +175,7 @@ public final class Easter {
         if (!s.hasTagCompound()) s.setTagCompound(new NBTTagCompound());
         if (s.getTagCompound().getBoolean(MUSOU)) return false;
         s.getTagCompound().setBoolean(MUSOU, true);
-        s.setStackDisplayName(MUSOU_NAME);
+        s.setStackDisplayName(EnumChatFormatting.RESET + MUSOU_NAME); // без курсива переименованных
         return true;
     }
 
@@ -239,6 +239,8 @@ public final class Easter {
 
     /** Раз в полсекунды: надел полный костюм - вход в систему; малое здоровье - морфин. */
     public static void tick(EntityPlayer p) {
+        ItemStack held = p.getHeldItem(); // тати, преображённый до 0.99.56, - имя без курсива
+        if (musou(held) && MUSOU_NAME.equals(held.getDisplayName())) held.setStackDisplayName(EnumChatFormatting.RESET + MUSOU_NAME);
         NBTTagCompound d = p.getEntityData();
         boolean full = fullHev(p);
         if (full && !d.getBoolean(WORN)) say(p, "dre.hev.logon");

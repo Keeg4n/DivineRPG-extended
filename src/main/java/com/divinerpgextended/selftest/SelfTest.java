@@ -3088,7 +3088,7 @@ public class SelfTest {
             ItemStack ms = ser.getEntityItem();
             net.minecraft.entity.item.EntityItem plainSword = new net.minecraft.entity.item.EntityItem(w, 0.5, 120, 0.5, new ItemStack(Items.iron_sword));
             boolean plainStruck = MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.EntityStruckByLightningEvent(plainSword, bolt));
-            boolean musou = struck && com.divinerpgextended.easter.Easter.musou(ms) && com.divinerpgextended.easter.Easter.MUSOU_NAME.equals(ms.getDisplayName()) && ser.isImmuneToFire()
+            boolean musou = struck && com.divinerpgextended.easter.Easter.musou(ms) && (net.minecraft.util.EnumChatFormatting.RESET + com.divinerpgextended.easter.Easter.MUSOU_NAME).equals(ms.getDisplayName()) && ser.isImmuneToFire()
                 && !plainStruck && ms.getItem() == net.divinerpg.utils.items.VanillaItemsWeapons.serenadeStriker;
             // звуки из игр Valve: если игры стоят (на этой машине - /mnt/d/SteamLibrary), события собираются, WAV - моно 16 бит
             java.io.File hl1 = com.divinerpgextended.easter.HalfLifeMount.halfLife(), hl2 = com.divinerpgextended.easter.HalfLifeMount.halfLife2();
@@ -8102,7 +8102,7 @@ public class SelfTest {
                 if (Math.abs(sp[0] * 16) > 5000 || Math.abs(sp[1] * 16) > 5000) continue;
                 int sk = com.divinerpgextended.world.ScatterGen.kind(w.getWorldChunkManager().getBiomeGenAt(sp[0] * 16 + 8, sp[1] * 16 + 8), jungles);
                 if (sk >= 0) kinds[sk]++;
-                if (sk == com.divinerpgextended.world.ScatterGen.JUNGLE && (firstJungle == null || Math.abs(sp[0]) + Math.abs(sp[1]) < Math.abs(firstJungle[0]) + Math.abs(firstJungle[1])))
+                if (sk == com.divinerpgextended.world.ScatterGen.JUNGLE && com.divinerpgextended.world.ScatterGen.allowed(w, rx, rz) && (firstJungle == null || Math.abs(sp[0]) + Math.abs(sp[1]) < Math.abs(firstJungle[0]) + Math.abs(firstJungle[1])))
                     firstJungle = sp;
             }
             int[] snow = com.divinerpgextended.world.LairSites.nearest(w, com.divinerpgextended.world.LairSites.SNOW, 0, 0, 5000, 0);
@@ -8487,6 +8487,14 @@ public class SelfTest {
                 int rise = Math.min(t, (TY - (F + 1)) * 2), yb = F + 1 + rise / 2;
                 if (!w.isAirBlock(cx + R - 1 + t, yb + 1, cz) || !w.isAirBlock(cx + R - 1 + t, yb + 2, cz)) walk += " " + t;
             }
+            // лава в окнах закрыта со всех сторон: ни у одного её блока нет соседа-воздуха (палата из прошлых запусков - после запечатки)
+            int sealed = com.divinerpgextended.world.WatcherVault.seal(w, cx, cz);
+            int leaks = 0;
+            for (int dx = -R - 2; dx <= R + 2; dx++) for (int dz = -R - 2; dz <= R + 2; dz++) for (int y = F + 1; y <= F + 9; y++) {
+                if (dx * dx + dz * dz >= (R + 2) * (R + 2) || w.getBlock(cx + dx, y, cz + dz).getMaterial() != net.minecraft.block.material.Material.lava) continue;
+                if (w.isAirBlock(cx + dx + 1, y, cz + dz) || w.isAirBlock(cx + dx - 1, y, cz + dz) || w.isAirBlock(cx + dx, y, cz + dz + 1) || w.isAirBlock(cx + dx, y, cz + dz - 1)
+                    || w.isAirBlock(cx + dx, y - 1, cz + dz)) leaks++;
+            }
             boolean in = com.divinerpgextended.world.WorldGenOuterLairs.inside(w, type, cx + 12.5, F + 1, cz + 0.5);
             String out = com.divinerpgextended.boss.LairSummons.refusal(p, net.divinerpg.utils.items.VanillaItemsOther.infernalFlame, cx + 200, 60, cz);
             // ни одна палата не ложится на логово Смотрителя
@@ -8505,6 +8513,19 @@ public class SelfTest {
                 && com.divinerpgextended.boss.KingRace.trail(king) > 10;
             com.divinerpgextended.boss.KingRace.spawnScorchersFor(king);
             int scorchers = com.divinerpgextended.boss.KingRace.minions(king);
+            // шальной выстрел приспешника по приспешнику: урона нет, мести нет
+            java.util.List<net.minecraft.entity.EntityLivingBase> mins = new java.util.ArrayList<net.minecraft.entity.EntityLivingBase>();
+            for (Object o : w.loadedEntityList)
+                if (o instanceof net.divinerpg.entities.vanilla.EntityScorcher && !((net.minecraft.entity.Entity) o).isDead && com.divinerpgextended.boss.BossMinions.allies((net.minecraft.entity.Entity) o, king))
+                    mins.add((net.minecraft.entity.EntityLivingBase) o);
+            boolean friendly = false;
+            if (mins.size() >= 2) {
+                net.minecraft.entity.EntityLivingBase m1 = mins.get(0), m2 = mins.get(1);
+                float hp = m1.getHealth();
+                net.minecraft.entity.projectile.EntitySmallFireball fb = new net.minecraft.entity.projectile.EntitySmallFireball(w, m2, 0, 0, 0);
+                boolean took = m1.attackEntityFrom(new net.minecraft.util.EntityDamageSourceIndirect("fireball", fb, m2), 5F);
+                friendly = !took && m1.getHealth() == hp && m1.getAITarget() != m2 && !com.divinerpgextended.boss.BossMinions.allies(m1, kp);
+            }
             com.divinerpgextended.boss.KingRace.toPit(king);
             boolean pit = false;
             for (int i = 0; i < 400 && !pit; i++) {
@@ -8532,11 +8553,12 @@ public class SelfTest {
             for (Object o : new java.util.ArrayList<Object>(w.loadedEntityList)) if (o instanceof net.divinerpg.entities.vanilla.EntityScorcher) ((net.minecraft.entity.Entity) o).setDead();
             server.getConfigurationManager().playerEntityList.remove(kp);
             w.removeEntity(kp);
-            check(shell && track && posts && gate && walk.isEmpty() && in && "dre.chat.summon_lair_1".equals(out) && clash == 0 && races && scorchers >= 2 && pit && damage,
+            check(shell && track && posts && gate && walk.isEmpty() && in && "dre.chat.summon_lair_1".equals(out) && clash == 0 && races && scorchers >= 2 && pit && damage && leaks == 0 && friendly,
                 "оболочка " + shell + ", трек (клетка, ров, мостки, финиш) " + track + ", огненные столбы " + posts + ", ворота с флагом " + gate + ", непроходимо:" + walk
                     + ", внутри " + in + ", снаружи " + out + ", наложений на Смотрителя " + clash + "; гонка " + races + " (радиус " + String.format("%.1f", r1) + ", угол "
                     + String.format("%.2f -> %.2f", a0, a1) + ", след " + com.divinerpgextended.boss.KingRace.trail(king) + "), скорчеров " + scorchers + ", пит-стоп " + pit
-                    + "; урон: водный кинжал на пит-стопе " + aqPit.ammount + ", меч на пит-стопе " + swPit.ammount + ", меч на ходу " + swRace.ammount + ", выстрел по Inferno " + shot.ammount);
+                    + "; урон: водный кинжал на пит-стопе " + aqPit.ammount + ", меч на пит-стопе " + swPit.ammount + ", меч на ходу " + swRace.ammount + ", выстрел по Inferno " + shot.ammount
+                    + "; протечек лавы " + leaks + " (залатано " + sealed + "), приспешники не ранят своих " + friendly + " (" + mins.size() + ")");
             return "палата в Аду в " + cx + "," + cz + ": трек под лавой - клетчатый помост за рвом, финиш, огненные столбы, ворота с клетчатым флагом; пламя вне палаты не работает; король гоняет по треку со следом, зовёт скорчеров, встаёт на пит-стоп; водное оружие гасит щит, Inferno вдвое режет его урон";
         });
         t("Логова", "Места логов из сида: строятся, карта видит заранее", () -> {
@@ -9056,6 +9078,17 @@ public class SelfTest {
             double rose = v.boundingBox.minY - y0;
             for (int dx = 0; dx < 8; dx++) for (int dz = -1; dz <= 1; dz++) for (int dy = 0; dy < 2; dy++) w.setBlockToAir(lx + dx, ly + dy, lz + dz);
             v.rotationPitch = 0F;
+            // поле в шахматку из столбов: куда ни шагни - углы из блоков; хитбокс после шага ни во что не упирается
+            int stuck = 0, steps = 0;
+            for (int dx = 2; dx < 14; dx++) for (int dz = -6; dz <= 6; dz++) if (((dx + dz) & 1) == 0) for (int dy = 0; dy < 3; dy++) w.setBlock(lx - 3 + dx, ly + dy, lz + dz, Blocks.end_stone);
+            for (float yaw : new float[] { -90F, -70F, -55F, -45F, -35F, -110F, -125F, -135F }) {
+                com.divinerpgextended.magic.ArcanaRules.resetCooldowns();
+                a.setBarValue(100);
+                v.setPositionAndRotation(lx - 3 + 0.5, ly, lz + 0.5, yaw, 0F);
+                if (com.divinerpgextended.boss.EnderGear.tryBlink(v) == null) steps++;
+                if (!w.func_147461_a(v.boundingBox).isEmpty()) stuck++;
+            }
+            for (int dx = 2; dx < 14; dx++) for (int dz = -6; dz <= 6; dz++) for (int dy = 0; dy < 3; dy++) w.setBlockToAir(lx - 3 + dx, ly + dy, lz + dz);
             com.divinerpgextended.magic.ArcanaRules.resetCooldowns();
             v.setPositionAndRotation(c[0] + 300.5, f + 40, c[2] + 0.5, -90F, 0F); // над бездной
             String voidWhy = com.divinerpgextended.boss.EnderGear.tryBlink(v);
@@ -9072,11 +9105,11 @@ public class SelfTest {
             for (int i = 0; i < 4; i++) v.inventory.armorInventory[i] = null;
             if (added) players.remove(v);
             check(member && steers && speed > 0.05 && blinkIn && near(rage, 15) && near(rageRed, 10) && deflected && pierced && near(vsRed, 15) && pillar && blink
-                && moved > 5 && near(spent, 25) && !voidBlink && "dre.blink.void".equals(voidWhy) && "".equals(again) && ledge == null && rose > 1.9 && rescued,
+                && moved > 5 && near(spent, 25) && !voidBlink && "dre.blink.void".equals(voidWhy) && "".equals(again) && ledge == null && rose > 1.9 && rescued && stuck == 0,
                 "орда " + member + ", полёт ведёт аддон " + steers + " (скорость " + f((float) speed) + "), телепорт над островом " + blinkIn + "; ярость " + f(rage)
                     + ", в красной броне " + f(rageRed) + "; синий отбил стрелу " + deflected + ", синей бронёй пробил " + pierced + "; по красному в красном+сером "
                     + f(vsRed) + "; столп красного цел " + pillar + "; шаг " + blink + " на " + f((float) moved) + " за " + f(spent) + " арканы, в бездну " + voidBlink
-                    + " (" + voidWhy + "), сразу второй (" + again + "), на уступ " + ledge + " поднял на " + f((float) rose) + "; спасение из пустоты " + rescued);
+                    + " (" + voidWhy + "), сразу второй (" + again + "), на уступ " + ledge + " поднял на " + f((float) rose) + "; спасение из пустоты " + rescued + "; среди столбов шагов " + steps + ", застрял в блоках " + stuck);
             return "орда кружит под управлением аддона и телепортируется только над островом; красный бьёт x1.5 (красная броня Энда снимает), синий отбивает стрелы "
                 + "(синяя пробивает); броня цвета +50% по своему Айрако, серая +10%; полный сет: шаг на " + f((float) moved) + " блока за 25 арканы, не в бездну, спасение из пустоты";
         });

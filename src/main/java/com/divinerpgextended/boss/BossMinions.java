@@ -77,6 +77,29 @@ public class BossMinions {
         mark(e.entity, b);
     }
 
+    /** Свои: приспешники одного хозяина или хозяин и его приспешник. */
+    public static boolean allies(Entity a, Entity b) {
+        if (a == null || b == null || a == b || !isMinion(a) && !isMinion(b)) return false;
+        String oa = a.getEntityData().getString(OWNER), ob = b.getEntityData().getString(OWNER);
+        return !oa.isEmpty() && oa.equals(ob) || oa.equals(b.getUniqueID().toString()) || ob.equals(a.getUniqueID().toString());
+    }
+
+    /** Свои своих не ранят (шальной выстрел приспешника по приспешнику) - и не мстят за это друг другу. */
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public void onAttack(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
+        if (!e.entityLiving.worldObj.isRemote && allies(e.entityLiving, e.source.getEntity())) e.setCanceled(true);
+    }
+
+    /** Цель - свой: сбросить. */
+    @SubscribeEvent
+    public void onTarget(net.minecraftforge.event.entity.living.LivingSetAttackTargetEvent e) {
+        if (e.entityLiving.worldObj.isRemote || !allies(e.entityLiving, e.target)) return;
+        if (e.entityLiving instanceof EntityLiving && ((EntityLiving) e.entityLiving).getAttackTarget() == e.target) ((EntityLiving) e.entityLiving).setAttackTarget(null);
+        if (e.entityLiving.getAITarget() == e.target) e.entityLiving.setRevengeTarget(null);
+        if (e.entityLiving instanceof net.minecraft.entity.EntityCreature && ((net.minecraft.entity.EntityCreature) e.entityLiving).getEntityToAttack() == e.target)
+            ((net.minecraft.entity.EntityCreature) e.entityLiving).setTarget(null);
+    }
+
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onDrops(LivingDropsEvent e) {
         if (isMinion(e.entityLiving)) e.drops.clear();

@@ -560,7 +560,8 @@ public class WatcherHunt {
     @SubscribeEvent
     public void onTick(TickEvent.WorldTickEvent e) {
         if (e.phase != TickEvent.Phase.END || e.world.isRemote || e.world.getTotalWorldTime() % 100 != 0
-            || e.world.provider.dimensionId != WorldGenOuterLairs.dim(WorldGenOuterLairs.WATCHER)) return;
+            || e.world.provider.dimensionId != WorldGenOuterLairs.dim(WorldGenOuterLairs.WATCHER)
+                && e.world.provider.dimensionId != WorldGenOuterLairs.dim(WorldGenOuterLairs.SCORCHERS)) return;
         tidy(e.world);
     }
 
@@ -569,6 +570,12 @@ public class WatcherHunt {
         int changed = 0;
         for (Object o : world.playerEntities) {
             EntityPlayer p = (EntityPlayer) o;
+            if (WorldGenOuterLairs.enabled(WorldGenOuterLairs.SCORCHERS) && world.provider.dimensionId == WorldGenOuterLairs.dim(WorldGenOuterLairs.SCORCHERS)
+                && WorldGenOuterLairs.inside(world, WorldGenOuterLairs.SCORCHERS, p.posX, p.posY + 1, p.posZ)) {
+                int[] k = WorldGenOuterLairs.nearest(world.getSeed(), WorldGenOuterLairs.SCORCHERS, p.posX, p.posZ);
+                if (k != null && com.divinerpgextended.world.ScorcherPit.isNew(world, k[0], k[2]) && TIDY.add(key(k)))
+                    changed += WatcherVault.seal(world, k[0], k[2]); // палата скорчеров до 0.99.56 - залатать окна
+            }
             int[] c = vault(world, p.posX, p.posY + 1, p.posZ);
             if (c == null || TIDY.contains(key(c)) || bossIn(world, c)) continue;
             changed += upgrade(world, c);
@@ -579,13 +586,13 @@ public class WatcherHunt {
     /** Перестроить логово, если оно старого вида (бойцам - карманы); запомнить, что оно уже новое. */
     public static int upgrade(World world, int[] c) {
         TIDY.add(key(c));
-        if (!WatcherVault.old(world, c[0], c[2])) return 0;
+        if (!WatcherVault.old(world, c[0], c[2])) return WatcherVault.seal(world, c[0], c[2]);
         List<EntityPlayer> ps = new ArrayList<EntityPlayer>();
         for (Object q : world.playerEntities) {
             EntityPlayer p = (EntityPlayer) q;
             if (vault(world, p.posX, p.posY + 1, p.posZ) != null) ps.add(p);
         }
-        return new WatcherVault(c[0], c[2]).rebuild(world, c[0], c[2], ps);
+        return new WatcherVault(c[0], c[2]).rebuild(world, c[0], c[2], ps) + WatcherVault.seal(world, c[0], c[2]);
     }
 
     static boolean bossIn(World world, int[] c) {
