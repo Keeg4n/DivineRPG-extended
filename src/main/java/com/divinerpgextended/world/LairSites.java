@@ -78,13 +78,14 @@ public final class LairSites {
         }
         int[] s = raw(w, type, rx, rz, deadline);
         if (s == UNFINISHED) return s;
-        // логова Карцинуса не ближе CARCINUS_GAP: из двух близких остаётся то, у чьего региона приоритет выше
-        if (s != null && type == CARCINUS) {
-            for (int i = -1; i <= 1 && s != null; i++) for (int k = -1; k <= 1 && s != null; k++) {
+        // логова одного вида не ближе Config.lairGap: из двух близких остаётся то, у чьего региона приоритет выше
+        if (s != null && (type == CARCINUS || type == SNOW) && com.divinerpgextended.Config.lairGap > 0) {
+            int g = com.divinerpgextended.Config.lairGap, n = (g + size - 1) / size;
+            for (int i = -n; i <= n && s != null; i++) for (int k = -n; k <= n && s != null; k++) {
                 if (i == 0 && k == 0) continue;
                 int[] o = raw(w, type, rx + i, rz + k, deadline);
                 if (o == UNFINISHED) return o;
-                if (o == null || (long) (o[0] - s[0]) * (o[0] - s[0]) + (long) (o[1] - s[1]) * (o[1] - s[1]) >= (long) CARCINUS_GAP * CARCINUS_GAP) continue;
+                if (o == null || (long) (o[0] - s[0]) * (o[0] - s[0]) + (long) (o[1] - s[1]) * (o[1] - s[1]) >= (long) g * g) continue;
                 if (priority(w, rx + i, rz + k) > priority(w, rx, rz)) s = null;
             }
         }
@@ -95,8 +96,6 @@ public final class LairSites {
         return s;
     }
 
-    /** Наименьшее расстояние между логовами Карцинуса: 16 чанков. */
-    public static final int CARCINUS_GAP = 256;
     /** Место региона до проверки соседей. */
     private static final Map<Long, int[]> RAW = new HashMap<Long, int[]>();
 
@@ -238,7 +237,7 @@ public final class LairSites {
         BiomeGenBase b = w.getWorldChunkManager().getBiomeGenAt(cx * 16 + 8, cz * 16 + 8);
         boolean desert = com.divinerpgextended.Config.scatterInModBiomes ? ScatterGen.desert(b) && !Biomes.jungle(b)
             : b == BiomeGenBase.desert || b == BiomeGenBase.desertHills;
-        return desert ? new int[] { cx * 16 + 8, cz * 16 + 8 } : null;
+        return desert && ScatterGen.allowed(w, rx, rz) ? new int[] { cx * 16 + 8, cz * 16 + 8 } : null;
     }
 
     /**

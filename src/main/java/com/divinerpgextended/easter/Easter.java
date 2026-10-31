@@ -29,6 +29,8 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * Half-Life, если они установлены ({@link com.divinerpgextended.client.HevSounds}).</li>
  * <li>Реалмитовый меч с именем "crowbar" - монтировка.</li>
  * <li>Ракетница Мерика с именем "rpg" - РПГ-7, ракета летит гранатой ПГ-7.</li>
+ * <li>Ударная серенада, брошенная на землю, от удара молнии становится Musou no Hitotachi: объёмный тати в руке и на земле,
+ * своё имя; все свойства серенады те же. Молния её не сжигает.</li>
  * </ul>
  * Переименовал обратно - вид обычный.
  */
@@ -160,6 +162,23 @@ public final class Easter {
         return enabled && s != null && s.getItem() == VanillaItemsWeapons.realmiteSword && named(s, "crowbar");
     }
 
+    public static final String MUSOU = "DreMusou", MUSOU_NAME = "Musou no Hitotachi";
+
+    /** Musou no Hitotachi: Ударная серенада, преображённая молнией (метка в предмете). */
+    public static boolean musou(ItemStack s) {
+        return enabled && s != null && s.getItem() == VanillaItemsWeapons.serenadeStriker && s.hasTagCompound() && s.getTagCompound().getBoolean(MUSOU);
+    }
+
+    /** Преобразить серенаду: метка и имя; true - получилось (это серенада и ещё не преображена). */
+    public static boolean awaken(ItemStack s) {
+        if (!enabled || s == null || s.getItem() != VanillaItemsWeapons.serenadeStriker) return false;
+        if (!s.hasTagCompound()) s.setTagCompound(new NBTTagCompound());
+        if (s.getTagCompound().getBoolean(MUSOU)) return false;
+        s.getTagCompound().setBoolean(MUSOU, true);
+        s.setStackDisplayName(MUSOU_NAME);
+        return true;
+    }
+
     /** РПГ-7: ракетница Мерика с именем rpg. */
     public static boolean rpg(ItemStack s) {
         return enabled && s != null && s.getItem() == ArcanaItems.meriksMissile && named(s, "rpg", "rpg-7", "rpg7");
@@ -173,6 +192,22 @@ public final class Easter {
 
     /** Голос костюма и морфин (сервер). */
     public static class Events {
+
+        /** Молния в брошенную Ударную серенаду: не сжигает, а преображает в Musou no Hitotachi. */
+        @SubscribeEvent
+        public void onLightning(net.minecraftforge.event.entity.EntityStruckByLightningEvent e) {
+            if (!(e.entity instanceof net.minecraft.entity.item.EntityItem) || e.entity.worldObj.isRemote) return;
+            net.minecraft.entity.item.EntityItem it = (net.minecraft.entity.item.EntityItem) e.entity;
+            ItemStack s = it.getEntityItem();
+            if (!enabled || s == null || s.getItem() != VanillaItemsWeapons.serenadeStriker) return;
+            e.setCanceled(true);
+            cpw.mods.fml.relauncher.ReflectionHelper.setPrivateValue(net.minecraft.entity.Entity.class, it, true, "isImmuneToFire", "field_70178_ae");
+            it.extinguish();
+            if (awaken(s)) {
+                it.setEntityItemStack(s);
+                ((net.minecraft.world.WorldServer) it.worldObj).func_147487_a("witchMagic", it.posX, it.posY + 0.5, it.posZ, 60, 0.4, 0.6, 0.4, 0.2);
+            }
+        }
 
         @SubscribeEvent
         public void onLogin(cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent e) {

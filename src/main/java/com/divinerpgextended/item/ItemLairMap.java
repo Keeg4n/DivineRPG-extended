@@ -248,7 +248,7 @@ public class ItemLairMap extends Item {
             int[] s = com.divinerpgextended.world.ScatterGen.spot(world, rx, rz);
             int x = s[0] * 16 + 8, z = s[1] * 16 + 8;
             return com.divinerpgextended.world.ScatterGen.kind(wcm.getBiomeGenAt(x, z), jungles) == com.divinerpgextended.world.ScatterGen.JUNGLE
-                ? new int[] { x, 64, z } : null;
+                && com.divinerpgextended.world.ScatterGen.allowed(world, rx, rz) ? new int[] { x, 64, z } : null;
         });
         if (c == null) {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.map_none_jungle"));

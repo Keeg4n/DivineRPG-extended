@@ -347,7 +347,9 @@ public final class MortumArenas {
             if (!in && !tunnel && out > 0 && out <= SLOPE && slopes()) {
                 // склон вокруг: насыпь вниз до земли; выше - откос вверх и свод пещеры, опускающийся от постройки (купол, а не
                 // отвесный вырез): где сверху порода, она нависает сводом и сходится с откосом
-                put(col, TOP - 1 - (int) (out * 1.3), FOUNDATION, 0);
+                int surface = TOP - 1 - (int) (out * 1.3);
+                put(col, surface, WorldGenNests.GRASS, 0); // насыпь сверху - трава Мортума, как вокруг (раньше голая земля)
+                put(col, surface - 1, FOUNDATION, 0);
                 int dome = TOP + dome() - (int) (out * 1.2);
                 for (int y = TOP + 1 + (int) (out * 1.5); y <= dome; y++) put(col, y, AIR, 0);
                 return true;
@@ -1216,10 +1218,13 @@ public final class MortumArenas {
             }
             // шпиль
             if (td <= TR - 1) {
-                int cone = TOP + TH + 2 + (int) Math.round((TR - td + 0.3) * ROOF / TR);
-                for (int y = TOP + TH + 2; y < cone; y++) put(col, y, AIR, 0);
-                set(col, cone, OBSIDIAN);
-                if (td < 0.7) for (int y = cone; y <= cone + 3; y++) set(col, y, y == cone + 3 ? WorldGenNests.GLOW : OBSIDIAN);
+                // кровля: сплошная (толщина - перепад высоты между соседними столбцами, без щелей), тёмный кирпич с
+                // обсидиановыми поясами, на макушке обсидиановый шпиль с огнём
+                double k = ROOF / (double) TR;
+                int cone = TOP + TH + 2 + (int) Math.round((TR - td + 0.3) * k), shell = (int) Math.ceil(k) + 1;
+                for (int y = TOP + TH + 2; y < cone - shell; y++) put(col, y, AIR, 0);
+                for (int y = Math.max(TOP + TH + 2, cone - shell); y <= cone; y++) set(col, y, (cone - TOP - TH) % 5 == 0 ? OBSIDIAN : NETHER);
+                if (td < 0.7) for (int y = cone; y <= cone + 4; y++) set(col, y, y == cone + 4 ? WorldGenNests.GLOW : OBSIDIAN);
             }
         }
 
@@ -1246,7 +1251,7 @@ public final class MortumArenas {
                     if (d < 0.8) put(col, hi - 2, FOCUS, 0);
                 }
                 int cone = hi + 1 + (int) Math.round((tr + 0.3 - d) * 2.4);
-                set(col, cone, OBSIDIAN);
+                for (int y = Math.max(hi + 1, cone - 3); y <= cone; y++) set(col, y, OBSIDIAN); // сплошной конус, без щелей
                 if (d < 0.6) {
                     set(col, cone + 1, OBSIDIAN);
                     set(col, cone + 2, FENCE);

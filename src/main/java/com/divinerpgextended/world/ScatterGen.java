@@ -88,10 +88,67 @@ public class ScatterGen extends MapGenScatteredFeature {
         return jungles;
     }
 
-    /** Чанк постройки в регионе (rx, rz) ванильной сетки (как у MapGenScatteredFeature). */
+    /** Чанк постройки в регионе (rx, rz) ванильной сетки (как у MapGenScatteredFeature; свой Random - мировой не трогаем). */
     public static int[] spot(World w, int rx, int rz) {
-        Random r = w.setRandomSeed(rx, rz, SALT);
+        Random r = new Random(rx * 341873128712L + rz * 132897987541L + w.getWorldInfo().getSeed() + SALT);
         return new int[] { rx * MAX + r.nextInt(MAX - MIN), rz * MAX + r.nextInt(MAX - MIN) };
+    }
+
+    private static final java.util.Map<World, Boolean> JUNGLES = new java.util.WeakHashMap<World, Boolean>();
+
+    /** Есть ли в мире джунгли (по настройке и замеру у спавна, один раз на мир). */
+    public static boolean jungles(World w) {
+        Boolean has = JUNGLES.get(w);
+        if (has == null) JUNGLES.put(w, has = !com.divinerpgextended.Config.scatterInModBiomes || hasJungles(w));
+        return has;
+    }
+
+    /** Вид постройки в регионе (rx, rz). */
+    public static int kindAt(World w, int rx, int rz) {
+        int[] s = spot(w, rx, rz);
+        return kind(w.getWorldChunkManager().getBiomeGenAt(s[0] * 16 + 8, s[1] * 16 + 8), jungles(w));
+    }
+
+    /**
+     * Пирамида или храм джунглей (с логовом под ними) в регионе (rx, rz) разрешены: нет такого же вида ближе
+     * {@link com.divinerpgextended.Config#lairGap} блоков с более высоким приоритетом региона. Хижины ведьм не ограничены.
+     */
+    public static boolean allowed(World w, int rx, int rz) {
+        long key = (w.getSeed() * 31 + rx) * 0x9E3779B97F4A7C15L ^ rz * 0xC2B2AE3D27D4EB4FL ^ com.divinerpgextended.Config.lairGap;
+        synchronized (ALLOWED) {
+            Boolean c = ALLOWED.get(key);
+            if (c != null) return c;
+        }
+        boolean ok = allowedNow(w, rx, rz);
+        synchronized (ALLOWED) {
+            if (ALLOWED.size() > 20000) ALLOWED.clear();
+            ALLOWED.put(key, ok);
+        }
+        return ok;
+    }
+
+    private static final java.util.Map<Long, Boolean> ALLOWED = new java.util.HashMap<Long, Boolean>();
+
+    private static boolean allowedNow(World w, int rx, int rz) {
+        int gap = com.divinerpgextended.Config.lairGap, k = kindAt(w, rx, rz);
+        if (gap <= 0 || k != DESERT && k != JUNGLE) return true;
+        int[] s = spot(w, rx, rz);
+        long me = priority(w, rx, rz);
+        int n = (gap + MAX * 16 - 1) / (MAX * 16);
+        for (int i = -n; i <= n; i++) for (int j = -n; j <= n; j++) {
+            if (i == 0 && j == 0) continue;
+            int[] o = spot(w, rx + i, rz + j);
+            long dx = (o[0] - s[0]) * 16L, dz = (o[1] - s[1]) * 16L;
+            if (dx * dx + dz * dz >= (long) gap * gap || kindAt(w, rx + i, rz + j) != k) continue;
+            if (priority(w, rx + i, rz + j) > me) return false;
+        }
+        return true;
+    }
+
+    static long priority(World w, int rx, int rz) {
+        long h = w.getSeed() ^ rx * 0x9E3779B97F4A7C15L ^ rz * 0xC2B2AE3D27D4EB4FL ^ 0x7E3A1L;
+        h ^= h >>> 31;
+        return h * 0xBF58476D1CE4E5B9L;
     }
 
     @Override
@@ -99,7 +156,7 @@ public class ScatterGen extends MapGenScatteredFeature {
         int rx = Math.floorDiv(cx, MAX), rz = Math.floorDiv(cz, MAX);
         int[] s = spot(worldObj, rx, rz);
         if (s[0] != cx || s[1] != cz) return false;
-        return kind(worldObj.getWorldChunkManager().getBiomeGenAt(cx * 16 + 8, cz * 16 + 8), jungles()) != NONE;
+        return kind(worldObj.getWorldChunkManager().getBiomeGenAt(cx * 16 + 8, cz * 16 + 8), jungles()) != NONE && allowed(worldObj, rx, rz);
     }
 
     @Override

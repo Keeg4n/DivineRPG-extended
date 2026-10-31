@@ -41,8 +41,10 @@ public final class EasterClient {
 
     static final String D = "divinerpgextended:";
     static final ResourceLocation HEV = new ResourceLocation(D + "textures/models/easter/hev.png"), CROWBAR = new ResourceLocation(D + "textures/models/easter/crowbar.png"),
-        SOFA = new ResourceLocation(D + "textures/models/easter/sofa.png"), PG7 = new ResourceLocation(D + "textures/models/easter/pg7.png");
-    static IIcon crowbar, rpg, hevHelmet, hevGoggles, hevChest, hevLegs, hevBoots;
+        SOFA = new ResourceLocation(D + "textures/models/easter/sofa.png"), PG7 = new ResourceLocation(D + "textures/models/easter/pg7.png"),
+        MUSOU = new ResourceLocation(D + "textures/models/easter/musou.png");
+    static IIcon crowbar, rpg, musou, hevHelmet, hevGoggles, hevChest, hevLegs, hevBoots;
+    static final EasterMesh MUSOU_MESH = new EasterMesh("musou");
     static final EasterModels.HevArmor HEV_MODEL = new EasterModels.HevArmor();
     static final EasterMesh CROWBAR_MESH = new EasterMesh("crowbar");
     static final EasterModels.Sofa SOFA_MODEL = new EasterModels.Sofa();
@@ -51,6 +53,7 @@ public final class EasterClient {
     /** Значок пасхалки для вещи или null (обычная вещь). */
     static IIcon icon(ItemStack s) {
         if (Easter.crowbar(s)) return crowbar;
+        if (Easter.musou(s)) return musou;
         if (Easter.rpg(s)) return rpg;
         if (!Easter.hev(s)) return null;
         Item i = s.getItem();
@@ -102,6 +105,7 @@ public final class EasterClient {
             custom = null;
         }
         for (Item i : new Item[] { net.divinerpg.utils.items.VanillaItemsWeapons.realmiteSword, net.divinerpg.utils.items.ArcanaItems.meriksMissile,
+            net.divinerpg.utils.items.VanillaItemsWeapons.serenadeStriker,
             net.divinerpg.utils.items.VanillaItemsArmor.realmiteHelmet, net.divinerpg.utils.items.VanillaItemsArmor.realmiteBody,
             net.divinerpg.utils.items.VanillaItemsArmor.realmiteLegs, net.divinerpg.utils.items.VanillaItemsArmor.realmiteBoots }) {
             IItemRenderer prev = custom == null ? null : custom.get(i);
@@ -119,6 +123,7 @@ public final class EasterClient {
         public void onStitch(TextureStitchEvent.Pre e) {
             if (e.map.getTextureType() != 1) return;
             crowbar = e.map.registerIcon(D + "easter/crowbar");
+            musou = e.map.registerIcon(D + "easter/musou");
             rpg = e.map.registerIcon(D + "easter/rpg");
             hevHelmet = e.map.registerIcon(D + "easter/hev_helmet");
             hevGoggles = e.map.registerIcon(D + "easter/hev_goggles");
@@ -189,6 +194,11 @@ public final class EasterClient {
             if (Easter.crowbar(s)) { // монтировка в руке и на земле - объёмная, в той же раскладке, что значок меча
                 Minecraft.getMinecraft().getTextureManager().bindTexture(CROWBAR);
                 CROWBAR_MESH.render("crowbar", "item", 1F / 16F);
+                return;
+            }
+            if (Easter.musou(s)) { // Musou no Hitotachi - объёмный тати
+                Minecraft.getMinecraft().getTextureManager().bindTexture(MUSOU);
+                MUSOU_MESH.render("musou", "item", 1F / 16F);
                 return;
             }
             ItemRenderer.renderItemIn2D(Tessellator.instance, i.getMaxU(), i.getMinV(), i.getMinU(), i.getMaxV(), i.getIconWidth(), i.getIconHeight(), 0.0625F);

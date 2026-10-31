@@ -65,6 +65,8 @@ public class Config {
     public static boolean requireBossUnlocks = true;
     public static boolean replaceTwilightClock = true;
     public static boolean snowGlobeOnlyFromBoss = true, scatterInModBiomes = true;
+    /** Наименьшее расстояние между логовами обычного мира одного вида (блоков): 40 чанков. */
+    public static int lairGap = 640;
     public static boolean snowflakesInSummons = true;
     public static boolean warnVetheaInventory = true;
     public static boolean progressSpawns = true, lowRankNoDrops = true;
@@ -203,6 +205,8 @@ public class Config {
             "Логово Карцинуса: одно на квадрат N x N блоков, если в нём есть песчаный пляж у моря; место из сида мира, карта знает его заранее (0 - не генерировать)");
         snowDungeonSpacing = cfg.getInt("snowDungeonSpacing", "worldgen", snowDungeonSpacing, 0, 100000,
             "Ледяная пещера Снежного Глакона: одна на квадрат N x N блоков, если в нём есть ровная заснеженная суша; место из сида мира (0 - не генерировать)");
+        lairGap = cfg.getInt("lairGap", "worldgen", lairGap, 0, 10000,
+            "Логова обычного мира одного вида (Карцинус, ледяная пещера Глакона, гробница под пирамидой, город под храмом джунглей) - не ближе N блоков друг к другу; из двух близких остаётся одно (640 = 40 чанков)");
         mapSearchRadius = cfg.getInt("mapSearchRadius", "worldgen", mapSearchRadius, 500, 30000,
             "Карты логов обычного мира: радиус поиска в блоках (5000 - квадрат 10000 x 10000)");
         mapSkipNear = cfg.getInt("mapSkipNear", "worldgen", mapSkipNear, 0, 1000,

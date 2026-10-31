@@ -97,7 +97,8 @@ public class LairDomes implements IWorldGenerator {
         int rx = Math.floorDiv(x, span), rz = Math.floorDiv(z, span);
         for (int i = -1; i <= 1; i++) for (int k = -1; k <= 1; k++) {
             int[] s = ScatterGen.spot(w, rx + i, rz + k);
-            if (ScatterGen.kind(w.getWorldChunkManager().getBiomeGenAt(s[0] * 16 + 8, s[1] * 16 + 8), has) == ScatterGen.JUNGLE) out.add(jungleCenter(s[0], s[1]));
+            if (ScatterGen.kind(w.getWorldChunkManager().getBiomeGenAt(s[0] * 16 + 8, s[1] * 16 + 8), has) == ScatterGen.JUNGLE && ScatterGen.allowed(w, rx + i, rz + k))
+                out.add(jungleCenter(s[0], s[1]));
         }
         return out;
     }

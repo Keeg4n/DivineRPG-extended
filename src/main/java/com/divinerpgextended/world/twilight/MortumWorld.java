@@ -197,7 +197,10 @@ public class MortumWorld {
         long seed = w.getSeed();
         int[] fall = null;
         for (int x = x0; x < x0 + 16; x++) for (int z = z0; z < z0 + 16; z++) {
-            if (onArena(w, x, z)) continue;
+            if (onArena(w, x, z)) { // под ареной реки нет, но и пустот у дна оставлять нельзя: Лета рядом - сбоку карманы
+                for (int y = 6; y <= SEA; y++) if (w.isAirBlock(x, y, z) || soft(w, x, y, z)) w.setBlock(x, y, z, tw.dirt(), 0, 2);
+                continue;
+            }
             double a = Math.abs(riverNoise(seed, x, z));
             if (a < WIDTH) { // русло
                 int bed = SEA - 1 - (int) Math.round((1 - a / WIDTH) * (DEEP - 1));

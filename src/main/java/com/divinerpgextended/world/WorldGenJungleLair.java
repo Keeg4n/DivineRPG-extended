@@ -51,6 +51,8 @@ public class WorldGenJungleLair implements IWorldGenerator {
         for (StructureBoundingBox t : temples(gen)) {
             if (t.maxX < x0 || t.minX > x0 + 15 || t.maxZ < z0 || t.minZ > z0 + 15) continue;
             if (!templeReady(world, t, chunkX, chunkZ) || isBuilt(world, t)) continue;
+            // ванильный храм (без своего генератора храмов) рядом с другим - без логова: логова одного вида не ближе lairGap
+            if (!ScatterGen.allowed(world, Math.floorDiv(t.minX >> 4, ScatterGen.MAX), Math.floorDiv(t.minZ >> 4, ScatterGen.MAX))) continue;
             int[] a = build(world, new Random(world.getSeed() ^ t.minX * 341873128712L ^ t.minZ * 132897987541L), t);
             if (a != null) DivineRPGExtended.LOG.info("Логово джунглей под храмом " + t.minX + " " + t.minZ + ": алтарь " + a[0] + " " + a[1] + " " + a[2]);
         }

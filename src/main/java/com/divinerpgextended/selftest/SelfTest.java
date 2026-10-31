@@ -3069,7 +3069,7 @@ public class SelfTest {
                 && com.divinerpgextended.easter.Easter.hev(toGoggles) && back != null && !com.divinerpgextended.easter.Easter.goggles(back) && plainNo;
             // детальные модели: все части костюма и монтировка
             java.util.Map<String, Integer> groups = new java.util.TreeMap<String, Integer>();
-            for (String mf : new String[] { "hev", "crowbar" }) {
+            for (String mf : new String[] { "hev", "crowbar", "musou" }) {
                 java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(
                     com.divinerpgextended.easter.Easter.class.getResourceAsStream("/assets/divinerpgextended/models/easter/" + mf + ".mesh"), "UTF-8"));
                 String grp = null;
@@ -3080,7 +3080,16 @@ public class SelfTest {
                 br.close();
             }
             boolean meshes = true;
-            for (String grp : new String[] { "helmet", "goggles", "chest", "legs", "boots", "crowbar" }) meshes &= groups.containsKey(grp) && groups.get(grp) >= 24;
+            for (String grp : new String[] { "helmet", "goggles", "chest", "legs", "boots", "crowbar", "musou" }) meshes &= groups.containsKey(grp) && groups.get(grp) >= 24;
+            // Ударная серенада на земле + молния = Musou no Hitotachi (не горит); обычный меч - как был
+            net.minecraft.entity.item.EntityItem ser = new net.minecraft.entity.item.EntityItem(w, 0.5, 120, 0.5, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.serenadeStriker));
+            net.minecraft.entity.effect.EntityLightningBolt bolt = new net.minecraft.entity.effect.EntityLightningBolt(w, 0.5, 120, 0.5);
+            boolean struck = MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.EntityStruckByLightningEvent(ser, bolt));
+            ItemStack ms = ser.getEntityItem();
+            net.minecraft.entity.item.EntityItem plainSword = new net.minecraft.entity.item.EntityItem(w, 0.5, 120, 0.5, new ItemStack(Items.iron_sword));
+            boolean plainStruck = MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.EntityStruckByLightningEvent(plainSword, bolt));
+            boolean musou = struck && com.divinerpgextended.easter.Easter.musou(ms) && com.divinerpgextended.easter.Easter.MUSOU_NAME.equals(ms.getDisplayName()) && ser.isImmuneToFire()
+                && !plainStruck && ms.getItem() == net.divinerpg.utils.items.VanillaItemsWeapons.serenadeStriker;
             // звуки из игр Valve: если игры стоят (на этой машине - /mnt/d/SteamLibrary), события собираются, WAV - моно 16 бит
             java.io.File hl1 = com.divinerpgextended.easter.HalfLifeMount.halfLife(), hl2 = com.divinerpgextended.easter.HalfLifeMount.halfLife2();
             int events = 0;
@@ -3093,10 +3102,10 @@ public class SelfTest {
             byte[] cbar = com.divinerpgextended.easter.HalfLifeMount.wav("hl1/weapons/cbar_hit1"), sprint = com.divinerpgextended.easter.HalfLifeMount.wav("hl2/player/suit_sprint");
             boolean wavOk = cbar == null || (cbar[22] == 1 && cbar[34] == 16 && cbar.length > 1000);
             boolean sounds = (hl1 == null || cbar != null && wavOk && events >= 15) && (hl2 == null || sprint != null && sprint[22] == 1);
-            check(names && logon && once && morphine && cooldown && fracture && placed && halves && sits && gone && style && meshes && sounds,
+            check(names && logon && once && morphine && cooldown && fracture && placed && halves && sits && gone && style && meshes && sounds && musou,
                 "имена " + names + ", вход в систему " + logon + " (раз " + once + "), морфин " + morphine + ", перезарядка " + cooldown + ", перелом " + fracture
                     + "; диван поставлен " + placed + ", обе половины " + halves + ", сел и встал " + sits + ", сломал половину - весь пропал " + gone + "; чат " + hp.chat
-                    + "; вид шлема в верстаке " + style + "; модели " + groups + "; звуки: HL " + hl1 + ", HL2 " + hl2 + ", событий " + events + ", WAV " + wavOk);
+                    + "; вид шлема в верстаке " + style + "; Musou no Hitotachi от молнии " + musou + " (" + ms.getDisplayName() + ")" + "; модели " + groups + "; звуки: HL " + hl1 + ", HL2 " + hl2 + ", событий " + events + ", WAV " + wavOk);
             return "реалмитовая броня с именем H.E.V - костюм (голос: вход в систему, морфин раз в 5 минут, перелом; шлем в верстаке - очки и обратно), реалмитовый меч crowbar, ракетница Мерика rpg; диван с РПГ: две половины, на нём сидят; модели " + groups
                 + "; звуки из Half-Life " + (hl1 != null) + " и Half-Life 2 " + (hl2 != null) + ": событий " + events + "/" + com.divinerpgextended.easter.HalfLifeMount.EVENTS.size();
         });
@@ -6792,6 +6801,44 @@ public class SelfTest {
                     + ", снарядов блинка " + bolts + "; халит " + halite + "; боковая дробина " + sh.ammount + "; ладья куплена " + bought + ", в ладье цел " + safe + ", вплавь грызут " + bitten
                     + ", лодка разъелась " + rotted + "; пауков Divine нет " + noWild + ", надгробие наказано " + punished + "; карты " + maps + ", Харонов на 70x70 чанков " + docks);
             return "Демона пробивает только фазер, луки рядом рвутся, руны взрываются, блинк с тремя снарядами; халитовое оружие - как у миров; ладья у Харона спасает от Леты, лодка разъедается; надгробия Пожирателя дорого бить; карты к каждой арене";
+        });
+        t("Логова", "РЕНДЕР роща Эдема: корни под островом", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            int cx = 40000, cz = 40000, T = com.divinerpgextended.world.twilight.WorldGenNests.TOP;
+            loadAround(w, cx, cz, 4);
+            for (int x = cx - 60; x <= cx + 60; x++) for (int z = cz - 60; z <= cz + 60; z++) for (int y = T - 70; y <= T + 70; y++)
+                if (!w.isAirBlock(x, y, z)) w.setBlockToAir(x, y, z);
+            com.divinerpgextended.world.twilight.ColumnStructure st = com.divinerpgextended.world.twilight.WorldGenNests.grove(com.divinerpgextended.world.twilight.TwilightWorld.EDEN, cx, cz);
+            for (int x0 = cx - 56; x0 < cx + 56; x0 += 16) for (int z0 = cz - 56; z0 < cz + 56; z0 += 16) st.buildSlice(w, cx, cz, x0, z0);
+            // корни под островом: брёвна ниже низа острова у каждого дерева, и ни одной колонны-сталактита
+            int under = 0, deep = 0;
+            for (int x = cx - 40; x <= cx + 40; x++) for (int z = cz - 40; z <= cz + 40; z++) {
+                int low = -1;
+                for (int y = T - 60; y < T; y++) if (!w.isAirBlock(x, y, z)) { low = y; break; }
+                if (low < 0 || w.getBlock(x, low, z) != net.divinerpg.utils.blocks.TwilightBlocks.edenLogs) continue;
+                under++;
+                if (w.getBlock(x, T - 1, z) == net.divinerpg.utils.blocks.TwilightBlocks.edenLogs) continue; // ствол сквозь остров
+                int run = 0;
+                for (int y = low; y < T && w.getBlock(x, y, z) == net.divinerpg.utils.blocks.TwilightBlocks.edenLogs; y++) run++;
+                if (run > 6) deep++;
+            }
+            dump(w, cx, T, cz, 44, "render-grove");
+            check(under > 40 && deep == 0, "корней под островом " + under + ", колонн длиннее 6 " + deep);
+            return "под островом рощи корней " + under + ", колонн-сталактитов нет";
+        });
+        t("Логова", "РЕНДЕР живые арены Мортума", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            StringBuilder rep = new StringBuilder();
+            com.divinerpgextended.world.twilight.MortumArenas.Type[] types = { com.divinerpgextended.world.twilight.MortumArenas.Type.VAMACHERON,
+                com.divinerpgextended.world.twilight.MortumArenas.Type.DEMON };
+            for (com.divinerpgextended.world.twilight.MortumArenas.Type t : types) {
+                int[] c = com.divinerpgextended.world.twilight.MortumArenas.nearestOf(w, t, 0, 0, 8);
+                if (c == null) continue;
+                loadAround(w, c[0], c[2], 5);
+                dump(w, c[0], com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP + 20, c[2], 46, "render-live-" + t.key());
+                rep.append(t.key()).append(" ").append(c[0]).append(",").append(c[2]).append("; ");
+            }
+            return rep.toString();
         });
         t("Логова", "РЕНДЕР арен Мортума на ровном дне", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);

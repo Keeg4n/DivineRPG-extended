@@ -226,6 +226,11 @@ public class WorldGenNests implements IWorldGenerator {
         }
     }
 
+    /** Постройка заповедной рощи мира (для проверок и рендера). */
+    public static ColumnStructure grove(TwilightWorld w, int cx, int cz) {
+        return new Nest(w, cx, cz);
+    }
+
     /** Ближайший центр предмета кольца (радиус ring, count штук) - расстояние до него. */
     static double ringDist(double dx, double dz, double ring, int count, double phase) {
         double a = Math.atan2(dz, dx) - phase, step = Math.PI * 2 / count;
@@ -246,7 +251,7 @@ public class WorldGenNests implements IWorldGenerator {
     /**
      * Заповедная роща Великого кадиллиона: остров с шестью гигантскими деревьями мира по кругу (видно издалека), под
      * сводом их крон - поляна с обломками колоннады древнего святилища, обвитыми корнями, родником и помостом с
-     * алтарём. Под островом свисают корни деревьев.
+     * алтарём. Снизу остров оплетают корни деревьев ({@link #underRoots}).
      */
     static class Nest extends ColumnStructure {
 
@@ -298,6 +303,38 @@ public class WorldGenNests implements IWorldGenerator {
             return (a + (b - a) * fx) * (1 - fz) + (c + (d - c) * fx) * fz;
         }
 
+        static final int ROOTS = 5;
+
+        /**
+         * Корни деревьев под островом: от основания каждого дерева пять корней ползут по низу острова к центру, извиваясь и
+         * сужаясь, - оплетают остров снизу; на концах короткие свисающие кончики.
+         */
+        boolean underRoots(int dx, int dz, int bottom, int[] col) {
+            boolean any = false;
+            for (int i = 0; i < TREES; i++) for (int k = 0; k < ROOTS; k++) {
+                double base = Math.atan2(-tz[i], -tx[i]); // к центру острова
+                double a = base + (k - (ROOTS - 1) / 2.0) * 0.55 + (hash(i * 11 + k, salt) % 100 / 100.0 - 0.5) * 0.3;
+                double len = 10 + hash(i * 5 + k, salt + 3) % 9, wig = (hash(k * 3 + i, salt) % 100 / 100.0 - 0.5) * 3;
+                double best = 99, bt = 0;
+                for (int n = 0; n <= 24; n++) {
+                    double t = n / 24.0, along = t * len, side = Math.sin(t * Math.PI * 1.5) * wig;
+                    double px = tx[i] + Math.cos(a) * along - Math.sin(a) * side, pz = tz[i] + Math.sin(a) * along + Math.cos(a) * side;
+                    double dd = Math.hypot(dx + 0.5 - px, dz + 0.5 - pz);
+                    if (dd < best) {
+                        best = dd;
+                        bt = t;
+                    }
+                }
+                double thick = 1.4 * (1 - bt) + 0.5;
+                if (best > thick) continue;
+                put(col, bottom - 1, LOG, 0);
+                if (bt < 0.35 && best < thick * 0.6) put(col, bottom - 2, LOG, 0); // у ствола корень толще
+                if (bt > 0.92 && best < 0.7) for (int y = bottom - 4 - hash(i, k) % 3; y < bottom - 1; y++) put(col, y, LOG, 0); // кончик
+                any = true;
+            }
+            return any;
+        }
+
         /** Поляна под кронами: каменное кольцо-дорожка, колоннада, родник, помост с алтарём, свет. */
         protected void glade(int dx, int dz, double r, int[] col) {
             // поляна: каменное кольцо-дорожка, колоннада, родник, помост с алтарём
@@ -330,12 +367,18 @@ public class WorldGenNests implements IWorldGenerator {
             double r = Math.sqrt(dx * dx + dz * dz);
             double rOut = NEST_R - 1 + noise(dx, dz, 7, 11 + salt) * 3;
             boolean any = false;
+            int bottom = TOP; // низ острова в этом столбце
             if (r <= rOut) {
                 any = true;
                 tornBase(dx, dz, r, rOut, torn, salt, col, 1.0);
+                for (int y = Math.max(1, TOP - 80); y < TOP; y++) if (col[y * 2] != KEEP && col[y * 2] != AIR) {
+                    bottom = y;
+                    break;
+                }
                 put(col, TOP, GRASS, 0);
                 for (int y = TOP + 1; y <= TOP + 60; y++) put(col, y, AIR, 0);
                 glade(dx, dz, r, col);
+                any |= underRoots(dx, dz, bottom, col);
             }
             // деревья: стволы клонятся к поляне, у основания корни-подпорки, под островом - корни вниз;
             // кроны широкие и плоские, сдвинуты к центру - смыкаются в рваный свод над поляной
@@ -356,12 +399,9 @@ public class WorldGenNests implements IWorldGenerator {
                             double ridge = Math.abs(Math.cos(2 * (ang - salt % 10 * 0.1)));
                             rad += (TOP + 6 - y) * 0.9 * ridge * ridge;
                         }
-                        if (y <= TOP && y >= TOP - 30 && d <= 2.8) { put(col, y, LOG, 0); any = true; continue; }
-                        if (y < TOP - 30) {
-                            // корень вниз сужается к концу
-                            int root = 8 + hash(i, salt) % 10; // вырванные корни торчат из-под камня
-                            double rr = 1.9 * (1 - (TOP - 30 - y) / (double) (root + 2));
-                            if (y >= TOP - 30 - root && d <= Math.max(0.6, rr)) { put(col, y, LOG, 0); any = true; }
+                        // ствол уходит в остров, но не ниже его низа (раньше торчал снизу колонной, как сталактит)
+                        if (y <= TOP && d <= 2.8) {
+                            if (y >= bottom) { put(col, y, LOG, 0); any = true; }
                             continue;
                         }
                         if (y > TOP && d <= rad) { put(col, y, LOG, 0); any = true; continue; }
