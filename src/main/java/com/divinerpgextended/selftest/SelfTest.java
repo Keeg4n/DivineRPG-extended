@@ -3081,15 +3081,15 @@ public class SelfTest {
             }
             boolean meshes = true;
             for (String grp : new String[] { "helmet", "goggles", "chest", "legs", "boots", "crowbar", "musou", "rpg", "pg7" }) meshes &= groups.containsKey(grp) && groups.get(grp) >= 24;
-            // Ударная серенада на земле + молния = Musou no Hitotachi (не горит); обычный меч - как был
-            net.minecraft.entity.item.EntityItem ser = new net.minecraft.entity.item.EntityItem(w, 0.5, 120, 0.5, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.serenadeStriker));
+            // меч бури на земле + молния = Musou no Hitotachi (не горит, держится как меч); обычный меч - как был
+            net.minecraft.entity.item.EntityItem ser = new net.minecraft.entity.item.EntityItem(w, 0.5, 120, 0.5, new ItemStack(net.divinerpg.utils.items.ArcanaItems.stormSword));
             net.minecraft.entity.effect.EntityLightningBolt bolt = new net.minecraft.entity.effect.EntityLightningBolt(w, 0.5, 120, 0.5);
             boolean struck = MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.EntityStruckByLightningEvent(ser, bolt));
             ItemStack ms = ser.getEntityItem();
             net.minecraft.entity.item.EntityItem plainSword = new net.minecraft.entity.item.EntityItem(w, 0.5, 120, 0.5, new ItemStack(Items.iron_sword));
             boolean plainStruck = MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.EntityStruckByLightningEvent(plainSword, bolt));
             boolean musou = struck && com.divinerpgextended.easter.Easter.musou(ms) && (net.minecraft.util.EnumChatFormatting.RESET + com.divinerpgextended.easter.Easter.MUSOU_NAME).equals(ms.getDisplayName()) && ser.isImmuneToFire()
-                && !plainStruck && ms.getItem() == net.divinerpg.utils.items.VanillaItemsWeapons.serenadeStriker;
+                && !plainStruck && ms.getItem() == net.divinerpg.utils.items.ArcanaItems.stormSword && ms.getItem() instanceof net.minecraft.item.ItemSword;
             // звуки из игр Valve: если игры стоят (на этой машине - /mnt/d/SteamLibrary), события собираются, WAV - моно 16 бит
             java.io.File hl1 = com.divinerpgextended.easter.HalfLifeMount.halfLife(), hl2 = com.divinerpgextended.easter.HalfLifeMount.halfLife2();
             int events = 0;

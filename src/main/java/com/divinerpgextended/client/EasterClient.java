@@ -106,7 +106,7 @@ public final class EasterClient {
             custom = null;
         }
         for (Item i : new Item[] { net.divinerpg.utils.items.VanillaItemsWeapons.realmiteSword, net.divinerpg.utils.items.ArcanaItems.meriksMissile,
-            net.divinerpg.utils.items.VanillaItemsWeapons.serenadeStriker,
+            net.divinerpg.utils.items.ArcanaItems.stormSword,
             net.divinerpg.utils.items.VanillaItemsArmor.realmiteHelmet, net.divinerpg.utils.items.VanillaItemsArmor.realmiteBody,
             net.divinerpg.utils.items.VanillaItemsArmor.realmiteLegs, net.divinerpg.utils.items.VanillaItemsArmor.realmiteBoots }) {
             IItemRenderer prev = custom == null ? null : custom.get(i);
@@ -204,33 +204,20 @@ public final class EasterClient {
             }
             if (Easter.musou(s)) { // Musou no Hitotachi - объёмный тати
                 Minecraft.getMinecraft().getTextureManager().bindTexture(MUSOU);
-                boolean cull = GL11.glIsEnabled(GL11.GL_CULL_FACE);
-                if (type == ItemRenderType.EQUIPPED) {
-                    swordGrip();
-                    GL11.glDisable(GL11.GL_CULL_FACE); // у хвата меча масштаб по Y отрицательный - грани вывернуты
+                if (type != ItemRenderType.ENTITY) { // катана длиннее меча: в руке x KATANA вокруг середины рукояти
+                    GL11.glTranslatef(13.7F / 16F, 2.3F / 16F, -0.03F); // середина рукояти меча бури на значке (2.3, 2.3)
+                    GL11.glScalef(KATANA, KATANA, KATANA);
+                    GL11.glTranslatef(-13.25F / 16F, -2.75F / 16F, 0.03F); // середина рукояти катаны (2.75, 2.75)
                 }
                 MUSOU_MESH.render("musou", "item", 1F / 16F);
-                if (cull) GL11.glEnable(GL11.GL_CULL_FACE);
                 return;
             }
             ItemRenderer.renderItemIn2D(Tessellator.instance, i.getMaxU(), i.getMinV(), i.getMinU(), i.getMaxV(), i.getIconWidth(), i.getIconHeight(), 0.0625F);
         }
     }
 
-    /**
-     * Серенада у Divine - не меч (isFull3D нет), и в руке у игрока и мобов ванилла держит её как простой предмет: в 0.6
-     * размера меча и плашмя перед собой. Снять преобразование предмета из RenderPlayer/RenderBiped и поставить хват меча.
-     */
-    static void swordGrip() {
-        GL11.glRotatef(-20F, 0, 0, 1); // обратное к хвату предмета: Rz(20), Rx(-90), Rz(60), масштаб 0.375, сдвиг
-        GL11.glRotatef(90F, 1, 0, 0);
-        GL11.glRotatef(-60F, 0, 0, 1);
-        GL11.glScalef(1F / 0.375F, 1F / 0.375F, 1F / 0.375F);
-        GL11.glTranslatef(-0.25F, 0F, 0.1875F); // минус сдвиг предмета (0.25, 0.1875, -0.1875) плюс сдвиг меча (0, 0.1875, 0)
-        GL11.glScalef(0.625F, -0.625F, 0.625F); // хват меча, как у isFull3D
-        GL11.glRotatef(-100F, 1, 0, 0);
-        GL11.glRotatef(45F, 0, 1, 0);
-    }
+    /** Во сколько раз Musou в руке длиннее обычного меча. */
+    static final float KATANA = 1.4F;
 
     /** Ракета Мерика из РПГ-7 - граната ПГ-7 с дымным следом; остальные - рендером Divine. */
     static class RocketRenderer extends Render {
