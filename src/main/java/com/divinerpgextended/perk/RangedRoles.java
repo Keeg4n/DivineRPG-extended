@@ -90,8 +90,6 @@ public class RangedRoles {
     private static final java.util.Map<Item, Item> DUST = new java.util.HashMap<Item, Item>();
     /** Оружие, которому на этот тик патрон выставлен под игрока (в конце тика - обратно пыль). */
     private static final java.util.Set<Item> ARMED = new java.util.HashSet<Item>();
-    /** Пыль из слотов боеприпасов: {игрок, оружие, CanShootTime до клика, пыль} - списать, если выстрел был. */
-    private static final List<Object[]> FROM_SLOTS = new ArrayList<Object[]>();
     static final String SHOOT_TIME = "CanShootTime";
     private static java.lang.reflect.Field ammoField;
 
@@ -199,12 +197,10 @@ public class RangedRoles {
         if (held.getItemDamage() != 0) held.setItemDamage(0); // фазеры, поношенные до того, как перестали ломаться
         fixCooldown(held);
         boolean inf = infiniteDust(p, held);
-        // пыль только в слотах боеприпасов: выстрел без патрона, пыль спишется из слота, если выстрел был (в рюкзак не кладём)
-        boolean slots = !inf && !p.inventory.hasItem(d) && Ammo.has(p, d);
+        // пыль из заряда оружия Divine берёт сама - через AmmoHooks
         try {
-            ammoField().set(held.getItem(), inf || slots ? null : d);
+            ammoField().set(held.getItem(), inf ? null : d);
             ARMED.add(held.getItem());
-            if (slots) FROM_SLOTS.add(new Object[] { p, held, held.hasTagCompound() ? held.getTagCompound().getLong(SHOOT_TIME) : Long.MIN_VALUE, d });
         } catch (Exception ignored) {
             // поле недоступно - Divine стреляет как обычно
         }
@@ -216,14 +212,8 @@ public class RangedRoles {
         if (e.phase == TickEvent.Phase.END) disarm();
     }
 
-    /** Вернуть пыль фазерам и блицам, которым патрон выставлялся под игрока; за выстрелы пылью из слотов - списать её. */
+    /** Вернуть пыль фазерам и блицам, которым патрон выставлялся под игрока. */
     public static void disarm() {
-        for (Object[] f : FROM_SLOTS) {
-            ItemStack gun = (ItemStack) f[1];
-            long before = (Long) f[2], now = gun.hasTagCompound() ? gun.getTagCompound().getLong(SHOOT_TIME) : Long.MIN_VALUE;
-            if (now != before) Ammo.consume((EntityPlayer) f[0], (Item) f[3]); // Divine выстрелил - перезарядка записана заново
-        }
-        FROM_SLOTS.clear();
         if (ARMED.isEmpty()) return;
         for (Item i : ARMED) try {
             ammoField().set(i, DUST.get(i));
@@ -325,10 +315,8 @@ public class RangedRoles {
     }
 
     /**
-     * Стрелковое оружие Divine (блиц, пушки, La Vekor): стреляет, только если патрон есть в инвентаре, и сразу его тратит, а
-     * события перед выстрелом нет. Поэтому на клик (до выстрела), если в инвентаре патрона нет, подкладываем один:
-     * блицу - бесплатный, он бесконечный ({@link #QUIVER_TAG}, не выстрелил - убирается), иначе - из слотов боеприпасов
-     * ({@link Ammo#lend}, не выстрелил - возвращается). Луки и фазер - отдельно.
+     * Фазер и блиц: на клик (до выстрела) патрон оружия выставляется под игрока ({@link #arm}). Остальные стрелки и луки
+     * берут патрон сами - сначала из заряда оружия, потом из инвентаря ({@link com.divinerpgextended.asm.AmmoHooks}).
      */
     @SubscribeEvent
     public void onUse(net.minecraftforge.event.entity.player.PlayerInteractEvent e) {
@@ -336,13 +324,13 @@ public class RangedRoles {
         EntityPlayer p = e.entityPlayer;
         ItemStack held = p.getHeldItem();
         if (held == null || held.getItem() instanceof net.minecraft.item.ItemBow || p.capabilities.isCreativeMode) return;
-        if (DUST.get(held.getItem()) != null) {
-            arm(p, held); // пыль в рюкзаке - тратит Divine, в слотах - спишем сами, подсумок или Бесконечность - не нужна
-            return;
-        }
-        Item a = Ammo.of(held);
-        if (a == null || p.inventory.hasItem(a)) return;
-        Ammo.lend(p, a);
+        if (DUST.get(held.getItem()) != null) arm(p, held); // подсумок или Бесконечность - пыль не нужна
+    }
+
+    /** Оружие сломалось в руке - заряд не сгорает, а высыпается игроку. */
+    @SubscribeEvent
+    public void onBreak(net.minecraftforge.event.entity.player.PlayerDestroyItemEvent e) {
+        if (!e.entityPlayer.worldObj.isRemote && e.original != null && Ammo.loaded(e.original) > 0) Ammo.spill(e.entityPlayer, e.original);
     }
 
     /** Клиент: надет ли колчан у своего игрока (лук натягивается без стрел и на клиенте). */
@@ -354,8 +342,8 @@ public class RangedRoles {
     }
 
     /**
-     * Убрать помеченные боеприпасы (подложенная пыль, не ушедшая в выстрел; старые стрелы колчана), вернуть в слоты
-     * не потраченные из слотов боеприпасов и сказать клиенту про колчан и что лежит в слотах боеприпасов.
+     * Убрать помеченные боеприпасы (старые стрелы колчана), снять метку с патрона, одолженного до 0.99.67, и сказать
+     * клиенту про колчан и про вещи в старых слотах аксессуаров (кнопка видна, пока там что-то лежит).
      */
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent e) {
@@ -368,40 +356,36 @@ public class RangedRoles {
         Ammo.settle(p);
         if (p.ticksExisted % 10 == 0 && p instanceof net.minecraft.entity.player.EntityPlayerMP) {
             boolean q = wears(p, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER);
-            int[] ids = Ammo.ids(p);
-            String sig = q + java.util.Arrays.toString(ids);
+            boolean left = com.divinerpgextended.accessory.Accessories.of(p).leftovers();
+            String sig = q + "/" + left;
             if (!sig.equals(QUIVER_SENT.get(p))) {
                 QUIVER_SENT.put(p, sig);
-                com.divinerpgextended.cold.ColdHandler.NET.sendTo(new QuiverSync(q, ids), (net.minecraft.entity.player.EntityPlayerMP) p);
+                com.divinerpgextended.cold.ColdHandler.NET.sendTo(new QuiverSync(q, left), (net.minecraft.entity.player.EntityPlayerMP) p);
             }
         }
     }
 
     public static class QuiverSync implements cpw.mods.fml.common.network.simpleimpl.IMessage {
 
-        boolean on;
-        int[] ammo = new int[0];
+        boolean on, leftovers;
 
         public QuiverSync() {}
 
-        QuiverSync(boolean on, int[] ammo) {
+        QuiverSync(boolean on, boolean leftovers) {
             this.on = on;
-            this.ammo = ammo;
+            this.leftovers = leftovers;
         }
 
         @Override
         public void fromBytes(io.netty.buffer.ByteBuf buf) {
             on = buf.readBoolean();
-            int n = Math.min(buf.readUnsignedByte(), com.divinerpgextended.accessory.Accessories.TOTAL);
-            ammo = new int[n];
-            for (int i = 0; i < n; i++) ammo[i] = buf.readInt();
+            leftovers = buf.readBoolean();
         }
 
         @Override
         public void toBytes(io.netty.buffer.ByteBuf buf) {
             buf.writeBoolean(on);
-            buf.writeByte(ammo.length);
-            for (int id : ammo) buf.writeInt(id);
+            buf.writeBoolean(leftovers);
         }
     }
 
@@ -410,9 +394,7 @@ public class RangedRoles {
         @Override
         public cpw.mods.fml.common.network.simpleimpl.IMessage onMessage(QuiverSync msg, cpw.mods.fml.common.network.simpleimpl.MessageContext ctx) {
             clientQuiver = msg.on;
-            java.util.Set<Integer> a = new java.util.HashSet<Integer>();
-            for (int id : msg.ammo) a.add(id);
-            Ammo.client = a;
+            com.divinerpgextended.accessory.Accessories.clientLeftovers = msg.leftovers;
             return null;
         }
     }
@@ -430,26 +412,14 @@ public class RangedRoles {
      */
     @SubscribeEvent
     public void onNock(net.minecraftforge.event.entity.player.ArrowNockEvent e) {
-        if (e.result == null || !(quiver(e.entityPlayer) || fromSlots(e.entityPlayer, e.result))) return;
+        if (e.result == null || !quiver(e.entityPlayer)) return;
         e.entityPlayer.setItemInUse(e.result, e.result.getMaxItemUseDuration());
         e.setCanceled(true);
     }
 
-    /** Стрелы для лука не в инвентаре, а в слотах боеприпасов (луки сами смотрят только инвентарь). */
-    private static boolean fromSlots(EntityPlayer p, ItemStack bow) {
-        Item a = Ammo.of(bow);
-        return a != null && !p.capabilities.isCreativeMode && !p.inventory.hasItem(a) && Ammo.has(p, a);
-    }
-
     @SubscribeEvent
     public void onLoose(net.minecraftforge.event.entity.player.ArrowLooseEvent e) {
-        if (quiver(e.entityPlayer)) {
-            lendInfinity(e.entityPlayer, e.bow);
-            return;
-        }
-        // стрела из слотов боеприпасов: на миг в инвентарь, лук её тут же потратит
-        if (e.bow != null && !e.entityPlayer.worldObj.isRemote && fromSlots(e.entityPlayer, e.bow)
-            && net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(INFINITY, e.bow) == 0) Ammo.lend(e.entityPlayer, Ammo.of(e.bow));
+        if (quiver(e.entityPlayer)) lendInfinity(e.entityPlayer, e.bow);
     }
 
     /** Повесить на лук временную Бесконечность (снимается, когда лук отпущен). */

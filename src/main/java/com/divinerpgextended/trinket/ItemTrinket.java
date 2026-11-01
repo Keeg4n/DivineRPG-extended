@@ -15,8 +15,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Бижутерия Джека: надевается только в слоты аксессуаров (вкладка в инвентаре или ПКМ вещью), в рюкзаке не
- * работает. Эффекты - в {@link TrinketEffects}.
+ * Аксессуары: работают только встроенными в надетую броню ({@link com.divinerpgextended.accessory.Sockets}, вставка - на
+ * Наковальне Странника), в рюкзаке не работают. Эффекты - в {@link TrinketEffects}.
  */
 public class ItemTrinket extends Item {
 
@@ -72,21 +72,33 @@ public class ItemTrinket extends Item {
     public void addInformation(ItemStack s, EntityPlayer p, List list, boolean adv) {
         Trinket t = of(s);
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.trinket." + t.key() + ".desc"));
-        list.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.trinket.how"));
+        list.add(EnumChatFormatting.GOLD + howTo(s).getUnformattedText());
         list.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.trinket.ask"));
     }
 
-    /** ПКМ вещью в руке - надеть в первый свободный открытый слот аксессуаров. */
+    /** "Встраивается в ботинки на Наковальне Странника: 20 ур." - и для вещей Divine-аксессуаров. */
+    public static net.minecraft.util.IChatComponent howTo(ItemStack s) {
+        return new net.minecraft.util.ChatComponentTranslation("dre.trinket.how", partNames(com.divinerpgextended.accessory.Sockets.parts(s)),
+            com.divinerpgextended.accessory.Sockets.levels(s));
+    }
+
+    /** Названия частей брони по битам: "шлем или нагрудник". */
+    public static net.minecraft.util.IChatComponent partNames(int mask) {
+        net.minecraft.util.IChatComponent out = new net.minecraft.util.ChatComponentText("");
+        boolean first = true;
+        for (int i = 0; i < 4; i++) {
+            if ((mask & 1 << i) == 0) continue;
+            if (!first) out.appendSibling(new net.minecraft.util.ChatComponentTranslation("dre.sockets.or"));
+            out.appendSibling(new net.minecraft.util.ChatComponentTranslation("dre.sockets.part." + i));
+            first = false;
+        }
+        return out;
+    }
+
+    /** ПКМ вещью в руке - подсказка, куда и где она встраивается. */
     @Override
     public ItemStack onItemRightClick(ItemStack s, net.minecraft.world.World w, EntityPlayer p) {
-        if (w.isRemote) return s;
-        if (com.divinerpgextended.accessory.Accessories.of(p).equip(s)) {
-            w.playSoundAtEntity(p, "random.orb", 0.5F, 1.4F);
-            com.divinerpgextended.audit.Audit.log(p, "Accessory", "надет из руки: " + s.getDisplayName());
-            if (!p.capabilities.isCreativeMode) s.stackSize--;
-        } else {
-            p.addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.accessories.no_slot"));
-        }
+        if (!w.isRemote) p.addChatMessage(howTo(s));
         return s;
     }
 }

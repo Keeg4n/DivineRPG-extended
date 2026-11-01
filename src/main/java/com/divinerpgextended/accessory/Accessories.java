@@ -12,15 +12,12 @@ import net.minecraft.nbt.NBTTagList;
 
 import com.divinerpgextended.boss.Boss;
 import com.divinerpgextended.boss.BossProgress;
-import com.divinerpgextended.registry.ModItems;
-import com.divinerpgextended.trinket.ItemTrinket;
 import com.divinerpgextended.trinket.Trinket;
 
 /**
- * Аксессуары игрока (как в Террарии): свои слоты под бижутерию аддона. Всего 6, открыто 2 и ещё по одному за
- * Короля-лича, Смотрителя, Демона сумерек и Карота. Одинаковые вещи вместе не работают. Хранятся в постоянных данных
- * игрока - переживают смерть. Ниже - {@link #AMMO} слотов боеприпасов ({@link com.divinerpgextended.perk.Ammo}): тот же
- * объект, поэтому защита от дюпа, журнал и /dreinv - общие.
+ * Аксессуары игрока. Работают встроенными в надетую броню ({@link Sockets}); здесь же - старые слоты аксессуаров и
+ * боеприпасов (до 0.99.67): в них больше ничего не кладётся и ничего не работает, вещи из них только забирают -
+ * вкладка видна, пока там что-то лежит. Хранятся в постоянных данных игрока.
  * <p>
  * Защита от дюпа: на сервере один объект на игрока (по UUID), и он привязан к текущей сущности игрока. После смерти
  * или перезахода сущность новая - объект пересоздаётся из её данных, а старый становится недействительным, и все
@@ -31,7 +28,7 @@ public class Accessories implements IInventory {
     public static final int SIZE = 6, BASE = 2;
     /** Слоты боеприпасов идут после аксессуаров: SIZE .. TOTAL - 1. */
     public static final int AMMO = 9, TOTAL = SIZE + AMMO;
-    /** Боссы, каждый из которых открывает ещё один слот (по порядку). */
+    /** Боссы, каждый из которых открывает второе гнездо в своей части брони Странника ({@link Sockets#SECOND}). */
     public static final Boss[] UNLOCKS = { Boss.LICH_KING, Boss.WATCHER, Boss.TWILIGHT_DEMON, Boss.KAROT };
     public static final String TAG = "dre_accessories";
     private static final Map<UUID, Accessories> LIVE = new HashMap<UUID, Accessories>();
@@ -84,16 +81,20 @@ public class Accessories implements IInventory {
         return !player.isDead && LIVE.get(player.getUniqueID()) == this;
     }
 
-    /** Надет ли такой аксессуар (только в открытых слотах). В Ветее работают только ветейские. */
+    /** Встроен ли такой аксессуар в надетую броню. В Ветее работают только ветейские. */
     public static boolean wears(EntityPlayer p, Trinket t) {
         if (p == null || p.worldObj.isRemote) return false;
         if (!t.vethean() && com.divinerpgextended.Config.vetheaNightmare
             && p.dimension == net.divinerpg.utils.config.ConfigurationHelper.vethea && !com.divinerpgextended.vethea.VetheaFloors.allBosses(p)) return false;
-        Accessories a = of(p);
-        for (int i = 0; i < Math.min(a.unlocked, SIZE); i++) {
-            ItemStack s = a.stacks[i];
-            if (s != null && s.getItem() == ModItems.trinket && ItemTrinket.of(s).provides().contains(t)) return true;
-        }
+        return Sockets.wears(p, t);
+    }
+
+    /** Клиент: в старых слотах своего игрока что-то лежит (присылает сервер, {@link com.divinerpgextended.perk.RangedRoles.QuiverSync}). */
+    public static boolean clientLeftovers;
+
+    /** В старых слотах что-то осталось (вкладка видна, пока не заберут). */
+    public boolean leftovers() {
+        for (ItemStack s : stacks) if (s != null) return true;
         return false;
     }
 
@@ -102,12 +103,10 @@ public class Accessories implements IInventory {
         return s != null && (s.getItem() == net.divinerpg.utils.items.VetheaItems.heivaBelt || s.getItem() == net.divinerpg.utils.items.VetheaItems.minersAmulet);
     }
 
-    /** Надета ли вещь Divine-аксессуар (в открытых слотах). */
+    /** Встроена ли вещь Divine-аксессуар в надетую броню. */
     public static boolean wearsItem(EntityPlayer p, net.minecraft.item.Item item) {
         if (p == null || p.worldObj.isRemote) return false;
-        Accessories a = of(p);
-        for (int i = 0; i < Math.min(a.unlocked, SIZE); i++) if (a.stacks[i] != null && a.stacks[i].getItem() == item) return true;
-        return false;
+        return Sockets.wearsItem(p, item);
     }
 
     private static NBTTagCompound persisted(EntityPlayer p) {
@@ -137,36 +136,8 @@ public class Accessories implements IInventory {
         persisted(player).setTag(TAG, list);
     }
 
-    /** Можно ли положить эту вещь в слот: в слот боеприпасов - боеприпасы; в аксессуар - бижутерия, слот открыт, такой же вещи в других слотах нет. */
+    /** В старые слоты ничего не кладётся - только забрать то, что осталось. */
     public boolean canPlace(int slot, ItemStack s) {
-        if (slot >= SIZE) return !readOnly && s != null && com.divinerpgextended.perk.Ammo.isAmmo(s.getItem());
-        if (readOnly || s == null || slot >= unlocked) return false;
-        if (divineAccessory(s)) { // такой же вещи в других слотах нет
-            for (int i = 0; i < SIZE; i++) if (i != slot && stacks[i] != null && stacks[i].getItem() == s.getItem()) return false;
-            return true;
-        }
-        if (s.getItem() != ModItems.trinket) return false;
-        // один и тот же эффект дважды не надеть - ни саму вещь, ни объединённую с ней
-        java.util.Set<Trinket> mine = ItemTrinket.of(s).provides();
-        for (int i = 0; i < SIZE; i++) {
-            if (i == slot || stacks[i] == null || stacks[i].getItem() != ModItems.trinket) continue;
-            for (Trinket other : ItemTrinket.of(stacks[i]).provides()) if (mine.contains(other)) return false;
-        }
-        return true;
-    }
-
-    /** Надеть в первый свободный подходящий слот (ПКМ вещью в руке). */
-    public boolean equip(ItemStack s) {
-        if (!valid()) return false;
-        for (int i = 0; i < Math.min(unlocked, SIZE); i++) {
-            if (stacks[i] == null && canPlace(i, s)) {
-                ItemStack one = s.copy();
-                one.stackSize = 1;
-                stacks[i] = one;
-                markDirty();
-                return true;
-            }
-        }
         return false;
     }
 

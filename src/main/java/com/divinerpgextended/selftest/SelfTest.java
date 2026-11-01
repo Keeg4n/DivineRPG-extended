@@ -61,6 +61,7 @@ import net.minecraftforge.event.world.ExplosionEvent;
 
 import com.divinerpgextended.Config;
 import com.divinerpgextended.accessory.Accessories;
+import com.divinerpgextended.accessory.Sockets;
 import com.divinerpgextended.asm.ArcanaHooks;
 import com.divinerpgextended.audit.Audit;
 import com.divinerpgextended.boss.Boss;
@@ -70,6 +71,8 @@ import com.divinerpgextended.fishing.FishingLoot;
 import com.divinerpgextended.fishing.Rod;
 import com.divinerpgextended.fishing.Zone;
 import com.divinerpgextended.registry.ModItems;
+import com.divinerpgextended.station.AnvilLogic;
+import com.divinerpgextended.station.TileWandererAnvil;
 import com.divinerpgextended.trinket.DoubleJump;
 import com.divinerpgextended.trinket.Trinket;
 import com.divinerpgextended.vethea.VetheaFloors;
@@ -331,6 +334,43 @@ public class SelfTest {
 
     private static ItemStack trinket(Trinket t) {
         return new ItemStack(ModItems.trinket, 1, t.ordinal());
+    }
+
+    /** Броня для тестов аксессуаров: с гнёздами (как у Странника), но без защиты - урон в тестах не меняется. В игре её нет. */
+    private static final Item[] BARE = new Item[4];
+
+    private static ItemStack bare(int type) {
+        if (BARE[type] == null) BARE[type] = new com.divinerpgextended.item.ItemWandererArmor(type, "testBare" + type) {
+
+            @Override
+            public ArmorProperties getProperties(EntityLivingBase e, ItemStack a, DamageSource src, double dmg, int slot) {
+                return new ArmorProperties(0, 0, 0);
+            }
+        };
+        return new ItemStack(BARE[type]);
+    }
+
+    /** Встроить аксессуар в надетую броню своей части (нет надетой части с гнёздами - надеть тестовую без защиты). */
+    private static void wearT(EntityPlayer p, Trinket t) {
+        wearT(p, trinket(t));
+    }
+
+    private static void wearT(EntityPlayer p, ItemStack acc) {
+        int parts = com.divinerpgextended.accessory.Sockets.parts(acc);
+        for (int type = 0; type < 4; type++) {
+            if ((parts & 1 << type) == 0) continue;
+            ItemStack worn = p.inventory.armorInventory[3 - type];
+            if (worn == null) p.inventory.armorInventory[3 - type] = worn = bare(type);
+            if (!com.divinerpgextended.accessory.Sockets.socketable(worn)) continue;
+            com.divinerpgextended.accessory.Sockets.insert(worn, acc);
+            return;
+        }
+        throw new IllegalStateException("некуда встроить " + acc.getDisplayName());
+    }
+
+    /** Вынуть всё из надетой брони. */
+    private static void unwearT(EntityPlayer p) {
+        for (ItemStack a : p.inventory.armorInventory) com.divinerpgextended.accessory.Sockets.extractAll(a);
     }
 
     private static float hp(EntityLivingBase e) {
@@ -726,75 +766,176 @@ public class SelfTest {
     }
 
     private void accessoryTests(final TestPlayer p, final TestPlayer q, final EntityIronGolem g, final WorldServer ow) {
-        t("Аксессуары", "Открытие слотов", () -> {
+        t("Аксессуары", "Гнёзда: Странник, Divine, ванильная", () -> {
             reset(p);
-            int[] n = new int[5];
-            n[0] = Accessories.unlocked(p);
-            Boss[] order = { Boss.LICH_KING, Boss.WATCHER, Boss.TWILIGHT_DEMON, Boss.KAROT };
-            for (int i = 0; i < 4; i++) {
-                BossProgress.grant(p, order[i]);
-                n[i + 1] = Accessories.unlocked(p);
+            Item[] rm = { VanillaItemsArmor.realmiteHelmet, VanillaItemsArmor.realmiteBody, VanillaItemsArmor.realmiteLegs, VanillaItemsArmor.realmiteBoots };
+            int closed = Config.requireBossUnlocks ? 1 : 2;
+            boolean ok = true;
+            StringBuilder b = new StringBuilder();
+            for (int type = 0; type < 4; type++) {
+                ItemStack w = new ItemStack(ModItems.wanderer[type]), d = new ItemStack(rm[type]);
+                int before = Sockets.capacity(w, p);
+                BossProgress.grant(p, Sockets.SECOND[type]);
+                int after = Sockets.capacity(w, p), other = Sockets.capacity(new ItemStack(ModItems.wanderer[(type + 1) % 4]), p);
+                ok &= before == closed && after == 2 && other == closed && Sockets.capacity(d, p) == 1;
+                b.append(Sockets.SECOND[type]).append(": ").append(before).append(">").append(after).append(" (соседняя часть ").append(other).append("); ");
+                BossProgress.revoke(p, Sockets.SECOND[type]);
             }
-            check(n[0] == 2 && n[1] == 3 && n[2] == 4 && n[3] == 5 && n[4] == 6, "слотов: " + n[0] + ">" + n[1] + ">" + n[2] + ">" + n[3] + ">" + n[4]);
-            return "2 > 3 > 4 > 5 > 6";
+            boolean vanilla = !Sockets.socketable(new ItemStack(Items.iron_chestplate)) && !Sockets.socketable(new ItemStack(Items.diamond_sword));
+            check(ok && vanilla, b + "ванильная без гнёзд " + vanilla);
+            return "Странник: гнездо в каждой части, второе - за босса части (шлем - Карот, нагрудник - Лич, поножи - Смотритель, ботинки - Демон сумерек); Divine - одно; ванильная - без гнёзд";
         });
-        t("Аксессуары", "Только из слотов", () -> {
+        t("Аксессуары", "Только встроенный в надетую броню", () -> {
             reset(p);
             p.inventory.mainInventory[5] = trinket(Trinket.BLUE_FLAME);
             boolean inBag = Accessories.wears(p, Trinket.BLUE_FLAME);
-            Accessories.of(p).setInventorySlotContents(0, trinket(Trinket.BLUE_FLAME));
-            boolean inSlot = Accessories.wears(p, Trinket.BLUE_FLAME);
-            Accessories.of(p).setInventorySlotContents(0, null);
-            Accessories.of(p).setInventorySlotContents(4, trinket(Trinket.BLUE_FLAME));
-            boolean locked = Accessories.wears(p, Trinket.BLUE_FLAME);
-            check(!inBag && inSlot && !locked, "в рюкзаке " + inBag + ", в слоте " + inSlot + ", в закрытом слоте " + locked);
-            return "в рюкзаке и закрытом слоте не работает, в открытом работает";
+            ItemStack boots = bare(3);
+            Sockets.insert(boots, trinket(Trinket.BLUE_FLAME));
+            p.inventory.mainInventory[6] = boots;
+            boolean armorInBag = Accessories.wears(p, Trinket.BLUE_FLAME);
+            p.inventory.mainInventory[6] = null;
+            p.inventory.armorInventory[0] = boots;
+            boolean worn = Accessories.wears(p, Trinket.BLUE_FLAME);
+            check(!inBag && !armorInBag && worn, "в рюкзаке " + inBag + ", в броне в рюкзаке " + armorInBag + ", в надетой броне " + worn);
+            return "в рюкзаке и в ненадетой броне не работает, в надетой - работает";
         });
-        t("Аксессуары", "Два одинаковых", () -> {
+        t("Аксессуары", "Один эффект в части - один раз", () -> {
             reset(p);
+            BossProgress.grant(p, Boss.KAROT);
+            BossProgress.grant(p, Boss.LICH_KING);
+            ItemStack helm = new ItemStack(ModItems.wanderer[0]), chest = new ItemStack(ModItems.wanderer[1]);
+            Sockets.insert(helm, trinket(Trinket.JACK_AMULET));
+            Sockets.insert(chest, trinket(Trinket.HEART_OF_WINTER));
+            Sockets.Fit same = Sockets.fit(helm, trinket(Trinket.JACK_AMULET), p, null);
+            Sockets.Fit part = Sockets.fit(chest, trinket(Trinket.ICE_BROOCH), p, null);
+            Sockets.Fit wrong = Sockets.fit(chest, trinket(Trinket.MAGIC_CARPET), p, null);
+            Sockets.Fit free = Sockets.fit(chest, trinket(Trinket.VALOR_MEDAL), p, null);
+            p.inventory.armorInventory[3] = helm;
             time(ow, 18000);
-            Accessories.of(p).setInventorySlotContents(0, trinket(Trinket.JACK_AMULET));
             float one = golemHit(g, p, 1);
-            Accessories.of(p).setInventorySlotContents(1, trinket(Trinket.JACK_AMULET));
-            float two = golemHit(g, p, 1);
             time(ow, 6000);
-            check(near(one, 1.15F) && near(two, 1.15F), "один амулет " + f(one) + ", два " + f(two) + " (ждали 1.15 оба)");
-            return "ночью x1.15 и с одним, и с двумя";
+            check(same == Sockets.Fit.SAME && part == Sockets.Fit.SAME && wrong == Sockets.Fit.PART && free == Sockets.Fit.OK && near(one, 1.15F),
+                "второй амулет в шлем: " + same + ", брошь к Сердцу зимы: " + part + ", ковёр в нагрудник: " + wrong + ", медаль во второе гнездо: " + free + "; ночью x" + f(one));
+            return "одинаковый эффект в одну часть не встаёт (и часть объединённого), чужая часть - тоже; амулет Джека ночью x1.15";
         });
         t("Аксессуары", "Объединённый и его часть", () -> {
             reset(p);
-            Accessories.of(p).setInventorySlotContents(0, trinket(Trinket.STEADFAST_BELT));
-            Accessories.of(p).setInventorySlotContents(1, trinket(Trinket.BLAST_BELT));
+            wearT(p, Trinket.STEADFAST_BELT);
+            wearT(p, Trinket.BLAST_BELT);
             float d = hit(p, new DamageSource("explosion").setExplosion(), 8);
             check(near(d, 1.76F), "взрыв 8 > " + f(d) + " (ждали 1.76: пояс x0.25 один раз и наплечник x0.88)");
             return "взрыв 8 > 1.76: пояс x0.25 не удваивается (+ наплечник из Несокрушимого пояса x0.88)";
         });
-        t("Аксессуары", "Слот закрылся с вещью", () -> {
+        t("Аксессуары", "Наковальня: встроить за уровни и вынуть", () -> {
             reset(p);
+            TileWandererAnvil an = new TileWandererAnvil();
+            ItemStack chest = new ItemStack(VanillaItemsArmor.realmiteBody);
+            an.setInventorySlotContents(AnvilLogic.ARMOR, chest);
+            an.setInventorySlotContents(AnvilLogic.DONOR, trinket(Trinket.CARCINUS_SHELL));
+            p.experienceLevel = 0;
+            AnvilLogic.Status poor = AnvilLogic.evaluate(an, p).status;
+            p.experienceLevel = 30;
+            AnvilLogic.Result ready = AnvilLogic.evaluate(an, p);
+            boolean done = AnvilLogic.execute(an, p);
+            int lvl = p.experienceLevel;
+            boolean in = Sockets.count(chest) == 1 && an.getStackInSlot(AnvilLogic.DONOR) == null;
+            an.setInventorySlotContents(AnvilLogic.DONOR, trinket(Trinket.MAGIC_CARPET));
+            AnvilLogic.Status part = AnvilLogic.evaluate(an, p).status;
+            an.setInventorySlotContents(AnvilLogic.DONOR, trinket(Trinket.VALOR_MEDAL));
+            AnvilLogic.Status full = AnvilLogic.evaluate(an, p).status;
+            // вынуть: все доноры заняты - некуда; один свободен - выходит туда, бесплатно
+            for (int d = 1; d < 4; d++) an.setInventorySlotContents(AnvilLogic.DONOR + d, trinket(Trinket.BONE_RING));
+            boolean blocked = !AnvilLogic.extract(an, p, 0, 0) && Sockets.count(chest) == 1;
+            an.setInventorySlotContents(AnvilLogic.DONOR, null);
+            boolean out = AnvilLogic.extract(an, p, 0, 0) && Sockets.count(chest) == 0 && an.getStackInSlot(AnvilLogic.DONOR) != null
+                && an.getStackInSlot(AnvilLogic.DONOR).getItemDamage() == Trinket.CARCINUS_SHELL.ordinal() && p.experienceLevel == lvl;
+            // второе гнездо нагрудника Странника - после Короля-лича; тот же эффект в одну часть - нет
+            for (int i = 0; i < AnvilLogic.SIZE; i++) an.setInventorySlotContents(i, null);
+            ItemStack wc = new ItemStack(ModItems.wanderer[1]);
+            Sockets.insert(wc, trinket(Trinket.VALOR_MEDAL));
+            an.setInventorySlotContents(AnvilLogic.ARMOR, wc);
+            an.setInventorySlotContents(AnvilLogic.DONOR, trinket(Trinket.ICE_BROOCH));
+            AnvilLogic.Result boss = AnvilLogic.evaluate(an, p);
             BossProgress.grant(p, Boss.LICH_KING);
-            Accessories.of(p).setInventorySlotContents(2, trinket(Trinket.BLUE_FLAME));
-            boolean a = Accessories.wears(p, Trinket.BLUE_FLAME);
-            BossProgress.revoke(p, Boss.LICH_KING);
-            boolean b = Accessories.wears(p, Trinket.BLUE_FLAME);
-            boolean kept = Accessories.of(p).getStackInSlot(2) != null;
-            BossProgress.grant(p, Boss.LICH_KING);
-            boolean c = Accessories.wears(p, Trinket.BLUE_FLAME);
-            check(a && !b && kept && c, "открыт " + a + ", закрыт " + b + ", вещь на месте " + kept + ", снова открыт " + c);
-            return "закрытый слот не работает, вещь не пропадает";
+            AnvilLogic.Status open = AnvilLogic.evaluate(an, p).status;
+            an.setInventorySlotContents(AnvilLogic.DONOR, trinket(Trinket.VALOR_MEDAL));
+            AnvilLogic.Status same = AnvilLogic.evaluate(an, p).status;
+            boolean bossOk = !Config.requireBossUnlocks || boss.status == AnvilLogic.Status.NEED_BOSS && boss.param == Boss.LICH_KING.ordinal();
+            check(poor == AnvilLogic.Status.NEED_LEVELS && ready.status == AnvilLogic.Status.READY_SOCKET && ready.param == 15 && done && lvl == 15 && in
+                && part == AnvilLogic.Status.SOCKET_PART && full == AnvilLogic.Status.SOCKET_FULL && blocked && out && bossOk && open == AnvilLogic.Status.READY_SOCKET
+                && same == AnvilLogic.Status.SOCKET_SAME,
+                "без уровней " + poor + "; готово " + ready.status + " за " + ready.param + "; встроен " + done + "/" + in + ", уровней осталось " + lvl + " из 30; ковёр в нагрудник " + part
+                    + "; второй в нагрудник Divine " + full + "; вынуть без места " + !blocked + ", вынут " + out + "; второе гнездо Странника до Лича " + boss.status
+                    + ", после " + open + "; тот же эффект " + same);
+            return "панцирь в нагрудник Divine за 15 ур.; без уровней, в чужую часть и сверх гнёзд - нет; вынимается бесплатно в свободного донора; второе гнездо Странника - после босса части";
         });
-        t("Аксессуары", "Смерть без keepInventory", () -> {
+        t("Аксессуары", "Наковальня: улучшение не съедает аксессуары", () -> {
             reset(p);
-            Accessories.of(p).setInventorySlotContents(0, trinket(Trinket.VALOR_MEDAL));
+            TileWandererAnvil an = new TileWandererAnvil();
+            Item[] rm = { VanillaItemsArmor.realmiteHelmet, VanillaItemsArmor.realmiteBody, VanillaItemsArmor.realmiteLegs, VanillaItemsArmor.realmiteBoots };
+            Item[] el = { VanillaItemsArmor.eliteRealmiteHelmet, VanillaItemsArmor.eliteRealmiteBody, VanillaItemsArmor.eliteRealmiteLegs,
+                VanillaItemsArmor.eliteRealmiteBoots };
+            for (int i = 0; i < 4; i++) {
+                an.setInventorySlotContents(AnvilLogic.ARMOR + i, new ItemStack(rm[i]));
+                an.setInventorySlotContents(AnvilLogic.DONOR + i, new ItemStack(el[i]));
+            }
+            Sockets.insert(an.getStackInSlot(AnvilLogic.ARMOR + 3), trinket(Trinket.MAGIC_CARPET));
+            Sockets.insert(an.getStackInSlot(AnvilLogic.DONOR + 1), trinket(Trinket.VALOR_MEDAL));
+            an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(VanillaItemsOther.realmiteIngot, 64));
+            BossProgress.grant(p, Boss.ANCIENT_ENTITY);
+            AnvilLogic.Result blocked = AnvilLogic.evaluate(an, p);
+            List<ItemStack> back = Sockets.extractAll(an.getStackInSlot(AnvilLogic.DONOR + 1));
+            boolean up = AnvilLogic.execute(an, p);
+            ItemStack boots = an.getStackInSlot(AnvilLogic.ARMOR + 3);
+            List<ItemStack> in = Sockets.contents(boots);
+            boolean carried = boots.getItem() == ModItems.wanderer[3] && in.size() == 1 && in.get(0).getItemDamage() == Trinket.MAGIC_CARPET.ordinal();
+            check(blocked.status == AnvilLogic.Status.DONOR_SOCKETS && blocked.param == 1 && back.size() == 1 && up && carried,
+                "донор с медалью: " + blocked.status + " (слот " + blocked.param + "); реалмит > R1 " + up + ", ковёр перешёл в ботинки Странника " + carried);
+            return "донорская броня с аксессуарами не принимается (сначала вынуть); при переходе реалмита в R1 аксессуары переходят в части Странника";
+        });
+        t("Аксессуары", "Смерть: аксессуары остаются в броне", () -> {
+            reset(p);
+            wearT(p, Trinket.VALOR_MEDAL);
+            ItemStack chest = p.inventory.armorInventory[2];
             // как при возрождении: новый объект игрока, данные переносит clonePlayer
             TestPlayer clone = new TestPlayer(ow, "TestA");
             clone.clonePlayer(p, false);
-            ItemStack s = Accessories.of(clone).getStackInSlot(0);
-            check(s != null && s.getItemDamage() == Trinket.VALOR_MEDAL.ordinal(), "после смерти слот 0: " + s);
-            return "после возрождения аксессуар в слоте";
+            boolean keep = ow.getGameRules().getGameRuleBooleanValue("keepInventory");
+            boolean cloneWears = Accessories.wears(clone, Trinket.VALOR_MEDAL);
+            check(Sockets.count(chest) == 1 && cloneWears == keep, "в нагруднике " + Sockets.count(chest) + ", после возрождения работает " + cloneWears + " (keepInventory " + keep + ")");
+            return "аксессуар внутри брони и уходит вместе с ней: без keepInventory - с выпавшей бронёй, в данные игрока не переезжает";
+        });
+        t("Аксессуары", "Крафт и ванильная наковальня возвращают аксессуары", () -> {
+            reset(p);
+            ItemStack armor = new ItemStack(VanillaItemsArmor.realmiteBody);
+            Sockets.insert(armor, trinket(Trinket.VALOR_MEDAL));
+            InventoryCrafting grid = new InventoryCrafting(new Container() {
+
+                @Override
+                public boolean canInteractWith(EntityPlayer pl) {
+                    return true;
+                }
+            }, 3, 3);
+            grid.setInventorySlotContents(0, armor);
+            FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.PlayerEvent.ItemCraftedEvent(p, new ItemStack(Items.stick), grid));
+            int afterCraft = countTrinket(p, Trinket.VALOR_MEDAL);
+            ItemStack right = new ItemStack(VanillaItemsArmor.realmiteBody), left = new ItemStack(VanillaItemsArmor.realmiteBody);
+            Sockets.insert(right, trinket(Trinket.BONE_RING));
+            ForgeHooks.onAnvilRepair(p, left.copy(), left, right); // как зовёт ванильная наковальня: результат, левая, правая
+            int afterAnvil = countTrinket(p, Trinket.BONE_RING);
+            // рецепт унёс гнёзда в результат - не возвращаем (иначе дюп)
+            ItemStack kept = new ItemStack(VanillaItemsArmor.realmiteBody);
+            Sockets.insert(kept, trinket(Trinket.WITHER_RING));
+            grid.setInventorySlotContents(0, kept);
+            FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.PlayerEvent.ItemCraftedEvent(p, kept.copy(), grid));
+            int copied = countTrinket(p, Trinket.WITHER_RING);
+            check(afterCraft == 1 && Sockets.count(armor) == 0 && afterAnvil == 1 && copied == 0, "крафт вернул " + afterCraft + ", наковальня вернула " + afterAnvil
+                + ", результат с гнёздами - вернул " + copied);
+            return "броня с аксессуарами ушла в крафт или на ванильную наковальню - аксессуары вернулись игроку; если гнёзда унёс результат - не возвращаются";
         });
         t("Аксессуары", "Анх фараона", () -> {
             reset(p);
-            Accessories.of(p).setInventorySlotContents(0, trinket(Trinket.PHARAOH_ANKH));
+            wearT(p, Trinket.PHARAOH_ANKH);
             p.getEntityData().removeTag("dreAnkhCd");
             p.setHealth(2);
             p.attackEntityFrom(DamageSource.magic, 50);
@@ -804,7 +945,7 @@ public class SelfTest {
         });
         t("Аксессуары", "Анх два раза подряд", () -> {
             reset(p);
-            Accessories.of(p).setInventorySlotContents(0, trinket(Trinket.PHARAOH_ANKH));
+            wearT(p, Trinket.PHARAOH_ANKH);
             p.getEntityData().removeTag("dreAnkhCd");
             p.setHealth(2);
             p.attackEntityFrom(DamageSource.magic, 50);
@@ -851,7 +992,7 @@ public class SelfTest {
         });
         t("Аксессуары", "Двойной прыжок", () -> {
             reset(p);
-            Accessories.of(p).setInventorySlotContents(0, trinket(Trinket.AYERACO_WING));
+            wearT(p, Trinket.AYERACO_WING);
             int a = DoubleJump.allowed(p);
             check(a == 1, "прыжков в воздухе в обычном мире: " + a);
             return "только серверная часть: в обычном мире 1 прыжок в воздухе (сам прыжок - на клиенте)";
@@ -1601,7 +1742,7 @@ public class SelfTest {
             int[] v = new int[6];
             for (int i = 0; i < dims.length; i++) {
                 TestPlayer w = player(dims[i], "TestCarpet" + i, 0, 100, 0);
-                Accessories.of(w).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+                wearT(w, Trinket.MAGIC_CARPET);
                 v[i] = DoubleJump.carpetTicks(w);
                 if (i == 0) {
                     BossProgress.grant(w, Boss.TWILIGHT_DEMON);
@@ -1610,13 +1751,13 @@ public class SelfTest {
                 }
             }
             TestPlayer ov = player(0, "TestCarpetOver", 0, 100, 0);
-            Accessories.of(ov).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            wearT(ov, Trinket.MAGIC_CARPET);
             int over = DoubleJump.carpetTicks(ov);
             BossProgress.grant(ov, Boss.TWILIGHT_DEMON);
             int overDemon = DoubleJump.carpetTicks(ov);
             BossProgress.revoke(ov, Boss.TWILIGHT_DEMON);
             TestPlayer vv = player(ConfigurationHelper.vethea, "TestCarpetDream", 0, 100, 0);
-            Accessories.of(vv).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            wearT(vv, Trinket.MAGIC_CARPET);
             int dream = DoubleJump.carpetTicks(vv);
             check(v[0] == 200 && v[1] == 200 && v[2] == 160 && v[3] == 100 && v[4] == 60 && v[5] == -1 && over == 60 && overDemon == 200 && dream == 0,
                 "тиков: " + v[0] + "/" + v[1] + "/" + v[2] + "/" + v[3] + "/" + v[4] + ", с демоном " + v[5] + "; обычный мир " + over + ", с демоном " + overDemon + ", Ветея " + dream);
@@ -1624,7 +1765,7 @@ public class SelfTest {
         });
         t("Сумеречные миры", "Отозвать Сумеречного демона", () -> {
             TestPlayer e = player(ConfigurationHelper.eden, "TestEden", 0, 100, 0);
-            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            wearT(e, Trinket.MAGIC_CARPET);
             BossProgress.grant(e, Boss.CADILLION_SKYTHERN);
             BossProgress.grant(e, Boss.TWILIGHT_DEMON);
             int a = DoubleJump.carpetTicks(e);
@@ -1635,14 +1776,14 @@ public class SelfTest {
         });
         t("Сумеречные миры", "Вне Сумеречных слабый", () -> {
             TestPlayer o = player(0, "TestOver", 0, 100, 0);
-            Accessories.of(o).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            wearT(o, Trinket.MAGIC_CARPET);
             int c = DoubleJump.carpetTicks(o);
             check(c == DoubleJump.OUTSIDE, "в обычном мире запас ковра " + c);
             return "в обычном мире ковёр держит только 3 с";
         });
         t("Сумеречные миры", "Сумеречные миры", () -> {
             TestPlayer e = player(ConfigurationHelper.eden, "TestEden", 0, 100, 0);
-            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.AYERACO_WING));
+            wearT(e, Trinket.AYERACO_WING);
             int a = DoubleJump.allowed(e);
             check(a == 2, "прыжков в воздухе в Эдеме " + a);
             return "в Эдеме 2 прыжка в воздухе (серверная часть)";
@@ -1823,9 +1964,9 @@ public class SelfTest {
         });
         t("Ветея - кошмар", "Аксессуары молчат", () -> {
             reset(v);
-            Accessories.of(v).setInventorySlotContents(0, trinket(Trinket.AYERACO_WING));
+            wearT(v, Trinket.AYERACO_WING);
             boolean dream = Accessories.wears(v, Trinket.AYERACO_WING);
-            Accessories.of(v).setInventorySlotContents(0, trinket(Trinket.DREAM_WINGS_1));
+            wearT(v, Trinket.DREAM_WINGS_1);
             boolean wings = Accessories.wears(v, Trinket.DREAM_WINGS_1);
             check(!dream && wings, "Крыло Айрако в Ветее " + dream + ", Крылья сна " + wings);
             return "Крыло Айрако молчит, Крылья сна работают";
@@ -1936,10 +2077,10 @@ public class SelfTest {
         t("Ветея - этажи", "Этаж запоминается", () -> {
             reset(v);
             persisted(v).removeTag("dre_wing_tier");
-            Accessories.of(v).setInventorySlotContents(0, trinket(Trinket.DREAM_WINGS_1));
+            wearT(v, Trinket.DREAM_WINGS_1);
             v.setPosition(30, 20, 30);
             tick(v, 1);
-            Accessories.of(v).setInventorySlotContents(0, null);
+            unwearT(v);
             v.setPosition(30, 70, 30);
             tick(v, 31);
             int fl = VetheaFloors.floorOf(v.posY);
@@ -1966,11 +2107,11 @@ public class SelfTest {
         });
         t("Ветея - этажи", "Падение не ранит", () -> {
             reset(v);
-            Accessories.of(v).setInventorySlotContents(0, trinket(Trinket.DREAM_WINGS_1));
+            wearT(v, Trinket.DREAM_WINGS_1);
             v.setPosition(30, 20, 30);
             LivingFallEvent fe = new LivingFallEvent(v, 30);
             boolean wings = MinecraftForge.EVENT_BUS.post(fe);
-            Accessories.of(v).setInventorySlotContents(0, null);
+            unwearT(v);
             v.ticksExisted += 200; // давно не был в разломе
             LivingFallEvent fe2 = new LivingFallEvent(v, 30);
             boolean none = MinecraftForge.EVENT_BUS.post(fe2);
@@ -2046,17 +2187,21 @@ public class SelfTest {
             zp.inventory.clearInventory(null, -1);
             boolean lheiva = zhv.attackEntityFrom(DamageSource.causePlayerDamage(zp), 1);
             zhv.setDead();
-            check(Math.abs(weakDmg - 20) < 0.01 && Math.abs(otherDmg - 2.5) < 0.01 && zdrops.size() == 2 && lheiva,
-                "Lorga на крыльях: мечом " + weakDmg + ", молотом " + otherDmg + "; добыча за добивание мечом " + zdrops.size() + "; Лхейва без пояса ранится " + lheiva);
+            // считаем только свой жемчуг: моды сборки Magic иногда подкидывают мобам свою случайную добычу (её тоже удваивает)
+            int pearls = 0;
+            for (net.minecraft.entity.item.EntityItem it : zdrops) if (it.getEntityItem().getItem() == VetheaItems.polishedPearls) pearls++;
+            check(Math.abs(weakDmg - 20) < 0.01 && Math.abs(otherDmg - 2.5) < 0.01 && pearls == 2 && lheiva,
+                "Lorga на крыльях: мечом " + weakDmg + ", молотом " + otherDmg + "; добыча за добивание мечом " + pearls + " (всего предметов " + zdrops.size() + "); Лхейва без пояса ранится " + lheiva);
             return "Lorga на крыльях: меч x2 (" + weakDmg + "), молот x0.25 (" + otherDmg + "); добит мечом - добыча x2; Лхейву бьют без пояса";
         });
-        t("Ветея - прохождение", "Пояс хейвы и Шахтёрский амулет в слотах аксессуаров, ритм", () -> {
+        t("Ветея - прохождение", "Пояс хейвы и Шахтёрский амулет в гнёздах брони, ритм", () -> {
             TestPlayer zp = join(player(vd, "TestRhythm", 320, 40, 300), true);
-            Accessories za = Accessories.of(zp);
-            boolean place = za.canPlace(0, new ItemStack(VetheaItems.heivaBelt)) && za.canPlace(1, new ItemStack(VetheaItems.minersAmulet));
-            za.setInventorySlotContents(0, new ItemStack(VetheaItems.heivaBelt));
+            boolean place = Sockets.fit(bare(2), new ItemStack(VetheaItems.heivaBelt), zp, null) == Sockets.Fit.OK
+                && Sockets.fit(bare(0), new ItemStack(VetheaItems.minersAmulet), zp, null) == Sockets.Fit.OK
+                && Sockets.fit(bare(1), new ItemStack(VetheaItems.minersAmulet), zp, null) == Sockets.Fit.PART;
+            wearT(zp, new ItemStack(VetheaItems.heivaBelt));
             boolean amuletBefore = com.divinerpgextended.asm.VetheaHooks.has(zp.inventory, VetheaItems.minersAmulet);
-            za.setInventorySlotContents(1, new ItemStack(VetheaItems.minersAmulet));
+            wearT(zp, new ItemStack(VetheaItems.minersAmulet));
             boolean amulet = com.divinerpgextended.asm.VetheaHooks.has(zp.inventory, VetheaItems.minersAmulet);
             net.divinerpg.entities.vethea.EntityBohemite zb = new net.divinerpg.entities.vethea.EntityBohemite(vw);
             zb.setPosition(322, 40, 300);
@@ -2080,12 +2225,11 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(zh);
             got[seq.length] = zh.ammount;
             zb.setDead();
-            za.setInventorySlotContents(0, null);
-            za.setInventorySlotContents(1, null);
+            unwearT(zp);
             boolean rhythm = Math.abs(got[0] - 10) < 0.01 && Math.abs(got[1] - 11.5) < 0.01 && Math.abs(got[2] - 13) < 0.01 && Math.abs(got[3] - 13) < 0.01
                 && Math.abs(got[4] - 14.5) < 0.01 && Math.abs(got[5] - 16) < 0.01 && Math.abs(got[6] - 16) < 0.01 && Math.abs(got[seq.length] - 10) < 0.01;
-            check(place && !amuletBefore && amulet && rhythm, "в слоты " + place + ", амулет из инвентаря " + amuletBefore + ", из слота " + amulet + "; удары " + zs + "после паузы " + got[seq.length]);
-            return "пояс и амулет носятся в слотах (амулет работает только оттуда); ритм: " + zs + "- смена вида +15% до +60%, пауза - сброс (" + got[seq.length] + ")";
+            check(place && !amuletBefore && amulet && rhythm, "встают: пояс в поножи, амулет в шлем (не в нагрудник) " + place + ", амулет без гнезда " + amuletBefore + ", в гнезде " + amulet + "; удары " + zs + "после паузы " + got[seq.length]);
+            return "пояс встраивается в поножи, амулет в шлем (работает только оттуда); ритм: " + zs + "- смена вида +15% до +60%, пауза - сброс (" + got[seq.length] + ")";
         });
         t("Ветея - прохождение", "Шлемы ветейской брони и взрывы", () -> {
             TestPlayer zp = join(player(vd, "TestHelm", 340, 40, 300), true);
@@ -2246,10 +2390,10 @@ public class SelfTest {
         });
         t("Ветея - этажи", "Крылья вне Ветеи", () -> {
             TestPlayer o = player(0, "TestWing", p.posX, p.posY, p.posZ);
-            Accessories.of(o).setInventorySlotContents(0, trinket(Trinket.DREAM_WINGS_1));
-            Accessories.of(v).setInventorySlotContents(0, trinket(Trinket.DREAM_WINGS_1));
+            wearT(o, Trinket.DREAM_WINGS_1);
+            wearT(v, Trinket.DREAM_WINGS_1);
             int out = DoubleJump.wingTicks(o), in = DoubleJump.wingTicks(v);
-            Accessories.of(v).setInventorySlotContents(0, null);
+            unwearT(v);
             check(out == 0 && in == 85, "запас вне Ветеи " + out + ", в Ветее " + in);
             return "вне Ветеи 0, в Ветее 85 тиков";
         });
@@ -2277,7 +2421,7 @@ public class SelfTest {
         t("Сервер", "Эффекты по игроку", () -> {
             reset(p);
             reset(q);
-            Accessories.of(p).setInventorySlotContents(0, trinket(Trinket.PARASECTA_STING));
+            wearT(p, Trinket.PARASECTA_STING);
             hit(q, DamageSource.causePlayerDamage(p), 1);
             check(!q.isPotionActive(Potion.poison), "Жало Парасекты отравило игрока");
             return "Жало Парасекты не травит игрока (PvE-only)";
@@ -2285,7 +2429,7 @@ public class SelfTest {
         t("Сервер", "Панцирь Карцинуса", () -> {
             reset(p);
             reset(q);
-            Accessories.of(q).setInventorySlotContents(0, trinket(Trinket.CARCINUS_SHELL));
+            wearT(q, Trinket.CARCINUS_SHELL);
             float taken = 0;
             for (int i = 0; i < 100; i++) {
                 p.hurtResistantTime = 0;
@@ -2391,7 +2535,7 @@ public class SelfTest {
         // ---- прыжок Крылом Айрако гасит падение ----
         t("Аксессуары", "Гасит падение", () -> {
             reset(p);
-            Accessories.of(p).setInventorySlotContents(0, trinket(Trinket.AYERACO_WING));
+            wearT(p, Trinket.AYERACO_WING);
             java.lang.reflect.Constructor<cpw.mods.fml.common.network.simpleimpl.MessageContext> mc = cpw.mods.fml.common.network.simpleimpl.MessageContext.class
                 .getDeclaredConstructor(net.minecraft.network.INetHandler.class, cpw.mods.fml.relauncher.Side.class);
             mc.setAccessible(true);
@@ -2408,18 +2552,23 @@ public class SelfTest {
         });
 
         // ---- окно аксессуаров без дюпа ----
-        t("Аксессуары", "Без дюпов", () -> {
+        t("Аксессуары", "Старые слоты: только забрать", () -> {
             reset(p);
-            p.inventory.mainInventory[0] = trinket(Trinket.VALOR_MEDAL);
-            com.divinerpgextended.accessory.ContainerAccessories c = new com.divinerpgextended.accessory.ContainerAccessories(p, Accessories.of(p));
-            int inv = slotOf(c, p.inventory, 0);
-            c.slotClick(inv, 0, 1, p);
-            int total1 = countTrinket(p, Trinket.VALOR_MEDAL) + accCount(p, Trinket.VALOR_MEDAL);
-            int inAcc = accCount(p, Trinket.VALOR_MEDAL);
+            Accessories acc = Accessories.of(p);
+            acc.setInventorySlotContents(0, trinket(Trinket.VALOR_MEDAL));
+            acc.setInventorySlotContents(Accessories.SIZE, new ItemStack(Items.arrow, 10));
+            p.inventory.mainInventory[0] = trinket(Trinket.BONE_RING);
+            com.divinerpgextended.accessory.ContainerAccessories c = new com.divinerpgextended.accessory.ContainerAccessories(p, acc);
+            boolean worksBefore = Accessories.wears(p, Trinket.VALOR_MEDAL);
+            c.slotClick(slotOf(c, p.inventory, 0), 0, 1, p); // shift-клик из инвентаря - в старые слоты не кладётся
+            boolean notPut = p.inventory.mainInventory[0] != null && accCount(p, Trinket.BONE_RING) == 0;
             c.slotClick(0, 0, 1, p);
-            int total2 = countTrinket(p, Trinket.VALOR_MEDAL) + accCount(p, Trinket.VALOR_MEDAL);
-            check(inAcc == 1 && total1 == 1 && total2 == 1, "в слот: " + inAcc + ", всего после: " + total1 + " и " + total2);
-            return "shift-клик туда и обратно: вещь одна";
+            c.slotClick(Accessories.SIZE, 0, 1, p);
+            int medals = countTrinket(p, Trinket.VALOR_MEDAL), arrows = count(p, Items.arrow);
+            boolean empty = !acc.leftovers();
+            check(!worksBefore && notPut && medals == 1 && arrows == 10 && empty, "медаль в старом слоте работает " + worksBefore + "; положить нельзя " + notPut
+                + "; забрано: медалей " + medals + ", стрел " + arrows + " из 10; слоты пусты " + empty);
+            return "в старых слотах ничего не работает и ничего не кладётся; вещи забираются целиком, без дюпа";
         });
         t("Аксессуары", "Правка админом при открытом окне", () -> {
             reset(p);
@@ -2540,7 +2689,7 @@ public class SelfTest {
         });
         t("Сумеречные миры", "Заряд только на земле", () -> {
             reset(e);
-            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            wearT(e, Trinket.MAGIC_CARPET);
             e.onGround = true;
             tick(e, 1);
             int full = carpetLeft(e);
@@ -2553,7 +2702,7 @@ public class SelfTest {
             return "на земле 200 тиков, в воздухе тратится и не восстанавливается";
         });
         t("Сумеречные миры", "Планирование после запаса", () -> {
-            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            wearT(e, Trinket.MAGIC_CARPET);
             e.onGround = true;
             tick(e, 1);
             e.onGround = false;
@@ -2588,9 +2737,9 @@ public class SelfTest {
             e.onGround = false;
             tick(e, 5);
             int before = carpetLeft(e);
-            Accessories.of(e).setInventorySlotContents(0, null);
+            unwearT(e);
             tick(e, 3);
-            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            wearT(e, Trinket.MAGIC_CARPET);
             tick(e, 1);
             int after = carpetLeft(e);
             check(after < before, "после снятия и надевания в воздухе: было " + before + ", стало " + after);
@@ -2610,7 +2759,7 @@ public class SelfTest {
             return "с ковром падение ранит как обычно";
         });
         t("Сервер", "Нет кика за полёт", () -> {
-            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            wearT(e, Trinket.MAGIC_CARPET);
             e.onGround = true;
             tick(e, 1);
             e.onGround = false;
@@ -2621,7 +2770,7 @@ public class SelfTest {
             return "пока ковёр держит - счётчик кика (порог 80) сбрасывается в 0";
         });
         t("Сумеречные миры", "Высота падения от ковра", () -> {
-            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            wearT(e, Trinket.MAGIC_CARPET);
             e.onGround = true;
             tick(e, 1);
             e.onGround = false;
@@ -2980,7 +3129,7 @@ public class SelfTest {
             return "стрела доворачивает на Кори впереди; без летучей цели летит как летела";
         });
         t("Сумеречные миры", "Ковёр после фриза", () -> {
-            Accessories.of(e).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            wearT(e, Trinket.MAGIC_CARPET);
             e.onGround = true;
             tick(e, 1);
             e.onGround = false;
@@ -3949,11 +4098,11 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(cs);
             boolean denied = cs.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.DENY;
             TestPlayer cp = player(ConfigurationHelper.wildwood, "TestArenaCarpet", 9705, 101, 9800);
-            Accessories.of(cp).setInventorySlotContents(0, trinket(Trinket.MAGIC_CARPET));
+            wearT(cp, Trinket.MAGIC_CARPET);
             int inFight = com.divinerpgextended.trinket.DoubleJump.carpetTicks(cp);
             cp.setPosition(9800, 101, 9800);
             int outside = com.divinerpgextended.trinket.DoubleJump.carpetTicks(cp);
-            Accessories.of(cp).setInventorySlotContents(0, null);
+            unwearT(cp);
             ag.setDead();
             check(cleared && denied && inFight == 0 && outside > 0, "расчищено " + cleared + ", спавн в бою запрещён " + denied + ", ковёр в бою " + inFight + ", вне арены " + outside);
             return "вызов босса расчищает поляну, пока он жив - мобы на арене не спавнятся; ковёр в бою не работает, за ареной работает";
@@ -5006,7 +5155,7 @@ public class SelfTest {
             // колчан: лук Эдема без стрел натягивается (событие отменено, лук в деле), выстрел - стрела летит, в инвентаре стрел нет
             ItemStack bow = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBow);
             qv.setCurrentItemOrArmor(0, bow);
-            Accessories.of(qv).setInventorySlotContents(0, trinket(Trinket.ENDLESS_QUIVER));
+            wearT(qv, Trinket.ENDLESS_QUIVER);
             net.minecraftforge.event.entity.player.ArrowNockEvent nock = new net.minecraftforge.event.entity.player.ArrowNockEvent(qv, bow);
             MinecraftForge.EVENT_BUS.post(nock);
             boolean drawn = nock.isCanceled() && qv.isUsingItem();
@@ -5020,7 +5169,7 @@ public class SelfTest {
             boolean arrow = drawn && fired && !qv.inventory.hasItem(net.divinerpg.utils.items.TwilightItemsWeapons.edenArrow);
             boolean gone = net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(net.minecraft.enchantment.Enchantment.infinity.effectId, bow) == 0
                 && (bow.getTagCompound() == null || !bow.getTagCompound().hasKey("ench"));
-            Accessories.of(qv).setInventorySlotContents(0, null);
+            unwearT(qv);
             qv.setCurrentItemOrArmor(0, null);
             check(pellets && dry && shot && arrow && gone,
                 "дробь без неуязвимости " + pellets + ", фазер без пыли стреляет " + dry + ", с пылью " + shot + " (пыли осталось " + dustLeft + " из 3), колчан: натянут " + drawn
@@ -5052,8 +5201,8 @@ public class SelfTest {
             boolean halitePhaser = uses.getInt(hp) == -1 && hp.getMaxDamage() == 0;
             // поношенный фазер на клик чинится
             fv.inventory.clearInventory(null, -1);
-            for (int i = 0; i < Accessories.TOTAL; i++) Accessories.of(fv).setInventorySlotContents(i, null);
-            Accessories.of(fv).setInventorySlotContents(0, trinket(Trinket.DUST_POUCH));
+            unwearT(fv);
+            wearT(fv, Trinket.DUST_POUCH);
             ItemStack worn = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenPhaser, 1, 37);
             fv.inventory.currentItem = 0;
             fv.inventory.mainInventory[0] = worn;
@@ -5126,7 +5275,7 @@ public class SelfTest {
             boolean rails = fv.inventory.mainInventory[5].getItem() == com.divinerpgextended.registry.ModItems.apalachiaRails && fv.inventory.mainInventory[5].stackSize == 12
                 && fv.inventory.mainInventory[6].getItem() == com.divinerpgextended.registry.ModItems.arcanaRails && fv.inventory.mainInventory[6].stackSize == 3;
             fv.inventory.clearInventory(null, -1);
-            for (int i = 0; i < Accessories.TOTAL; i++) Accessories.of(fv).setInventorySlotContents(i, null);
+            unwearT(fv);
             int P = com.divinerpgextended.perk.RangedRoles.PELLETS;
             check(guns > 0 && unbreakable == guns && tuned == guns / 2 && halitePhaser && repaired && shots[0] == P && shots[1] == 0 && shots[2] == P && wrapFixed && tools
                 && tooltip && rails,
@@ -5338,23 +5487,23 @@ public class SelfTest {
             Item dust = net.divinerpg.utils.items.TwilightItemsOther.edenDust;
             Item blitz = net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz, phaser = net.divinerpg.utils.items.TwilightItemsWeapons.edenPhaser;
             boolean mapped = com.divinerpgextended.perk.RangedRoles.dust(blitz) == dust && com.divinerpgextended.perk.RangedRoles.dust(phaser) == dust;
-            // случаи: оружие, подсумок, Бесконечность, пыль в инвентаре, пыль в слоте боеприпасов
+            // случаи: оружие, подсумок, Бесконечность, пыль в инвентаре, пыль зарядом в оружии
             Object[][] cases = { { blitz, false, false, 0, 0 }, { blitz, true, false, 0, 0 }, { blitz, false, true, 0, 0 }, { blitz, false, false, 0, 2 },
                 { phaser, false, false, 3, 0 }, { phaser, false, false, 0, 0 }, { phaser, true, false, 3, 0 }, { phaser, false, false, 0, 2 } };
             boolean dustNeverInBag = true;
             int[] shots = new int[cases.length], left = new int[cases.length];
             boolean dirtSafe = true;
             for (int c = 0; c < cases.length; c++) {
-                boolean full = c == cases.length - 1; // фазер с пылью в слоте и забитым рюкзаком
+                boolean full = c == cases.length - 1; // фазер с зарядом и забитым рюкзаком
                 for (int i = 0; i < fv.inventory.mainInventory.length; i++) fv.inventory.mainInventory[i] = i < 30 || full ? new ItemStack(Blocks.dirt, 64) : null;
-                for (int i = 0; i < Accessories.TOTAL; i++) Accessories.of(fv).setInventorySlotContents(i, null);
+                unwearT(fv);
                 ItemStack gun = new ItemStack((Item) cases[c][0]);
                 if ((Boolean) cases[c][2]) gun.addEnchantment(net.minecraft.enchantment.Enchantment.infinity, 1);
                 fv.inventory.currentItem = 0;
                 fv.inventory.mainInventory[0] = gun;
-                if ((Boolean) cases[c][1]) Accessories.of(fv).setInventorySlotContents(0, trinket(Trinket.DUST_POUCH));
+                if ((Boolean) cases[c][1]) wearT(fv, Trinket.DUST_POUCH);
                 if ((Integer) cases[c][3] > 0) fv.inventory.mainInventory[31] = new ItemStack(dust, (Integer) cases[c][3]);
-                if ((Integer) cases[c][4] > 0) Accessories.of(fv).setInventorySlotContents(Accessories.SIZE, new ItemStack(dust, (Integer) cases[c][4]));
+                if ((Integer) cases[c][4] > 0) com.divinerpgextended.perk.Ammo.setLoaded(gun, (Integer) cases[c][4]);
                 java.util.List<?> before = w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityThrowable.class, fv.boundingBox.expand(8, 8, 8));
                 for (Object o : before) ((net.minecraft.entity.Entity) o).setDead();
                 MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(fv,
@@ -5364,7 +5513,7 @@ public class SelfTest {
                 } catch (NullPointerException ex) {
                     // у тестового игрока нет сети
                 }
-                if ((Integer) cases[c][3] == 0) dustNeverInBag &= !fv.inventory.hasItem(dust); // пыль из слотов в рюкзак не попадает
+                if ((Integer) cases[c][3] == 0) dustNeverInBag &= !fv.inventory.hasItem(dust); // пыль из заряда в рюкзак не попадает
                 int n = 0;
                 for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityThrowable.class, fv.boundingBox.expand(8, 8, 8)))
                     if (!((net.minecraft.entity.Entity) o).isDead) {
@@ -5374,12 +5523,8 @@ public class SelfTest {
                 shots[c] = n;
                 FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, fv));
                 com.divinerpgextended.perk.RangedRoles.disarm(); // конец тика сервера (само событие тика не шлём - на нём едет самопроверка)
-                int d = 0;
+                int d = com.divinerpgextended.perk.Ammo.loaded(gun);
                 for (ItemStack it : fv.inventory.mainInventory) if (it != null && it.getItem() == dust) d += it.stackSize;
-                for (int i = Accessories.SIZE; i < Accessories.TOTAL; i++) {
-                    ItemStack it = Accessories.of(fv).getStackInSlot(i);
-                    if (it != null && it.getItem() == dust) d += it.stackSize;
-                }
                 left[c] = d;
                 int dirt = 0;
                 for (ItemStack it : fv.inventory.mainInventory) if (it != null && it.getItem() == Item.getItemFromBlock(Blocks.dirt)) dirt += it.stackSize;
@@ -5405,66 +5550,92 @@ public class SelfTest {
             boolean still = Math.abs(z.motionX) < 0.01;
             z.setDead();
             fv.inventory.clearInventory(null, -1);
-            for (int i = 0; i < Accessories.TOTAL; i++) Accessories.of(fv).setInventorySlotContents(i, null);
+            unwearT(fv);
             int P = com.divinerpgextended.perk.RangedRoles.PELLETS;
             boolean ok = shots[0] == 0 && shots[1] == P && shots[2] == P && shots[3] == P && left[3] == 1 && shots[4] > 0 && left[4] == 2 && shots[5] == 0
                 && shots[6] > 0 && left[6] == 3 && shots[7] > 0 && left[7] == 1 && dustNeverInBag;
             check(mapped && ok && dirtSafe && restored && anvil && still,
-                "пыль задана " + mapped + "; блиц без пыли " + shots[0] + ", с подсумком " + shots[1] + ", с Бесконечностью " + shots[2] + ", пыль из слота " + shots[3] + " (осталось " + left[3]
-                    + "); фазер с пылью " + shots[4] + " (осталось " + left[4] + " из 3), без пыли " + shots[5] + ", с подсумком " + shots[6] + " (осталось " + left[6] + "); фазер, пыль в слоте, рюкзак забит: " + shots[7] + " (осталось " + left[7] + "), пыль в рюкзак не попадала " + dustNeverInBag + "; земля цела " + dirtSafe
+                "пыль задана " + mapped + "; блиц без пыли " + shots[0] + ", с подсумком " + shots[1] + ", с Бесконечностью " + shots[2] + ", зарядом " + shots[3] + " (осталось " + left[3]
+                    + "); фазер с пылью " + shots[4] + " (осталось " + left[4] + " из 3), без пыли " + shots[5] + ", с подсумком " + shots[6] + " (осталось " + left[6] + "); фазер зарядом, рюкзак забит: " + shots[7] + " (осталось " + left[7] + "), пыль в рюкзак не попадала " + dustNeverInBag + "; земля цела " + dirtSafe
                     + ", патрон вернулся " + restored + ", наковальня " + anvil + ", зомби не отброшен " + still);
-            return "фазер и блиц тратят пыль своего мира (из инвентаря и слотов боеприпасов), без пыли молчат; подсумок или Бесконечность (книгой на наковальне) - пыль не нужна; вещи рюкзака не трогаются; дробь не отбрасывает";
+            return "фазер и блиц тратят пыль своего мира (из заряда и инвентаря), без пыли молчат; подсумок или Бесконечность (книгой на наковальне) - пыль не нужна; вещи рюкзака не трогаются; дробь не отбрасывает";
         });
-        t("Прохождение", "Слоты боеприпасов", () -> {
+        t("Прохождение", "Заряд в оружии", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9488, 9840, 1);
             TestPlayer av = join(player(ConfigurationHelper.eden, "TestAmmo", 9488.5, 120, 9840.5), true);
-            Accessories acc = Accessories.of(av);
-            int A = Accessories.SIZE;
-            boolean valid = acc.canPlace(A, new ItemStack(Items.arrow)) && acc.canPlace(A, new ItemStack(net.divinerpg.utils.items.VanillaItemsOther.corruptedBullet))
-                && !acc.canPlace(A, new ItemStack(Items.diamond_sword)) && !acc.canPlace(0, new ItemStack(Items.arrow));
-            // лук: стрелы только в слоте - натягивается, стреляет, в слоте на одну меньше, в инвентаре пусто
-            acc.setInventorySlotContents(A, new ItemStack(Items.arrow, 5));
+            av.inventory.clearInventory(null, -1);
+            // лук: присесть + ПКМ - всё из инвентаря внутрь, звук; стрелы со своими данными не берутся
             ItemStack bow = new ItemStack(Items.bow);
-            av.setCurrentItemOrArmor(0, bow);
-            net.minecraftforge.event.entity.player.ArrowNockEvent nock = new net.minecraftforge.event.entity.player.ArrowNockEvent(av, bow);
-            MinecraftForge.EVENT_BUS.post(nock);
-            boolean drawn = nock.isCanceled() && av.isUsingItem();
-            int before = w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, av.boundingBox.expand(6, 6, 6)).size();
+            av.inventory.currentItem = 0;
+            av.inventory.mainInventory[0] = bow;
+            av.inventory.mainInventory[5] = new ItemStack(Items.arrow, 5);
+            ItemStack named = new ItemStack(Items.arrow, 3);
+            named.setStackDisplayName("Особая");
+            av.inventory.mainInventory[6] = named;
+            int canLoad = com.divinerpgextended.perk.Ammo.loadable(av);
+            int loaded = com.divinerpgextended.perk.AmmoLoad.load(av);
+            boolean loadOk = canLoad == 5 && loaded == 5 && com.divinerpgextended.perk.Ammo.loaded(bow) == 5 && av.inventory.mainInventory[5] == null
+                && av.inventory.mainInventory[6] == named && named.stackSize == 3;
+            av.inventory.mainInventory[6] = null;
+            // натянуть и выстрелить: в инвентаре стрел нет - стреляет зарядом (лук сам спрашивает - перехват AmmoHooks)
+            bow.getItem().onItemRightClick(bow, w, av);
+            boolean drawn = av.isUsingItem();
+            int before = w.getEntitiesWithinAABB(EntityArrow.class, av.boundingBox.expand(6, 6, 6)).size();
             bow.getItem().onPlayerStoppedUsing(bow, w, av, bow.getMaxItemUseDuration() - 40);
-            java.util.List<?> fl = w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, av.boundingBox.expand(6, 6, 6));
+            java.util.List<?> fl = w.getEntitiesWithinAABB(EntityArrow.class, av.boundingBox.expand(6, 6, 6));
             boolean fired = fl.size() == before + 1;
             for (Object o : fl) ((net.minecraft.entity.Entity) o).setDead();
             av.clearItemInUse();
-            com.divinerpgextended.perk.Ammo.settle(av);
-            int arrows = acc.getStackInSlot(A) == null ? 0 : acc.getStackInSlot(A).stackSize;
-            boolean bowOk = drawn && fired && arrows == 4 && !av.inventory.hasItem(Items.arrow);
-            acc.setInventorySlotContents(A, null);
-            // пушка Corrupted Cannon: пуля из слота; одолженная и не потраченная - вернулась в слот
-            net.minecraft.item.Item bullet = net.divinerpg.utils.items.VanillaItemsOther.corruptedBullet;
-            acc.setInventorySlotContents(A + 1, new ItemStack(bullet, 4));
+            int afterShot = com.divinerpgextended.perk.Ammo.loaded(bow);
+            // сначала заряд, потом инвентарь; рюкзак забит - всё равно стреляет
+            for (int i = 1; i < av.inventory.mainInventory.length; i++) av.inventory.mainInventory[i] = new ItemStack(Blocks.dirt, 64);
+            av.inventory.mainInventory[35] = new ItemStack(Items.arrow, 2);
+            bow.getItem().onItemRightClick(bow, w, av);
+            bow.getItem().onPlayerStoppedUsing(bow, w, av, bow.getMaxItemUseDuration() - 40);
+            for (Object o : w.getEntitiesWithinAABB(EntityArrow.class, av.boundingBox.expand(6, 6, 6))) ((net.minecraft.entity.Entity) o).setDead();
+            av.clearItemInUse();
+            boolean firstLoaded = com.divinerpgextended.perk.Ammo.loaded(bow) == 3 && av.inventory.mainInventory[35] != null && av.inventory.mainInventory[35].stackSize == 2;
+            // вместимость: 4 стопки
+            for (int i = 1; i < av.inventory.mainInventory.length; i++) av.inventory.mainInventory[i] = i <= 5 ? new ItemStack(Items.arrow, 64) : null;
+            int cap = com.divinerpgextended.perk.Ammo.capacity(bow);
+            com.divinerpgextended.perk.AmmoLoad.load(av);
+            int rest = count(av, Items.arrow);
+            boolean capOk = cap == 256 && com.divinerpgextended.perk.Ammo.loaded(bow) == cap && rest == 5 * 64 - (cap - 3);
+            // разрядить на Наковальне Странника: в инвентарь, сколько влезет
+            av.inventory.clearInventory(null, -1);
+            for (int i = 0; i < av.inventory.mainInventory.length; i++) av.inventory.mainInventory[i] = i < 34 ? new ItemStack(Blocks.dirt, 64) : null;
+            TileWandererAnvil an = new TileWandererAnvil();
+            an.setInventorySlotContents(AnvilLogic.FUEL, bow);
+            AnvilLogic.Result un = AnvilLogic.evaluate(an, av);
+            boolean unloaded = AnvilLogic.execute(an, av);
+            boolean unloadOk = un.status == AnvilLogic.Status.READY_UNLOAD && un.param == 128 && unloaded && count(av, Items.arrow) == 128
+                && com.divinerpgextended.perk.Ammo.loaded(bow) == cap - 128;
+            // сломалось оружие - заряд высыпается игроку, а не сгорает
+            av.inventory.clearInventory(null, -1);
+            com.divinerpgextended.perk.Ammo.setLoaded(bow, 7);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerDestroyItemEvent(av, bow));
+            boolean spill = count(av, Items.arrow) == 7 && com.divinerpgextended.perk.Ammo.loaded(bow) == 0;
+            // пушка Corrupted Cannon: пуля из заряда, рюкзак пуст
+            av.inventory.clearInventory(null, -1);
+            Item bullet = VanillaItemsOther.corruptedBullet;
             ItemStack cn = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.corruptedCannon);
-            av.setCurrentItemOrArmor(0, cn);
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(av,
-                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w));
+            av.inventory.mainInventory[0] = cn;
+            av.inventory.mainInventory[3] = new ItemStack(bullet, 4);
+            com.divinerpgextended.perk.AmmoLoad.load(av);
             try {
                 cn.getItem().onItemRightClick(cn, w, av);
             } catch (NullPointerException ex) {
                 // Divine после выстрела шлёт инвентарь по сети - у тестового игрока сети нет
             }
             for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.Entity.class, av.boundingBox.expand(6, 6, 6))) if (o != av) ((net.minecraft.entity.Entity) o).setDead();
-            com.divinerpgextended.perk.Ammo.settle(av);
-            int afterShot = acc.getStackInSlot(A + 1) == null ? 0 : acc.getStackInSlot(A + 1).stackSize;
-            com.divinerpgextended.perk.Ammo.lend(av, bullet);
-            boolean lent = av.inventory.hasItem(bullet);
-            com.divinerpgextended.perk.Ammo.settle(av);
-            int bullets = acc.getStackInSlot(A + 1) == null ? 0 : acc.getStackInSlot(A + 1).stackSize;
-            boolean cannonOk = afterShot == 3 && lent && bullets == 3 && !av.inventory.hasItem(bullet);
-            acc.setInventorySlotContents(A + 1, null);
-            av.setCurrentItemOrArmor(0, null);
-            check(valid && bowOk && cannonOk, "что кладётся " + valid + ", лук: натянут " + drawn + ", выстрел " + fired + ", стрел в слоте " + arrows
-                + "; пушка: после выстрела пуль " + afterShot + " из 4, одолжена " + lent + ", после возврата " + bullets);
-            return "в слоты боеприпасов кладутся только боеприпасы; лук и пушка берут из них, когда в инвентаре нет; не потраченное возвращается в слот";
+            boolean cannonOk = com.divinerpgextended.perk.Ammo.loaded(cn) == 3 && count(av, bullet) == 0;
+            av.inventory.clearInventory(null, -1);
+            check(loadOk && drawn && fired && afterShot == 4 && firstLoaded && capOk && unloadOk && spill && cannonOk,
+                "зарядка " + canLoad + "/" + loaded + " (особые стрелы не взяты " + (named.stackSize == 3) + "); лук натянут " + drawn + ", выстрел " + fired + ", заряд " + afterShot
+                    + " из 5; заряд раньше инвентаря и при забитом рюкзаке " + firstLoaded + "; вместимость " + cap + " " + capOk + "; разрядка " + un.status + " " + un.param
+                    + " " + unloadOk + "; сломался - высыпалось " + spill + "; пушка " + cannonOk);
+            return "присесть + ПКМ заряжает всё из инвентаря (до 4 стопок, особые не берёт); стреляет сначала заряд, рюкзак не трогается; разрядка на наковальне - сколько влезет; сломалось оружие - заряд высыпается";
         });
         t("Прохождение", "Вагонетка Апалачии: рельсы арканы и обычные", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
@@ -5506,21 +5677,22 @@ public class SelfTest {
             net.minecraft.entity.projectile.EntityArrow ar = new net.minecraft.entity.projectile.EntityArrow(w, kv, 1.0F);
             float[] got = new float[2];
             for (int i = 0; i < 2; i++) {
-                Accessories.of(kv).setInventorySlotContents(0, i == 1 ? trinket(Trinket.ENDLESS_QUIVER) : null);
+                unwearT(kv);
+                if (i == 1) wearT(kv, Trinket.ENDLESS_QUIVER);
                 net.minecraftforge.event.entity.living.LivingHurtEvent h = new net.minecraftforge.event.entity.living.LivingHurtEvent(zb,
                     net.minecraft.util.DamageSource.causeArrowDamage(ar, kv), 10);
                 MinecraftForge.EVENT_BUS.post(h);
                 got[i] = h.ammount;
             }
             // подсумок: фазер +15%
-            Accessories.of(kv).setInventorySlotContents(0, trinket(Trinket.DUST_POUCH));
+            wearT(kv, Trinket.DUST_POUCH);
             net.divinerpg.entities.vanilla.projectile.EntityShooterBullet pb = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, kv, 10, "divinerpg:textures/projectiles/phaserEden.png");
             pb.getEntityData().setInteger(com.divinerpgextended.perk.RangedRoles.KIND, com.divinerpgextended.perk.RangedRoles.PHASER);
             pb.getEntityData().setInteger(com.divinerpgextended.perk.RangedRoles.GEN, com.divinerpgextended.perk.RangedRoles.PIERCE); // без продолжения
             net.minecraftforge.event.entity.living.LivingHurtEvent hp = new net.minecraftforge.event.entity.living.LivingHurtEvent(zb,
                 net.minecraft.util.DamageSource.causeThrownDamage(pb, kv), 10);
             MinecraftForge.EVENT_BUS.post(hp);
-            Accessories.of(kv).setInventorySlotContents(0, null);
+            unwearT(kv);
             check(Math.abs(got[0] - 10) < 0.01 && Math.abs(got[1] - 11) < 0.01 && Math.abs(hp.ammount - 11.5) < 0.01,
                 "стрела без колчана " + got[0] + ", с колчаном " + got[1] + ", фазер с подсумком " + hp.ammount);
             return "колчан: стрелы +10%; подсумок: фазер +15%";
@@ -7156,7 +7328,7 @@ public class SelfTest {
             lm.setDead();
             // знак: сильнее в своём мире
             bp.inventory.clearInventory(null, -1);
-            Accessories.of(bp).setInventorySlotContents(0, trinket(com.divinerpgextended.trinket.Trinket.HUNTER_EDEN));
+            wearT(bp, com.divinerpgextended.trinket.Trinket.HUNTER_EDEN);
             net.minecraft.entity.monster.EntityZombie zb = new net.minecraft.entity.monster.EntityZombie(w);
             net.minecraftforge.event.entity.living.LivingHurtEvent h1 = new net.minecraftforge.event.entity.living.LivingHurtEvent(zb, DamageSource.causePlayerDamage(bp), 10);
             MinecraftForge.EVENT_BUS.post(h1);
@@ -7167,7 +7339,7 @@ public class SelfTest {
             net.minecraftforge.event.entity.living.LivingHurtEvent h3 = new net.minecraftforge.event.entity.living.LivingHurtEvent(bp, DamageSource.causeMobDamage(zb), 10);
             MinecraftForge.EVENT_BUS.post(h3);
             bp.dimension = dimWas;
-            Accessories.of(bp).setInventorySlotContents(0, null);
+            unwearT(bp);
             bp.inventory.clearInventory(null, -1);
             boolean dmg = Math.abs(h1.ammount - 10.6F) < 0.01 && Math.abs(h2.ammount - 11.5F) < 0.01 && Math.abs(h3.ammount - 8.8F) < 0.01;
             check(filled && noBoss && dup == 0 && enderInEnd && one == 1 && still == 1 && sold && done && ie.isCanceled() && marks == 1 && again == 0 && dmg,

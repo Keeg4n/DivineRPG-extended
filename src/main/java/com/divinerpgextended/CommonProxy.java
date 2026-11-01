@@ -56,6 +56,7 @@ public class CommonProxy {
         com.divinerpgextended.trinket.DoubleJump.register();
         com.divinerpgextended.boss.EnderGear.register();
         com.divinerpgextended.perk.RangedRoles.registerMessages();
+        com.divinerpgextended.perk.AmmoLoad.register();
         com.divinerpgextended.debug.Debug.register();
     }
 
@@ -226,6 +227,11 @@ public class CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(trinkets);
+        com.divinerpgextended.accessory.SocketGuard socketGuard = new com.divinerpgextended.accessory.SocketGuard();
+        MinecraftForge.EVENT_BUS.register(socketGuard);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(socketGuard);
         com.divinerpgextended.arcana.FurnaceRoles furnaces = new com.divinerpgextended.arcana.FurnaceRoles();
         MinecraftForge.EVENT_BUS.register(furnaces);
         FMLCommonHandler.instance()

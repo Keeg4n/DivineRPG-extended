@@ -1,7 +1,6 @@
 package com.divinerpgextended.perk;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.lang.reflect.Field;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
@@ -10,22 +9,27 @@ import net.minecraft.item.ItemBow;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
-import com.divinerpgextended.accessory.Accessories;
-
 /**
- * Слоты боеприпасов под аксессуарами (как в Террарии): стрелы, пыль, пули и гранаты Divine, ванильные стрелы. Оружие
- * берёт патроны сначала из инвентаря, а если там нет - из этих слотов. Само оружие умеет брать только из инвентаря,
- * поэтому перед выстрелом одна штука на миг переносится в инвентарь с меткой {@link #TAG} и тут же тратится; не
- * потратилась (перезарядка, лук отпустили сразу) - на конце тика возвращается в слот ({@link #settle}).
- * <p>
- * Дюп: штука сначала вынимается из слота, потом кладётся в инвентарь (не влезла - обратно в слот); возврат - так же.
+ * Заряд внутри оружия: у каждого стрелка один вид боеприпасов ({@link #of}), поэтому внутри хранится не инвентарь, а одно
+ * число в NBT ({@link #LOADED}). Нет окна и вещей внутри - нечего дюпать.
+ * <ul>
+ * <li>зарядить - присесть и ПКМ оружием ({@link #load}): всё подходящее из инвентаря, до {@link #STACKS} стопок;</li>
+ * <li>выстрел берёт сначала заряд, потом инвентарь: оружие само спрашивает инвентарь, а
+ * {@link com.divinerpgextended.asm.AmmoTransformer} подменяет этот вопрос на {@link com.divinerpgextended.asm.AmmoHooks};</li>
+ * <li>разрядить - на Наковальне Странника ({@link #unload}); сломалось оружие - заряд высыпается игроку ({@link #spill}).</li>
+ * </ul>
+ * Каждый перенос - сначала минус в источнике, потом плюс в цели, в одном вызове на сервере.
  */
 public final class Ammo {
 
+    public static final String LOADED = "dreLoaded";
+    /** Вместимость: столько стопок боеприпасов своего вида. */
+    public static final int STACKS = 4;
+    /** Метка патрона, одолженного на выстрел до 0.99.67 (остался после сбоя - снимаем). */
     public static final String TAG = "dreAmmo";
-    private static Set<Item> all;
-    /** Клиент: какие боеприпасы лежат в слотах своего игрока (для натягивания лука без стрел в инвентаре). */
-    public static Set<Integer> client = new HashSet<Integer>();
+    static final String STASH = "dreAmmoStash";
+
+    private static Field bowArrow, shooterAmmo;
 
     private Ammo() {}
 
@@ -35,9 +39,9 @@ public final class Ammo {
         Item i = held.getItem();
         Item dust = RangedRoles.dust(i);
         if (dust != null) return dust; // фазер и блиц - пыль своего мира
-        if (i instanceof net.divinerpg.items.base.ItemModBow) return field(net.divinerpg.items.base.ItemModBow.class, i, "arrow");
+        if (i instanceof net.divinerpg.items.base.ItemModBow) return value(bowArrow(), i);
         if (i instanceof ItemBow) return Items.arrow;
-        if (i instanceof net.divinerpg.items.base.ItemProjectileShooter) return field(net.divinerpg.items.base.ItemProjectileShooter.class, i, "ammo");
+        if (i instanceof net.divinerpg.items.base.ItemProjectileShooter) return value(shooterAmmo(), i);
         String cn = i.getClass().getName();
         if (cn.endsWith(".ItemLaVekor")) return net.divinerpg.utils.items.ArcanaItems.grenade;
         if (cn.endsWith(".ItemCorruptedCannon")) return net.divinerpg.utils.items.VanillaItemsOther.corruptedBullet;
@@ -47,133 +51,160 @@ public final class Ammo {
     /** Что тратит стрелок Divine по своей задумке (у блица - пыль), без наших поправок. */
     public static Item divineAmmo(ItemStack held) {
         if (held == null || !(held.getItem() instanceof net.divinerpg.items.base.ItemProjectileShooter)) return null;
-        return field(net.divinerpg.items.base.ItemProjectileShooter.class, held.getItem(), "ammo");
+        return value(shooterAmmo(), held.getItem());
     }
 
-    private static Item field(Class<?> c, Object o, String name) {
+    private static Field bowArrow() {
+        if (bowArrow == null) bowArrow = field(net.divinerpg.items.base.ItemModBow.class, "arrow");
+        return bowArrow;
+    }
+
+    private static Field shooterAmmo() {
+        if (shooterAmmo == null) shooterAmmo = field(net.divinerpg.items.base.ItemProjectileShooter.class, "ammo");
+        return shooterAmmo;
+    }
+
+    private static Field field(Class<?> c, String name) {
         try {
-            java.lang.reflect.Field f = c.getDeclaredField(name);
+            Field f = c.getDeclaredField(name);
             f.setAccessible(true);
-            Object v = f.get(o);
+            return f;
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private static Item value(Field f, Object o) {
+        try {
+            Object v = f == null ? null : f.get(o);
             return v instanceof Item ? (Item) v : null;
         } catch (Exception ex) {
             return null;
         }
     }
 
-    /** Можно ли положить в слот боеприпасов: то, что тратит хоть одно оружие. */
-    public static boolean isAmmo(Item a) {
-        if (all == null) {
-            Set<Item> s = new HashSet<Item>();
-            s.add(Items.arrow);
-            for (Object o : Item.itemRegistry) {
-                if (!(o instanceof Item)) continue;
-                try {
-                    Item need = of(new ItemStack((Item) o));
-                    if (need != null) s.add(need);
-                } catch (Throwable t) {
-                    // чужой предмет, который не любит пустой стак - пропускаем
-                }
-            }
-            all = s;
+    public static int loaded(ItemStack w) {
+        return w != null && w.hasTagCompound() ? Math.max(0, w.getTagCompound().getInteger(LOADED)) : 0;
+    }
+
+    /** Записать заряд (сервер: зарядка, выстрел, разрядка; самопроверка ставит напрямую). */
+    public static void setLoaded(ItemStack w, int n) {
+        if (n > 0) {
+            if (!w.hasTagCompound()) w.setTagCompound(new NBTTagCompound());
+            w.getTagCompound().setInteger(LOADED, n);
+        } else if (w.hasTagCompound()) {
+            w.getTagCompound().removeTag(LOADED);
+            if (w.getTagCompound().hasNoTags()) w.setTagCompound(null);
         }
-        return a != null && all.contains(a);
     }
 
-    /** Есть ли такие боеприпасы в слотах (на клиенте - по последней сводке с сервера). */
-    public static boolean has(EntityPlayer p, Item a) {
-        if (a == null) return false;
-        if (p.worldObj.isRemote) return client.contains(Item.getIdFromItem(a));
-        Accessories acc = Accessories.of(p);
-        for (int i = Accessories.SIZE; i < Accessories.TOTAL; i++) {
-            ItemStack s = acc.getStackInSlot(i);
-            if (s != null && s.getItem() == a && s.stackSize > 0) return true;
-        }
-        return false;
+    /** Сколько влезает в оружие: {@link #STACKS} стопок его боеприпасов. */
+    public static int capacity(ItemStack w) {
+        Item a = of(w);
+        return a == null ? 0 : STACKS * new ItemStack(a).getMaxStackSize();
     }
 
-    /** Сводка для клиента: id боеприпасов в слотах. */
-    public static int[] ids(EntityPlayer p) {
-        Accessories acc = Accessories.of(p);
-        java.util.TreeSet<Integer> ids = new java.util.TreeSet<Integer>();
-        for (int i = Accessories.SIZE; i < Accessories.TOTAL; i++) {
-            ItemStack s = acc.getStackInSlot(i);
-            if (s != null && s.stackSize > 0) ids.add(Item.getIdFromItem(s.getItem()));
-        }
-        int[] r = new int[ids.size()];
-        int k = 0;
-        for (int id : ids) r[k++] = id;
-        return r;
+    /** Заряжено ли оружие этими боеприпасами. */
+    public static boolean has(ItemStack w, Item a) {
+        return a != null && loaded(w) > 0 && of(w) == a;
     }
 
-    /** Списать одну штуку из слотов боеприпасов (выстрел уже был). @return true - было что списать */
-    public static boolean consume(EntityPlayer p, Item a) {
-        return takeFromSlots(p, a) != null;
+    /** Выстрел: один заряд из оружия под этот патрон. @return true - был */
+    public static boolean take(ItemStack w, Item a) {
+        if (!has(w, a)) return false;
+        setLoaded(w, loaded(w) - 1);
+        return true;
     }
 
-    /** Вынуть одну штуку из слотов (null - нет). */
-    private static ItemStack takeFromSlots(EntityPlayer p, Item a) {
-        Accessories acc = Accessories.of(p);
-        for (int i = Accessories.SIZE; i < Accessories.TOTAL; i++) {
-            ItemStack s = acc.getStackInSlot(i);
-            if (s == null || s.getItem() != a || s.stackSize <= 0) continue;
-            ItemStack one = s.copy();
-            one.stackSize = 1;
-            s.stackSize--;
-            acc.setInventorySlotContents(i, s.stackSize > 0 ? s : null);
-            return one;
-        }
-        return null;
+    /** Годится в заряд: тот же предмет без своих данных и подвида (иначе пропали бы при превращении в число). */
+    static boolean plain(ItemStack s, Item a) {
+        return s != null && s.getItem() == a && s.stackSize > 0 && s.getItemDamage() == 0 && !s.hasTagCompound();
     }
 
-    /** Перед выстрелом: одна штука из слотов - в инвентарь с меткой (оружие её тут же потратит). */
-    public static boolean lend(EntityPlayer p, Item a) {
-        if (a == null || p.worldObj.isRemote) return false;
-        ItemStack one = takeFromSlots(p, a);
-        if (one == null) return false;
-        NBTTagCompound t = one.hasTagCompound() ? (NBTTagCompound) one.getTagCompound().copy() : new NBTTagCompound();
-        t.setBoolean(TAG, true);
-        one.setTagCompound(t);
-        if (give(p, one)) return true;
-        putBack(p, strip(one)); // положить некуда - обратно в слот
-        return false;
-    }
-
-    static final String STASH = "dreAmmoStash";
-
-    /**
-     * Положить патрон на миг выстрела. Рюкзак полон - стопка боеприпасов из рюкзака (стрелы, пыль...) переезжает в слоты
-     * боеприпасов (там ей и место, обратно не возвращается), освободившуюся ячейку занимает патрон. Таких стопок нет или
-     * слоты боеприпасов заняты - false: прочие вещи не трогаем вовсе.
-     */
-    public static boolean give(EntityPlayer p, ItemStack one) {
-        if (p.inventory.addItemStackToInventory(one) && one.stackSize <= 0) return true;
-        if (one.stackSize <= 0) return true;
+    /** Сколько патронов из инвентаря можно зарядить в оружие в руке (0 - нечего или некуда). */
+    public static int loadable(EntityPlayer p) {
+        ItemStack w = p.getHeldItem();
+        Item a = of(w);
+        if (a == null) return 0;
+        int room = capacity(w) - loaded(w), n = 0;
         ItemStack[] inv = p.inventory.mainInventory;
-        for (int i = inv.length - 1; i >= 0; i--) {
-            ItemStack s = inv[i];
-            if (i == p.inventory.currentItem || s == null || marked(s) || !isAmmo(s.getItem()) || room(p, s) < s.stackSize) continue;
-            putBack(p, s); // влезает целиком - проверено
-            inv[i] = one;
-            return true;
-        }
-        return false;
+        for (int i = 0; i < inv.length && n < room; i++) if (i != p.inventory.currentItem && plain(inv[i], a)) n += inv[i].stackSize;
+        return Math.min(n, Math.max(0, room));
     }
 
-    /** Сколько таких штук ещё влезет в слоты боеприпасов. */
-    static int room(EntityPlayer p, ItemStack s) {
-        Accessories acc = Accessories.of(p);
-        int n = 0;
-        for (int i = Accessories.SIZE; i < Accessories.TOTAL; i++) {
-            ItemStack in = acc.getStackInSlot(i);
-            if (in == null) n += s.getMaxStackSize();
-            else if (in.isItemEqual(s) && ItemStack.areItemStackTagsEqual(in, s)) n += Math.max(0, in.getMaxStackSize() - in.stackSize);
+    /** Зарядить оружие в руке из инвентаря - всё подходящее, пока влезает. Только сервер. @return сколько вошло */
+    public static int load(EntityPlayer p) {
+        if (p.worldObj.isRemote) return 0;
+        ItemStack w = p.getHeldItem();
+        Item a = of(w);
+        if (a == null) return 0;
+        int got = 0;
+        ItemStack[] inv = p.inventory.mainInventory;
+        for (int i = 0; i < inv.length; i++) {
+            int room = capacity(w) - loaded(w);
+            if (room <= 0) break;
+            if (i == p.inventory.currentItem || !plain(inv[i], a)) continue;
+            int n = Math.min(room, inv[i].stackSize);
+            inv[i].stackSize -= n; // сначала минус в инвентаре
+            if (inv[i].stackSize <= 0) inv[i] = null;
+            setLoaded(w, loaded(w) + n); // потом плюс в оружии
+            got += n;
+        }
+        if (got > 0) p.inventory.markDirty();
+        return got;
+    }
+
+    /** Сколько таких патронов ещё влезет в инвентарь игрока. */
+    public static int room(EntityPlayer p, Item a) {
+        int max = new ItemStack(a).getMaxStackSize(), n = 0;
+        for (ItemStack s : p.inventory.mainInventory) {
+            if (s == null) n += max;
+            else if (plain(s, a)) n += Math.max(0, max - s.stackSize);
         }
         return n;
     }
 
-    static boolean marked(ItemStack s) {
-        return s.hasTagCompound() && (s.getTagCompound().getBoolean(TAG) || s.getTagCompound().getBoolean(RangedRoles.QUIVER_TAG));
+    /** Положить в инвентарь ровно count (место проверено {@link #room}): сначала к таким же, потом в пустые. */
+    private static void put(EntityPlayer p, Item a, int count) {
+        int max = new ItemStack(a).getMaxStackSize();
+        ItemStack[] inv = p.inventory.mainInventory;
+        for (int i = 0; i < inv.length && count > 0; i++) {
+            if (!plain(inv[i], a)) continue;
+            int n = Math.min(count, max - inv[i].stackSize);
+            if (n <= 0) continue;
+            inv[i].stackSize += n;
+            count -= n;
+        }
+        for (int i = 0; i < inv.length && count > 0; i++) {
+            if (inv[i] != null) continue;
+            int n = Math.min(count, max);
+            inv[i] = new ItemStack(a, n);
+            count -= n;
+        }
+        p.inventory.markDirty();
+    }
+
+    /** Разрядить в инвентарь игрока, сколько влезет; остальное остаётся в оружии. @return сколько вышло */
+    public static int unload(EntityPlayer p, ItemStack w) {
+        Item a = of(w);
+        if (a == null || p.worldObj.isRemote) return 0;
+        int n = Math.min(loaded(w), room(p, a));
+        if (n <= 0) return 0;
+        setLoaded(w, loaded(w) - n); // сначала минус в оружии
+        put(p, a, n); // потом плюс в инвентаре
+        return n;
+    }
+
+    /** Оружие сломалось: заряд - игроку в инвентарь, что не влезло - под ноги. */
+    public static void spill(EntityPlayer p, ItemStack w) {
+        Item a = of(w);
+        int n = loaded(w);
+        if (a == null || n <= 0) return;
+        setLoaded(w, 0);
+        int in = Math.min(n, room(p, a));
+        if (in > 0) put(p, a, in);
+        int max = new ItemStack(a).getMaxStackSize();
+        for (int rest = n - in; rest > 0; rest -= max) p.dropPlayerItemWithRandomChoice(new ItemStack(a, Math.min(rest, max)), false);
     }
 
     private static NBTTagCompound persisted(EntityPlayer p) {
@@ -196,42 +227,12 @@ public final class Ammo {
         else if (!p.inventory.addItemStackToInventory(orig) || orig.stackSize > 0) p.entityDropItem(orig, 0.5F);
     }
 
-    private static ItemStack strip(ItemStack s) {
-        if (s.hasTagCompound()) {
+    /** Конец тика: патрону, одолженному на выстрел до 0.99.67 и оставшемуся после сбоя, - снять метку; старый тайник 0.86 - вернуть. */
+    public static void settle(EntityPlayer p) {
+        for (ItemStack s : p.inventory.mainInventory) {
+            if (s == null || !s.hasTagCompound() || !s.getTagCompound().getBoolean(TAG)) continue;
             s.getTagCompound().removeTag(TAG);
             if (s.getTagCompound().hasNoTags()) s.setTagCompound(null);
-        }
-        return s;
-    }
-
-    /** Положить в слоты боеприпасов (сначала к таким же, потом в пустые); что не влезло - вернуть. */
-    private static ItemStack putBack(EntityPlayer p, ItemStack s) {
-        Accessories acc = Accessories.of(p);
-        for (int pass = 0; pass < 2 && s != null && s.stackSize > 0; pass++) {
-            for (int i = Accessories.SIZE; i < Accessories.TOTAL && s.stackSize > 0; i++) {
-                ItemStack in = acc.getStackInSlot(i);
-                if (pass == 0 && in != null && in.isItemEqual(s) && ItemStack.areItemStackTagsEqual(in, s)) {
-                    int n = Math.min(s.stackSize, in.getMaxStackSize() - in.stackSize);
-                    if (n <= 0) continue;
-                    in.stackSize += n;
-                    s.stackSize -= n;
-                    acc.setInventorySlotContents(i, in);
-                } else if (pass == 1 && in == null) {
-                    acc.setInventorySlotContents(i, s.copy());
-                    s.stackSize = 0;
-                }
-            }
-        }
-        return s.stackSize > 0 ? s : null;
-    }
-
-    /** Конец тика: не потраченные одолженные штуки - обратно в слоты (не влезли - остаются в инвентаре без метки). */
-    public static void settle(EntityPlayer p) {
-        ItemStack[] inv = p.inventory.mainInventory;
-        for (int i = 0; i < inv.length; i++) {
-            ItemStack s = inv[i];
-            if (s == null || !s.hasTagCompound() || !s.getTagCompound().getBoolean(TAG)) continue;
-            inv[i] = putBack(p, strip(s));
         }
         unstash(p);
     }

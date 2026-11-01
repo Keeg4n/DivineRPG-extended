@@ -86,6 +86,45 @@ public enum Trinket {
         return material != null ? material : VanillaItemsOther.hellstoneIngot;
     }
 
+    /** Части брони по armorType: 0 шлем, 1 нагрудник, 2 поножи, 3 ботинки (биты для {@link #armorParts}). */
+    public static final int HEAD = 1, BODY = 2, LEGS = 4, FEET = 8;
+
+    /**
+     * В какие части брони встраивается (биты HEAD..FEET): голова и шея - шлем; торс, плечи, руки и спина - нагрудник;
+     * пояс - поножи; ступни и движение - ботинки. Объединённый - в часть любого из компонентов.
+     */
+    public int armorParts() {
+        Trinket[] p = parts();
+        if (p != null) return p[0].armorParts() | p[1].armorParts();
+        if (name().startsWith("HUNTER_")) return HEAD;
+        switch (this) {
+            case LICH_CROWN: case WATCHER_EYE: case DEEP_SHELL: case DUNGEON_LAMP: case JACK_AMULET: case DEAD_AMULET:
+            case WARM_SCARF: case CLARITY_CRYSTAL:
+                return HEAD;
+            case BLAST_BELT: case MASTER_SCABBARD: case ENDLESS_QUIVER: case DUST_POUCH: case SLICER_SLING: case TACKLE_BOX:
+            case POCKET_MAGNET:
+                return LEGS;
+            case MAGIC_CARPET: case AYERACO_WING: case BLUE_FLAME:
+                return FEET;
+            default:
+                return BODY;
+        }
+    }
+
+    /** Цена встраивания на Наковальне Странника, уровней опыта. */
+    public int levels() {
+        switch (this) {
+            case PHARAOH_ANKH: case MAGIC_CARPET: case AYERACO_WING: case DREAM_WINGS_1: case DREAM_WINGS_2: case DREAM_WINGS_3:
+                return 20;
+            case BONE_RING: case DEAD_AMULET: case BLAST_BELT: case WITHER_RING: case JACK_AMULET: case DEEP_SHELL:
+            case ETERNAL_ICE_RING: case DUNGEON_LAMP: case ENDLESS_QUIVER: case DUST_POUCH: case SLICER_SLING: case TACKLE_BOX:
+            case WARM_SCARF: case VALOR_MEDAL:
+                return 10;
+            default:
+                return parts() != null ? 20 : 15;
+        }
+    }
+
     /** Из каких двух собран (для объединённых) или null. */
     public Trinket[] parts() {
         switch (this) {
@@ -101,12 +140,22 @@ public enum Trinket {
         return this == DREAM_WINGS_1 || this == DREAM_WINGS_2 || this == DREAM_WINGS_3 || this == HUNTER_VETHEA;
     }
 
-    /** Какие эффекты даёт: сам и, у объединённых, оба компонента. */
+    private static Set<Trinket>[] provided;
+
+    /** Какие эффекты даёт: сам и, у объединённых, оба компонента (только чтение - спрашивают на каждом ударе). */
+    @SuppressWarnings("unchecked")
     public Set<Trinket> provides() {
-        Set<Trinket> s = EnumSet.of(this);
-        Trinket[] p = parts();
-        if (p != null) for (Trinket t : p) s.add(t);
-        return s;
+        if (provided == null) {
+            Set<Trinket>[] all = new Set[values().length];
+            for (Trinket t : values()) {
+                Set<Trinket> s = EnumSet.of(t);
+                Trinket[] p = t.parts();
+                if (p != null) for (Trinket c : p) s.add(c);
+                all[t.ordinal()] = java.util.Collections.unmodifiableSet(s);
+            }
+            provided = all;
+        }
+        return provided[ordinal()];
     }
 
     /** Объединение двух у мастера мастерской: результат или null. */

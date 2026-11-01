@@ -2,7 +2,7 @@ package com.divinerpgextended;
 
 public final class Tags {
 
-    public static final String VERSION = "0.99.66";
+    public static final String VERSION = "0.99.67";
 
     private Tags() {}
 }

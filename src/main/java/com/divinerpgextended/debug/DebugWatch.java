@@ -139,10 +139,13 @@ public class DebugWatch {
 
     private static List<String> accessories(EntityPlayerMP p) {
         List<String> l = new ArrayList<String>();
+        for (ItemStack armor : p.inventory.armorInventory) {
+            for (ItemStack s : com.divinerpgextended.accessory.Sockets.contents(armor)) l.add(s.getDisplayName() + " (" + armor.getDisplayName() + ")");
+        }
         Accessories a = Accessories.of(p);
         for (int i = 0; i < a.getSizeInventory(); i++) {
             ItemStack s = a.getStackInSlot(i);
-            if (s != null) l.add(i >= Accessories.SIZE ? "боеприпасы: " + s.getDisplayName() + " x" + s.stackSize : s.getDisplayName() + (i < a.unlocked ? "" : " (закрытый слот)"));
+            if (s != null) l.add("старый слот: " + s.getDisplayName() + " x" + s.stackSize);
         }
         return l;
     }
@@ -182,8 +185,8 @@ public class DebugWatch {
         List<String> on = new ArrayList<String>(now), off = new ArrayList<String>(was);
         on.removeAll(was);
         off.removeAll(now);
-        String t = "[аксессуары] " + (on.isEmpty() ? "" : "надето: " + on + " ") + (off.isEmpty() ? "" : "снято: " + off) + " | открыто слотов "
-            + Accessories.of(p).unlocked;
+        String t = "[аксессуары] " + (on.isEmpty() ? "" : "надето: " + on + " ") + (off.isEmpty() ? "" : "снято: " + off) + " | вторых гнёзд Странника "
+            + (Accessories.of(p).unlocked - Accessories.BASE);
         if (f.chat) Debug.chat(p, EnumChatFormatting.DARK_AQUA, t);
         if (f.file) Debug.file(p, "accessories", "", t);
     }

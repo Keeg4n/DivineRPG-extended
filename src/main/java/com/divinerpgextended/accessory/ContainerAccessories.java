@@ -6,9 +6,9 @@ import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 
 /**
- * Окно аксессуаров: 6 слотов сверху (закрытые не принимают вещи), под ними 9 слотов боеприпасов, ниже инвентарь смотрящего. Смотреть может и сам
- * игрок, и админ (/dreinv); в режиме просмотра слоты аксессуаров не трогаются. Окно закрывается, как только объект
- * аксессуаров устарел (смерть или перезаход владельца) - чтобы нельзя было вынуть вещь из старой копии.
+ * Окно старых слотов (до 0.99.67): 6 слотов аксессуаров и 9 боеприпасов - только забрать, положить нельзя; ниже инвентарь
+ * смотрящего. Смотреть может и сам игрок, и админ (/dreinv); в режиме просмотра слоты не трогаются. Окно закрывается,
+ * как только объект аксессуаров устарел (смерть или перезаход владельца) - чтобы нельзя было вынуть вещь из старой копии.
  */
 public class ContainerAccessories extends Container {
 
@@ -104,30 +104,15 @@ public class ContainerAccessories extends Container {
         return acc.valid();
     }
 
-    /** Shift-клик: из аксессуаров и боеприпасов - в инвентарь, из инвентаря - боеприпасы в их слоты, бижутерия - в первый подходящий слот аксессуара. */
+    /** Shift-клик: из старых слотов - в инвентарь; обратно ничего не кладётся. */
     @Override
     public ItemStack transferStackInSlot(EntityPlayer p, int index) {
-        if (acc.readOnly || !acc.valid()) return null;
+        if (acc.readOnly || !acc.valid() || index >= Accessories.TOTAL) return null;
         Slot slot = (Slot) inventorySlots.get(index);
         if (slot == null || !slot.getHasStack()) return null;
         ItemStack stack = slot.getStack();
         ItemStack copy = stack.copy();
-        if (index < Accessories.TOTAL) {
-            if (!mergeItemStack(stack, Accessories.TOTAL, inventorySlots.size(), true)) return null;
-        } else if (com.divinerpgextended.perk.Ammo.isAmmo(stack.getItem())) {
-            if (!mergeItemStack(stack, Accessories.SIZE, Accessories.TOTAL, false)) return null;
-        } else {
-            boolean moved = false;
-            for (int i = 0; i < Accessories.SIZE && !moved; i++) {
-                Slot target = (Slot) inventorySlots.get(i);
-                if (!target.getHasStack() && target.isItemValid(stack)) {
-                    ItemStack one = stack.splitStack(1);
-                    target.putStack(one);
-                    moved = true;
-                }
-            }
-            if (!moved) return null;
-        }
+        if (!mergeItemStack(stack, Accessories.TOTAL, inventorySlots.size(), true)) return null;
         if (stack.stackSize == 0) slot.putStack(null);
         else slot.onSlotChanged();
         return copy;

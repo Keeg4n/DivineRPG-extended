@@ -18,8 +18,9 @@ import com.divinerpgextended.cold.ColdHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Маленькая кнопка-звёздочка "Аксессуары" как у Baubles, только в правом нижнем углу рамки с моделькой игрока
- * (обычный инвентарь и вкладка инвентаря в творческом).
+ * Маленькая кнопка-звёздочка старых слотов аксессуаров в правом нижнем углу рамки с моделькой игрока (обычный инвентарь
+ * и вкладка инвентаря в творческом). Видна, только пока в старых слотах что-то осталось
+ * ({@link com.divinerpgextended.accessory.Accessories#clientLeftovers}).
  */
 public class AccessoryButton {
 
@@ -71,7 +72,7 @@ public class AccessoryButton {
      * инициализации возвращает его на место (эффекты выносит на свою панель) - поэтому пересчёт перед каждой отрисовкой.
      */
     private static void place(StarButton button, net.minecraft.client.gui.GuiScreen gui) {
-        if (!(gui instanceof GuiInventory || gui instanceof GuiContainerCreative)) {
+        if (!com.divinerpgextended.accessory.Accessories.clientLeftovers || !(gui instanceof GuiInventory || gui instanceof GuiContainerCreative)) {
             button.visible = false;
             return;
         }

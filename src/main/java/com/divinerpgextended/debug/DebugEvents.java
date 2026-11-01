@@ -370,16 +370,19 @@ public class DebugEvents {
         if (ar != null) b.append(" | аркана ").append(f(ar.getBarValue())).append('/').append(f(com.divinerpgextended.asm.ArcanaHooks.max(p)));
         b.append(" | в руке ").append(stack(p.getHeldItem())).append(" | броня");
         for (int i = 3; i >= 0; i--) b.append(' ').append(stack(p.inventory.armorItemInSlot(i)));
-        Accessories a = Accessories.of(p);
-        b.append(" | аксессуары");
-        for (int i = 0; i < Accessories.SIZE; i++) {
-            ItemStack s = a.getStackInSlot(i);
-            if (s != null) b.append(' ').append(i < a.unlocked ? "" : "(закрыт)").append(s.getDisplayName());
+        b.append(" | в гнёздах");
+        for (ItemStack armor : p.inventory.armorInventory) {
+            for (ItemStack s : com.divinerpgextended.accessory.Sockets.contents(armor)) b.append(' ').append(s.getDisplayName());
         }
-        b.append(" | боеприпасы");
-        for (int i = Accessories.SIZE; i < Accessories.TOTAL; i++) {
-            ItemStack s = a.getStackInSlot(i);
-            if (s != null) b.append(' ').append(s.getDisplayName()).append(" x").append(s.stackSize);
+        if (p.getHeldItem() != null && com.divinerpgextended.perk.Ammo.of(p.getHeldItem()) != null)
+            b.append(" | заряд ").append(com.divinerpgextended.perk.Ammo.loaded(p.getHeldItem()));
+        Accessories a = Accessories.of(p);
+        if (a.leftovers()) {
+            b.append(" | старые слоты");
+            for (int i = 0; i < Accessories.TOTAL; i++) {
+                ItemStack s = a.getStackInSlot(i);
+                if (s != null) b.append(' ').append(s.getDisplayName()).append(" x").append(s.stackSize);
+            }
         }
         if (p.capabilities.isFlying) b.append(" | летит");
         Debug.file(p, "state", "", b.toString());

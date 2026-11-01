@@ -40,7 +40,7 @@ public class InfusionTooltip {
         WeaponKind k = WeaponKind.ofItem(e.itemStack);
         if (k != null) e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.weapon_kind." + k.key()));
         if (com.divinerpgextended.accessory.Accessories.divineAccessory(e.itemStack))
-            e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.accessory_slot"));
+            e.toolTip.add(EnumChatFormatting.GOLD + com.divinerpgextended.trinket.ItemTrinket.howTo(e.itemStack).getUnformattedText());
         if (e.itemStack.getItem() == net.divinerpg.utils.items.VetheaItems.heivaBelt)
             e.toolTip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("dre.tooltip.heiva_rhythm",
                 (int) (VetheaCombat.RHYTHM_STEP * 100), (int) (VetheaCombat.RHYTHM_STEP * VetheaCombat.RHYTHM_MAX * 100)));

@@ -1,13 +1,11 @@
 package com.divinerpgextended.client;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
 import org.lwjgl.opengl.GL11;
@@ -15,15 +13,13 @@ import org.lwjgl.opengl.GL11;
 import com.divinerpgextended.accessory.Accessories;
 import com.divinerpgextended.accessory.ContainerAccessories;
 
-/** Окно аксессуаров: рисуем фон сами (в стиле ванильного инвентаря), закрытые слоты - тёмные с замком. */
+/** Окно старых слотов аксессуаров и боеприпасов: только забрать. Фон рисуем сами (в стиле ванильного инвентаря). */
 public class GuiAccessories extends GuiContainer {
 
-    private final int unlocked;
     private final boolean readOnly;
 
     public GuiAccessories(EntityPlayer p, int unlocked, boolean readOnly) {
         super(new ContainerAccessories(p, new Accessories(p, unlocked, readOnly)));
-        this.unlocked = unlocked;
         this.readOnly = readOnly;
         xSize = 176;
         ySize = 166;
@@ -53,62 +49,39 @@ public class GuiAccessories extends GuiContainer {
         drawRect(x + w - 2, y + 2, x + w - 1, y + h - 1, 0xFF555555);
     }
 
-    private void slot(int x, int y, boolean locked) {
+    private void slot(int x, int y) {
         drawRect(x - 1, y - 1, x + 17, y + 17, 0xFF373737);
         drawRect(x, y, x + 17, y + 17, 0xFFFFFFFF);
-        drawRect(x, y, x + 16, y + 16, locked ? 0xFF3A3A3A : 0xFF8B8B8B);
+        drawRect(x, y, x + 16, y + 16, 0xFF8B8B8B);
     }
 
     @Override
     protected void drawGuiContainerBackgroundLayer(float pt, int mx, int my) {
         GL11.glColor4f(1, 1, 1, 1);
         panel(guiLeft, guiTop, xSize, ySize);
-        for (int i = 0; i < Accessories.SIZE; i++) {
-            slot(guiLeft + ContainerAccessories.SLOT_X + i * 18, guiTop + ContainerAccessories.SLOT_Y, i >= unlocked);
-        }
-        for (int i = 0; i < Accessories.AMMO; i++) slot(guiLeft + ContainerAccessories.AMMO_X + i * 18, guiTop + ContainerAccessories.AMMO_Y, false);
-        for (int row = 0; row < 3; row++) for (int col = 0; col < 9; col++) slot(guiLeft + 8 + col * 18, guiTop + 84 + row * 18, false);
-        for (int col = 0; col < 9; col++) slot(guiLeft + 8 + col * 18, guiTop + 142, false);
+        for (int i = 0; i < Accessories.SIZE; i++) slot(guiLeft + ContainerAccessories.SLOT_X + i * 18, guiTop + ContainerAccessories.SLOT_Y);
+        for (int i = 0; i < Accessories.AMMO; i++) slot(guiLeft + ContainerAccessories.AMMO_X + i * 18, guiTop + ContainerAccessories.AMMO_Y);
+        for (int row = 0; row < 3; row++) for (int col = 0; col < 9; col++) slot(guiLeft + 8 + col * 18, guiTop + 84 + row * 18);
+        for (int col = 0; col < 9; col++) slot(guiLeft + 8 + col * 18, guiTop + 142);
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected void drawGuiContainerForegroundLayer(int mx, int my) {
         fontRendererObj.drawString(StatCollector.translateToLocal(readOnly ? "dre.accessories.view" : "dre.accessories.title"), 8, 6, 0x404040);
-        String count = StatCollector.translateToLocalFormatted("dre.accessories.count", unlocked, Accessories.SIZE);
-        fontRendererObj.drawString(count, xSize - 8 - fontRendererObj.getStringWidth(count), 6, 0x606060);
-        for (int i = unlocked; i < Accessories.SIZE; i++) {
-            fontRendererObj.drawString("x", ContainerAccessories.SLOT_X + i * 18 + 5, ContainerAccessories.SLOT_Y + 4, 0x909090);
-        }
+        // старые слоты: что здесь лежит, больше не работает - забрать и встроить в броню на Наковальне Странника
+        List<String> hint = fontRendererObj.listFormattedStringToWidth(StatCollector.translateToLocal("dre.accessories.legacy"), xSize - 16);
+        for (int i = 0; i < hint.size() && i < 1; i++) fontRendererObj.drawString(hint.get(i), 8, 15, 0x8B1A1A);
         fontRendererObj.drawString(StatCollector.translateToLocal("container.inventory"), 8, 72, 0x404040);
     }
 
     @Override
     public void drawScreen(int mx, int my, float pt) {
         super.drawScreen(mx, my, pt);
-        // подсказка на пустом слоте боеприпасов
-        for (int i = 0; i < Accessories.AMMO; i++) {
-            int x = guiLeft + ContainerAccessories.AMMO_X + i * 18, y = guiTop + ContainerAccessories.AMMO_Y;
-            if (mx >= x && mx < x + 16 && my >= y && my < y + 16 && !((net.minecraft.inventory.Slot) inventorySlots.inventorySlots.get(Accessories.SIZE + i)).getHasStack()
-                && mc.thePlayer.inventory.getItemStack() == null) {
-                List<String> tip = new ArrayList<String>();
-                tip.add(StatCollector.translateToLocal("dre.accessories.ammo"));
-                for (Object line : fontRendererObj.listFormattedStringToWidth(StatCollector.translateToLocal("dre.accessories.ammo_hint"), 160))
-                    tip.add(EnumChatFormatting.GRAY + (String) line); // одной строкой подсказка уезжала за край экрана
-                drawHoveringText(tip, mx, my, fontRendererObj);
-            }
-        }
-        // подсказка на закрытом слоте: какой босс его откроет
-        for (int i = unlocked; i < Accessories.SIZE; i++) {
-            int x = guiLeft + ContainerAccessories.SLOT_X + i * 18, y = guiTop + ContainerAccessories.SLOT_Y;
-            if (mx >= x && mx < x + 16 && my >= y && my < y + 16) {
-                List<String> tip = new ArrayList<String>();
-                tip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.accessories.locked"));
-                int need = i - Accessories.BASE;
-                if (need >= 0 && need < Accessories.UNLOCKS.length) {
-                    tip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal(Accessories.UNLOCKS[need].langKey()));
-                }
-                drawHoveringText(tip, mx, my, fontRendererObj);
-            }
+        int x = guiLeft + 8, y = guiTop + 15;
+        if (mx >= x && mx < x + xSize - 16 && my >= y && my < y + 9) {
+            List<?> lines = fontRendererObj.listFormattedStringToWidth(StatCollector.translateToLocal("dre.accessories.legacy_hint"), 200);
+            drawHoveringText(lines, mx, my, fontRendererObj);
         }
     }
 }

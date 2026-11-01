@@ -6,5 +6,23 @@
       "blitz_shot2",
       "blitz_shot3"
     ]
+  },
+  "reload_arrows": {
+    "category": "player",
+    "sounds": [
+      "reload_arrows"
+    ]
+  },
+  "reload_dust": {
+    "category": "player",
+    "sounds": [
+      "reload_dust"
+    ]
+  },
+  "reload_gun": {
+    "category": "player",
+    "sounds": [
+      "reload_gun"
+    ]
   }
 }
