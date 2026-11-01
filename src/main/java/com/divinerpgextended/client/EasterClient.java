@@ -307,14 +307,14 @@ public final class EasterClient {
             GL11.glRotatef(180F, 0, 0, 1);
             bindTexture(SOFA);
             SOFA_MODEL.render(null, 0, 0, 0, 0, 0, 0.0625F);
-            // РПГ-7 на подушках: чуть по диагонали, на боку (рукояти к краю сиденья), граната на подлокотнике
-            GL11.glTranslatef(-2F / 16F, 10.3F / 16F, -2F / 16F);
-            GL11.glRotatef(-11.5F, 0, 0, 1);
-            GL11.glRotatef(17F, 0, 1, 0);
+            // РПГ-7 лежит на подушках сиденья: на боку (рукояти к краю), чуть наискось, между подлокотниками и перед
+            // подушками спинки. Масштаб 0.7 - 1.4 блока, как настоящий с гранатой; положение посчитано по вершинам меша,
+            // ни одна не заходит в диван
+            GL11.glTranslatef(-11.11F / 16F, 10.77F / 16F, -0.84F / 16F);
+            GL11.glRotatef(6F, 0, 1, 0);
             GL11.glRotatef(-90F, 1, 0, 0);
-            GL11.glTranslatef(-15F / 16F, 0, 0);
             bindTexture(RPG);
-            RPG_MESH.render("rpg", "sofa", 0.0625F);
+            RPG_MESH.render("rpg", "sofa", 0.0625F * 0.7F);
             GL11.glPopMatrix();
         }
     }

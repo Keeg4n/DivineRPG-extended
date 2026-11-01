@@ -32,17 +32,24 @@ import com.divinerpgextended.world.ArmorTier;
  * <li>заряженное оружие в слоте топлива, остальное пусто -> разрядить в инвентарь ({@link Ammo#unload}).</li>
  * </ul>
  * Донорская броня с аксессуарами не принимается: её съедает улучшение - сначала вынуть.
+ * <p>
+ * Окно разделено на вкладки ({@link #UPGRADE}, {@link #SOCKETS}, {@link #UNLOAD}): каждая смотрит только на свои
+ * слоты. {@link #AUTO} - без вкладки, по содержимому (так считают тесты).
  */
 public final class AnvilLogic {
 
     public static final int ARMOR = 0, DONOR = 4, FUEL = 8, SIZE = 9;
+    /** Вкладки окна; AUTO - по содержимому. */
+    public static final int AUTO = -1, UPGRADE = 0, SOCKETS = 1, UNLOAD = 2, MODES = 3;
 
     public enum Status {
         EMPTY, NEED_ARMOR, BAD_ARMOR, NEED_DONOR, BAD_DONOR, PERK_PRESENT, NO_SLOT, NEED_BOSS, NEED_FUEL,
         READY_UPGRADE, READY_PERK, MAX_TIER,
         // аксессуары и заряд (новые - только в конец: номер уходит клиенту)
         READY_SOCKET, NEED_LEVELS, SOCKET_PART, SOCKET_FULL, SOCKET_SAME, SOCKETS, DONOR_SOCKETS, READY_UNLOAD, UNLOAD_EMPTY,
-        UNLOAD_FULL
+        UNLOAD_FULL,
+        // пустые вкладки и броня без гнёзд
+        EMPTY_SOCKETS, EMPTY_UNLOAD, NO_SOCKETS
     }
 
     public static final class Result {
@@ -55,6 +62,8 @@ public final class AnvilLogic {
         public final int param;
         /** Какое топливо нужно для текущей операции (или null). */
         public final Item fuel;
+        /** Встраивание: куда встанет аксессуар каждого донора - по 3 бита (слот брони + 1, 0 - никуда). */
+        public int targets;
 
         Result(Status status, int param, Item fuel) {
             this.status = status;
@@ -175,12 +184,64 @@ public final class AnvilLogic {
         return pl;
     }
 
+    /** Вкладка гнёзд: броня в слотах брони, аксессуары в донорах. */
+    private static Result sockets(IInventory inv, EntityPlayer player) {
+        boolean acc = false;
+        for (int d = 0; d < 4; d++) {
+            ItemStack s = inv.getStackInSlot(DONOR + d);
+            if (s == null) continue;
+            if (!Sockets.accessory(s)) return new Result(Status.BAD_DONOR, 0);
+            acc = true;
+        }
+        boolean any = false, socketable = false;
+        for (int a = 0; a < 4; a++) {
+            ItemStack s = inv.getStackInSlot(ARMOR + a);
+            if (s == null) continue;
+            any = true;
+            if (Sockets.socketable(s)) socketable = true;
+        }
+        if (!acc) return new Result(!any ? Status.EMPTY_SOCKETS : socketable ? Status.SOCKETS : Status.NO_SOCKETS, 0);
+        Plan pl = plan(inv, player);
+        if (pl.fail != null) {
+            // нужная часть лежит, но без гнёзд (ванильная или чужая) - сказать про это, а не "положите часть"
+            if (pl.fail.status == Status.SOCKET_PART) {
+                int parts = Sockets.parts(inv.getStackInSlot(DONOR + pl.fail.param));
+                for (int a = 0; a < 4; a++) {
+                    ItemStack s = inv.getStackInSlot(ARMOR + a);
+                    if (s != null && !Sockets.socketable(s) && s.getItem() instanceof ItemArmor && (parts & 1 << ((ItemArmor) s.getItem()).armorType) != 0)
+                        return new Result(Status.NO_SOCKETS, 0);
+                }
+            }
+            return pl.fail;
+        }
+        Result r = !player.capabilities.isCreativeMode && player.experienceLevel < pl.levels ? new Result(Status.NEED_LEVELS, pl.levels)
+            : new Result(Status.READY_SOCKET, pl.levels);
+        for (int d = 0; d < 4; d++) r.targets |= (pl.target[d] + 1) << d * 3;
+        return r;
+    }
+
+    /** Вкладка разрядки: только оружие в слоте топлива. */
+    private static Result unload(IInventory inv, EntityPlayer player) {
+        ItemStack w = inv.getStackInSlot(FUEL);
+        if (w == null || Ammo.of(w) == null) return new Result(Status.EMPTY_UNLOAD, 0);
+        int n = Ammo.loaded(w);
+        if (n <= 0) return new Result(Status.UNLOAD_EMPTY, 0);
+        int room = Ammo.room(player, Ammo.of(w));
+        return room <= 0 ? new Result(Status.UNLOAD_FULL, 0) : new Result(Status.READY_UNLOAD, Math.min(n, room));
+    }
+
     private static boolean emptySlots(IInventory inv, int from) {
         for (int i = 0; i < 4; i++) if (inv.getStackInSlot(from + i) != null) return false;
         return true;
     }
 
     public static Result evaluate(IInventory inv, EntityPlayer player) {
+        return evaluate(inv, player, AUTO);
+    }
+
+    public static Result evaluate(IInventory inv, EntityPlayer player, int mode) {
+        if (mode == SOCKETS) return sockets(inv, player);
+        if (mode == UNLOAD) return unload(inv, player);
         // аксессуары в доноре - встраивание в любые части брони с гнёздами
         boolean accDonor = false, armorDonor = false;
         for (int d = 0; d < 4; d++) {
@@ -189,21 +250,10 @@ public final class AnvilLogic {
             if (Sockets.accessory(s)) accDonor = true;
             else armorDonor = true;
         }
-        if (accDonor) {
-            if (armorDonor) return new Result(Status.BAD_DONOR, 0);
-            Plan pl = plan(inv, player);
-            if (pl.fail != null) return pl.fail;
-            if (!player.capabilities.isCreativeMode && player.experienceLevel < pl.levels) return new Result(Status.NEED_LEVELS, pl.levels);
-            return new Result(Status.READY_SOCKET, pl.levels);
-        }
+        if (accDonor) return mode == AUTO && !armorDonor ? sockets(inv, player) : new Result(Status.BAD_DONOR, 0);
         // заряженное оружие одно в слоте топлива - разрядить
         ItemStack fuelStack = inv.getStackInSlot(FUEL);
-        if (fuelStack != null && Ammo.of(fuelStack) != null && emptySlots(inv, ARMOR) && emptySlots(inv, DONOR)) {
-            int n = Ammo.loaded(fuelStack);
-            if (n <= 0) return new Result(Status.UNLOAD_EMPTY, 0);
-            int room = Ammo.room(player, Ammo.of(fuelStack));
-            return room <= 0 ? new Result(Status.UNLOAD_FULL, 0) : new Result(Status.READY_UNLOAD, Math.min(n, room));
-        }
+        if (mode == AUTO && fuelStack != null && Ammo.of(fuelStack) != null && emptySlots(inv, ARMOR) && emptySlots(inv, DONOR)) return unload(inv, player);
         // донорская броня с аксессуарами: улучшение её съест - сначала вынуть
         for (int d = 0; d < 4; d++) if (Sockets.count(inv.getStackInSlot(DONOR + d)) > 0) return new Result(Status.DONOR_SOCKETS, d);
 
@@ -212,7 +262,7 @@ public final class AnvilLogic {
         if (allNull(armor) && allNull(donor)) return new Result(Status.EMPTY, 0);
         // только броня с гнёздами (не сет для улучшения) - подсказка про гнёзда
         boolean setFlow = same(armor, realmiteSet()) || !anyNull(armor) && wanderers(armor);
-        if (allNull(donor) && !setFlow) {
+        if (mode == AUTO && allNull(donor) && !setFlow) {
             for (int a = 0; a < 4; a++) if (Sockets.socketable(inv.getStackInSlot(ARMOR + a))) return new Result(Status.SOCKETS, 0);
         }
 
@@ -291,7 +341,11 @@ public final class AnvilLogic {
 
     /** Выполняет улучшение, если всё готово. Вызывается только на сервере. */
     public static boolean execute(IInventory inv, EntityPlayer player) {
-        Result r = evaluate(inv, player);
+        return execute(inv, player, AUTO);
+    }
+
+    public static boolean execute(IInventory inv, EntityPlayer player, int mode) {
+        Result r = evaluate(inv, player, mode);
         if (!r.ready()) return false;
         if (r.status == Status.READY_SOCKET) {
             Plan pl = plan(inv, player);

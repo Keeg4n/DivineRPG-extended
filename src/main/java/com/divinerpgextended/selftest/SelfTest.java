@@ -893,6 +893,52 @@ public class SelfTest {
                 "донор с медалью: " + blocked.status + " (слот " + blocked.param + "); реалмит > R1 " + up + ", ковёр перешёл в ботинки Странника " + carried);
             return "донорская броня с аксессуарами не принимается (сначала вынуть); при переходе реалмита в R1 аксессуары переходят в части Странника";
         });
+        t("Аксессуары", "Наковальня: вкладки", () -> {
+            reset(p);
+            TileWandererAnvil an = new TileWandererAnvil();
+            p.getEntityData().setInteger(com.divinerpgextended.station.ContainerWandererAnvil.LAST_TAB, AnvilLogic.SOCKETS);
+            com.divinerpgextended.station.ContainerWandererAnvil c = new com.divinerpgextended.station.ContainerWandererAnvil(p.inventory, an);
+            boolean remembered = c.mode == AnvilLogic.SOCKETS;
+            net.minecraft.inventory.Slot helm = (net.minecraft.inventory.Slot) c.inventorySlots.get(AnvilLogic.ARMOR);
+            net.minecraft.inventory.Slot body = (net.minecraft.inventory.Slot) c.inventorySlots.get(AnvilLogic.ARMOR + 1);
+            net.minecraft.inventory.Slot acc = (net.minecraft.inventory.Slot) c.inventorySlots.get(AnvilLogic.DONOR);
+            net.minecraft.inventory.Slot fuel = (net.minecraft.inventory.Slot) c.inventorySlots.get(AnvilLogic.FUEL);
+            ItemStack chest = new ItemStack(VanillaItemsArmor.realmiteBody), ingot = new ItemStack(VanillaItemsOther.arlemiteIngot), bow = new ItemStack(Items.bow);
+            // гнёзда: броня - в слот своей части, внизу аксессуары, слота топлива нет
+            boolean socketSlots = body.isItemValid(chest) && !helm.isItemValid(chest) && acc.isItemValid(trinket(Trinket.MAGIC_CARPET)) && !acc.isItemValid(chest)
+                && !fuel.isItemValid(ingot) && fuel.xDisplayPosition < 0 && acc.yDisplayPosition > body.yDisplayPosition;
+            // shift-клик из инвентаря: ботинки Странника - в слот ботинок, ковёр - в аксессуары; подсвечено гнездо ботинок
+            p.inventory.mainInventory[9] = new ItemStack(ModItems.wanderer[3]);
+            p.inventory.mainInventory[10] = trinket(Trinket.MAGIC_CARPET);
+            c.transferStackInSlot(p, 9);
+            c.transferStackInSlot(p, 10);
+            boolean shift = an.getStackInSlot(AnvilLogic.ARMOR + 3) != null && an.getStackInSlot(AnvilLogic.DONOR) != null && p.inventory.mainInventory[9] == null
+                && p.inventory.mainInventory[10] == null;
+            p.experienceLevel = 30;
+            AnvilLogic.Result r = AnvilLogic.evaluate(an, p, AnvilLogic.SOCKETS);
+            boolean target = r.status == AnvilLogic.Status.READY_SOCKET && r.targets == 4; // аксессуар 0 -> слот брони 3 (+1)
+            // на разрядку: броня и аксессуар уходят в инвентарь, вкладка запоминается
+            boolean toUnload = c.select(p, AnvilLogic.UNLOAD);
+            boolean returned = toUnload && c.mode == AnvilLogic.UNLOAD && an.getStackInSlot(AnvilLogic.ARMOR + 3) == null && an.getStackInSlot(AnvilLogic.DONOR) == null
+                && count(p, ModItems.wanderer[3]) == 1 && count(p, ModItems.trinket) == 1
+                && p.getEntityData().getInteger(com.divinerpgextended.station.ContainerWandererAnvil.LAST_TAB) == AnvilLogic.UNLOAD;
+            boolean unloadSlots = fuel.isItemValid(bow) && !fuel.isItemValid(ingot) && !helm.isItemValid(new ItemStack(VanillaItemsArmor.realmiteHelmet))
+                && helm.xDisplayPosition < 0 && AnvilLogic.evaluate(an, p, AnvilLogic.UNLOAD).status == AnvilLogic.Status.EMPTY_UNLOAD;
+            // улучшение: в топливо оружие не кладётся; нет места в инвентаре - вкладка не меняется, вещь остаётся в наковальне
+            boolean toUpgrade = c.select(p, AnvilLogic.UPGRADE);
+            boolean upgradeSlots = toUpgrade && !fuel.isItemValid(bow) && fuel.isItemValid(ingot) && body.isItemValid(chest)
+                && ((net.minecraft.inventory.Slot) c.inventorySlots.get(AnvilLogic.DONOR + 1)).isItemValid(chest);
+            an.setInventorySlotContents(AnvilLogic.ARMOR + 3, new ItemStack(ModItems.wanderer[3]));
+            for (int i = 0; i < p.inventory.mainInventory.length; i++) p.inventory.mainInventory[i] = new ItemStack(Blocks.dirt, 64);
+            boolean stuck = !c.select(p, AnvilLogic.UNLOAD) && c.mode == AnvilLogic.UPGRADE && an.getStackInSlot(AnvilLogic.ARMOR + 3) != null;
+            reset(p);
+            check(remembered && socketSlots && shift && target && returned && unloadSlots && upgradeSlots && stuck,
+                "вкладка запомнена " + remembered + "; слоты гнёзд " + socketSlots + "; shift-клик " + shift + "; цель " + r.status + "/" + r.targets
+                    + "; на разрядку " + toUnload + ", вещи вернулись " + returned + "; слоты разрядки " + unloadSlots + "; слоты улучшения " + upgradeSlots
+                    + "; без места не переключается " + stuck);
+            return "вкладка запоминается; в каждой свои слоты (броня по частям, аксессуары внизу, оружие - только в разрядке); shift-клик раскладывает сам; "
+                + "подсвечено гнездо цели; при смене вкладки лишнее - в инвентарь, без места вкладка не меняется";
+        });
         t("Аксессуары", "Смерть: аксессуары остаются в броне", () -> {
             reset(p);
             wearT(p, Trinket.VALOR_MEDAL);
