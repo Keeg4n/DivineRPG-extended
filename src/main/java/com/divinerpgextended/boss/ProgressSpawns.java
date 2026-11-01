@@ -2,7 +2,9 @@ package com.divinerpgextended.boss;
 
 import net.minecraft.util.MathHelper;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import net.divinerpg.entities.vanilla.*;
@@ -11,6 +13,7 @@ import net.minecraft.entity.EntityCreature;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
@@ -43,6 +46,14 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * Игрок может такого моба убить (чтобы не мешал, если забрёл к нему домой), но дроп и опыт с него не падают
  * (lowRankNoDrops в конфиге) - бесплатного фарма не до своей ступени нет.
  * Мирные мобы и торговцы Divine, боссы с призыва и Iceika это не затрагивает.
+ * <p>
+ * Отсекается на уровне выбора: игра берёт вид моба для стаи из списка биома ({@code WorldServer.spawnRandomCreature}), и
+ * виды выше допустимого ранга из этого списка убираются ({@link #candidates}, через {@link com.divinerpgextended.asm.SpawnTransformer}) -
+ * стая выбирается из разрешённых, плотность спавна не проседает. Так же отбираются существа, которых игра селит при
+ * генерации чанка (SpawnerAnimals.performWorldGenSpawning) - там проверки при появлении нет вовсе, и раньше так у
+ * игрока ранга 0 появлялись Глаконы (Divine прописывает их ещё и как существ). Раньше моб выбирался из всего списка и отклонялся уже
+ * при появлении - вся попытка стаи пропадала. Отказ при появлении ({@link #onCheckSpawn}) остался страховкой: спавнеры,
+ * зов факелом, чужие спавнеры модов, моб стаи у границы зоны другого игрока.
  */
 public class ProgressSpawns {
 
@@ -85,6 +96,9 @@ public class ProgressSpawns {
     /** Радиус в чанках, в котором игра спавнит мобов вокруг игрока (SpawnerAnimals: 8). */
     public static final int SPAWN_CHUNKS = 8;
 
+    /** Убирать запрещённых из выбора вида (выключается только самопроверкой - для сравнения со старым способом). */
+    public static boolean filterCandidates = true;
+
     private static boolean gated(World w) {
         int d = w.provider.dimensionId;
         return Config.progressSpawns && (d == 0 || d == -1 || d == 1);
@@ -99,17 +113,48 @@ public class ProgressSpawns {
     public static boolean denied(World w, Entity mob, double x, double z) {
         if (w.isRemote || !gated(w)) return false;
         int need = tier(mob);
-        if (need == 0) return false;
-        int cx = MathHelper.floor_double(x) >> 4, cz = MathHelper.floor_double(z) >> 4;
-        // в Энде решает самый сильный: игрок ниже рангом не мешает спавну тому, кому эти мобы нужны (его самого они не трогают)
-        boolean end = w.provider.dimensionId == 1, low = false;
+        return need > 0 && need > allowedRank(w, MathHelper.floor_double(x) >> 4, MathHelper.floor_double(z) >> 4);
+    }
+
+    /**
+     * До какого ранга мобы могут появиться в чанке: у игроков, вокруг которых игра спавнит мобов в этом чанке, - у самого
+     * слабого; в Энде - у самого сильного (игрок ниже рангом не мешает спавну тому, кому эти мобы нужны, его самого они не
+     * трогают). Игроков рядом нет - без ограничений.
+     */
+    public static int allowedRank(World w, int cx, int cz) {
+        boolean end = w.provider.dimensionId == 1, any = false;
+        int r = end ? 0 : MAX_RANK;
         for (Object o : w.playerEntities) {
             EntityPlayer p = (EntityPlayer) o;
             if (Math.abs(cx - (MathHelper.floor_double(p.posX) >> 4)) > SPAWN_CHUNKS || Math.abs(cz - (MathHelper.floor_double(p.posZ) >> 4)) > SPAWN_CHUNKS) continue;
-            if (rank(p) < need) low = true;
-            else if (end) return false;
+            any = true;
+            r = end ? Math.max(r, rank(p)) : Math.min(r, rank(p));
         }
-        return low;
+        return any ? r : MAX_RANK;
+    }
+
+    public static final int MAX_RANK = 3;
+
+    /**
+     * Из каких видов игра выбирает моба для стаи в точке (x, z): список биома без видов выше допустимого ранга. Список
+     * биома не меняется - если убирать нечего, он и возвращается, иначе копия.
+     */
+    public static List<BiomeGenBase.SpawnListEntry> candidates(World w, int x, int z, List<BiomeGenBase.SpawnListEntry> list) {
+        if (list == null || list.isEmpty() || !filterCandidates || w.isRemote || !gated(w)) return list;
+        int top = 0;
+        for (BiomeGenBase.SpawnListEntry e : list) top = Math.max(top, tierOf(e.entityClass));
+        if (top == 0) return list;
+        int allowed = allowedRank(w, x >> 4, z >> 4);
+        if (top <= allowed) return list;
+        List<BiomeGenBase.SpawnListEntry> out = new ArrayList<BiomeGenBase.SpawnListEntry>(list.size());
+        for (BiomeGenBase.SpawnListEntry e : list) if (tierOf(e.entityClass) <= allowed) out.add(e);
+        return out;
+    }
+
+    /** Нужный ранг для вида моба (0 - не ограничен). */
+    public static int tierOf(Class<?> c) {
+        Integer t = TIER.get(c);
+        return t == null ? 0 : t;
     }
 
     /** Моб не выбирает целью игрока ниже своего ранга. */

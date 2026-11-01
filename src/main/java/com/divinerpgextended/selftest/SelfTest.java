@@ -402,6 +402,35 @@ public class SelfTest {
             for (int k = -r - 1; k <= r + 1; k++) w.theChunkProviderServer.loadChunk((x >> 4) + i, (z >> 4) + k);
     }
 
+    /** Выдать игроку ровно этот ранг (0-3) по убитым боссам. */
+    private static void rankTo(EntityPlayer p, int r) {
+        for (Boss b : Boss.values()) BossProgress.revoke(p, b);
+        if (r == 1 || r == 2) BossProgress.grant(p, Boss.CARCINUS);
+        if (r >= 2) BossProgress.grant(p, Boss.LICH_KING);
+        if (r >= 3) BossProgress.grant(p, Boss.ANCIENT_ENTITY);
+    }
+
+    /** Убрать сущности из мира сразу (лимит мобов считает и мёртвых, пока мир не сделал тик). */
+    private static void purge(WorldServer w, java.util.Collection<?> es) {
+        if (es.isEmpty()) return;
+        java.lang.reflect.Method removed = ReflectionHelper.findMethod(net.minecraft.world.World.class, w, new String[] { "onEntityRemoved", "func_72847_b" },
+            net.minecraft.entity.Entity.class);
+        java.util.Set<Object> gone = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<Object, Boolean>());
+        for (Object o : es) {
+            net.minecraft.entity.Entity e = (net.minecraft.entity.Entity) o;
+            e.setDead();
+            if (e.addedToChunk && w.getChunkProvider().chunkExists(e.chunkCoordX, e.chunkCoordZ))
+                w.getChunkFromChunkCoords(e.chunkCoordX, e.chunkCoordZ).removeEntity(e);
+            gone.add(e);
+        }
+        for (java.util.Iterator<?> it = w.loadedEntityList.iterator(); it.hasNext();) if (gone.contains(it.next())) it.remove();
+        for (Object o : es) {
+            try {
+                removed.invoke(w, o);
+            } catch (Exception ignored) {}
+        }
+    }
+
     /** Выгрузить все чанки мира (тесты идут одним заходом: большие постройки иначе держат память до конца). */
     private static int unloadAll(WorldServer w) {
         int before = w.theChunkProviderServer.loadedChunks.size();
@@ -8872,6 +8901,135 @@ public class SelfTest {
             ok &= c[1] >= c[0] && (c[2] == 0 || c[3] > 0) && c[5] >= c[4];
             check(ok, rep.toString());
             return rep.toString();
+        });
+        t("Прохождение", "Ранги: спавн по карте 10000 x 10000 не проседает", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            net.minecraft.entity.EnumCreatureType mon = net.minecraft.entity.EnumCreatureType.monster;
+            // площадки: суша, где в списке биома есть мобы с рангом, - разнесены по квадрату 10000 x 10000
+            java.util.List<int[]> cand = new java.util.ArrayList<int[]>();
+            for (int x = -4750; x <= 4750; x += 500) for (int z = -4750; z <= 4750; z += 500) {
+                net.minecraft.world.biome.BiomeGenBase b = w.getWorldChunkManager().getBiomeGenAt(x, z);
+                if (b == null || b.rootHeight < 0) continue;
+                int all = 0, tiered = 0;
+                for (Object o : b.getSpawnableList(mon)) {
+                    net.minecraft.world.biome.BiomeGenBase.SpawnListEntry mob = (net.minecraft.world.biome.BiomeGenBase.SpawnListEntry) o;
+                    all += mob.itemWeight;
+                    if (ProgressSpawns.tierOf(mob.entityClass) > 0) tiered += mob.itemWeight;
+                }
+                if (all > 0 && tiered > 0) cand.add(new int[] { x, z, tiered * 1000 / all });
+            }
+            java.util.Collections.sort(cand, new java.util.Comparator<int[]>() {
+
+                @Override
+                public int compare(int[] a, int[] b) {
+                    return b[2] - a[2];
+                }
+            });
+            java.util.List<int[]> sites = new java.util.ArrayList<int[]>();
+            for (int[] c : cand) {
+                boolean far = true;
+                for (int[] s2 : sites) far &= (long) (c[0] - s2[0]) * (c[0] - s2[0]) + (long) (c[1] - s2[1]) * (c[1] - s2[1]) >= 2400L * 2400L;
+                if (far && sites.size() < 7) sites.add(c);
+            }
+            // ранги площадок; последняя - пара: ранг 0 и ранг 3 в 40 блоках (решает слабый)
+            int[] siteRank = { 0, 1, 2, 3, 0, 1, 0 };
+            int n = sites.size();
+            java.util.List<TestPlayer> ps = new java.util.ArrayList<TestPlayer>();
+            java.util.List<Integer> psSite = new java.util.ArrayList<Integer>();
+            java.util.List<Integer> psRank = new java.util.ArrayList<Integer>();
+            for (int i = 0; i < n; i++) {
+                int[] c = sites.get(i);
+                for (int kk = 0; kk < (i == 6 ? 2 : 1); kk++) {
+                    int x = c[0] + kk * 40, z = c[1];
+                    w.theChunkProviderServer.loadChunk(x >> 4, z >> 4);
+                    int y = w.getTopSolidOrLiquidBlock(x, z) + 1;
+                    ps.add(join(player(0, "TestSpawn" + i + (kk == 0 ? "" : "b"), x + 0.5, y, z + 0.5), true));
+                    psSite.add(i);
+                    psRank.add(kk == 0 ? siteRank[i] : 3);
+                }
+            }
+            long time = w.getWorldTime();
+            int sky = w.skylightSubtracted;
+            net.minecraft.world.EnumDifficulty diff = w.difficultySetting;
+            final int cycles = 20;
+            StringBuilder bad = new StringBuilder();
+            int[][][] cnt = new int[3][n][3]; // [без рангов, по-старому, по-новому][площадка][всего, с рангом, запрещённых]
+            long[] ns = new long[3];
+            long hook = 0;
+            int warm = 0, capBefore = w.countEntities(mon, true);
+            try {
+                w.setWorldTime(18000);
+                w.skylightSubtracted = w.calculateSkylightSubtracted(1.0F);
+                if (diff == net.minecraft.world.EnumDifficulty.PEACEFUL) w.difficultySetting = net.minecraft.world.EnumDifficulty.NORMAL;
+                for (int c = -1; c < 3; c++) { // -1: прогрев - генерация чанков вокруг площадок
+                    for (int i = 0; i < ps.size(); i++) rankTo(ps.get(i), c == 0 ? 3 : psRank.get(i));
+                    ProgressSpawns.filterCandidates = c != 1;
+                    w.rand.setSeed(20261101L);
+                    long h0 = com.divinerpgextended.asm.SpawnHooks.calls;
+                    for (int kk = 0; kk < (c < 0 ? 1 : cycles); kk++) {
+                        int n0 = w.loadedEntityList.size();
+                        long t0 = System.nanoTime();
+                        new net.minecraft.world.SpawnerAnimals().findChunksForSpawning(w, true, false, false);
+                        if (c >= 0) ns[c] += System.nanoTime() - t0;
+                        java.util.List<Object> spawned = new java.util.ArrayList<Object>(w.loadedEntityList.subList(n0, w.loadedEntityList.size()));
+                        if (c < 0) warm += spawned.size();
+                        else for (Object o : spawned) {
+                            if (!(o instanceof net.minecraft.entity.EntityLiving) || o instanceof EntityPlayer) continue;
+                            net.minecraft.entity.Entity mob = (net.minecraft.entity.Entity) o;
+                            int ex = net.minecraft.util.MathHelper.floor_double(mob.posX) >> 4, ez = net.minecraft.util.MathHelper.floor_double(mob.posZ) >> 4, site = -1;
+                            for (int i = 0; i < ps.size() && site < 0; i++) {
+                                TestPlayer tq = ps.get(i);
+                                if (Math.abs(ex - (net.minecraft.util.MathHelper.floor_double(tq.posX) >> 4)) <= ProgressSpawns.SPAWN_CHUNKS
+                                    && Math.abs(ez - (net.minecraft.util.MathHelper.floor_double(tq.posZ) >> 4)) <= ProgressSpawns.SPAWN_CHUNKS) site = psSite.get(i);
+                            }
+                            if (site < 0) continue; // у других игроков мира
+                            // запрещён по правилу рангов: выше допустимого в его чанке (решает самый слабый из игроков, вокруг которых там спавн)
+                            int tier = ProgressSpawns.tier(mob), allowed = ProgressSpawns.allowedRank(w, ex, ez);
+                            cnt[c][site][0]++;
+                            if (tier > 0) cnt[c][site][1]++;
+                            if (tier > allowed) {
+                                cnt[c][site][2]++;
+                                if (bad.length() < 400) bad.append(c == 1 ? "по-старому " : "по-новому ").append(mob.getClass().getSimpleName()).append(" (ранг ").append(tier)
+                                    .append(", можно до ").append(allowed).append(", ").append(mob.isRiding() || mob.riddenByEntity != null ? "наездник" : "сам").append("); ");
+                            }
+                        }
+                        purge(w, spawned);
+                    }
+                    if (c == 2) hook = com.divinerpgextended.asm.SpawnHooks.calls - h0;
+                }
+            } finally {
+                ProgressSpawns.filterCandidates = true;
+                w.setWorldTime(time);
+                w.skylightSubtracted = sky;
+                w.difficultySetting = diff;
+                for (TestPlayer tq : ps) {
+                    server.getConfigurationManager().playerEntityList.remove(tq);
+                    w.removeEntity(tq);
+                }
+                unloadAll(w); // ~2000 чанков площадок - в полном прогоне иначе кончается память
+            }
+            int[] low = new int[3], forb = new int[3];
+            int tieredA = 0;
+            StringBuilder rep = new StringBuilder();
+            for (int i = 0; i < n; i++) {
+                int[] c = sites.get(i);
+                rep.append(i == 6 ? "ранги 0+3" : "ранг " + siteRank[i]).append(" в ").append(c[0]).append(",").append(c[1]).append(" (")
+                    .append(w.getWorldChunkManager().getBiomeGenAt(c[0], c[1]).biomeName).append(", мобов с рангом ").append(c[2] / 10).append("% веса): ")
+                    .append(cnt[0][i][0]).append("/").append(cnt[1][i][0]).append("/").append(cnt[2][i][0]).append("; ");
+                for (int kk = 0; kk < 3; kk++) forb[kk] += cnt[kk][i][2];
+                if (siteRank[i] < 3) {
+                    for (int kk = 0; kk < 3; kk++) low[kk] += cnt[kk][i][0];
+                    tieredA += cnt[0][i][1];
+                }
+            }
+            double msOld = ns[1] / 1e6 / cycles, msNew = ns[2] / 1e6 / cycles;
+            String sum = "площадок " + n + " (прогрев: " + warm + " мобов), за " + cycles + " циклов спавна мобов у слабых площадок без рангов/по-старому/по-новому: " + low[0] + "/" + low[1] + "/" + low[2]
+                + String.format(" (старый способ %.0f%%, новый %.0f%%)", 100.0 * low[1] / Math.max(1, low[0]), 100.0 * low[2] / Math.max(1, low[0]))
+                + ", из них с рангом без ограничений " + tieredA + "; запрещённых по-старому " + forb[1] + ", по-новому " + forb[2]
+                + String.format("; цикл спавна по-старому %.1f мс, по-новому %.1f мс", msOld, msNew) + "; вызовов хука " + hook + ", монстров в мире до теста " + capBefore
+                + (bad.length() > 0 ? "; запрещённые: " + bad : "");
+            check(n >= 5 && hook > 0 && tieredA > 0 && forb[2] == 0 && low[2] >= 0.8 * low[0] && msNew <= msOld * 1.5 + 5, sum + ". По площадкам (без рангов/по-старому/по-новому): " + rep);
+            return sum;
         });
         t("Прохождение", "Ранги: Энд закрыт для игрока ниже ранга", () -> {
             WorldServer w = server.worldServerForDimension(1);
