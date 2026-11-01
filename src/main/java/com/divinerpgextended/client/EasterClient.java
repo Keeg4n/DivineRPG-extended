@@ -208,6 +208,10 @@ public final class EasterClient {
                     GL11.glTranslatef(13.7F / 16F, 2.3F / 16F, -0.03F); // середина рукояти меча бури на значке (2.3, 2.3)
                     GL11.glScalef(KATANA, KATANA, KATANA);
                     GL11.glTranslatef(-13.73F / 16F, -2.27F / 16F, 0.03F); // середина рукояти катаны (musou_model.py печатает)
+                } else { // на земле x KATANA_GROUND вокруг середины предмета
+                    GL11.glTranslatef(0.5F, 0.5F, -0.03F);
+                    GL11.glScalef(KATANA_GROUND, KATANA_GROUND, KATANA_GROUND);
+                    GL11.glTranslatef(-0.5F, -0.5F, 0.03F);
                 }
                 MUSOU_MESH.render("musou", "item", 1F / 16F);
                 glow(true);
@@ -219,8 +223,8 @@ public final class EasterClient {
         }
     }
 
-    /** Во сколько раз Musou в руке длиннее обычного меча. */
-    static final float KATANA = 1.2F;
+    /** Во сколько раз Musou больше своей модели: в руке и на земле. */
+    static final float KATANA = 1.8F, KATANA_GROUND = 1.5F;
 
     private static float lastX, lastY;
     private static boolean lit;
