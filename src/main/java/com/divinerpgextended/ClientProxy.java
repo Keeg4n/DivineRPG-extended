@@ -47,6 +47,7 @@ public class ClientProxy extends CommonProxy {
     public void init(FMLInitializationEvent event) {
         super.init(event);
         com.divinerpgextended.client.EasterClient.init();
+        com.divinerpgextended.client.RenderWandererAnvil.register();
         com.divinerpgextended.DreTab.sort(); // вкладки творческого режима - только на клиенте
         ClientCommandHandler.instance.registerCommand(new CommandFlySpeed());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.DreBossBar());

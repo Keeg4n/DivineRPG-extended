@@ -30,6 +30,11 @@ public final class EasterMesh {
         file = new ResourceLocation("divinerpgextended", "models/easter/" + name + ".mesh");
     }
 
+    /** Модель не из пасхалок: путь к .mesh целиком. */
+    public EasterMesh(ResourceLocation file) {
+        this.file = file;
+    }
+
     void load() {
         if (loaded) return;
         loaded = true;

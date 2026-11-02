@@ -6,14 +6,20 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
 import com.divinerpgextended.DivineRPGExtended;
 
+/**
+ * Наковальня Странника. Рисуется моделью ({@link com.divinerpgextended.client.RenderWandererAnvil}), не кубом; мета 0-3 -
+ * поворот: лицом к игроку, который ставил. Свет не загораживает.
+ */
 public class BlockWandererAnvil extends BlockContainer {
 
     private final Random rand = new Random();
@@ -31,6 +37,26 @@ public class BlockWandererAnvil extends BlockContainer {
     @Override
     public TileEntity createNewTileEntity(World world, int meta) {
         return new TileWandererAnvil();
+    }
+
+    @Override
+    public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
+        world.setBlockMetadataWithNotify(x, y, z, (MathHelper.floor_double(placer.rotationYaw * 4.0F / 360.0F + 0.5D) + 2) & 3, 2);
+    }
+
+    @Override
+    public boolean isOpaqueCube() {
+        return false;
+    }
+
+    @Override
+    public boolean renderAsNormalBlock() {
+        return false;
+    }
+
+    @Override
+    public int getRenderType() {
+        return -1; // только модель
     }
 
     @Override

@@ -873,25 +873,39 @@ public class SelfTest {
             reset(p);
             TileWandererAnvil an = new TileWandererAnvil();
             Item[] rm = { VanillaItemsArmor.realmiteHelmet, VanillaItemsArmor.realmiteBody, VanillaItemsArmor.realmiteLegs, VanillaItemsArmor.realmiteBoots };
+            Item[] dv = { VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots };
             Item[] el = { VanillaItemsArmor.eliteRealmiteHelmet, VanillaItemsArmor.eliteRealmiteBody, VanillaItemsArmor.eliteRealmiteLegs,
                 VanillaItemsArmor.eliteRealmiteBoots };
+            // реалмит больше не вход в броню Странника
+            for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.ARMOR + i, new ItemStack(rm[i]));
+            an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(VanillaItemsOther.realmiteIngot, 64));
+            AnvilLogic.Status realmite = AnvilLogic.evaluate(an, p, AnvilLogic.UPGRADE).status; // без вкладки реалмит с гнёздами - подсказка про гнёзда
+            // божественная броня + (лишний) донор с медалью: донорскую броню с аксессуарами не берём, лишнего донора - тоже
             for (int i = 0; i < 4; i++) {
-                an.setInventorySlotContents(AnvilLogic.ARMOR + i, new ItemStack(rm[i]));
+                an.setInventorySlotContents(AnvilLogic.ARMOR + i, new ItemStack(dv[i]));
                 an.setInventorySlotContents(AnvilLogic.DONOR + i, new ItemStack(el[i]));
             }
             Sockets.insert(an.getStackInSlot(AnvilLogic.ARMOR + 3), trinket(Trinket.MAGIC_CARPET));
             Sockets.insert(an.getStackInSlot(AnvilLogic.DONOR + 1), trinket(Trinket.VALOR_MEDAL));
-            an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(VanillaItemsOther.realmiteIngot, 64));
-            BossProgress.grant(p, Boss.ANCIENT_ENTITY);
             AnvilLogic.Result blocked = AnvilLogic.evaluate(an, p);
             List<ItemStack> back = Sockets.extractAll(an.getStackInSlot(AnvilLogic.DONOR + 1));
+            AnvilLogic.Status extra = AnvilLogic.evaluate(an, p).status;
+            // без донора и без Древней сущности (reset снял всех боссов) - готово
+            for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.DONOR + i, null);
+            AnvilLogic.Result ready = AnvilLogic.evaluate(an, p);
             boolean up = AnvilLogic.execute(an, p);
-            ItemStack boots = an.getStackInSlot(AnvilLogic.ARMOR + 3);
+            ItemStack boots = an.getStackInSlot(AnvilLogic.ARMOR + 3), fuel = an.getStackInSlot(AnvilLogic.FUEL);
             List<ItemStack> in = Sockets.contents(boots);
-            boolean carried = boots.getItem() == ModItems.wanderer[3] && in.size() == 1 && in.get(0).getItemDamage() == Trinket.MAGIC_CARPET.ordinal();
-            check(blocked.status == AnvilLogic.Status.DONOR_SOCKETS && blocked.param == 1 && back.size() == 1 && up && carried,
-                "донор с медалью: " + blocked.status + " (слот " + blocked.param + "); реалмит > R1 " + up + ", ковёр перешёл в ботинки Странника " + carried);
-            return "донорская броня с аксессуарами не принимается (сначала вынуть); при переходе реалмита в R1 аксессуары переходят в части Странника";
+            boolean carried = boots.getItem() == ModItems.wanderer[3] && com.divinerpgextended.item.ArmorData.tier(boots) == 1 && in.size() == 1
+                && in.get(0).getItemDamage() == Trinket.MAGIC_CARPET.ordinal();
+            boolean paid = (fuel == null ? 0 : fuel.stackSize) == 64 - Config.upgradeR1FuelRealmiteIngots;
+            check(realmite == AnvilLogic.Status.BAD_ARMOR && blocked.status == AnvilLogic.Status.DONOR_SOCKETS && blocked.param == 1 && back.size() == 1
+                && extra == AnvilLogic.Status.DONOR_UNNEEDED && ready.status == AnvilLogic.Status.READY_UPGRADE && ready.param == 1 && up && carried && paid,
+                "реалмит " + realmite + "; донор с медалью " + blocked.status + " (слот " + blocked.param + "); лишний донор " + extra
+                    + "; без донора и Древней сущности " + ready.status + "/" + ready.param + "; божественная > R1 " + up
+                    + ", ковёр перешёл в ботинки Странника " + carried + ", топливо списано " + paid);
+            return "R1 - из божественной брони, без донора и без босса; реалмит не принимается; донорская броня с аксессуарами не принимается; "
+                + "аксессуары божественных частей переходят в части Странника";
         });
         t("Аксессуары", "Наковальня: вкладки", () -> {
             reset(p);

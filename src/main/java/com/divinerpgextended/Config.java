@@ -111,7 +111,7 @@ public class Config {
         tierSmallSlots = intList(cfg, bal, "tierSmallSlots", tierSmallSlots,
             "Число малых слотов под перки по ступеням R0, R1, ... R7");
         upgradeR1FuelRealmiteIngots = cfg.getInt("upgradeR1FuelRealmiteIngots", bal, upgradeR1FuelRealmiteIngots,
-            0, 64, "Сколько реалмитовых слитков стоит улучшение R0 -> R1");
+            0, 64, "Сколько реалмитовых слитков стоит переход божественной брони в броню Странника R1");
         upgradeTwilightFuelCount = cfg.getInt("upgradeTwilightFuelCount", bal, upgradeTwilightFuelCount, 0, 64,
             "Сколько камней мира стоит закалка R2-R7");
         perkFuelArlemiteIngots = cfg.getInt("perkFuelArlemiteIngots", bal, perkFuelArlemiteIngots,

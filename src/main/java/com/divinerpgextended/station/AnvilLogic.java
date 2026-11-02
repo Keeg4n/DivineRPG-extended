@@ -24,7 +24,7 @@ import com.divinerpgextended.world.ArmorTier;
 /**
  * Правила Наковальни Странника. Слоты: 0-3 броня, 4-7 донор (части в любом порядке), 8 топливо.
  * <ul>
- * <li>реалмит + сет элитного реалмита -> броня Странника R1;</li>
+ * <li>сет божественной брони (без донора) -> броня Странника R1: божественная и так ступень R1, босс не нужен;</li>
  * <li>сет Странника R(n) + сет брони мира следующей ступени -> R(n+1) (закалка R2-R7);</li>
  * <li>сет Странника + донорский сет перка -> перк в свободный слот;</li>
  * <li>любые части брони с гнёздами + аксессуары в доноре -> аксессуары встроены ({@link Sockets}), цена - уровни опыта;
@@ -49,7 +49,9 @@ public final class AnvilLogic {
         READY_SOCKET, NEED_LEVELS, SOCKET_PART, SOCKET_FULL, SOCKET_SAME, SOCKETS, DONOR_SOCKETS, READY_UNLOAD, UNLOAD_EMPTY,
         UNLOAD_FULL,
         // пустые вкладки и броня без гнёзд
-        EMPTY_SOCKETS, EMPTY_UNLOAD, NO_SOCKETS
+        EMPTY_SOCKETS, EMPTY_UNLOAD, NO_SOCKETS,
+        // переход в Странника без донора
+        DONOR_UNNEEDED
     }
 
     public static final class Result {
@@ -80,14 +82,9 @@ public final class AnvilLogic {
         }
     }
 
-    private static Item[] realmiteSet() {
-        return new Item[] { VanillaItemsArmor.realmiteHelmet, VanillaItemsArmor.realmiteBody,
-            VanillaItemsArmor.realmiteLegs, VanillaItemsArmor.realmiteBoots };
-    }
-
-    private static Item[] eliteRealmiteSet() {
-        return new Item[] { VanillaItemsArmor.eliteRealmiteHelmet, VanillaItemsArmor.eliteRealmiteBody,
-            VanillaItemsArmor.eliteRealmiteLegs, VanillaItemsArmor.eliteRealmiteBoots };
+    private static Item[] divineSet() {
+        return new Item[] { VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody,
+            VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots };
     }
 
     private AnvilLogic() {}
@@ -261,17 +258,14 @@ public final class AnvilLogic {
         Item[] donor = items(inv, DONOR);
         if (allNull(armor) && allNull(donor)) return new Result(Status.EMPTY, 0);
         // только броня с гнёздами (не сет для улучшения) - подсказка про гнёзда
-        boolean setFlow = same(armor, realmiteSet()) || !anyNull(armor) && wanderers(armor);
+        boolean setFlow = same(armor, divineSet()) || !anyNull(armor) && wanderers(armor);
         if (mode == AUTO && allNull(donor) && !setFlow) {
             for (int a = 0; a < 4; a++) if (Sockets.socketable(inv.getStackInSlot(ARMOR + a))) return new Result(Status.SOCKETS, 0);
         }
 
-        // R0 -> R1: реалмитовый сет + элитный реалмит
-        if (same(armor, realmiteSet())) {
-            if (anyNull(donor)) return new Result(Status.NEED_DONOR, 0);
-            if (!same(donor, eliteRealmiteSet())) return new Result(Status.BAD_DONOR, 0);
-            if (bossMissing(player, Boss.ANCIENT_ENTITY))
-                return new Result(Status.NEED_BOSS, Boss.ANCIENT_ENTITY.ordinal());
+        // -> R1: божественная броня сама становится бронёй Странника (она и так ступень R1 - босс и донор не нужны)
+        if (same(armor, divineSet())) {
+            if (!emptySlots(inv, DONOR)) return new Result(Status.DONOR_UNNEEDED, 0);
             Item fuel = VanillaItemsOther.realmiteIngot;
             int need = Config.upgradeR1FuelRealmiteIngots;
             if (fuelCount(inv, fuel) < need) return new Result(Status.NEED_FUEL, need, fuel);
@@ -368,7 +362,7 @@ public final class AnvilLogic {
             return n > 0;
         }
         if (r.status == Status.READY_UPGRADE && r.param == 1) {
-            // аксессуары реалмитовых частей переходят в части Странника того же типа
+            // аксессуары божественных частей переходят в части Странника того же типа
             ItemStack[] old = new ItemStack[4];
             for (int i = 0; i < 4; i++) {
                 ItemStack s = inv.getStackInSlot(ARMOR + i);
