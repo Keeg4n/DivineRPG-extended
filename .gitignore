@@ -29,3 +29,7 @@ bin/
 
 # чужие моды для сборки (см. README)
 libs/*.jar
+
+# концепты брони Странника: картинки и кэш питона не храним
+__pycache__/
+tools/concepts/wanderer_concepts/
