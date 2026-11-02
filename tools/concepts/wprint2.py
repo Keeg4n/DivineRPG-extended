@@ -8,8 +8,9 @@ OUT = sys.argv[1]
 d = importlib.import_module(sys.argv[2] if len(sys.argv) > 2 else 'wprint_data')
 CSS = importlib.import_module('wprint_data').CSS
 e = html.escape
+ROUND_IN = getattr(d, 'ROUND_IN', d.ROUND.lower())  # название раунда внутри фразы (имена собственные - с большой)
 
-parts = ['<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Облики брони Странника - %s</title>' % e(d.ROUND.lower()),
+parts = ['<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Облики брони Странника - %s</title>' % e(ROUND_IN),
          '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600&family=Pixelify+Sans:wght@700&display=block">',
          '<style>%s</style></head><body>' % CSS]
 parts.append('<section class="page"><h1>Облики брони Странника</h1><div class="sub">%s</div>' % e(d.ROUND))
@@ -30,7 +31,7 @@ for r, name, meta, chips, cs in d.TIERS:
         parts.append('<div class="card"><div class="pic"><img src="img/%s.png" alt=""><div class="views"><span>спереди</span><span>сзади</span></div></div>'
                      '<div class="body"><div class="title"><span class="ln">%s</span>%s</div><p class="desc">%s</p></div></div>'
                      % (key, ln, e(title), e(desc)))
-    parts.append('</div><div class="foot"><span>Облики брони Странника, %s</span><span>R%d из 7</span></div></section>' % (e(d.ROUND.lower()), r))
+    parts.append('</div><div class="foot"><span>Облики брони Странника, %s</span><span>R%d из 7</span></div></section>' % (e(ROUND_IN), r))
 parts.append('</body></html>')
 open(OUT, 'w', encoding='utf-8').write('\n'.join(parts))
 print('ok', OUT)
