@@ -899,17 +899,50 @@ public class SelfTest {
             boolean carried = boots.getItem() == ModItems.wanderer[3] && com.divinerpgextended.item.ArmorData.tier(boots) == 1 && in.size() == 1
                 && in.get(0).getItemDamage() == Trinket.MAGIC_CARPET.ordinal();
             boolean paid = (fuel == null ? 0 : fuel.stackSize) == 64 - Config.upgradeR1FuelRealmiteIngots;
-            // выглядит как божественная броня, из которой сделана
-            String skin = boots.getItem().getArmorTexture(boots, p, 3, null), divineSkin = dv[3].getArmorTexture(new ItemStack(dv[3]), p, 3, null);
-            boolean looks = divineSkin == null || divineSkin.equals(skin);
+            // облик R1 - свой
+            String skin = boots.getItem().getArmorTexture(boots, p, 3, null);
+            boolean looks = com.divinerpgextended.item.ItemWandererArmor.lookTexture(1).equals(skin);
             check(realmite == AnvilLogic.Status.BAD_ARMOR && blocked.status == AnvilLogic.Status.DONOR_SOCKETS && blocked.param == 1 && back.size() == 1
                 && extra == AnvilLogic.Status.DONOR_UNNEEDED && ready.status == AnvilLogic.Status.READY_UPGRADE && ready.param == 1 && up && carried && paid
                 && looks,
                 "реалмит " + realmite + "; донор с медалью " + blocked.status + " (слот " + blocked.param + "); лишний донор " + extra
                     + "; без донора и Древней сущности " + ready.status + "/" + ready.param + "; божественная > R1 " + up
-                    + ", ковёр перешёл в ботинки Странника " + carried + ", топливо списано " + paid + "; скин " + skin + " (у божественной " + divineSkin + ")");
+                    + ", ковёр перешёл в ботинки Странника " + carried + ", топливо списано " + paid + "; скин " + skin);
             return "R1 - из божественной брони, без донора и без босса; реалмит не принимается; донорская броня с аксессуарами не принимается; "
-                + "аксессуары божественных частей переходят в части Странника; скин - божественной брони";
+                + "аксессуары божественных частей переходят в части Странника; скин - облик R1";
+        });
+        t("Броня", "Странник: облики ступеней", () -> {
+            // у каждой ступени - меш со всеми четырьмя частями, атлас и значки частей; скин вещи - атлас своей ступени
+            StringBuilder bad = new StringBuilder();
+            String root = "/assets/divinerpgextended/";
+            String[] parts = { "helmet", "chest", "legs", "boots" };
+            for (int t = 1; t <= com.divinerpgextended.item.ItemWandererArmor.LOOKS; t++) {
+                java.util.Map<String, Integer> quads = new java.util.HashMap<String, Integer>();
+                java.io.InputStream mesh = SelfTest.class.getResourceAsStream(root + "models/wanderer/r" + t + ".mesh");
+                if (mesh == null) {
+                    bad.append(" R").append(t).append(": нет меша;");
+                    continue;
+                }
+                java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(mesh, "UTF-8"));
+                String grp = null;
+                for (String line; (line = br.readLine()) != null;) {
+                    if (line.startsWith("p ")) grp = line.split(" ")[1];
+                    else if (line.startsWith("q ") && grp != null && line.trim().split("\\s+").length == 24) quads.put(grp, (quads.containsKey(grp) ? quads.get(grp) : 0) + 1);
+                }
+                br.close();
+                for (int a = 0; a < 4; a++) {
+                    if (!quads.containsKey(parts[a]) || quads.get(parts[a]) < 6) bad.append(" R").append(t).append(": мало граней ").append(parts[a]).append(';');
+                    if (SelfTest.class.getResource(root + "textures/items/wanderer/r" + t + "_" + parts[a] + ".png") == null)
+                        bad.append(" R").append(t).append(": нет значка ").append(parts[a]).append(';');
+                    ItemStack piece = new ItemStack(ModItems.wanderer[a]);
+                    com.divinerpgextended.item.ArmorData.setTier(piece, t);
+                    String skin = piece.getItem().getArmorTexture(piece, p, a, null);
+                    if (!com.divinerpgextended.item.ItemWandererArmor.lookTexture(t).equals(skin)) bad.append(" R").append(t).append(": скин ").append(skin).append(';');
+                }
+                if (SelfTest.class.getResource(root + "textures/models/wanderer/r" + t + ".png") == null) bad.append(" R").append(t).append(": нет атласа;");
+            }
+            check(bad.length() == 0, bad.toString());
+            return "R1-R" + com.divinerpgextended.item.ItemWandererArmor.LOOKS + ": меш с шлемом, нагрудником, поножами и ботинками, атлас, значки частей, скин своей ступени";
         });
         t("Аксессуары", "Наковальня: вкладки", () -> {
             reset(p);
