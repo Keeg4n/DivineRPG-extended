@@ -899,13 +899,17 @@ public class SelfTest {
             boolean carried = boots.getItem() == ModItems.wanderer[3] && com.divinerpgextended.item.ArmorData.tier(boots) == 1 && in.size() == 1
                 && in.get(0).getItemDamage() == Trinket.MAGIC_CARPET.ordinal();
             boolean paid = (fuel == null ? 0 : fuel.stackSize) == 64 - Config.upgradeR1FuelRealmiteIngots;
+            // выглядит как божественная броня, из которой сделана
+            String skin = boots.getItem().getArmorTexture(boots, p, 3, null), divineSkin = dv[3].getArmorTexture(new ItemStack(dv[3]), p, 3, null);
+            boolean looks = divineSkin == null || divineSkin.equals(skin);
             check(realmite == AnvilLogic.Status.BAD_ARMOR && blocked.status == AnvilLogic.Status.DONOR_SOCKETS && blocked.param == 1 && back.size() == 1
-                && extra == AnvilLogic.Status.DONOR_UNNEEDED && ready.status == AnvilLogic.Status.READY_UPGRADE && ready.param == 1 && up && carried && paid,
+                && extra == AnvilLogic.Status.DONOR_UNNEEDED && ready.status == AnvilLogic.Status.READY_UPGRADE && ready.param == 1 && up && carried && paid
+                && looks,
                 "реалмит " + realmite + "; донор с медалью " + blocked.status + " (слот " + blocked.param + "); лишний донор " + extra
                     + "; без донора и Древней сущности " + ready.status + "/" + ready.param + "; божественная > R1 " + up
-                    + ", ковёр перешёл в ботинки Странника " + carried + ", топливо списано " + paid);
+                    + ", ковёр перешёл в ботинки Странника " + carried + ", топливо списано " + paid + "; скин " + skin + " (у божественной " + divineSkin + ")");
             return "R1 - из божественной брони, без донора и без босса; реалмит не принимается; донорская броня с аксессуарами не принимается; "
-                + "аксессуары божественных частей переходят в части Странника";
+                + "аксессуары божественных частей переходят в части Странника; скин - божественной брони";
         });
         t("Аксессуары", "Наковальня: вкладки", () -> {
             reset(p);

@@ -6,10 +6,12 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemArmor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.IIcon;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.ISpecialArmor;
 import net.minecraftforge.common.util.EnumHelper;
@@ -17,9 +19,14 @@ import net.minecraftforge.common.util.EnumHelper;
 import com.divinerpgextended.Config;
 import com.divinerpgextended.perk.Perk;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+import net.divinerpg.utils.items.VanillaItemsArmor;
+
 /**
  * Броня Странника: одна броня на всю игру. Защита считается так же, как у брони Divine: полный сет даёт
- * процент снижения урона ступени, части делят его в пропорции 5/8/7/4 из 24.
+ * процент снижения урона ступени, части делят его в пропорции 5/8/7/4 из 24. Делается из божественной брони и, пока у
+ * ступеней нет своих обликов, выглядит как она: иконка и скин берутся у той же части божественной брони.
  */
 public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
 
@@ -35,6 +42,21 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
         setTextureName(ICONS[armorType]);
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
         setMaxDamage(0);
+    }
+
+    /** Та же часть божественной брони (ищется при вызове: поля Divine заполняются в его preInit). */
+    private Item divine() {
+        Item[] set = { VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs,
+            VanillaItemsArmor.divineBoots };
+        return set[armorType];
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public IIcon getIconFromDamage(int meta) {
+        Item d = divine();
+        IIcon icon = d == null ? null : d.getIconFromDamage(0);
+        return icon != null ? icon : itemIcon;
     }
 
     private double pieceRatio(ItemStack stack) {
@@ -65,6 +87,9 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
 
     @Override
     public String getArmorTexture(ItemStack stack, Entity entity, int slot, String type) {
+        Item d = divine();
+        String skin = d == null ? null : d.getArmorTexture(new ItemStack(d), entity, slot, type);
+        if (skin != null) return skin;
         return armorType == 2 ? "divinerpg:textures/armor/eliteRealmite_2.png"
             : "divinerpg:textures/armor/eliteRealmite_1.png";
     }
