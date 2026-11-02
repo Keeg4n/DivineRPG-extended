@@ -62,22 +62,21 @@ public class BlockWandererAnvil extends BlockContainer {
     @Override
     public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hx,
         float hy, float hz) {
-        if (!world.isRemote) player.openGui(DivineRPGExtended.instance, GuiHandler.ANVIL, world, x, y, z);
+        if (world.isRemote) return true;
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (te instanceof TileWandererAnvil) ((TileWandererAnvil) te).releaseLegacy(player); // вещи, лежавшие в блоке со старых версий
+        player.openGui(DivineRPGExtended.instance, GuiHandler.ANVIL, world, x, y, z);
         return true;
     }
 
+    /** Блок пуст; выпадают только вещи, оставшиеся в нём со старых версий. Открытые окна закроются сами (блока нет). */
     @Override
     public void breakBlock(World world, int x, int y, int z, Block block, int meta) {
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof TileWandererAnvil) {
-            TileWandererAnvil inv = (TileWandererAnvil) te;
-            for (int i = 0; i < inv.getSizeInventory(); i++) {
-                ItemStack s = inv.getStackInSlot(i);
-                if (s != null) {
-                    EntityItem e = new EntityItem(world, x + 0.5 + rand.nextFloat() * 0.3, y + 0.5,
-                        z + 0.5 + rand.nextFloat() * 0.3, s.copy());
-                    world.spawnEntityInWorld(e);
-                }
+            for (ItemStack s : ((TileWandererAnvil) te).takeLegacy()) {
+                EntityItem e = new EntityItem(world, x + 0.5 + rand.nextFloat() * 0.3, y + 0.5, z + 0.5 + rand.nextFloat() * 0.3, s);
+                world.spawnEntityInWorld(e);
             }
         }
         super.breakBlock(world, x, y, z, block, meta);

@@ -227,6 +227,12 @@ public class CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(trinkets);
+        // Наковальня Странника: выход с сервера и смерть закрывают окно - вещи из слотов возвращаются игроку
+        com.divinerpgextended.station.AnvilWork.Events anvilWork = new com.divinerpgextended.station.AnvilWork.Events();
+        MinecraftForge.EVENT_BUS.register(anvilWork);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(anvilWork);
         com.divinerpgextended.accessory.SocketGuard socketGuard = new com.divinerpgextended.accessory.SocketGuard();
         MinecraftForge.EVENT_BUS.register(socketGuard);
         FMLCommonHandler.instance()

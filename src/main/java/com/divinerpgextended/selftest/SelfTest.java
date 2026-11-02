@@ -828,7 +828,7 @@ public class SelfTest {
         });
         t("Аксессуары", "Наковальня: встроить за уровни и вынуть", () -> {
             reset(p);
-            TileWandererAnvil an = new TileWandererAnvil();
+            com.divinerpgextended.station.AnvilWork an = new com.divinerpgextended.station.AnvilWork();
             ItemStack chest = new ItemStack(VanillaItemsArmor.realmiteBody);
             an.setInventorySlotContents(AnvilLogic.ARMOR, chest);
             an.setInventorySlotContents(AnvilLogic.DONOR, trinket(Trinket.CARCINUS_SHELL));
@@ -871,7 +871,7 @@ public class SelfTest {
         });
         t("Аксессуары", "Наковальня: улучшение не съедает аксессуары", () -> {
             reset(p);
-            TileWandererAnvil an = new TileWandererAnvil();
+            com.divinerpgextended.station.AnvilWork an = new com.divinerpgextended.station.AnvilWork();
             Item[] rm = { VanillaItemsArmor.realmiteHelmet, VanillaItemsArmor.realmiteBody, VanillaItemsArmor.realmiteLegs, VanillaItemsArmor.realmiteBoots };
             Item[] dv = { VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots };
             Item[] el = { VanillaItemsArmor.eliteRealmiteHelmet, VanillaItemsArmor.eliteRealmiteBody, VanillaItemsArmor.eliteRealmiteLegs,
@@ -909,9 +909,10 @@ public class SelfTest {
         });
         t("Аксессуары", "Наковальня: вкладки", () -> {
             reset(p);
-            TileWandererAnvil an = new TileWandererAnvil();
+            TileWandererAnvil tile = new TileWandererAnvil();
             p.getEntityData().setInteger(com.divinerpgextended.station.ContainerWandererAnvil.LAST_TAB, AnvilLogic.SOCKETS);
-            com.divinerpgextended.station.ContainerWandererAnvil c = new com.divinerpgextended.station.ContainerWandererAnvil(p.inventory, an);
+            com.divinerpgextended.station.ContainerWandererAnvil c = new com.divinerpgextended.station.ContainerWandererAnvil(p.inventory, tile);
+            com.divinerpgextended.station.AnvilWork an = c.work(); // слоты окна, не блока
             boolean remembered = c.mode == AnvilLogic.SOCKETS;
             net.minecraft.inventory.Slot helm = (net.minecraft.inventory.Slot) c.inventorySlots.get(AnvilLogic.ARMOR);
             net.minecraft.inventory.Slot body = (net.minecraft.inventory.Slot) c.inventorySlots.get(AnvilLogic.ARMOR + 1);
@@ -945,13 +946,36 @@ public class SelfTest {
             an.setInventorySlotContents(AnvilLogic.ARMOR + 3, new ItemStack(ModItems.wanderer[3]));
             for (int i = 0; i < p.inventory.mainInventory.length; i++) p.inventory.mainInventory[i] = new ItemStack(Blocks.dirt, 64);
             boolean stuck = !c.select(p, AnvilLogic.UNLOAD) && c.mode == AnvilLogic.UPGRADE && an.getStackInSlot(AnvilLogic.ARMOR + 3) != null;
+            // закрыли окно - всё из слотов вернулось в инвентарь; второе закрытие ничего не даёт
             reset(p);
-            check(remembered && socketSlots && shift && target && returned && unloadSlots && upgradeSlots && stuck,
+            an.setInventorySlotContents(AnvilLogic.ARMOR + 3, new ItemStack(ModItems.wanderer[3]));
+            an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(VanillaItemsOther.arlemiteIngot, 5));
+            c.onContainerClosed(p);
+            c.onContainerClosed(p);
+            boolean closed = count(p, ModItems.wanderer[3]) == 1 && count(p, VanillaItemsOther.arlemiteIngot) == 5 && an.getStackInSlot(AnvilLogic.ARMOR + 3) == null
+                && an.getStackInSlot(AnvilLogic.FUEL) == null;
+            // вещи, лежавшие в блоке со старых версий, отдаются тому, кто открывает наковальню, один раз, и из блока уходят
+            reset(p);
+            net.minecraft.nbt.NBTTagCompound old = new net.minecraft.nbt.NBTTagCompound(), it = new net.minecraft.nbt.NBTTagCompound();
+            net.minecraft.nbt.NBTTagList items = new net.minecraft.nbt.NBTTagList();
+            it.setByte("Slot", (byte) AnvilLogic.FUEL);
+            new ItemStack(VanillaItemsOther.realmiteIngot, 7).writeToNBT(it);
+            items.appendTag(it);
+            old.setTag("Items", items);
+            tile.readFromNBT(old);
+            tile.releaseLegacy(p);
+            tile.releaseLegacy(p);
+            net.minecraft.nbt.NBTTagCompound saved = new net.minecraft.nbt.NBTTagCompound();
+            tile.writeToNBT(saved);
+            boolean legacy = count(p, VanillaItemsOther.realmiteIngot) == 7 && !saved.hasKey("Items");
+            reset(p);
+            check(remembered && socketSlots && shift && target && returned && unloadSlots && upgradeSlots && stuck && closed && legacy,
                 "вкладка запомнена " + remembered + "; слоты гнёзд " + socketSlots + "; shift-клик " + shift + "; цель " + r.status + "/" + r.targets
                     + "; на разрядку " + toUnload + ", вещи вернулись " + returned + "; слоты разрядки " + unloadSlots + "; слоты улучшения " + upgradeSlots
-                    + "; без места не переключается " + stuck);
+                    + "; без места не переключается " + stuck + "; закрыли окно - вещи вернулись " + closed + "; старые вещи из блока отданы один раз " + legacy);
             return "вкладка запоминается; в каждой свои слоты (броня по частям, аксессуары внизу, оружие - только в разрядке); shift-клик раскладывает сам; "
-                + "подсвечено гнездо цели; при смене вкладки лишнее - в инвентарь, без места вкладка не меняется";
+                + "подсвечено гнездо цели; при смене вкладки лишнее - в инвентарь, без места вкладка не меняется; закрыл окно - всё вернулось, "
+                + "в блоке ничего не хранится; старые вещи из блока - тому, кто открыл";
         });
         t("Аксессуары", "Смерть: аксессуары остаются в броне", () -> {
             reset(p);
@@ -5665,7 +5689,7 @@ public class SelfTest {
             // разрядить на Наковальне Странника: в инвентарь, сколько влезет
             av.inventory.clearInventory(null, -1);
             for (int i = 0; i < av.inventory.mainInventory.length; i++) av.inventory.mainInventory[i] = i < 34 ? new ItemStack(Blocks.dirt, 64) : null;
-            TileWandererAnvil an = new TileWandererAnvil();
+            com.divinerpgextended.station.AnvilWork an = new com.divinerpgextended.station.AnvilWork();
             an.setInventorySlotContents(AnvilLogic.FUEL, bow);
             AnvilLogic.Result un = AnvilLogic.evaluate(an, av);
             boolean unloaded = AnvilLogic.execute(an, av);

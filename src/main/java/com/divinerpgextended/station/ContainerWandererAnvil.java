@@ -22,6 +22,8 @@ import cpw.mods.fml.relauncher.SideOnly;
  * кладётся. При смене вкладки всё, что ей не подходит, уходит в инвентарь игрока (нет места - вкладка не меняется).
  * Под каждой частью брони во вкладке гнёзд - её гнёзда: не слоты (внутри брони нет инвентаря), а картинки; клик по
  * занятому гнезду - кнопка "вынуть" ({@link #enchantItem}, id {@link #EXTRACT} + часть * 2 + гнездо).
+ * <p>
+ * Слоты - свои у этого окна ({@link AnvilWork}), в блоке ничего не хранится: окно закрылось - всё вернулось игроку.
  */
 public class ContainerWandererAnvil extends Container {
 
@@ -37,6 +39,7 @@ public class ContainerWandererAnvil extends Container {
 
     private final TileWandererAnvil tile;
     private final EntityPlayer player;
+    private final AnvilWork work = new AnvilWork();
 
     // синхронизируемое состояние (сервер считает, клиент показывает)
     public int status = -1, param, bossMask, fuelItem, mode, targets;
@@ -46,7 +49,7 @@ public class ContainerWandererAnvil extends Container {
     private class StationSlot extends Slot {
 
         StationSlot(int index) {
-            super(tile, index, HIDDEN, HIDDEN);
+            super(work, index, HIDDEN, HIDDEN);
         }
 
         @Override
@@ -79,7 +82,8 @@ public class ContainerWandererAnvil extends Container {
             }
         }
         for (int col = 0; col < 9; col++) addSlotToContainer(new Slot(inv, col, 8 + col * 18, HOTBAR_Y));
-        mode = firstMode(tile, player);
+        int last = player.getEntityData().getInteger(LAST_TAB); // слоты при открытии пусты - открываем последнюю вкладку
+        mode = last >= 0 && last < AnvilLogic.MODES ? last : AnvilLogic.UPGRADE;
         layout();
     }
 
@@ -97,23 +101,6 @@ public class ContainerWandererAnvil extends Container {
         if (slot == AnvilLogic.FUEL) return mode == AnvilLogic.UNLOAD ? Ammo.of(s) != null : Ammo.of(s) == null;
         if (slot >= AnvilLogic.DONOR && mode == AnvilLogic.SOCKETS) return Sockets.accessory(s);
         return s.getItem() instanceof ItemArmor && ((ItemArmor) s.getItem()).armorType == slot % 4;
-    }
-
-    /** Всё содержимое наковальни подходит вкладке (видно и кладётся туда). */
-    static boolean fits(TileWandererAnvil tile, int mode) {
-        for (int i = 0; i < AnvilLogic.SIZE; i++) {
-            ItemStack s = tile.getStackInSlot(i);
-            if (s != null && !(visible(mode, i) && valid(mode, i, s))) return false;
-        }
-        return true;
-    }
-
-    /** Вкладка при открытии: последняя у игрока, если в неё помещается содержимое, иначе первая подходящая. */
-    static int firstMode(TileWandererAnvil tile, EntityPlayer p) {
-        int last = p.getEntityData().getInteger(LAST_TAB);
-        if (last >= 0 && last < AnvilLogic.MODES && fits(tile, last)) return last;
-        for (int m = 0; m < AnvilLogic.MODES; m++) if (fits(tile, m)) return m;
-        return AnvilLogic.UPGRADE; // видно всё - игрок сам заберёт лишнее
     }
 
     /** Расставить слоты станции под вкладку (скрытые - далеко за экраном). */
@@ -144,7 +131,7 @@ public class ContainerWandererAnvil extends Container {
         if (m == mode) return true;
         boolean ok = true;
         for (int i = 0; i < AnvilLogic.SIZE; i++) {
-            ItemStack s = tile.getStackInSlot(i);
+            ItemStack s = work.getStackInSlot(i);
             if (s == null || visible(m, i) && valid(m, i, s)) continue;
             // в творческом addItemStackToInventory без места обнуляет стак, никуда не положив, - не отдаём
             if (p.capabilities.isCreativeMode && p.inventory.getFirstEmptyStack() < 0) {
@@ -152,13 +139,12 @@ public class ContainerWandererAnvil extends Container {
                 continue;
             }
             p.inventory.addItemStackToInventory(s);
-            if (s.stackSize <= 0) tile.setInventorySlotContents(i, null);
+            if (s.stackSize <= 0) work.setInventorySlotContents(i, null);
             else {
-                tile.setInventorySlotContents(i, s);
+                work.setInventorySlotContents(i, s);
                 ok = false;
             }
         }
-        tile.markDirty();
         if (!ok) {
             p.addChatMessage(new ChatComponentTranslation("dre.chat.anvil_tab_full"));
             return false;
@@ -173,15 +159,27 @@ public class ContainerWandererAnvil extends Container {
         return tile;
     }
 
+    /** Рабочие слоты этого окна. */
+    public AnvilWork work() {
+        return work;
+    }
+
     @Override
     public boolean canInteractWith(EntityPlayer p) {
         return tile.isUseableByPlayer(p);
     }
 
+    /** Окно закрылось (в том числе ушёл далеко, сломали блок, вышел с сервера, умер) - всё из слотов вернуть игроку. */
+    @Override
+    public void onContainerClosed(EntityPlayer p) {
+        super.onContainerClosed(p);
+        if (!p.worldObj.isRemote) work.giveBack(p);
+    }
+
     @Override
     public void detectAndSendChanges() {
         super.detectAndSendChanges();
-        AnvilLogic.Result r = AnvilLogic.evaluate(tile, player, mode);
+        AnvilLogic.Result r = AnvilLogic.evaluate(work, player, mode);
         int s = r.status.ordinal(), p = r.param, m = BossProgress.mask(player), t = r.targets;
         int f = r.fuel == null ? 0 : net.minecraft.item.Item.getIdFromItem(r.fuel);
         for (Object o : crafters) {
@@ -228,16 +226,16 @@ public class ContainerWandererAnvil extends Container {
             return ok;
         }
         if (id >= EXTRACT && id < EXTRACT + 8) {
-            if (mode != AnvilLogic.SOCKETS || !AnvilLogic.extract(tile, p, (id - EXTRACT) / 2, (id - EXTRACT) % 2)) return false;
+            if (mode != AnvilLogic.SOCKETS || !AnvilLogic.extract(work, p, (id - EXTRACT) / 2, (id - EXTRACT) % 2)) return false;
             p.worldObj.playSoundEffect(x, y, z, "random.pop", 0.8F, 0.8F);
             detectAndSendChanges();
             return true;
         }
         if (id != 0) return false;
-        AnvilLogic.Status before = AnvilLogic.evaluate(tile, p, mode).status;
-        if (AnvilLogic.execute(tile, p, mode)) {
+        AnvilLogic.Status before = AnvilLogic.evaluate(work, p, mode).status;
+        if (AnvilLogic.execute(work, p, mode)) {
             if (before == AnvilLogic.Status.READY_UNLOAD) {
-                ItemStack w = tile.getStackInSlot(AnvilLogic.FUEL);
+                ItemStack w = work.getStackInSlot(AnvilLogic.FUEL);
                 p.worldObj.playSoundEffect(x, y, z, w != null ? com.divinerpgextended.perk.AmmoLoad.sound(w) : "random.click", 0.9F, 0.8F);
             } else {
                 p.worldObj.playSoundEffect(x, y, z, "random.anvil_use", 1.0F, before == AnvilLogic.Status.READY_SOCKET ? 1.4F : 1.0F);
