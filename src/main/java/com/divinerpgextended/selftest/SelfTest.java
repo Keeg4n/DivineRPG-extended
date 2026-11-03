@@ -1203,18 +1203,17 @@ public class SelfTest {
             ContainerCorruptAltar c = new ContainerCorruptAltar(p.inventory, ow, sx, sy, sz);
             com.divinerpgextended.station.AnvilWork w = c.work();
             final int item = ContainerCorruptAltar.ITEM, pay = ContainerCorruptAltar.PAY, rev = ContainerCorruptAltar.REVEAL;
-            // оплата из конфига - те самые предметы Divine; аркановая руда при копке выпадает сама
-            Block ore = net.divinerpg.utils.blocks.ArcanaBlocks.arcaniumOre;
-            Item oreItem = Item.getItemFromBlock(ore);
+            // оплата из конфига - те самые предметы Divine; книга - рупиевые слитки 1 / 3 / 5
+            Item rupee = VanillaItemsOther.rupeeIngot;
             boolean kinds = AltarLogic.revealItem(new ItemStack(Items.diamond_sword), 0) == VanillaItemsOther.moltenShards
                 && AltarLogic.revealItem(new ItemStack(Items.diamond_sword), 2) == VanillaItemsOther.moltenStone
                 && AltarLogic.revealItem(new ItemStack(Items.diamond_pickaxe), 0) == VanillaItemsOther.terranShards
                 && AltarLogic.revealItem(new ItemStack(Items.fishing_rod), 2) == VanillaItemsOther.terranStone
                 && AltarLogic.revealItem(new ItemStack(Items.diamond_chestplate), 0) == VanillaItemsOther.jungleShards
                 && AltarLogic.revealItem(new ItemStack(Items.bow), 2) == VanillaItemsOther.enderStone
-                && AltarLogic.revealItem(new ItemStack(Items.book), 0) == oreItem && AltarLogic.revealItem(new ItemStack(Items.book), 2) == oreItem
-                && AltarLogic.revealCount(new ItemStack(Items.book), 2) == 10 && AltarLogic.revealCount(new ItemStack(Items.diamond_sword), 2) == 1;
-            boolean oreDrops = ore.getItemDropped(0, ow.rand, 0) == oreItem;
+                && AltarLogic.revealItem(new ItemStack(Items.book), 0) == rupee && AltarLogic.revealItem(new ItemStack(Items.book), 2) == rupee
+                && AltarLogic.revealCount(new ItemStack(Items.book), 1) == 3 && AltarLogic.revealCount(new ItemStack(Items.book), 2) == 5
+                && AltarLogic.revealCount(new ItemStack(Items.diamond_sword), 2) == 1;
             ItemStack sword = new ItemStack(Items.diamond_sword);
             w.setInventorySlotContents(item, sword);
             List<EnchantmentData> expect = c.rolled(2);
@@ -1249,9 +1248,9 @@ public class SelfTest {
             boolean exact = !now.isEmpty() && got.size() == now.size();
             for (EnchantmentData d : now) exact &= Integer.valueOf(d.enchantmentLevel).equals(got.get(d.enchantmentobj.effectId));
             boolean once = !c.enchantItem(p, 2);
-            // книга: узнать за аркановую руду, получает все чары броска
+            // книга: узнать за рупии (первый - 1, второму 2 мало), получает все чары броска
             w.setInventorySlotContents(item, new ItemStack(Items.book));
-            w.setInventorySlotContents(pay, new ItemStack(ore, 3));
+            w.setInventorySlotContents(pay, new ItemStack(rupee, 3));
             List<EnchantmentData> bookRoll = c.rolled(0);
             int bookCost = AltarLogic.price(bookRoll, true);
             boolean bookReveal = c.enchantItem(p, rev) && w.getStackInSlot(pay).stackSize == 2 && !c.enchantItem(p, rev + 1);
@@ -1261,7 +1260,7 @@ public class SelfTest {
             // окно закрылось - вещь и оплата вернулись, второе закрытие ничего не даёт
             c.onContainerClosed(p);
             c.onContainerClosed(p);
-            boolean back = count(p, Items.enchanted_book) == 1 && count(p, oreItem) == 2 && w.getStackInSlot(item) == null && w.getStackInSlot(pay) == null;
+            boolean back = count(p, Items.enchanted_book) == 1 && count(p, rupee) == 2 && w.getStackInSlot(item) == null && w.getStackInSlot(pay) == null;
             // творческий - узнать и зачаровать даром; shift-клик: камень - в оплату, топор - в слот вещи
             p.capabilities.isCreativeMode = true;
             w.setInventorySlotContents(item, new ItemStack(Items.diamond_pickaxe));
@@ -1277,13 +1276,13 @@ public class SelfTest {
             boolean shift = w.getStackInSlot(pay) != null && w.getStackInSlot(pay).stackSize == 3 && w.getStackInSlot(item) != null
                 && w.getStackInSlot(item).getItem() == Items.diamond_axe && p.inventory.mainInventory[9] == null && p.inventory.mainInventory[10] == null;
             c.onContainerClosed(p);
-            check(kinds && oreDrops && noPay && wrongKind && shardsForLast && first && second && last && reroll && poor && fromZero && exact && once && bookReveal
-                && bookOk && back && free && shift,
-                "виды оплаты " + kinds + ", руда выпадает " + oreDrops + ", без оплаты " + noPay + ", чужие осколки " + wrongKind + ", осколки за последний " + shardsForLast
+            check(kinds && noPay && wrongKind && shardsForLast && first && second && last && reroll && poor && fromZero && exact && once && bookReveal && bookOk && back
+                && free && shift,
+                "виды оплаты " + kinds + ", без оплаты " + noPay + ", чужие осколки " + wrongKind + ", осколки за последний " + shardsForLast
                     + ", первый " + first + ", второй " + second + ", последний " + last + ", переброс " + reroll + ", мало уровней " + poor + ", опыт с нуля " + fromZero
                     + " (ушло " + spent + ", надо " + AltarLogic.xpTo(cost) + ")" + ", ровно брошенное " + exact + " (" + names(now) + " / " + got + "), повтор " + once
-                    + ", руда за книгу " + bookReveal + ", книга " + bookOk + " (" + bookCost + "), возврат " + back + ", творческий " + free + ", shift " + shift);
-            return "мечу - осколки и камень Molten, книге - аркановая руда; переложил - новый бросок; меч получил ровно брошенное (" + names(now) + ") за " + cost
+                    + ", рупии за книгу " + bookReveal + ", книга " + bookOk + " (" + bookCost + "), возврат " + back + ", творческий " + free + ", shift " + shift);
+            return "мечу - осколки и камень Molten, книге - рупиевые слитки 1 / 3 / 5; переложил - новый бросок; меч получил ровно брошенное (" + names(now) + ") за " + cost
                 + " ур., с 100-го ушло " + spent + " опыта = от нуля до " + cost + "; книга за " + bookCost + " ур. со всеми чарами броска; закрытие вернуло вещь и оплату";
         });
         t("Алтарь порчи", "Правый клик открывает окно аддона, присев с блоком - ставит блок", () -> {
@@ -1321,6 +1320,88 @@ public class SelfTest {
                 ow.setBlock(x, y, z, was, wasMeta, 3);
             }
         });
+        t("Автоплавка", "Удача не умножает рупий и арлемит при автоплавке (Лава Tinkers' Construct)", () -> {
+            reset(p);
+            Block rupeeOre = net.divinerpg.utils.blocks.VanillaBlocks.rupeeOre, arlemiteOre = net.divinerpg.utils.blocks.VanillaBlocks.arlemiteOre;
+            check(com.divinerpgextended.perk.SmeltNoFortune.ores().contains(rupeeOre) && com.divinerpgextended.perk.SmeltNoFortune.ores().contains(arlemiteOre),
+                "руды из конфига: " + com.divinerpgextended.perk.SmeltNoFortune.ores());
+            int x = sx + 5, y = sy + 3, z = sz + 5;
+            Block was = ow.getBlock(x, y, z);
+            int wasMeta = ow.getBlockMetadata(x, y, z);
+            try {
+                // имитация: руду сломал игрок, в центр блока упало 4 слитка - остался 1; железу и без ломания - сколько было
+                int rupeeSim = smeltDrop(p, ow, x, y, z, rupeeOre, true), arlemiteSim = smeltDrop(p, ow, x, y, z, arlemiteOre, true);
+                int ironSim = smeltDrop(p, ow, x, y, z, Blocks.iron_ore, true), noBreak = smeltDrop(p, ow, x, y, z, rupeeOre, false);
+                check(rupeeSim == 1 && arlemiteSim == 1 && ironSim == 4 && noBreak == 4,
+                    "из 4 слитков: рупий " + rupeeSim + ", арлемит " + arlemiteSim + ", железо " + ironSim + ", рупий без ломания " + noBreak);
+                if (!cpw.mods.fml.common.Loader.isModLoaded("TConstruct")) return "имитация: 4 слитка в центре сломанной руды рупия и арлемита -> 1, железо и без ломания не тронуты; Tinkers' Construct нет - копания им нет";
+                // настоящая кирка TiC из манъюллина с Лавой и Удачей III, удача Лавы включена
+                Class<?> tools = Class.forName("tconstruct.tools.TinkerTools"), tb = Class.forName("tconstruct.library.crafting.ToolBuilder");
+                Item head = (Item) tools.getField("pickaxeHead").get(null), rod = (Item) tools.getField("toolRod").get(null), bind = (Item) tools.getField("binding").get(null);
+                ItemStack pick = (ItemStack) tb.getMethod("buildTool", ItemStack.class, ItemStack.class, ItemStack.class, String.class).invoke(tb.getField("instance").get(null),
+                    new ItemStack(head, 1, 12), new ItemStack(rod, 1, 12), new ItemStack(bind, 1, 12), "dre-test");
+                check(pick != null, "кирка TiC не собралась");
+                pick.getTagCompound().getCompoundTag("InfiTool").setBoolean("Lava", true);
+                pick.addEnchantment(Enchantment.fortune, 3);
+                java.lang.reflect.Field lf = Class.forName("tconstruct.util.config.PHConstruct").getField("lavaFortuneInteraction");
+                boolean lfWas = lf.getBoolean(null);
+                lf.setBoolean(null, true);
+                p.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+                int[] rupee = new int[2], arlemite = new int[2], iron = new int[2]; // сколько раз переплавилось, больше всего слитков за раз
+                try {
+                    for (int i = 0; i < 12; i++) {
+                        ticMine(p, ow, x, y, z, rupeeOre, pick, rupee);
+                        ticMine(p, ow, x, y, z, arlemiteOre, pick, arlemite);
+                        ticMine(p, ow, x, y, z, Blocks.iron_ore, pick, iron);
+                    }
+                } finally {
+                    lf.setBoolean(null, lfWas);
+                }
+                check(iron[0] > 0 && iron[1] > 1, "Лава с Удачей III на железе: переплавлено " + iron[0] + " раз, максимум " + iron[1] + " слитков - удача TiC не сработала, проверять нечего");
+                check(rupee[0] > 0 && rupee[1] == 1 && arlemite[0] > 0 && arlemite[1] == 1,
+                    "Лава с Удачей III: рупий переплавлен " + rupee[0] + " раз, максимум " + rupee[1] + " слитков; арлемит " + arlemite[0] + " раз, максимум " + arlemite[1]);
+                return "имитация: 4 слитка в центре сломанной руды -> 1, железо и без ломания не тронуты; кирка TiC с Лавой и Удачей III, 12 раз: рупий и арлемит - всегда 1 слиток, железо - до "
+                    + iron[1];
+            } finally {
+                ow.setBlock(x, y, z, was, wasMeta, 3);
+                reset(p);
+            }
+        });
+    }
+
+    /** Руда сломана игроком (или нет), в центр блока падают 4 её слитка: сколько осталось. */
+    private static int smeltDrop(TestPlayer p, WorldServer w, int x, int y, int z, Block ore, boolean broken) {
+        ItemStack ingot = net.minecraft.item.crafting.FurnaceRecipes.smelting().getSmeltingResult(new ItemStack(ore));
+        w.setBlock(x, y, z, ore);
+        if (broken) net.minecraftforge.common.ForgeHooks.onBlockBreakEvent(w, net.minecraft.world.WorldSettings.GameType.SURVIVAL, p, x, y, z);
+        w.setBlockToAir(x, y, z);
+        ItemStack four = ingot.copy();
+        four.stackSize = 4;
+        net.minecraft.entity.item.EntityItem ei = new net.minecraft.entity.item.EntityItem(w, x + 0.5, y + 0.5, z + 0.5, four);
+        w.spawnEntityInWorld(ei);
+        int n = ei.getEntityItem().stackSize;
+        ei.setDead();
+        return n;
+    }
+
+    /** Копнуть руду киркой TiC по-настоящему; out[0] - сколько раз переплавилась, out[1] - больше всего слитков за раз. */
+    private static void ticMine(TestPlayer p, WorldServer w, int x, int y, int z, Block ore, ItemStack pick, int[] out) {
+        ItemStack ingot = net.minecraft.item.crafting.FurnaceRecipes.smelting().getSmeltingResult(new ItemStack(ore));
+        w.setBlock(x, y, z, ore);
+        hold(p, pick.copy());
+        p.theItemInWorldManager.tryHarvestBlock(x, y, z);
+        int n = 0;
+        for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class,
+            net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 1, y - 1, z - 1, x + 2, y + 2, z + 2))) {
+            net.minecraft.entity.item.EntityItem ei = (net.minecraft.entity.item.EntityItem) o;
+            if (ei.isDead) continue; // убранные прошлыми попытками уходят из мира только в следующем тике
+            ItemStack s = ei.getEntityItem();
+            if (s != null && s.getItem() == ingot.getItem() && s.getItemDamage() == ingot.getItemDamage()) n += s.stackSize;
+            ei.setDead();
+        }
+        w.setBlockToAir(x, y, z);
+        if (n > 0) out[0]++;
+        out[1] = Math.max(out[1], n);
     }
 
     private void progressTests(final TestPlayer p, final WorldServer ow, final int sx, final int sy, final int sz) {

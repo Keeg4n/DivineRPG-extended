@@ -32,7 +32,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 /**
  * Окно алтаря порчи: ванильный стол зачарования (текстура и книга), но две ячейки - вещь и оплата, а слева от каждого
- * слота кнопка "узнать" с ценой (осколки, камень или руда - по виду вещи). Узнанные чары пишутся в слоте вместо
+ * слота кнопка "узнать" с ценой (осколки, камень или рупии - по виду вещи). Узнанные чары пишутся в слоте вместо
  * галактических рун, полный список - в подсказке.
  */
 @SideOnly(Side.CLIENT)
@@ -139,7 +139,7 @@ public class GuiCorruptAltar extends GuiContainer {
         String title = EnumChatFormatting.getTextWithoutFormattingCodes(t("tile.altarOfCorruption.name"));
         fontRendererObj.drawString(title, 12, 5, 0x404040);
         fontRendererObj.drawString(t("container.inventory"), 8, ySize - 96 + 2, 0x404040);
-        // цена "узнать": осколки, камень или руда по виду вещи; узнано или нечем платить - притушено
+        // цена "узнать": осколки, камень или рупии по виду вещи; узнано или нечем платить - притушено
         RenderHelper.enableGUIStandardItemLighting();
         GL11.glEnable(GL12.GL_RESCALE_NORMAL);
         for (int i = 0; i < AltarLogic.SLOTS; i++) {

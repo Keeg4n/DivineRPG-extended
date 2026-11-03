@@ -22,12 +22,16 @@ public class Config {
     public static int altarTopLevels = 50, altarBookBase = 30, altarBookMax = 120;
     /** Очки за чар на полном уровне по тирам (лучшие, средние, слабые): вещь и книга. */
     public static int[] altarItemPoints = { 35, 12, 6 }, altarBookPoints = { 45, 15, 8 };
-    /** Цена "узнать чары" по слотам: вещь (осколки, осколки, камень) и книга (аркановая руда). */
-    public static int[] altarRevealCost = { 1, 5, 1 }, altarBookRevealCost = { 1, 5, 10 };
+    /** Цена "узнать чары" по слотам: вещь (осколки, осколки, камень) и книга (рупиевые слитки). */
+    public static int[] altarRevealCost = { 1, 5, 1 }, altarBookRevealCost = { 1, 3, 5 };
+    /** Книга в 0.99.71 стоила 1 / 5 / 10 аркановой руды: такая цена в старом файле меняется на новую. */
+    private static final int[] OLD_BOOK_REVEAL_COST = { 1, 5, 10 };
+    /** Книги в 0.99.71 узнавались за аркановую руду: эта строка в старом файле меняется на рупии. */
+    private static final String BOOK_REVEAL = "book=divinerpg:rupeeIngot,divinerpg:rupeeIngot", OLD_BOOK_REVEAL = "book=divinerpg:arcaniumOre,divinerpg:arcaniumOre";
     /** Чем платить за "узнать": вид вещи = за первый и второй слоты, за последний. */
     public static String[] altarRevealItems = { "weapon=divinerpg:moltenShards,divinerpg:moltenStone", "tool=divinerpg:terranShards,divinerpg:terranStone",
-        "armor=divinerpg:jungleShards,divinerpg:jungleStone", "bow=divinerpg:enderShards,divinerpg:enderStone",
-        "book=divinerpg:arcaniumOre,divinerpg:arcaniumOre", "other=divinerpg:corruptedShards,divinerpg:corruptedStone" };
+        "armor=divinerpg:jungleShards,divinerpg:jungleStone", "bow=divinerpg:enderShards,divinerpg:enderStone", BOOK_REVEAL,
+        "other=divinerpg:corruptedShards,divinerpg:corruptedStone" };
 
     /** Здоровье великого кадиллиона: Eden, Wildwood, Apalachia, Skythern. */
     public static int[] cadillionHealth = { 300, 400, 500, 600 };
@@ -67,6 +71,8 @@ public class Config {
     public static int divineTorchRadius = 24;
     public static int mapWorldSize = 10000;
     public static boolean worldCrafts = true, gateStones = true, miningTiers = true;
+    /** Руды, которым автоплавка инструмента не умножает слитки удачей ({@link com.divinerpgextended.perk.SmeltNoFortune}). */
+    public static String[] smeltNoFortune = { "divinerpg:rupeeOre", "divinerpg:arlemiteOre" };
     /** Постройки сумеречных миров: 1 на N чанков (0 - нет). */
     public static int twilightRuinsRarity = 30, twilightDungeonRarity = 40, twilightBridgeRarity = 3, twilightCampRarity = 45;
     public static int apalachiaStructureBoost = 2, twilightPondRarity = 20, vetheaLakeRarity = 10, vetheaHangingLakeRarity = 14;
@@ -145,11 +151,22 @@ public class Config {
             "Алтарь порчи: списывать опыт так, будто уровни считаются с нуля (цена в опыте не зависит от того, сколько уровней у игрока). false - уровни снимаются сверху, как у ванили");
         altarRevealCost = intList(cfg, bal, "altarRevealCost", altarRevealCost,
             "Алтарь порчи, вещь: сколько стоит узнать чары первого, второго и последнего слота (осколки, осколки, камень; 0 - бесплатно)");
+        int[] bookCost = altarBookRevealCost;
         altarBookRevealCost = intList(cfg, bal, "altarBookRevealCost", altarBookRevealCost,
             "Алтарь порчи, книга: сколько стоит узнать чары первого, второго и последнего слота (0 - бесплатно)");
-        altarRevealItems = cfg.getStringList("altarRevealItems", bal, altarRevealItems,
+        if (java.util.Arrays.equals(altarBookRevealCost, OLD_BOOK_REVEAL_COST)) {
+            altarBookRevealCost = bookCost;
+            cfg.get(bal, "altarBookRevealCost", bookCost).set(bookCost);
+        }
+        Property reveal = cfg.get(bal, "altarRevealItems", altarRevealItems,
             "Алтарь порчи: чем платить за \"узнать\" (вид=за первый и второй слоты,за последний; modid:name). Виды: weapon - мечи, tool - кирки, топоры, лопаты, удочки, "
                 + "armor - броня, bow - луки, book - книги, other - остальное");
+        altarRevealItems = reveal.getStringList();
+        for (int i = 0; i < altarRevealItems.length; i++) {
+            if (!OLD_BOOK_REVEAL.equals(altarRevealItems[i].trim())) continue;
+            altarRevealItems[i] = BOOK_REVEAL;
+            reveal.set(altarRevealItems);
+        }
         cadillionHealth = intList(cfg, "bosses", "cadillionHealth", cadillionHealth,
             "Здоровье великого кадиллиона: Eden, Wildwood, Apalachia, Skythern");
         Property hit = cfg.get("bosses", "cadillionHit", cadillionHit,
@@ -231,6 +248,8 @@ public class Config {
             "Крафты сумеречных миров цепочкой: вещь мира = вещь прошлого мира + куски + материал мобов, рукояти из палок мира; палки, факелы и стрелы миров. false - рецепты Divine");
         miningTiers = cfg.getBoolean("miningTiers", b, miningTiers,
             "Уровни кирок: руду сумеречного мира ломает только кирка этого мира или выше, сумеречный камень - кирка прошлого мира или выше (в Эдеме - божественная)");
+        smeltNoFortune = cfg.getStringList("smeltNoFortune", b, smeltNoFortune,
+            "Руды (modid:name), которым автоплавка при копании (модификатор \"Лава\" Tinkers' Construct) не умножает слитки удачей: из блока - одна плавка. Пустой список - удача работает везде");
         gateStones = cfg.getBoolean("gateStones", b, gateStones,
             "Рамки порталов Дикого леса..Мортума - камни врат из сердца стража (трофей Великого кадиллиона) вместо блоков камней прошлого мира. Старые рамки из блоков камней перестанут работать");
         throneSpacing = cfg.getInt("throneSpacing", "worldgen", throneSpacing, 0, 100000,
