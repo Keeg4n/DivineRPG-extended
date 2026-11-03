@@ -82,7 +82,8 @@ public class ArcanaCombat {
     }
 
     static boolean arcanaSword(Item i) {
-        return i == ArcanaItems.arcaniumSaber || i == ArcanaItems.arcaniteBlade || i == ArcanaItems.shadowSword || i == ArcanaItems.stormSword;
+        return i == ArcanaItems.arcaniumSaber || i == ArcanaItems.arcaniteBlade || i == ArcanaItems.shadowSword || i == ArcanaItems.stormSword
+            || i == ArcanaItems.liviciaSword;
     }
 
     /** Базовый урон оружия в руке или null, если это не арканное оружие. */
@@ -218,7 +219,7 @@ public class ArcanaCombat {
 
     /**
      * Оплачен ли арканный удар: сабля и клинок Арканы списывают аркану сами до удара (иначе удара нет), теневой меч - после
-     * (нужно, чтобы её хватало), Storm Sword - 6 арканы на сам арканный удар.
+     * (нужно, чтобы её хватало), Storm Sword и меч Ливиции - 6 арканы на сам арканный удар.
      */
     static boolean edgePaid(EntityPlayer p, Item sword) {
         ArcanaHelper h = ArcanaHelper.getProperties(p);
