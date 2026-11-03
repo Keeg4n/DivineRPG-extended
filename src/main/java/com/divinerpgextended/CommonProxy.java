@@ -233,6 +233,7 @@ public class CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(anvilWork);
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.station.AltarLogic.Open());
         com.divinerpgextended.accessory.SocketGuard socketGuard = new com.divinerpgextended.accessory.SocketGuard();
         MinecraftForge.EVENT_BUS.register(socketGuard);
         FMLCommonHandler.instance()

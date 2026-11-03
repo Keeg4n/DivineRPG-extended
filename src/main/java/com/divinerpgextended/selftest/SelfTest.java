@@ -23,6 +23,9 @@ import net.divinerpg.utils.items.VanillaItemsArmor;
 import net.divinerpg.utils.items.VanillaItemsOther;
 import net.divinerpg.utils.items.VetheaItems;
 import net.minecraft.block.Block;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentData;
+import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
@@ -71,7 +74,9 @@ import com.divinerpgextended.fishing.FishingLoot;
 import com.divinerpgextended.fishing.Rod;
 import com.divinerpgextended.fishing.Zone;
 import com.divinerpgextended.registry.ModItems;
+import com.divinerpgextended.station.AltarLogic;
 import com.divinerpgextended.station.AnvilLogic;
+import com.divinerpgextended.station.ContainerCorruptAltar;
 import com.divinerpgextended.station.TileWandererAnvil;
 import com.divinerpgextended.trinket.DoubleJump;
 import com.divinerpgextended.trinket.Trinket;
@@ -577,6 +582,7 @@ public class SelfTest {
 
         armorTests(p, g, ow, sx, sy, sz);
         accessoryTests(p, q, g, ow);
+        altarTests(p, ow, sx, sy, sz);
         progressTests(p, ow, sx, sy, sz);
         tradeTests(p, ow, sx, sy, sz);
         arcanaTests(p);
@@ -1117,6 +1123,162 @@ public class SelfTest {
             int a = DoubleJump.allowed(p);
             check(a == 1, "прыжков в воздухе в обычном мире: " + a);
             return "только серверная часть: в обычном мире 1 прыжок в воздухе (сам прыжок - на клиенте)";
+        });
+    }
+
+    private static List<Integer> packed(List<EnchantmentData> l) {
+        List<Integer> out = new ArrayList<Integer>();
+        for (EnchantmentData d : l) out.add(ContainerCorruptAltar.pack(d));
+        return out;
+    }
+
+    private static String names(List<EnchantmentData> l) {
+        StringBuilder b = new StringBuilder();
+        for (EnchantmentData d : l) b.append(b.length() > 0 ? ", " : "").append(d.enchantmentobj.getTranslatedName(d.enchantmentLevel));
+        return b.toString();
+    }
+
+    private void altarTests(final TestPlayer p, final WorldServer ow, final int sx, final int sy, final int sz) {
+        t("Алтарь порчи", "Цены, чары заранее, лучшие чары в последнем слоте, книга под одну вещь", () -> {
+            ItemStack sword = new ItemStack(Items.diamond_sword), chest = new ItemStack(Items.diamond_chestplate), pick = new ItemStack(Items.diamond_pickaxe),
+                book = new ItemStack(Items.book);
+            StringBuilder bad = new StringBuilder();
+            int n = 400, lo0 = 999, hi0 = 0, lo1 = 999, hi1 = 0, prot4 = 0, sharp5 = 0, multi = 0;
+            for (int seed = 0; seed < n; seed++) {
+                int[] c = AltarLogic.costs(seed, sword);
+                if (c[2] != Config.altarTopLevels) bad.append(" цена последнего ").append(c[2]).append(';');
+                lo0 = Math.min(lo0, c[0]);
+                hi0 = Math.max(hi0, c[0]);
+                lo1 = Math.min(lo1, c[1]);
+                hi1 = Math.max(hi1, c[1]);
+                // те же зерно и вещь - те же чары: вынуть и вставить ничего не меняет
+                if (!packed(AltarLogic.roll(seed, sword, 2)).equals(packed(AltarLogic.roll(seed, sword.copy(), 2)))) bad.append(" бросок не повторился;");
+                for (ItemStack s : new ItemStack[] { sword, chest, pick }) {
+                    List<EnchantmentData> top = AltarLogic.roll(seed, s, 2);
+                    if (top.isEmpty()) bad.append(" последний слот пуст;");
+                    for (EnchantmentData d : top) if (!AltarLogic.TOP.contains(d.enchantmentobj)) bad.append(" не лучший чар ").append(d.enchantmentobj.getName()).append(';');
+                }
+                for (EnchantmentData d : AltarLogic.roll(seed, chest, 2)) if (d.enchantmentobj == Enchantment.protection && d.enchantmentLevel == 4) prot4++;
+                for (EnchantmentData d : AltarLogic.roll(seed, sword, 2)) if (d.enchantmentobj == Enchantment.sharpness && d.enchantmentLevel == 5) sharp5++;
+                // книга: все чары встают на одну вещь
+                for (int slot = 0; slot < AltarLogic.SLOTS; slot++) {
+                    List<EnchantmentData> l = AltarLogic.roll(seed, book, slot);
+                    if (l.size() > 1) multi++;
+                    boolean one = false;
+                    for (Item target : AltarLogic.BOOK_TARGETS) {
+                        boolean all = true;
+                        for (EnchantmentData d : l) all &= d.enchantmentobj.canApplyAtEnchantingTable(new ItemStack(target));
+                        one |= all;
+                    }
+                    if (!one) bad.append(" книга вразнобой: ").append(names(l)).append(';');
+                }
+            }
+            check(bad.length() == 0, bad.substring(0, Math.min(bad.length(), 400)));
+            int k = Config.altarTopLevels;
+            check(lo0 == Math.round(2 * k / 30F) && hi0 == Math.round(10 * k / 30F) && lo1 == Math.round(6 * k / 30F) && hi1 == Math.round(21 * k / 30F),
+                "цены первых двух слотов " + lo0 + "-" + hi0 + ", " + lo1 + "-" + hi1);
+            check(prot4 > n * 0.85, "Защита IV в последнем слоте алмазной кирасы: " + prot4 + " из " + n);
+            check(sharp5 > n * 0.4, "Острота V в последнем слоте алмазного меча: " + sharp5 + " из " + n);
+            return n + " зёрен: цены " + lo0 + "-" + hi0 + " / " + lo1 + "-" + hi1 + " / " + k + ", бросок повторяется, в последнем слоте только лучшие чары (Защита IV на кирасе "
+                + prot4 * 100 / n + "%, Острота V на мече " + sharp5 * 100 / n + "%), книги под одну вещь (с несколькими чарами " + multi + " из " + n * 3 + ")";
+        });
+        t("Алтарь порчи", "Окно: узнать за осколки и камень, зачаровать ровно узнанным, вещи вернулись", () -> {
+            reset(p);
+            AltarLogic.reseed(p);
+            ContainerCorruptAltar c = new ContainerCorruptAltar(p.inventory, ow, sx, sy, sz);
+            com.divinerpgextended.station.AnvilWork w = c.work();
+            final int item = ContainerCorruptAltar.ITEM, pay = ContainerCorruptAltar.PAY, rev = ContainerCorruptAltar.REVEAL;
+            ItemStack sword = new ItemStack(Items.diamond_sword);
+            w.setInventorySlotContents(item, sword);
+            int seed = AltarLogic.seed(p);
+            List<EnchantmentData> expect = AltarLogic.roll(seed, sword, 2);
+            // нечем платить - отказ; осколки за последний слот не берутся; первый - 1 осколок, второй раз не берёт; второй - 5
+            boolean noPay = !c.enchantItem(p, rev + 2) && !AltarLogic.seen(p, sword, 2);
+            w.setInventorySlotContents(pay, new ItemStack(VanillaItemsOther.corruptedShards, 6));
+            boolean shardsForLast = !c.enchantItem(p, rev + 2);
+            boolean first = c.enchantItem(p, rev) && w.getStackInSlot(pay).stackSize == 5 && !c.enchantItem(p, rev) && w.getStackInSlot(pay).stackSize == 5;
+            boolean second = c.enchantItem(p, rev + 1) && w.getStackInSlot(pay) == null;
+            w.setInventorySlotContents(pay, new ItemStack(VanillaItemsOther.corruptedStone, 2));
+            boolean last = c.enchantItem(p, rev + 2) && w.getStackInSlot(pay).stackSize == 1 && AltarLogic.seen(p, sword, 2);
+            // вынуть и вставить - узнанное помнится, чары те же
+            ItemStack again = new ItemStack(Items.diamond_sword);
+            w.setInventorySlotContents(item, again);
+            boolean same = AltarLogic.seen(p, again, 2) && packed(AltarLogic.roll(AltarLogic.seed(p), again, 2)).equals(packed(expect));
+            // мало уровней - отказ; хватает - ровно узнанные чары, уровни списаны, зерно новое, узнанное забыто, второй раз нельзя
+            p.experienceLevel = Config.altarTopLevels - 1;
+            boolean poor = !c.enchantItem(p, 2) && !again.isItemEnchanted();
+            p.experienceLevel = Config.altarTopLevels + 10;
+            boolean done = c.enchantItem(p, 2) && p.experienceLevel == 10;
+            java.util.Map<?, ?> got = EnchantmentHelper.getEnchantments(w.getStackInSlot(item));
+            boolean exact = !expect.isEmpty() && got.size() == expect.size();
+            for (EnchantmentData d : expect) exact &= Integer.valueOf(d.enchantmentLevel).equals(got.get(d.enchantmentobj.effectId));
+            boolean reseeded = AltarLogic.seed(p) != seed && !AltarLogic.seen(p, new ItemStack(Items.diamond_sword), 2);
+            boolean once = !c.enchantItem(p, 2);
+            // книга получает все чары броска
+            w.setInventorySlotContents(item, new ItemStack(Items.book));
+            List<EnchantmentData> bookRoll = AltarLogic.roll(AltarLogic.seed(p), w.getStackInSlot(item), 0);
+            p.experienceLevel = 30;
+            boolean bookOk = c.enchantItem(p, 0) && w.getStackInSlot(item).getItem() == Items.enchanted_book
+                && Items.enchanted_book.func_92110_g(w.getStackInSlot(item)).tagCount() == bookRoll.size();
+            // окно закрылось - вещь и оплата вернулись, второе закрытие ничего не даёт
+            c.onContainerClosed(p);
+            c.onContainerClosed(p);
+            boolean back = count(p, Items.enchanted_book) == 1 && count(p, VanillaItemsOther.corruptedStone) == 1 && w.getStackInSlot(item) == null
+                && w.getStackInSlot(pay) == null;
+            // творческий - узнать бесплатно; shift-клик: камень - в оплату, кирка - в слот вещи
+            p.capabilities.isCreativeMode = true;
+            w.setInventorySlotContents(item, new ItemStack(Items.diamond_pickaxe));
+            boolean free = c.enchantItem(p, rev + 2);
+            p.capabilities.isCreativeMode = false;
+            w.setInventorySlotContents(item, null);
+            reset(p);
+            p.inventory.mainInventory[9] = new ItemStack(VanillaItemsOther.corruptedStone, 3);
+            p.inventory.mainInventory[10] = new ItemStack(Items.diamond_axe);
+            c.transferStackInSlot(p, ContainerCorruptAltar.SIZE);
+            c.transferStackInSlot(p, ContainerCorruptAltar.SIZE + 1);
+            boolean shift = w.getStackInSlot(pay) != null && w.getStackInSlot(pay).stackSize == 3 && w.getStackInSlot(item) != null
+                && w.getStackInSlot(item).getItem() == Items.diamond_axe && p.inventory.mainInventory[9] == null && p.inventory.mainInventory[10] == null;
+            c.onContainerClosed(p);
+            check(noPay && shardsForLast && first && second && last && same && poor && done && exact && reseeded && once && bookOk && back && free && shift,
+                "без оплаты " + noPay + ", осколки за последний " + shardsForLast + ", первый " + first + ", второй " + second + ", последний " + last + ", перевставка " + same
+                    + ", мало уровней " + poor + ", зачаровано " + done + ", ровно узнанное " + exact + " (" + names(expect) + " / " + got + "), новое зерно " + reseeded
+                    + ", повтор " + once + ", книга " + bookOk + ", возврат " + back + ", творческий " + free + ", shift " + shift);
+            return "1 осколок / 5 осколков / камень, повтор не списывает; меч получил ровно узнанное (" + names(expect) + "), -" + Config.altarTopLevels
+                + " уровней, зерно сменилось; книга со всеми чарами броска; закрытие вернуло вещь и оплату";
+        });
+        t("Алтарь порчи", "Правый клик открывает окно аддона, присев с блоком - ставит блок", () -> {
+            reset(p);
+            int x = sx + 3, y = sy + 3, z = sz + 3;
+            Block was = ow.getBlock(x, y, z);
+            int wasMeta = ow.getBlockMetadata(x, y, z);
+            double px = p.posX, py = p.posY, pz = p.posZ;
+            ow.setBlock(x, y, z, net.divinerpg.utils.blocks.VanillaBlocks.altarOfCorruption);
+            try {
+                net.minecraftforge.event.entity.player.PlayerInteractEvent.Action click = net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK;
+                boolean open = net.minecraftforge.event.ForgeEventFactory.onPlayerInteract(p, click, x, y, z, 1, ow).isCanceled();
+                p.setSneaking(true);
+                hold(p, new ItemStack(Blocks.dirt));
+                boolean place = !net.minecraftforge.event.ForgeEventFactory.onPlayerInteract(p, click, x, y, z, 1, ow).isCanceled();
+                p.setSneaking(false);
+                Config.corruptAltar = false;
+                boolean off = !net.minecraftforge.event.ForgeEventFactory.onPlayerInteract(p, click, x, y, z, 1, ow).isCanceled();
+                Config.corruptAltar = true;
+                com.divinerpgextended.station.GuiHandler gh = new com.divinerpgextended.station.GuiHandler();
+                Object gui = gh.getServerGuiElement(com.divinerpgextended.station.GuiHandler.ALTAR, p, ow, x, y, z);
+                Object none = gh.getServerGuiElement(com.divinerpgextended.station.GuiHandler.ALTAR, p, ow, x + 1, y, z);
+                p.setPosition(x + 0.5, y + 1, z + 0.5);
+                boolean near = gui instanceof ContainerCorruptAltar && ((ContainerCorruptAltar) gui).canInteractWith(p);
+                p.setPosition(x + 12.5, y + 1, z + 0.5);
+                boolean far = gui instanceof ContainerCorruptAltar && !((ContainerCorruptAltar) gui).canInteractWith(p);
+                check(open && place && off && near && far && none == null,
+                    "клик " + open + ", присев с блоком " + place + ", выключено " + off + ", окно " + gui + ", рядом " + near + ", далеко " + far + ", не алтарь " + none);
+                return "клик по алтарю отменён и открывает окно аддона; присев с блоком - обычная установка блока; corruptAltar=false - алтарь Divine; дальше 8 блоков окно закрывается";
+            } finally {
+                Config.corruptAltar = true;
+                p.setSneaking(false);
+                p.setPosition(px, py, pz);
+                ow.setBlock(x, y, z, was, wasMeta, 3);
+            }
         });
     }
 

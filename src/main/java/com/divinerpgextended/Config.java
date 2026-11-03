@@ -16,6 +16,11 @@ public class Config {
     public static int upgradeR1FuelRealmiteIngots = 16;
     public static int upgradeTwilightFuelCount = 16;
     public static int perkFuelArlemiteIngots = 8;
+    /** Алтарь порчи по правилам аддона ({@link com.divinerpgextended.station.AltarLogic}). */
+    public static boolean corruptAltar = true;
+    public static int altarTopLevels = 50;
+    /** Цена "узнать чары": осколков порчи за первый и второй слоты, камней порчи за последний. */
+    public static int[] altarRevealCost = { 1, 5, 1 };
 
     /** Здоровье великого кадиллиона: Eden, Wildwood, Apalachia, Skythern. */
     public static int[] cadillionHealth = { 300, 400, 500, 600 };
@@ -116,6 +121,12 @@ public class Config {
             "Сколько камней мира стоит закалка R2-R7");
         perkFuelArlemiteIngots = cfg.getInt("perkFuelArlemiteIngots", bal, perkFuelArlemiteIngots,
             0, 64, "Сколько арлемитовых слитков стоит установка малого перка");
+        corruptAltar = cfg.getBoolean("corruptAltar", bal, corruptAltar,
+            "Алтарь порчи Divine по правилам аддона: чары слота известны заранее и узнаются за осколки и камень порчи, последний слот дороже и только с лучшими чарами, на книгу - чары под одну вещь. false - алтарь как в Divine");
+        altarTopLevels = cfg.getInt("altarTopLevels", bal, altarTopLevels, 1, 200,
+            "Цена последнего (самого дорогого) слота алтаря порчи в уровнях (она же сила броска); первые два слота дороже ванильных во столько же раз (50 - в 5/3)");
+        altarRevealCost = intList(cfg, bal, "altarRevealCost", altarRevealCost,
+            "Сколько стоит узнать чары слота алтаря порчи: осколков порчи за первый и второй слоты, камней порчи за последний (0 - бесплатно)");
         cadillionHealth = intList(cfg, "bosses", "cadillionHealth", cadillionHealth,
             "Здоровье великого кадиллиона: Eden, Wildwood, Apalachia, Skythern");
         Property hit = cfg.get("bosses", "cadillionHit", cadillionHit,

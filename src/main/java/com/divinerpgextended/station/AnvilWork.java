@@ -16,7 +16,12 @@ import cpw.mods.fml.common.gameevent.PlayerEvent;
 public class AnvilWork extends InventoryBasic {
 
     public AnvilWork() {
-        super("tile.dre.wandererAnvil.name", false, AnvilLogic.SIZE);
+        this("tile.dre.wandererAnvil.name", AnvilLogic.SIZE);
+    }
+
+    /** Такие же слоты другого окна (алтарь порчи). */
+    public AnvilWork(String name, int size) {
+        super(name, false, size);
     }
 
     /** Вернуть всё игроку (только сервер). Вещь сначала уходит из слота, потом выдаётся - второй вызов ничего не даст. */
@@ -33,7 +38,7 @@ public class AnvilWork extends InventoryBasic {
         if (s.stackSize > 0) p.dropPlayerItemWithRandomChoice(s, false);
     }
 
-    /** Выход с сервера и смерть с открытой наковальней - закрыть окно, пока вещи игрока ещё на месте. */
+    /** Выход с сервера и смерть с открытой наковальней или алтарём порчи - закрыть окно, пока вещи игрока ещё на месте. */
     public static class Events {
 
         @SubscribeEvent
@@ -47,7 +52,7 @@ public class AnvilWork extends InventoryBasic {
         }
 
         private static void close(EntityPlayer p) {
-            if (!p.worldObj.isRemote && p.openContainer instanceof ContainerWandererAnvil) p.closeScreen();
+            if (!p.worldObj.isRemote && (p.openContainer instanceof ContainerWandererAnvil || p.openContainer instanceof ContainerCorruptAltar)) p.closeScreen();
         }
     }
 }
