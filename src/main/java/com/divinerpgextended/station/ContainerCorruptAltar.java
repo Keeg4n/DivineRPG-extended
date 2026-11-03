@@ -17,10 +17,11 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 /**
  * Окно алтаря порчи ({@link AltarLogic}). Слоты свои у окна ({@link AnvilWork}, как у Наковальни Странника): вещь и
- * оплата (осколки или камень порчи); окно закрылось - всё вернулось игроку. Кнопки идут стандартным пакетом кнопки стола
- * зачарования: 0-2 - зачаровать слот, {@link #REVEAL}..+2 - узнать его чары.
+ * оплата; окно закрылось - всё вернулось игроку. Кнопки идут стандартным пакетом кнопки стола зачарования: 0-2 -
+ * зачаровать слот, {@link #REVEAL}..+2 - узнать его чары.
  * <p>
- * Клиенту уходят только цены и уже оплаченные чары. Зерно игрока остаётся на сервере - даром не подсмотреть.
+ * Чары бросаются на сервере, когда вещь кладут в алтарь, и живут, пока она там лежит. Клиенту уходят только цены и уже
+ * оплаченные чары - даром не подсмотреть.
  */
 public class ContainerCorruptAltar extends Container {
 
@@ -33,7 +34,6 @@ public class ContainerCorruptAltar extends Container {
 
     private final World world;
     private final int x, y, z;
-    private final EntityPlayer player;
     private final AnvilWork work = new AnvilWork("tile.altarOfCorruption.name", SIZE);
 
     // клиент: что показывать
@@ -41,7 +41,11 @@ public class ContainerCorruptAltar extends Container {
     /** Узнанные чары слота: номер чара << 5 | уровень. */
     public final int[][] known = new int[AltarLogic.SLOTS][SHOWN];
 
-    // сервер: что уже отправлено
+    // сервер: бросок для вещи в алтаре, что из него узнано, что уже отправлено
+    private List<List<EnchantmentData>> rolls;
+    private ItemStack rolledFor;
+    private boolean stale = true;
+    private final boolean[] seen = new boolean[AltarLogic.SLOTS];
     private final int[] sent = new int[FIELDS];
 
     public ContainerCorruptAltar(InventoryPlayer inv, World world, int x, int y, int z) {
@@ -49,13 +53,18 @@ public class ContainerCorruptAltar extends Container {
         this.x = x;
         this.y = y;
         this.z = z;
-        this.player = inv.player;
         Arrays.fill(sent, Integer.MIN_VALUE);
         addSlotToContainer(new Slot(work, ITEM, 15, 47) {
 
             @Override
             public int getSlotStackLimit() {
                 return 1;
+            }
+
+            @Override
+            public void putStack(ItemStack s) {
+                super.putStack(s);
+                stale = true;
             }
         });
         addSlotToContainer(new Slot(work, PAY, 35, 47) {
@@ -74,6 +83,24 @@ public class ContainerCorruptAltar extends Container {
     /** Рабочие слоты этого окна. */
     public AnvilWork work() {
         return work;
+    }
+
+    /** Бросок слота для вещи в алтаре (сервер): другая вещь или та же, но положенная заново, - новые чары, узнанное забыто. */
+    public List<EnchantmentData> rolled(int slot) {
+        ItemStack s = work.getStackInSlot(ITEM);
+        if (stale || s != rolledFor) {
+            stale = false;
+            rolledFor = s;
+            rolls = AltarLogic.rollAll(world.rand, s);
+            Arrays.fill(seen, false);
+        }
+        return rolls.get(slot);
+    }
+
+    /** Чары слота уже оплачены (сервер). */
+    public boolean revealed(int slot) {
+        rolled(slot);
+        return seen[slot];
     }
 
     public static int pack(EnchantmentData d) {
@@ -96,12 +123,12 @@ public class ContainerCorruptAltar extends Container {
     private int[] state() {
         int[] v = new int[FIELDS];
         ItemStack s = work.getStackInSlot(ITEM);
-        int seed = AltarLogic.seed(player);
-        int[] cost = AltarLogic.costs(seed, s);
+        boolean book = AltarLogic.book(s);
         for (int i = 0; i < AltarLogic.SLOTS; i++) {
-            v[LEVEL + i] = cost[i];
-            v[PRICE + i] = AltarLogic.revealCount(i);
-            List<EnchantmentData> l = cost[i] > 0 && AltarLogic.seen(player, s, i) ? AltarLogic.roll(seed, s, i) : null;
+            List<EnchantmentData> roll = rolled(i);
+            v[LEVEL + i] = AltarLogic.price(roll, book);
+            v[PRICE + i] = AltarLogic.revealCount(s, i);
+            List<EnchantmentData> l = v[LEVEL + i] > 0 && seen[i] ? roll : null;
             v[COUNT + i] = l == null ? -1 : Math.min(l.size(), SHOWN);
             for (int k = 0; k < SHOWN; k++) v[LIST + i * SHOWN + k] = l != null && k < l.size() ? pack(l.get(k)) : -1;
         }
@@ -139,36 +166,36 @@ public class ContainerCorruptAltar extends Container {
         if (p.worldObj.isRemote || id < 0 || id >= REVEAL + AltarLogic.SLOTS) return false;
         int slot = id < REVEAL ? id : id - REVEAL;
         ItemStack s = work.getStackInSlot(ITEM);
-        int seed = AltarLogic.seed(p);
-        int cost = AltarLogic.costs(seed, s)[slot];
+        List<EnchantmentData> list = rolled(slot);
+        int cost = AltarLogic.price(list, AltarLogic.book(s));
         if (cost <= 0) return false;
         double cx = x + 0.5, cy = y + 0.5, cz = z + 0.5;
         if (id >= REVEAL) {
-            if (AltarLogic.seen(p, s, slot)) return false;
-            int n = AltarLogic.revealCount(slot);
+            if (seen[slot]) return false;
+            int n = AltarLogic.revealCount(s, slot);
             if (!p.capabilities.isCreativeMode && n > 0) {
                 ItemStack pay = work.getStackInSlot(PAY);
-                if (pay == null || pay.getItem() != AltarLogic.revealItem(slot) || pay.stackSize < n) return false;
+                if (pay == null || pay.getItem() != AltarLogic.revealItem(s, slot) || pay.stackSize < n) return false;
                 work.decrStackSize(PAY, n);
             }
-            AltarLogic.see(p, s, slot);
+            seen[slot] = true;
             world.playSoundEffect(cx, cy, cz, "random.orb", 0.6F, 0.6F);
             detectAndSendChanges();
             return true;
         }
-        if (p.experienceLevel < cost && !p.capabilities.isCreativeMode) return false;
-        List<EnchantmentData> list = AltarLogic.roll(seed, s, slot);
-        if (list.isEmpty()) return false;
-        p.addExperienceLevel(-cost);
+        if (!p.capabilities.isCreativeMode) {
+            if (p.experienceLevel < cost) return false;
+            AltarLogic.takeLevels(p, cost);
+        }
         AltarLogic.apply(s, list);
         work.setInventorySlotContents(ITEM, s);
-        AltarLogic.reseed(p);
+        stale = true;
         world.playSoundEffect(cx, cy, cz, "mob.endermen.portal", 0.7F, 0.6F);
         detectAndSendChanges();
         return true;
     }
 
-    /** Shift-клик: осколки и камень - в оплату, остальное - в слот вещи (одну штуку); из алтаря - в инвентарь. */
+    /** Shift-клик: оплата - в ячейку оплаты, остальное - в слот вещи (одну штуку); из алтаря - в инвентарь. */
     @Override
     public ItemStack transferStackInSlot(EntityPlayer p, int index) {
         Slot slot = (Slot) inventorySlots.get(index);

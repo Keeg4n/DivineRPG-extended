@@ -17,10 +17,17 @@ public class Config {
     public static int upgradeTwilightFuelCount = 16;
     public static int perkFuelArlemiteIngots = 8;
     /** Алтарь порчи по правилам аддона ({@link com.divinerpgextended.station.AltarLogic}). */
-    public static boolean corruptAltar = true;
-    public static int altarTopLevels = 50;
-    /** Цена "узнать чары": осколков порчи за первый и второй слоты, камней порчи за последний. */
-    public static int[] altarRevealCost = { 1, 5, 1 };
+    public static boolean corruptAltar = true, altarXpFromZero = true;
+    /** Потолок цены зачарования вещи; книга - от altarBookBase до altarBookMax уровней. */
+    public static int altarTopLevels = 50, altarBookBase = 30, altarBookMax = 120;
+    /** Очки за чар на полном уровне по тирам (лучшие, средние, слабые): вещь и книга. */
+    public static int[] altarItemPoints = { 35, 12, 6 }, altarBookPoints = { 45, 15, 8 };
+    /** Цена "узнать чары" по слотам: вещь (осколки, осколки, камень) и книга (аркановая руда). */
+    public static int[] altarRevealCost = { 1, 5, 1 }, altarBookRevealCost = { 1, 5, 10 };
+    /** Чем платить за "узнать": вид вещи = за первый и второй слоты, за последний. */
+    public static String[] altarRevealItems = { "weapon=divinerpg:moltenShards,divinerpg:moltenStone", "tool=divinerpg:terranShards,divinerpg:terranStone",
+        "armor=divinerpg:jungleShards,divinerpg:jungleStone", "bow=divinerpg:enderShards,divinerpg:enderStone",
+        "book=divinerpg:arcaniumOre,divinerpg:arcaniumOre", "other=divinerpg:corruptedShards,divinerpg:corruptedStone" };
 
     /** Здоровье великого кадиллиона: Eden, Wildwood, Apalachia, Skythern. */
     public static int[] cadillionHealth = { 300, 400, 500, 600 };
@@ -122,11 +129,27 @@ public class Config {
         perkFuelArlemiteIngots = cfg.getInt("perkFuelArlemiteIngots", bal, perkFuelArlemiteIngots,
             0, 64, "Сколько арлемитовых слитков стоит установка малого перка");
         corruptAltar = cfg.getBoolean("corruptAltar", bal, corruptAltar,
-            "Алтарь порчи Divine по правилам аддона: чары слота известны заранее и узнаются за осколки и камень порчи, последний слот дороже и только с лучшими чарами, на книгу - чары под одну вещь. false - алтарь как в Divine");
-        altarTopLevels = cfg.getInt("altarTopLevels", bal, altarTopLevels, 1, 200,
-            "Цена последнего (самого дорогого) слота алтаря порчи в уровнях (она же сила броска); первые два слота дороже ванильных во столько же раз (50 - в 5/3)");
+            "Алтарь порчи Divine по правилам аддона: чары бросаются, когда кладёшь вещь, и узнаются за оплату по виду вещи, цена - по выпавшим чарам, на книгу - чары под одну вещь. false - алтарь как в Divine");
+        altarTopLevels = cfg.getInt("altarTopLevels", bal, altarTopLevels, 1, 1000,
+            "Алтарь порчи: потолок цены зачарования вещи в уровнях");
+        altarBookBase = cfg.getInt("altarBookBase", bal, altarBookBase, 0, 1000,
+            "Алтарь порчи: с какой цены в уровнях начинается книга (к ней прибавляются очки чаров)");
+        altarBookMax = cfg.getInt("altarBookMax", bal, altarBookMax, 1, 1000,
+            "Алтарь порчи: потолок цены книги в уровнях");
+        altarItemPoints = intList(cfg, bal, "altarItemPoints", altarItemPoints,
+            "Алтарь порчи, вещь: сколько уровней стоит чар на полном уровне - лучшие (Защита, Острота, Сила, Эффективность, Удача, Добыча, Шёлковое касание, Бесконечность), "
+                + "средние (Прочность, Невесомость и прочие, чары других модов), слабые (Небесная кара, Гибель насекомых, Отдача, Откидывание, защиты от огня, взрывов и снарядов). Неполный уровень - по доле");
+        altarBookPoints = intList(cfg, bal, "altarBookPoints", altarBookPoints,
+            "Алтарь порчи, книга: то же, что altarItemPoints, сверх altarBookBase");
+        altarXpFromZero = cfg.getBoolean("altarXpFromZero", bal, altarXpFromZero,
+            "Алтарь порчи: списывать опыт так, будто уровни считаются с нуля (цена в опыте не зависит от того, сколько уровней у игрока). false - уровни снимаются сверху, как у ванили");
         altarRevealCost = intList(cfg, bal, "altarRevealCost", altarRevealCost,
-            "Сколько стоит узнать чары слота алтаря порчи: осколков порчи за первый и второй слоты, камней порчи за последний (0 - бесплатно)");
+            "Алтарь порчи, вещь: сколько стоит узнать чары первого, второго и последнего слота (осколки, осколки, камень; 0 - бесплатно)");
+        altarBookRevealCost = intList(cfg, bal, "altarBookRevealCost", altarBookRevealCost,
+            "Алтарь порчи, книга: сколько стоит узнать чары первого, второго и последнего слота (0 - бесплатно)");
+        altarRevealItems = cfg.getStringList("altarRevealItems", bal, altarRevealItems,
+            "Алтарь порчи: чем платить за \"узнать\" (вид=за первый и второй слоты,за последний; modid:name). Виды: weapon - мечи, tool - кирки, топоры, лопаты, удочки, "
+                + "armor - броня, bow - луки, book - книги, other - остальное");
         cadillionHealth = intList(cfg, "bosses", "cadillionHealth", cadillionHealth,
             "Здоровье великого кадиллиона: Eden, Wildwood, Apalachia, Skythern");
         Property hit = cfg.get("bosses", "cadillionHit", cadillionHit,

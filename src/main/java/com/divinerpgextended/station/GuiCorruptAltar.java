@@ -25,13 +25,15 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 import org.lwjgl.util.glu.Project;
 
+import com.divinerpgextended.Config;
+
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
  * Окно алтаря порчи: ванильный стол зачарования (текстура и книга), но две ячейки - вещь и оплата, а слева от каждого
- * слота кнопка "узнать" с ценой (осколки или камень порчи). Узнанные чары пишутся в слоте вместо галактических рун,
- * полный список - в подсказке.
+ * слота кнопка "узнать" с ценой (осколки, камень или руда - по виду вещи). Узнанные чары пишутся в слоте вместо
+ * галактических рун, полный список - в подсказке.
  */
 @SideOnly(Side.CLIENT)
 public class GuiCorruptAltar extends GuiContainer {
@@ -84,7 +86,7 @@ public class GuiCorruptAltar extends GuiContainer {
     private boolean paid(int i) {
         if (mc.thePlayer.capabilities.isCreativeMode || container.price[i] <= 0) return true;
         ItemStack p = pay();
-        return p != null && p.getItem() == AltarLogic.revealItem(i) && p.stackSize >= container.price[i];
+        return p != null && p.getItem() == AltarLogic.revealItem(item(), i) && p.stackSize >= container.price[i];
     }
 
     private boolean canReveal(int i) {
@@ -137,19 +139,20 @@ public class GuiCorruptAltar extends GuiContainer {
         String title = EnumChatFormatting.getTextWithoutFormattingCodes(t("tile.altarOfCorruption.name"));
         fontRendererObj.drawString(title, 12, 5, 0x404040);
         fontRendererObj.drawString(t("container.inventory"), 8, ySize - 96 + 2, 0x404040);
-        // цена "узнать": осколки или камень; узнано или нечем платить - притушено
+        // цена "узнать": осколки, камень или руда по виду вещи; узнано или нечем платить - притушено
         RenderHelper.enableGUIStandardItemLighting();
         GL11.glEnable(GL12.GL_RESCALE_NORMAL);
         for (int i = 0; i < AltarLogic.SLOTS; i++) {
             if (container.levels[i] <= 0) continue;
-            ItemStack price = new ItemStack(AltarLogic.revealItem(i), Math.max(1, container.price[i]));
+            ItemStack price = new ItemStack(AltarLogic.revealItem(item(), i), Math.max(1, container.price[i]));
             int x = EYE_X + 1, y = ROW_Y + ROW_H * i + 1;
             itemRender.renderItemAndEffectIntoGUI(fontRendererObj, mc.getTextureManager(), price, x, y);
             itemRender.renderItemOverlayIntoGUI(fontRendererObj, mc.getTextureManager(), price, x, y);
         }
-        ItemStack payHint = new ItemStack(net.divinerpg.utils.items.VanillaItemsOther.corruptedShards);
         Slot paySlot = (Slot) container.inventorySlots.get(ContainerCorruptAltar.PAY);
-        if (pay() == null) itemRender.renderItemAndEffectIntoGUI(fontRendererObj, mc.getTextureManager(), payHint, paySlot.xDisplayPosition, paySlot.yDisplayPosition);
+        boolean hint = pay() == null && item() != null;
+        if (hint) itemRender.renderItemAndEffectIntoGUI(fontRendererObj, mc.getTextureManager(), new ItemStack(AltarLogic.revealItem(item(), 0)),
+            paySlot.xDisplayPosition, paySlot.yDisplayPosition);
         RenderHelper.disableStandardItemLighting();
         GL11.glDisable(GL11.GL_LIGHTING);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
@@ -159,7 +162,7 @@ public class GuiCorruptAltar extends GuiContainer {
             if (container.knownCount[i] >= 0) drawRect(x, y, x + 16, y + 16, 0xC0281838);
             else if (!paid(i)) drawRect(x, y, x + 16, y + 16, 0x80202020);
         }
-        if (pay() == null) drawRect(paySlot.xDisplayPosition, paySlot.yDisplayPosition, paySlot.xDisplayPosition + 16, paySlot.yDisplayPosition + 16, 0xA08B8B8B);
+        if (hint) drawRect(paySlot.xDisplayPosition, paySlot.yDisplayPosition, paySlot.xDisplayPosition + 16, paySlot.yDisplayPosition + 16, 0xA08B8B8B);
         GL11.glEnable(GL11.GL_LIGHTING);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
     }
@@ -282,15 +285,18 @@ public class GuiCorruptAltar extends GuiContainer {
             if (inRow(mx, my, i)) {
                 if (container.knownCount[i] >= 0) {
                     for (String n : names(i)) tip.add(EnumChatFormatting.LIGHT_PURPLE + n);
-                } else tip.add(EnumChatFormatting.GRAY + t("dre.altar.hidden"));
-                if (i == AltarLogic.SLOTS - 1) tip.add(EnumChatFormatting.GOLD + t("dre.altar.top"));
+                } else {
+                    tip.add(EnumChatFormatting.GRAY + t("dre.altar.hidden"));
+                    tip.add(EnumChatFormatting.GOLD + t("dre.altar.grade"));
+                }
                 if (book) tip.add(EnumChatFormatting.GRAY + t("dre.altar.book"));
                 tip.add((canEnchant(i) ? EnumChatFormatting.GREEN : EnumChatFormatting.RED) + StatCollector.translateToLocalFormatted("dre.altar.cost", lvl));
+                if (Config.altarXpFromZero) tip.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocalFormatted("dre.altar.xp", AltarLogic.xpTo(lvl), lvl));
             } else if (inEye(mx, my, i)) {
                 if (container.knownCount[i] >= 0) tip.add(EnumChatFormatting.GREEN + t("dre.altar.revealed"));
                 else if (mc.thePlayer.capabilities.isCreativeMode || container.price[i] <= 0) tip.add(EnumChatFormatting.GREEN + t("dre.altar.reveal_free"));
                 else {
-                    String what = new ItemStack(AltarLogic.revealItem(i)).getDisplayName();
+                    String what = new ItemStack(AltarLogic.revealItem(item(), i)).getDisplayName();
                     tip.add((paid(i) ? EnumChatFormatting.GREEN : EnumChatFormatting.RED) + StatCollector.translateToLocalFormatted("dre.altar.reveal", container.price[i], what));
                     if (!paid(i)) tip.add(EnumChatFormatting.GRAY + t("dre.altar.reveal_need"));
                 }
@@ -299,7 +305,15 @@ public class GuiCorruptAltar extends GuiContainer {
         }
         Slot paySlot = (Slot) container.inventorySlots.get(ContainerCorruptAltar.PAY);
         int px = mx - guiLeft - paySlot.xDisplayPosition, py = my - guiTop - paySlot.yDisplayPosition;
-        if (tip.isEmpty() && pay() == null && px >= 0 && py >= 0 && px < 16 && py < 16) tip.add(EnumChatFormatting.GRAY + t("dre.altar.pay"));
+        if (tip.isEmpty() && pay() == null && px >= 0 && py >= 0 && px < 16 && py < 16) {
+            ItemStack s = item();
+            if (s == null) tip.add(EnumChatFormatting.GRAY + t("dre.altar.pay_any"));
+            else {
+                String first = new ItemStack(AltarLogic.revealItem(s, 0)).getDisplayName(), last = new ItemStack(AltarLogic.revealItem(s, AltarLogic.SLOTS - 1)).getDisplayName();
+                tip.add(EnumChatFormatting.GRAY + (first.equals(last) ? StatCollector.translateToLocalFormatted("dre.altar.pay_one", first)
+                    : StatCollector.translateToLocalFormatted("dre.altar.pay", first, last)));
+            }
+        }
         if (!tip.isEmpty()) drawHoveringText(tip, mx, my, fontRendererObj);
     }
 }
