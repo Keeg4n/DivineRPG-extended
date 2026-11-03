@@ -82,8 +82,13 @@ public class AltarLogic {
         return BEST.contains(e) ? 0 : WEAK.contains(e) ? 2 : 1;
     }
 
-    /** Цена слота в уровнях по выпавшим чарам (0 - зачаровать нечем). */
+    /** Цена последнего слота (самая высокая). */
     public static int price(List<EnchantmentData> list, boolean book) {
+        return price(list, book, SLOTS - 1);
+    }
+
+    /** Цена слота в уровнях по выпавшим чарам, не выше потолка слота ({@link #cap}); 0 - зачаровать нечем. */
+    public static int price(List<EnchantmentData> list, boolean book, int slot) {
         if (list.isEmpty()) return 0;
         int[] pts = book ? Config.altarBookPoints : Config.altarItemPoints;
         float sum = 0;
@@ -92,7 +97,16 @@ public class AltarLogic {
             sum += t < 0 ? 0 : pts[t] * (float) d.enchantmentLevel / Math.max(1, d.enchantmentobj.getMaxLevel());
         }
         int p = Math.round(sum) + (book ? Config.altarBookBase : 0);
-        return Math.max(1, Math.min(p, book ? Config.altarBookMax : Config.altarTopLevels));
+        return Math.max(1, Math.min(p, cap(book, slot)));
+    }
+
+    /**
+     * Потолок цены слота: последний - весь потолок, первые - треть и две трети пути от базы (вещь 17 / 33 / 50, книга
+     * 60 / 90 / 120). Иначе второй слот с кучей средних чаров стоит как последний, а узнаётся за осколки.
+     */
+    public static int cap(boolean book, int slot) {
+        int lo = book ? Config.altarBookBase : 0, hi = book ? Config.altarBookMax : Config.altarTopLevels;
+        return lo + Math.round((hi - lo) * (slot + 1) / (float) SLOTS);
     }
 
     /** Броски трёх слотов для вещи (пустой - слот закрыт). */

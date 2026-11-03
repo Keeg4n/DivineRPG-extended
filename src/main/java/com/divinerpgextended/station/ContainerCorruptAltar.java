@@ -126,7 +126,7 @@ public class ContainerCorruptAltar extends Container {
         boolean book = AltarLogic.book(s);
         for (int i = 0; i < AltarLogic.SLOTS; i++) {
             List<EnchantmentData> roll = rolled(i);
-            v[LEVEL + i] = AltarLogic.price(roll, book);
+            v[LEVEL + i] = AltarLogic.price(roll, book, i);
             v[PRICE + i] = AltarLogic.revealCount(s, i);
             List<EnchantmentData> l = v[LEVEL + i] > 0 && seen[i] ? roll : null;
             v[COUNT + i] = l == null ? -1 : Math.min(l.size(), SHOWN);
@@ -167,7 +167,7 @@ public class ContainerCorruptAltar extends Container {
         int slot = id < REVEAL ? id : id - REVEAL;
         ItemStack s = work.getStackInSlot(ITEM);
         List<EnchantmentData> list = rolled(slot);
-        int cost = AltarLogic.price(list, AltarLogic.book(s));
+        int cost = AltarLogic.price(list, AltarLogic.book(s), slot);
         if (cost <= 0) return false;
         double cx = x + 0.5, cy = y + 0.5, cz = z + 0.5;
         if (id >= REVEAL) {

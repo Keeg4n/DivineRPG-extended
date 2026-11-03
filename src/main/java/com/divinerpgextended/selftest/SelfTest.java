@@ -1171,9 +1171,9 @@ public class SelfTest {
             for (int i = 0; i < n; i++) {
                 List<List<EnchantmentData>> s = AltarLogic.rollAll(r, sword), b = AltarLogic.rollAll(r, book);
                 for (int slot = 0; slot < AltarLogic.SLOTS; slot++) {
-                    int ps = AltarLogic.price(s.get(slot), false), pb = AltarLogic.price(b.get(slot), true);
-                    if (ps < 1 || ps > Config.altarTopLevels) bad.append(" цена меча ").append(ps).append(';');
-                    if (pb < Config.altarBookBase || pb > Config.altarBookMax) bad.append(" цена книги ").append(pb).append(';');
+                    int ps = AltarLogic.price(s.get(slot), false, slot), pb = AltarLogic.price(b.get(slot), true, slot);
+                    if (ps < 1 || ps > AltarLogic.cap(false, slot)) bad.append(" цена меча ").append(ps).append(" в слоте ").append(slot).append(';');
+                    if (pb < Config.altarBookBase || pb > AltarLogic.cap(true, slot)) bad.append(" цена книги ").append(pb).append(" в слоте ").append(slot).append(';');
                     swordSum[slot] += ps;
                     bookSum[slot] += pb;
                     // книга: все чары встают на одну вещь
@@ -1252,7 +1252,7 @@ public class SelfTest {
             w.setInventorySlotContents(item, new ItemStack(Items.book));
             w.setInventorySlotContents(pay, new ItemStack(rupee, 3));
             List<EnchantmentData> bookRoll = c.rolled(0);
-            int bookCost = AltarLogic.price(bookRoll, true);
+            int bookCost = AltarLogic.price(bookRoll, true, 0);
             boolean bookReveal = c.enchantItem(p, rev) && w.getStackInSlot(pay).stackSize == 2 && !c.enchantItem(p, rev + 1);
             p.experienceLevel = Config.altarBookMax;
             boolean bookOk = bookCost >= Config.altarBookBase && bookCost <= Config.altarBookMax && c.enchantItem(p, 0)
