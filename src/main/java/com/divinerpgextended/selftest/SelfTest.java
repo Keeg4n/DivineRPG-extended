@@ -1976,6 +1976,63 @@ public class SelfTest {
                     + "; волк " + wolfGo + ", гризли " + grizGo + ", сидящий не пошёл " + sits + ", после уборки отстали " + released);
             return "удар 8, сразу 5 - не в счёт, сразу 12 - в счёт 4, через полсекунды 5 - целиком; волк и гризли Divine идут бить манекен за хозяином, сидящий - нет";
         });
+        t("Прохождение", "Манекен не реагирует на воду: не всплывает, не скачет после воды, не тонет", () -> {
+            reset(p);
+            net.minecraft.world.World w = p.worldObj;
+            int x = net.minecraft.util.MathHelper.floor_double(p.posX) + 4, y = net.minecraft.util.MathHelper.floor_double(p.posY),
+                z = net.minecraft.util.MathHelper.floor_double(p.posZ);
+            Block[] was = new Block[4];
+            int[] wasMeta = new int[4];
+            for (int i = 0; i < 4; i++) {
+                was[i] = w.getBlock(x, y - 1 + i, z);
+                wasMeta[i] = w.getBlockMetadata(x, y - 1 + i, z);
+            }
+            com.divinerpgextended.dummy.EntityTrainingDummy d = new com.divinerpgextended.dummy.EntityTrainingDummy(w);
+            try {
+                // колодец: камень, две воды, над ними пусто
+                w.setBlock(x, y - 1, z, Blocks.stone);
+                w.setBlock(x, y, z, Blocks.water);
+                w.setBlock(x, y + 1, z, Blocks.water);
+                w.setBlockToAir(x, y + 2, z);
+                d.setPosition(x + 0.5, y, z + 0.5);
+                w.spawnEntityInWorld(d);
+                double y0 = d.posY, top = y0;
+                for (int i = 0; i < 80; i++) {
+                    d.onUpdate();
+                    top = Math.max(top, d.posY);
+                }
+                boolean wet = d.isInWater();
+                int air = d.getAir();
+                w.setBlockToAir(x, y, z);
+                w.setBlockToAir(x, y + 1, z);
+                double dry = y0;
+                for (int i = 0; i < 40; i++) {
+                    d.onUpdate();
+                    dry = Math.max(dry, d.posY);
+                }
+                check(wet && top <= y0 + 0.01 && dry <= y0 + 0.01 && air == 300,
+                    "в воде " + wet + ": стоял на " + f((float) y0) + ", поднимался до " + f((float) top) + ", воздух " + air + "; воду убрали - поднимался до " + f((float) dry));
+                return "4 секунды в воде: не всплыл и не тратит воздух; воду убрали - стоит на месте, не скачет";
+            } finally {
+                d.setDead();
+                for (int i = 0; i < 4; i++) w.setBlock(x, y - 1 + i, z, was[i], wasMeta[i], 3);
+            }
+        });
+        t("Прохождение", "Миникарта Xaero: у каждого моба Divine и аддона есть описание иконки", () -> {
+            int all = 0;
+            StringBuilder miss = new StringBuilder();
+            for (Object o : net.minecraft.entity.EntityList.classToStringMapping.entrySet()) {
+                java.util.Map.Entry<?, ?> e = (java.util.Map.Entry<?, ?>) o;
+                Class<?> c = (Class<?>) e.getKey();
+                if (!net.minecraft.entity.EntityLiving.class.isAssignableFrom(c)) continue;
+                if (!c.getName().startsWith("net.divinerpg.") && !c.getName().startsWith("com.divinerpgextended.")) continue;
+                all++;
+                if (SelfTest.class.getResource("/assets/xaerominimap/entity/icon/definition/" + e.getValue() + ".json") == null) miss.append(e.getValue()).append(' ');
+            }
+            boolean sprite = SelfTest.class.getResource("/assets/xaerominimap/entity/icon/sprite/divinerpgextended_training_dummy.png") != null;
+            check(miss.length() == 0 && sprite && all > 100, "мобов " + all + ", без описания: " + miss + "; значок манекена " + sprite);
+            return all + " мобов Divine и аддона: у всех описание (цветная точка вместо иконки, которую Xaero не может нарисовать), у манекена свой соломенный значок";
+        });
     }
 
     private void arcanePhaseTests(final TestPlayer p) {
@@ -4289,6 +4346,66 @@ public class SelfTest {
             check(hard > 0 && diamond == 0 && arcane > 0 && !before && after, "прочность спавнера " + hard + ", алмазной киркой " + diamond + ", арканитовой " + arcane
                 + "; у Генерала до Мортума " + before + ", после " + after);
             return "спавнеры Арканы ломаются только арканитовой киркой (прочность " + hard + ", алмазная - 0); кирку продаёт Генерал войны после всех боссов Мортума";
+        });
+        t("Прохождение", "Заряженная арканитовая кирка: у Генерала после всех боссов Divine, копает 3x3", () -> {
+            WorldServer za = server.worldServerForDimension(ConfigurationHelper.arcana);
+            TestPlayer zp = join(player(ConfigurationHelper.arcana, "TestArcCharged", 100, 60, 100), true);
+            // торговля: обычная за 20 арканиума после Мортума; обмен на заряженную - после всех боссов Divine
+            com.divinerpgextended.boss.BossProgress.grant(zp, com.divinerpgextended.boss.Boss.CADILLION_APALACHIA);
+            for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.item.ItemArcanePick.DIVINE) com.divinerpgextended.boss.BossProgress.revoke(zp, b);
+            for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.item.ItemArcanePick.MORTUM) com.divinerpgextended.boss.BossProgress.grant(zp, b);
+            net.divinerpg.entities.arcana.EntityWarGeneral gen = new net.divinerpg.entities.arcana.EntityWarGeneral(za);
+            gen.setPosition(101, 60, 100);
+            hold(zp, null);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.EntityInteractEvent(zp, gen));
+            net.minecraft.village.MerchantRecipe base = null, early = null, charge = null;
+            for (Object o : gen.getRecipes(zp)) {
+                net.minecraft.village.MerchantRecipe r = (net.minecraft.village.MerchantRecipe) o;
+                if (r.getItemToSell().getItem() == ModItems.arcanePick) base = r;
+                if (r.getItemToSell().getItem() == ModItems.arcanePickCharged) early = r;
+            }
+            for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.item.ItemArcanePick.DIVINE) com.divinerpgextended.boss.BossProgress.grant(zp, b);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.EntityInteractEvent(zp, gen));
+            for (Object o : gen.getRecipes(zp)) {
+                net.minecraft.village.MerchantRecipe r = (net.minecraft.village.MerchantRecipe) o;
+                if (r.getItemToSell().getItem() == ModItems.arcanePickCharged) charge = r;
+            }
+            boolean price = base != null && base.getItemToBuy().getItem() == ArcanaItems.arcanium && base.getItemToBuy().stackSize == 20;
+            boolean swap = early == null && charge != null && charge.getItemToBuy().getItem() == ArcanaItems.arcanium && charge.getItemToBuy().stackSize == 20
+                && charge.getSecondItemToBuy() != null && charge.getSecondItemToBuy().getItem() == ModItems.arcanePick;
+            // стена 3x3 из кирпича Арканы перед игроком: заряженной - 9 блоков, присев - 1, обычной - 1
+            net.minecraft.block.Block brick = net.divinerpg.utils.blocks.ArcanaBlocks.ancientBrick;
+            int x0 = 111, y0 = 62, z0 = 105;
+            Block[] was = new Block[125];
+            int[] wasMeta = new int[125];
+            for (int i = 0; i < 125; i++) {
+                int bx = x0 - 2 + i % 5, by = y0 - 2 + i / 5 % 5, bz = z0 - 3 + i / 25;
+                was[i] = za.getBlock(bx, by, bz);
+                wasMeta[i] = za.getBlockMetadata(bx, by, bz);
+            }
+            zp.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            int[] broke = new int[3];
+            try {
+                for (int run = 0; run < 3; run++) {
+                    for (int i = 0; i < 125; i++) za.setBlockToAir(x0 - 2 + i % 5, y0 - 2 + i / 5 % 5, z0 - 3 + i / 25);
+                    for (int a = -1; a <= 1; a++) for (int b = -1; b <= 1; b++) za.setBlock(x0 + a, y0 + b, z0, brick);
+                    zp.setLocationAndAngles(x0 + 0.5, y0 + 0.5 - zp.getEyeHeight(), z0 - 2.0, 0F, 0F); // смотрит на юг, в центр стены
+                    zp.setSneaking(run == 1);
+                    hold(zp, new ItemStack(run == 2 ? ModItems.arcanePick : ModItems.arcanePickCharged));
+                    zp.theItemInWorldManager.tryHarvestBlock(x0, y0, z0);
+                    for (int a = -1; a <= 1; a++) for (int b = -1; b <= 1; b++) if (za.isAirBlock(x0 + a, y0 + b, z0)) broke[run]++;
+                }
+            } finally {
+                zp.setSneaking(false);
+                for (int i = 0; i < 125; i++) za.setBlock(x0 - 2 + i % 5, y0 - 2 + i / 5 % 5, z0 - 3 + i / 25, was[i], wasMeta[i], 3);
+                for (Object o : za.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class,
+                    net.minecraft.util.AxisAlignedBB.getBoundingBox(x0 - 3, y0 - 3, z0 - 4, x0 + 3, y0 + 3, z0 + 3))) ((net.minecraft.entity.Entity) o).setDead();
+            }
+            check(com.divinerpgextended.item.ItemArcanePick.locked().contains(brick), "кирпич Арканы не в списке неломаемых");
+            check(price && swap && broke[0] == 9 && broke[1] == 1 && broke[2] == 1, "обычная за 20 арканиума " + price + ", обмен на заряженную только после всех боссов Divine "
+                + swap + " (до них " + (early != null) + "); сломано: заряженной " + broke[0] + ", присев " + broke[1] + ", обычной " + broke[2]);
+            return "обычная кирка - 20 арканиума; заряженная - обмен у Генерала (кирка + 20 арканиума) после всех " + com.divinerpgextended.item.ItemArcanePick.DIVINE.length
+                + " боссов Divine; стена 3x3 из кирпича Арканы: заряженной - 9 блоков, присев - 1, обычной - 1";
         });
         t("Прохождение", "Арканитовая кирка ломает все блоки Арканы и они выпадают", () -> {
             WorldServer za = server.worldServerForDimension(ConfigurationHelper.arcana);

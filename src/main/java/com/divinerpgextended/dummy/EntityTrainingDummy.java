@@ -301,6 +301,25 @@ public class EntityTrainingDummy extends EntityLiving {
         return false;
     }
 
+    /** Старый ИИ в воде "прыгает" (всплывает), а флаг прыжка потом не сбрасывается - и на суше манекен скачет дальше. */
+    @Override
+    protected void updateEntityActionState() {
+        super.updateEntityActionState();
+        isJumping = false;
+    }
+
+    // вода манекена не трогает: течение не сносит, не тонет (урон от утопления сбивал бы счёт ударов)
+
+    @Override
+    public boolean isPushedByWater() {
+        return false;
+    }
+
+    @Override
+    public boolean canBreatheUnderwater() {
+        return true;
+    }
+
     @Override
     public void addVelocity(double x, double y, double z) {}
 

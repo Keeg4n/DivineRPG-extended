@@ -53,7 +53,7 @@ public final class DreTab extends CreativeTabs {
     }
 
     static final Set<String> GEAR_NAMES = set("icePick", "rimePick", "halitePickaxe", "haliteAxe", "haliteShovel", "haliteMultitool", "arcanePick",
-        "mageStaff");
+        "arcanePickCharged", "mageStaff");
     static final Set<String> TRINKET_NAMES = set("trinket", "deepShell");
     static final Set<String> FISHING_NAMES = set("fish", "crate", "worm", "wormShovel", "fishGuide", "baitBag", "nightmareDrill");
     static final Set<String> MAGIC_NAMES = set("arcanePotion", "arcaneBrewer", "arcaneConcentrate", "lureTorch", "memoryCrystal", "furnaceModule",

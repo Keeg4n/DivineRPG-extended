@@ -81,16 +81,21 @@ public class FishingEvents {
         }
     }
 
-    /** Генерал войны: арканитовая кирка за арканиум - тем, кто победил всех боссов Мортума. */
+    /**
+     * Генерал войны: арканитовая кирка за арканиум - тем, кто победил всех боссов Мортума; после всех боссов Divine - обмен
+     * обычной кирки и арканиума на заряженную.
+     */
     private static void arcanePick(EntityDivineRPGVillager v, EntityPlayer p) {
         MerchantRecipeList list = v.getRecipes(p);
         if (list == null) return;
         for (Iterator<?> it = list.iterator(); it.hasNext();) {
             ItemStack sell = ((MerchantRecipe) it.next()).getItemToSell();
-            if (sell != null && sell.getItem() == ModItems.arcanePick) it.remove();
+            if (sell != null && sell.getItem() instanceof com.divinerpgextended.item.ItemArcanePick) it.remove();
         }
         if (com.divinerpgextended.item.ItemArcanePick.mortumDone(p))
             list.add(new InfiniteTrade(new ItemStack(ArcanaItems.arcanium, com.divinerpgextended.item.ItemArcanePick.PRICE), null, new ItemStack(ModItems.arcanePick)));
+        if (com.divinerpgextended.item.ItemArcanePick.divineDone(p)) list.add(new InfiniteTrade(new ItemStack(ArcanaItems.arcanium,
+            com.divinerpgextended.item.ItemArcanePick.CHARGE_PRICE), new ItemStack(ModItems.arcanePick), new ItemStack(ModItems.arcanePickCharged)));
     }
 
     public static final int HEIVA_BELT_PRICE = 30, WINGS_TEMPLATE_PRICE = 8, MIDNIGHT_TEMPLATE_PRICE = 8;

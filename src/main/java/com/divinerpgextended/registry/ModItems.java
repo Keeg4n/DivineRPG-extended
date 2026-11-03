@@ -75,8 +75,8 @@ public final class ModItems {
     public static Item skyCart, apalachiaRails, arcanaRails, gondola;
     /** Вещи Ветеи аддона: шаблоны крыльев, лунный осколок ({@link com.divinerpgextended.vethea.DreamItem}). */
     public static Item dreamItem;
-    /** Арканитовая кирка: ломает блоки и спавнеры подземелий Арканы. */
-    public static Item arcanePick;
+    /** Арканитовая кирка: ломает блоки и спавнеры подземелий Арканы; заряженная - 3x3. */
+    public static Item arcanePick, arcanePickCharged;
     /** Яйцо призыва Странника. */
     public static Item wandererEgg;
     /** Посохи магов сумеречных миров. */
@@ -188,8 +188,10 @@ public final class ModItems {
         GameRegistry.registerItem(arcanaRails, "arcanaRails");
         dreamItem = new com.divinerpgextended.halite.ItemMeta("dreamItem", com.divinerpgextended.vethea.DreamItem.keys(), 64, false);
         GameRegistry.registerItem(dreamItem, "dreamItem");
-        arcanePick = new com.divinerpgextended.item.ItemArcanePick();
+        arcanePick = new com.divinerpgextended.item.ItemArcanePick(false);
         GameRegistry.registerItem(arcanePick, "arcanePick");
+        arcanePickCharged = new com.divinerpgextended.item.ItemArcanePick(true);
+        GameRegistry.registerItem(arcanePickCharged, "arcanePickCharged");
         wandererEgg = new com.divinerpgextended.item.ItemWandererEgg();
         GameRegistry.registerItem(wandererEgg, "wandererEgg");
         mageStaff = new com.divinerpgextended.magic.ItemMageStaff();
