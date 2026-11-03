@@ -429,6 +429,12 @@ public class CommonProxy {
         removeRecipes(Item.getItemFromBlock(net.divinerpg.utils.blocks.ArcanaBlocks.arcanaPortalFrame));
         GameRegistry.addRecipe(new ItemStack(net.divinerpg.utils.blocks.ArcanaBlocks.arcanaPortalFrame, 12), " c ", "iEi",
             " c ", 'c', VanillaItemsOther.bluefireStone, 'i', Blocks.iron_block, 'E', ModItems.watcherEye);
+        // алтарь погибели - с Оком Смотрителя в центре вместо тёмного камня: после Смотрителя (его 56 уровней - как раз на чар за 50)
+        if (Config.corruptAltar) {
+            removeRecipes(Item.getItemFromBlock(net.divinerpg.utils.blocks.VanillaBlocks.altarOfCorruption));
+            GameRegistry.addRecipe(new ItemStack(net.divinerpg.utils.blocks.VanillaBlocks.altarOfCorruption), "sss", "dEd", "ddd", 's',
+                VanillaItemsOther.corruptedStone, 'd', net.divinerpg.utils.blocks.VanillaBlocks.darkStone, 'E', ModItems.watcherEye);
+        }
 
         com.divinerpgextended.world.twilight.TwilightCrafts.postInit();
         com.divinerpgextended.perk.RangedRoles.setupDust();
