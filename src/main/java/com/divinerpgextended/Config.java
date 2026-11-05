@@ -19,9 +19,12 @@ public class Config {
     /** Алтарь порчи по правилам аддона ({@link com.divinerpgextended.station.AltarLogic}). */
     public static boolean corruptAltar = true, altarXpFromZero = true;
     /** Потолок цены зачарования вещи; книга - от altarBookBase до altarBookMax уровней. */
-    public static int altarTopLevels = 50, altarBookBase = 30, altarBookMax = 120;
+    public static int altarTopLevels = 120, altarBookBase = 30, altarBookMax = 150;
     /** Очки за чар на полном уровне по тирам (лучшие, средние, слабые): вещь и книга. */
-    public static int[] altarItemPoints = { 35, 12, 6 }, altarBookPoints = { 45, 15, 8 };
+    public static int[] altarItemPoints = { 84, 29, 14 }, altarBookPoints = { 60, 20, 11 };
+    /** Цены до 0.99.81 (вещь до 50, книга до 120): такие значения в старом файле меняются на новые. */
+    private static final int OLD_TOP_LEVELS = 50, OLD_BOOK_MAX = 120;
+    private static final int[] OLD_ITEM_POINTS = { 35, 12, 6 }, OLD_BOOK_POINTS = { 45, 15, 8 };
     /** Цена "узнать чары" по слотам: вещь (осколки, осколки, камень) и книга (рупиевые слитки). */
     public static int[] altarRevealCost = { 1, 5, 1 }, altarBookRevealCost = { 1, 3, 5 };
     /** Книга в 0.99.71 стоила 1 / 5 / 10 аркановой руды: такая цена в старом файле меняется на новую. */
@@ -136,6 +139,8 @@ public class Config {
             0, 64, "Сколько арлемитовых слитков стоит установка малого перка");
         corruptAltar = cfg.getBoolean("corruptAltar", bal, corruptAltar,
             "Алтарь порчи Divine по правилам аддона: чары бросаются, когда кладёшь вещь, и узнаются за оплату по виду вещи, цена - по выпавшим чарам, на книгу - чары под одну вещь. false - алтарь как в Divine");
+        int itemTop = altarTopLevels, bookMax = altarBookMax;
+        int[] itemPoints = altarItemPoints, bookPoints = altarBookPoints;
         altarTopLevels = cfg.getInt("altarTopLevels", bal, altarTopLevels, 1, 1000,
             "Алтарь порчи: потолок цены зачарования вещи в уровнях");
         altarBookBase = cfg.getInt("altarBookBase", bal, altarBookBase, 0, 1000,
@@ -147,6 +152,22 @@ public class Config {
                 + "средние (Прочность, Невесомость и прочие, чары других модов), слабые (Небесная кара, Гибель насекомых, Отдача, Откидывание, защиты от огня, взрывов и снарядов). Неполный уровень - по доле");
         altarBookPoints = intList(cfg, bal, "altarBookPoints", altarBookPoints,
             "Алтарь порчи, книга: то же, что altarItemPoints, сверх altarBookBase");
+        if (altarTopLevels == OLD_TOP_LEVELS) {
+            altarTopLevels = itemTop;
+            cfg.get(bal, "altarTopLevels", itemTop).set(itemTop);
+        }
+        if (altarBookMax == OLD_BOOK_MAX) {
+            altarBookMax = bookMax;
+            cfg.get(bal, "altarBookMax", bookMax).set(bookMax);
+        }
+        if (java.util.Arrays.equals(altarItemPoints, OLD_ITEM_POINTS)) {
+            altarItemPoints = itemPoints;
+            cfg.get(bal, "altarItemPoints", itemPoints).set(itemPoints);
+        }
+        if (java.util.Arrays.equals(altarBookPoints, OLD_BOOK_POINTS)) {
+            altarBookPoints = bookPoints;
+            cfg.get(bal, "altarBookPoints", bookPoints).set(bookPoints);
+        }
         altarXpFromZero = cfg.getBoolean("altarXpFromZero", bal, altarXpFromZero,
             "Алтарь порчи: списывать опыт так, будто уровни считаются с нуля (цена в опыте не зависит от того, сколько уровней у игрока). false - уровни снимаются сверху, как у ванили");
         altarRevealCost = intList(cfg, bal, "altarRevealCost", altarRevealCost,

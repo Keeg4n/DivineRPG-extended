@@ -1166,8 +1166,8 @@ public class SelfTest {
 
     private void altarTests(final TestPlayer p, final WorldServer ow, final int sx, final int sy, final int sz) {
         t("Алтарь порчи", "Цена по выпавшим чарам, лучшие чары не гарантированы, книга под одну вещь", () -> {
-            // примеры из обсуждения: книга 30 + 45/15/8 за чар (не дороже 120), вещь 35/12/6 (не дороже 50)
-            int[] want = { 75, 90, 120, 33, 47, 35, 7, 50 };
+            // книга 30 + 60/20/11 за чар (не дороже 150), вещь 84/29/14 (не дороже 120)
+            int[] want = { 90, 110, 150, 34, 113, 84, 15, 120 };
             int[] got = { AltarLogic.price(ench(Enchantment.fortune, 3), true),
                 AltarLogic.price(ench(Enchantment.fortune, 3, Enchantment.unbreaking, 3), true),
                 AltarLogic.price(ench(Enchantment.efficiency, 5, Enchantment.fortune, 3, Enchantment.unbreaking, 3), true),
@@ -1208,7 +1208,7 @@ public class SelfTest {
                 "средние цены не растут от слота к слоту: меч " + java.util.Arrays.toString(swordSum) + ", книга " + java.util.Arrays.toString(bookSum));
             check(sharp5 > n / 10 && sharp5 < n * 8 / 10, "Острота V в последнем слоте меча: " + sharp5 + " из " + n);
             check(prot4 > n / 10 && prot4 < n * 8 / 10, "Защита IV в последнем слоте кирасы: " + prot4 + " из " + n);
-            return "цены как в обсуждении (Удача III на книге 75, +Прочность III 90, три чара 120, меч Острота V + Прочность III 47); средние цены меча "
+            return "цены как в обсуждении (Удача III на книге 90, +Прочность III 110, три чара 150, меч Острота V + Прочность III 113); средние цены меча "
                 + swordSum[0] / n + " / " + swordSum[1] / n + " / " + swordSum[2] / n + ", книги " + bookSum[0] / n + " / " + bookSum[1] / n + " / " + bookSum[2] / n
                 + "; в последнем слоте Острота V " + sharp5 * 100 / n + "%, Защита IV " + prot4 * 100 / n + "%, книга с Удачей III " + fort3 * 100 / n + "%";
         });
@@ -1252,7 +1252,7 @@ public class SelfTest {
             p.experienceLevel = cost - 1;
             p.experience = 0;
             boolean poor = !c.enchantItem(p, 2) && !sword.isItemEnchanted();
-            p.experienceLevel = 100;
+            p.experienceLevel = 200;
             p.experience = 0.5F;
             long before = xp(p);
             boolean done = c.enchantItem(p, 2);
@@ -1297,7 +1297,7 @@ public class SelfTest {
                     + " (ушло " + spent + ", надо " + AltarLogic.xpTo(cost) + ")" + ", ровно брошенное " + exact + " (" + names(now) + " / " + got + "), повтор " + once
                     + ", рупии за книгу " + bookReveal + ", книга " + bookOk + " (" + bookCost + "), возврат " + back + ", творческий " + free + ", shift " + shift);
             return "мечу - осколки и камень Molten, книге - рупиевые слитки 1 / 3 / 5; переложил - новый бросок; меч получил ровно брошенное (" + names(now) + ") за " + cost
-                + " ур., с 100-го ушло " + spent + " опыта = от нуля до " + cost + "; книга за " + bookCost + " ур. со всеми чарами броска; закрытие вернуло вещь и оплату";
+                + " ур., с 200-го ушло " + spent + " опыта = от нуля до " + cost + "; книга за " + bookCost + " ур. со всеми чарами броска; закрытие вернуло вещь и оплату";
         });
         t("Алтарь порчи", "Правый клик открывает окно аддона, присев с блоком - ставит блок", () -> {
             reset(p);
