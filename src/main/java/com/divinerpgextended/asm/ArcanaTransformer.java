@@ -27,6 +27,8 @@ import org.objectweb.asm.tree.VarInsnNode;
  * <li>ClientTicker.tickClient - клиентская догрузка полоски до предела;</li>
  * <li>ArcanaRenderer.onTickRender - масштаб полоски (25 в формуле ширины).</li>
  * </ul>
+ * Зелье арканы (ItemArcanaPotion.onItemRightClick) пьётся и при полной полоске: у аддона это эффект на время, его пьют заранее.
+ * Divine не даёт пить при полоске ровно 200; сравнение с NaN никогда не равно, поэтому проверка всегда пропускает.
  * Меняются только константы в этих методах; если что-то не нашлось - класс остаётся как был.
  */
 public class ArcanaTransformer implements IClassTransformer, Opcodes {
@@ -34,6 +36,7 @@ public class ArcanaTransformer implements IClassTransformer, Opcodes {
     private static final String HELPER = "net.divinerpg.utils.events.ArcanaHelper";
     private static final String TICKER = "net.divinerpg.utils.events.ClientTicker";
     private static final String RENDERER = "net.divinerpg.client.ArcanaRenderer";
+    private static final String POTION = "net.divinerpg.items.arcana.ItemArcanaPotion";
     private static final String HOOKS = "com/divinerpgextended/asm/ArcanaHooks";
     private static final Logger LOG = LogManager.getLogger("divinerpgextended-core");
 
@@ -41,8 +44,8 @@ public class ArcanaTransformer implements IClassTransformer, Opcodes {
     public byte[] transform(String name, String transformedName, byte[] bytes) {
         if (bytes == null) return bytes;
         boolean helper = HELPER.equals(transformedName), ticker = TICKER.equals(transformedName),
-            renderer = RENDERER.equals(transformedName);
-        if (!helper && !ticker && !renderer) return bytes;
+            renderer = RENDERER.equals(transformedName), potion = POTION.equals(transformedName);
+        if (!helper && !ticker && !renderer && !potion) return bytes;
         try {
             ClassNode node = new ClassNode();
             new ClassReader(bytes).accept(node, 0);
@@ -56,6 +59,15 @@ public class ArcanaTransformer implements IClassTransformer, Opcodes {
                 }
             }
             for (MethodNode m : node.methods) {
+                if (potion) {
+                    if (!"func_77659_a".equals(m.name) && !"onItemRightClick".equals(m.name)) continue;
+                    for (AbstractInsnNode in = m.instructions.getFirst(); in != null; in = in.getNext()) {
+                        if (!(in instanceof LdcInsnNode) || !Float.valueOf(200.0F).equals(((LdcInsnNode) in).cst)) continue;
+                        ((LdcInsnNode) in).cst = Float.valueOf(Float.NaN);
+                        patched++;
+                    }
+                    continue;
+                }
                 String method = helper ? "updateAllBars" : ticker ? "tickClient" : "onTickRender";
                 if (!method.equals(m.name)) continue;
                 float target = renderer ? 25.0F : 200.0F;

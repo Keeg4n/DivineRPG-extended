@@ -275,6 +275,7 @@ public class GuiCorruptAltar extends GuiContainer {
 
     /** Подсказки: слот - узнанные чары или "скрыты", цена; кнопка - что стоит узнать; пустая оплата - чем платить. */
     @Override
+    @SuppressWarnings("unchecked")
     public void drawScreen(int mx, int my, float partial) {
         super.drawScreen(mx, my, partial);
         List<String> tip = new ArrayList<String>();
@@ -313,6 +314,11 @@ public class GuiCorruptAltar extends GuiContainer {
                     : StatCollector.translateToLocalFormatted("dre.altar.pay", first, last)));
             }
         }
-        if (!tip.isEmpty()) drawHoveringText(tip, mx, my, fontRendererObj);
+        if (tip.isEmpty()) return;
+        // drawHoveringText строки не переносит: длинная подсказка уходила за экран
+        int room = Math.min(200, Math.max(width - mx, mx) - 24);
+        List<String> lines = new ArrayList<String>();
+        for (String s : tip) lines.addAll(fontRendererObj.listFormattedStringToWidth(s, room));
+        drawHoveringText(lines, mx, my, fontRendererObj);
     }
 }
