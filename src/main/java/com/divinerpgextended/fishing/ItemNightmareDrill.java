@@ -81,7 +81,7 @@ public class ItemNightmareDrill extends ItemPickaxe {
         if (w.isRemote || breaking || !Config.drillArea || p.isSneaking() || !(p instanceof EntityPlayerMP)) return false;
         MovingObjectPosition hit = getMovingObjectPositionFromPlayer(w, p, false);
         if (hit == null || hit.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) return false;
-        float center = w.getBlock(x, y, z).getBlockHardness(w, x, y, z);
+        float center = com.divinerpgextended.perk.MiningGuard.real(w.getBlock(x, y, z), w, x, y, z);
         int side = hit.sideHit;
         breaking = true;
         try {
@@ -101,7 +101,7 @@ public class ItemNightmareDrill extends ItemPickaxe {
                     }
                     Block nb = w.getBlock(nx, ny, nz);
                     if (nb.getMaterial() == Material.air || nb.getMaterial().isLiquid()) continue;
-                    float h = nb.getBlockHardness(w, nx, ny, nz);
+                    float h = com.divinerpgextended.perk.MiningGuard.real(nb, w, nx, ny, nz);
                     if (h < 0 || h > center * 4 + 2) continue; // бедрок не берёт, обсидиан вокруг земли не срывает
                     ((EntityPlayerMP) p).theItemInWorldManager.tryHarvestBlock(nx, ny, nz);
                 }

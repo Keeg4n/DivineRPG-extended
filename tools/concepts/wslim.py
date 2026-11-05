@@ -17,7 +17,7 @@ from wround3 import BLUE, SKY, SKYD, SKYL
 
 KEYS = []
 S = 0.2  # раздутие, как у Ботании
-UNDER = 0.06  # поддоспешник: по телу, силуэт не меняет
+UNDER = 0.14  # поддоспешник: по телу, силуэт не меняет; в игре + PUSH из wanderer_armor.py, итог выше второго слоя скина
 HEAD_S = 0.55  # голова: иначе сквозь шапку виден второй слой скина (он раздут на 0.5)
 SIDES = ('north', 'south', 'east', 'west')
 
@@ -57,7 +57,7 @@ def belt(paint, y=9.8, h=1.9):
 
 def under(arm, leg):
     """Поддоспешник: виден в зазорах брони. Рукав - часть кирасы, штанина - поножей."""
-    return sym(bx('rightArm', -3, 1.6, -2, 4, 7.0, 4, arm, s=UNDER), bx('rightLeg', -2, 5.4, -2, 4, 3.4, 4, leg, s=UNDER))
+    return sym(bx('rightArm', -3, -2.0, -2, 4, 10.6, 4, arm, s=UNDER), bx('rightLeg', -2, 5.4, -2, 4, 3.4, 4, leg, s=UNDER))
 
 
 def shoulder(paint, top=-2.0, h=3.8, out=0.9, half=2.6):

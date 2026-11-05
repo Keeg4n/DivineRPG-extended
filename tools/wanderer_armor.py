@@ -27,6 +27,28 @@ RES = os.path.join(HERE, '..', 'src', 'main', 'resources', 'assets', 'divinerpge
 TIERS = {1: 'r1v', 2: 'r2s', 3: 'r3v', 4: 'r4v', 5: 'r5v', 6: 'r6v', 7: 'r7z'}
 K = 2.0  # текселей на единицу модели (у ванильной брони 1)
 ATLAS_W = 512
+# Второй слой скина раздут на 0.25, а броня Ботании, с которой сняты пропорции, на 0.2: слой торчал бы сквозь неё.
+# Поэтому всё, что снаружи конечности, отодвигается ещё на PUSH: броня 0.36, поддоспешник 0.30. Шапка раздута на 0.5,
+# капюшон R6 лежал точно на ней и мерцал бы: голове хватает HEAD_PUSH.
+PUSH, HEAD_PUSH = 0.16, 0.05
+LIMBS = {'head': ((-4, 4), (-8, 0), (-4, 4)), 'body': ((-4, 4), (0, 12), (-2, 2)), 'rightArm': ((-3, 1), (-2, 10), (-2, 2)),
+         'leftArm': ((-1, 3), (-2, 10), (-2, 2)), 'rightLeg': ((-2, 2), (0, 12), (-2, 2)), 'leftLeg': ((-2, 2), (0, 12), (-2, 2))}
+
+
+def push_out(box, verts):
+    """Сдвиг наружу по каждой оси, а не раздутие коробок: тонкие детали не толстеют, порядок слоёв не меняется."""
+    limb = LIMBS.get(box.bone)
+    if limb is None:
+        return verts
+    amount = HEAD_PUSH if box.bone == 'head' else PUSH
+    out = np.array(verts, float)
+    for axis, (lo, hi) in enumerate(limb):
+        center, half = (lo + hi) / 2.0, (hi - lo) / 2.0
+        d = out[:, axis] - center
+        out[:, axis] = center + np.where(np.abs(d) >= half, d + np.sign(d) * amount, d * (1 + amount / half))
+    if box.bone == 'head' and box.size[1] >= 6:  # оболочка шлема закрывает нижний край шапки на шее
+        out[:, 1] = np.where((out[:, 1] > -0.7) & (out[:, 1] < 0.56), 0.56, out[:, 1])
+    return out
 
 
 def slot(b):
@@ -44,7 +66,9 @@ def build_model(tier):
     for b in boxes:
         b.piece = slot(b)
         b.k = K
-    return mk.Model('wanderer_r%d' % tier, boxes, atlas_width=ATLAS_W)
+    m = mk.Model('wanderer_r%d' % tier, boxes, atlas_width=ATLAS_W)
+    m.warp = push_out
+    return m
 
 
 def main():

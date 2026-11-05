@@ -270,7 +270,7 @@ def cult_hood():
     cloth = P(CL[0], bands(CL, 1.5), bevel=0.0, noise=0.03)
     front = P(CL[0], bands(CL, 1.5), rect(('north',), 0.9, 8.1, 1.2, 99, '#4a0c0c'), rect(('north',), 1.4, 7.6, 1.7, 99, '#160606'), rect(('north',), 1.9, 7.1, 2.2, 99, '#020202'),
               rect(('north',), 2.5, 3.9, 4.6, 5.4, GLOWR, glow=True), rect(('north',), 5.1, 6.5, 4.6, 5.4, GLOWR, glow=True), bevel=0.0, noise=0.03)
-    return [box('head', -4.5, -9.0, -4.6, 9.0, 9.0, 9.0, front), box('head', -4.0, -9.7, 2.0, 8.0, 9.0, 3.0, cloth, rot=(-13, 0, 0), pivot=(0, 0, 0)),
+    return [box('head', -4.5, -9.0, -4.6, 9.0, 9.0, 9.2, front), box('head', -4.0, -9.7, 2.0, 8.0, 9.0, 3.0, cloth, rot=(-13, 0, 0), pivot=(0, 0, 0)),
             box('head', -3.5, -10.0, 3.5, 7.0, 8.0, 3.0, cloth, rot=(-20, 0, 0), pivot=(0, 0, 0)), box('head', -3.0, -10.7, 3.5, 6.0, 7.0, 3.0, cloth, rot=(-33, 0, 0), pivot=(0, 0, 0))]
 
 
@@ -443,7 +443,7 @@ def r7z():
     bs += sym(box('body', -7.6, -6.2, -1.8, 4.8, 7.0, 0.4, flap, rot=(10, 0, -16), pivot=(-5.2, 0.8, -1.6)))
     # рука: плечо и предплечье с вставками, тёмное кольцо, перчатка, кругляш на запястье, мех, когти
     arm = P(CH_G, trim(0.3, CH_K), rect(('west', 'east'), 1.4, 3.0, 0.5, 99, CH_O), rect(('north', 'south'), 0.8, 1.6, 0.5, 99, CH_T))
-    bs += sym(bx('rightArm', -3, -0.8, -2, 4, 4.4, 4, arm, s=0.1), bx('rightArm', -3, 3.6, -2, 4, 3.8, 4, arm), bx('rightArm', -3, 7.4, -2, 4, 0.9, 4, dark), bx('rightArm', -3, 8.3, -2, 4, 1.7, 4, g))
+    bs += sym(bx('rightArm', -3, -2.0, -2, 4, 5.6, 4, arm, s=0.14), bx('rightArm', -3, 3.6, -2, 4, 3.8, 4, arm), bx('rightArm', -3, 7.4, -2, 4, 0.9, 4, dark), bx('rightArm', -3, 8.3, -2, 4, 1.7, 4, g))
     gem = P(CH_D, trim(0.2, CH_K), disc(('west', 'east'), 1.3, 1.3, 1.2, CH_T), rect(('west', 'east'), 1.05, 1.55, 0.3, 2.3, CH_L), rect(('west', 'east'), 0.3, 2.3, 1.05, 1.55, CH_L))
     bs += sym(box('rightArm', -3.55, 4.5, -1.3, 0.35, 2.6, 2.6, gem))
     for (z, L, rz) in ((-1.4, 2.2, -112), (0.0, 2.8, -96), (1.4, 2.2, -80)):
@@ -453,7 +453,7 @@ def r7z():
     leg = P(CH_G, trim(0.3, CH_K), rect(('north', 'south'), 0.6, 1.3, 0.5, 99, CH_O), rect(('north', 'south'), 2.6, 3.6, 0.5, 99, CH_T), rect(('east', 'west'), 1.4, 3.0, 0.5, 99, CH_O))
     shin = P(CH_G, trim(0.3, CH_K), rect(SIDES, 1.5, 2.9, 0.3, 99, CH_O))
     kn = P(CH_D, trim(0.3, CH_K), diamond(('north',), 2.2, 1.2, 1.15, CH_L))
-    bs += sym(bx('rightLeg', -2, 0, -2, 4, 5.4, 4, leg), box('rightLeg', -2.2, 5.0, -2.75, 4.4, 2.4, 0.55, kn), bx('rightLeg', -2, 5.6, -2, 4, 1.0, 4, dark, s=0.1), bx('rightLeg', -2, 6.9, -2, 4, 2.5, 4, shin),
+    bs += sym(bx('rightLeg', -2, 0, -2, 4, 5.4, 4, leg), box('rightLeg', -2.2, 5.0, -2.75, 4.4, 2.4, 0.55, kn), bx('rightLeg', -2, 5.6, -2, 4, 1.0, 4, dark, s=0.14), bx('rightLeg', -2, 6.9, -2, 4, 2.5, 4, shin),
               bx('rightLeg', -2, 9.4, -2, 4, 0.8, 4, dark), bx('rightLeg', -2, 10.3, -3.1, 4, 1.7, 5.1, P(CH_L, trim(0.3, CH_D), rect(('up',), -1, 99, 3.0, 99, CH_G))))
     bs += sym(spike('rightLeg', (-2.1, 9.8, 0.6), 2.8, 1.3, CH_GR, rz=-100), spike('rightLeg', (-2.1, 9.8, 1.8), 2.4, 1.2, CH_GR, rz=-74))
     # шлем: закрытый, четыре вставки вокруг чёрного плюса, красные глаза

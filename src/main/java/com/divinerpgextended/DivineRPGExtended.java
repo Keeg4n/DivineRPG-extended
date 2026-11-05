@@ -43,6 +43,7 @@ public class DivineRPGExtended {
 
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
+        com.divinerpgextended.perk.MiningGuard.apply();
         event.registerServerCommand(new CommandBlizzard());
         event.registerServerCommand(new com.divinerpgextended.boss.CommandDreBoss());
         event.registerServerCommand(new com.divinerpgextended.accessory.CommandDreInv());

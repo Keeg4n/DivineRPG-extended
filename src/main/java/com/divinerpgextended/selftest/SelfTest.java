@@ -4335,7 +4335,7 @@ public class SelfTest {
         t("Прохождение", "Спавнеры Арканы и арканитовая кирка", () -> {
             WorldServer za = server.worldServerForDimension(ConfigurationHelper.arcana);
             net.minecraft.block.Block sp = net.divinerpg.utils.blocks.ArcanaBlocks.deathHoundSpawner;
-            float hard = sp.getBlockHardness(za, 0, 0, 0);
+            float hard = com.divinerpgextended.perk.MiningGuard.real(sp, za, 0, 0, 0);
             TestPlayer zp = join(player(ConfigurationHelper.arcana, "TestArcPick", 100, 60, 100), true);
             hold(zp, new ItemStack(Items.diamond_pickaxe));
             net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed bs = new net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed(zp, sp, 0, 8F, 100, 60, 100);
@@ -4431,7 +4431,7 @@ public class SelfTest {
             for (net.minecraft.block.Block b : locked) {
                 if (spawners.contains(b)) continue;
                 other++;
-                if (b.getBlockHardness(za, 0, 0, 0) > 0) breakable++;
+                if (com.divinerpgextended.perk.MiningGuard.real(b, za, 0, 0, 0) > 0) breakable++;
                 hold(zp, new ItemStack(Items.diamond_pickaxe));
                 net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed bs = new net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed(zp, b, 0, 8F, 100, 60, 100);
                 MinecraftForge.EVENT_BUS.post(bs);
@@ -4448,6 +4448,61 @@ public class SelfTest {
             check(other >= 3 && breakable == other && diamondStuck == other && drops == other && portalSafe, "блоков Арканы кроме спавнеров " + other + ": ломаемы " + breakable
                 + ", алмазной не ломаются " + diamondStuck + ", выпадают " + drops + (bad.length() > 0 ? " (нет дропа: " + bad + ")" : "") + ", портал не тронут " + portalSafe);
             return "неломаемых блоков Арканы (кроме спавнеров) " + other + ": все ломаются только арканитовой киркой и выпадают; портал не тронут";
+        });
+        t("Прохождение", "Чужие копатели не берут блоки с правилами добычи", () -> {
+            check(com.divinerpgextended.asm.MiningGuardTransformer.patched, "ForgeHooks.blockStrength не исправлен при загрузке");
+            int x = 21500, y = 150, z = 21500;
+            com.divinerpgextended.world.twilight.TwilightWorld eden = com.divinerpgextended.world.twilight.TwilightWorld.values()[0];
+            net.minecraft.block.Block brick = net.divinerpg.utils.blocks.ArcanaBlocks.ancientBrick, ore = eden.ore(), jungle = com.divinerpgextended.registry.ModBlocks.jungleOre,
+                stone = net.divinerpg.utils.blocks.TwilightBlocks.twilightStone;
+            net.minecraft.block.Block[] guarded = { brick, ore, jungle, stone };
+            int[][] at = { { 2, 0, 0 }, { 3, 0, 0 }, { 2, 0, 2 }, { 3, 0, 2 } };
+            // для всех прочность "неломаемо": на неё смотрят бур Thaumcraft (меньше нуля - мимо), кирка Blood Magic (-1 - мимо), поршни
+            StringBuilder hard = new StringBuilder();
+            for (net.minecraft.block.Block b : guarded) if (b.getBlockHardness(ow, x, y, z) >= 0) hard.append(b.getUnlocalizedName()).append(' ');
+            // игрок ломает как раньше: нужный инструмент берёт, алмазная кирка нет, обычный камень - как был
+            TestPlayer tp = join(player(0, "TestGuardTool", x + 0.5, y, z + 0.5), true);
+            float[] speed = new float[6];
+            hold(tp, new ItemStack(Items.diamond_pickaxe));
+            speed[0] = net.minecraftforge.common.ForgeHooks.blockStrength(brick, tp, ow, x, y, z);
+            speed[1] = net.minecraftforge.common.ForgeHooks.blockStrength(ore, tp, ow, x, y, z);
+            speed[2] = net.minecraftforge.common.ForgeHooks.blockStrength(jungle, tp, ow, x, y, z);
+            speed[3] = net.minecraftforge.common.ForgeHooks.blockStrength(Blocks.stone, tp, ow, x, y, z);
+            hold(tp, new ItemStack(ModItems.arcanePick));
+            speed[4] = net.minecraftforge.common.ForgeHooks.blockStrength(brick, tp, ow, x, y, z);
+            hold(tp, new ItemStack(com.divinerpgextended.world.twilight.TwilightCrafts.tools(eden)[0]));
+            speed[5] = net.minecraftforge.common.ForgeHooks.blockStrength(ore, tp, ow, x, y, z);
+            server.getConfigurationManager().playerEntityList.remove(tp);
+            ow.removeEntity(tp);
+            check(hard.length() == 0 && speed[0] == 0 && speed[1] == 0 && speed[2] == 0 && speed[3] > 0 && speed[4] > 0 && speed[5] > 0,
+                "ломаемы для всех: " + hard + "; алмазная: Аркана " + speed[0] + ", руда Эдема " + speed[1] + ", руда джунглей " + speed[2] + ", камень " + speed[3]
+                    + "; арканитовая по Аркане " + speed[4] + "; кирка Эдема по руде " + speed[5]);
+            if (!cpw.mods.fml.common.Loader.isModLoaded("AWWayofTime")) return "блоки с правилами для всех неломаемые, игрок ломает нужным инструментом; Blood Magic нет - настоящей киркой не проверялось";
+            // настоящая связанная кирка: правый клик ломает всё вокруг мимо событий; фейкового игрока она отвергает, поэтому обычный EntityPlayerMP
+            net.minecraft.item.Item pick = (net.minecraft.item.Item) Class.forName("WayofTime.alchemicalWizardry.ModItems").getField("boundPickaxe").get(null);
+            net.minecraft.entity.player.EntityPlayerMP real = new net.minecraft.entity.player.EntityPlayerMP(server, ow,
+                new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "TestBoundPick"), new net.minecraft.server.management.ItemInWorldManager(ow));
+            real.setLocationAndAngles(x + 0.5, y, z + 0.5, 0F, 0F);
+            ItemStack bound = new ItemStack(pick);
+            bound.setTagCompound(new NBTTagCompound());
+            pick.getClass().getMethod("setActivated", ItemStack.class, boolean.class).invoke(pick, bound, true);
+            Class.forName("WayofTime.alchemicalWizardry.api.soulNetwork.SoulNetworkHandler").getMethod("addCurrentEssenceToMaximum", String.class, int.class, int.class).invoke(null, "TestBoundPick", 100000, 100000);
+            for (int i = 0; i < guarded.length; i++) ow.setBlock(x + at[i][0], y + at[i][1], z + at[i][2], guarded[i]);
+            ow.setBlock(x - 2, y, z, Blocks.stone);
+            int kept = 0;
+            boolean plainGone;
+            try {
+                pick.onItemRightClick(bound, ow, real);
+                for (int i = 0; i < guarded.length; i++) if (ow.getBlock(x + at[i][0], y + at[i][1], z + at[i][2]) == guarded[i]) kept++;
+                plainGone = ow.isAirBlock(x - 2, y, z);
+            } finally {
+                for (int i = 0; i < guarded.length; i++) ow.setBlockToAir(x + at[i][0], y + at[i][1], z + at[i][2]);
+                ow.setBlockToAir(x - 2, y, z);
+                for (Object o : ow.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class,
+                    net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 8, y - 8, z - 8, x + 8, y + 8, z + 8))) ((net.minecraft.entity.Entity) o).setDead();
+            }
+            check(plainGone && kept == guarded.length, "кирка Blood Magic: камень сломан " + plainGone + ", защищённых цело " + kept + " из " + guarded.length);
+            return "блоки с правилами для всех неломаемые, игрок ломает нужным инструментом; связанная кирка Blood Magic сломала камень рядом, а кирпич Арканы, руду Эдема, руду джунглей и сумеречный камень не тронула";
         });
         t("Прохождение", "Факел зова не зовёт мобов выше ранга игроков рядом", () -> {
             WorldServer zw = server.worldServerForDimension(0);

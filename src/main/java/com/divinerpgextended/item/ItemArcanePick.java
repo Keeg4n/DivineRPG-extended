@@ -33,6 +33,8 @@ public class ItemArcanePick extends ItemPickaxe {
 
     public static final Item.ToolMaterial MATERIAL = EnumHelper.addToolMaterial("DRE_ARCANE", 3, 1561, 12F, 4F, 18);
     public static final int PRICE = 20, CHARGE_PRICE = 20;
+    /** Прочность блоков Арканы при ломке этой киркой. */
+    private static final float HARDNESS = 5.0F;
     /** Боссы Мортума: после всех - кирка в продаже. */
     public static final Boss[] MORTUM = { Boss.TWILIGHT_DEMON, Boss.KAROT, Boss.ETERNAL_ARCHER, Boss.TWINS, Boss.SOUL_FIEND, Boss.VAMACHERON };
     /** Все боссы Divine, которых ведёт аддон: после них - заряженная кирка. */
@@ -81,7 +83,7 @@ public class ItemArcanePick extends ItemPickaxe {
 
     /**
      * Все неломаемые блоки Арканы (у Divine прочность бесконечная: кирпичи и камень подземелий, лампы, спавнеры...),
-     * кроме портала. Снимается до {@link #makeBreakable}, пока прочность ещё родная.
+     * кроме портала.
      */
     public static synchronized java.util.Set<Block> locked() {
         if (locked != null) return locked;
@@ -97,15 +99,14 @@ public class ItemArcanePick extends ItemPickaxe {
         return locked = s;
     }
 
-    /** Неломаемые блоки Арканы ломаемы (у Divine прочность бесконечная) - но только этой киркой (BreakSpeed, BreakEvent). */
+    /**
+     * Неломаемые блоки Арканы ломаемы, но только этой киркой (BreakSpeed, BreakEvent). Их прочность остаётся бесконечной, как
+     * у Divine: чужие копатели и поршни их не берут; ломка игроком видит {@link #HARDNESS} ({@link com.divinerpgextended.perk.MiningGuard}).
+     */
     public static void makeBreakable() {
         for (Block b : locked()) {
-            try {
-                cpw.mods.fml.relauncher.ReflectionHelper.setPrivateValue(Block.class, b, 5.0F, "blockHardness", "field_149782_v");
-                b.setHarvestLevel("pickaxe", 3);
-            } catch (Throwable t) {
-                com.divinerpgextended.DivineRPGExtended.LOG.warn("Спавнер Арканы не сделан ломаемым: " + t);
-            }
+            com.divinerpgextended.perk.MiningGuard.guard(b, HARDNESS);
+            b.setHarvestLevel("pickaxe", 3);
         }
     }
 
@@ -131,7 +132,7 @@ public class ItemArcanePick extends ItemPickaxe {
         if (!charged || w.isRemote || breaking || p.isSneaking() || !(p instanceof EntityPlayerMP)) return false;
         MovingObjectPosition hit = getMovingObjectPositionFromPlayer(w, p, false);
         if (hit == null || hit.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) return false;
-        float center = w.getBlock(x, y, z).getBlockHardness(w, x, y, z);
+        float center = com.divinerpgextended.perk.MiningGuard.real(w.getBlock(x, y, z), w, x, y, z);
         int side = hit.sideHit;
         breaking = true;
         try {
@@ -151,7 +152,7 @@ public class ItemArcanePick extends ItemPickaxe {
                     }
                     Block nb = w.getBlock(nx, ny, nz);
                     if (nb.getMaterial() == Material.air || nb.getMaterial().isLiquid()) continue;
-                    float h = nb.getBlockHardness(w, nx, ny, nz);
+                    float h = com.divinerpgextended.perk.MiningGuard.real(nb, w, nx, ny, nz);
                     if (h < 0 || h > center * 4 + 2) continue; // бедрок и портал не берёт, обсидиан вокруг камня не срывает
                     ((EntityPlayerMP) p).theItemInWorldManager.tryHarvestBlock(nx, ny, nz);
                 }

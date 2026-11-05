@@ -210,6 +210,7 @@ class Model:
         self.name = name
         self.boxes = boxes
         self.faces = [Face(b, *f) for b in boxes for f in b.faces()]
+        self.warp = None  # необязательная правка вершин: warp(коробка, вершины в кости) -> вершины (атлас не меняет)
         self.W = atlas_width
         self.H = pack(self.faces, self.W)
         self.img = np.zeros((self.H, self.W, 4), np.uint8)
@@ -242,6 +243,8 @@ class Model:
             L, T, R, B = f.x / self.W, f.y / self.H, (f.x + f.pw) / self.W, (f.y + f.ph) / self.H
             uv = np.array([(R, T), (L, T), (L, B), (R, B)])
             v = b.to_bone(f.verts)
+            if self.warp is not None:
+                v = self.warp(b, v)
             out.append((b.piece, b.bone, v, uv, b.normal_to_bone(f.normal)))
         return out
 
@@ -250,7 +253,7 @@ class Model:
         groups = {}
         for q in self.quads():
             groups.setdefault((q[0], q[1]), []).append(q)
-        with open(mesh, 'w') as fh:
+        with open(mesh, 'w', encoding='utf-8', newline='\n') as fh:
             fh.write('# %s: атлас %dx%d, коробок %d, граней %d\n' % (self.name, self.W, self.H, len(self.boxes), len(self.faces)))
             for (piece, bone), qs in groups.items():
                 fh.write('p %s %s\n' % (piece, bone))

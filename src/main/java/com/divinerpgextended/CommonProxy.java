@@ -411,6 +411,7 @@ public class CommonProxy {
         com.divinerpgextended.world.twilight.TwilightClimate.apply();
         com.divinerpgextended.vethea.LunaFight.buffEverlight();
         com.divinerpgextended.item.ItemArcanePick.makeBreakable();
+        com.divinerpgextended.perk.MiningGuard.guardOres();
         if (Config.replaceTwilightClock) removeRecipes(TwilightItemsOther.twilightClock);
         if (Config.snowGlobeOnlyFromBoss) removeRecipes(IceikaItems.snowGlobe);
         if (Config.snowflakesInSummons) {
