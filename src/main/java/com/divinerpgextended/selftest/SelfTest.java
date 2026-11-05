@@ -538,6 +538,18 @@ public class SelfTest {
         return n;
     }
 
+    /** Вещи на земле около игрока: сколько их, убрать с земли. */
+    private static int groundDrops(EntityPlayer p, Item item) {
+        int n = 0;
+        for (Object o : p.worldObj.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, p.boundingBox.expand(5, 5, 5))) {
+            net.minecraft.entity.item.EntityItem ei = (net.minecraft.entity.item.EntityItem) o;
+            if (ei.isDead || ei.getEntityItem().getItem() != item) continue;
+            n += ei.getEntityItem().stackSize;
+            ei.setDead();
+        }
+        return n;
+    }
+
     /** Аксессуары на земле с владельцем k (добыча боссов в инвентарь не кладётся): сколько их, убрать с земли. */
     static int ownedDrops(EntityPlayer k, Trinket t) {
         int n = 0;
@@ -990,14 +1002,16 @@ public class SelfTest {
             an.setInventorySlotContents(AnvilLogic.ARMOR + 3, new ItemStack(ModItems.wanderer[3]));
             for (int i = 0; i < p.inventory.mainInventory.length; i++) p.inventory.mainInventory[i] = new ItemStack(Blocks.dirt, 64);
             boolean stuck = !c.select(p, AnvilLogic.UNLOAD) && c.mode == AnvilLogic.UPGRADE && an.getStackInSlot(AnvilLogic.ARMOR + 3) != null;
-            // закрыли окно - всё из слотов вернулось в инвентарь; второе закрытие ничего не даёт
+            // закрыли окно - всё из слотов упало на землю, как из верстака, в инвентарь ничего; второе закрытие ничего не даёт
             reset(p);
+            groundDrops(p, ModItems.wanderer[3]);
+            groundDrops(p, VanillaItemsOther.arlemiteIngot);
             an.setInventorySlotContents(AnvilLogic.ARMOR + 3, new ItemStack(ModItems.wanderer[3]));
             an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(VanillaItemsOther.arlemiteIngot, 5));
             c.onContainerClosed(p);
             c.onContainerClosed(p);
-            boolean closed = count(p, ModItems.wanderer[3]) == 1 && count(p, VanillaItemsOther.arlemiteIngot) == 5 && an.getStackInSlot(AnvilLogic.ARMOR + 3) == null
-                && an.getStackInSlot(AnvilLogic.FUEL) == null;
+            boolean closed = count(p, ModItems.wanderer[3]) == 0 && count(p, VanillaItemsOther.arlemiteIngot) == 0 && groundDrops(p, ModItems.wanderer[3]) == 1
+                && groundDrops(p, VanillaItemsOther.arlemiteIngot) == 5 && an.getStackInSlot(AnvilLogic.ARMOR + 3) == null && an.getStackInSlot(AnvilLogic.FUEL) == null;
             // вещи, лежавшие в блоке со старых версий, отдаются тому, кто открывает наковальню, один раз, и из блока уходят
             reset(p);
             net.minecraft.nbt.NBTTagCompound old = new net.minecraft.nbt.NBTTagCompound(), it = new net.minecraft.nbt.NBTTagCompound();
@@ -1016,9 +1030,9 @@ public class SelfTest {
             check(remembered && socketSlots && shift && target && returned && unloadSlots && upgradeSlots && stuck && closed && legacy,
                 "вкладка запомнена " + remembered + "; слоты гнёзд " + socketSlots + "; shift-клик " + shift + "; цель " + r.status + "/" + r.targets
                     + "; на разрядку " + toUnload + ", вещи вернулись " + returned + "; слоты разрядки " + unloadSlots + "; слоты улучшения " + upgradeSlots
-                    + "; без места не переключается " + stuck + "; закрыли окно - вещи вернулись " + closed + "; старые вещи из блока отданы один раз " + legacy);
+                    + "; без места не переключается " + stuck + "; закрыли окно - вещи на земле " + closed +"; старые вещи из блока отданы один раз " + legacy);
             return "вкладка запоминается; в каждой свои слоты (броня по частям, аксессуары внизу, оружие - только в разрядке); shift-клик раскладывает сам; "
-                + "подсвечено гнездо цели; при смене вкладки лишнее - в инвентарь, без места вкладка не меняется; закрыл окно - всё вернулось, "
+                + "подсвечено гнездо цели; при смене вкладки лишнее - в инвентарь, без места вкладка не меняется; закрыл окно - всё упало на землю, как из верстака, "
                 + "в блоке ничего не хранится; старые вещи из блока - тому, кто открыл";
         });
         t("Аксессуары", "Смерть: аксессуары остаются в броне", () -> {

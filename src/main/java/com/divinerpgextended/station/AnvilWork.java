@@ -10,8 +10,9 @@ import cpw.mods.fml.common.gameevent.PlayerEvent;
 
 /**
  * Рабочие слоты Наковальни Странника: у каждого открытого окна свои, в блоке и в мире ничего не хранится (как сетка
- * верстака). Окно закрылось - всё вернулось игроку: в инвентарь, что не влезло - на землю у ног. Окно закрывается и при
- * выходе с сервера, и при смерти, поэтому вещи не остаются в забытом окне.
+ * верстака). Окно наковальни закрылось - всё падает на землю перед игроком, как из сетки верстака; алтарь порчи
+ * возвращает вещи в инвентарь, что не влезло - на землю у ног. Окно закрывается и при выходе с сервера, и при смерти,
+ * поэтому вещи не остаются в забытом окне.
  */
 public class AnvilWork extends InventoryBasic {
 
@@ -29,6 +30,14 @@ public class AnvilWork extends InventoryBasic {
         for (int i = 0; i < getSizeInventory(); i++) {
             ItemStack s = getStackInSlotOnClosing(i);
             if (s != null) give(p, s);
+        }
+    }
+
+    /** Выбросить всё перед игроком, как сетка верстака (только сервер). Вещь сначала уходит из слота, потом падает - второй вызов ничего не даст. */
+    public void dropAll(EntityPlayer p) {
+        for (int i = 0; i < getSizeInventory(); i++) {
+            ItemStack s = getStackInSlotOnClosing(i);
+            if (s != null) p.dropPlayerItemWithRandomChoice(s, false);
         }
     }
 

@@ -23,7 +23,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * Под каждой частью брони во вкладке гнёзд - её гнёзда: не слоты (внутри брони нет инвентаря), а картинки; клик по
  * занятому гнезду - кнопка "вынуть" ({@link #enchantItem}, id {@link #EXTRACT} + часть * 2 + гнездо).
  * <p>
- * Слоты - свои у этого окна ({@link AnvilWork}), в блоке ничего не хранится: окно закрылось - всё вернулось игроку.
+ * Слоты - свои у этого окна ({@link AnvilWork}), в блоке ничего не хранится: окно закрылось - всё упало на землю, как из сетки верстака.
  */
 public class ContainerWandererAnvil extends Container {
 
@@ -169,11 +169,11 @@ public class ContainerWandererAnvil extends Container {
         return tile.isUseableByPlayer(p);
     }
 
-    /** Окно закрылось (в том числе ушёл далеко, сломали блок, вышел с сервера, умер) - всё из слотов вернуть игроку. */
+    /** Окно закрылось (в том числе ушёл далеко, сломали блок, вышел с сервера, умер) - всё из слотов падает на землю, как из верстака. */
     @Override
     public void onContainerClosed(EntityPlayer p) {
         super.onContainerClosed(p);
-        if (!p.worldObj.isRemote) work.giveBack(p);
+        if (!p.worldObj.isRemote) work.dropAll(p);
     }
 
     @Override

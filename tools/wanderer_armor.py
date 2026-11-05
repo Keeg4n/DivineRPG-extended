@@ -1,4 +1,4 @@
-"""Облики брони Странника для игры: концепт ступени (tools/concepts) -> меш, атлас, маска свечения и иконки частей.
+"""Облики брони Странника для игры: концепт ступени (tools/concepts) -> меш, атлас и маска свечения. Значки частей - tools/wanderer_icons.py.
 
 Ступень -> концепт (пятый раунд, concepts/wslim5.py, пропорции как у брони Ботании): R1 божественная со щитом на спине,
 R2 лепестки и нимб, R3 деревянные латы с прорезью-плюсом и посохом, R4 убор из перьев и бусы, R5 закрытый шлем и крылья,
@@ -25,10 +25,8 @@ import wslim5  # noqa: E402,F401 (регистрирует концепты пя
 
 RES = os.path.join(HERE, '..', 'src', 'main', 'resources', 'assets', 'divinerpgextended')
 TIERS = {1: 'r1v', 2: 'r2s', 3: 'r3v', 4: 'r4v', 5: 'r5v', 6: 'r6v', 7: 'r7z'}
-SLOTS = ('helmet', 'chest', 'legs', 'boots')  # порядок = armorType вещи
 K = 2.0  # текселей на единицу модели (у ванильной брони 1)
 ATLAS_W = 512
-ICON = 32
 
 
 def slot(b):
@@ -49,35 +47,10 @@ def build_model(tier):
     return mk.Model('wanderer_r%d' % tier, boxes, atlas_width=ATLAS_W)
 
 
-def icon(model, piece, path):
-    """Значок части: вид 3/4 спереди, подогнан под квадрат, сглажен до ICON."""
-    quads = [q for q in model.quads() if q[0] == piece]
-    # ноги и руки чуть врозь, чтобы на значке читались две штанины / два сапога / рукава
-    tris = mk.scene_tris(quads, {'rightLeg': (0, 0, 9), 'leftLeg': (0, 0, -9), 'rightArm': (0, 0, 12), 'leftArm': (0, 0, -12)})
-    pts = np.concatenate([np.asarray(v) for v, _, _ in tris])
-    yaw, pitch = -20, 10
-    R = mk.rot_matrix(pitch, 0, 0) @ mk.rot_matrix(0, yaw, 0)
-    pr = pts @ R.T
-    lo, hi = pr.min(0), pr.max(0)
-    S = 256
-    scale = S * 0.9 / max(hi[0] - lo[0], hi[1] - lo[1])
-    center = ((lo + hi) / 2) @ R  # обратно в координаты сцены (R ортогональна)
-    img, mask, glow = w.render(tris, model.img, S, S, scale, center, yaw, pitch)
-    rgba = np.concatenate([np.clip(img, 0, 1), mask[..., None].astype(float)], -1)
-    pre = rgba.copy()
-    pre[..., :3] *= pre[..., 3:4]
-    small = np.asarray(Image.fromarray((pre * 255).astype(np.uint8), 'RGBA').resize((ICON, ICON), Image.LANCZOS), float) / 255.0
-    a = small[..., 3:4]
-    col = np.where(a > 1e-3, small[..., :3] / np.maximum(a, 1e-3), 0)
-    out = np.concatenate([np.clip(col, 0, 1), (a > 0.35).astype(float)], -1)  # жёсткий край, как у ванильных значков
-    Image.fromarray((out * 255).astype(np.uint8), 'RGBA').save(path)
-
-
 def main():
     mesh_dir = os.path.join(RES, 'models', 'wanderer')
     tex_dir = os.path.join(RES, 'textures', 'models', 'wanderer')
-    icon_dir = os.path.join(RES, 'textures', 'items', 'wanderer')
-    for d in (mesh_dir, tex_dir, icon_dir):
+    for d in (mesh_dir, tex_dir):
         os.makedirs(d, exist_ok=True)
     for tier in sorted(TIERS):
         m = build_model(tier)
@@ -95,8 +68,6 @@ def main():
         elif os.path.exists(gpath):
             os.remove(gpath)
         pieces = sorted({b.piece for b in m.boxes})
-        for s in SLOTS:
-            icon(m, s, os.path.join(icon_dir, 'r%d_%s.png' % (tier, s)))
         print('R%d %s: коробок %d, атлас %dx%d, свечение %s, части %s' % (tier, TIERS[tier], len(m.boxes), m.W, m.H,
                                                                      'да' if glow.any() else 'нет', ','.join(pieces)))
 
