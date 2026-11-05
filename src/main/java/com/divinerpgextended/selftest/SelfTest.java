@@ -4635,10 +4635,27 @@ public class SelfTest {
                 int fcx = 40 + fc, fcz = 40;
                 za.theChunkProviderServer.loadChunk(fcx, fcz);
                 for (int fl = 0; fl < com.divinerpgextended.world.ArcanaFountain.LEVELS && room == null; fl++)
-                    if (com.divinerpgextended.world.ArcanaFountain.build(za, fcx * 16, fl * com.divinerpgextended.world.ArcanaFountain.H, fcz * 16))
-                        room = new int[] { fcx * 16, fl * com.divinerpgextended.world.ArcanaFountain.H, fcz * 16 };
+                    if (com.divinerpgextended.world.ArcanaFountain.build(za, fcx * 16, com.divinerpgextended.world.ArcanaFountain.floorY(fl), fcz * 16))
+                        room = new int[] { fcx * 16, com.divinerpgextended.world.ArcanaFountain.floorY(fl), fcz * 16 };
             }
             check(room != null, "ни одной комнаты без тайников в 12 чанках");
+            // зал в новом чанке стоит на настоящем этаже: под нижним этажом (высота 8) пусто и там ничего не строится
+            boolean belowRefused = !com.divinerpgextended.world.ArcanaFountain.build(za, 52 * 16, 0, 40 * 16);
+            int savedChance = Config.arcanaFountainChance, builtBefore = com.divinerpgextended.world.ArcanaFountain.built, under = 0;
+            Config.arcanaFountainChance = 1;
+            try {
+                for (int gc = 0; gc < 24; gc++) {
+                    int gx = 60 + gc;
+                    za.theChunkProviderServer.loadChunk(gx, 40);
+                    new com.divinerpgextended.world.ArcanaFountain().generate(za.rand, gx, 40, za, null, null);
+                    for (int bx = gx * 16; bx < gx * 16 + 16; bx++) for (int bz = 40 * 16; bz < 40 * 16 + 16; bz++) for (int by = 0; by < 8; by++)
+                        if (!za.isAirBlock(bx, by, bz)) under++;
+                }
+            } finally {
+                Config.arcanaFountainChance = savedChance;
+            }
+            int madeHalls = com.divinerpgextended.world.ArcanaFountain.built - builtBefore;
+            check(belowRefused && madeHalls > 0 && under == 0, "под картой отказ " + belowRefused + ", построено залов в 24 чанках " + madeHalls + ", блоков ниже нижнего этажа " + under);
             int pool = 0;
             for (int x = room[0]; x < room[0] + 16; x++) for (int z = room[2]; z < room[2] + 16; z++)
                 if (za.getBlock(x, room[1] + 1, z) == com.divinerpgextended.registry.ModBlocks.arcaneConcentrate) pool++;

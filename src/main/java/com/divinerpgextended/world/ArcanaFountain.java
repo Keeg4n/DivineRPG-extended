@@ -14,7 +14,7 @@ import com.divinerpgextended.registry.ModBlocks;
 import cpw.mods.fml.common.IWorldGenerator;
 
 /**
- * Фонтанный зал Арканы: в Аркане каждый чанк - четыре этажа комнат 16 x 16 высотой 8. Изредка ({@link Config#arcanaFountainChance})
+ * Фонтанный зал Арканы: в Аркане каждый чанк - четыре этажа комнат 16 x 16 высотой 8 (пол на высотах 8, 16, 24, 32; ниже пусто, на 40 потолок). Изредка ({@link Config#arcanaFountainChance})
  * одна обычная комната (без сундуков и спавнеров - не тайник и не логово босса) в новом чанке перестраивается: стены и проходы
  * остаются, внутри - чистый пол и фонтан с чашей арканного концентрата ({@link com.divinerpgextended.block.BlockArcaneConcentrate}):
  * в нём восстанавливается аркана и ловится рыба Арканы.
@@ -30,8 +30,12 @@ public class ArcanaFountain implements IWorldGenerator {
         if (w.provider.dimensionId != ConfigurationHelper.arcana || Config.arcanaFountainChance <= 0) return;
         Random r = new Random(w.getSeed() ^ cx * 341873128712L ^ cz * 132897987541L ^ 0xA3CA4AL);
         if (r.nextInt(Config.arcanaFountainChance) != 0) return;
-        int level = r.nextInt(LEVELS);
-        build(w, cx * 16, level * H, cz * 16);
+        build(w, cx * 16, floorY(r.nextInt(LEVELS)), cz * 16);
+    }
+
+    /** Высота пола этажа (0 - нижний). */
+    public static int floorY(int level) {
+        return (level + 1) * H;
     }
 
     /** Комната без сундуков и спавнеров (тайники и логова боссов не трогаем). */
@@ -44,7 +48,7 @@ public class ArcanaFountain implements IWorldGenerator {
 
     /** Перестроить комнату (x0, y0 - пол, z0) в фонтанный зал. false - комната не подошла. */
     public static boolean build(World w, int x0, int y0, int z0) {
-        if (!plain(w, x0, y0, z0)) return false;
+        if (y0 < floorY(0) || !plain(w, x0, y0, z0)) return false; // ниже первого этажа пустота, зал повис бы под картой
         Block floor = w.getBlock(x0 + 8, y0, z0 + 8);
         if (floor.isAir(w, x0 + 8, y0, z0 + 8)) floor = net.divinerpg.utils.blocks.ArcanaBlocks.ancientTile;
         Block rim = net.divinerpg.utils.blocks.ArcanaBlocks.ancientBrick, lamp = net.divinerpg.utils.blocks.ArcanaBlocks.dungenLamp;
