@@ -291,7 +291,6 @@ public class GuiCorruptAltar extends GuiContainer {
                 }
                 if (book) tip.add(EnumChatFormatting.GRAY + t("dre.altar.book"));
                 tip.add((canEnchant(i) ? EnumChatFormatting.GREEN : EnumChatFormatting.RED) + StatCollector.translateToLocalFormatted("dre.altar.cost", lvl));
-                if (Config.altarXpFromZero) tip.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocalFormatted("dre.altar.xp", AltarLogic.xpTo(lvl), lvl));
             } else if (inEye(mx, my, i)) {
                 if (container.knownCount[i] >= 0) tip.add(EnumChatFormatting.GREEN + t("dre.altar.revealed"));
                 else if (mc.thePlayer.capabilities.isCreativeMode || container.price[i] <= 0) tip.add(EnumChatFormatting.GREEN + t("dre.altar.reveal_free"));

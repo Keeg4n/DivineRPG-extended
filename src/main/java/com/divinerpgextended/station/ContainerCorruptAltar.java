@@ -185,7 +185,7 @@ public class ContainerCorruptAltar extends Container {
         }
         if (!p.capabilities.isCreativeMode) {
             if (p.experienceLevel < cost) return false;
-            AltarLogic.takeLevels(p, cost);
+            p.addExperienceLevel(-cost);
         }
         AltarLogic.apply(s, list);
         work.setInventorySlotContents(ITEM, s);

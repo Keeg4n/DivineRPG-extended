@@ -17,7 +17,7 @@ public class Config {
     public static int upgradeTwilightFuelCount = 16;
     public static int perkFuelArlemiteIngots = 8;
     /** Алтарь порчи по правилам аддона ({@link com.divinerpgextended.station.AltarLogic}). */
-    public static boolean corruptAltar = true, altarXpFromZero = true;
+    public static boolean corruptAltar = true;
     /** Потолок цены зачарования вещи; книга - от altarBookBase до altarBookMax уровней. */
     public static int altarTopLevels = 120, altarBookBase = 30, altarBookMax = 150;
     /** Очки за чар на полном уровне по тирам (лучшие, средние, слабые): вещь и книга. */
@@ -168,8 +168,6 @@ public class Config {
             altarBookPoints = bookPoints;
             cfg.get(bal, "altarBookPoints", bookPoints).set(bookPoints);
         }
-        altarXpFromZero = cfg.getBoolean("altarXpFromZero", bal, altarXpFromZero,
-            "Алтарь порчи: списывать опыт так, будто уровни считаются с нуля (цена в опыте не зависит от того, сколько уровней у игрока). false - уровни снимаются сверху, как у ванили");
         altarRevealCost = intList(cfg, bal, "altarRevealCost", altarRevealCost,
             "Алтарь порчи, вещь: сколько стоит узнать чары первого, второго и последнего слота (осколки, осколки, камень; 0 - бесплатно)");
         int[] bookCost = altarBookRevealCost;

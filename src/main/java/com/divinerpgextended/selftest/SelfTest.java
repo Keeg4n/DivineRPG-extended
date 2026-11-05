@@ -1159,11 +1159,6 @@ public class SelfTest {
         return b.toString();
     }
 
-    /** Весь опыт игрока в очках. */
-    private static long xp(EntityPlayer p) {
-        return AltarLogic.xpTo(p.experienceLevel) + (long) (p.experience * AltarLogic.barCap(p.experienceLevel));
-    }
-
     private void altarTests(final TestPlayer p, final WorldServer ow, final int sx, final int sy, final int sz) {
         t("Алтарь порчи", "Цена по выпавшим чарам, лучшие чары не гарантированы, книга под одну вещь", () -> {
             // книга 30 + 60/20/11 за чар (не дороже 150), вещь 84/29/14 (не дороже 120)
@@ -1175,8 +1170,6 @@ public class SelfTest {
                 AltarLogic.price(ench(Enchantment.protection, 4), false), AltarLogic.price(ench(Enchantment.smite, 3, Enchantment.knockback, 1), false),
                 AltarLogic.price(ench(Enchantment.fortune, 3, Enchantment.efficiency, 5), false) };
             check(java.util.Arrays.equals(want, got), "цены " + java.util.Arrays.toString(got) + " вместо " + java.util.Arrays.toString(want));
-            check(AltarLogic.xpTo(30) == 825 && AltarLogic.xpTo(50) == 3395 && AltarLogic.xpTo(120) == 34440,
-                "опыт до 30/50/120: " + AltarLogic.xpTo(30) + "/" + AltarLogic.xpTo(50) + "/" + AltarLogic.xpTo(120));
             ItemStack sword = new ItemStack(Items.diamond_sword), chest = new ItemStack(Items.diamond_chestplate), book = new ItemStack(Items.book);
             Random r = new Random(1);
             StringBuilder bad = new StringBuilder();
@@ -1212,7 +1205,7 @@ public class SelfTest {
                 + swordSum[0] / n + " / " + swordSum[1] / n + " / " + swordSum[2] / n + ", книги " + bookSum[0] / n + " / " + bookSum[1] / n + " / " + bookSum[2] / n
                 + "; в последнем слоте Острота V " + sharp5 * 100 / n + "%, Защита IV " + prot4 * 100 / n + "%, книга с Удачей III " + fort3 * 100 / n + "%";
         });
-        t("Алтарь порчи", "Окно: оплата по виду вещи, переброс при перекладывании, опыт с нуля, вещи вернулись", () -> {
+        t("Алтарь порчи", "Окно: оплата по виду вещи, переброс при перекладывании, цена уровнями, вещи вернулись", () -> {
             reset(p);
             ContainerCorruptAltar c = new ContainerCorruptAltar(p.inventory, ow, sx, sy, sz);
             com.divinerpgextended.station.AnvilWork w = c.work();
@@ -1246,7 +1239,7 @@ public class SelfTest {
             itemSlot.putStack(null);
             itemSlot.putStack(sword);
             boolean reroll = c.rolled(2) != expect && !c.revealed(0) && !c.revealed(1) && !c.revealed(2);
-            // мало уровней - отказ; хватает - ровно брошенные чары, ушло столько опыта, сколько от нуля до цены
+            // мало уровней - отказ; хватает - ровно брошенные чары, снято ровно столько уровней, сколько в цене
             List<EnchantmentData> now = c.rolled(2);
             int cost = AltarLogic.price(now, false);
             p.experienceLevel = cost - 1;
@@ -1254,10 +1247,8 @@ public class SelfTest {
             boolean poor = !c.enchantItem(p, 2) && !sword.isItemEnchanted();
             p.experienceLevel = 200;
             p.experience = 0.5F;
-            long before = xp(p);
             boolean done = c.enchantItem(p, 2);
-            long spent = before - xp(p);
-            boolean fromZero = done && Math.abs(spent - AltarLogic.xpTo(cost)) <= 1;
+            boolean levels = done && p.experienceLevel == 200 - cost;
             java.util.Map<?, ?> got = EnchantmentHelper.getEnchantments(w.getStackInSlot(item));
             boolean exact = !now.isEmpty() && got.size() == now.size();
             for (EnchantmentData d : now) exact &= Integer.valueOf(d.enchantmentLevel).equals(got.get(d.enchantmentobj.effectId));
@@ -1290,14 +1281,14 @@ public class SelfTest {
             boolean shift = w.getStackInSlot(pay) != null && w.getStackInSlot(pay).stackSize == 3 && w.getStackInSlot(item) != null
                 && w.getStackInSlot(item).getItem() == Items.diamond_axe && p.inventory.mainInventory[9] == null && p.inventory.mainInventory[10] == null;
             c.onContainerClosed(p);
-            check(kinds && noPay && wrongKind && shardsForLast && first && second && last && reroll && poor && fromZero && exact && once && bookReveal && bookOk && back
+            check(kinds && noPay && wrongKind && shardsForLast && first && second && last && reroll && poor && levels && exact && once && bookReveal && bookOk && back
                 && free && shift,
                 "виды оплаты " + kinds + ", без оплаты " + noPay + ", чужие осколки " + wrongKind + ", осколки за последний " + shardsForLast
-                    + ", первый " + first + ", второй " + second + ", последний " + last + ", переброс " + reroll + ", мало уровней " + poor + ", опыт с нуля " + fromZero
-                    + " (ушло " + spent + ", надо " + AltarLogic.xpTo(cost) + ")" + ", ровно брошенное " + exact + " (" + names(now) + " / " + got + "), повтор " + once
+                    + ", первый " + first + ", второй " + second + ", последний " + last + ", переброс " + reroll + ", мало уровней " + poor + ", сняты уровни " + levels
+                    + " (цена " + cost + ")" + ", ровно брошенное " + exact + " (" + names(now) + " / " + got + "), повтор " + once
                     + ", рупии за книгу " + bookReveal + ", книга " + bookOk + " (" + bookCost + "), возврат " + back + ", творческий " + free + ", shift " + shift);
             return "мечу - осколки и камень Molten, книге - рупиевые слитки 1 / 3 / 5; переложил - новый бросок; меч получил ровно брошенное (" + names(now) + ") за " + cost
-                + " ур., с 200-го ушло " + spent + " опыта = от нуля до " + cost + "; книга за " + bookCost + " ур. со всеми чарами броска; закрытие вернуло вещь и оплату";
+                + " ур., с 200-го снято ровно столько уровней; книга за " + bookCost + " ур. со всеми чарами броска; закрытие вернуло вещь и оплату";
         });
         t("Алтарь порчи", "Правый клик открывает окно аддона, присев с блоком - ставит блок", () -> {
             reset(p);

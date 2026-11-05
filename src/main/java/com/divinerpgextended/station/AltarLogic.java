@@ -40,7 +40,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * <li>Цена - по выпавшим чарам ({@link #price}): очки тира ({@link #tier}) за полный уровень, за неполный - по доле.
  * Вещь - сумма, не дороже {@link Config#altarTopLevels}; книга - {@link Config#altarBookBase} + сумма, не дороже
  * {@link Config#altarBookMax}. Внутри тира цена одна: иначе цена выдала бы чар без оплаты.</li>
- * <li>Опыт списывается так, будто уровни считаются с нуля ({@link #takeLevels}).</li>
+ * <li>Цена снимается уровнями сверху, как у ванильного стола.</li>
  * <li>Книга: сначала выбирается вещь ({@link #BOOK_TARGETS}), все чары книги - для неё; книга получает все чары броска.</li>
  * <li>Узнать чары слота: оплата по виду вещи ({@link Config#altarRevealItems}) - осколки за первый и второй слоты,
  * камень за последний, у книги - рупиевые слитки.</li>
@@ -181,35 +181,6 @@ public class AltarLogic {
             if (book) Items.enchanted_book.addEnchantment(s, d);
             else s.addEnchantment(d.enchantmentobj, d.enchantmentLevel);
         }
-    }
-
-    /** Опыт с уровня level до следующего (1.7.10: до 15-го по 17, до 30-го +3 за уровень, дальше +7). */
-    public static int barCap(int level) {
-        return level >= 30 ? 62 + (level - 30) * 7 : level >= 15 ? 17 + (level - 15) * 3 : 17;
-    }
-
-    /** Опыт от нуля до уровня. */
-    public static long xpTo(int level) {
-        long t = 0;
-        for (int i = 0; i < level; i++) t += barCap(i);
-        return t;
-    }
-
-    /**
-     * Списать цену. В 1.7.10 уровни снимаются сверху, и 50 уровней со 150-го стоят вдесятеро больше опыта, чем с 50-го;
-     * здесь уходит столько опыта, сколько нужно от нуля до цены ({@link Config#altarXpFromZero}).
-     */
-    public static void takeLevels(EntityPlayer p, int cost) {
-        if (!Config.altarXpFromZero) {
-            p.addExperienceLevel(-cost);
-            return;
-        }
-        long left = Math.max(0, xpTo(p.experienceLevel) + (long) (p.experience * barCap(p.experienceLevel)) - xpTo(cost));
-        int lvl = 0;
-        while (left >= barCap(lvl)) left -= barCap(lvl++);
-        p.experienceLevel = lvl;
-        p.experience = left / (float) barCap(lvl);
-        p.addExperienceLevel(0); // игроку на сервере - разослать новый опыт
     }
 
     /** Вид вещи для оплаты: weapon, tool, armor, bow, book или other. */

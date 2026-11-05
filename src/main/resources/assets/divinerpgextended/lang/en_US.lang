@@ -1471,7 +1471,6 @@ dre.altar.hidden=Enchantments hidden: reveal them with the button on the left
 dre.altar.grade=The cost depends on what was rolled: the best enchantments cost more
 dre.altar.book=On a book: enchantments for one kind of item
 dre.altar.cost=Cost: %s levels
-dre.altar.xp=Takes %s experience - like %s levels counted from zero
 dre.altar.reveal=Reveal enchantments: %s x %s
 dre.altar.reveal_free=Reveal enchantments: free
 dre.altar.reveal_need=Put the payment in the slot next to the item

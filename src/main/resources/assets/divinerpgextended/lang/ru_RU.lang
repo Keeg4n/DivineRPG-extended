@@ -1786,7 +1786,6 @@ dre.altar.hidden=Чары скрыты: узнай их кнопкой слев�
 dre.altar.grade=Цена - по тому, что выпало: лучшие чары дороже
 dre.altar.book=На книгу - чары под одну вещь
 dre.altar.cost=Цена: %s ур.
-dre.altar.xp=Спишется %s опыта - как %s ур. с нуля
 dre.altar.reveal=Узнать чары: %s x %s
 dre.altar.reveal_free=Узнать чары: бесплатно
 dre.altar.reveal_need=Положи оплату в ячейку рядом с вещью
