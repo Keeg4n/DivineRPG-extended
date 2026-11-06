@@ -112,6 +112,8 @@ public class Config {
         "EntityZoragon=bow", "EntityGalroid=hammer", "EntityVhraak=hammer", "EntityShadahier=staff", "EntityCymesoid=staff", "EntityKazrotic=cannon" };
     /** Журнал аудита для админов (logs/dre-audit.log) и запись в HawkEye, если он есть на сервере. */
     public static boolean auditLog = true, auditHawkEye = true;
+    /** Подвиды ближнего оружия обычного мира: всё целиком и бой между игроками; числа подвидов - в {@link com.divinerpgextended.perk.MeleeRoles.Kind}. */
+    public static boolean meleeRoles = true, meleeRolesPvp = false;
 
     /** Массив из конфига; если в старом файле он короче нового - дополняется значениями по умолчанию. */
     private static int[] intList(Configuration cfg, String cat, String key, int[] def, String comment) {
@@ -342,6 +344,18 @@ public class Config {
             "Журнал действий для админов: logs/dre-audit.log (аксессуары, переноска питомцев, /dreinv, сделки и услуги торговцев, дары и возврат вещей Ветеи)");
         auditHawkEye = cfg.getBoolean("auditHawkEye", "audit", auditHawkEye,
             "Те же действия - в HawkEye, если он стоит на сервере (тип OTHER, действия DRE ...)");
+        meleeRoles = cfg.getBoolean("enabled", "melee", meleeRoles,
+            "Подвиды ближнего оружия обычного мира и Ада (нож, рапира, меч, кувалда): у каждого своё окно неуязвимости цели после удара и свой урон. false - всё оружие как в обычном Minecraft, и в бою с мобами, и между игроками");
+        meleeRolesPvp = cfg.getBoolean("pvp", "melee", meleeRolesPvp,
+            "Те же правила в бою между игроками (свои числа: windowTicksPvp, damagePvp). false - удары по игрокам как в обычном Minecraft. Приваты с запретом PvP не обходятся. TiC считает свои рапиры и тесаки сам, этот переключатель их не касается");
+        for (com.divinerpgextended.perk.MeleeRoles.Kind k : com.divinerpgextended.perk.MeleeRoles.Kind.values()) {
+            String c = "melee." + k.key();
+            k.window = cfg.getInt("windowTicks", c, k.window, 0, 200,
+                "Сколько тиков цель неуязвима после удара, в бою с мобами (20 тиков = 1 секунда; в обычном Minecraft 10). Удар сильнее прошлого проходит и внутри окна - разницей");
+            k.damage = cfg.getFloat("damage", c, k.damage, 0F, 100F, "Множитель урона в бою с мобами");
+            k.windowPvp = cfg.getInt("windowTicksPvp", c, k.windowPvp, 0, 200, "То же окно в бою между игроками (если включён melee.pvp)");
+            k.damagePvp = cfg.getFloat("damagePvp", c, k.damagePvp, 0F, 100F, "Множитель урона в бою между игроками (если включён melee.pvp)");
+        }
         if (cfg.hasChanged()) {
             cfg.save();
         }

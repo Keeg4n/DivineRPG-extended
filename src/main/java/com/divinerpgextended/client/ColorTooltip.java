@@ -21,6 +21,7 @@ public class ColorTooltip {
     @SubscribeEvent
     public void onTooltip(ItemTooltipEvent e) {
         if (e.itemStack == null) return;
+        melee(e);
         ColorGear.Hue h = ColorGear.hue(e.itemStack);
         if (h != null) {
             String kind = ColorGear.isWeapon(e.itemStack) ? "weapon" : "armor";
@@ -54,6 +55,21 @@ public class ColorTooltip {
             || it == net.divinerpg.utils.items.VanillaItemsArmor.netheriteLegs || it == net.divinerpg.utils.items.VanillaItemsArmor.netheriteBoots)
             e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.heatproof_vs_king"));
         if (blastArmor(it)) e.toolTip.add(EnumChatFormatting.DARK_RED + StatCollector.translateToLocal("dre.tooltip.blast_after_watcher"));
+    }
+
+    /** Подвид оружия обычного мира: числа сервера. Меч с обычными числами - без строки, у него ничего не меняется. */
+    private static void melee(ItemTooltipEvent e) {
+        com.divinerpgextended.perk.MeleeRoles.Sync s = com.divinerpgextended.perk.MeleeRoles.shown;
+        com.divinerpgextended.perk.MeleeRoles.Kind k = s != null && s.on ? com.divinerpgextended.perk.MeleeRoles.kind(e.itemStack) : null;
+        if (k == null) return;
+        int i = k.ordinal();
+        boolean plain = s.window[i] == com.divinerpgextended.perk.MeleeRoles.VANILLA_WINDOW && s.damage[i] == 1F;
+        boolean plainPvp = !s.pvp || s.windowPvp[i] == com.divinerpgextended.perk.MeleeRoles.VANILLA_WINDOW && s.damagePvp[i] == 1F;
+        if (plain && plainPvp) return;
+        java.text.DecimalFormat f = new java.text.DecimalFormat("0.##");
+        e.toolTip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("dre.tooltip.melee", StatCollector.translateToLocal("dre.tooltip.melee." + k.key()),
+            f.format(s.window[i] / 20F), f.format(s.damage[i])));
+        if (s.pvp) e.toolTip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("dre.tooltip.melee_pvp", f.format(s.windowPvp[i] / 20F), f.format(s.damagePvp[i])));
     }
 
     /** Броня, полный сет которой защищает от взрывов (Bedrock и Ender любых цветов). */

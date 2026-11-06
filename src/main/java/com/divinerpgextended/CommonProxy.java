@@ -56,6 +56,7 @@ public class CommonProxy {
         com.divinerpgextended.trinket.DoubleJump.register();
         com.divinerpgextended.boss.EnderGear.register();
         com.divinerpgextended.perk.RangedRoles.registerMessages();
+        com.divinerpgextended.perk.MeleeRoles.registerMessages();
         com.divinerpgextended.perk.AmmoLoad.register();
         com.divinerpgextended.debug.Debug.register();
     }
@@ -105,6 +106,9 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.ArenaCalm());
         com.divinerpgextended.perk.RangedRoles ranged = new com.divinerpgextended.perk.RangedRoles();
         MinecraftForge.EVENT_BUS.register(ranged);
+        com.divinerpgextended.perk.MeleeRoles meleeRoles = new com.divinerpgextended.perk.MeleeRoles();
+        MinecraftForge.EVENT_BUS.register(meleeRoles);
+        FMLCommonHandler.instance().bus().register(meleeRoles);
         com.divinerpgextended.world.twilight.TwilightCrafts.RailDrops rails = new com.divinerpgextended.world.twilight.TwilightCrafts.RailDrops();
         MinecraftForge.EVENT_BUS.register(rails);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.EnderGear());
@@ -440,6 +444,7 @@ public class CommonProxy {
         com.divinerpgextended.world.twilight.TwilightCrafts.postInit();
         com.divinerpgextended.perk.RangedRoles.setupDust();
         com.divinerpgextended.perk.ColorGear.setup();
+        com.divinerpgextended.perk.MeleeRoles.setup();
         // Divine при входе игрока проверяет обновления сетевым запросом в потоке сервера без таймаута: нет ответа - сервер стоит
         try {
             net.divinerpg.utils.config.ConfigurationHelper.class.getField("updateChecker").setBoolean(null, false);

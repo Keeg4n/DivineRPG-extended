@@ -182,7 +182,8 @@ public class ColorGear {
         inWave = true;
         try {
             for (EntityLivingBase o : l) {
-                if (o == center || o == p || o instanceof EntityPlayer || !o.isEntityAlive() || o.getDistanceToEntity(center) > WAVE_R + 1) continue;
+                // манекен: цель удара - его призрак, волна по самому манекену посчитала бы один удар дважды и сбила окно
+                if (o == center || o == p || o instanceof EntityPlayer || o instanceof com.divinerpgextended.dummy.EntityTrainingDummy || !o.isEntityAlive() || o.getDistanceToEntity(center) > WAVE_R + 1) continue;
                 if (!sameKind(o, center) || Protection.spare(p, o)) continue;
                 o.hurtResistantTime = 0;
                 double mx = o.motionX, my = o.motionY, mz = o.motionZ;

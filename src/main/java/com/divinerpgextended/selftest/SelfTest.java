@@ -4440,6 +4440,171 @@ public class SelfTest {
                 + ", алмазной не ломаются " + diamondStuck + ", выпадают " + drops + (bad.length() > 0 ? " (нет дропа: " + bad + ")" : "") + ", портал не тронут " + portalSafe);
             return "неломаемых блоков Арканы (кроме спавнеров) " + other + ": все ломаются только арканитовой киркой и выпадают; портал не тронут";
         });
+        t("Прохождение", "Подвиды оружия обычного мира: окно неуязвимости и урон", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            loadAround(w, sx + 200, sz, 1);
+            double px = sx + 200.5, pz = sz + 0.5;
+            TestPlayer a = join(player(0, "TestMeleeA", px, sy, pz), true), foe = join(player(0, "TestMeleeB", px + 1, sy, pz), true);
+            net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w);
+            z.setLocationAndAngles(px + 1, sy, pz, 0, 0);
+            w.spawnEntityInWorld(z);
+            z.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(100000);
+            foe.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(100000);
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            com.divinerpgextended.perk.MeleeRoles.setup();
+            // настоящий удар: те же атрибуты, что на тике игрока, окно - сколько тиков цель не берёт следующий такой же удар
+            java.util.function.BiFunction<net.minecraft.entity.EntityLivingBase, Item, float[]> strike = (v, it) -> {
+                ItemStack held = new ItemStack(it);
+                hold(a, held);
+                a.getAttributeMap().applyAttributeModifiers(held.getAttributeModifiers());
+                v.hurtResistantTime = 0;
+                v.setHealth(v.getMaxHealth());
+                a.fallDistance = 0;
+                a.attackTargetEntityWithCurrentItem(v);
+                float dmg = v.getMaxHealth() - v.getHealth(), after = v.hurtResistantTime;
+                int ticks = 0;
+                for (int t = 1; t <= 60 && ticks == 0; t++) {
+                    v.hurtResistantTime--;
+                    float hp = v.getHealth();
+                    a.fallDistance = 0;
+                    a.attackTargetEntityWithCurrentItem(v);
+                    if (v.getHealth() < hp) ticks = t;
+                }
+                a.getAttributeMap().removeAttributeModifiers(held.getAttributeModifiers());
+                v.setHealth(v.getMaxHealth());
+                v.motionX = v.motionY = v.motionZ = 0;
+                return new float[] { dmg, after, ticks };
+            };
+            Item knife = net.divinerpg.utils.items.VanillaItemsWeapons.oceanKnife, sameAsKnife = net.divinerpg.utils.items.VanillaItemsWeapons.sharkSword;
+            Item rapier = net.divinerpg.utils.items.VanillaItemsWeapons.rupeeSword, sameAsRapier = net.divinerpg.utils.items.VanillaItemsWeapons.deathBringer;
+            Item maul = net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothMaul, sword = net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothSword;
+            // по мобу: окна 6 / 8 / 10 / 20, урон x0.75, x0.9, x1, x2 (урон 14 и 14, 12 и 12, кувалда 18 против меча 15)
+            float[] kn = strike.apply(z, knife), kb = strike.apply(z, sameAsKnife), r = strike.apply(z, rapier), rb = strike.apply(z, sameAsRapier), m = strike.apply(z, maul), s = strike.apply(z, sword);
+            boolean mobs = kn[2] == 6 && r[2] == 8 && kb[2] == 10 && s[2] == 10 && m[2] == 20 && kn[1] == 16 && r[1] == 18 && s[1] == 20 && m[1] == 30
+                && Math.abs(kn[0] / kb[0] - 0.75F) < 0.01 && Math.abs(r[0] / rb[0] - 0.9F) < 0.01 && Math.abs(m[0] / s[0] - 2.4F) < 0.01;
+            ok &= mobs;
+            rep.append("моб: нож ").append(f(kn[0])).append(" окно ").append((int) kn[2]).append(" (меч с тем же уроном ").append(f(kb[0])).append(", окно ").append((int) kb[2])
+                .append("); рапира ").append(f(r[0])).append(" окно ").append((int) r[2]).append(" (меч ").append(f(rb[0])).append("); кувалда ").append(f(m[0])).append(" окно ").append((int) m[2])
+                .append(" (меч ").append(f(s[0])).append(" окно ").append((int) s[2]).append(")");
+            // оружие других миров и не оружие - как в обычном Minecraft
+            float[] other = strike.apply(z, net.divinerpg.utils.items.TwilightItemsWeapons.edenBlade), dia = strike.apply(z, Items.diamond_sword);
+            boolean foreign = other[1] == 20 && other[2] == 10 && dia[1] == 20 && dia[2] == 10 && com.divinerpgextended.perk.MeleeRoles.kind(new ItemStack(Items.diamond_sword)) == null
+                && com.divinerpgextended.perk.MeleeRoles.kind(new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlade)) == null;
+            ok &= foreign;
+            rep.append("; других миров окно ").append((int) other[2]).append(", алмазный ").append((int) dia[2]);
+            // сильный удар внутри окна проходит разницей и окно не продлевает
+            ItemStack ik = new ItemStack(knife);
+            hold(a, ik);
+            a.getAttributeMap().applyAttributeModifiers(ik.getAttributeModifiers());
+            z.hurtResistantTime = 16;
+            float hpIn = z.getHealth();
+            ReflectionHelper.setPrivateValue(net.minecraft.entity.EntityLivingBase.class, z, 1F, "lastDamage", "field_110153_bc");
+            a.fallDistance = 0;
+            a.attackTargetEntityWithCurrentItem(z);
+            a.getAttributeMap().removeAttributeModifiers(ik.getAttributeModifiers());
+            boolean inside = z.getHealth() < hpIn && z.hurtResistantTime == 16;
+            ok &= inside;
+            rep.append("; разницей внутри окна ").append(f(hpIn - z.getHealth())).append(", окно ").append(z.hurtResistantTime);
+            // по игроку: без настройки - обычно; с настройкой - свои числа; в привате без PvP - обычно
+            armor(foe, null, null, null, null);
+            float[] kOff = strike.apply(foe, knife), mOff = strike.apply(foe, maul);
+            boolean off = kOff[1] == 20 && kOff[2] == 10 && mOff[1] == 20 && mOff[2] == 10 && Math.abs(mOff[0] / kOff[0] - 18F / 14F) < 0.01;
+            com.divinerpgextended.Config.meleeRolesPvp = true;
+            float[] kOn, mOn, kPriv;
+            try {
+                kOn = strike.apply(foe, knife);
+                mOn = strike.apply(foe, maul);
+                com.divinerpgextended.perk.Protection.testNoPvp = true;
+                kPriv = strike.apply(foe, knife);
+            } finally {
+                com.divinerpgextended.perk.Protection.testNoPvp = false;
+                com.divinerpgextended.Config.meleeRolesPvp = false;
+            }
+            boolean on = kOn[1] == 18 && kOn[2] == 8 && Math.abs(kOn[0] / kOff[0] - 1F) < 0.01 && mOn[1] == 30 && mOn[2] == 20 && Math.abs(mOn[0] / mOff[0] - 1.5F) < 0.01 && kPriv[1] == 20 && kPriv[2] == 10;
+            ok &= off && on;
+            rep.append("; игрок выкл: нож ").append(f(kOff[0])).append(" окно ").append((int) kOff[2]).append(", кувалда ").append(f(mOff[0])).append(" окно ").append((int) mOff[2]).append("; вкл: нож ")
+                .append(f(kOn[0])).append(" окно ").append((int) kOn[2]).append(", кувалда ").append(f(mOn[0])).append(" окно ").append((int) mOn[2]).append("; приват: окно ").append((int) kPriv[2]);
+            // главный выключатель: всё как в обычном Minecraft, и числа подвида читаются из настройки
+            com.divinerpgextended.Config.meleeRoles = false;
+            float[] kDis;
+            try {
+                kDis = strike.apply(z, knife);
+            } finally {
+                com.divinerpgextended.Config.meleeRoles = true;
+            }
+            int was = com.divinerpgextended.perk.MeleeRoles.Kind.KNIFE.window;
+            com.divinerpgextended.perk.MeleeRoles.Kind.KNIFE.window = 3;
+            float[] kCfg;
+            try {
+                kCfg = strike.apply(z, knife);
+            } finally {
+                com.divinerpgextended.perk.MeleeRoles.Kind.KNIFE.window = was;
+            }
+            boolean toggles = kDis[1] == 20 && kDis[2] == 10 && Math.abs(kDis[0] / kb[0] - 1F) < 0.01 && kCfg[2] == 3;
+            ok &= toggles;
+            rep.append("; выключено: окно ").append((int) kDis[2]).append(", урон ").append(f(kDis[0])).append("; окно из настройки ").append((int) kCfg[2]);
+            // волна бедроковой булавы: сосед получает 40% удара x2, окно у него обычное (правило - только на цель)
+            net.minecraft.entity.monster.EntityZombie near = new net.minecraft.entity.monster.EntityZombie(w);
+            near.setLocationAndAngles(px + 2.5, sy, pz, 0, 0);
+            w.spawnEntityInWorld(near);
+            near.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(100000);
+            near.setHealth(near.getMaxHealth());
+            ItemStack bm = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.bedrockMaul);
+            hold(a, bm);
+            a.getAttributeMap().applyAttributeModifiers(bm.getAttributeModifiers());
+            z.hurtResistantTime = 0;
+            z.setHealth(z.getMaxHealth());
+            a.fallDistance = 0;
+            a.attackTargetEntityWithCurrentItem(z);
+            a.getAttributeMap().removeAttributeModifiers(bm.getAttributeModifiers());
+            float mainHit = z.getMaxHealth() - z.getHealth(), waveHit = near.getMaxHealth() - near.getHealth();
+            boolean wave = z.hurtResistantTime == 30 && near.hurtResistantTime == 20 && Math.abs(waveHit / mainHit - 0.4F) < 0.02;
+            ok &= wave;
+            rep.append("; волна: цель ").append(f(mainHit)).append(" окно ").append(z.hurtResistantTime).append(", сосед ").append(f(waveHit)).append(" окно ").append(near.hurtResistantTime);
+            // стрела при кувалде в руке: правила подвида только на удар в ближнем бою
+            hold(a, new ItemStack(maul));
+            z.hurtResistantTime = 0;
+            z.setHealth(z.getMaxHealth());
+            net.minecraft.entity.projectile.EntityArrow arrow = new net.minecraft.entity.projectile.EntityArrow(w, a, 1F);
+            z.attackEntityFrom(DamageSource.causeArrowDamage(arrow, a), 10F);
+            float arrowHit = z.getMaxHealth() - z.getHealth();
+            boolean shot = z.hurtResistantTime == 20 && arrowHit < 10F;
+            ok &= shot;
+            rep.append("; стрела ").append(f(arrowHit)).append(" окно ").append(z.hurtResistantTime);
+            // манекен считается как моб, окно живёт на нём самом
+            com.divinerpgextended.dummy.EntityTrainingDummy d = new com.divinerpgextended.dummy.EntityTrainingDummy(w);
+            d.setPosition(px - 2, sy, pz);
+            d.copy(a);
+            d.setPlacer(a);
+            w.spawnEntityInWorld(d);
+            ItemStack dk = new ItemStack(knife);
+            hold(a, dk);
+            a.getAttributeMap().applyAttributeModifiers(dk.getAttributeModifiers());
+            a.fallDistance = 0;
+            a.attackTargetEntityWithCurrentItem(d);
+            float dummyHit = d.lastHit();
+            int dummyWindow = d.hurtResistantTime;
+            a.getAttributeMap().removeAttributeModifiers(dk.getAttributeModifiers());
+            // бедроковая булава по манекену: один удар x2, волна сам манекен не задевает
+            d.copy(a);
+            ItemStack db = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.bedrockMaul);
+            hold(a, db);
+            a.getAttributeMap().applyAttributeModifiers(db.getAttributeModifiers());
+            a.fallDistance = 0;
+            a.attackTargetEntityWithCurrentItem(d);
+            a.getAttributeMap().removeAttributeModifiers(db.getAttributeModifiers());
+            float dummyMaul = d.lastHit();
+            boolean dummy = dummyWindow == 16 && Math.abs(dummyHit - 14F * 0.75F) < 0.01 && d.hurtResistantTime == 30 && Math.abs(dummyMaul - 28F) < 0.01;
+            ok &= dummy;
+            rep.append("; манекен: нож ").append(f(dummyHit)).append(" окно ").append(dummyWindow).append(", бедроковая булава ").append(f(dummyMaul)).append(" окно ").append(d.hurtResistantTime);
+            d.setDead();
+            near.setDead();
+            z.setDead();
+            hold(a, null);
+            check(ok, rep.toString());
+            return rep.toString();
+        });
         t("Прохождение", "Чужие копатели не берут блоки с правилами добычи", () -> {
             check(com.divinerpgextended.asm.MiningGuardTransformer.patched, "ForgeHooks.blockStrength не исправлен при загрузке");
             int x = 21500, y = 150, z = 21500;
