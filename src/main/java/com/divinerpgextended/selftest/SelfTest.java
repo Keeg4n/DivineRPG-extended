@@ -63,6 +63,7 @@ import net.minecraftforge.event.entity.player.PlayerUseItemEvent;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.ExplosionEvent;
 
+import com.divinerpgextended.perk.Perk;
 import com.divinerpgextended.Config;
 import com.divinerpgextended.accessory.Accessories;
 import com.divinerpgextended.accessory.Sockets;
@@ -313,6 +314,29 @@ public class SelfTest {
         p.inventory.armorInventory[2] = body == null ? null : new ItemStack(body);
         p.inventory.armorInventory[1] = legs == null ? null : new ItemStack(legs);
         p.inventory.armorInventory[0] = boots == null ? null : new ItemStack(boots);
+    }
+
+    /** Полный сет Странника R1 с ядром (null - старая броня без записи) и перками: слоты игрока 0 ботинки ... 3 шлем. */
+    private static void wearCore(EntityPlayer p, com.divinerpgextended.item.ArmorCore core, Perk... perks) {
+        for (int type = 0; type < 4; type++) {
+            ItemStack s = new ItemStack(ModItems.wanderer[type]);
+            com.divinerpgextended.item.ArmorData.setTier(s, 1);
+            if (core != null) com.divinerpgextended.item.ArmorData.setCore(s, core);
+            if (perks.length > 0) com.divinerpgextended.item.ArmorData.setPerks(s, java.util.Arrays.asList(perks));
+            p.inventory.armorInventory[3 - type] = s;
+        }
+    }
+
+    /** Сколько урона останется после событий, без самого удара. */
+    private static float hurtBy(net.minecraft.entity.EntityLivingBase victim, DamageSource src, float amount) {
+        net.minecraftforge.event.entity.living.LivingHurtEvent ev = new net.minecraftforge.event.entity.living.LivingHurtEvent(victim, src, amount);
+        MinecraftForge.EVENT_BUS.post(ev);
+        return ev.isCanceled() ? 0F : ev.ammount;
+    }
+
+    /** Отменён ли удар ещё до расчёта урона. */
+    private static boolean blocked(net.minecraft.entity.EntityLivingBase victim, DamageSource src) {
+        return MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(victim, src, 5F));
     }
 
     private static void hold(EntityPlayer p, ItemStack s) {
@@ -935,11 +959,13 @@ public class SelfTest {
             StringBuilder bad = new StringBuilder();
             String root = "/assets/divinerpgextended/";
             String[] parts = { "helmet", "chest", "legs", "boots" };
-            for (int t = 1; t <= com.divinerpgextended.item.ItemWandererArmor.LOOKS; t++) {
+            int looks = com.divinerpgextended.item.ItemWandererArmor.LOOKS;
+            for (int t = 1; t <= com.divinerpgextended.item.ItemWandererArmor.LOOK_COUNT; t++) {
+                String name = com.divinerpgextended.item.ItemWandererArmor.lookName(t);
                 java.util.Map<String, Integer> quads = new java.util.HashMap<String, Integer>();
-                java.io.InputStream mesh = SelfTest.class.getResourceAsStream(root + "models/wanderer/r" + t + ".mesh");
+                java.io.InputStream mesh = SelfTest.class.getResourceAsStream(root + "models/wanderer/" + name + ".mesh");
                 if (mesh == null) {
-                    bad.append(" R").append(t).append(": нет меша;");
+                    bad.append(' ').append(name).append(": нет меша;");
                     continue;
                 }
                 java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(mesh, "UTF-8"));
@@ -950,18 +976,178 @@ public class SelfTest {
                 }
                 br.close();
                 for (int a = 0; a < 4; a++) {
-                    if (!quads.containsKey(parts[a]) || quads.get(parts[a]) < 6) bad.append(" R").append(t).append(": мало граней ").append(parts[a]).append(';');
-                    if (SelfTest.class.getResource(root + "textures/items/wanderer/r" + t + "_" + parts[a] + ".png") == null)
-                        bad.append(" R").append(t).append(": нет значка ").append(parts[a]).append(';');
+                    if (!quads.containsKey(parts[a]) || quads.get(parts[a]) < 6) bad.append(' ').append(name).append(": мало граней ").append(parts[a]).append(';');
+                    if (SelfTest.class.getResource(root + "textures/items/wanderer/" + name + "_" + parts[a] + ".png") == null)
+                        bad.append(' ').append(name).append(": нет значка ").append(parts[a]).append(';');
                     ItemStack piece = new ItemStack(ModItems.wanderer[a]);
-                    com.divinerpgextended.item.ArmorData.setTier(piece, t);
+                    com.divinerpgextended.item.ArmorData.setTier(piece, t <= looks ? t : 1);
+                    if (t > looks) com.divinerpgextended.item.ArmorData.setCore(piece, com.divinerpgextended.item.ArmorCore.values()[t - looks]);
                     String skin = piece.getItem().getArmorTexture(piece, p, a, null);
-                    if (!com.divinerpgextended.item.ItemWandererArmor.lookTexture(t).equals(skin)) bad.append(" R").append(t).append(": скин ").append(skin).append(';');
+                    if (!com.divinerpgextended.item.ItemWandererArmor.lookTexture(t).equals(skin)) bad.append(' ').append(name).append(": скин ").append(skin).append(';');
                 }
-                if (SelfTest.class.getResource(root + "textures/models/wanderer/r" + t + ".png") == null) bad.append(" R").append(t).append(": нет атласа;");
+                if (SelfTest.class.getResource(root + "textures/models/wanderer/" + name + ".png") == null) bad.append(' ').append(name).append(": нет атласа;");
             }
             check(bad.length() == 0, bad.toString());
-            return "R1-R" + com.divinerpgextended.item.ItemWandererArmor.LOOKS + ": меш с шлемом, нагрудником, поножами и ботинками, атлас, значки частей, скин своей ступени";
+            return "R1-R" + looks + " и R1 по ядрам: меш с шлемом, нагрудником, поножами и ботинками, атлас, значки частей, свой скин";
+        });
+        t("Броня", "Вилка R1: ковка из финальных сетов, плата божественными камнями, смена ядра", () -> {
+            reset(p);
+            com.divinerpgextended.station.AnvilWork an = new com.divinerpgextended.station.AnvilWork();
+            Item stone = VanillaItemsOther.divineStone;
+            com.divinerpgextended.item.ArmorCore[] cores = { com.divinerpgextended.item.ArmorCore.SHADOW, com.divinerpgextended.item.ArmorCore.BEDROCK, com.divinerpgextended.item.ArmorCore.ENDER,
+                com.divinerpgextended.item.ArmorCore.CORRUPTED };
+            Item[][] sets = { { VanillaItemsArmor.shadowHelmet, VanillaItemsArmor.shadowBody, VanillaItemsArmor.shadowLegs, VanillaItemsArmor.shadowBoots },
+                { VanillaItemsArmor.bedrockHelmet, VanillaItemsArmor.bedrockBody, VanillaItemsArmor.bedrockLegs, VanillaItemsArmor.bedrockBoots },
+                { VanillaItemsArmor.redEnderHelmet, VanillaItemsArmor.blueEnderBody, VanillaItemsArmor.enderLegs, VanillaItemsArmor.grayEnderBoots },
+                { VanillaItemsArmor.corruptedHelmet, VanillaItemsArmor.corruptedBody, VanillaItemsArmor.corruptedLegs, VanillaItemsArmor.corruptedBoots } };
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            for (int c = 0; c < 4; c++) {
+                for (int i = 0; i < AnvilLogic.SIZE; i++) an.setInventorySlotContents(i, null);
+                for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.ARMOR + i, new ItemStack(sets[c][i]));
+                int need = cores[c].fuelCount();
+                AnvilLogic.Result none = AnvilLogic.evaluate(an, p);
+                an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(VanillaItemsOther.realmiteIngot, 64));
+                AnvilLogic.Status wrong = AnvilLogic.evaluate(an, p).status;
+                an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(stone, need - 1));
+                AnvilLogic.Status few = AnvilLogic.evaluate(an, p).status;
+                an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(stone, need + 3));
+                AnvilLogic.Result ready = AnvilLogic.evaluate(an, p);
+                boolean up = AnvilLogic.execute(an, p);
+                boolean made = true;
+                for (int i = 0; i < 4; i++) {
+                    ItemStack st = an.getStackInSlot(AnvilLogic.ARMOR + i);
+                    made &= st != null && st.getItem() instanceof com.divinerpgextended.item.ItemWandererArmor && com.divinerpgextended.item.ArmorData.tier(st) == 1 && com.divinerpgextended.item.ArmorData.core(st) == cores[c]
+                        && com.divinerpgextended.item.ItemWandererArmor.lookTexture(com.divinerpgextended.item.ItemWandererArmor.LOOKS + cores[c].ordinal()).equals(st.getItem().getArmorTexture(st, p, i, null));
+                }
+                ItemStack left = an.getStackInSlot(AnvilLogic.FUEL);
+                armor(p, sets[c][0], sets[c][1], sets[c][2], sets[c][3]);
+                int rank = com.divinerpgextended.item.ArmorData.effectiveTier(p);
+                boolean one = none.status == AnvilLogic.Status.NEED_FUEL && none.param == need && none.fuel == stone && wrong == AnvilLogic.Status.NEED_FUEL && few == AnvilLogic.Status.NEED_FUEL
+                    && ready.status == AnvilLogic.Status.READY_UPGRADE && ready.param == 1 && up && made && left != null && left.stackSize == 3 && rank == 1;
+                ok &= one;
+                rep.append(cores[c]).append(": плата ").append(need).append(", без топлива ").append(none.status).append(", реалмит ").append(wrong).append(", мало ").append(few).append(", готово ").append(ready.status)
+                    .append(", сковано ").append(made).append(", осталось камней ").append(left == null ? 0 : left.stackSize).append(", для боссов R").append(rank).append("; ");
+            }
+            // не финальные сеты и смесь разных - нет; Terran для боссов R0, плата настраивается
+            armor(p, VanillaItemsArmor.terranHelmet, VanillaItemsArmor.terranBody, VanillaItemsArmor.terranLegs, VanillaItemsArmor.terranBoots);
+            int terranRank = com.divinerpgextended.item.ArmorData.effectiveTier(p);
+            armor(p, null, null, null, null);
+            for (int i = 0; i < AnvilLogic.SIZE; i++) an.setInventorySlotContents(i, null);
+            Item[] mixed = { VanillaItemsArmor.shadowHelmet, VanillaItemsArmor.bedrockBody, VanillaItemsArmor.bedrockLegs, VanillaItemsArmor.bedrockBoots };
+            for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.ARMOR + i, new ItemStack(mixed[i]));
+            an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(stone, 64));
+            AnvilLogic.Status mix = AnvilLogic.evaluate(an, p, AnvilLogic.UPGRADE).status;
+            ok &= terranRank == 0 && mix == AnvilLogic.Status.BAD_ARMOR;
+            rep.append("Terran для боссов R").append(terranRank).append(", смесь сетов ").append(mix).append("; ");
+            // закалка не трогает ядро; R2 - общий облик
+            for (int i = 0; i < AnvilLogic.SIZE; i++) an.setInventorySlotContents(i, null);
+            ItemStack[] w = new ItemStack[4];
+            for (int i = 0; i < 4; i++) {
+                w[i] = new ItemStack(ModItems.wanderer[i]);
+                com.divinerpgextended.item.ArmorData.setTier(w[i], 1);
+                com.divinerpgextended.item.ArmorData.setCore(w[i], com.divinerpgextended.item.ArmorCore.SHADOW);
+                an.setInventorySlotContents(AnvilLogic.ARMOR + i, w[i]);
+            }
+            com.divinerpgextended.world.ArmorTier next = com.divinerpgextended.world.ArmorTier.next(1);
+            Item[] nextSet = next.donorSet();
+            for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.DONOR + i, new ItemStack(nextSet[i]));
+            an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(next.fuel(), 64));
+            BossProgress.grant(p, next.boss);
+            boolean temper = AnvilLogic.execute(an, p);
+            ItemStack temperedHelm = an.getStackInSlot(AnvilLogic.ARMOR);
+            boolean kept = temper && com.divinerpgextended.item.ArmorData.tier(temperedHelm) == 2 && com.divinerpgextended.item.ArmorData.core(temperedHelm) == com.divinerpgextended.item.ArmorCore.SHADOW
+                && com.divinerpgextended.item.ItemWandererArmor.lookTexture(2).equals(temperedHelm.getItem().getArmorTexture(temperedHelm, p, 0, null));
+            ok &= kept;
+            // смена ядра: тот же сет с арлемитом - перк, с камнями - ядро; божественное - за реалмит; разное ядро в частях - нельзя
+            Item[] rock = sets[1];
+            for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.DONOR + i, new ItemStack(rock[i]));
+            an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(VanillaItemsOther.arlemiteIngot, 64));
+            BossProgress.grant(p, Boss.KING_OF_SCORCHERS);
+            AnvilLogic.Result perkWay = AnvilLogic.evaluate(an, p);
+            an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(stone, 11));
+            AnvilLogic.Result fewStones = AnvilLogic.evaluate(an, p);
+            an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(stone, 12));
+            AnvilLogic.Result coreWay = AnvilLogic.evaluate(an, p);
+            boolean swapped = AnvilLogic.execute(an, p);
+            boolean swapDone = swapped && com.divinerpgextended.item.ArmorData.core(an.getStackInSlot(AnvilLogic.ARMOR + 3)) == com.divinerpgextended.item.ArmorCore.BEDROCK && an.getStackInSlot(AnvilLogic.FUEL) == null && an.getStackInSlot(AnvilLogic.DONOR) == null
+                && com.divinerpgextended.item.ArmorData.tier(an.getStackInSlot(AnvilLogic.ARMOR)) == 2;
+            Item[] dv = { VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots };
+            for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.DONOR + i, new ItemStack(dv[i]));
+            AnvilLogic.Result backNoFuel = AnvilLogic.evaluate(an, p);
+            com.divinerpgextended.item.ArmorData.setCore(an.getStackInSlot(AnvilLogic.ARMOR + 1), com.divinerpgextended.item.ArmorCore.ENDER);
+            AnvilLogic.Status differ = AnvilLogic.evaluate(an, p).status;
+            ok &= perkWay.status == AnvilLogic.Status.READY_PERK && perkWay.param == Perk.FIRE_PROTECTION.ordinal() && fewStones.status == AnvilLogic.Status.NEED_FUEL && fewStones.param == 12
+                && coreWay.status == AnvilLogic.Status.READY_CORE && coreWay.param == com.divinerpgextended.item.ArmorCore.BEDROCK.ordinal() && swapDone
+                && backNoFuel.status == AnvilLogic.Status.NEED_FUEL && backNoFuel.fuel == VanillaItemsOther.realmiteIngot && differ == AnvilLogic.Status.BAD_ARMOR;
+            rep.append("закалка сохранила ядро ").append(kept).append("; бедрок с арлемитом ").append(perkWay.status).append(", 11 камней ").append(fewStones.status).append(", 12 камней ").append(coreWay.status).append(", сменено ").append(swapDone)
+                .append("; божественный без топлива ").append(backNoFuel.status).append("; разное ядро в частях ").append(differ);
+            // новые перки по сетам
+            Item[] rupeeRed = { VanillaItemsArmor.redRupeeHelmet, VanillaItemsArmor.redRupeeBody, VanillaItemsArmor.redRupeeLegs, VanillaItemsArmor.redRupeeBoots };
+            Item[] terran = { VanillaItemsArmor.terranHelmet, VanillaItemsArmor.terranBody, VanillaItemsArmor.terranLegs, VanillaItemsArmor.terranBoots };
+            Item[] arl = { VanillaItemsArmor.arlemiteHelmet, VanillaItemsArmor.arlemiteBody, VanillaItemsArmor.arlemiteLegs, VanillaItemsArmor.arlemiteBoots };
+            boolean donors = Perk.byDonor(sets[0]) == Perk.SWIFTNESS && Perk.byDonor(sets[3]) == Perk.MARKSMAN && Perk.byDonor(terran) == Perk.MINING_HASTE && Perk.byDonor(arl) == Perk.ARROW_GUARD && Perk.byDonor(rupeeRed) == Perk.BLOW_GUARD;
+            ok &= donors;
+            rep.append("; доноры новых перков ").append(donors);
+            reset(p);
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+        t("Броня", "Вилка R1: свойства ядер и новых перков", () -> {
+            reset(p);
+            WorldServer w = (WorldServer) p.worldObj;
+            net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w);
+            net.minecraft.entity.projectile.EntityArrow myArrow = new net.minecraft.entity.projectile.EntityArrow(w, p, 1F), itsArrow = new net.minecraft.entity.projectile.EntityArrow(w, z, 1F);
+            com.divinerpgextended.perk.PerkEffects perkFx = new com.divinerpgextended.perk.PerkEffects();
+            StringBuilder rep = new StringBuilder();
+            // удар рукой и выстрел: +6 у божественного ядра (старая броня без записи - оно же), x1.2 у порчи
+            wearCore(p, null);
+            float divine = hurtBy(z, DamageSource.causePlayerDamage(p), 10F), divineShot = hurtBy(z, DamageSource.causeArrowDamage(myArrow, p), 10F);
+            wearCore(p, com.divinerpgextended.item.ArmorCore.CORRUPTED);
+            float rotHit = hurtBy(z, DamageSource.causePlayerDamage(p), 10F), rotShot = hurtBy(z, DamageSource.causeArrowDamage(myArrow, p), 10F);
+            boolean damage = near(divine, 16F) && near(divineShot, 10F) && near(rotHit, 10F) && near(rotShot, 12F);
+            rep.append("божественное: рукой ").append(f(divine)).append(", выстрел ").append(f(divineShot)).append("; порча: рукой ").append(f(rotHit)).append(", выстрел ").append(f(rotShot));
+            // огонь и взрывы: бедрок - огонь всегда, взрывы после Смотрителя; Энд - только взрывы; Тень - ничего
+            DamageSource boom = DamageSource.setExplosionSource(null);
+            wearCore(p, com.divinerpgextended.item.ArmorCore.BEDROCK);
+            boolean rockFire = blocked(p, DamageSource.inFire), rockEarly = blocked(p, boom);
+            wearCore(p, com.divinerpgextended.item.ArmorCore.ENDER);
+            boolean enderEarly = blocked(p, boom), enderFire = blocked(p, DamageSource.inFire), enderStep = com.divinerpgextended.boss.EnderColors.fullSet(p);
+            BossProgress.grant(p, Boss.WATCHER);
+            boolean enderLate = blocked(p, boom);
+            wearCore(p, com.divinerpgextended.item.ArmorCore.BEDROCK);
+            boolean rockLate = blocked(p, boom), rockStep = com.divinerpgextended.boss.EnderColors.fullSet(p);
+            wearCore(p, com.divinerpgextended.item.ArmorCore.SHADOW);
+            boolean shadowBoom = blocked(p, boom), shadowFire = blocked(p, DamageSource.inFire);
+            boolean shields = rockFire && !rockEarly && !enderEarly && !enderFire && enderStep && enderLate && rockLate && !rockStep && !shadowBoom && !shadowFire;
+            rep.append("; бедрок: огонь ").append(rockFire).append(", взрыв до Смотрителя ").append(rockEarly).append(", после ").append(rockLate).append("; Энд: огонь ").append(enderFire).append(", взрыв до ").append(enderEarly).append(", после ").append(enderLate).append(", шаг ").append(enderStep);
+            // скорость: через настоящую шину, сразу за записью Divine; снял - обычная
+            FMLCommonHandler.instance().bus().post(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, p));
+            float fast = p.capabilities.getWalkSpeed();
+            wearCore(p, com.divinerpgextended.item.ArmorCore.DIVINE, Perk.SWIFTNESS);
+            FMLCommonHandler.instance().bus().post(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, p));
+            float swift = p.capabilities.getWalkSpeed();
+            wearCore(p, com.divinerpgextended.item.ArmorCore.SHADOW, Perk.SWIFTNESS);
+            FMLCommonHandler.instance().bus().post(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, p));
+            float both = p.capabilities.getWalkSpeed();
+            armor(p, null, null, null, null);
+            FMLCommonHandler.instance().bus().post(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, p));
+            float plain = p.capabilities.getWalkSpeed();
+            boolean speed = Math.abs(fast - 0.3F) < 0.001 && Math.abs(swift - 0.125F) < 0.001 && Math.abs(both - 0.3F) < 0.001 && Math.abs(plain - 0.1F) < 0.001;
+            rep.append("; скорость: ядро Тени ").append(f(fast)).append(", перк ").append(swift).append(", вместе ").append(f(both)).append(", снято ").append(f(plain));
+            // перки: снаряды и удары по игроку, снаряды игрока, копание
+            wearCore(p, com.divinerpgextended.item.ArmorCore.SHADOW, Perk.ARROW_GUARD, Perk.BLOW_GUARD, Perk.MARKSMAN, Perk.MINING_HASTE);
+            float inArrow = hurtBy(p, DamageSource.causeArrowDamage(itsArrow, z), 10F), inBlow = hurtBy(p, DamageSource.causeMobDamage(z), 10F), outArrow = hurtBy(z, DamageSource.causeArrowDamage(myArrow, p), 10F);
+            p.ticksExisted = 20;
+            perkFx.onPlayerTick(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, p));
+            boolean haste = p.isPotionActive(Potion.digSpeed) && p.getActivePotionEffect(Potion.digSpeed).getAmplifier() == 1;
+            boolean perks = near(inArrow, 7.5F) && near(inBlow, 7.5F) && near(outArrow, 11F) && haste;
+            rep.append("; перки: стрела ").append(f(inArrow)).append(", удар ").append(f(inBlow)).append(", свой выстрел ").append(f(outArrow)).append(", спешка ").append(haste);
+            armor(p, null, null, null, null);
+            FMLCommonHandler.instance().bus().post(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, p));
+            reset(p);
+            check(damage && shields && speed && perks, rep.toString());
+            return rep.toString();
         });
         t("Аксессуары", "Наковальня: вкладки", () -> {
             reset(p);

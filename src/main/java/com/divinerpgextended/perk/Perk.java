@@ -75,7 +75,32 @@ public enum Perk {
     /** Ангельский полёт (сет Angelic). Открывает Леди Луна. Во сне (в Ветее) не работает. */
     ANGEL_FLIGHT(Boss.LADY_LUNA, new Item[][] {
         { VanillaItemsArmor.angelicHelmet, VanillaItemsArmor.angelicBody, VanillaItemsArmor.angelicLegs,
-            VanillaItemsArmor.angelicBoots } });
+            VanillaItemsArmor.angelicBoots } }),
+
+    /** Лёгкий шаг (сет Тени): скорость x{@link PerkEffects#SWIFT_SPEED}. */
+    SWIFTNESS(null, new Item[][] {
+        { VanillaItemsArmor.shadowHelmet, VanillaItemsArmor.shadowBody, VanillaItemsArmor.shadowLegs, VanillaItemsArmor.shadowBoots } }),
+
+    /** Рудокоп (сет Terran): Спешка II. */
+    MINING_HASTE(null, new Item[][] {
+        { VanillaItemsArmor.terranHelmet, VanillaItemsArmor.terranBody, VanillaItemsArmor.terranLegs, VanillaItemsArmor.terranBoots } }),
+
+    /** Меткость (сет порчи): снаряды сильнее. */
+    MARKSMAN(null, new Item[][] {
+        { VanillaItemsArmor.corruptedHelmet, VanillaItemsArmor.corruptedBody, VanillaItemsArmor.corruptedLegs, VanillaItemsArmor.corruptedBoots } }),
+
+    /** Отвод стрел (сет арлемита): снаряды слабее. */
+    ARROW_GUARD(null, new Item[][] {
+        { VanillaItemsArmor.arlemiteHelmet, VanillaItemsArmor.arlemiteBody, VanillaItemsArmor.arlemiteLegs, VanillaItemsArmor.arlemiteBoots } }),
+
+    /** Крепкая стойка (сет рупия любого цвета): удары мобов слабее. */
+    BLOW_GUARD(null, new Item[][] {
+        { VanillaItemsArmor.rupeeHelmet, VanillaItemsArmor.rupeeBody, VanillaItemsArmor.rupeeLegs, VanillaItemsArmor.rupeeBoots },
+        { VanillaItemsArmor.redRupeeHelmet, VanillaItemsArmor.redRupeeBody, VanillaItemsArmor.redRupeeLegs, VanillaItemsArmor.redRupeeBoots },
+        { VanillaItemsArmor.blueRupeeHelmet, VanillaItemsArmor.blueRupeeBody, VanillaItemsArmor.blueRupeeLegs, VanillaItemsArmor.blueRupeeBoots },
+        { VanillaItemsArmor.greenRupeeHelmet, VanillaItemsArmor.greenRupeeBody, VanillaItemsArmor.greenRupeeLegs, VanillaItemsArmor.greenRupeeBoots },
+        { VanillaItemsArmor.yellowRupeeHelmet, VanillaItemsArmor.yellowRupeeBody, VanillaItemsArmor.yellowRupeeLegs, VanillaItemsArmor.yellowRupeeBoots },
+        { VanillaItemsArmor.grayRupeeHelmet, VanillaItemsArmor.grayRupeeBody, VanillaItemsArmor.grayRupeeLegs, VanillaItemsArmor.grayRupeeBoots } });
 
     /** Босс, убийство которого открывает перк, или null. */
     public final Boss unlock;

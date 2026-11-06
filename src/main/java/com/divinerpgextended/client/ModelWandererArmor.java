@@ -18,7 +18,7 @@ import com.divinerpgextended.item.ItemWandererArmor;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Облик брони Странника по ступени R1-R7: меш и атлас из tools/wanderer_armor.py. Поза - как у брони игрока (кости
+ * Облик брони Странника по ступени R1-R7 и ядру первой ступени: меш и атлас из tools/wanderer_armor.py. Поза - как у брони игрока (кости
  * ModelBiped), на каждой кости - детали надетой части (helmet, chest, legs, boots), как у костюма H.E.V. Светящиеся детали
  * - вторым проходом: тот же меш с маской r&lt;N&gt;_glow.png на полной яркости.
  */
@@ -26,7 +26,7 @@ public class ModelWandererArmor extends ModelBiped {
 
     private static final String D = "divinerpgextended";
     private static final String[] PIECES = { "helmet", "chest", "legs", "boots" };
-    private static final int N = ItemWandererArmor.LOOKS;
+    private static final int N = ItemWandererArmor.LOOK_COUNT;
     private static final EasterMesh[] MESH = new EasterMesh[N + 1];
     private static final ResourceLocation[] TEX = new ResourceLocation[N + 1], GLOW = new ResourceLocation[N + 1];
     private static final Boolean[] HAS_GLOW = new Boolean[N + 1];
@@ -34,9 +34,9 @@ public class ModelWandererArmor extends ModelBiped {
 
     static {
         for (int t = 1; t <= N; t++) {
-            MESH[t] = new EasterMesh(new ResourceLocation(D, "models/wanderer/r" + t + ".mesh"));
+            MESH[t] = new EasterMesh(new ResourceLocation(D, "models/wanderer/" + ItemWandererArmor.lookName(t) + ".mesh"));
             TEX[t] = new ResourceLocation(ItemWandererArmor.lookTexture(t));
-            GLOW[t] = new ResourceLocation(D, "textures/models/wanderer/r" + t + "_glow.png");
+            GLOW[t] = new ResourceLocation(D, "textures/models/wanderer/" + ItemWandererArmor.lookName(t) + "_glow.png");
         }
     }
 
@@ -117,9 +117,9 @@ public class ModelWandererArmor extends ModelBiped {
         @SubscribeEvent
         public void onArmor(RenderPlayerEvent.SetArmorModel e) {
             if (e.stack == null || !(e.stack.getItem() instanceof ItemWandererArmor)) return;
-            int tier = ArmorData.tier(e.stack);
-            if (!ItemWandererArmor.hasLook(tier)) return;
-            ModelWandererArmor m = select(tier, ((ItemArmor) e.stack.getItem()).armorType);
+            if (!ItemWandererArmor.hasLook(ArmorData.tier(e.stack))) return;
+            int look = ItemWandererArmor.look(e.stack);
+            ModelWandererArmor m = select(look, ((ItemArmor) e.stack.getItem()).armorType);
             ModelBiped main = e.renderer.modelBipedMain;
             m.onGround = main.onGround;
             m.isRiding = main.isRiding;
@@ -128,7 +128,7 @@ public class ModelWandererArmor extends ModelBiped {
             m.heldItemRight = main.heldItemRight;
             m.isSneak = main.isSneak;
             m.aimedBow = main.aimedBow;
-            Minecraft.getMinecraft().getTextureManager().bindTexture(TEX[tier]);
+            Minecraft.getMinecraft().getTextureManager().bindTexture(TEX[look]);
             e.renderer.setRenderPassModel(m);
             e.result = e.stack.isItemEnchanted() ? 15 : 1;
         }

@@ -12,10 +12,9 @@ import net.minecraft.nbt.NBTTagString;
 import com.divinerpgextended.perk.Perk;
 import com.divinerpgextended.world.ArmorTier;
 
-import net.divinerpg.utils.items.VanillaItemsArmor;
 import net.minecraft.item.Item;
 
-/** Ступень и перки брони Странника хранятся в NBT каждой части. */
+/** Ступень, перки и ядро брони Странника хранятся в NBT каждой части. */
 public final class ArmorData {
 
     private static final String ROOT = "dre";
@@ -42,6 +41,16 @@ public final class ArmorData {
 
     public static void setTier(ItemStack stack, int tier) {
         root(stack, true).setInteger("tier", tier);
+    }
+
+    /** Ядро части: старая броня без записи - божественная. */
+    public static ArmorCore core(ItemStack stack) {
+        NBTTagCompound r = root(stack, false);
+        return r == null ? ArmorCore.DIVINE : ArmorCore.byName(r.getString("core"));
+    }
+
+    public static void setCore(ItemStack stack, ArmorCore core) {
+        root(stack, true).setString("core", core.name());
     }
 
     public static List<Perk> perks(ItemStack stack) {
@@ -79,14 +88,13 @@ public final class ArmorData {
 
     /**
      * Ступень брони игрока для боссов: сет Странника - своя ступень; полные сеты Divine считаются эквивалентом
-     * (реалмит и элитный реалмит R0, божественная R1, Eden R2 ... Halite R7); всё остальное - R0.
+     * (реалмит и элитный реалмит R0, финальные сеты обычного мира R1, Eden R2 ... Halite R7); всё остальное - R0.
      */
     public static int effectiveTier(EntityPlayer player) {
         int wanderer = equippedTier(player);
         if (wanderer > 0) return wanderer;
-        // R1 - божественная броня (её фармят, как и портал в Эдем); элитный реалмит - лишь улучшенный R0 и начало брони Странника
-        if (wearsSet(player, new Item[] { VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody,
-            VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots })) return 1;
+        // R1 - финальные сеты ({@link ArmorCore}), из них куётся Странник; элитный реалмит - лишь улучшенный R0
+        if (ArmorCore.wornSet(player) != null) return 1;
         int best = 0;
         for (ArmorTier t : ArmorTier.values()) if (wearsSet(player, t.donorSet())) best = Math.max(best, t.tier);
         return best;

@@ -98,7 +98,7 @@ public class GuiWandererAnvil extends GuiContainer {
 
     private static boolean ready(AnvilLogic.Status s) {
         return s == AnvilLogic.Status.READY_UPGRADE || s == AnvilLogic.Status.READY_PERK || s == AnvilLogic.Status.READY_SOCKET
-            || s == AnvilLogic.Status.READY_UNLOAD;
+            || s == AnvilLogic.Status.READY_UNLOAD || s == AnvilLogic.Status.READY_CORE;
     }
 
     private AnvilLogic.Status status() {
@@ -141,6 +141,8 @@ public class GuiWandererAnvil extends GuiContainer {
             case READY_SOCKET:
             case NEED_LEVELS:
                 return StatCollector.translateToLocalFormatted(key, container.param);
+            case READY_CORE:
+                return StatCollector.translateToLocalFormatted(key, t("dre.core." + com.divinerpgextended.item.ArmorCore.values()[container.param].key() + ".name"));
             case READY_PERK:
             case PERK_PRESENT:
                 return StatCollector.translateToLocalFormatted(key, t(Perk.values()[container.param].langKey()));
@@ -185,6 +187,12 @@ public class GuiWandererAnvil extends GuiContainer {
             out.add(t("dre.help.0.how"));
             out.add("");
             out.add("§e" + t("dre.gui.donor_upgrade"));
+            String speed = new java.text.DecimalFormat("0.##").format(com.divinerpgextended.Config.coreShadowSpeed);
+            for (com.divinerpgextended.item.ArmorCore c : com.divinerpgextended.item.ArmorCore.values()) {
+                out.add("§7" + t("dre.core." + c.key() + ".name") + ": §f" + c.fuelCount() + " x " + new ItemStack(c.fuel()).getDisplayName());
+                out.add("§8" + StatCollector.translateToLocalFormatted("dre.core." + c.key() + ".desc", speed));
+            }
+            out.add("§7" + t("dre.gui.core_swap"));
             out.add("");
             out.add("§6" + t("dre.gui.tiers_hint"));
             for (int tier = 2; tier <= 7; tier++) out.add("§7" + t("dre.gui.tier_hint." + tier));

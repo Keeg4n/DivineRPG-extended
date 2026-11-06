@@ -2,7 +2,6 @@ package com.divinerpgextended.station;
 
 import java.util.List;
 
-import net.divinerpg.utils.items.VanillaItemsArmor;
 import net.divinerpg.utils.items.VanillaItemsOther;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
@@ -14,6 +13,7 @@ import com.divinerpgextended.Config;
 import com.divinerpgextended.accessory.Sockets;
 import com.divinerpgextended.boss.Boss;
 import com.divinerpgextended.boss.BossProgress;
+import com.divinerpgextended.item.ArmorCore;
 import com.divinerpgextended.item.ArmorData;
 import com.divinerpgextended.item.ItemWandererArmor;
 import com.divinerpgextended.perk.Ammo;
@@ -24,7 +24,8 @@ import com.divinerpgextended.world.ArmorTier;
 /**
  * Правила Наковальни Странника. Слоты: 0-3 броня, 4-7 донор (части в любом порядке), 8 топливо.
  * <ul>
- * <li>сет божественной брони (без донора) -> броня Странника R1: божественная и так ступень R1, босс не нужен;</li>
+ * <li>финальный сет обычного мира (без донора) -> броня Странника R1 с ядром этого сета ({@link ArmorCore}), топливо - плата сета, босс не нужен;</li>
+ * <li>сет Странника + финальный сет в доноре + плата этого сета в топливе -> новое ядро (тот же сет с другим топливом - обычный перк, если есть);</li>
  * <li>сет Странника R(n) + сет брони мира следующей ступени -> R(n+1) (закалка R2-R7);</li>
  * <li>сет Странника + донорский сет перка -> перк в свободный слот;</li>
  * <li>любые части брони с гнёздами + аксессуары в доноре -> аксессуары встроены ({@link Sockets}), цена - уровни опыта;
@@ -51,7 +52,9 @@ public final class AnvilLogic {
         // пустые вкладки и броня без гнёзд
         EMPTY_SOCKETS, EMPTY_UNLOAD, NO_SOCKETS,
         // переход в Странника без донора
-        DONOR_UNNEEDED
+        DONOR_UNNEEDED,
+        // смена ядра
+        READY_CORE
     }
 
     public static final class Result {
@@ -59,7 +62,7 @@ public final class AnvilLogic {
         public final Status status;
         /**
          * NEED_BOSS - номер босса, NEED_FUEL - сколько нужно, READY_UPGRADE - целевая ступень, READY_PERK и
-         * PERK_PRESENT - номер перка.
+         * PERK_PRESENT - номер перка, READY_CORE - номер ядра.
          */
         public final int param;
         /** Какое топливо нужно для текущей операции (или null). */
@@ -78,13 +81,8 @@ public final class AnvilLogic {
         }
 
         public boolean ready() {
-            return status == Status.READY_UPGRADE || status == Status.READY_PERK || status == Status.READY_SOCKET || status == Status.READY_UNLOAD;
+            return status == Status.READY_UPGRADE || status == Status.READY_PERK || status == Status.READY_SOCKET || status == Status.READY_UNLOAD || status == Status.READY_CORE;
         }
-    }
-
-    private static Item[] divineSet() {
-        return new Item[] { VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody,
-            VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots };
     }
 
     private AnvilLogic() {}
@@ -258,16 +256,17 @@ public final class AnvilLogic {
         Item[] donor = items(inv, DONOR);
         if (allNull(armor) && allNull(donor)) return new Result(Status.EMPTY, 0);
         // только броня с гнёздами (не сет для улучшения) - подсказка про гнёзда
-        boolean setFlow = same(armor, divineSet()) || !anyNull(armor) && wanderers(armor);
+        ArmorCore forge = ArmorCore.ofSet(armor);
+        boolean setFlow = forge != null || !anyNull(armor) && wanderers(armor);
         if (mode == AUTO && allNull(donor) && !setFlow) {
             for (int a = 0; a < 4; a++) if (Sockets.socketable(inv.getStackInSlot(ARMOR + a))) return new Result(Status.SOCKETS, 0);
         }
 
-        // -> R1: божественная броня сама становится бронёй Странника (она и так ступень R1 - босс и донор не нужны)
-        if (same(armor, divineSet())) {
+        // -> R1: финальный сет сам становится бронёй Странника (он и так равен ступени R1 - босс и донор не нужны)
+        if (forge != null) {
             if (!emptySlots(inv, DONOR)) return new Result(Status.DONOR_UNNEEDED, 0);
-            Item fuel = VanillaItemsOther.realmiteIngot;
-            int need = Config.upgradeR1FuelRealmiteIngots;
+            Item fuel = forge.fuel();
+            int need = forge.fuelCount();
             if (fuelCount(inv, fuel) < need) return new Result(Status.NEED_FUEL, need, fuel);
             return new Result(Status.READY_UPGRADE, 1, fuel);
         }
@@ -278,9 +277,10 @@ public final class AnvilLogic {
         ItemStack first = inv.getStackInSlot(ARMOR);
         int tier = ArmorData.tier(first);
         List<Perk> perks = ArmorData.perks(first);
+        ArmorCore core = ArmorData.core(first);
         for (int i = 1; i < 4; i++) {
             ItemStack s = inv.getStackInSlot(ARMOR + i);
-            if (ArmorData.tier(s) != tier || !ArmorData.perks(s)
+            if (ArmorData.tier(s) != tier || ArmorData.core(s) != core || !ArmorData.perks(s)
                 .equals(perks)) return new Result(Status.BAD_ARMOR, 0);
         }
         if (anyNull(donor)) return new Result(Status.NEED_DONOR, 0);
@@ -293,6 +293,12 @@ public final class AnvilLogic {
             int need = Config.upgradeTwilightFuelCount;
             if (fuelCount(inv, fuel) < need) return new Result(Status.NEED_FUEL, need, fuel);
             return new Result(Status.READY_UPGRADE, next.tier, fuel);
+        }
+        // Смена ядра: финальный сет в доноре. Плата в топливе отличает её от установки перка этого же сета (у божественной перка нет)
+        ArmorCore wanted = ArmorCore.ofSet(donor);
+        if (wanted != null && wanted != core && (wanted == ArmorCore.DIVINE || fuelCount(inv, wanted.fuel()) > 0)) {
+            if (fuelCount(inv, wanted.fuel()) < wanted.fuelCount()) return new Result(Status.NEED_FUEL, wanted.fuelCount(), wanted.fuel());
+            return new Result(Status.READY_CORE, wanted.ordinal(), wanted.fuel());
         }
         // Донор - сет другого мира: подсказать, что ступень не та
         for (ArmorTier t : ArmorTier.values()) {
@@ -362,7 +368,8 @@ public final class AnvilLogic {
             return n > 0;
         }
         if (r.status == Status.READY_UPGRADE && r.param == 1) {
-            // аксессуары божественных частей переходят в части Странника того же типа
+            // аксессуары частей сета переходят в части Странника того же типа
+            ArmorCore forged = ArmorCore.ofSet(items(inv, ARMOR));
             ItemStack[] old = new ItemStack[4];
             for (int i = 0; i < 4; i++) {
                 ItemStack s = inv.getStackInSlot(ARMOR + i);
@@ -371,13 +378,18 @@ public final class AnvilLogic {
             for (int i = 0; i < 4; i++) {
                 ItemStack s = new ItemStack(ModItems.wanderer[i]);
                 ArmorData.setTier(s, 1);
+                ArmorData.setCore(s, forged);
                 if (Sockets.count(old[i]) > 0) s.getTagCompound().setTag(Sockets.TAG, old[i].getTagCompound().getTag(Sockets.TAG).copy());
                 inv.setInventorySlotContents(ARMOR + i, s);
             }
-            inv.decrStackSize(FUEL, Config.upgradeR1FuelRealmiteIngots);
+            inv.decrStackSize(FUEL, forged.fuelCount());
         } else if (r.status == Status.READY_UPGRADE) {
             for (int i = 0; i < 4; i++) ArmorData.setTier(inv.getStackInSlot(ARMOR + i), r.param);
             inv.decrStackSize(FUEL, Config.upgradeTwilightFuelCount);
+        } else if (r.status == Status.READY_CORE) {
+            ArmorCore wanted = ArmorCore.values()[r.param];
+            for (int i = 0; i < 4; i++) ArmorData.setCore(inv.getStackInSlot(ARMOR + i), wanted);
+            inv.decrStackSize(FUEL, wanted.fuelCount());
         } else {
             Perk perk = Perk.values()[r.param];
             for (int i = 0; i < 4; i++) {

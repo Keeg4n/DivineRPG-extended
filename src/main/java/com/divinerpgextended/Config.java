@@ -14,6 +14,10 @@ public class Config {
     public static int[] tierSmallSlots = { 0, 2, 2, 3, 3, 3, 4, 4 };
 
     public static int upgradeR1FuelRealmiteIngots = 16;
+    /** Плата божественными камнями за ковку R1 и смену ядра: Тень, Бедрок, Энд, Порча (божественная броня платит слитками реалмита). */
+    public static int[] coreForgeStones = { 8, 12, 8, 8 };
+    /** Ядро Тени: скорость, как у самого сета. */
+    public static double coreShadowSpeed = 3.0;
     public static int upgradeTwilightFuelCount = 16;
     public static int perkFuelArlemiteIngots = 8;
     /** Алтарь порчи по правилам аддона ({@link com.divinerpgextended.station.AltarLogic}). */
@@ -135,6 +139,9 @@ public class Config {
             "Число малых слотов под перки по ступеням R0, R1, ... R7");
         upgradeR1FuelRealmiteIngots = cfg.getInt("upgradeR1FuelRealmiteIngots", bal, upgradeR1FuelRealmiteIngots,
             0, 64, "Сколько реалмитовых слитков стоит переход божественной брони в броню Странника R1");
+        coreForgeStones = intList(cfg, bal, "coreForgeStones", coreForgeStones,
+            "Сколько божественных камней стоит ковка брони Странника R1 и смена ядра на этот сет: Тень, Бедрок, Энд, Порча. Сами сеты стоят очень по-разному, плата это выравнивает и оставляет на пути в Эдем боссов");
+        coreShadowSpeed = cfg.get(bal, "coreShadowSpeed", coreShadowSpeed, "Ядро Тени в броне Странника: во сколько раз быстрее ходьба (3 - как у самого сета Тени, 1 - без прибавки)").getDouble();
         upgradeTwilightFuelCount = cfg.getInt("upgradeTwilightFuelCount", bal, upgradeTwilightFuelCount, 0, 64,
             "Сколько камней мира стоит закалка R2-R7");
         perkFuelArlemiteIngots = cfg.getInt("perkFuelArlemiteIngots", bal, perkFuelArlemiteIngots,

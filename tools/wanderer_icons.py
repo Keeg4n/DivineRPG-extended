@@ -109,6 +109,25 @@ LEGS = """
 ................
 """
 
+HAT = """
+................
+................
+.....oooooo.....
+.....obbbbo.....
+.....ohbbso.....
+.....oaaaao.....
+..oooooooooooo..
+.ohhbbbbbbbbsso.
+..oooooooooooo..
+....okkkkkko....
+....oekkkkeo....
+....obbbbbbo....
+....ossssso.....
+.....ooooo......
+................
+................
+"""
+
 BOOTS = """
 ................
 ................
@@ -140,6 +159,11 @@ DARK = dict(h='#3a3a42', b='#26262c', s='#16161a', o='#08080a')
 LIME = dict(h='#7cf040', b='#3cd400', s='#2a9400', o='#0c2404')
 LIME_BRIGHT = dict(h='#b8ff60', b='#4cff10', s='#3cd400', o='#0c2404')
 WOOD = '#d8bc8a'
+SHADOW = dict(h='#6a6a6a', b='#2e2e2e', s='#1a1a1a', o='#060606')
+ROCK = dict(h='#8e8e8e', b='#525252', s='#343434', o='#141414')
+VOID = dict(h='#16233e', b='#0c1426', s='#050a14', o='#0e60aa')
+ROT = dict(h='#7a6cc4', b='#4b3b82', s='#2a2150', o='#120c24')
+SPECK = [('s', 5, 5), ('h', 9, 6), ('s', 7, 8), ('h', 6, 10), ('s', 10, 11), ('h', 8, 12)]
 
 
 def rect(ch, x0, y0, x1, y1):
@@ -162,6 +186,26 @@ ICONS = {
     (1, 'chest'): (CHEST, dict(GOLD, A='#c4c8d0', g='#e02030'), rect('A', 6, 6, 9, 12) + rect('g', 7, 7, 8, 8)),
     (1, 'legs'): (LEGS, dict(NAVY, a='#ccaf3b'), KNEES),
     (1, 'boots'): (BOOTS, dict(STEEL, a='#ccaf3b'), []),
+    # R1 с ядром Тени: чёрный, белая прорезь, серый шеврон
+    ('r1_shadow', 'helmet'): (HELM_CLOSED, dict(SHADOW, a='#101010', e='#f4f8ff'), rect('a', 3, 7, 12, 9) + rect('e', 4, 8, 11, 8)),
+    ('r1_shadow', 'chest'): (CHEST, dict(SHADOW, A='#9a9a9a'), both('A', (5, 6), (6, 7), (7, 8))),
+    ('r1_shadow', 'legs'): (LEGS, dict(SHADOW, a='#474747'), KNEES),
+    ('r1_shadow', 'boots'): (BOOTS, dict(SHADOW, a='#9a9a9a'), []),
+    # R1 с ядром бедрока: крапчатый камень, белые глаза, рубленый венец
+    ('r1_bedrock', 'helmet'): (HELM_CLOSED, dict(ROCK, a='#343434', e='#ffffff'), rect('o', 5, 2, 10, 2) + rect('h', 6, 1, 9, 1) + both('e', (5, 8)) + rect('o', 7, 8, 8, 11)),
+    ('r1_bedrock', 'chest'): (CHEST, dict(ROCK, A='#191919', g='#8e8e8e'), SPECK[:3] + rect('A', 6, 6, 9, 10) + rect('g', 7, 7, 8, 9)),
+    ('r1_bedrock', 'legs'): (LEGS, dict(ROCK, a='#343434', c='#8e8e8e'), SPECK[:2] + rect('c', 4, 9, 5, 10) + rect('c', 10, 9, 11, 10)),
+    ('r1_bedrock', 'boots'): (BOOTS, dict(ROCK, a='#191919'), []),
+    # R1 с ядром Энда: почти чёрный с синей каймой, глаза эндермена, светлые линии
+    ('r1_ender', 'helmet'): (HELM_CLOSED, dict(VOID, a='#0c1426', e='#8fe0ff', g='#ffffff'), rect('e', 3, 7, 6, 8) + rect('e', 9, 7, 12, 8) + rect('g', 4, 8, 5, 8) + rect('g', 10, 8, 11, 8)),
+    ('r1_ender', 'chest'): (CHEST, dict(VOID, A='#5ab4f4', g='#6cf0d8'), rect('A', 7, 5, 8, 12) + rect('g', 7, 7, 8, 8) + [('A', 5, 3), ('A', 10, 3)]),
+    ('r1_ender', 'legs'): (LEGS, dict(VOID, a='#5ab4f4'), rect('a', 4, 4, 4, 12) + rect('a', 11, 4, 11, 12)),
+    ('r1_ender', 'boots'): (BOOTS, dict(VOID, a='#5ab4f4'), []),
+    # R1 с ядром порчи: шляпа с пурпурной лентой и глазами в тени, патронташ
+    ('r1_corrupted', 'helmet'): (HAT, dict(ROT, a='#c040c0', k='#120c24', e='#e060e0'), []),
+    ('r1_corrupted', 'chest'): (CHEST, dict(ROT, A='#120c24', g='#c040c0'), [('A', 5, 5), ('A', 6, 6), ('A', 7, 7), ('A', 8, 8), ('A', 9, 9), ('A', 10, 10), ('g', 6, 6), ('g', 8, 8), ('g', 10, 10)]),
+    ('r1_corrupted', 'legs'): (LEGS, dict(ROT, a='#7a6cc4', g='#c040c0'), KNEES + [('g', 4, 5)]),
+    ('r1_corrupted', 'boots'): (BOOTS, dict(ROT, a='#7a6cc4'), []),
     # R2 Эдем: золото, нимб, красные поножи
     (2, 'helmet'): (HELM_OPEN, dict(GOLD, a='#a88a20', g='#f08030', e='#fff4a0'), rect('g', 7, 7, 8, 7) + rect('e', 5, 1, 10, 1)),
     (2, 'chest'): (CHEST, dict(GOLD, A='#a82a1a'), rect('A', 6, 6, 9, 12) + [('h', 7, 7), ('h', 8, 9), ('h', 7, 11)]),
@@ -219,8 +263,9 @@ def draw(template, palette, details):
 
 
 def main():
-    for (tier, part), (template, palette, details) in sorted(ICONS.items()):
-        draw(template, palette, details).save(os.path.join(OUT, 'r%d_%s.png' % (tier, part)))
+    for (look, part), (template, palette, details) in ICONS.items():
+        name = 'r%d' % look if isinstance(look, int) else look
+        draw(template, palette, details).save(os.path.join(OUT, '%s_%s.png' % (name, part)))
     print('значков:', len(ICONS))
 
 

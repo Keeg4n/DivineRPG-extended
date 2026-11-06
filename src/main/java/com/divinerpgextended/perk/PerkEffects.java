@@ -27,13 +27,25 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import com.divinerpgextended.Config;
 import com.divinerpgextended.entity.EntityCarcinus;
 import com.divinerpgextended.entity.EntityLairCrab;
+import com.divinerpgextended.item.ArmorCore;
 import com.divinerpgextended.item.ArmorData;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
-/** Эффекты перков полного сета брони Странника и бонусы водных сетов Divine (Kraken, Aquastrive). */
+/** Эффекты перков и ядра полного сета брони Странника и бонусы водных сетов Divine (Kraken, Aquastrive). */
 public class PerkEffects {
+
+    /** Перки из сетов Тени, порчи, арлемита и рупия: те же свойства, но слабее самих сетов (скорость x3, снаряды x1.2, урон x0.3). */
+    public static final float SWIFT_SPEED = 1.25F, MARKSMAN = 1.1F, GUARD = 0.75F;
+    /** Ядро: то же, что полный сет. */
+    public static final float CORE_DIVINE_MELEE = 6F, CORE_CORRUPTED_RANGED = 1.2F;
+
+    /** Ядро надетого сета; во сне (кошмар Ветеи) чужие сеты молчат, ядро тоже. */
+    private static ArmorCore core(EntityPlayer p) {
+        ArmorCore c = ArmorCore.worn(p);
+        return c == null || com.divinerpgextended.vethea.Nightmare.active(p) ? null : c;
+    }
 
     private static final Item[] KRAKEN = { VanillaItemsArmor.krakenHelmet, VanillaItemsArmor.krakenBody,
         VanillaItemsArmor.krakenLegs, VanillaItemsArmor.krakenBoots };
@@ -64,6 +76,19 @@ public class PerkEffects {
     public void onAttack(LivingAttackEvent event) {
         if (!(event.entityLiving instanceof EntityPlayer)) return;
         EntityPlayer player = (EntityPlayer) event.entityLiving;
+        if (!player.worldObj.isRemote) {
+            ArmorCore c = core(player);
+            // как сами сеты: взрывы - только у победивших Смотрителя (его бой - про взрывы), огонь - у бедрока
+            if (c == ArmorCore.BEDROCK && event.source.isFireDamage()) {
+                player.extinguish();
+                event.setCanceled(true);
+                return;
+            }
+            if ((c == ArmorCore.BEDROCK || c == ArmorCore.ENDER) && event.source.isExplosion() && com.divinerpgextended.boss.BossProgress.has(player, com.divinerpgextended.boss.Boss.WATCHER)) {
+                event.setCanceled(true);
+                return;
+            }
+        }
         if (event.source.isFireDamage() && ArmorData.hasEquippedPerk(player, Perk.FIRE_PROTECTION)) {
             player.extinguish();
             event.setCanceled(true);
@@ -97,6 +122,20 @@ public class PerkEffects {
     @SubscribeEvent
     public void onHurt(LivingHurtEvent event) {
         Entity attacker = event.source.getEntity();
+        if (attacker instanceof EntityPlayer && !attacker.worldObj.isRemote && attacker != event.entityLiving) {
+            EntityPlayer a = (EntityPlayer) attacker;
+            ArmorCore c = core(a);
+            if (c == ArmorCore.DIVINE && event.source.getSourceOfDamage() == a && !event.source.isProjectile() && !event.source.isMagicDamage()) event.ammount += CORE_DIVINE_MELEE;
+            if (event.source.isProjectile()) {
+                if (c == ArmorCore.CORRUPTED) event.ammount *= CORE_CORRUPTED_RANGED;
+                if (ArmorData.hasEquippedPerk(a, Perk.MARKSMAN)) event.ammount *= MARKSMAN;
+            }
+        }
+        if (event.entityLiving instanceof EntityPlayer && !event.entityLiving.worldObj.isRemote) {
+            EntityPlayer v = (EntityPlayer) event.entityLiving;
+            if ((event.source.isProjectile() || "thrown".equals(event.source.damageType)) && ArmorData.hasEquippedPerk(v, Perk.ARROW_GUARD)) event.ammount *= GUARD;
+            if ("mob".equals(event.source.damageType) && !event.source.isProjectile() && ArmorData.hasEquippedPerk(v, Perk.BLOW_GUARD)) event.ammount *= GUARD;
+        }
         if (attacker instanceof EntityPlayer && !attacker.worldObj.isDaytime()
             && ArmorData.hasEquippedPerk((EntityPlayer) attacker, Perk.NIGHT_REAPER)) {
             event.ammount *= 1.2F;
@@ -173,6 +212,21 @@ public class PerkEffects {
         event.newSpeed = speed;
     }
 
+    /**
+     * Скорость ядра Тени и перка. Divine в каждом тике (в обеих фазах, на обеих сторонах) сама пишет скорость ходьбы по надетому
+     * сету - поэтому самым низким приоритетом, сразу за ней. Именно скорость ходьбы, а не модификатор атрибута: поле зрения
+     * от неё не растягивается, как и у самого сета Тени.
+     */
+    @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.LOWEST)
+    public void onWalkSpeed(TickEvent.PlayerTickEvent event) {
+        EntityPlayer p = event.player;
+        if (ArmorData.equippedTier(p) == 0 || com.divinerpgextended.vethea.Nightmare.inVethea(p)) return;
+        float mult = 1F;
+        if (ArmorCore.worn(p) == ArmorCore.SHADOW) mult = (float) Config.coreShadowSpeed;
+        if (ArmorData.hasEquippedPerk(p, Perk.SWIFTNESS)) mult = Math.max(mult, SWIFT_SPEED);
+        if (mult != 1F) cpw.mods.fml.relauncher.ReflectionHelper.setPrivateValue(net.minecraft.entity.player.PlayerCapabilities.class, p.capabilities, 0.1F * mult, "walkSpeed", "field_75097_g");
+    }
+
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || event.player.worldObj.isRemote) return;
@@ -187,6 +241,7 @@ public class PerkEffects {
         if (ArmorData.equippedTier(player) == 0) return;
         if (player.getHealth() < player.getMaxHealth() && ArmorData.hasEquippedPerk(player, Perk.REGENERATION)) player.heal(0.1F);
         if (ArmorData.hasEquippedPerk(player, Perk.ARCANA_FLOW)) arcana(player, 1.0F);
+        if (player.ticksExisted % 20 == 0 && ArmorData.hasEquippedPerk(player, Perk.MINING_HASTE)) player.addPotionEffect(new PotionEffect(Potion.digSpeed.id, 60, 1, true));
         if (player.isInsideOfMaterial(Material.water) && ArmorData.hasEquippedPerk(player, Perk.WATER_BREATHING)) {
             player.setAir(300);
         }

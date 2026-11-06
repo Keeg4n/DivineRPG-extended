@@ -76,6 +76,7 @@ public final class EnderColors {
 
     /** Полный сет брони Энда (цвета можно смешивать). */
     public static boolean fullSet(EntityPlayer p) {
+        if (com.divinerpgextended.item.ArmorCore.worn(p) == com.divinerpgextended.item.ArmorCore.ENDER) return true; // ядро Энда в броне Странника
         for (int i = 0; i < 4; i++) {
             ItemStack s = p.getCurrentArmor(i);
             if (s == null || !ender(s.getItem())) return false;

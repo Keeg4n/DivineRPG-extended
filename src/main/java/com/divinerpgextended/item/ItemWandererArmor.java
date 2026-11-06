@@ -40,6 +40,8 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
     private static final String[] PARTS = { "helmet", "chest", "legs", "boots" };
     /** Сколько ступеней с обликом (R1..LOOKS). */
     public static final int LOOKS = 7;
+    /** Всего обликов: ступени и ещё по одному на первой ступени у каждого ядра, кроме божественного. */
+    public static final int LOOK_COUNT = LOOKS + ArmorCore.values().length - 1;
 
     @SideOnly(Side.CLIENT)
     private IIcon[] looks;
@@ -48,9 +50,21 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
         return tier >= 1 && tier <= LOOKS;
     }
 
-    /** Атлас облика ступени (модель брони, tools/wanderer_armor.py). */
-    public static String lookTexture(int tier) {
-        return "divinerpgextended:textures/models/wanderer/r" + tier + ".png";
+    /** Номер облика вещи: ступень, а на первой ступени с ядром не из божественной брони - свой номер после ступеней. */
+    public static int look(ItemStack stack) {
+        int t = ArmorData.tier(stack);
+        ArmorCore core = ArmorData.core(stack);
+        return t == 1 && core != ArmorCore.DIVINE ? LOOKS + core.ordinal() : t;
+    }
+
+    /** Имя файлов облика: r2, r1_shadow (tools/wanderer_armor.py). */
+    public static String lookName(int look) {
+        return look <= LOOKS ? "r" + look : "r1_" + ArmorCore.values()[look - LOOKS].key();
+    }
+
+    /** Атлас облика (модель брони, tools/wanderer_armor.py). */
+    public static String lookTexture(int look) {
+        return "divinerpgextended:textures/models/wanderer/" + lookName(look) + ".png";
     }
 
     public ItemWandererArmor(int armorType, String name) {
@@ -80,15 +94,14 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister reg) {
         super.registerIcons(reg);
-        looks = new IIcon[LOOKS + 1];
-        for (int t = 1; t <= LOOKS; t++) looks[t] = reg.registerIcon("divinerpgextended:wanderer/r" + t + "_" + PARTS[armorType]);
+        looks = new IIcon[LOOK_COUNT + 1];
+        for (int t = 1; t <= LOOK_COUNT; t++) looks[t] = reg.registerIcon("divinerpgextended:wanderer/" + lookName(t) + "_" + PARTS[armorType]);
     }
 
     @Override
     @SideOnly(Side.CLIENT)
     public IIcon getIconIndex(ItemStack stack) {
-        int t = ArmorData.tier(stack);
-        return looks != null && hasLook(t) ? looks[t] : getIconFromDamage(0);
+        return looks != null && hasLook(ArmorData.tier(stack)) ? looks[look(stack)] : getIconFromDamage(0);
     }
 
     @Override
@@ -100,8 +113,7 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
     @Override
     @SideOnly(Side.CLIENT)
     public ModelBiped getArmorModel(EntityLivingBase entity, ItemStack stack, int slot) {
-        int t = ArmorData.tier(stack);
-        return hasLook(t) ? com.divinerpgextended.client.ModelWandererArmor.forMob(t, armorType) : null;
+        return hasLook(ArmorData.tier(stack)) ? com.divinerpgextended.client.ModelWandererArmor.forMob(look(stack), armorType) : null;
     }
 
     private double pieceRatio(ItemStack stack) {
@@ -132,7 +144,7 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
 
     @Override
     public String getArmorTexture(ItemStack stack, Entity entity, int slot, String type) {
-        if (hasLook(ArmorData.tier(stack))) return lookTexture(ArmorData.tier(stack));
+        if (hasLook(ArmorData.tier(stack))) return lookTexture(look(stack));
         Item d = divine();
         String skin = d == null ? null : d.getArmorTexture(new ItemStack(d), entity, slot, type);
         if (skin != null) return skin;
@@ -144,11 +156,13 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean advanced) {
         int tier = ArmorData.tier(stack);
+        ArmorCore core = ArmorData.core(stack);
         list.add(EnumChatFormatting.GOLD + StatCollector.translateToLocalFormatted("dre.tooltip.tier", tier,
-            StatCollector.translateToLocal("dre.tier." + tier)));
+            StatCollector.translateToLocal(tier == 1 ? "dre.core." + core.key() + ".name" : "dre.tier." + tier)));
         list.add(StatCollector.translateToLocalFormatted("dre.tooltip.full_reduction", Config.fullReduction(tier)));
         list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.tooltip.unbreakable"));
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.no_fall"));
+        list.add(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocalFormatted("dre.core." + core.key() + ".desc", new java.text.DecimalFormat("0.##").format(Config.coreShadowSpeed)));
         List<Perk> perks = ArmorData.perks(stack);
         list.add(StatCollector.translateToLocalFormatted("dre.tooltip.perks", perks.size(), Config.smallSlots(tier)));
         for (Perk p : perks) {
