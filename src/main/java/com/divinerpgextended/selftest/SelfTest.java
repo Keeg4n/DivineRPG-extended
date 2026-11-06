@@ -1126,15 +1126,15 @@ public class SelfTest {
             float fast = p.capabilities.getWalkSpeed();
             wearCore(p, com.divinerpgextended.item.ArmorCore.DIVINE, Perk.SWIFTNESS);
             FMLCommonHandler.instance().bus().post(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, p));
-            float swift = p.capabilities.getWalkSpeed();
+            float swift = p.capabilities.getWalkSpeed(), stepOn = p.stepHeight;
             wearCore(p, com.divinerpgextended.item.ArmorCore.SHADOW, Perk.SWIFTNESS);
             FMLCommonHandler.instance().bus().post(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, p));
             float both = p.capabilities.getWalkSpeed();
             armor(p, null, null, null, null);
             FMLCommonHandler.instance().bus().post(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, p));
-            float plain = p.capabilities.getWalkSpeed();
-            boolean speed = Math.abs(fast - 0.3F) < 0.001 && Math.abs(swift - 0.125F) < 0.001 && Math.abs(both - 0.3F) < 0.001 && Math.abs(plain - 0.1F) < 0.001;
-            rep.append("; скорость: ядро Тени ").append(f(fast)).append(", перк ").append(swift).append(", вместе ").append(f(both)).append(", снято ").append(f(plain));
+            float plain = p.capabilities.getWalkSpeed(), stepOff = p.stepHeight;
+            boolean speed = Math.abs(fast - 0.3F) < 0.001 && Math.abs(swift - 0.125F) < 0.001 && Math.abs(both - 0.3F) < 0.001 && Math.abs(plain - 0.1F) < 0.001 && stepOn == 1F && stepOff == 0.5F;
+            rep.append("; скорость: ядро Тени ").append(f(fast)).append(", перк ").append(swift).append(", вместе ").append(f(both)).append(", снято ").append(f(plain)).append("; шаг: с перком ").append(stepOn).append(", снято ").append(stepOff);
             // перки: снаряды и удары по игроку, снаряды игрока, копание
             wearCore(p, com.divinerpgextended.item.ArmorCore.SHADOW, Perk.ARROW_GUARD, Perk.BLOW_GUARD, Perk.MARKSMAN, Perk.MINING_HASTE);
             float inArrow = hurtBy(p, DamageSource.causeArrowDamage(itsArrow, z), 10F), inBlow = hurtBy(p, DamageSource.causeMobDamage(z), 10F), outArrow = hurtBy(z, DamageSource.causeArrowDamage(myArrow, p), 10F);

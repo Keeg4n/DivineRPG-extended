@@ -77,7 +77,7 @@ public enum Perk {
         { VanillaItemsArmor.angelicHelmet, VanillaItemsArmor.angelicBody, VanillaItemsArmor.angelicLegs,
             VanillaItemsArmor.angelicBoots } }),
 
-    /** Лёгкий шаг (сет Тени): скорость x{@link PerkEffects#SWIFT_SPEED}. */
+    /** Лёгкий шаг (сет Тени): скорость x{@link PerkEffects#SWIFT_SPEED} и высокий шаг на блок вверх. */
     SWIFTNESS(null, new Item[][] {
         { VanillaItemsArmor.shadowHelmet, VanillaItemsArmor.shadowBody, VanillaItemsArmor.shadowLegs, VanillaItemsArmor.shadowBoots } }),
 

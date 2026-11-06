@@ -38,6 +38,9 @@ public class PerkEffects {
 
     /** Перки из сетов Тени, порчи, арлемита и рупия: те же свойства, но слабее самих сетов (скорость x3, снаряды x1.2, урон x0.3). */
     public static final float SWIFT_SPEED = 1.25F, MARKSMAN = 1.1F, GUARD = 0.75F;
+    /** Высокий шаг перка Тени: на блок вверх без прыжка. Обычный шаг игрока - 0.5. */
+    public static final float HIGH_STEP = 1.0F, NORMAL_STEP = 0.5F;
+    private static final String STEP_TAG = "dreHighStep";
     /** Ядро: то же, что полный сет. */
     public static final float CORE_DIVINE_MELEE = 6F, CORE_CORRUPTED_RANGED = 1.2F;
 
@@ -220,11 +223,28 @@ public class PerkEffects {
     @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.LOWEST)
     public void onWalkSpeed(TickEvent.PlayerTickEvent event) {
         EntityPlayer p = event.player;
+        highStep(p);
         if (ArmorData.equippedTier(p) == 0 || com.divinerpgextended.vethea.Nightmare.inVethea(p)) return;
         float mult = 1F;
         if (ArmorCore.worn(p) == ArmorCore.SHADOW) mult = (float) Config.coreShadowSpeed;
         if (ArmorData.hasEquippedPerk(p, Perk.SWIFTNESS)) mult = Math.max(mult, SWIFT_SPEED);
         if (mult != 1F) cpw.mods.fml.relauncher.ReflectionHelper.setPrivateValue(net.minecraft.entity.player.PlayerCapabilities.class, p.capabilities, 0.1F * mult, "walkSpeed", "field_75097_g");
+    }
+
+    /**
+     * Высокий шаг перка Тени, на обеих сторонах: ходьбу считает клиент, а сервер сверяет её своим шагом. Снимаем только то, что
+     * поставили сами: шаг могут держать и вещи других модов (сапоги Таума, пояс Ботании).
+     */
+    private static void highStep(EntityPlayer p) {
+        if (ArmorData.hasEquippedPerk(p, Perk.SWIFTNESS) && !com.divinerpgextended.vethea.Nightmare.inVethea(p)) {
+            if (p.stepHeight < HIGH_STEP) {
+                p.stepHeight = HIGH_STEP;
+                p.getEntityData().setBoolean(STEP_TAG, true);
+            }
+        } else if (p.getEntityData().getBoolean(STEP_TAG)) {
+            p.getEntityData().removeTag(STEP_TAG);
+            p.stepHeight = NORMAL_STEP;
+        }
     }
 
     @SubscribeEvent
