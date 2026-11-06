@@ -54,6 +54,9 @@ public class ColorTooltip {
             || it == net.divinerpg.utils.items.VanillaItemsArmor.netheriteHelmet || it == net.divinerpg.utils.items.VanillaItemsArmor.netheriteBody
             || it == net.divinerpg.utils.items.VanillaItemsArmor.netheriteLegs || it == net.divinerpg.utils.items.VanillaItemsArmor.netheriteBoots)
             e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.heatproof_vs_king"));
+        if (it == net.divinerpg.utils.items.VanillaItemsArmor.terranHelmet || it == net.divinerpg.utils.items.VanillaItemsArmor.terranBody
+            || it == net.divinerpg.utils.items.VanillaItemsArmor.terranLegs || it == net.divinerpg.utils.items.VanillaItemsArmor.terranBoots)
+            e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.terran_crit"));
         if (blastArmor(it)) e.toolTip.add(EnumChatFormatting.DARK_RED + StatCollector.translateToLocal("dre.tooltip.blast_after_watcher"));
     }
 

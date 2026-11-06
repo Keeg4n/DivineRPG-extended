@@ -4791,6 +4791,88 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
+        t("Прохождение", "Сет Terran: крит с земли без прыжка", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            loadAround(w, sx + 206, sz, 1);
+            double px = sx + 206.5, pz = sz + 0.5;
+            TestPlayer a = join(player(0, "TestTerranA", px, sy, pz), true), foe = join(player(0, "TestTerranB", px + 1, sy, pz), true);
+            net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w);
+            z.setLocationAndAngles(px + 1, sy, pz, 0, 0);
+            w.spawnEntityInWorld(z);
+            z.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(100000);
+            foe.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(100000);
+            ItemStack held = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.sharkSword);
+            hold(a, held);
+            a.getAttributeMap().applyAttributeModifiers(held.getAttributeModifiers());
+            // настоящий удар: на земле или в воздухе (fall > 0 - обычный крит в прыжке)
+            com.google.common.base.Function<Object[], Float> hit = o -> {
+                net.minecraft.entity.EntityLivingBase v = (net.minecraft.entity.EntityLivingBase) o[0];
+                v.hurtResistantTime = 0;
+                v.setHealth(v.getMaxHealth());
+                a.onGround = (Boolean) o[1];
+                a.fallDistance = (Float) o[2];
+                a.attackTargetEntityWithCurrentItem(v);
+                v.motionX = v.motionY = v.motionZ = 0;
+                return v.getMaxHealth() - v.getHealth();
+            };
+            Item[] t = { VanillaItemsArmor.terranHelmet, VanillaItemsArmor.terranBody, VanillaItemsArmor.terranLegs, VanillaItemsArmor.terranBoots };
+            float bare = hit.apply(new Object[] { z, true, 0F }), bareJump = hit.apply(new Object[] { z, false, 1F }), bareFoe = hit.apply(new Object[] { foe, true, 0F });
+            armor(a, t[0], t[1], t[2], t[3]);
+            float ground = hit.apply(new Object[] { z, true, 0F }), air = hit.apply(new Object[] { z, false, 0F }), jump = hit.apply(new Object[] { z, false, 1F });
+            // по игроку только при melee.pvp и не в привате
+            float foeOff = hit.apply(new Object[] { foe, true, 0F });
+            com.divinerpgextended.Config.meleeRolesPvp = true;
+            float foeOn, foePrivate;
+            try {
+                foeOn = hit.apply(new Object[] { foe, true, 0F });
+                com.divinerpgextended.perk.Protection.testNoPvp = true;
+                foePrivate = hit.apply(new Object[] { foe, true, 0F });
+            } finally {
+                com.divinerpgextended.perk.Protection.testNoPvp = false;
+                com.divinerpgextended.Config.meleeRolesPvp = false;
+            }
+            // от главного выключателя подвидов не зависит; снаряд - без крита; неполный сет и Странник - без крита
+            com.divinerpgextended.Config.meleeRoles = false;
+            float rolesOff;
+            try {
+                rolesOff = hit.apply(new Object[] { z, true, 0F });
+            } finally {
+                com.divinerpgextended.Config.meleeRoles = true;
+            }
+            z.hurtResistantTime = 0;
+            z.setHealth(z.getMaxHealth());
+            a.onGround = true;
+            z.attackEntityFrom(DamageSource.causeArrowDamage(new net.minecraft.entity.projectile.EntityArrow(w, a, 1F), a), 10F);
+            float arrow = z.getMaxHealth() - z.getHealth();
+            armor(a, null, t[1], t[2], t[3]);
+            float partial = hit.apply(new Object[] { z, true, 0F });
+            wearCore(a, com.divinerpgextended.item.ArmorCore.SHADOW);
+            float wanderer = hit.apply(new Object[] { z, true, 0F });
+            // манекен считается как моб: с земли в полтора раза больше, чем в воздухе
+            armor(a, t[0], t[1], t[2], t[3]);
+            com.divinerpgextended.dummy.EntityTrainingDummy d = new com.divinerpgextended.dummy.EntityTrainingDummy(w);
+            d.setPosition(px - 2, sy, pz);
+            d.copy(a);
+            d.setPlacer(a);
+            w.spawnEntityInWorld(d);
+            a.onGround = false;
+            a.fallDistance = 0;
+            a.attackTargetEntityWithCurrentItem(d);
+            float dummyAir = d.lastHit();
+            d.copy(a);
+            a.onGround = true;
+            a.attackTargetEntityWithCurrentItem(d);
+            float dummyGround = d.lastHit();
+            d.setDead();
+            z.setDead();
+            a.getAttributeMap().removeAttributeModifiers(held.getAttributeModifiers());
+            hold(a, null);
+            String rep = "без сета " + f(bare) + " (в прыжке " + f(bareJump) + "); сет: с земли " + f(ground) + ", в воздухе " + f(air) + ", в прыжке " + f(jump) + "; игрок: без сета " + f(bareFoe) + ", выкл " + f(foeOff) + ", вкл " + f(foeOn) + ", приват " + f(foePrivate)
+                + "; подвиды выключены " + f(rolesOff) + "; стрела " + f(arrow) + "; неполный сет " + f(partial) + "; Странник " + f(wanderer) + "; манекен: воздух " + f(dummyAir) + ", земля " + f(dummyGround);
+            check(near(ground / bare, 1.5F) && near(air, bare) && near(jump, bareJump) && near(foeOff, bareFoe) && near(foeOn, bareFoe * 1.5F) && near(foePrivate, bareFoe) && near(rolesOff, ground) && arrow < 10F && near(partial, bare) && near(wanderer, bare)
+                && near(dummyGround / dummyAir, 1.5F), rep);
+            return rep;
+        });
         t("Прохождение", "Чужие копатели не берут блоки с правилами добычи", () -> {
             check(com.divinerpgextended.asm.MiningGuardTransformer.patched, "ForgeHooks.blockStrength не исправлен при загрузке");
             int x = 21500, y = 150, z = 21500;

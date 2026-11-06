@@ -1822,3 +1822,4 @@ dre.donor.mining_haste=Terran
 dre.donor.marksman=Corrupted
 dre.donor.arrow_guard=Arlemite
 dre.donor.blow_guard=Rupee (любой цвет)
+dre.tooltip.terran_crit=Полный сет: удар с земли - крит без прыжка (x1.5)

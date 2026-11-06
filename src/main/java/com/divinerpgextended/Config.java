@@ -354,7 +354,7 @@ public class Config {
         meleeRoles = cfg.getBoolean("enabled", "melee", meleeRoles,
             "Подвиды ближнего оружия обычного мира и Ада (нож, рапира, меч, кувалда): у каждого своё окно неуязвимости цели после удара и свой урон. false - всё оружие как в обычном Minecraft, и в бою с мобами, и между игроками");
         meleeRolesPvp = cfg.getBoolean("pvp", "melee", meleeRolesPvp,
-            "Те же правила в бою между игроками (свои числа: windowTicksPvp, damagePvp). false - удары по игрокам как в обычном Minecraft. Приваты с запретом PvP не обходятся. TiC считает свои рапиры и тесаки сам, этот переключатель их не касается");
+            "Те же правила в бою между игроками (свои числа: windowTicksPvp, damagePvp). false - удары по игрокам как в обычном Minecraft. Приваты с запретом PvP не обходятся. TiC считает свои рапиры и тесаки сам, этот переключатель их не касается. Крит с земли у полного сета Terran тоже идёт по игрокам только при этой настройке");
         for (com.divinerpgextended.perk.MeleeRoles.Kind k : com.divinerpgextended.perk.MeleeRoles.Kind.values()) {
             String c = "melee." + k.key();
             k.window = cfg.getInt("windowTicks", c, k.window, 0, 200,

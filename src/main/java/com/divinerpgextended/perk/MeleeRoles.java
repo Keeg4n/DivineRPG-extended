@@ -39,6 +39,9 @@ import io.netty.buffer.ByteBuf;
  * Правила действуют только на удар самого игрока кликом: {@link AttackEntityEvent} взводит метку, первый прямой урон от
  * этого игрока её снимает. Волна бедроковой булавы и прочие удары "от имени игрока" идут мимо, снаряды - тем более.
  * Манекен считается как моб: его удар проходит через призрака-игрока, а окно живёт на самом манекене.
+ * <p>
+ * Здесь же крит полного сета Terran ({@link #terranCrit}): удар с земли x{@link #TERRAN_CRIT} без прыжка. Прыжковый крит
+ * требует отрыва от земли, поэтому они не складываются. Только сам сет, броне Странника не передаётся.
  */
 public class MeleeRoles {
 
@@ -64,6 +67,8 @@ public class MeleeRoles {
 
     /** Окно в обычном Minecraft: такой подвид окно цели не трогает. */
     public static final int VANILLA_WINDOW = 10;
+    /** Крит сета Terran: столько же, сколько обычный крит в прыжке. */
+    public static final float TERRAN_CRIT = 1.5F;
 
     private static final String[] KNIVES = { "oceanKnife", "jungleKnife", "aquaticDagger", "terranDagger", "terranKnife", "dualClaw" };
     private static final String[] RAPIERS = { "rupeeRapier", "jungleRapier", "arlemiteStabber" };
@@ -100,10 +105,18 @@ public class MeleeRoles {
         return o == WeaponOrigin.OVERWORLD || o == WeaponOrigin.NETHER ? Kind.SWORD : null;
     }
 
+    /** Крит без прыжка: полный сет Terran, на земле; как и обычный крит - не верхом и не в слепоте. В кошмаре Ветеи чужие сеты молчат. */
+    static boolean terranCrit(EntityPlayer p) {
+        return p.onGround && p.ridingEntity == null && !p.isPotionActive(net.minecraft.potion.Potion.blindness)
+            && PerkEffects.wears(p, new Item[] { net.divinerpg.utils.items.VanillaItemsArmor.terranHelmet, net.divinerpg.utils.items.VanillaItemsArmor.terranBody,
+                net.divinerpg.utils.items.VanillaItemsArmor.terranLegs, net.divinerpg.utils.items.VanillaItemsArmor.terranBoots })
+            && !com.divinerpgextended.vethea.Nightmare.active(p);
+    }
+
     /** Отменённый другими удар сюда не приходит. */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onSwing(AttackEntityEvent e) {
-        if (e.entityPlayer.worldObj.isRemote || !Config.meleeRoles) return;
+        if (e.entityPlayer.worldObj.isRemote) return;
         striker = e.entityPlayer;
         struck = e.target;
         strikeTick = e.entityPlayer.worldObj.getTotalWorldTime();
@@ -118,12 +131,16 @@ public class MeleeRoles {
         striker = null;
         struck = null;
         if (p.worldObj.getTotalWorldTime() != strikeTick) return;
-        Kind k = kind(p.getHeldItem());
-        if (k == null) return;
         boolean dummy = target instanceof EntityTrainingDummy;
         EntityLivingBase v = e.entityLiving;
         boolean pvp = !dummy && v instanceof EntityPlayer;
         if (pvp && (!Config.meleeRolesPvp || Protection.spare(p, v))) return;
+        if (terranCrit(p)) {
+            e.ammount *= TERRAN_CRIT;
+            p.onCriticalHit(target);
+        }
+        Kind k = Config.meleeRoles ? kind(p.getHeldItem()) : null;
+        if (k == null) return;
         e.ammount *= pvp ? k.damagePvp : k.damage;
         int window = pvp ? k.windowPvp : k.window;
         EntityLivingBase holder = dummy ? (EntityLivingBase) target : v;

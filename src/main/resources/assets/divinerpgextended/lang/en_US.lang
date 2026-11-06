@@ -1507,3 +1507,4 @@ dre.donor.mining_haste=Terran
 dre.donor.marksman=Corrupted
 dre.donor.arrow_guard=Arlemite
 dre.donor.blow_guard=Rupee (any color)
+dre.tooltip.terran_crit=Full set: a hit from the ground is a critical without jumping (x1.5)
