@@ -56,6 +56,7 @@ public class ColdHandler {
 
     public static void init() {
         NET.registerMessage(ColdMessage.Handler.class, ColdMessage.class, 0, Side.CLIENT);
+        NET.registerMessage(com.divinerpgextended.world.twilight.WorldStateMessage.Handler.class, com.divinerpgextended.world.twilight.WorldStateMessage.class, 40, Side.CLIENT);
         FOOD.put(ItemsFood.tomato, 25);
         FOOD.put(ItemsFood.hotPie, 50);
         FOOD.put(ItemsFood.advMushroomStew, 40);

@@ -26,6 +26,8 @@ public class Config {
     public static double skythernGust = 1.6;
     /** Посмертие Мортума: шанс, что убитый моб оставит душу. */
     public static double mortumSoulChance = 0.25;
+    /** Погода сумеречных миров: перегрев Эдема, ливень Дикого леса, камнепад Апалачии. */
+    public static boolean edenSun = true, wildwoodRain = true, apalachiaRockfall = true;
     public static int upgradeTwilightFuelCount = 16;
     public static int perkFuelArlemiteIngots = 8;
     /** Алтарь порчи по правилам аддона ({@link com.divinerpgextended.station.AltarLogic}). */
@@ -154,6 +156,9 @@ public class Config {
         netherSmeltChance = cfg.get(bal, "netherSmeltChance", netherSmeltChance, "Полный сет Inferno или Netherite: шанс, что добытая руда упадёт сразу переплавленной (0 - выключено, 1 - всегда). С Шёлковым касанием не работает").getDouble();
         skythernGust = cfg.get(bal, "skythernGust", skythernGust, "Небесный терн: на сколько удар моба толкает игрока вбок (1.6 - как порыв Повелителя ветров, 0 - без толчка вбок). Один моб толкает не чаще раза в 4 секунды").getDouble();
         mortumSoulChance = cfg.get(bal, "mortumSoulChance", mortumSoulChance, "Мортум: шанс, что убитый игроком моб оставит душу на 3 секунды; не рассеял - моб встанет снова, без добычи (0 - выключено)").getDouble();
+        edenSun = cfg.getBoolean("edenSun", bal, edenSun, "Эдем: солнце перегревает игрока под открытым небом (слабость, тошнота, поджог)");
+        wildwoodRain = cfg.getBoolean("wildwoodRain", bal, wildwoodRain, "Дикий лес: ливень раз в 15-25 минут (замедление, мобы лечатся, морское оружие сильнее)");
+        apalachiaRockfall = cfg.getBoolean("apalachiaRockfall", bal, apalachiaRockfall, "Апалачия: камнепад раз в 10-15 минут (глыбы падают с неба, блоков не ломают)");
         coreShadowSpeed = cfg.get(bal, "coreShadowSpeed", coreShadowSpeed, "Ядро Тени в броне Странника: во сколько раз быстрее ходьба (3 - как у самого сета Тени, 1 - без прибавки)").getDouble();
         upgradeTwilightFuelCount = cfg.getInt("upgradeTwilightFuelCount", bal, upgradeTwilightFuelCount, 0, 64,
             "Сколько камней мира стоит закалка R2-R7");

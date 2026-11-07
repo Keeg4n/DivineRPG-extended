@@ -11,13 +11,15 @@ import org.lwjgl.opengl.GL11;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Глыба голема: крутящийся блок земли Дикого леса в полтора блока. */
+/** Глыба голема и камнепада: крутящийся блок в полтора блока. */
 @SideOnly(Side.CLIENT)
 public class RenderBoulder extends Render {
 
     private final RenderBlocks blocks = new RenderBlocks();
+    private final net.minecraft.block.Block block;
 
-    public RenderBoulder() {
+    public RenderBoulder(net.minecraft.block.Block block) {
+        this.block = block;
         shadowSize = 0.6F;
     }
 
@@ -29,7 +31,7 @@ public class RenderBoulder extends Render {
         GL11.glRotatef(spin, 1, 0, 0.5F);
         GL11.glScalef(1.5F, 1.5F, 1.5F);
         bindEntityTexture(e);
-        blocks.renderBlockAsItem(net.divinerpg.utils.blocks.TwilightBlocks.wildwoodDirt, 0, 1.0F);
+        blocks.renderBlockAsItem(block, 0, 1.0F);
         GL11.glPopMatrix();
     }
 

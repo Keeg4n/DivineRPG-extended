@@ -69,6 +69,9 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.LunaWings());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.EdenWater());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcanaTooltips());
+        com.divinerpgextended.client.WeatherHud weatherHud = new com.divinerpgextended.client.WeatherHud();
+        MinecraftForge.EVENT_BUS.register(weatherHud);
+        FMLCommonHandler.instance().bus().register(weatherHud);
         ColdHud coldHud = new ColdHud();
         com.divinerpgextended.trinket.DoubleJump.Client airMoves = new com.divinerpgextended.trinket.DoubleJump.Client();
         MinecraftForge.EVENT_BUS.register(coldHud);
@@ -107,7 +110,8 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityAncientDramcryx.class, new com.divinerpgextended.client.RenderAncientDramcryx());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWarriorKing.class, new com.divinerpgextended.client.RenderWarriorKing());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWindLord.class, new com.divinerpgextended.client.RenderWindLord());
-        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityBoulder.class, new com.divinerpgextended.client.RenderBoulder());
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityBoulder.class, new com.divinerpgextended.client.RenderBoulder(net.divinerpg.utils.blocks.TwilightBlocks.wildwoodDirt));
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityRockfall.class, new com.divinerpgextended.client.RenderBoulder(net.divinerpg.utils.blocks.TwilightBlocks.twilightStone));
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntitySkyCart.class, new com.divinerpgextended.client.RenderSkyCart());
         com.divinerpgextended.block.BlockSkyRail.renderId = RenderingRegistry.getNextAvailableRenderId();
         RenderingRegistry.registerBlockHandler(new com.divinerpgextended.client.RenderSkyRail());

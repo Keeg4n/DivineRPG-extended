@@ -18,6 +18,7 @@ import net.divinerpg.utils.config.ConfigurationHelper;
 import net.divinerpg.utils.events.ArcanaHelper;
 import net.divinerpg.utils.items.ArcanaItems;
 import net.divinerpg.utils.items.IceikaItems;
+import net.divinerpg.utils.items.VanillaItemsWeapons;
 import net.divinerpg.utils.items.TwilightItemsArmor;
 import net.divinerpg.utils.items.VanillaItemsArmor;
 import net.divinerpg.utils.items.VanillaItemsOther;
@@ -628,6 +629,9 @@ public class SelfTest {
         final TestPlayer p = player(0, "TestA", sx, sy, sz);
         final TestPlayer q = player(0, "TestB", sx + 2, sy, sz);
         final EntityIronGolem g = golem(ow, sx + 1, sy, sz + 1);
+        // ливень и камнепад не должны начаться посреди чужих проверок: прогон идёт полчаса, а затишье короче
+        for (int weatherDim : new int[] { ConfigurationHelper.wildwood, ConfigurationHelper.apalachia })
+            com.divinerpgextended.world.twilight.WorldWeather.get(server.worldServerForDimension(weatherDim)).timer = Integer.MAX_VALUE;
 
         armorTests(p, g, ow, sx, sy, sz);
         accessoryTests(p, q, g, ow);
@@ -5091,6 +5095,309 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
+        t("Прохождение", "Эдем: перегрев от солнца", () -> {
+            int dim = ConfigurationHelper.eden;
+            WorldServer w = server.worldServerForDimension(dim);
+            int x = 60, y = 200, z = 60;
+            loadAround(w, x, z, 1);
+            fillBox(w, x - 1, y, z - 1, x + 1, y + 4, z + 1, Blocks.air);
+            TestPlayer a = player(dim, "TestSunHeat", x + 0.5, y, z + 0.5);
+            StringBuilder rep = new StringBuilder();
+            float unit = 100F / com.divinerpgextended.world.twilight.EdenSun.FULL_SECONDS;
+            Object[][] sets = { { null, 1F }, { VanillaItemsArmor.frozenHelmet, 0F }, { VanillaItemsArmor.infernoHelmet, 0.5F }, { VanillaItemsArmor.netheriteHelmet, 0.5F }, { TwilightItemsArmor.edenHelmet, 0.5F } };
+            Item[][] full = { { null, null, null, null }, { VanillaItemsArmor.frozenHelmet, VanillaItemsArmor.frozenBody, VanillaItemsArmor.frozenLegs, VanillaItemsArmor.frozenBoots },
+                { VanillaItemsArmor.infernoHelmet, VanillaItemsArmor.infernoBody, VanillaItemsArmor.infernoLegs, VanillaItemsArmor.infernoBoots },
+                { VanillaItemsArmor.netheriteHelmet, VanillaItemsArmor.netheriteBody, VanillaItemsArmor.netheriteLegs, VanillaItemsArmor.netheriteBoots },
+                { TwilightItemsArmor.edenHelmet, TwilightItemsArmor.edenChestplate, TwilightItemsArmor.edenLeggings, TwilightItemsArmor.edenBoots } };
+            boolean rates = true;
+            for (int i = 0; i < sets.length; i++) {
+                armor(a, full[i][0], full[i][1], full[i][2], full[i][3]);
+                com.divinerpgextended.world.twilight.EdenSun.setHeat(a, 10F);
+                com.divinerpgextended.world.twilight.EdenSun.step(a);
+                float got = com.divinerpgextended.world.twilight.EdenSun.heat(a), want = (Float) sets[i][1] == 0F ? 9F : 10F + unit * (Float) sets[i][1];
+                rates &= near(got, want);
+                rep.append(i == 0 ? "за секунду с 10: " : ", ").append(got);
+            }
+            armor(a, null, null, null, null);
+            a.clearActivePotions();
+            com.divinerpgextended.world.twilight.EdenSun.setHeat(a, 40F);
+            com.divinerpgextended.world.twilight.EdenSun.step(a);
+            boolean calm = !a.isPotionActive(Potion.weakness) && !a.isPotionActive(Potion.confusion) && !a.isBurning();
+            com.divinerpgextended.world.twilight.EdenSun.setHeat(a, 50F);
+            com.divinerpgextended.world.twilight.EdenSun.step(a);
+            boolean weak = a.isPotionActive(Potion.weakness) && !a.isPotionActive(Potion.confusion) && !a.isBurning();
+            com.divinerpgextended.world.twilight.EdenSun.setHeat(a, 75F);
+            com.divinerpgextended.world.twilight.EdenSun.step(a);
+            boolean sick = a.isPotionActive(Potion.confusion) && !a.isBurning();
+            com.divinerpgextended.world.twilight.EdenSun.setHeat(a, 100F);
+            com.divinerpgextended.world.twilight.EdenSun.step(a);
+            boolean burn = a.isBurning();
+            a.extinguish();
+            a.clearActivePotions();
+            // крыша над головой: остывает
+            w.setBlock(x, y + 3, z, Blocks.stone, 0, 2);
+            com.divinerpgextended.world.twilight.EdenSun.setHeat(a, 30F);
+            com.divinerpgextended.world.twilight.EdenSun.step(a);
+            boolean shade = near(com.divinerpgextended.world.twilight.EdenSun.heat(a), 29F);
+            w.setBlock(x, y + 3, z, Blocks.air, 0, 2);
+            // в другом мире только остывает и эффектов нет
+            TestPlayer away = player(0, "TestSunAway", sx + 221.5, sy, sz + 0.5);
+            com.divinerpgextended.world.twilight.EdenSun.setHeat(away, 100F);
+            com.divinerpgextended.world.twilight.EdenSun.step(away);
+            boolean left = near(com.divinerpgextended.world.twilight.EdenSun.heat(away), 95F) && !away.isPotionActive(Potion.weakness) && !away.isBurning();
+            rep.append("; 40 без эффектов ").append(calm).append(", 50 слабость ").append(weak).append(", 75 тошнота ").append(sick).append(", 100 горит ").append(burn).append(", тень ").append(shade).append(", другой мир ").append(left);
+            check(rates && calm && weak && sick && burn && shade && left, rep.toString());
+            return rep.toString();
+        });
+        t("Прохождение", "Дикий лес: ливень, влага и морские крафты", () -> {
+            int dim = ConfigurationHelper.wildwood;
+            WorldServer w = server.worldServerForDimension(dim);
+            int x = 60, y = 200, z = 60;
+            loadAround(w, x, z, 1);
+            fillBox(w, x - 1, y, z - 1, x + 1, y + 4, z + 1, Blocks.air);
+            TestPlayer a = player(dim, "TestDownpour", x + 0.5, y, z + 0.5);
+            com.divinerpgextended.world.twilight.WorldWeather wx = com.divinerpgextended.world.twilight.WorldWeather.get(w);
+            int oldPhase = wx.phase, oldTimer = wx.timer;
+            Item[] wild = com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD.armor();
+            net.minecraft.entity.monster.EntityZombie zomb = new net.minecraft.entity.monster.EntityZombie(w);
+            StringBuilder rep = new StringBuilder();
+            boolean ok;
+            try {
+                // затишье: ни штрафа, ни бонуса
+                wx.phase = com.divinerpgextended.world.twilight.WorldWeather.CALM;
+                hold(a, new ItemStack(VanillaItemsWeapons.aquaticDagger));
+                boolean calmNo = !com.divinerpgextended.world.twilight.WorldWeather.rain(w) && near(hurtBy(zomb, DamageSource.causePlayerDamage(a), 10F), 10F);
+                wx.phase = com.divinerpgextended.world.twilight.WorldWeather.ACTIVE;
+                // игрок: замедление на открытом небе, под крышей нет, водная броня и сет леса не мокнут
+                a.clearActivePotions();
+                com.divinerpgextended.world.twilight.WorldWeather.rainStep(a);
+                boolean slow = a.isPotionActive(Potion.moveSlowdown);
+                a.clearActivePotions();
+                w.setBlock(x, y + 3, z, Blocks.stone, 0, 2);
+                com.divinerpgextended.world.twilight.WorldWeather.rainStep(a);
+                float dagRoof = hurtBy(zomb, DamageSource.causePlayerDamage(a), 10F);
+                boolean roof = !a.isPotionActive(Potion.moveSlowdown) && near(dagRoof, 10F);
+                w.setBlock(x, y + 3, z, Blocks.air, 0, 2);
+                armor(a, VanillaItemsArmor.krakenHelmet, VanillaItemsArmor.krakenBody, VanillaItemsArmor.krakenLegs, VanillaItemsArmor.krakenBoots);
+                com.divinerpgextended.world.twilight.WorldWeather.rainStep(a);
+                boolean kraken = !a.isPotionActive(Potion.moveSlowdown);
+                // влага: морское оружие и водная броня +25%, вместе один раз
+                float both = hurtBy(zomb, DamageSource.causePlayerDamage(a), 10F);
+                hold(a, new ItemStack(Items.diamond_sword));
+                float armorOnly = hurtBy(zomb, DamageSource.causePlayerDamage(a), 10F);
+                armor(a, null, null, null, null);
+                float plain = hurtBy(zomb, DamageSource.causePlayerDamage(a), 10F);
+                hold(a, new ItemStack(VanillaItemsWeapons.aquaticDagger));
+                float dag = hurtBy(zomb, DamageSource.causePlayerDamage(a), 10F);
+                boolean wetOk = near(both, 12.5F) && near(armorOnly, 12.5F) && near(plain, 10F) && near(dag, 12.5F);
+                // сет леса лечит под ливнем и не мокнет
+                armor(a, wild[0], wild[1], wild[2], wild[3]);
+                a.setHealth(10F);
+                a.clearActivePotions();
+                com.divinerpgextended.world.twilight.WorldWeather.rainStep(a);
+                boolean healed = near(a.getHealth(), 15F) && !a.isPotionActive(Potion.moveSlowdown);
+                armor(a, null, null, null, null);
+                a.setHealth(a.getMaxHealth());
+                // мобы лечатся
+                net.divinerpg.entities.twilight.EntityVerek verek = new net.divinerpg.entities.twilight.EntityVerek(w);
+                verek.setPosition(x + 0.5, y, z + 0.5);
+                w.spawnEntityInWorld(verek);
+                verek.setHealth(5F);
+                com.divinerpgextended.world.twilight.WorldWeather.rainMobs(w);
+                boolean mobs = near(verek.getHealth(), 6F);
+                verek.setDead();
+                // фазы: затишье, предупреждение, ливень, затишье
+                wx.phase = com.divinerpgextended.world.twilight.WorldWeather.CALM;
+                wx.timer = 20;
+                wx.second(w);
+                boolean warn = wx.phase == com.divinerpgextended.world.twilight.WorldWeather.WARNING;
+                wx.timer = 20;
+                wx.second(w);
+                boolean storm = wx.phase == com.divinerpgextended.world.twilight.WorldWeather.ACTIVE && wx.timer >= 2400;
+                wx.timer = 20;
+                wx.second(w);
+                boolean over = wx.phase == com.divinerpgextended.world.twilight.WorldWeather.CALM && wx.timer >= 18000;
+                // крафт: клинок требует акульего якоря вместо куска
+                net.minecraft.inventory.InventoryCrafting cg = grid();
+                ItemStack fang = com.divinerpgextended.world.twilight.TwilightCrafts.mat(com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD, com.divinerpgextended.world.twilight.TwilightCrafts.WEAPON_MAT);
+                ItemStack worn = new ItemStack(VanillaItemsWeapons.sharkAnchor);
+                worn.setItemDamage(worn.getMaxDamage() / 2);
+                cg.setInventorySlotContents(1, worn);
+                cg.setInventorySlotContents(3, fang.copy());
+                cg.setInventorySlotContents(4, new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlade));
+                cg.setInventorySlotContents(5, fang.copy());
+                cg.setInventorySlotContents(7, com.divinerpgextended.world.twilight.TwilightCrafts.stick(com.divinerpgextended.world.twilight.WorldWood.of(com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD)));
+                ItemStack blade = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, w);
+                cg.setInventorySlotContents(1, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.wildwoodChunk));
+                ItemStack oldWay = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, w);
+                boolean craft = blade != null && blade.getItem() == net.divinerpg.utils.items.TwilightItemsWeapons.wildwoodBlade && oldWay == null;
+                rep.append("затишье ").append(calmNo).append("; замедление ").append(slow).append(", крыша ").append(roof).append(", Kraken ").append(kraken).append("; влага: вместе ").append(f(both)).append(", броня ").append(f(armorOnly)).append(", без ").append(f(plain)).append(", кинжал ").append(f(dag))
+                    .append("; сет леса лечит ").append(healed).append("; мобы ").append(mobs).append("; фазы ").append(warn).append("/").append(storm).append("/").append(over).append("; клинок с якорем ").append(craft);
+                ok = calmNo && slow && roof && kraken && wetOk && healed && mobs && warn && storm && over && craft;
+            } finally {
+                wx.phase = oldPhase;
+                wx.timer = oldTimer;
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+        t("Прохождение", "Апалачия: камнепад и каменные големы", () -> {
+            int dim = ConfigurationHelper.apalachia;
+            WorldServer w = server.worldServerForDimension(dim);
+            int x = 60, y = 200, z = 60;
+            loadAround(w, x, z, 2);
+            fillBox(w, x - 14, y - 1, z - 14, x + 14, y - 1, z + 14, Blocks.stone);
+            fillBox(w, x - 2, y, z - 2, x + 2, y + 4, z + 2, Blocks.air);
+            TestPlayer a = join(player(dim, "TestRockfall", x + 0.5, y, z + 0.5), true);
+            UUID bulk = UUID.fromString("0d0d0d0d-0000-4000-8000-0000000000a2");
+            a.getEntityAttribute(SharedMonsterAttributes.maxHealth).applyModifier(new AttributeModifier(bulk, "selftest", 200, 0));
+            StringBuilder rep = new StringBuilder();
+            Item[] ap = com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA.armor();
+            java.util.function.Supplier<Float> rock = () -> {
+                a.setHealth(a.getMaxHealth());
+                a.hurtResistantTime = 0;
+                new com.divinerpgextended.entity.EntityRockfall(w, x + 0.5, y + 0.5, z + 0.5, y).strike();
+                return a.getMaxHealth() - a.getHealth();
+            };
+            float open = rock.get();
+            w.setBlock(x, y + 3, z, Blocks.stone, 0, 2);
+            float roofed = rock.get();
+            w.setBlock(x, y + 3, z, Blocks.air, 0, 2);
+            armor(a, ap[0], ap[1], ap[2], ap[3]);
+            float set = rock.get();
+            armor(a, null, null, null, null);
+            boolean far;
+            a.setPosition(x + 4.5, y, z + 0.5);
+            far = rock.get() == 0F;
+            a.setPosition(x + 0.5, y, z + 0.5);
+            int made = com.divinerpgextended.world.twilight.WorldWeather.rockStep(w);
+            int rocks = 0;
+            for (Object o : w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityRockfall.class, a.boundingBox.expand(20, 40, 20))) {
+                rocks++;
+                ((net.minecraft.entity.Entity) o).setDead();
+            }
+            // камнепад идёт только в свою фазу и только в Апалачии
+            com.divinerpgextended.world.twilight.WorldWeather wx = com.divinerpgextended.world.twilight.WorldWeather.get(w);
+            int oldPhase = wx.phase;
+            wx.phase = com.divinerpgextended.world.twilight.WorldWeather.ACTIVE;
+            boolean on = com.divinerpgextended.world.twilight.WorldWeather.quake(w) && !com.divinerpgextended.world.twilight.WorldWeather.quake(server.worldServerForDimension(ConfigurationHelper.wildwood));
+            wx.phase = oldPhase;
+            // голем: не отлетает, молот сильнее
+            net.divinerpg.entities.twilight.EntityApalachiaGolem golem = new net.divinerpg.entities.twilight.EntityApalachiaGolem(w);
+            golem.setPosition(x + 3.5, y, z + 0.5);
+            w.spawnEntityInWorld(golem);
+            boolean stone = golem.getEntityAttribute(SharedMonsterAttributes.knockbackResistance).getAttributeValue() >= 1.0;
+            hold(a, new ItemStack(VanillaItemsWeapons.bedrockMaul));
+            float maul = hurtBy(golem, DamageSource.causePlayerDamage(a), 10F);
+            hold(a, new ItemStack(Items.diamond_sword));
+            float sword = hurtBy(golem, DamageSource.causePlayerDamage(a), 10F);
+            golem.setDead();
+            a.getEntityAttribute(SharedMonsterAttributes.maxHealth).removeModifier(a.getEntityAttribute(SharedMonsterAttributes.maxHealth).getModifier(bulk));
+            a.setHealth(a.getMaxHealth());
+            fillBox(w, x - 14, y - 1, z - 14, x + 14, y - 1, z + 14, Blocks.air);
+            rep.append("удар ").append(f(open)).append(", под крышей ").append(f(roofed)).append(", сет ").append(f(set)).append(", в стороне ").append(far).append("; глыб за секунду ").append(made).append(" (в мире ").append(rocks).append("); фаза ").append(on).append("; голем не отлетает ").append(stone).append(", молот ").append(f(maul)).append(", меч ").append(f(sword));
+            check(open > 0 && roofed == 0F && set == 0F && far && made == 2 && rocks >= 2 && on && stone && near(maul, 15F) && near(sword, 10F), rep.toString());
+            return rep.toString();
+        });
+        t("Прохождение", "Якоря: гарпун и влага морского оружия", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int x = sx + 224, z = sz;
+            loadAround(w, x, z, 1);
+            TestPlayer a = player(0, "TestHarpoon", x + 0.5, sy, z + 0.5);
+            StringBuilder rep = new StringBuilder();
+            Object[] tagged = new Object[1];
+            java.util.function.BiFunction<Item, net.minecraft.entity.EntityLivingBase, Float> shoot = (item, target) -> {
+                hold(a, new ItemStack(item));
+                net.minecraft.entity.projectile.EntitySnowball shot = new net.minecraft.entity.projectile.EntitySnowball(w, a);
+                com.divinerpgextended.world.twilight.SeaWeapons.tagShot(shot);
+                a.getEntityData().removeTag(com.divinerpgextended.world.twilight.SeaWeapons.PULL_AT);
+                a.motionX = a.motionY = a.motionZ = 0;
+                target.motionX = target.motionY = target.motionZ = 0;
+                float dmg = hurtBy(target, DamageSource.causeThrownDamage(shot, a), 5F);
+                com.divinerpgextended.world.twilight.SeaWeapons.flushPulls();
+                return dmg;
+            };
+            // крабовый: 6 блоков тянет к игроку, 10 нет
+            net.minecraft.entity.monster.EntityZombie zombNear = new net.minecraft.entity.monster.EntityZombie(w), zombFar = new net.minecraft.entity.monster.EntityZombie(w);
+            zombNear.setPosition(a.posX + 6, a.posY, a.posZ);
+            zombFar.setPosition(a.posX + 10, a.posY, a.posZ);
+            shoot.apply(VanillaItemsWeapons.crabAnchor, zombNear);
+            boolean pulled = zombNear.motionX < -0.5 && zombNear.motionY > 0.3;
+            shoot.apply(VanillaItemsWeapons.crabAnchor, zombFar);
+            boolean tooFar = zombFar.motionX == 0;
+            shoot.apply(VanillaItemsWeapons.sharkAnchor, zombFar);
+            boolean sharkReach = zombFar.motionX < -0.5;
+            // откат: второй подряд не тянет
+            zombNear.motionX = 0;
+            hold(a, new ItemStack(VanillaItemsWeapons.crabAnchor));
+            net.minecraft.entity.projectile.EntitySnowball again = new net.minecraft.entity.projectile.EntitySnowball(w, a);
+            com.divinerpgextended.world.twilight.SeaWeapons.tagShot(again);
+            hurtBy(zombNear, DamageSource.causeThrownDamage(again, a), 5F);
+            com.divinerpgextended.world.twilight.SeaWeapons.flushPulls();
+            boolean cooldown = zombNear.motionX == 0;
+            // удар якорем в руке сразу после гарпуна сильнее, один раз; другим предметом нет
+            float first = hurtBy(zombNear, DamageSource.causePlayerDamage(a), 10F), second = hurtBy(zombNear, DamageSource.causePlayerDamage(a), 10F);
+            // босс не двигается, тянет игрока
+            net.divinerpg.entities.vanilla.EntityTheWatcher boss = new net.divinerpg.entities.vanilla.EntityTheWatcher(w);
+            boss.setPosition(a.posX + 6, a.posY, a.posZ);
+            shoot.apply(VanillaItemsWeapons.crabAnchor, boss);
+            boolean bossStill = boss.motionX == 0 && a.motionX > 0.5;
+            a.motionX = a.motionY = a.motionZ = 0;
+            // гренландский оглушает, лиоплевродоновый цепляет ещё двоих
+            shoot.apply(VanillaItemsWeapons.bowheadAnchor, zombNear);
+            boolean stun = zombNear.isPotionActive(Potion.moveSlowdown);
+            zombNear.clearActivePotions();
+            net.minecraft.entity.monster.EntityZombie[] swarm = new net.minecraft.entity.monster.EntityZombie[4];
+            for (int i = 0; i < swarm.length; i++) {
+                swarm[i] = new net.minecraft.entity.monster.EntityZombie(w);
+                swarm[i].setPosition(a.posX + 8 + i * 0.5, a.posY, a.posZ);
+                w.spawnEntityInWorld(swarm[i]);
+            }
+            for (net.minecraft.entity.monster.EntityZombie one : swarm) one.motionX = 0;
+            shoot.apply(VanillaItemsWeapons.liopleurodonAnchor, swarm[0]);
+            int hooked = 0;
+            for (net.minecraft.entity.monster.EntityZombie one : swarm) {
+                if (one.motionX < -0.3) hooked++;
+                one.setDead();
+            }
+            // игрока не тянет, пока PvP подвидов выключено
+            TestPlayer other = player(0, "TestHarpoon2", a.posX + 5, a.posY, a.posZ);
+            boolean oldPvp = Config.meleeRolesPvp;
+            Config.meleeRolesPvp = false;
+            shoot.apply(VanillaItemsWeapons.crabAnchor, other);
+            boolean noPvp = other.motionX == 0;
+            Config.meleeRolesPvp = oldPvp;
+            // настоящий бросок: снаряд запоминает якорь, появляясь в мире
+            hold(a, new ItemStack(VanillaItemsWeapons.sharkAnchor));
+            net.minecraft.entity.projectile.EntitySnowball real = new net.minecraft.entity.projectile.EntitySnowball(w, a);
+            w.spawnEntityInWorld(real);
+            boolean remembers = real.getEntityData().getBoolean("dreSeaShot") && real.getEntityData().getInteger("dreAnchor") == 1;
+            real.setDead();
+            // настоящий якорь Divine: бросок правой кнопкой выпускает снаряд, он запоминает якорь и тянет цель
+            ItemStack thrown = new ItemStack(VanillaItemsWeapons.crabAnchor);
+            hold(a, thrown);
+            java.util.Set<Object> beforeThrow = new java.util.HashSet<Object>(w.loadedEntityList);
+            thrown.getItem().onItemRightClick(thrown, w, a);
+            net.minecraft.entity.Entity bullet = null;
+            for (Object o : new java.util.ArrayList<Object>(w.loadedEntityList)) if (!beforeThrow.contains(o) && o instanceof net.divinerpg.entities.vanilla.projectile.EntityShooterBullet) bullet = (net.minecraft.entity.Entity) o;
+            boolean divineShot = bullet != null && bullet.getEntityData().getInteger("dreAnchor") == 0 && bullet.getEntityData().getBoolean("dreSeaShot");
+            if (bullet != null) {
+                a.getEntityData().removeTag(com.divinerpgextended.world.twilight.SeaWeapons.PULL_AT);
+                zombNear.motionX = 0;
+                hurtBy(zombNear, DamageSource.causeThrownDamage(bullet, a), 5F);
+                com.divinerpgextended.world.twilight.SeaWeapons.flushPulls();
+                divineShot &= zombNear.motionX < -0.5;
+                bullet.setDead();
+            }
+            rep.append("настоящий бросок ").append(divineShot).append("; ");
+            // вне воды и дождя морское оружие без влаги
+            hold(a, new ItemStack(VanillaItemsWeapons.aquaticDagger));
+            float dry = hurtBy(zombNear, DamageSource.causePlayerDamage(a), 10F);
+            rep.append("тянет ").append(pulled).append(", дальше дальности нет ").append(tooFar).append(", акулий дальше ").append(sharkReach).append(", откат ").append(cooldown).append("; удар ").append(f(first)).append(" потом ").append(f(second)).append("; босс на месте, игрок летит ").append(bossStill)
+                .append("; оглушение ").append(stun).append(", зацепил ").append(hooked).append("; игрок без PvP не тянется ").append(noPvp).append("; снаряд помнит якорь ").append(remembers).append("; сухой кинжал ").append(f(dry));
+            check(pulled && tooFar && sharkReach && cooldown && near(first, 15F) && near(second, 10F) && bossStill && stun && hooked == 3 && noPvp && remembers && near(dry, 10F) && divineShot, rep.toString());
+            return rep.toString();
+        });
         t("Прохождение", "Вьюга: укрывают только закрытые места", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x = 31400, y = 200, z = 31400, head = y + 1;
@@ -7474,7 +7781,8 @@ public class SelfTest {
             ItemStack worn = new ItemStack(net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet);
             worn.setItemDamage(worn.getMaxDamage() / 2); // изношенный шлем прошлого мира тоже годится
             net.minecraft.inventory.InventoryCrafting cg = grid();
-            ItemStack[] lay = { new ItemStack(chunk), horn, new ItemStack(chunk), new ItemStack(chunk), worn, new ItemStack(chunk) };
+            ItemStack fin = new ItemStack(VanillaItemsOther.whaleFin);
+            ItemStack[] lay = { new ItemStack(chunk), horn, new ItemStack(chunk), fin, worn, fin.copy() };
             for (int i = 0; i < 6; i++) cg.setInventorySlotContents(i, lay[i]);
             ItemStack helm = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, server.worldServers[0]);
             net.minecraft.inventory.InventoryCrafting old = grid(); // рецепт Divine: 5 кусков
@@ -7495,7 +7803,7 @@ public class SelfTest {
             check(helm != null && helm.getItem() == net.divinerpg.utils.items.TwilightItemsArmor.wildwoodHelmet && oldHelm == null
                 && blade != null && blade.getItem() == net.divinerpg.utils.items.TwilightItemsWeapons.edenBlade && plainStick == null,
                 "шлем Дикого леса " + helm + ", старый рецепт " + oldHelm + ", клинок Эдема " + blade + ", на обычной палке " + plainStick);
-            return "шлем Дикого леса = шлем Эдема + 4 куска + лунный рог; 5 кусков больше не крафтят; клинок Эдема из божественного меча на палке Эдема (обычная не подходит)";
+            return "шлем Дикого леса = шлем Эдема + 2 куска + лунный рог + 2 китовых плавника; 5 кусков больше не крафтят; клинок Эдема из божественного меча на палке Эдема (обычная не подходит)";
         });
         t("Прогрессия", "Камни врат", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);

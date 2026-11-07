@@ -45,6 +45,7 @@ public class DivineRPGExtended {
     public void serverStarting(FMLServerStartingEvent event) {
         com.divinerpgextended.perk.MiningGuard.apply();
         event.registerServerCommand(new CommandBlizzard());
+        event.registerServerCommand(new com.divinerpgextended.world.twilight.CommandWorldWeather());
         event.registerServerCommand(new com.divinerpgextended.boss.CommandDreBoss());
         event.registerServerCommand(new com.divinerpgextended.accessory.CommandDreInv());
         event.registerServerCommand(new com.divinerpgextended.debug.CommandDreDebug());

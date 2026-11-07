@@ -33,7 +33,8 @@ import cpw.mods.fml.common.registry.GameRegistry;
  * <ul>
  * <li>палки мира из досок дерева мира, факелы мира (пыль на палке), стрелы мира на палках мира;</li>
  * <li>броня, оружие и инструменты - цепочкой: вещь мира = такая же вещь прошлого мира + куски мира + материал мобов
- * мира, рукояти из палок мира. Эдем начинается с божественных вещей верхнего мира;</li>
+ * мира, рукояти из палок мира. Эдем начинается с божественных вещей верхнего мира. Дикий лес вдобавок просит морское: китовый
+ * плавник в броню, акулий якорь в клинок, зубы лиоплевродона в луки и пушки, клешню краба в инструменты;</li>
  * <li>рамка портала в следующий мир - камни врат из сердца стража (трофей Великого кадиллиона).</li>
  * </ul>
  */
@@ -255,25 +256,29 @@ public final class TwilightCrafts {
     private static void world(TwilightWorld w) {
         Item c = chunk(w);
         ItemStack s = stick(WorldWood.of(w)), am = mat(w, ARMOR_MAT), wm = mat(w, WEAPON_MAT), tm = mat(w, TOOL_MAT);
+        // у других миров на этих местах те же куски мира
+        boolean sea = w == TwilightWorld.WILDWOOD;
+        ItemStack cs = new ItemStack(c), fin = sea ? new ItemStack(VanillaItemsOther.whaleFin) : cs, teeth = sea ? new ItemStack(VanillaItemsOther.liopleurodonTeeth) : cs,
+            claw = sea ? new ItemStack(VanillaItemsOther.crabClaw) : cs, hook = sea ? any(VanillaItemsWeapons.sharkAnchor) : cs;
         Item[] armor = w.armor(), pa = prevArmor(w);
         for (Item i : armor) remove(i);
-        GameRegistry.addRecipe(new ItemStack(armor[0]), "CMC", "CPC", 'C', c, 'M', am, 'P', any(pa[0]));
-        GameRegistry.addRecipe(new ItemStack(armor[1]), "CPC", "MCM", "CCC", 'C', c, 'M', am, 'P', any(pa[1]));
-        GameRegistry.addRecipe(new ItemStack(armor[2]), "CPC", "M M", "C C", 'C', c, 'M', am, 'P', any(pa[2]));
-        GameRegistry.addRecipe(new ItemStack(armor[3]), "MPM", "C C", 'C', c, 'M', am, 'P', any(pa[3]));
+        GameRegistry.addRecipe(new ItemStack(armor[0]), "CMC", "FPF", 'C', c, 'F', fin, 'M', am, 'P', any(pa[0]));
+        GameRegistry.addRecipe(new ItemStack(armor[1]), "CPC", "MCM", "FCF", 'C', c, 'F', fin, 'M', am, 'P', any(pa[1]));
+        GameRegistry.addRecipe(new ItemStack(armor[2]), "CPC", "M M", "F F", 'C', c, 'F', fin, 'M', am, 'P', any(pa[2]));
+        GameRegistry.addRecipe(new ItemStack(armor[3]), "MPM", "F F", 'F', fin, 'M', am, 'P', any(pa[3]));
 
         Item[] wp = weapons(w), pw = prevWeapons(w);
         for (Item i : wp) remove(i);
-        GameRegistry.addRecipe(new ItemStack(wp[0]), " C ", "MPM", " S ", 'C', c, 'M', wm, 'P', any(pw[0]), 'S', s);
-        GameRegistry.addRecipe(new ItemStack(wp[1]), "CSX", "MPX", "CSX", 'C', c, 'M', wm, 'P', any(pw[1]), 'S', s, 'X', Items.string);
-        GameRegistry.addRecipe(new ItemStack(wp[2]), " C ", "CPC", " S ", 'C', c, 'P', pw[2] == null ? wm : any(pw[2]), 'S', s);
-        GameRegistry.addRecipe(new ItemStack(wp[3]), "C C", "MPM", "CSC", 'C', c, 'M', wm, 'P', pw[3] == null ? wm : any(pw[3]), 'S', s);
+        GameRegistry.addRecipe(new ItemStack(wp[0]), " H ", "MPM", " S ", 'H', hook, 'M', wm, 'P', any(pw[0]), 'S', s);
+        GameRegistry.addRecipe(new ItemStack(wp[1]), "TSX", "MPX", "TSX", 'T', teeth, 'M', wm, 'P', any(pw[1]), 'S', s, 'X', Items.string);
+        GameRegistry.addRecipe(new ItemStack(wp[2]), " T ", "CPC", " S ", 'T', teeth, 'C', c, 'P', pw[2] == null ? wm : any(pw[2]), 'S', s);
+        GameRegistry.addRecipe(new ItemStack(wp[3]), "T T", "MPM", "CSC", 'T', teeth, 'C', c, 'M', wm, 'P', pw[3] == null ? wm : any(pw[3]), 'S', s);
 
         Item[] tl = tools(w), pt = prevTools(w);
         for (Item i : tl) remove(i);
-        GameRegistry.addRecipe(new ItemStack(tl[0]), "CMC", " P ", " S ", 'C', c, 'M', tm, 'P', any(pt[0]), 'S', s);
-        GameRegistry.addRecipe(new ItemStack(tl[1]), "MCM", " P ", " S ", 'C', c, 'M', tm, 'P', any(pt[1]), 'S', s);
-        GameRegistry.addRecipe(new ItemStack(tl[2]), "CM ", "CP ", " S ", 'C', c, 'M', tm, 'P', any(pt[2]), 'S', s);
+        GameRegistry.addRecipe(new ItemStack(tl[0]), "KMK", " P ", " S ", 'K', claw, 'M', tm, 'P', any(pt[0]), 'S', s);
+        GameRegistry.addRecipe(new ItemStack(tl[1]), "MKM", " P ", " S ", 'K', claw, 'M', tm, 'P', any(pt[1]), 'S', s);
+        GameRegistry.addRecipe(new ItemStack(tl[2]), "KM ", "KP ", " S ", 'K', claw, 'M', tm, 'P', any(pt[2]), 'S', s);
     }
 
     /** Божественный меч и инструменты верхнего мира - на палках из божественного дерева. */

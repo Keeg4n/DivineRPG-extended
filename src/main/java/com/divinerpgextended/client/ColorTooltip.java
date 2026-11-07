@@ -68,6 +68,24 @@ public class ColorTooltip {
             e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.divine_melee"));
         if (part(it, com.divinerpgextended.world.twilight.TwilightWorld.SKYTHERN.armor())) e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.sky_float"));
         if (part(it, com.divinerpgextended.world.twilight.TwilightWorld.MORTUM.armor())) e.toolTip.add(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("dre.tooltip.mortum_souls"));
+        if (part(it, net.divinerpg.utils.items.VanillaItemsArmor.frozenHelmet, net.divinerpg.utils.items.VanillaItemsArmor.frozenBody, net.divinerpg.utils.items.VanillaItemsArmor.frozenLegs, net.divinerpg.utils.items.VanillaItemsArmor.frozenBoots))
+            e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.sun_immune"));
+        if (part(it, net.divinerpg.utils.items.VanillaItemsArmor.infernoHelmet, net.divinerpg.utils.items.VanillaItemsArmor.infernoBody, net.divinerpg.utils.items.VanillaItemsArmor.infernoLegs, net.divinerpg.utils.items.VanillaItemsArmor.infernoBoots)
+            || part(it, net.divinerpg.utils.items.VanillaItemsArmor.netheriteHelmet, net.divinerpg.utils.items.VanillaItemsArmor.netheriteBody, net.divinerpg.utils.items.VanillaItemsArmor.netheriteLegs, net.divinerpg.utils.items.VanillaItemsArmor.netheriteBoots)
+            || part(it, com.divinerpgextended.world.twilight.TwilightWorld.EDEN.armor()))
+            e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.sun_half"));
+        if (part(it, net.divinerpg.utils.items.VanillaItemsArmor.krakenHelmet, net.divinerpg.utils.items.VanillaItemsArmor.krakenBody, net.divinerpg.utils.items.VanillaItemsArmor.krakenLegs, net.divinerpg.utils.items.VanillaItemsArmor.krakenBoots)
+            || part(it, net.divinerpg.utils.items.VanillaItemsArmor.aquastriveHelmet, net.divinerpg.utils.items.VanillaItemsArmor.aquastriveBody, net.divinerpg.utils.items.VanillaItemsArmor.aquastriveLegs, net.divinerpg.utils.items.VanillaItemsArmor.aquastriveBoots))
+            e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.rain_ready"));
+        if (part(it, com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD.armor())) e.toolTip.add(EnumChatFormatting.GREEN + StatCollector.translateToLocal("dre.tooltip.wild_rain"));
+        if (part(it, com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA.armor())) e.toolTip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.tooltip.apalachia_rocks"));
+        if (com.divinerpgextended.world.twilight.SeaWeapons.seaWeapon(it)) e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.sea_wet"));
+        if (com.divinerpgextended.world.twilight.SeaWeapons.anchor(it) >= 0) {
+            int anchor = com.divinerpgextended.world.twilight.SeaWeapons.anchor(it);
+            e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocalFormatted("dre.tooltip.harpoon", com.divinerpgextended.world.twilight.SeaWeapons.range(anchor)));
+            if (anchor == 2) e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.harpoon_stun"));
+            if (anchor == 3) e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.harpoon_swarm"));
+        }
         if (blastArmor(it)) e.toolTip.add(EnumChatFormatting.DARK_RED + StatCollector.translateToLocal("dre.tooltip.blast_after_watcher"));
     }
 
