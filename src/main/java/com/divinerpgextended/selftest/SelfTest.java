@@ -474,6 +474,11 @@ public class SelfTest {
         return new int[] { solid, cells };
     }
 
+    /** Залить параллелепипед одним блоком. */
+    private static void fillBox(WorldServer w, int x1, int y1, int z1, int x2, int y2, int z2, Block b) {
+        for (int x = x1; x <= x2; x++) for (int y = y1; y <= y2; y++) for (int z = z1; z <= z2; z++) w.setBlock(x, y, z, b, 0, 2);
+    }
+
     private static void loadAround(WorldServer w, int x, int z, int r) {
         for (int i = -r - 1; i <= r + 1; i++)
             for (int k = -r - 1; k <= r + 1; k++) w.theChunkProviderServer.loadChunk((x >> 4) + i, (z >> 4) + k);
@@ -4878,6 +4883,69 @@ public class SelfTest {
                 + "; подвиды выключены " + f(rolesOff) + "; стрела " + f(arrow) + "; неполный сет " + f(partial) + "; Странник " + f(wanderer) + "; манекен: воздух " + f(dummyAir) + ", земля " + f(dummyGround);
             check(near(ground / bare, 1.5F) && near(air, bare) && near(jump, bareJump) && near(foeOff, bareFoe) && near(foeOn, bareFoe * 1.5F) && near(foePrivate, bareFoe) && near(rolesOff, ground) && arrow < 10F && near(partial, bare) && near(wanderer, bare)
                 && near(dummyGround / dummyAir, 1.5F), rep);
+            return rep;
+        });
+        t("Прохождение", "Вьюга: укрывают только закрытые места", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int x = 31400, y = 200, z = 31400, head = y + 1;
+            loadAround(w, x + 12, z, 3);
+            fillBox(w, x - 4, y - 2, z - 4, x + 28, y + 8, z + 4, Blocks.air);
+            boolean open = com.divinerpgextended.cold.Blizzard.windReaches(w, x, head, z);
+            // ёлка: ствол рядом и крона прямо над головой
+            fillBox(w, x - 2, y + 3, z - 2, x + 2, y + 5, z + 2, Blocks.leaves);
+            fillBox(w, x + 1, y, z, x + 1, y + 5, z, Blocks.log);
+            boolean underTreeRoof = !w.canBlockSeeTheSky(x, head, z);
+            boolean tree = com.divinerpgextended.cold.Blizzard.windReaches(w, x, head, z);
+            fillBox(w, x - 2, y, z - 2, x + 2, y + 5, z + 2, Blocks.air);
+            // навес без стен
+            fillBox(w, x - 3, y + 3, z - 3, x + 3, y + 3, z + 3, Blocks.stone);
+            boolean canopy = com.divinerpgextended.cold.Blizzard.windReaches(w, x, head, z);
+            fillBox(w, x - 3, y + 3, z - 3, x + 3, y + 3, z + 3, Blocks.air);
+            // закрытый дом: стены и крыша вокруг пустоты 3x3x3
+            fillBox(w, x - 2, y - 1, z - 2, x + 2, y + 3, z + 2, Blocks.stone);
+            fillBox(w, x - 1, y, z - 1, x + 1, y + 2, z + 1, Blocks.air);
+            boolean closed = !com.divinerpgextended.cold.Blizzard.windReaches(w, x, head, z);
+            // та же комната с дверью
+            w.setBlock(x + 2, y, z, Blocks.wooden_door, 0, 2);
+            w.setBlock(x + 2, y + 1, z, Blocks.wooden_door, 8, 2);
+            boolean doorShut = !com.divinerpgextended.cold.Blizzard.windReaches(w, x, head, z);
+            w.setBlock(x + 2, y, z, Blocks.wooden_door, 4, 2);
+            boolean doorOpen = com.divinerpgextended.cold.Blizzard.windReaches(w, x, head, z);
+            w.setBlock(x + 2, y, z, Blocks.stone, 0, 2);
+            w.setBlock(x + 2, y + 1, z, Blocks.stone, 0, 2);
+            // люк в крыше: закрытый держит, открытый продувает
+            w.setBlock(x, y + 3, z, Blocks.trapdoor, 0, 2);
+            boolean hatchShut = !com.divinerpgextended.cold.Blizzard.windReaches(w, x, head, z);
+            w.setBlock(x, y + 3, z, Blocks.trapdoor, 4, 2);
+            boolean hatchOpen = com.divinerpgextended.cold.Blizzard.windReaches(w, x, head, z);
+            // стеклянная крыша: для игры небо видно, для ветра - нет
+            fillBox(w, x - 2, y + 3, z - 2, x + 2, y + 3, z + 2, Blocks.glass);
+            boolean glassSky = w.canBlockSeeTheSky(x, head, z);
+            boolean glass = !com.divinerpgextended.cold.Blizzard.windReaches(w, x, head, z);
+            // голова под водой, потом над водой
+            fillBox(w, x - 2, y + 3, z - 2, x + 2, y + 3, z + 2, Blocks.air);
+            fillBox(w, x - 1, y, z - 1, x + 1, y + 1, z + 1, Blocks.water);
+            boolean underWater = !com.divinerpgextended.cold.Blizzard.windReaches(w, x, head, z);
+            boolean overWater = com.divinerpgextended.cold.Blizzard.windReaches(w, x, y + 2, z);
+            fillBox(w, x - 2, y - 1, z - 2, x + 2, y + 3, z + 2, Blocks.air);
+            // пещера: тупиковый ход длиной 24, выход с конца; ветер заходит на 12 шагов от неба
+            fillBox(w, x - 1, y - 1, z - 1, x + 24, y + 2, z + 1, Blocks.stone);
+            fillBox(w, x, y, z, x + 24, y + 1, z, Blocks.air);
+            boolean deep = !com.divinerpgextended.cold.Blizzard.windReaches(w, x, head, z);
+            boolean pastReach = !com.divinerpgextended.cold.Blizzard.windReaches(w, x + 12, head, z);
+            boolean atReach = com.divinerpgextended.cold.Blizzard.windReaches(w, x + 13, head, z);
+            boolean mouth = com.divinerpgextended.cold.Blizzard.windReaches(w, x + 23, head, z);
+            // сам игрок: ответ живёт 10 тиков, поэтому после сноса стен прежний, а у другого игрока свой
+            TestPlayer inside = player(0, "TestGaleIn", x + 0.5, y, z + 0.5);
+            boolean playerDeep = !com.divinerpgextended.cold.Blizzard.exposed(inside);
+            fillBox(w, x - 1, y - 1, z - 1, x + 24, y + 2, z + 1, Blocks.air);
+            boolean remembered = !com.divinerpgextended.cold.Blizzard.exposed(inside);
+            TestPlayer outside = player(0, "TestGaleOut", x + 0.5, y, z + 0.5);
+            boolean playerOpen = com.divinerpgextended.cold.Blizzard.exposed(outside);
+            String rep = "поле " + open + "; ёлка " + tree + " (крона над головой " + underTreeRoof + "); навес " + canopy + "; дом " + closed + "; дверь закрыта " + doorShut + ", открыта " + doorOpen
+                + "; люк закрыт " + hatchShut + ", открыт " + hatchOpen + "; стекло " + glass + " (небо для игры " + glassSky + "); под водой " + underWater + ", над водой " + overWater
+                + "; пещера: глубина " + deep + ", 13 шагов " + pastReach + ", 12 шагов " + atReach + ", вход " + mouth + "; игрок: в глубине " + playerDeep + ", ответ помнит " + remembered + ", на поле " + playerOpen;
+            check(open && underTreeRoof && tree && canopy && closed && doorShut && doorOpen && hatchShut && hatchOpen && glassSky && glass && underWater && overWater && deep && pastReach && atReach && mouth && playerDeep && remembered && playerOpen, rep);
             return rep;
         });
         t("Прохождение", "Бедрок: нерушимость на месте", () -> {

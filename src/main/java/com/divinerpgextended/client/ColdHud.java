@@ -21,7 +21,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 /**
  * Холод на экране: изморозь со снежинками по краям (гуще с ростом холода) и градусник над полоской еды. Пока
- * действует "Согрет", градусник обведён оранжевым. Во вьюгу под открытым небом - белая пелена, густой туман, снег
+ * действует "Согрет", градусник обведён оранжевым. Во вьюгу там, куда достаёт ветер, - белая пелена, густой туман, снег
  * по ветру и вой ветра; перед вьюгой снег уже начинает мести.
  */
 @SideOnly(Side.CLIENT)
@@ -59,7 +59,7 @@ public class ColdHud extends Gui {
         GL11.glColor4f(1, 1, 1, 1);
     }
 
-    /** Вьюга вокруг и игрок под открытым небом. */
+    /** Вьюга вокруг и ветер достаёт игрока. */
     private static boolean storm(Minecraft mc) {
         return mc.thePlayer != null && ColdHandler.inIceika(mc.thePlayer) && ColdMessage.clientPhase == Blizzard.STORM
             && Blizzard.exposed(mc.thePlayer);
