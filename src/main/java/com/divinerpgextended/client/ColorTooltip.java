@@ -64,7 +64,16 @@ public class ColorTooltip {
         if (it == net.divinerpg.utils.items.VanillaItemsArmor.terranHelmet || it == net.divinerpg.utils.items.VanillaItemsArmor.terranBody
             || it == net.divinerpg.utils.items.VanillaItemsArmor.terranLegs || it == net.divinerpg.utils.items.VanillaItemsArmor.terranBoots)
             e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.terran_crit"));
+        if (part(it, net.divinerpg.utils.items.VanillaItemsArmor.divineHelmet, net.divinerpg.utils.items.VanillaItemsArmor.divineBody, net.divinerpg.utils.items.VanillaItemsArmor.divineLegs, net.divinerpg.utils.items.VanillaItemsArmor.divineBoots))
+            e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.divine_melee"));
+        if (part(it, com.divinerpgextended.world.twilight.TwilightWorld.SKYTHERN.armor())) e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.sky_float"));
+        if (part(it, com.divinerpgextended.world.twilight.TwilightWorld.MORTUM.armor())) e.toolTip.add(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("dre.tooltip.mortum_souls"));
         if (blastArmor(it)) e.toolTip.add(EnumChatFormatting.DARK_RED + StatCollector.translateToLocal("dre.tooltip.blast_after_watcher"));
+    }
+
+    private static boolean part(net.minecraft.item.Item it, net.minecraft.item.Item... set) {
+        for (net.minecraft.item.Item s : set) if (it == s) return true;
+        return false;
     }
 
     /** Подвид оружия обычного мира: числа сервера. Меч с обычными числами - без строки, у него ничего не меняется. */

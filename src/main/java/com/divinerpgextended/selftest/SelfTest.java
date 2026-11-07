@@ -657,8 +657,9 @@ public class SelfTest {
             float divine = golemHit(g, p, 1);
             armor(p, TwilightItemsArmor.haliteHelmet, TwilightItemsArmor.haliteChestplate, TwilightItemsArmor.haliteLeggings, TwilightItemsArmor.haliteBoots);
             float halite = golemHit(g, p, 1);
-            check(near(none, 1) && near(divine, 7) && near(halite, 17), "кулак: без сета " + f(none) + ", Divine " + f(divine) + ", Halite " + f(halite) + " (ждали 1/7/17)");
-            return "кулак 1 > Divine 7, Halite 17";
+            // голем нейтрален: у божественного сета бонус только по врагам, это проверяет отдельный тест
+            check(near(none, 1) && near(divine, 1) && near(halite, 17), "кулак: без сета " + f(none) + ", Divine " + f(divine) + ", Halite " + f(halite) + " (ждали 1/1/17)");
+            return "кулак по голему 1 > Divine 1, Halite 17";
         });
         t("Броня", "Santa в Айсике", () -> {
             reset(p);
@@ -1112,12 +1113,12 @@ public class SelfTest {
             net.minecraft.entity.projectile.EntityArrow myArrow = new net.minecraft.entity.projectile.EntityArrow(w, p, 1F), itsArrow = new net.minecraft.entity.projectile.EntityArrow(w, z, 1F);
             com.divinerpgextended.perk.PerkEffects perkFx = new com.divinerpgextended.perk.PerkEffects();
             StringBuilder rep = new StringBuilder();
-            // удар рукой и выстрел: +6 у божественного ядра (старая броня без записи - оно же), x1.2 у порчи
+            // удар рукой и выстрел: +10 по нежити у божественного ядра (старая броня без записи - оно же), x1.2 у порчи
             wearCore(p, null);
             float divine = hurtBy(z, DamageSource.causePlayerDamage(p), 10F), divineShot = hurtBy(z, DamageSource.causeArrowDamage(myArrow, p), 10F);
             wearCore(p, com.divinerpgextended.item.ArmorCore.CORRUPTED);
             float rotHit = hurtBy(z, DamageSource.causePlayerDamage(p), 10F), rotShot = hurtBy(z, DamageSource.causeArrowDamage(myArrow, p), 10F);
-            boolean damage = near(divine, 16F) && near(divineShot, 10F) && near(rotHit, 10F) && near(rotShot, 12F);
+            boolean damage = near(divine, 20F) && near(divineShot, 10F) && near(rotHit, 10F) && near(rotShot, 12F);
             rep.append("божественное: рукой ").append(f(divine)).append(", выстрел ").append(f(divineShot)).append("; порча: рукой ").append(f(rotHit)).append(", выстрел ").append(f(rotShot));
             // огонь и взрывы: бедрок - огонь всегда, взрывы после Смотрителя; Энд - только взрывы; Тень - ничего
             DamageSource boom = DamageSource.setExplosionSource(null);
@@ -4884,6 +4885,211 @@ public class SelfTest {
             check(near(ground / bare, 1.5F) && near(air, bare) && near(jump, bareJump) && near(foeOff, bareFoe) && near(foeOn, bareFoe * 1.5F) && near(foePrivate, bareFoe) && near(rolesOff, ground) && arrow < 10F && near(partial, bare) && near(wanderer, bare)
                 && near(dummyGround / dummyAir, 1.5F), rep);
             return rep;
+        });
+        t("Прохождение", "Божественная броня: бонус только по врагам", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            TestPlayer a = player(0, "TestDivineFoe", sx + 216.5, sy, sz + 0.5);
+            EntityLivingBase[] targets = { new net.minecraft.entity.monster.EntityZombie(w), new net.minecraft.entity.monster.EntitySpider(w), new net.minecraft.entity.passive.EntityCow(w),
+                new net.minecraft.entity.passive.EntityWolf(w), new EntityIronGolem(w), player(0, "TestDivineFoe2", sx + 217.5, sy, sz + 0.5) };
+            float[] want = { 20, 16, 10, 10, 10, 16 };
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            for (int mode = 0; mode < 2; mode++) {
+                if (mode == 0) armor(a, VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots);
+                else wearCore(a, com.divinerpgextended.item.ArmorCore.DIVINE);
+                rep.append(mode == 0 ? "сет:" : "; ядро:");
+                for (int i = 0; i < targets.length; i++) {
+                    float got = hurtBy(targets[i], DamageSource.causePlayerDamage(a), 10F);
+                    ok &= near(got, want[i]);
+                    rep.append(' ').append(f(got));
+                }
+                float shot = hurtBy(targets[0], DamageSource.causeArrowDamage(new net.minecraft.entity.projectile.EntityArrow(w, a, 1F), a), 10F);
+                ok &= near(shot, 10F);
+                rep.append(", выстрел ").append(f(shot));
+            }
+            check(ok, rep + " (зомби, паук, корова, волк, голем, игрок: ждали 20 16 10 10 10 16)");
+            return rep.toString();
+        });
+        t("Прохождение", "Небесный терн: невесомость, порыв и прыжки мобов", () -> {
+            int dim = ConfigurationHelper.skythern;
+            WorldServer w = server.worldServerForDimension(dim);
+            double x = 40.5, y = 150, z = 40.5;
+            loadAround(w, 40, 40, 1);
+            TestPlayer a = player(dim, "TestSkyFloat", x, y, z);
+            Item[] sky = com.divinerpgextended.world.twilight.TwilightWorld.SKYTHERN.armor();
+            StringBuilder rep = new StringBuilder();
+            // невесомость игрока
+            armor(a, sky[0], sky[1], sky[2], sky[3]);
+            double[] after = new double[4];
+            a.onGround = false;
+            a.motionY = -0.2;
+            com.divinerpgextended.world.twilight.SkythernWinds.floatStep(a);
+            after[0] = a.motionY;
+            a.setSneaking(true);
+            a.motionY = -0.2;
+            com.divinerpgextended.world.twilight.SkythernWinds.floatStep(a);
+            after[1] = a.motionY;
+            a.setSneaking(false);
+            a.onGround = true;
+            a.motionY = -0.2;
+            com.divinerpgextended.world.twilight.SkythernWinds.floatStep(a);
+            after[2] = a.motionY;
+            a.onGround = false;
+            armor(a, null, sky[1], sky[2], sky[3]);
+            a.motionY = -0.2;
+            com.divinerpgextended.world.twilight.SkythernWinds.floatStep(a);
+            after[3] = a.motionY;
+            boolean floats = near((float) after[0], -0.1608F) && near((float) after[1], -0.2F) && near((float) after[2], -0.2F) && near((float) after[3], -0.2F);
+            rep.append("падение: сет ").append(after[0]).append(", шифт ").append(after[1]).append(", земля ").append(after[2]).append(", без шлема ").append(after[3]);
+            // прыжок: прибавка Divine убрана, остальное на месте
+            armor(a, sky[0], sky[1], sky[2], sky[3]);
+            a.motionY = 0.42;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingJumpEvent(a));
+            double jump = a.motionY;
+            boolean jumpOk = near((float) jump, 0.42F);
+            rep.append("; прыжок ").append(jump);
+            // порыв от удара: один раз на моба, снаряд и босс не толкают, защита от отброса держит
+            net.divinerpg.entities.twilight.EntitySkythernFiend m = new net.divinerpg.entities.twilight.EntitySkythernFiend(w);
+            m.setPosition(x - 3, y, z);
+            a.motionX = a.motionY = a.motionZ = 0;
+            hurtBy(a, DamageSource.causeMobDamage(m), 5F);
+            com.divinerpgextended.world.twilight.SkythernWinds.flush(a);
+            boolean gust = near((float) a.motionX, 1.6F) && near((float) a.motionY, 0.35F);
+            rep.append("; порыв ").append(a.motionX).append("/").append(a.motionY);
+            a.motionX = a.motionY = a.motionZ = 0;
+            hurtBy(a, DamageSource.causeMobDamage(m), 5F);
+            com.divinerpgextended.world.twilight.SkythernWinds.flush(a);
+            boolean cooldown = near((float) a.motionX, 0F);
+            net.divinerpg.entities.twilight.EntitySkythernFiend m2 = new net.divinerpg.entities.twilight.EntitySkythernFiend(w);
+            m2.setPosition(x - 3, y, z);
+            net.minecraft.entity.projectile.EntityArrow arrow = new net.minecraft.entity.projectile.EntityArrow(w, m2, 1F);
+            hurtBy(a, DamageSource.causeArrowDamage(arrow, m2), 5F);
+            com.divinerpgextended.world.twilight.SkythernWinds.flush(a);
+            boolean arrowNo = near((float) a.motionX, 0F);
+            net.minecraft.entity.ai.attributes.AttributeModifier hold = new net.minecraft.entity.ai.attributes.AttributeModifier(UUID.fromString("0d0d0d0d-0000-4000-8000-0000000000a1"), "selftest", 1, 0);
+            a.getEntityAttribute(SharedMonsterAttributes.knockbackResistance).applyModifier(hold);
+            hurtBy(a, DamageSource.causeMobDamage(m2), 5F);
+            com.divinerpgextended.world.twilight.SkythernWinds.flush(a);
+            boolean held = near((float) a.motionX, 0F);
+            a.getEntityAttribute(SharedMonsterAttributes.knockbackResistance).removeModifier(hold);
+            rep.append("; перезарядка ").append(cooldown).append(", стрела без порыва ").append(arrowNo).append(", защита держит ").append(held);
+            // прыжок моба: далеко и высоко прыгает, рядом и у лучника нет
+            net.divinerpg.entities.twilight.EntitySkythernGolem skyGolem = new net.divinerpg.entities.twilight.EntitySkythernGolem(w);
+            skyGolem.setPosition(x - 10, y, z);
+            skyGolem.setTarget(a);
+            boolean far = com.divinerpgextended.world.twilight.SkythernWinds.leap(skyGolem) && skyGolem.motionX > 0.5 && skyGolem.motionY > 0.4;
+            boolean again = !com.divinerpgextended.world.twilight.SkythernWinds.leap(skyGolem);
+            net.divinerpg.entities.twilight.EntitySkythernGolem up = new net.divinerpg.entities.twilight.EntitySkythernGolem(w);
+            up.setPosition(x - 1, y - 6, z);
+            up.setTarget(a);
+            boolean above = com.divinerpgextended.world.twilight.SkythernWinds.leap(up) && up.motionY > 0.8;
+            net.divinerpg.entities.twilight.EntitySkythernGolem close = new net.divinerpg.entities.twilight.EntitySkythernGolem(w);
+            close.setPosition(x - 2, y, z);
+            close.setTarget(a);
+            boolean nearNo = !com.divinerpgextended.world.twilight.SkythernWinds.leap(close);
+            net.divinerpg.entities.twilight.EntitySkythernArcher ar = new net.divinerpg.entities.twilight.EntitySkythernArcher(w);
+            ar.setPosition(x - 10, y, z);
+            boolean archerNo = !com.divinerpgextended.world.twilight.SkythernWinds.leap(ar);
+            rep.append("; прыжки: далеко ").append(far).append(", сразу снова нет ").append(again).append(", вверх ").append(above).append(", рядом нет ").append(nearNo).append(", лучник нет ").append(archerNo);
+            check(floats && jumpOk && gust && cooldown && arrowNo && held && far && again && above && nearNo && archerNo, rep.toString());
+            return rep.toString();
+        });
+        t("Прохождение", "Мортум: посмертие мобов", () -> {
+            int dim = ConfigurationHelper.mortum;
+            WorldServer w = server.worldServerForDimension(dim);
+            double x = 40.5, y = 150, z = 40.5;
+            loadAround(w, 40, 40, 1);
+            TestPlayer a = join(player(dim, "TestAfterlife", x, y, z), true); // душа ищет сет Мортума среди игроков мира
+            Class<net.minecraft.entity.Entity> soulClass = (Class) com.divinerpgextended.entity.EntityLostSoul.class;
+            java.util.function.Supplier<List<net.minecraft.entity.Entity>> souls = () -> w.getEntitiesWithinAABB(soulClass, a.boundingBox.expand(16, 16, 16));
+            java.util.function.Function<net.minecraft.entity.EntityLiving, net.minecraft.entity.EntityLiving> place = en -> {
+                en.setPosition(x + 2, y, z);
+                w.spawnEntityInWorld(en);
+                return en;
+            };
+            double oldChance = Config.mortumSoulChance;
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            try {
+                Config.mortumSoulChance = 1;
+                // убил игрок - душа есть, упал в пустоту - нет
+                net.minecraft.entity.EntityLiving m = place.apply(new net.divinerpg.entities.twilight.EntityMortumDemon(w));
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(m, DamageSource.outOfWorld));
+                boolean voidNo = souls.get().isEmpty();
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(m, DamageSource.causePlayerDamage(a)));
+                boolean left = souls.get().size() == 1;
+                m.setDead();
+                // не успел: моб встаёт с 40%, быстрее, вторая смерть без души и добычи
+                com.divinerpgextended.entity.EntityLostSoul soul = (com.divinerpgextended.entity.EntityLostSoul) souls.get().get(0);
+                for (int i = 1; i < com.divinerpgextended.entity.EntityLostSoul.RISE; i++) soul.onUpdate();
+                boolean early = !soul.isDead;
+                soul.onUpdate();
+                List<?> risen = w.getEntitiesWithinAABB(net.divinerpg.entities.twilight.EntityMortumDemon.class, a.boundingBox.expand(8, 8, 8));
+                net.divinerpg.entities.twilight.EntityMortumDemon back = null;
+                for (Object o : risen) if (((net.minecraft.entity.Entity) o).getEntityData().getBoolean(com.divinerpgextended.world.twilight.MortumAfterlife.RISEN)) back = (net.divinerpg.entities.twilight.EntityMortumDemon) o;
+                boolean rose = soul.isDead && back != null && near(back.getHealth(), back.getMaxHealth() * 0.4F) && back.isPotionActive(Potion.moveSpeed);
+                boolean once = false, noDrops = false;
+                if (back != null) {
+                    MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(back, DamageSource.causePlayerDamage(a)));
+                    once = souls.get().stream().noneMatch(en -> !en.isDead);
+                    ArrayList<net.minecraft.entity.item.EntityItem> drops = new ArrayList<net.minecraft.entity.item.EntityItem>();
+                    drops.add(new net.minecraft.entity.item.EntityItem(w, x, y, z, new ItemStack(Items.bone)));
+                    MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(back, DamageSource.causePlayerDamage(a), drops, 0, true, 0));
+                    noDrops = drops.isEmpty();
+                    back.setDead();
+                }
+                ok &= voidNo && left && early && rose && once && noDrops;
+                rep.append("пустота без души ").append(voidNo).append(", душа ").append(left).append(", рано не встаёт ").append(early).append(", встал ").append(rose).append(", второй раз нет ").append(once).append(", без добычи ").append(noDrops);
+                // удар по душе: рассеялась, душа мира; удар не игрока не считается
+                net.minecraft.entity.EntityLiving m2 = place.apply(new net.divinerpg.entities.twilight.EntityMortumDemon(w));
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(m2, DamageSource.causePlayerDamage(a)));
+                m2.setDead();
+                com.divinerpgextended.entity.EntityLostSoul s2 = null;
+                for (net.minecraft.entity.Entity en : souls.get()) if (!en.isDead) s2 = (com.divinerpgextended.entity.EntityLostSoul) en;
+                boolean mobHit = s2 != null && !s2.attackEntityFrom(DamageSource.causeMobDamage(new net.minecraft.entity.monster.EntityZombie(w)), 5F);
+                boolean playerHit = s2 != null && s2.attackEntityFrom(DamageSource.causePlayerDamage(a), 1F) && s2.isDead;
+                int dropped = 0;
+                for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, a.boundingBox.expand(8, 8, 8))) {
+                    net.minecraft.entity.item.EntityItem it = (net.minecraft.entity.item.EntityItem) o;
+                    if (it.getEntityItem().getItem() == net.divinerpg.utils.items.TwilightItemsOther.mortumSoul) {
+                        dropped += it.getEntityItem().stackSize;
+                        it.setDead();
+                    }
+                }
+                ok &= mobHit && playerHit && dropped == 1;
+                rep.append("; удар моба мимо ").append(mobHit).append(", удар игрока ").append(playerHit).append(", душ мира ").append(dropped);
+                // сет Мортума забирает сам и лечит
+                Item[] mort = com.divinerpgextended.world.twilight.TwilightWorld.MORTUM.armor();
+                armor(a, mort[0], mort[1], mort[2], mort[3]);
+                a.setHealth(10F);
+                net.minecraft.entity.EntityLiving m3 = place.apply(new net.divinerpg.entities.twilight.EntityMortumDemon(w));
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(m3, DamageSource.causePlayerDamage(a)));
+                m3.setDead();
+                com.divinerpgextended.entity.EntityLostSoul s3 = null;
+                for (net.minecraft.entity.Entity en : souls.get()) if (!en.isDead) s3 = (com.divinerpgextended.entity.EntityLostSoul) en;
+                if (s3 != null) s3.onUpdate();
+                boolean taken = s3 != null && s3.isDead && near(a.getHealth(), 12F);
+                ok &= taken;
+                rep.append("; сет забрал ").append(taken);
+                // не считаются: приспешник, шанс 0
+                armor(a, null, null, null, null);
+                net.minecraft.entity.EntityLiving boss = new net.divinerpg.entities.twilight.EntityMortumDemon(w), minion = place.apply(new net.divinerpg.entities.twilight.EntityMortumDemon(w));
+                com.divinerpgextended.boss.BossMinions.mark(minion, boss);
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(minion, DamageSource.causePlayerDamage(a)));
+                minion.setDead();
+                Config.mortumSoulChance = 0;
+                net.minecraft.entity.EntityLiving none = place.apply(new net.divinerpg.entities.twilight.EntityMortumDemon(w));
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(none, DamageSource.causePlayerDamage(a)));
+                none.setDead();
+                boolean skipped = souls.get().stream().noneMatch(en -> !en.isDead);
+                ok &= skipped;
+                rep.append("; приспешник и шанс 0 без души ").append(skipped);
+            } finally {
+                Config.mortumSoulChance = oldChance;
+                for (net.minecraft.entity.Entity en : souls.get()) en.setDead();
+            }
+            check(ok, rep.toString());
+            return rep.toString();
         });
         t("Прохождение", "Вьюга: укрывают только закрытые места", () -> {
             WorldServer w = server.worldServerForDimension(0);

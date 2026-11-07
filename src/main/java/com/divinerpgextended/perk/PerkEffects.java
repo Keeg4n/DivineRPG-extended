@@ -42,13 +42,23 @@ public class PerkEffects {
     public static final float HIGH_STEP = 1.0F, NORMAL_STEP = 0.5F;
     private static final String STEP_TAG = "dreHighStep";
     /** Ядро: то же, что полный сет. */
-    public static final float CORE_DIVINE_MELEE = 6F, CORE_CORRUPTED_RANGED = 1.2F;
+    public static final float CORE_DIVINE_MELEE = 6F, CORE_DIVINE_UNDEAD = 10F, CORE_CORRUPTED_RANGED = 1.2F;
 
     /** Нерушимость бедрока: сдвиг дальше этого от места, где встал, сбрасывает стойку (мелкие толчки не считаются). */
     private static final double STANCE_MOVE = 0.25;
     private static final java.util.UUID STANCE_ID = java.util.UUID.fromString("c3a71f52-8d04-4e6b-9a17-2b6f4e90d1a8");
     /** Где игрок встал и сколько тиков стоит: {x, y, z, тики}. */
     private static final java.util.Map<EntityPlayer, double[]> STANCE = new java.util.WeakHashMap<EntityPlayer, double[]>();
+
+    /**
+     * Ближний бой в божественной броне: сет и ядро бьют только то, что само враждебно. Нежить сильнее, вражеские мобы, боссы и игроки
+     * как раньше, мирные и нейтральные без бонуса.
+     */
+    public static float divineMelee(EntityLivingBase target) {
+        if (target.getCreatureAttribute() == net.minecraft.entity.EnumCreatureAttribute.UNDEAD) return CORE_DIVINE_UNDEAD;
+        return target instanceof IMob || target instanceof net.minecraft.entity.boss.IBossDisplayData || target instanceof EntityPlayer
+            || target instanceof com.divinerpgextended.dummy.EntityTrainingDummy ? CORE_DIVINE_MELEE : 0;
+    }
 
     /** Ядро надетого сета; во сне (кошмар Ветеи) чужие сеты молчат, ядро тоже. */
     private static ArmorCore core(EntityPlayer p) {
@@ -134,7 +144,7 @@ public class PerkEffects {
         if (attacker instanceof EntityPlayer && !attacker.worldObj.isRemote && attacker != event.entityLiving) {
             EntityPlayer a = (EntityPlayer) attacker;
             ArmorCore c = core(a);
-            if (c == ArmorCore.DIVINE && event.source.getSourceOfDamage() == a && !event.source.isProjectile() && !event.source.isMagicDamage()) event.ammount += CORE_DIVINE_MELEE;
+            if (c == ArmorCore.DIVINE && event.source.getSourceOfDamage() == a && !event.source.isProjectile() && !event.source.isMagicDamage()) event.ammount += divineMelee(event.entityLiving);
             if (event.source.isProjectile()) {
                 if (c == ArmorCore.CORRUPTED) event.ammount *= CORE_CORRUPTED_RANGED;
                 if (ArmorData.hasEquippedPerk(a, Perk.MARKSMAN)) event.ammount *= MARKSMAN;

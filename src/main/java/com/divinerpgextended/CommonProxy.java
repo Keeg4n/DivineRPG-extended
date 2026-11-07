@@ -93,6 +93,10 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.SmeltNoFortune());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.CorruptedGear());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.SetPerks());
+        com.divinerpgextended.world.twilight.SkythernWinds skythernWinds = new com.divinerpgextended.world.twilight.SkythernWinds();
+        MinecraftForge.EVENT_BUS.register(skythernWinds);
+        FMLCommonHandler.instance().bus().register(skythernWinds);
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.twilight.MortumAfterlife());
         com.divinerpgextended.boss.MortumBosses mortumBosses = new com.divinerpgextended.boss.MortumBosses();
         MinecraftForge.EVENT_BUS.register(mortumBosses);
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(mortumBosses);

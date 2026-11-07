@@ -50,7 +50,7 @@ public class BossMinions {
         return n;
     }
 
-    private static void noXp(EntityLiving e) {
+    public static void noXp(EntityLiving e) {
         try {
             ReflectionHelper.setPrivateValue(EntityLiving.class, e, 0, "experienceValue", "field_70728_aV");
         } catch (Throwable ignored) {}

@@ -214,8 +214,9 @@ public class ArmorSets {
         }
             if (melee && set(a, VanillaItemsArmor.divineBoots, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBody,
                 VanillaItemsArmor.divineHelmet)) {
-            e.ammount += 6.0F;
-            note(p, "Сет Divine: +6");
+            float bonus = PerkEffects.divineMelee(e.entityLiving);
+            e.ammount += bonus;
+            note(p, "Сет Divine: +" + bonus);
         }
             if (s.isProjectile() && set(a, VanillaItemsArmor.corruptedBoots, VanillaItemsArmor.corruptedLegs,
                 VanillaItemsArmor.corruptedBody, VanillaItemsArmor.corruptedHelmet)) {
