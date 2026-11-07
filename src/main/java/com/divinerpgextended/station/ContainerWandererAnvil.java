@@ -100,6 +100,7 @@ public class ContainerWandererAnvil extends Container {
         if (s == null) return true;
         if (slot == AnvilLogic.FUEL) return mode == AnvilLogic.UNLOAD ? Ammo.of(s) != null : Ammo.of(s) == null;
         if (slot >= AnvilLogic.DONOR && mode == AnvilLogic.SOCKETS) return Sockets.accessory(s);
+        if (mode == AnvilLogic.SOCKETS && com.divinerpgextended.accessory.Goggles.is(s)) return false; // очки идут в нижний ряд, сверху они были бы бронёй без гнёзд
         return s.getItem() instanceof ItemArmor && ((ItemArmor) s.getItem()).armorType == slot % 4;
     }
 

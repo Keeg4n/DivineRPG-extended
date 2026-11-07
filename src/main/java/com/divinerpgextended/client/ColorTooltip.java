@@ -53,7 +53,14 @@ public class ColorTooltip {
             || it == net.divinerpg.utils.items.VanillaItemsArmor.infernoLegs || it == net.divinerpg.utils.items.VanillaItemsArmor.infernoBoots
             || it == net.divinerpg.utils.items.VanillaItemsArmor.netheriteHelmet || it == net.divinerpg.utils.items.VanillaItemsArmor.netheriteBody
             || it == net.divinerpg.utils.items.VanillaItemsArmor.netheriteLegs || it == net.divinerpg.utils.items.VanillaItemsArmor.netheriteBoots)
+        {
             e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.heatproof_vs_king"));
+            e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocalFormatted("dre.tooltip.nether_smelt", Math.round(com.divinerpgextended.Config.netherSmeltChance * 100)));
+        }
+        if (it == net.divinerpg.utils.items.VanillaItemsArmor.bedrockHelmet || it == net.divinerpg.utils.items.VanillaItemsArmor.bedrockBody
+            || it == net.divinerpg.utils.items.VanillaItemsArmor.bedrockLegs || it == net.divinerpg.utils.items.VanillaItemsArmor.bedrockBoots)
+            e.toolTip.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.tooltip.bedrock_stance"));
+        if (com.divinerpgextended.accessory.Goggles.is(e.itemStack)) e.toolTip.add(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("dre.tooltip.goggles_socket"));
         if (it == net.divinerpg.utils.items.VanillaItemsArmor.terranHelmet || it == net.divinerpg.utils.items.VanillaItemsArmor.terranBody
             || it == net.divinerpg.utils.items.VanillaItemsArmor.terranLegs || it == net.divinerpg.utils.items.VanillaItemsArmor.terranBoots)
             e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.terran_crit"));

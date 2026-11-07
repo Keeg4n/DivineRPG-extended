@@ -378,6 +378,9 @@ public class GuiWandererAnvil extends GuiContainer {
         if (locked(armor, s[1])) {
             tip.add(EnumChatFormatting.GRAY + t("dre.gui.socket_locked"));
             tip.add(EnumChatFormatting.GOLD + t(Sockets.SECOND[Sockets.type(armor)].langKey()));
+            if (Sockets.type(armor) == 0 && com.divinerpgextended.accessory.Goggles.available()) tip.add(EnumChatFormatting.GRAY + t("dre.gui.socket_goggles"));
+        } else if (s[1] >= 1 && !(armor.getItem() instanceof com.divinerpgextended.item.ItemWandererArmor)) {
+            tip.add(EnumChatFormatting.GRAY + t("dre.gui.socket_goggles"));
         } else {
             tip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("dre.gui.socket_empty", t("dre.sockets.part." + Sockets.type(armor))));
         }

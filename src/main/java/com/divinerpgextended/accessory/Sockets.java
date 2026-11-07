@@ -24,6 +24,8 @@ import com.divinerpgextended.trinket.Trinket;
  * <ul>
  * <li>броня Divine - по гнезду в каждой части; броня Странника - по гнезду и второе за босса части ({@link #SECOND});</li>
  * <li>аксессуар встаёт только в свою часть ({@link Trinket#armorParts}), один эффект в части - один раз;</li>
+ * <li>очки откровения Таума ({@link Goggles}) - только в шлем и не вместо аксессуара: у шлема Divine для них своё второе гнездо,
+ * у шлема Странника они встают во второе гнездо сразу, не дожидаясь босса;</li>
  * <li>работает, пока часть надета; смерть и выпадение брони аксессуары не трогают - они внутри.</li>
  * </ul>
  */
@@ -52,12 +54,13 @@ public final class Sockets {
         return ((ItemArmor) armor.getItem()).armorType;
     }
 
-    /** Сколько гнёзд может быть у части вообще (для подсказки). */
+    /** Сколько гнёзд может быть у части вообще, с местом под очки (для окна и подсказки). */
     public static int maxCapacity(ItemStack armor) {
-        return armor.getItem() instanceof ItemWandererArmor ? 2 : 1;
+        if (armor.getItem() instanceof ItemWandererArmor) return 2;
+        return type(armor) == 0 && Goggles.available() ? 2 : 1;
     }
 
-    /** Сколько гнёзд открыто этому игроку: второе у брони Странника - за босса части. */
+    /** Сколько гнёзд под аксессуары открыто этому игроку: второе у брони Странника - за босса части. */
     public static int capacity(ItemStack armor, EntityPlayer p) {
         if (!(armor.getItem() instanceof ItemWandererArmor)) return 1;
         return secondOpen(p, type(armor)) ? 2 : 1;
@@ -67,9 +70,9 @@ public final class Sockets {
         return !Config.requireBossUnlocks || BossProgress.has(p, SECOND[type]);
     }
 
-    /** Аксессуар аддона или вещь Divine, которая носится как аксессуар. */
+    /** Аксессуар аддона, вещь Divine, которая носится как аксессуар, или очки откровения. */
     public static boolean accessory(ItemStack s) {
-        return s != null && (s.getItem() == ModItems.trinket || Accessories.divineAccessory(s));
+        return s != null && (s.getItem() == ModItems.trinket || Accessories.divineAccessory(s) || Goggles.is(s));
     }
 
     /** В какие части встраивается (биты {@link Trinket#HEAD}..{@link Trinket#FEET}). */
@@ -77,6 +80,7 @@ public final class Sockets {
         if (acc.getItem() == ModItems.trinket) return ItemTrinket.of(acc).armorParts();
         if (acc.getItem() == net.divinerpg.utils.items.VetheaItems.minersAmulet) return Trinket.HEAD;
         if (acc.getItem() == net.divinerpg.utils.items.VetheaItems.heivaBelt) return Trinket.LEGS;
+        if (Goggles.is(acc)) return Trinket.HEAD;
         return 0;
     }
 
@@ -112,9 +116,16 @@ public final class Sockets {
         if (!socketable(armor) || !accessory(acc) || (parts(acc) & 1 << type(armor)) == 0) return Fit.PART;
         List<ItemStack> in = contents(armor);
         if (planned != null) in.addAll(planned);
-        for (ItemStack s : in) if (overlap(s, acc)) return Fit.SAME;
-        if (in.size() < capacity(armor, p)) return Fit.OK;
-        return in.size() < maxCapacity(armor) ? Fit.BOSS : Fit.FULL;
+        boolean goggles = false;
+        for (ItemStack s : in) {
+            if (overlap(s, acc)) return Fit.SAME;
+            if (Goggles.is(s)) goggles = true;
+        }
+        if (Goggles.is(acc)) return in.size() < maxCapacity(armor) ? Fit.OK : Fit.FULL;
+        // очки занимают место в окне, но не закрывают аксессуару его гнездо
+        int trinkets = in.size() - (goggles ? 1 : 0), rows = maxCapacity(armor) - (goggles ? 1 : 0);
+        if (trinkets < Math.min(capacity(armor, p), rows)) return Fit.OK;
+        return armor.getItem() instanceof ItemWandererArmor && trinkets < rows ? Fit.BOSS : Fit.FULL;
     }
 
     /** Одинаковый эффект: та же вещь Divine или аксессуары с общим эффектом (объединённый и его часть). */
@@ -167,6 +178,13 @@ public final class Sockets {
                 if (m >= 0 && m < ALL.length && ALL[m].provides().contains(t)) return true;
             }
         }
+        return false;
+    }
+
+    /** Встроена ли вещь в эту часть брони (без создания вещей). */
+    static boolean has(ItemStack armor, Item item) {
+        NBTTagList l = list(armor);
+        for (int i = 0; l != null && i < l.tagCount(); i++) if (Item.getItemById(l.getCompoundTagAt(i).getShort("id")) == item) return true;
         return false;
     }
 

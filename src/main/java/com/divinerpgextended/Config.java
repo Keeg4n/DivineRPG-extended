@@ -18,6 +18,10 @@ public class Config {
     public static int[] coreForgeStones = { 8, 12, 8, 8 };
     /** Ядро Тени: скорость, как у самого сета. */
     public static double coreShadowSpeed = 3.0;
+    /** Нерушимость бедрока: через сколько тиков на месте Сопротивление I и II. */
+    public static int[] bedrockStanceTicks = { 40, 100 };
+    /** Полный сет Inferno или Netherite: шанс, что руда упадёт сразу переплавленной. */
+    public static double netherSmeltChance = 0.25;
     public static int upgradeTwilightFuelCount = 16;
     public static int perkFuelArlemiteIngots = 8;
     /** Алтарь порчи по правилам аддона ({@link com.divinerpgextended.station.AltarLogic}). */
@@ -141,6 +145,9 @@ public class Config {
             0, 64, "Сколько реалмитовых слитков стоит переход божественной брони в броню Странника R1");
         coreForgeStones = intList(cfg, bal, "coreForgeStones", coreForgeStones,
             "Сколько божественных камней стоит ковка брони Странника R1 и смена ядра на этот сет: Тень, Бедрок, Энд, Порча. Сами сеты стоят очень по-разному, плата это выравнивает и оставляет на пути в Эдем боссов");
+        bedrockStanceTicks = intList(cfg, bal, "bedrockStanceTicks", bedrockStanceTicks,
+            "Нерушимость бедрока (полный сет и ядро): через сколько тиков на месте Сопротивление I и Сопротивление II, отброса нет с первой ступени. 20 тиков = 1 секунда");
+        netherSmeltChance = cfg.get(bal, "netherSmeltChance", netherSmeltChance, "Полный сет Inferno или Netherite: шанс, что добытая руда упадёт сразу переплавленной (0 - выключено, 1 - всегда). С Шёлковым касанием не работает").getDouble();
         coreShadowSpeed = cfg.get(bal, "coreShadowSpeed", coreShadowSpeed, "Ядро Тени в броне Странника: во сколько раз быстрее ходьба (3 - как у самого сета Тени, 1 - без прибавки)").getDouble();
         upgradeTwilightFuelCount = cfg.getInt("upgradeTwilightFuelCount", bal, upgradeTwilightFuelCount, 0, 64,
             "Сколько камней мира стоит закалка R2-R7");

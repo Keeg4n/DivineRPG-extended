@@ -316,6 +316,13 @@ public class SelfTest {
         p.inventory.armorInventory[0] = boots == null ? null : new ItemStack(boots);
     }
 
+    /** Номер гнезда, где лежит вещь (-1 - нет). */
+    private static int Goggles_index(ItemStack armor, Item item) {
+        List<ItemStack> in = Sockets.contents(armor);
+        for (int i = 0; i < in.size(); i++) if (in.get(i).getItem() == item) return i;
+        return -1;
+    }
+
     /** Полный сет Странника R1 с ядром (null - старая броня без записи) и перками: слоты игрока 0 ботинки ... 3 шлем. */
     private static void wearCore(EntityPlayer p, com.divinerpgextended.item.ArmorCore core, Perk... perks) {
         for (int type = 0; type < 4; type++) {
@@ -4872,6 +4879,161 @@ public class SelfTest {
             check(near(ground / bare, 1.5F) && near(air, bare) && near(jump, bareJump) && near(foeOff, bareFoe) && near(foeOn, bareFoe * 1.5F) && near(foePrivate, bareFoe) && near(rolesOff, ground) && arrow < 10F && near(partial, bare) && near(wanderer, bare)
                 && near(dummyGround / dummyAir, 1.5F), rep);
             return rep;
+        });
+        t("Прохождение", "Бедрок: нерушимость на месте", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            loadAround(w, sx + 212, sz, 1);
+            TestPlayer a = join(player(0, "TestStance", sx + 212.5, sy, sz + 0.5), true);
+            net.minecraft.entity.ai.attributes.IAttributeInstance kb = a.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.knockbackResistance);
+            int first = com.divinerpgextended.Config.bedrockStanceTicks[0], second = com.divinerpgextended.Config.bedrockStanceTicks[1];
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            for (int mode = 0; mode < 2; mode++) {
+                a.clearActivePotions();
+                if (mode == 0) armor(a, VanillaItemsArmor.bedrockHelmet, VanillaItemsArmor.bedrockBody, VanillaItemsArmor.bedrockLegs, VanillaItemsArmor.bedrockBoots);
+                else wearCore(a, com.divinerpgextended.item.ArmorCore.BEDROCK);
+                for (int i = 1; i < first; i++) com.divinerpgextended.perk.PerkEffects.stance(a); // каждый вызов - тик, и первый тоже
+                boolean early = !a.isPotionActive(Potion.resistance) && kb.getAttributeValue() < 0.5;
+                com.divinerpgextended.perk.PerkEffects.stance(a);
+                net.minecraft.potion.PotionEffect one = a.getActivePotionEffect(Potion.resistance);
+                boolean stage1 = one != null && one.getAmplifier() == 0 && kb.getAttributeValue() >= 1;
+                for (int i = first; i < second; i++) com.divinerpgextended.perk.PerkEffects.stance(a);
+                net.minecraft.potion.PotionEffect two = a.getActivePotionEffect(Potion.resistance);
+                boolean stage2 = two != null && two.getAmplifier() == 1 && two.getDuration() <= 15;
+                // мелкий толчок не сбивает, шаг сбивает: отброс возвращается сразу
+                a.setPosition(a.posX + 0.1, a.posY, a.posZ);
+                com.divinerpgextended.perk.PerkEffects.stance(a);
+                boolean nudge = kb.getAttributeValue() >= 1;
+                a.setPosition(a.posX + 1, a.posY, a.posZ);
+                com.divinerpgextended.perk.PerkEffects.stance(a);
+                boolean moved = kb.getAttributeValue() < 0.5;
+                ok &= early && stage1 && stage2 && nudge && moved;
+                rep.append(mode == 0 ? "сет: " : "ядро: ").append("рано ").append(early).append(", I ").append(stage1).append(", II ").append(stage2).append(", толчок ").append(nudge).append(", шаг ").append(moved).append("; ");
+            }
+            // другой сет и снятая броня: стойка кончается, отброс возвращается
+            for (int i = 0; i < first; i++) com.divinerpgextended.perk.PerkEffects.stance(a);
+            boolean firmBefore = kb.getAttributeValue() >= 1;
+            wearCore(a, com.divinerpgextended.item.ArmorCore.SHADOW);
+            com.divinerpgextended.perk.PerkEffects.stance(a);
+            boolean off = firmBefore && kb.getAttributeValue() < 0.5;
+            a.clearActivePotions();
+            for (int i = 0; i <= second; i++) com.divinerpgextended.perk.PerkEffects.stance(a);
+            boolean other = !a.isPotionActive(Potion.resistance) && kb.getAttributeValue() < 0.5;
+            ok &= off && other;
+            rep.append("сняли ").append(off).append(", ядро Тени без стойки ").append(other);
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+        t("Прохождение", "Inferno и Netherite: руда падает переплавленной", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            loadAround(w, sx + 218, sz, 1);
+            TestPlayer a = join(player(0, "TestSmelt", sx + 218.5, sy, sz + 0.5), true);
+            com.google.common.base.Function<Object[], ItemStack> mine = o -> {
+                ArrayList<ItemStack> drops = new ArrayList<ItemStack>();
+                drops.add((ItemStack) o[0]);
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent(sx + 218, sy, sz, w, Blocks.stone, 0, 0, 1F, drops, (Boolean) o[1] ? null : a, (Boolean) o[2]));
+                return drops.get(0);
+            };
+            double was = com.divinerpgextended.Config.netherSmeltChance;
+            String rep;
+            boolean ok;
+            try {
+                com.divinerpgextended.Config.netherSmeltChance = 1;
+                armor(a, VanillaItemsArmor.infernoHelmet, VanillaItemsArmor.infernoBody, VanillaItemsArmor.infernoLegs, VanillaItemsArmor.infernoBoots);
+                ItemStack iron = mine.apply(new Object[] { new ItemStack(Blocks.iron_ore), false, false });
+                ItemStack rupee = mine.apply(new Object[] { new ItemStack(net.divinerpg.utils.blocks.VanillaBlocks.rupeeOre), false, false });
+                ItemStack many = mine.apply(new Object[] { new ItemStack(Blocks.gold_ore, 3), false, false });
+                ItemStack cobble = mine.apply(new Object[] { new ItemStack(Blocks.cobblestone), false, false });
+                ItemStack log = mine.apply(new Object[] { new ItemStack(Blocks.log), false, false });
+                ItemStack silk = mine.apply(new Object[] { new ItemStack(Blocks.iron_ore), false, true });
+                ItemStack machine = mine.apply(new Object[] { new ItemStack(Blocks.iron_ore), true, false });
+                com.divinerpgextended.Config.netherSmeltChance = 0;
+                ItemStack zero = mine.apply(new Object[] { new ItemStack(Blocks.iron_ore), false, false });
+                com.divinerpgextended.Config.netherSmeltChance = 1;
+                armor(a, VanillaItemsArmor.netheriteHelmet, VanillaItemsArmor.netheriteBody, VanillaItemsArmor.netheriteLegs, VanillaItemsArmor.netheriteBoots);
+                ItemStack netherite = mine.apply(new Object[] { new ItemStack(Blocks.iron_ore), false, false });
+                armor(a, VanillaItemsArmor.terranHelmet, VanillaItemsArmor.terranBody, VanillaItemsArmor.terranLegs, VanillaItemsArmor.terranBoots);
+                ItemStack terran = mine.apply(new Object[] { new ItemStack(Blocks.iron_ore), false, false });
+                ok = iron.getItem() == Items.iron_ingot && iron.stackSize == 1 && rupee.getItem() == VanillaItemsOther.rupeeIngot && many.getItem() == Items.gold_ingot && many.stackSize == 3
+                    && cobble.getItem() == Item.getItemFromBlock(Blocks.cobblestone) && log.getItem() == Item.getItemFromBlock(Blocks.log) && silk.getItem() == Item.getItemFromBlock(Blocks.iron_ore)
+                    && machine.getItem() == Item.getItemFromBlock(Blocks.iron_ore) && zero.getItem() == Item.getItemFromBlock(Blocks.iron_ore) && netherite.getItem() == Items.iron_ingot && terran.getItem() == Item.getItemFromBlock(Blocks.iron_ore);
+                rep = "железо " + iron + ", рупий " + rupee + ", 3 золота " + many + ", булыжник " + cobble + ", бревно " + log + ", шёлк " + silk + ", без игрока " + machine + ", шанс 0 " + zero + ", Netherite " + netherite + ", Terran " + terran;
+            } finally {
+                com.divinerpgextended.Config.netherSmeltChance = was;
+            }
+            check(ok, rep);
+            return rep;
+        });
+        t("Аксессуары", "Очки откровения в шлеме через наковальню", () -> {
+            if (!cpw.mods.fml.common.Loader.isModLoaded("Thaumcraft")) return "нет Таума - пропущено";
+            WorldServer w = server.worldServerForDimension(0);
+            TestPlayer a = join(player(0, "TestGoggles", sx + 224.5, sy, sz + 0.5), true);
+            a.experienceLevel = 500;
+            Item gg = com.divinerpgextended.accessory.Goggles.item();
+            check(gg != null, "очки Таума не нашлись в реестре");
+            Class<?> revealer = Class.forName("thaumcraft.api.nodes.IRevealer"), popups = Class.forName("thaumcraft.api.IGoggles"), gear = Class.forName("thaumcraft.api.IVisDiscountGear");
+            java.lang.reflect.Method shows = revealer.getMethod("showNodes", ItemStack.class, net.minecraft.entity.EntityLivingBase.class), pops = popups.getMethod("showIngamePopups", ItemStack.class, net.minecraft.entity.EntityLivingBase.class), disc = null;
+            for (java.lang.reflect.Method m : gear.getMethods()) if ("getVisDiscount".equals(m.getName())) disc = m;
+            Trinket one = null, two = null;
+            for (Trinket x : Trinket.values()) {
+                if ((x.armorParts() & Trinket.HEAD) == 0) continue;
+                if (one == null) one = x;
+                else if (two == null && !one.provides().contains(x) && !x.provides().contains(one)) two = x;
+            }
+            check(one != null && two != null, "нет двух разных аксессуаров для шлема");
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            com.divinerpgextended.station.AnvilWork an = new com.divinerpgextended.station.AnvilWork();
+            // шлем Divine: понимает очки, очки не занимают гнездо аксессуара
+            ItemStack helm = new ItemStack(VanillaItemsArmor.divineHelmet);
+            boolean types = revealer.isInstance(helm.getItem()) && popups.isInstance(helm.getItem()) && gear.isInstance(helm.getItem());
+            boolean before = !(Boolean) shows.invoke(helm.getItem(), helm, a) && !(Boolean) pops.invoke(helm.getItem(), helm, a);
+            an.setInventorySlotContents(AnvilLogic.ARMOR, helm);
+            an.setInventorySlotContents(AnvilLogic.DONOR, new ItemStack(gg));
+            AnvilLogic.Status ready = AnvilLogic.evaluate(an, a, AnvilLogic.SOCKETS).status;
+            boolean put = AnvilLogic.execute(an, a, AnvilLogic.SOCKETS);
+            boolean after = put && (Boolean) shows.invoke(helm.getItem(), helm, a) && (Boolean) pops.invoke(helm.getItem(), helm, a) && (Integer) disc.invoke(helm.getItem(), helm, a, null) == 5 && an.getStackInSlot(AnvilLogic.DONOR) == null && Sockets.count(helm) == 1;
+            an.setInventorySlotContents(AnvilLogic.DONOR, new ItemStack(gg));
+            AnvilLogic.Status same = AnvilLogic.evaluate(an, a, AnvilLogic.SOCKETS).status;
+            an.setInventorySlotContents(AnvilLogic.DONOR, trinket(one));
+            AnvilLogic.Status withTrinket = AnvilLogic.evaluate(an, a, AnvilLogic.SOCKETS).status;
+            boolean both = AnvilLogic.execute(an, a, AnvilLogic.SOCKETS) && Sockets.count(helm) == 2;
+            an.setInventorySlotContents(AnvilLogic.DONOR, trinket(two));
+            AnvilLogic.Status third = AnvilLogic.evaluate(an, a, AnvilLogic.SOCKETS).status;
+            an.setInventorySlotContents(AnvilLogic.DONOR, null);
+            ok &= types && before && ready == AnvilLogic.Status.READY_SOCKET && after && same == AnvilLogic.Status.SOCKET_SAME && withTrinket == AnvilLogic.Status.READY_SOCKET && both && third == AnvilLogic.Status.SOCKET_FULL;
+            rep.append("Divine: интерфейсы ").append(types).append(", до ").append(before).append(", готово ").append(ready).append(", после ").append(after).append(", вторые очки ").append(same).append(", аксессуар ").append(withTrinket).append(", третье ").append(third);
+            // вынуть: очки возвращаются, шлем больше не показывает
+            int gi = Goggles_index(helm, gg);
+            boolean out = AnvilLogic.extract(an, a, 0, gi) && an.getStackInSlot(AnvilLogic.DONOR) != null && an.getStackInSlot(AnvilLogic.DONOR).getItem() == gg && !(Boolean) shows.invoke(helm.getItem(), helm, a) && (Integer) disc.invoke(helm.getItem(), helm, a, null) == 0;
+            ok &= out;
+            rep.append("; вынуть ").append(out);
+            // только шлем
+            for (int i = 0; i < AnvilLogic.SIZE; i++) an.setInventorySlotContents(i, null);
+            an.setInventorySlotContents(AnvilLogic.ARMOR + 1, new ItemStack(VanillaItemsArmor.divineBody));
+            an.setInventorySlotContents(AnvilLogic.DONOR, new ItemStack(gg));
+            AnvilLogic.Status chest = AnvilLogic.evaluate(an, a, AnvilLogic.SOCKETS).status;
+            ok &= chest == AnvilLogic.Status.SOCKET_PART;
+            rep.append("; в нагрудник ").append(chest);
+            // шлем Странника: очки сразу во второе гнездо, босс нужен только аксессуару; с очками второго аксессуара нет
+            for (int i = 0; i < AnvilLogic.SIZE; i++) an.setInventorySlotContents(i, null);
+            ItemStack wh = new ItemStack(ModItems.wanderer[0]);
+            com.divinerpgextended.item.ArmorData.setTier(wh, 1);
+            an.setInventorySlotContents(AnvilLogic.ARMOR, wh);
+            an.setInventorySlotContents(AnvilLogic.DONOR, trinket(one));
+            boolean first = AnvilLogic.execute(an, a, AnvilLogic.SOCKETS);
+            an.setInventorySlotContents(AnvilLogic.DONOR, trinket(two));
+            AnvilLogic.Status closed = AnvilLogic.evaluate(an, a, AnvilLogic.SOCKETS).status;
+            an.setInventorySlotContents(AnvilLogic.DONOR, new ItemStack(gg));
+            boolean wanderGoggles = AnvilLogic.execute(an, a, AnvilLogic.SOCKETS) && (Boolean) shows.invoke(wh.getItem(), wh, a);
+            BossProgress.grant(a, Boss.KAROT);
+            an.setInventorySlotContents(AnvilLogic.DONOR, trinket(two));
+            AnvilLogic.Status fullNow = AnvilLogic.evaluate(an, a, AnvilLogic.SOCKETS).status;
+            boolean bossOk = !Config.requireBossUnlocks || closed == AnvilLogic.Status.NEED_BOSS;
+            ok &= first && bossOk && wanderGoggles && fullNow == AnvilLogic.Status.SOCKET_FULL;
+            rep.append("; Странник: аксессуар ").append(first).append(", второй до босса ").append(closed).append(", очки ").append(wanderGoggles).append(", второй после босса ").append(fullNow);
+            check(ok, rep.toString());
+            return rep.toString();
         });
         t("Прохождение", "Чужие копатели не берут блоки с правилами добычи", () -> {
             check(com.divinerpgextended.asm.MiningGuardTransformer.patched, "ForgeHooks.blockStrength не исправлен при загрузке");

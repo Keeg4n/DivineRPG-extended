@@ -44,6 +44,12 @@ public class PerkEffects {
     /** Ядро: то же, что полный сет. */
     public static final float CORE_DIVINE_MELEE = 6F, CORE_CORRUPTED_RANGED = 1.2F;
 
+    /** Нерушимость бедрока: сдвиг дальше этого от места, где встал, сбрасывает стойку (мелкие толчки не считаются). */
+    private static final double STANCE_MOVE = 0.25;
+    private static final java.util.UUID STANCE_ID = java.util.UUID.fromString("c3a71f52-8d04-4e6b-9a17-2b6f4e90d1a8");
+    /** Где игрок встал и сколько тиков стоит: {x, y, z, тики}. */
+    private static final java.util.Map<EntityPlayer, double[]> STANCE = new java.util.WeakHashMap<EntityPlayer, double[]>();
+
     /** Ядро надетого сета; во сне (кошмар Ветеи) чужие сеты молчат, ядро тоже. */
     private static ArmorCore core(EntityPlayer p) {
         ArmorCore c = ArmorCore.worn(p);
@@ -160,6 +166,68 @@ public class PerkEffects {
             }
     }
 
+    private static final Item[] BEDROCK = { VanillaItemsArmor.bedrockHelmet, VanillaItemsArmor.bedrockBody, VanillaItemsArmor.bedrockLegs, VanillaItemsArmor.bedrockBoots };
+
+    /**
+     * Нерушимость: полный сет бедрока или его ядро. Игрок стоит на месте - копится защита: Сопротивление I, затем II, отброса нет
+     * (иначе первый же удар сбрасывал бы стойку). Сдвинулся - отброс возвращается, а эффект сам кончается за полсекунды: снимать
+     * его нельзя, это мог быть настоящий эликсир. Бить, есть и смотреть по сторонам можно.
+     */
+    public static void stance(EntityPlayer p) {
+        net.minecraft.entity.ai.attributes.IAttributeInstance kb = p.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.knockbackResistance);
+        net.minecraft.entity.ai.attributes.AttributeModifier cur = kb.getModifier(STANCE_ID);
+        boolean on = (wears(p, BEDROCK) || ArmorCore.worn(p) == ArmorCore.BEDROCK) && !com.divinerpgextended.vethea.Nightmare.active(p);
+        double[] s = STANCE.get(p);
+        if (!on) {
+            if (s != null) STANCE.remove(p);
+            if (cur != null) kb.removeModifier(cur);
+            return;
+        }
+        if (s == null) STANCE.put(p, s = new double[] { p.posX, p.posY, p.posZ, 0 });
+        double dx = p.posX - s[0], dy = p.posY - s[1], dz = p.posZ - s[2];
+        if (dx * dx + dy * dy + dz * dz > STANCE_MOVE * STANCE_MOVE) {
+            s[0] = p.posX;
+            s[1] = p.posY;
+            s[2] = p.posZ;
+            s[3] = 0;
+        } else s[3]++;
+        int ticks = (int) s[3], first = Config.bedrockStanceTicks[0], second = Config.bedrockStanceTicks[1];
+        boolean firm = ticks >= first;
+        if (firm && cur == null) kb.applyModifier(new net.minecraft.entity.ai.attributes.AttributeModifier(STANCE_ID, "dre.stance", 1, 0));
+        else if (!firm && cur != null) kb.removeModifier(cur);
+        if (!firm) return;
+        if (ticks == first || ticks == second) p.worldObj.playSoundAtEntity(p, "dig.stone", 0.8F, ticks == second ? 0.6F : 0.8F);
+        if (ticks == first || ticks == second || ticks % 10 == 0) p.addPotionEffect(new PotionEffect(Potion.resistance.id, 15, ticks >= second ? 1 : 0, true));
+    }
+
+    /** Руда: по словарю Forge или по имени, как у руд Divine. Шлак, бревно и песок тоже плавятся, но это не руда. */
+    static boolean isOre(ItemStack s) {
+        for (int id : net.minecraftforge.oredict.OreDictionary.getOreIDs(s)) if (net.minecraftforge.oredict.OreDictionary.getOreName(id).startsWith("ore")) return true;
+        Object name = Item.itemRegistry.getNameForObject(s.getItem());
+        if (!(name instanceof String)) return false;
+        String n = ((String) name).substring(((String) name).indexOf(':') + 1);
+        return n.endsWith("Ore") || n.startsWith("ore") || n.endsWith("_ore");
+    }
+
+    /** Адская броня: полный сет Inferno или Netherite - руда с шансом падает сразу переплавленной, один к одному, как из печи. */
+    @SubscribeEvent
+    public void onHarvest(net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent e) {
+        EntityPlayer p = e.harvester;
+        if (p == null || e.world.isRemote || e.isSilkTouching || !(wears(p, INFERNO) || wears(p, NETHERITE)) || com.divinerpgextended.vethea.Nightmare.active(p)) return;
+        boolean any = false;
+        for (int i = 0; i < e.drops.size(); i++) {
+            ItemStack s = e.drops.get(i);
+            if (s == null || !isOre(s)) continue;
+            ItemStack smelted = net.minecraft.item.crafting.FurnaceRecipes.smelting().getSmeltingResult(s);
+            if (smelted == null || e.world.rand.nextDouble() >= Config.netherSmeltChance) continue;
+            ItemStack out = smelted.copy();
+            out.stackSize = smelted.stackSize * s.stackSize;
+            e.drops.set(i, out);
+            any = true;
+        }
+        if (any && e.world instanceof net.minecraft.world.WorldServer) ((net.minecraft.world.WorldServer) e.world).func_147487_a("flame", e.x + 0.5, e.y + 0.5, e.z + 0.5, 8, 0.25, 0.25, 0.25, 0.01);
+    }
+
     private static final String ANGEL = "dreAngelFlight";
 
     /** Ангельский полёт: пока надет сет с перком (не во сне) - можно летать; снял - полёт отбирается. */
@@ -258,6 +326,7 @@ public class PerkEffects {
         }
 
         angelFlight(player);
+        stance(player);
         if (ArmorData.equippedTier(player) == 0) return;
         if (player.getHealth() < player.getMaxHealth() && ArmorData.hasEquippedPerk(player, Perk.REGENERATION)) player.heal(0.1F);
         if (ArmorData.hasEquippedPerk(player, Perk.ARCANA_FLOW)) arcana(player, 1.0F);
