@@ -4615,7 +4615,7 @@ public class SelfTest {
             return "обычная кирка - 20 арканиума; заряженная - обмен у Генерала (кирка + 20 арканиума) после всех " + com.divinerpgextended.item.ItemArcanePick.DIVINE.length
                 + " боссов Divine; стена 3x3 из кирпича Арканы: заряженной - 9 блоков, присев - 1, обычной - 1";
         });
-        t("Прохождение", "Арканитовая кирка ломает все блоки Арканы и они выпадают", () -> {
+        t("Прохождение", "Арканитовая кирка ломает все блоки Арканы и они не выпадают", () -> {
             WorldServer za = server.worldServerForDimension(ConfigurationHelper.arcana);
             java.util.Set<net.minecraft.block.Block> locked = com.divinerpgextended.item.ItemArcanePick.locked();
             java.util.Set<net.minecraft.block.Block> spawners = com.divinerpgextended.item.ItemArcanePick.spawners();
@@ -4632,16 +4632,125 @@ public class SelfTest {
                 if (bs.newSpeed == 0) diamondStuck++;
                 hold(zp, new ItemStack(ModItems.arcanePick));
                 java.util.ArrayList<ItemStack> list = new java.util.ArrayList<ItemStack>();
-                if (b.getItemDropped(0, za.rand, 0) != null) list.addAll(b.getDrops(za, 100, 60, 100, 0, 0));
+                list.add(new ItemStack(Items.stick)); // что бы ни отдал сам блок, из-под кирки не выпадет
                 MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent(100, 60, 100, za, b, 0, 0, 1F, list, zp, false));
-                if (!list.isEmpty()) drops++;
+                if (list.isEmpty()) drops++;
                 else bad.append(b.getUnlocalizedName()).append(' ');
             }
             boolean portalSafe = true;
             for (net.minecraft.block.Block b : locked) if (b instanceof net.minecraft.block.BlockPortal) portalSafe = false;
             check(other >= 3 && breakable == other && diamondStuck == other && drops == other && portalSafe, "блоков Арканы кроме спавнеров " + other + ": ломаемы " + breakable
-                + ", алмазной не ломаются " + diamondStuck + ", выпадают " + drops + (bad.length() > 0 ? " (нет дропа: " + bad + ")" : "") + ", портал не тронут " + portalSafe);
-            return "неломаемых блоков Арканы (кроме спавнеров) " + other + ": все ломаются только арканитовой киркой и выпадают; портал не тронут";
+                + ", алмазной не ломаются " + diamondStuck + ", без дропа " + drops + (bad.length() > 0 ? " (выпали: " + bad + ")" : "") + ", портал не тронут " + portalSafe);
+            return "неломаемых блоков Арканы (кроме спавнеров) " + other + ": все ломаются только арканитовой киркой и не выпадают; портал не тронут";
+        });
+        t("Прохождение", "Спавнеры Арканы: переносятся, а ломает только кирка и без дропа", () -> {
+            WorldServer mw = server.worldServerForDimension(0);
+            int mx = 21600, my = 150, mz = 21600, farX = mx + 4;
+            net.minecraft.block.Block spawner = com.divinerpgextended.item.ItemArcanePick.spawners().iterator().next(), brick = net.divinerpg.utils.blocks.ArcanaBlocks.ancientBrick;
+            // копателям неломаемо, набалдашнику настоящая прочность, и только у спавнеров
+            float forOthers = spawner.getBlockHardness(mw, mx, my, mz), forFocus = com.divinerpgextended.perk.MiningGuard.forMover(spawner, mw, mx, my, mz),
+                brickFocus = com.divinerpgextended.perk.MiningGuard.forMover(brick, mw, mx, my, mz), stoneFocus = com.divinerpgextended.perk.MiningGuard.forMover(Blocks.stone, mw, mx, my, mz);
+            check(forOthers < 0 && forFocus > 0 && brickFocus < 0 && stoneFocus == Blocks.stone.getBlockHardness(mw, mx, my, mz),
+                "прочность спавнера для всех " + forOthers + ", для набалдашника " + forFocus + "; кирпич для набалдашника " + brickFocus + ", камень " + stoneFocus);
+            if (cpw.mods.fml.common.Loader.isModLoaded("ThaumicTinkerer")) {
+                Class.forName("thaumic.tinkerer.common.item.foci.ItemFocusDislocation");
+                check(com.divinerpgextended.asm.MoverTransformer.focusPatched, "набалдашник Перемещение не исправлен при загрузке");
+            }
+            // настоящая ломка: сколько предметов осталось на земле, -1 - блок не сломан
+            TestPlayer mp = join(player(0, "TestMover", mx + 0.5, my + 3, mz + 0.5), true);
+            mp.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            java.util.function.BiFunction<net.minecraft.block.Block, ItemStack, Integer> harvest = (block, tool) -> {
+                mw.setBlock(mx, my, mz, block);
+                hold(mp, tool.copy());
+                mp.theItemInWorldManager.tryHarvestBlock(mx, my, mz);
+                boolean gone = mw.isAirBlock(mx, my, mz);
+                mw.setBlockToAir(mx, my, mz);
+                int items = 0;
+                for (Object o : mw.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(mx - 3, my - 3, mz - 3, mx + 4, my + 4, mz + 4))) {
+                    net.minecraft.entity.Entity en = (net.minecraft.entity.Entity) o;
+                    if (!en.isDead) items++;
+                    en.setDead();
+                }
+                return gone ? items : -1;
+            };
+            ItemStack plainPick = new ItemStack(ModItems.arcanePick), silkPick = new ItemStack(ModItems.arcanePick);
+            silkPick.addEnchantment(net.minecraft.enchantment.Enchantment.silkTouch, 1);
+            int pickSpawner = harvest.apply(spawner, plainPick), pickBrick = harvest.apply(brick, plainPick), silkBrick = harvest.apply(brick, silkPick), silkSpawner = harvest.apply(spawner, silkPick),
+                pickStone = harvest.apply(Blocks.stone, plainPick), diamondSpawner = harvest.apply(spawner, new ItemStack(Items.diamond_pickaxe));
+            server.getConfigurationManager().playerEntityList.remove(mp);
+            mw.removeEntity(mp);
+            check(pickSpawner == 0 && pickBrick == 0 && silkBrick == 0 && silkSpawner == 0 && pickStone == 1 && diamondSpawner == -1,
+                "на земле после кирки: спавнер " + pickSpawner + ", кирпич " + pickBrick + "; с шёлком: кирпич " + silkBrick + ", спавнер " + silkSpawner + "; камень " + pickStone + "; спавнер алмазной " + diamondSpawner);
+            String pickDone = "копателям спавнер неломаем, арканитовая кирка ломает его и кирпич Арканы без дропа, с Шёлковым касанием тоже, камень с неё падает как обычно, алмазная спавнер не берёт";
+            if (!cpw.mods.fml.common.Loader.isModLoaded("AWWayofTime")) return pickDone + "; Blood Magic нет - телепозер не проверялся";
+            check(com.divinerpgextended.asm.MoverTransformer.teleposerPatched, "телепозер не исправлен при загрузке");
+            // настоящий телепозер и правило, как на RedServer: прочность меньше нуля - отказ
+            Class<?> event = Class.forName("WayofTime.alchemicalWizardry.api.event.TeleposeEvent");
+            cpw.mods.fml.common.eventhandler.ListenerList listeners = ((cpw.mods.fml.common.eventhandler.Event) event.getConstructor(net.minecraft.world.World.class, int.class, int.class, int.class, net.minecraft.block.Block.class, int.class,
+                net.minecraft.world.World.class, int.class, int.class, int.class, net.minecraft.block.Block.class, int.class).newInstance(mw, 0, 0, 0, Blocks.air, 0, mw, 0, 0, 0, Blocks.air, 0)).getListenerList();
+            java.lang.reflect.Field busField = cpw.mods.fml.common.eventhandler.EventBus.class.getDeclaredField("busID");
+            busField.setAccessible(true);
+            int bus = busField.getInt(MinecraftForge.EVENT_BUS);
+            float[] seen = { Float.NaN };
+            cpw.mods.fml.common.eventhandler.IEventListener noUnbreakable = ev -> {
+                try {
+                    float h = ((net.minecraft.block.Block) event.getField("initialBlock").get(ev)).getBlockHardness(mw, mx, my, mz);
+                    seen[0] = h;
+                    if (h < 0) ev.setCanceled(true);
+                } catch (ReflectiveOperationException ex) {
+                    throw new RuntimeException(ex);
+                }
+            };
+            net.minecraft.block.Block teleposer = (net.minecraft.block.Block) Class.forName("WayofTime.alchemicalWizardry.ModBlocks").getField("blockTeleposer").get(null);
+            Class.forName("WayofTime.alchemicalWizardry.api.soulNetwork.SoulNetworkHandler").getMethod("addCurrentEssenceToMaximum", String.class, int.class, int.class).invoke(null, "TestMover", 100000, 100000);
+            ItemStack focus = new ItemStack((Item) Class.forName("WayofTime.alchemicalWizardry.ModItems").getField("telepositionFocus").get(null));
+            focus.setTagCompound(new NBTTagCompound());
+            focus.getTagCompound().setInteger("xCoord", farX);
+            focus.getTagCompound().setInteger("yCoord", my);
+            focus.getTagCompound().setInteger("zCoord", mz);
+            focus.getTagCompound().setInteger("dimensionId", 0);
+            focus.getTagCompound().setString("ownerName", "TestMover");
+            String rep;
+            listeners.register(bus, cpw.mods.fml.common.eventhandler.EventPriority.NORMAL, noUnbreakable);
+            try {
+                mw.setBlock(mx, my - 2, mz, Blocks.stone);
+                mw.setBlock(mx, my, mz, teleposer);
+                mw.setBlock(farX, my, mz, teleposer);
+                net.minecraft.tileentity.TileEntity device = mw.getTileEntity(mx, my, mz);
+                ((net.minecraft.inventory.IInventory) device).setInventorySlotContents(0, focus);
+                // импульс: сигнал снят и подан снова
+                Runnable pulse = () -> {
+                    mw.setBlockToAir(mx, my - 1, mz);
+                    device.updateEntity();
+                    mw.setBlock(mx, my - 1, mz, Blocks.redstone_torch, 5, 2);
+                    device.updateEntity();
+                };
+                mw.setBlock(mx, my + 1, mz, spawner);
+                NBTTagCompound before = new NBTTagCompound();
+                mw.getTileEntity(mx, my + 1, mz).writeToNBT(before);
+                pulse.run();
+                boolean spawnerMoved = mw.isAirBlock(mx, my + 1, mz) && mw.getBlock(farX, my + 1, mz) == spawner;
+                float spawnerSeen = seen[0], after = spawner.getBlockHardness(mw, mx, my, mz);
+                net.minecraft.tileentity.TileEntity movedTile = mw.getTileEntity(farX, my + 1, mz);
+                NBTTagCompound moved = new NBTTagCompound();
+                if (movedTile != null) movedTile.writeToNBT(moved);
+                for (String c : new String[] { "x", "z" }) {
+                    before.removeTag(c);
+                    moved.removeTag(c);
+                }
+                mw.setBlockToAir(farX, my + 1, mz);
+                mw.setBlock(mx, my + 1, mz, brick);
+                pulse.run();
+                boolean brickStayed = mw.getBlock(mx, my + 1, mz) == brick && mw.isAirBlock(farX, my + 1, mz);
+                float brickSeen = seen[0];
+                check(spawnerMoved && spawnerSeen > 0 && after < 0 && before.equals(moved) && brickStayed && brickSeen < 0, "спавнер перенесён " + spawnerMoved + ", прочность в телепозере " + spawnerSeen + ", после него " + after
+                    + ", данные целы " + before.equals(moved) + "; кирпич остался " + brickStayed + ", его прочность в телепозере " + brickSeen);
+                rep = pickDone + "; телепозер при запрете неломаемых, как на RedServer, переносит спавнер с его данными, кирпич Арканы не берёт, после работы спавнер снова неломаем";
+            } finally {
+                listeners.unregister(bus, noUnbreakable);
+                for (int[] at : new int[][] { { mx, my - 2 }, { mx, my - 1 }, { mx, my }, { mx, my + 1 }, { farX, my }, { farX, my + 1 } }) mw.setBlockToAir(at[0], at[1], mz);
+            }
+            return rep + (cpw.mods.fml.common.Loader.isModLoaded("ThaumicTinkerer") ? "" : "; Thaumic Tinkerer нет - набалдашник в работе не запускался");
         });
         t("Прохождение", "Подвиды оружия обычного мира: окно неуязвимости и урон", () -> {
             WorldServer w = server.worldServerForDimension(0);

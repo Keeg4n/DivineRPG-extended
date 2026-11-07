@@ -25,7 +25,8 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Арканитовая кирка: единственное, чем ломаются спавнеры подземелий Арканы (у Divine они неломаемые). Продаёт Генерал
+ * Арканитовая кирка: единственное, чем ломаются блоки и спавнеры подземелий Арканы (у Divine они неломаемые), и только разрушает их:
+ * они не выпадают, а спавнеры можно перенести телепозером или набалдашником "Перемещение". Продаёт Генерал
  * войны тем, кто победил всех боссов Мортума ({@link #MORTUM}). Заряженная ({@link #charged}) копает 3x3 (присев - один
  * блок): Генерал меняет на неё обычную и {@link #CHARGE_PRICE} арканиума после всех боссов Divine ({@link #DIVINE}).
  */
@@ -108,6 +109,7 @@ public class ItemArcanePick extends ItemPickaxe {
             com.divinerpgextended.perk.MiningGuard.guard(b, HARDNESS);
             b.setHarvestLevel("pickaxe", 3);
         }
+        for (Block b : spawners()) com.divinerpgextended.perk.MiningGuard.allowMove(b);
     }
 
     static boolean holds(EntityPlayer p) {
@@ -167,6 +169,7 @@ public class ItemArcanePick extends ItemPickaxe {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void addInformation(ItemStack s, EntityPlayer p, List list, boolean adv) {
         list.add(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("dre.tooltip.arcane_pick"));
+        list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.tooltip.arcane_pick_nodrop"));
         if (charged) list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.arcane_pick_charged"));
     }
 
@@ -184,12 +187,10 @@ public class ItemArcanePick extends ItemPickaxe {
             e.setCanceled(true);
         }
 
-        /** Сломанный киркой блок Арканы выпадает сам (у многих из них своего дропа нет). */
-        @SubscribeEvent
+        /** Блок Арканы из-под кирки не выпадает, с Шёлковым касанием тоже. Обычные блоки она добывает как все кирки. */
+        @SubscribeEvent(priority = EventPriority.LOWEST)
         public void onDrops(BlockEvent.HarvestDropsEvent e) {
-            if (e.harvester == null || e.isSilkTouching || !e.drops.isEmpty() || !locked().contains(e.block) || !holds(e.harvester)) return;
-            Item it = Item.getItemFromBlock(e.block);
-            if (it != null) e.drops.add(new ItemStack(it, 1, e.block.damageDropped(e.blockMetadata)));
+            if (e.harvester != null && locked().contains(e.block) && holds(e.harvester)) e.drops.clear();
         }
     }
 }
