@@ -35,6 +35,8 @@ public class Blizzard extends WorldSavedData {
 
     public int phase = CALM, timer = 12000;
     public float windX = 1, windZ = 0;
+    /** За эту метель Вьюжная ель уже приходила. */
+    public boolean spruceCame;
 
     public Blizzard(String name) {
         super(name);
@@ -118,6 +120,7 @@ public class Blizzard extends WorldSavedData {
         timer = tag.getInteger("Timer");
         windX = tag.getFloat("WindX");
         windZ = tag.getFloat("WindZ");
+        spruceCame = tag.getBoolean("SpruceCame");
     }
 
     @Override
@@ -126,6 +129,7 @@ public class Blizzard extends WorldSavedData {
         tag.setInteger("Timer", timer);
         tag.setFloat("WindX", windX);
         tag.setFloat("WindZ", windZ);
+        tag.setBoolean("SpruceCame", spruceCame);
     }
 
     /** Смена фаз - раз в секунду в мире Iceika. */
@@ -137,6 +141,7 @@ public class Blizzard extends WorldSavedData {
             if (event.phase != TickEvent.Phase.END || w.isRemote || w.getTotalWorldTime() % 20 != 0
                 || !ColdHandler.isIceika(w)) return;
             Blizzard b = get(w);
+            if (b.phase == STORM) com.divinerpgextended.entity.mini.MiniBosses.spruceStep(w, b);
             b.timer -= 20;
             if (b.timer > 0) {
                 if (b.timer % 200 == 0) b.markDirty();
@@ -151,6 +156,7 @@ public class Blizzard extends WorldSavedData {
                 tell(w, "dre.chat.blizzard_warning");
             } else if (b.phase == WARNING) {
                 b.phase = STORM;
+                b.spruceCame = false;
                 b.timer = 2400 + w.rand.nextInt(1201);
                 tell(w, "dre.chat.blizzard_start");
             } else {

@@ -23,6 +23,7 @@ public class ColdMobs {
         if (e instanceof EntityGlacon || e instanceof EntityFrost || e instanceof com.divinerpgextended.entity.EntitySnowGlacon
             || e instanceof com.divinerpgextended.entity.EntityFrostColossus || e instanceof com.divinerpgextended.entity.EntityLichKing) return true;
         if (e == null) return false;
+        if (e instanceof com.divinerpgextended.entity.mini.EntityBlizzardSpruce || e instanceof com.divinerpgextended.entity.mini.EntityBlizzardSnowman) return true;
         if (e.getEntityData().getBoolean(com.divinerpgextended.entity.ThroneCombat.MINION_TAG)) return true;
         return e instanceof net.minecraft.entity.monster.IMob && e.getClass().getName().startsWith("net.divinerpg.entities.iceika.");
     }

@@ -5615,6 +5615,95 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
+        t("Прохождение", "Вьюжная ель: приходит с метелью и уходит с ней", () -> {
+            int dim = ConfigurationHelper.iceika;
+            WorldServer w = server.worldServerForDimension(dim);
+            int cx = 120, cy = 200, cz = 120;
+            loadAround(w, cx, cz, 3);
+            fillBox(w, cx - 34, cy - 1, cz - 34, cx + 34, cy - 1, cz + 34, Blocks.stone);
+            fillBox(w, cx - 34, cy, cz - 34, cx + 34, cy + 7, cz + 34, Blocks.air);
+            TestPlayer a = join(player(dim, "TestSpruce", cx + 0.5, cy, cz + 0.5), true);
+            a.getEntityAttribute(SharedMonsterAttributes.maxHealth).applyModifier(new AttributeModifier(UUID.fromString("0d0d0d0d-0000-4000-8000-0000000000a5"), "selftest", 200, 0));
+            a.setHealth(a.getMaxHealth());
+            com.divinerpgextended.cold.Blizzard b = com.divinerpgextended.cold.Blizzard.get(w);
+            int oldPhase = b.phase, oldTimer = b.timer;
+            boolean oldCame = b.spruceCame;
+            double oldChance = com.divinerpgextended.entity.mini.MiniBosses.SPRUCE_CHANCE;
+            StringBuilder rep = new StringBuilder();
+            boolean ok;
+            try {
+                com.divinerpgextended.entity.mini.MiniBosses.SPRUCE_CHANCE = 1;
+                b.timer = Integer.MAX_VALUE;
+                b.spruceCame = false;
+                // без метели ели нет
+                b.phase = com.divinerpgextended.cold.Blizzard.CALM;
+                boolean calmNo = com.divinerpgextended.entity.mini.MiniBosses.create(a) == null && com.divinerpgextended.entity.mini.MiniBosses.tick(a) == null;
+                b.phase = com.divinerpgextended.cold.Blizzard.STORM;
+                // в метель приходит один раз, к тому, кого достаёт ветер
+                boolean came = com.divinerpgextended.entity.mini.MiniBosses.spruceStep(w, b);
+                boolean once = !com.divinerpgextended.entity.mini.MiniBosses.spruceStep(w, b) && b.spruceCame;
+                com.divinerpgextended.entity.mini.EntityBlizzardSpruce sp = null;
+                for (Object o : w.getEntitiesWithinAABB(com.divinerpgextended.entity.mini.EntityBlizzardSpruce.class, a.boundingBox.expand(40, 16, 40))) sp = (com.divinerpgextended.entity.mini.EntityBlizzardSpruce) o;
+                boolean found = sp != null && near(sp.getMaxHealth(), 300F);
+                rep.append("без метели нет ").append(calmNo).append("; пришла ").append(came).append(", один раз ").append(once).append(", стоит в мире ").append(found);
+                // адское оружие как по всем холодным мобам, обычное как обычно
+                hold(a, new ItemStack(VanillaItemsWeapons.infernoSword));
+                float hell = hurtBy(sp, DamageSource.causePlayerDamage(a), 10F);
+                sp.extinguish();
+                hold(a, new ItemStack(Items.diamond_sword));
+                float plain = hurtBy(sp, DamageSource.causePlayerDamage(a), 10F);
+                rep.append("; адский меч ").append(f(hell)).append(", обычный ").append(f(plain));
+                // комья: урон и холод
+                float coldBefore = a.getEntityData().getCompoundTag(net.minecraft.entity.player.EntityPlayer.PERSISTED_NBT_TAG).getFloat("dreCold");
+                com.divinerpgextended.entity.mini.EntitySnowClump clump = new com.divinerpgextended.entity.mini.EntitySnowClump(w, sp, com.divinerpgextended.entity.mini.EntityBlizzardSpruce.CLUMP_DAMAGE, com.divinerpgextended.entity.mini.EntityBlizzardSpruce.CLUMP_COLD);
+                a.hurtResistantTime = 0;
+                clump.strike(a);
+                float coldAfter = a.getEntityData().getCompoundTag(net.minecraft.entity.player.EntityPlayer.PERSISTED_NBT_TAG).getFloat("dreCold");
+                boolean chilled = near(coldAfter - coldBefore, com.divinerpgextended.entity.mini.EntityBlizzardSpruce.CLUMP_COLD) && a.getHealth() < a.getMaxHealth();
+                int thrown = sp.throwClumps(a);
+                int flying = w.getEntitiesWithinAABB(com.divinerpgextended.entity.mini.EntitySnowClump.class, sp.boundingBox.expand(4, 4, 4)).size();
+                for (Object o : w.getEntitiesWithinAABB(com.divinerpgextended.entity.mini.EntitySnowClump.class, sp.boundingBox.expand(8, 8, 8))) ((net.minecraft.entity.Entity) o).setDead();
+                rep.append("; ком холодит ").append(chilled).append(", веер ").append(thrown).append("/").append(flying);
+                // снеговик: цель - игрок, враждебный, бросает комья
+                com.divinerpgextended.entity.mini.EntityBlizzardSnowman man = new com.divinerpgextended.entity.mini.EntityBlizzardSnowman(w);
+                man.setPosition(cx + 4.5, cy, cz + 0.5);
+                w.spawnEntityInWorld(man);
+                man.attackEntityWithRangedAttack(a, 1F);
+                int manClumps = w.getEntitiesWithinAABB(com.divinerpgextended.entity.mini.EntitySnowClump.class, man.boundingBox.expand(4, 4, 4)).size();
+                for (Object o : w.getEntitiesWithinAABB(com.divinerpgextended.entity.mini.EntitySnowClump.class, man.boundingBox.expand(8, 8, 8))) ((net.minecraft.entity.Entity) o).setDead();
+                boolean snowman = man instanceof net.minecraft.entity.monster.IMob && com.divinerpgextended.perk.ColdMobs.isCold(man) && manClumps == 1 && near(man.getMaxHealth(), 20F);
+                man.setDead();
+                rep.append("; снеговик ").append(snowman);
+                // добыча со снежинками, камнем и осколками
+                sp.loot(0);
+                int flakes = 0, shards = 0, stones = 0;
+                for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, sp.boundingBox.expand(4, 4, 4))) {
+                    net.minecraft.entity.item.EntityItem it = (net.minecraft.entity.item.EntityItem) o;
+                    if (it.getEntityItem().getItem() == IceikaItems.snowflake) flakes += it.getEntityItem().stackSize;
+                    if (it.getEntityItem().getItem() == IceikaItems.iceShards) shards += it.getEntityItem().stackSize;
+                    if (it.getEntityItem().getItem() == IceikaItems.iceStone) stones += it.getEntityItem().stackSize;
+                    it.setDead();
+                }
+                boolean loot = flakes >= 6 && shards >= 4 && stones >= 1;
+                rep.append("; добыча ").append(flakes).append("/").append(shards).append("/").append(stones);
+                // метель кончилась: уходит сама, без добычи
+                boolean stays = !sp.leaveWithStorm();
+                b.phase = com.divinerpgextended.cold.Blizzard.CALM;
+                boolean gone = sp.leaveWithStorm() && sp.isDead;
+                int left = 0; // помеченные выше предметы ещё лежат в списках мира до его тика
+                for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, sp.boundingBox.expand(4, 4, 4))) if (!((net.minecraft.entity.Entity) o).isDead) left++;
+                rep.append("; пока метель стоит ").append(stays).append(", конец - ушла ").append(gone).append(", предметов ").append(left);
+                ok = calmNo && came && once && found && near(hell, 20F) && near(plain, 10F) && chilled && thrown == 3 && flying == 3 && snowman && loot && stays && gone && left == 0;
+            } finally {
+                b.phase = oldPhase;
+                b.timer = oldTimer;
+                b.spruceCame = oldCame;
+                com.divinerpgextended.entity.mini.MiniBosses.SPRUCE_CHANCE = oldChance;
+                fillBox(w, cx - 34, cy - 1, cz - 34, cx + 34, cy - 1, cz + 34, Blocks.air);
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
         t("Прохождение", "Вьюга: укрывают только закрытые места", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x = 31400, y = 200, z = 31400, head = y + 1;

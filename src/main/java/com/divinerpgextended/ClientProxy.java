@@ -112,6 +112,10 @@ public class ClientProxy extends CommonProxy {
             new com.divinerpgextended.client.RenderScaledBoss(new net.divinerpg.client.render.entity.twilight.model.ModelDenseDemon(), 1.3F, net.divinerpg.client.render.EntityResourceLocation.mortumDemon, 0.65F, 0.55F, 0.75F));
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.mini.EntitySleepwalker.class,
             new com.divinerpgextended.client.RenderScaledBoss(new net.divinerpg.client.render.entity.vethea.model.Helio(), 1.2F, net.divinerpg.client.render.EntityResourceLocation.HELIO, 0.85F, 0.8F, 1.0F));
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.mini.EntityBlizzardSpruce.class,
+            new com.divinerpgextended.client.RenderScaledBoss(new com.divinerpgextended.client.ModelBlizzardSpruce(), 1.25F, new net.minecraft.util.ResourceLocation("divinerpgextended", "textures/entity/blizzard_spruce.png"), 1.0F, 1.0F, 1.0F));
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.mini.EntityBlizzardSnowman.class, new net.minecraft.client.renderer.entity.RenderSnowMan());
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.mini.EntitySnowClump.class, new net.minecraft.client.renderer.entity.RenderSnowball(net.minecraft.init.Items.snowball));
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityLostSoul.class,
             new net.minecraft.client.renderer.entity.RenderSnowball(net.divinerpg.utils.items.TwilightItemsOther.mortumSoul));
         RenderingRegistry.registerEntityRenderingHandler(EntityGreatCadillion.class, new RenderGreatCadillion());

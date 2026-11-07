@@ -28,6 +28,8 @@ public class MiniBosses {
     private static final String NEXT = "dreMiniNext";
     private static final int FIRST_DELAY = 6000, CHECK_EVERY = 40;
     private static final double CHANCE = 0.05;
+    /** За секунду метели: ель появляется в первые десятки секунд. */
+    public static double SPRUCE_CHANCE = 0.05;
 
     private static NBTTagCompound data(EntityPlayer p) {
         NBTTagCompound d = p.getEntityData();
@@ -53,6 +55,7 @@ public class MiniBosses {
         if (d == ConfigurationHelper.apalachia) return new EntityStonebreaker(w);
         if (d == ConfigurationHelper.skythern) return new EntitySkyGrabber(w);
         if (d == ConfigurationHelper.mortum) return new EntityMourner(w);
+        if (d == ConfigurationHelper.iceika) return com.divinerpgextended.cold.Blizzard.get(w).phase == com.divinerpgextended.cold.Blizzard.STORM ? new EntityBlizzardSpruce(w) : null;
         if (d == ConfigurationHelper.vethea && VetheaFloors.floorOf(p.posY) <= 3) {
             EntitySleepwalker s = new EntitySleepwalker(w);
             s.setFloor(VetheaFloors.floorOf(p.posY));
@@ -87,7 +90,7 @@ public class MiniBosses {
 
     /** Проверка игрока: пришло ли время, и если повезло - мини-босс. */
     public static EntityMiniBoss tick(EntityPlayer p) {
-        if (!Config.miniBosses || p.capabilities.isCreativeMode) return null;
+        if (!Config.miniBosses || p.capabilities.isCreativeMode || p.dimension == ConfigurationHelper.iceika) return null; // ель приходит с метелью
         long now = p.worldObj.getTotalWorldTime();
         if (!data(p).hasKey(NEXT)) setNext(p, now + FIRST_DELAY);
         if (now < next(p) || p.worldObj.rand.nextDouble() >= CHANCE) return null;
@@ -99,6 +102,19 @@ public class MiniBosses {
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent e) {
         if (e.phase == TickEvent.Phase.END && !e.player.worldObj.isRemote && e.player.ticksExisted % CHECK_EVERY == 0) tick(e.player);
+    }
+
+    /** Секунда метели: ель приходит раз за метель, к тому, кого достаёт ветер. true - пришла. */
+    public static boolean spruceStep(World w, com.divinerpgextended.cold.Blizzard b) {
+        if (!Config.miniBosses || b.spruceCame || w.rand.nextDouble() >= SPRUCE_CHANCE) return false;
+        for (Object o : w.playerEntities) {
+            EntityPlayer p = (EntityPlayer) o;
+            if (p.capabilities.isCreativeMode || !com.divinerpgextended.cold.Blizzard.exposed(p) || spawnNear(p) == null) continue;
+            b.spruceCame = true;
+            b.markDirty();
+            return true;
+        }
+        return false;
     }
 
     /** Смерть моба рядом кормит Плакальщика. */
