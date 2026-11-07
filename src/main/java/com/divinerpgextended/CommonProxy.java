@@ -97,6 +97,9 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(skythernWinds);
         FMLCommonHandler.instance().bus().register(skythernWinds);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.twilight.MortumAfterlife());
+        com.divinerpgextended.entity.mini.MiniBosses miniBosses = new com.divinerpgextended.entity.mini.MiniBosses();
+        MinecraftForge.EVENT_BUS.register(miniBosses);
+        FMLCommonHandler.instance().bus().register(miniBosses);
         com.divinerpgextended.world.twilight.WorldWeather.Events worldWeather = new com.divinerpgextended.world.twilight.WorldWeather.Events();
         MinecraftForge.EVENT_BUS.register(worldWeather);
         FMLCommonHandler.instance().bus().register(worldWeather);

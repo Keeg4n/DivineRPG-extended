@@ -42,7 +42,7 @@ public class RenderScaledBoss extends RenderLiving {
     protected void preRenderCallback(EntityLivingBase entity, float partial) {
         GL11.glScalef(scale, scale, scale);
         // Карцинус в панцире темнеет: видно, что обычные удары не пройдут
-        float k = entity instanceof EntityCarcinus && ((EntityCarcinus) entity).inShell() ? 0.45F : 1.0F;
+        float k = entity instanceof EntityCarcinus && ((EntityCarcinus) entity).inShell() ? 0.45F : entity instanceof com.divinerpgextended.entity.mini.EntityMiniBoss ? ((com.divinerpgextended.entity.mini.EntityMiniBoss) entity).shade() : 1.0F;
         GL11.glColor4f(r * k, g * k, b * k, 1.0F);
     }
 

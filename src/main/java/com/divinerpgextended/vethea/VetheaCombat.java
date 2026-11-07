@@ -49,6 +49,7 @@ public class VetheaCombat {
 
     /** Слабости моба (null - обычный моб). */
     public static synchronized EnumSet<WeaponKind> weakness(Entity e) {
+        if (e instanceof com.divinerpgextended.entity.mini.EntitySleepwalker) return ((com.divinerpgextended.entity.mini.EntitySleepwalker) e).weak();
         if (weak == null) {
             weak = new HashMap<String, EnumSet<WeaponKind>>();
             for (String line : Config.vetheaWeakness) {

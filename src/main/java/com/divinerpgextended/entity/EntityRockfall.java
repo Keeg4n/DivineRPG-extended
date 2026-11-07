@@ -63,6 +63,8 @@ public class EntityRockfall extends EntityThrowable {
         }
         worldObj.playSoundAtEntity(this, "dig.stone", 2.0F, 0.5F);
         worldObj.playSoundAtEntity(this, "random.explode", 0.5F, 1.5F);
+        for (Object o : worldObj.getEntitiesWithinAABB(com.divinerpgextended.entity.mini.EntityStonebreaker.class, boundingBox.expand(RADIUS, RADIUS, RADIUS)))
+            ((com.divinerpgextended.entity.mini.EntityStonebreaker) o).breakSkin();
         @SuppressWarnings("unchecked")
         List<EntityPlayer> near = worldObj.getEntitiesWithinAABB(EntityPlayer.class, boundingBox.expand(RADIUS, RADIUS, RADIUS));
         for (EntityPlayer p : near) {

@@ -99,6 +99,19 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityGondola.class, new com.divinerpgextended.client.RenderGondola());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityShadowBolt.class,
             new net.minecraft.client.renderer.entity.RenderSnowball(net.minecraft.init.Items.ender_eye));
+        // мини-боссы: увеличенные и подкрашенные модели мобов своего мира
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.mini.EntityNoonCori.class,
+            new com.divinerpgextended.client.RenderScaledBoss(new net.divinerpg.client.render.entity.twilight.model.ModelCori(), 1.6F, net.divinerpg.client.render.EntityResourceLocation.edenCori, 1.0F, 0.85F, 0.45F));
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.mini.EntityOldVerek.class,
+            new com.divinerpgextended.client.RenderScaledBoss(new net.divinerpg.client.render.entity.twilight.model.ModelSamek(), 1.6F, net.divinerpg.client.render.EntityResourceLocation.varek, 0.7F, 0.8F, 0.75F));
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.mini.EntityStonebreaker.class,
+            new com.divinerpgextended.client.RenderScaledBoss(new net.divinerpg.client.render.entity.twilight.model.ModelTwilightGolem(), 1.3F, net.divinerpg.client.render.EntityResourceLocation.apalachiaGolem, 0.85F, 0.8F, 0.9F));
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.mini.EntitySkyGrabber.class,
+            new com.divinerpgextended.client.RenderScaledBoss(new net.divinerpg.client.render.entity.twilight.model.ModelCori(), 1.8F, net.divinerpg.client.render.EntityResourceLocation.skythernCori, 0.75F, 0.85F, 1.0F));
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.mini.EntityMourner.class,
+            new com.divinerpgextended.client.RenderScaledBoss(new net.divinerpg.client.render.entity.twilight.model.ModelDenseDemon(), 1.3F, net.divinerpg.client.render.EntityResourceLocation.mortumDemon, 0.65F, 0.55F, 0.75F));
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.mini.EntitySleepwalker.class,
+            new com.divinerpgextended.client.RenderScaledBoss(new net.divinerpg.client.render.entity.vethea.model.Helio(), 1.2F, net.divinerpg.client.render.EntityResourceLocation.HELIO, 0.85F, 0.8F, 1.0F));
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityLostSoul.class,
             new net.minecraft.client.renderer.entity.RenderSnowball(net.divinerpg.utils.items.TwilightItemsOther.mortumSoul));
         RenderingRegistry.registerEntityRenderingHandler(EntityGreatCadillion.class, new RenderGreatCadillion());

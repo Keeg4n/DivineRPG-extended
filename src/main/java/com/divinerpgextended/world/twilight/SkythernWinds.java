@@ -79,7 +79,7 @@ public class SkythernWinds {
     }
 
     private static boolean special(Entity e) {
-        return e instanceof IBossDisplayData || com.divinerpgextended.boss.Boss.of(e) != null || BossMinions.isMinion(e);
+        return e instanceof IBossDisplayData || e instanceof com.divinerpgextended.entity.mini.EntityMiniBoss || com.divinerpgextended.boss.Boss.of(e) != null || BossMinions.isMinion(e);
     }
 
     /** Отложенный порыв; защита от отброса 1.0 (Каменная стена, нерушимость) держит на месте, как и у Повелителя. */

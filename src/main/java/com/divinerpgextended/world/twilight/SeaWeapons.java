@@ -116,7 +116,7 @@ public class SeaWeapons {
     }
 
     private static boolean tall(EntityLivingBase t) {
-        return t instanceof IBossDisplayData || Boss.of(t) != null;
+        return t instanceof IBossDisplayData || t instanceof com.divinerpgextended.entity.mini.EntityMiniBoss || Boss.of(t) != null;
     }
 
     private static boolean pullable(EntityPlayer p, EntityLivingBase t) {

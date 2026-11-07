@@ -58,7 +58,7 @@ public final class TwilightCrafts {
         return new ItemStack(i, 1, OreDictionary.WILDCARD_VALUE);
     }
 
-    private static Item chunk(TwilightWorld w) {
+    public static Item chunk(TwilightWorld w) {
         switch (w) {
             case EDEN: return net.divinerpg.utils.items.TwilightItemsOther.edenChunk;
             case WILDWOOD: return net.divinerpg.utils.items.TwilightItemsOther.wildwoodChunk;

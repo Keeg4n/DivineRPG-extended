@@ -42,7 +42,7 @@ public class MortumAfterlife {
             } catch (Throwable ignored) {}
             return;
         }
-        if (!(v instanceof EntityLiving) || !(v instanceof IMob) || v instanceof IBossDisplayData || com.divinerpgextended.boss.Boss.of(v) != null || BossMinions.isMinion(v) || v.getEntityData().hasKey(MortumArenaBosses.SOUL)) return;
+        if (!(v instanceof EntityLiving) || !(v instanceof IMob) || v instanceof IBossDisplayData || v instanceof com.divinerpgextended.entity.mini.EntityMiniBoss || com.divinerpgextended.boss.Boss.of(v) != null || BossMinions.isMinion(v) || v.getEntityData().hasKey(MortumArenaBosses.SOUL)) return;
         if (!(e.source.getEntity() instanceof EntityPlayer) || v.getRNG().nextDouble() >= Config.mortumSoulChance) return;
         v.worldObj.spawnEntityInWorld(new EntityLostSoul(v.worldObj, (EntityLiving) v));
     }

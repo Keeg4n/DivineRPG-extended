@@ -28,6 +28,9 @@ public class Config {
     public static double mortumSoulChance = 0.25;
     /** Погода сумеречных миров: перегрев Эдема, ливень Дикого леса, камнепад Апалачии. */
     public static boolean edenSun = true, wildwoodRain = true, apalachiaRockfall = true;
+    /** Мини-боссы миров и как часто они могут появляться у одного игрока. */
+    public static boolean miniBosses = true;
+    public static int miniBossMinutes = 20;
     public static int upgradeTwilightFuelCount = 16;
     public static int perkFuelArlemiteIngots = 8;
     /** Алтарь порчи по правилам аддона ({@link com.divinerpgextended.station.AltarLogic}). */
@@ -159,6 +162,8 @@ public class Config {
         edenSun = cfg.getBoolean("edenSun", bal, edenSun, "Эдем: солнце перегревает игрока под открытым небом (слабость, тошнота, поджог)");
         wildwoodRain = cfg.getBoolean("wildwoodRain", bal, wildwoodRain, "Дикий лес: ливень раз в 15-25 минут (замедление, мобы лечатся, морское оружие сильнее)");
         apalachiaRockfall = cfg.getBoolean("apalachiaRockfall", bal, apalachiaRockfall, "Апалачия: камнепад раз в 10-15 минут (глыбы падают с неба, блоков не ломают)");
+        miniBosses = cfg.getBoolean("miniBosses", bal, miniBosses, "Мини-боссы в сумеречных мирах и на этажах 1-3 Ветеи");
+        miniBossMinutes = cfg.getInt("miniBossMinutes", bal, miniBossMinutes, 1, 600, "Мини-босс появляется у одного игрока не чаще, чем раз в столько минут");
         coreShadowSpeed = cfg.get(bal, "coreShadowSpeed", coreShadowSpeed, "Ядро Тени в броне Странника: во сколько раз быстрее ходьба (3 - как у самого сета Тени, 1 - без прибавки)").getDouble();
         upgradeTwilightFuelCount = cfg.getInt("upgradeTwilightFuelCount", bal, upgradeTwilightFuelCount, 0, 64,
             "Сколько камней мира стоит закалка R2-R7");

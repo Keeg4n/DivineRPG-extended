@@ -240,6 +240,12 @@ public final class ModItems {
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWatcherEye.class, "WatcherEye", 23, DivineRPGExtended.instance, 64, 2, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityLostSoul.class, "LostSoul", 24, DivineRPGExtended.instance, 64, 20, false);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityRockfall.class, "Rockfall", 25, DivineRPGExtended.instance, 64, 5, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.mini.EntityNoonCori.class, "NoonCori", 26, DivineRPGExtended.instance, 80, 3, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.mini.EntityOldVerek.class, "OldVerek", 27, DivineRPGExtended.instance, 80, 3, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.mini.EntityStonebreaker.class, "Stonebreaker", 28, DivineRPGExtended.instance, 80, 3, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.mini.EntitySkyGrabber.class, "SkyGrabber", 29, DivineRPGExtended.instance, 80, 3, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.mini.EntityMourner.class, "Mourner", 30, DivineRPGExtended.instance, 80, 3, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.mini.EntitySleepwalker.class, "Sleepwalker", 31, DivineRPGExtended.instance, 80, 3, true);
         bossEgg = new com.divinerpgextended.item.ItemBossEgg();
         GameRegistry.registerItem(bossEgg, "bossEgg");
     }

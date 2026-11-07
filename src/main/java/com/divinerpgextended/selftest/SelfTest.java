@@ -5398,6 +5398,223 @@ public class SelfTest {
             check(pulled && tooFar && sharkReach && cooldown && near(first, 15F) && near(second, 10F) && bossStill && stun && hooked == 3 && noPvp && remembers && near(dry, 10F) && divineShot, rep.toString());
             return rep.toString();
         });
+        t("Прохождение", "Мини-боссы: здоровье, добыча и появление", () -> {
+            StringBuilder rep = new StringBuilder();
+            // здоровье: не больше x3 от обычного моба и меньше стража мира
+            boolean hp = com.divinerpgextended.entity.mini.EntityNoonCori.HEALTH <= 75 * 3 && com.divinerpgextended.entity.mini.EntityNoonCori.HEALTH < Config.cadillionHealth[0]
+                && com.divinerpgextended.entity.mini.EntityOldVerek.HEALTH <= 50 * 3 && com.divinerpgextended.entity.mini.EntityOldVerek.HEALTH < Config.cadillionHealth[1]
+                && com.divinerpgextended.entity.mini.EntityStonebreaker.HEALTH <= 250 * 3 && com.divinerpgextended.entity.mini.EntityStonebreaker.HEALTH < Config.cadillionHealth[2]
+                && com.divinerpgextended.entity.mini.EntitySkyGrabber.HEALTH <= 80 * 3 && com.divinerpgextended.entity.mini.EntitySkyGrabber.HEALTH < Config.cadillionHealth[3]
+                && com.divinerpgextended.entity.mini.EntityMourner.HEALTH <= 200 * 3;
+            rep.append("здоровье ").append(hp);
+            // появление и добыча в каждом мире
+            com.divinerpgextended.world.twilight.TwilightWorld[] worlds = com.divinerpgextended.world.twilight.TwilightWorld.values();
+            Class<?>[] kinds = { com.divinerpgextended.entity.mini.EntityNoonCori.class, com.divinerpgextended.entity.mini.EntityOldVerek.class, com.divinerpgextended.entity.mini.EntityStonebreaker.class,
+                com.divinerpgextended.entity.mini.EntitySkyGrabber.class, com.divinerpgextended.entity.mini.EntityMourner.class };
+            boolean spawned = true, looted = true;
+            int cx = 120, cy = 200, cz = 120;
+            for (int i = 0; i < worlds.length; i++) {
+                int dim = worlds[i].dimension();
+                WorldServer w = server.worldServerForDimension(dim);
+                loadAround(w, cx, cz, 3);
+                fillBox(w, cx - 34, cy - 1, cz - 34, cx + 34, cy - 1, cz + 34, Blocks.stone);
+                fillBox(w, cx - 34, cy, cz - 34, cx + 34, cy + 5, cz + 34, Blocks.air);
+                TestPlayer a = player(dim, "TestMini" + i, cx + 0.5, cy, cz + 0.5);
+                com.divinerpgextended.entity.mini.EntityMiniBoss m = com.divinerpgextended.entity.mini.MiniBosses.spawnNear(a);
+                boolean ok = m != null && kinds[i].isInstance(m) && m.getDistanceToEntity(a) >= 19 && m.getDistanceToEntity(a) <= 36;
+                boolean second = com.divinerpgextended.entity.mini.MiniBosses.spawnNear(a) == null; // второго рядом нет
+                spawned &= ok && second;
+                if (m != null) {
+                    m.loot(0);
+                    int gems = 0, souls = 0;
+                    for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, m.boundingBox.expand(4, 4, 4))) {
+                        net.minecraft.entity.item.EntityItem it = (net.minecraft.entity.item.EntityItem) o;
+                        if (it.getEntityItem().getItem() == worlds[i].gem()) gems += it.getEntityItem().stackSize;
+                        if (it.getEntityItem().getItem() == worlds[i].soul()) souls += it.getEntityItem().stackSize;
+                        it.setDead();
+                    }
+                    looted &= gems >= 2 && gems <= 3 && souls >= 3 && souls <= 5;
+                    rep.append("; ").append(m.key()).append(" камней ").append(gems).append(", душ ").append(souls);
+                    m.setDead();
+                }
+                fillBox(w, cx - 34, cy - 1, cz - 34, cx + 34, cy - 1, cz + 34, Blocks.air);
+            }
+            // расписание: новичку отсрочка, по времени можно, выключено нельзя; Ветея: этажи 1-3 да, 4 нет
+            WorldServer ew = server.worldServerForDimension(ConfigurationHelper.eden);
+            TestPlayer sched = player(ConfigurationHelper.eden, "TestMiniSched", cx + 0.5, cy, cz + 0.5);
+            com.divinerpgextended.entity.mini.MiniBosses.tick(sched);
+            boolean delayed = com.divinerpgextended.entity.mini.MiniBosses.next(sched) > ew.getTotalWorldTime();
+            boolean oldOn = Config.miniBosses;
+            Config.miniBosses = false;
+            com.divinerpgextended.entity.mini.MiniBosses.setNext(sched, 0);
+            boolean off = com.divinerpgextended.entity.mini.MiniBosses.tick(sched) == null;
+            Config.miniBosses = oldOn;
+            int vd2 = ConfigurationHelper.vethea;
+            TestPlayer dream = player(vd2, "TestMiniDream", 0.5, 20, 0.5);
+            com.divinerpgextended.entity.mini.EntityMiniBoss first = com.divinerpgextended.entity.mini.MiniBosses.create(dream);
+            boolean floorOne = first instanceof com.divinerpgextended.entity.mini.EntitySleepwalker && near(first.getMaxHealth(), 200F);
+            dream.setPosition(0.5, 120, 0.5);
+            com.divinerpgextended.entity.mini.EntityMiniBoss third = com.divinerpgextended.entity.mini.MiniBosses.create(dream);
+            boolean floorThree = third instanceof com.divinerpgextended.entity.mini.EntitySleepwalker && near(third.getMaxHealth(), 400F);
+            dream.setPosition(0.5, 170, 0.5);
+            boolean top = com.divinerpgextended.entity.mini.MiniBosses.create(dream) == null;
+            TestPlayer overworld = player(0, "TestMiniTop", sx + 230.5, sy, sz + 0.5);
+            boolean notHere = com.divinerpgextended.entity.mini.MiniBosses.create(overworld) == null;
+            rep.append("; появление ").append(spawned).append(", отсрочка ").append(delayed).append(", настройка ").append(off).append("; Ветея 1/3/4 ").append(floorOne).append("/").append(floorThree).append("/").append(top).append(", обычный мир нет ").append(notHere);
+            check(hp && spawned && looted && delayed && off && floorOne && floorThree && top && notHere, rep.toString());
+            return rep.toString();
+        });
+        t("Прохождение", "Мини-боссы: приёмы", () -> {
+            StringBuilder rep = new StringBuilder();
+            int cx = 120, cy = 200, cz = 120;
+            java.util.function.Function<Integer, WorldServer> arena = dim -> {
+                WorldServer w = server.worldServerForDimension(dim);
+                loadAround(w, cx, cz, 1);
+                fillBox(w, cx - 8, cy - 1, cz - 8, cx + 8, cy - 1, cz + 8, Blocks.stone);
+                fillBox(w, cx - 8, cy, cz - 8, cx + 8, cy + 6, cz + 8, Blocks.air);
+                return w;
+            };
+            java.util.function.BiConsumer<Integer, WorldServer> clear = (dim, w) -> fillBox(w, cx - 8, cy - 1, cz - 8, cx + 8, cy - 1, cz + 8, Blocks.air);
+            UUID bulk = UUID.fromString("0d0d0d0d-0000-4000-8000-0000000000a3");
+            AttributeModifier big = new AttributeModifier(bulk, "selftest", 300, 0);
+            // Полуденный кори: луч по открытому небу жжёт и греет, под крышей нет
+            int edenDim = ConfigurationHelper.eden;
+            WorldServer ew = arena.apply(edenDim);
+            TestPlayer ea = player(edenDim, "TestNoon", cx + 0.5, cy, cz + 0.5);
+            ea.getEntityAttribute(SharedMonsterAttributes.maxHealth).applyModifier(big);
+            ea.setHealth(ea.getMaxHealth());
+            com.divinerpgextended.entity.mini.EntityNoonCori noon = new com.divinerpgextended.entity.mini.EntityNoonCori(ew);
+            noon.setPosition(cx + 0.5, cy + 6, cz + 0.5);
+            ew.setBlock(cx, cy + 3, cz, Blocks.stone, 0, 2);
+            com.divinerpgextended.world.twilight.EdenSun.setHeat(ea, 0F);
+            boolean roofNo = !noon.strike(ea) && near(com.divinerpgextended.world.twilight.EdenSun.heat(ea), 0F);
+            ew.setBlock(cx, cy + 3, cz, Blocks.air, 0, 2);
+            boolean burned = noon.strike(ea) && near(com.divinerpgextended.world.twilight.EdenSun.heat(ea), com.divinerpgextended.entity.mini.EntityNoonCori.BEAM_HEAT) && ea.isBurning() && ea.getHealth() < ea.getMaxHealth();
+            ea.extinguish();
+            clear.accept(edenDim, ew);
+            rep.append("кори: крыша ").append(roofNo).append(", луч ").append(burned);
+            // Старый верек: зовёт стаю на двух порогах, в ливень невидим
+            int wildDim = ConfigurationHelper.wildwood;
+            WorldServer ww = arena.apply(wildDim);
+            com.divinerpgextended.entity.mini.EntityOldVerek verek = new com.divinerpgextended.entity.mini.EntityOldVerek(ww);
+            verek.setPosition(cx + 0.5, cy, cz + 0.5);
+            ww.spawnEntityInWorld(verek);
+            boolean quiet = !verek.howl();
+            verek.setHealth(verek.getMaxHealth() * 0.6F);
+            boolean howl1 = verek.howl() && !verek.howl();
+            verek.setHealth(verek.getMaxHealth() * 0.3F);
+            boolean howl2 = verek.howl() && !verek.howl();
+            int pack = com.divinerpgextended.boss.BossMinions.count(verek);
+            com.divinerpgextended.world.twilight.WorldWeather wx = com.divinerpgextended.world.twilight.WorldWeather.get(ww);
+            int oldPhase = wx.phase;
+            wx.phase = com.divinerpgextended.world.twilight.WorldWeather.ACTIVE;
+            verek.onLivingUpdate();
+            boolean hidden = verek.isPotionActive(Potion.invisibility);
+            wx.phase = oldPhase;
+            for (Object o : ww.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class, verek.boundingBox.expand(10, 6, 10))) ((net.minecraft.entity.Entity) o).setDead();
+            clear.accept(wildDim, ww);
+            rep.append("; верек: тихо ").append(quiet).append(", вой ").append(howl1).append("/").append(howl2).append(", стая ").append(pack).append(", ливень ").append(hidden);
+            // Камнелом: кожа держит 70%, молот и своя глыба снимают
+            int apDim = ConfigurationHelper.apalachia;
+            WorldServer aw = arena.apply(apDim);
+            TestPlayer aa = player(apDim, "TestStoneMini", cx + 3.5, cy, cz + 0.5);
+            com.divinerpgextended.entity.mini.EntityStonebreaker stone = new com.divinerpgextended.entity.mini.EntityStonebreaker(aw);
+            stone.setPosition(cx + 0.5, cy, cz + 0.5);
+            aw.spawnEntityInWorld(stone);
+            hold(aa, new ItemStack(Items.diamond_sword));
+            float withSkin = hit(stone, DamageSource.causePlayerDamage(aa), 10F);
+            hold(aa, new ItemStack(VanillaItemsWeapons.bedrockMaul));
+            float maul = hit(stone, DamageSource.causePlayerDamage(aa), 10F);
+            boolean bare = !stone.skin();
+            stone.setDead();
+            com.divinerpgextended.entity.mini.EntityStonebreaker stone2 = new com.divinerpgextended.entity.mini.EntityStonebreaker(aw);
+            stone2.setPosition(cx + 0.5, cy, cz + 0.5);
+            aw.spawnEntityInWorld(stone2);
+            new com.divinerpgextended.entity.EntityRockfall(aw, cx + 7.5, cy + 0.5, cz + 0.5, cy).strike();
+            boolean farKept = stone2.skin();
+            new com.divinerpgextended.entity.EntityRockfall(aw, cx + 0.5, cy + 1, cz + 0.5, cy).strike();
+            boolean rockBroke = !stone2.skin();
+            int called = stone2.callRocks(aa);
+            for (Object o : aw.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityRockfall.class, stone2.boundingBox.expand(16, 40, 16))) ((net.minecraft.entity.Entity) o).setDead();
+            stone2.setDead();
+            clear.accept(apDim, aw);
+            rep.append("; Камнелом: с кожей ").append(f(withSkin)).append(", молот ").append(f(maul)).append(", снята ").append(bare).append(", глыба далеко мимо ").append(farKept).append(", своя снимает ").append(rockBroke).append(", зовёт глыб ").append(called);
+            // Небесный хват: хватает рядом, Каменная стена не даётся, на высоте роняет, сильный удар заставляет выпустить
+            int skyDim = ConfigurationHelper.skythern;
+            WorldServer sw = arena.apply(skyDim);
+            TestPlayer sa = player(skyDim, "TestGrab", cx + 0.5, cy, cz + 0.5);
+            sa.getEntityAttribute(SharedMonsterAttributes.maxHealth).applyModifier(big);
+            sa.setHealth(sa.getMaxHealth());
+            com.divinerpgextended.entity.mini.EntitySkyGrabber grab = new com.divinerpgextended.entity.mini.EntitySkyGrabber(sw);
+            grab.setPosition(cx + 0.5, cy + 2, cz + 0.5);
+            AttributeModifier wall = new AttributeModifier(UUID.fromString("0d0d0d0d-0000-4000-8000-0000000000a4"), "selftest", 1, 0);
+            sa.getEntityAttribute(SharedMonsterAttributes.knockbackResistance).applyModifier(wall);
+            boolean wallHolds = !grab.grab(sa) && grab.held() == null;
+            sa.getEntityAttribute(SharedMonsterAttributes.knockbackResistance).removeModifier(wall);
+            sa.hurtResistantTime = 0;
+            boolean grabbed = grab.grab(sa) && grab.held() == sa;
+            sa.motionY = 0;
+            grab.carry();
+            boolean lifted = sa.motionY > 0 && grab.motionY > 0;
+            sa.setPosition(sa.posX, sa.posY + 16, sa.posZ);
+            grab.carry();
+            boolean dropped = grab.held() == null;
+            sa.setPosition(cx + 0.5, cy, cz + 0.5);
+            sa.hurtResistantTime = 0;
+            boolean again = grab.grab(sa);
+            TestPlayer hitter = player(skyDim, "TestGrab2", cx + 2.5, cy, cz + 0.5);
+            grab.hurtResistantTime = 0;
+            grab.attackEntityFrom(DamageSource.causePlayerDamage(hitter), (float) (com.divinerpgextended.entity.mini.EntitySkyGrabber.HEALTH * 0.15));
+            boolean letGo = again && grab.held() == null;
+            boolean noLeap = !com.divinerpgextended.world.twilight.SkythernWinds.leap(grab);
+            clear.accept(skyDim, sw);
+            rep.append("; хват: стена держит ").append(wallHolds).append(", схватил ").append(grabbed).append(", несёт ").append(lifted).append(", роняет ").append(dropped).append(", выпускает ").append(letGo).append(", не прыгает ").append(noLeap);
+            // Плакальщик: смерть рядом кормит, далеко нет, предел 5; сам души не оставляет
+            int morDim = ConfigurationHelper.mortum;
+            WorldServer mw = arena.apply(morDim);
+            TestPlayer ma = player(morDim, "TestMourn", cx + 3.5, cy, cz + 0.5);
+            com.divinerpgextended.entity.mini.EntityMourner mourn = new com.divinerpgextended.entity.mini.EntityMourner(mw);
+            mourn.setPosition(cx + 0.5, cy, cz + 0.5);
+            mw.spawnEntityInWorld(mourn);
+            mourn.setHealth(100F);
+            float baseDmg = (float) mourn.getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue();
+            net.divinerpg.entities.twilight.EntityMortumDemon near1 = new net.divinerpg.entities.twilight.EntityMortumDemon(mw), far1 = new net.divinerpg.entities.twilight.EntityMortumDemon(mw);
+            near1.setPosition(cx + 2.5, cy, cz + 0.5);
+            far1.setPosition(cx + 60.5, cy, cz + 0.5);
+            double oldChance = Config.mortumSoulChance;
+            Config.mortumSoulChance = 0;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(far1, DamageSource.causePlayerDamage(ma)));
+            boolean farNo = mourn.grief() == 0;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(near1, DamageSource.causePlayerDamage(ma)));
+            boolean fed = mourn.grief() == 1 && near(mourn.getHealth(), 120F) && near((float) mourn.getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue(), baseDmg * 1.1F);
+            for (int i = 0; i < 8; i++) mourn.feed();
+            boolean capped = mourn.grief() == com.divinerpgextended.entity.mini.EntityMourner.MAX_GRIEF;
+            Config.mortumSoulChance = 1;
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(mourn, DamageSource.causePlayerDamage(ma)));
+            boolean noSoul = mw.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityLostSoul.class, mourn.boundingBox.expand(8, 8, 8)).isEmpty();
+            Config.mortumSoulChance = oldChance;
+            mourn.setDead();
+            clear.accept(morDim, mw);
+            rep.append("; Плакальщик: далеко нет ").append(farNo).append(", кормится ").append(fed).append(", предел ").append(capped).append(", без души ").append(noSoul);
+            // Сомнамбула: уязвимость меняется по кругу и видна бою Ветеи
+            WorldServer vw2 = server.worldServerForDimension(ConfigurationHelper.vethea);
+            com.divinerpgextended.entity.mini.EntitySleepwalker walker = new com.divinerpgextended.entity.mini.EntitySleepwalker(vw2);
+            walker.setFloor(2);
+            java.util.EnumSet<com.divinerpgextended.vethea.WeaponKind> w0 = com.divinerpgextended.vethea.VetheaCombat.weakness(walker);
+            boolean weak0 = w0.contains(com.divinerpgextended.vethea.WeaponKind.SWORD) && !w0.contains(com.divinerpgextended.vethea.WeaponKind.BOW);
+            walker.shift();
+            java.util.EnumSet<com.divinerpgextended.vethea.WeaponKind> w1 = com.divinerpgextended.vethea.VetheaCombat.weakness(walker);
+            boolean weak1 = w1.contains(com.divinerpgextended.vethea.WeaponKind.BOW) && !w1.contains(com.divinerpgextended.vethea.WeaponKind.SWORD);
+            walker.shift();
+            boolean weak2 = com.divinerpgextended.vethea.VetheaCombat.weakness(walker).contains(com.divinerpgextended.vethea.WeaponKind.STAFF);
+            walker.shift();
+            boolean round = walker.group() == 0 && near(walker.getMaxHealth(), 300F);
+            rep.append("; Сомнамбула: ближний ").append(weak0).append(", дальний ").append(weak1).append(", аркана ").append(weak2).append(", по кругу ").append(round);
+            boolean ok = roofNo && burned && quiet && howl1 && howl2 && pack == 4 && hidden && near(withSkin, 3F) && near(maul, 10F) && bare && farKept && rockBroke && called == 3
+                && wallHolds && grabbed && lifted && dropped && letGo && noLeap && farNo && fed && capped && noSoul && weak0 && weak1 && weak2 && round;
+            check(ok, rep.toString());
+            return rep.toString();
+        });
         t("Прохождение", "Вьюга: укрывают только закрытые места", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x = 31400, y = 200, z = 31400, head = y + 1;
