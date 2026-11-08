@@ -274,10 +274,10 @@ public class PerkEffects {
         } catch (Throwable ignored) {}
     }
 
-    /** Без урона от падения - свойство брони Странника любой ступени (сет для удобного позднего прохождения); чужая не спасает. */
+    /** "Мягкое приземление" (донор - элитный реалмит): без урона от падения; чужая броня не спасает. */
     @SubscribeEvent
     public void onFall(LivingFallEvent event) {
-        if (event.entityLiving instanceof EntityPlayer && ArmorData.equippedTier((EntityPlayer) event.entityLiving) >= 1) {
+        if (event.entityLiving instanceof EntityPlayer && ArmorData.hasEquippedPerk((EntityPlayer) event.entityLiving, Perk.SOFT_LANDING)) {
             event.distance = 0;
         }
     }

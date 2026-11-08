@@ -218,7 +218,6 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
             if (player != null && !ArmorData.owns(stack, player)) list.add(EnumChatFormatting.RED + StatCollector.translateToLocal("dre.tooltip.owner_foreign"));
         }
         if (ArmorData.color(stack) >= 0) list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.tooltip.dyed"));
-        list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.no_fall"));
         list.add(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocalFormatted("dre.core." + core.key() + ".desc", new java.text.DecimalFormat("0.##").format(Config.coreShadowSpeed)));
         List<Perk> perks = ArmorData.perks(stack);
         list.add(StatCollector.translateToLocalFormatted("dre.tooltip.perks", perks.size(), Config.smallSlots(tier)));

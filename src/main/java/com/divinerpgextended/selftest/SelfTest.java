@@ -8303,6 +8303,7 @@ public class SelfTest {
             for (int i = 0; i < 4; i++) {
                 set[i] = com.divinerpgextended.item.ItemWandererArmor.stack(ModItems.wanderer[i], 3, com.divinerpgextended.item.ArmorCore.BEDROCK);
                 com.divinerpgextended.item.ArmorData.bind(set[i], a);
+                com.divinerpgextended.item.ArmorData.setPerks(set[i], java.util.Arrays.asList(Perk.SOFT_LANDING));
             }
             Sockets.insert(set[1], trinket(Trinket.VALOR_MEDAL));
             TestPlayer[] who = { a, b };
@@ -8350,6 +8351,33 @@ public class SelfTest {
                     + "; владельцу " + mine + ", снято " + freed + "/" + allFree + ", потом " + after);
             return "на владельце R3: ступень 3, ядро, гнёзда, защита и без падения; на чужом - ступень 0 (тройной урон боссов), ни защиты, ни эффектов;"
                 + " привязывается при первой примерке (заглушки модов - нет); на наковальне снять привязку может только владелец";
+        });
+        t("Броня", "Странник: мягкое приземление только перком", () -> {
+            TestPlayer slP = player(0, "TestSoftLanding", 0, 100, 0);
+            float[] slFall = new float[2];
+            for (int slIx = 0; slIx < 2; slIx++) {
+                for (int i = 0; i < 4; i++) {
+                    ItemStack s = com.divinerpgextended.item.ItemWandererArmor.stack(ModItems.wanderer[i], 5, com.divinerpgextended.item.ArmorCore.DIVINE);
+                    if (slIx == 1) com.divinerpgextended.item.ArmorData.setPerks(s, java.util.Arrays.asList(Perk.SOFT_LANDING));
+                    slP.inventory.armorInventory[3 - i] = s;
+                }
+                net.minecraftforge.event.entity.living.LivingFallEvent fe = new net.minecraftforge.event.entity.living.LivingFallEvent(slP, 20F);
+                MinecraftForge.EVENT_BUS.post(fe);
+                slFall[slIx] = fe.distance;
+            }
+            // на наковальне: R1 + сет элитного реалмита в доноре + арлемит - перк
+            com.divinerpgextended.station.AnvilWork slAn = new com.divinerpgextended.station.AnvilWork();
+            Item[] slEl = { VanillaItemsArmor.eliteRealmiteHelmet, VanillaItemsArmor.eliteRealmiteBody, VanillaItemsArmor.eliteRealmiteLegs, VanillaItemsArmor.eliteRealmiteBoots };
+            for (int i = 0; i < 4; i++) {
+                slAn.setInventorySlotContents(AnvilLogic.ARMOR + i, com.divinerpgextended.item.ItemWandererArmor.stack(ModItems.wanderer[i], 1, com.divinerpgextended.item.ArmorCore.DIVINE));
+                slAn.setInventorySlotContents(AnvilLogic.DONOR + i, new ItemStack(slEl[i]));
+            }
+            slAn.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(VanillaItemsOther.arlemiteIngot, 64));
+            AnvilLogic.Result slR = AnvilLogic.evaluate(slAn, slP, AnvilLogic.UPGRADE);
+            reset(slP);
+            check(slFall[0] == 20F && slFall[1] == 0F && Perk.byDonor(slEl) == Perk.SOFT_LANDING && slR.status == AnvilLogic.Status.READY_PERK && slR.param == Perk.SOFT_LANDING.ordinal(),
+                "падение 20 > без перка " + f(slFall[0]) + ", с перком " + f(slFall[1]) + "; донор элитный реалмит " + Perk.byDonor(slEl) + ", наковальня R1 " + slR.status);
+            return "сет Странника R5 без перка падение не гасит, с \"Мягким приземлением\" - гасит; перк ставится на наковальне сетом элитного реалмита за арлемит";
         });
         t("Броня", "Странник: покраска и отмывка", () -> {
             ItemStack helm = com.divinerpgextended.item.ItemWandererArmor.stack(ModItems.wanderer[0], 4, com.divinerpgextended.item.ArmorCore.DIVINE);

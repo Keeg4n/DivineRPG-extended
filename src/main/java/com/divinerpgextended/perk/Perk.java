@@ -100,7 +100,11 @@ public enum Perk {
         { VanillaItemsArmor.blueRupeeHelmet, VanillaItemsArmor.blueRupeeBody, VanillaItemsArmor.blueRupeeLegs, VanillaItemsArmor.blueRupeeBoots },
         { VanillaItemsArmor.greenRupeeHelmet, VanillaItemsArmor.greenRupeeBody, VanillaItemsArmor.greenRupeeLegs, VanillaItemsArmor.greenRupeeBoots },
         { VanillaItemsArmor.yellowRupeeHelmet, VanillaItemsArmor.yellowRupeeBody, VanillaItemsArmor.yellowRupeeLegs, VanillaItemsArmor.yellowRupeeBoots },
-        { VanillaItemsArmor.grayRupeeHelmet, VanillaItemsArmor.grayRupeeBody, VanillaItemsArmor.grayRupeeLegs, VanillaItemsArmor.grayRupeeBoots } });
+        { VanillaItemsArmor.grayRupeeHelmet, VanillaItemsArmor.grayRupeeBody, VanillaItemsArmor.grayRupeeLegs, VanillaItemsArmor.grayRupeeBoots } }),
+
+    /** Мягкое приземление (сет элитного реалмита): без урона от падения. До 0.99.99 было встроено в любую ступень Странника. */
+    SOFT_LANDING(null, new Item[][] {
+        { VanillaItemsArmor.eliteRealmiteHelmet, VanillaItemsArmor.eliteRealmiteBody, VanillaItemsArmor.eliteRealmiteLegs, VanillaItemsArmor.eliteRealmiteBoots } });
 
     /** Босс, убийство которого открывает перк, или null. */
     public final Boss unlock;
