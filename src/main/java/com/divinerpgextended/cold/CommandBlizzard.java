@@ -3,13 +3,14 @@ package com.divinerpgextended.cold;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.command.WrongUsageException;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ChatComponentTranslation;
-import net.minecraft.world.World;
-import net.minecraftforge.common.DimensionManager;
 
 import net.divinerpg.utils.config.ConfigurationHelper;
 
-/** /dreblizzard start|stop - для проверки: сразу начать (через предупреждение) или прекратить вьюгу в Iceika. */
+import com.divinerpgextended.world.twilight.WorldWeather;
+
+/** /dreblizzard start|stop - для проверки: метель Айсики, ливень Дикого леса и камнепад Апалачии сразу. Начать (через предупреждение) или прекратить вьюгу в Iceika. */
 public class CommandBlizzard extends CommandBase {
 
     @Override
@@ -32,20 +33,24 @@ public class CommandBlizzard extends CommandBase {
         if (args.length != 1 || !("start".equals(args[0]) || "stop".equals(args[0]))) {
             throw new WrongUsageException(getCommandUsage(sender));
         }
-        World w = DimensionManager.getWorld(ConfigurationHelper.iceika);
-        if (w == null) {
-            sender.addChatMessage(new ChatComponentTranslation("dre.command.blizzard.no_world"));
-            return;
-        }
-        Blizzard b = Blizzard.get(w);
-        if ("start".equals(args[0])) {
-            b.phase = Blizzard.CALM; // следующая секунда - предупреждение, через 30 секунд вьюга
+        boolean start = "start".equals(args[0]);
+        MinecraftServer server = MinecraftServer.getServer();
+        // погода хранится в сохранении мира: мир без игроков подгружается, как при телепорте
+        Blizzard b = Blizzard.get(server.worldServerForDimension(ConfigurationHelper.iceika));
+        // старт: из затишья - следующая секунда предупреждение, через 30 секунд событие; уже идущее не трогаем.
+        // стоп: идущее (или предупреждение) кончается на следующей секунде; затишье не трогаем, чтобы не было лишнего "закончилось"
+        if (start ? b.phase == Blizzard.CALM : b.phase != Blizzard.CALM) {
+            b.phase = start ? Blizzard.CALM : Blizzard.STORM;
             b.timer = 20;
-        } else {
-            b.phase = Blizzard.STORM; // следующая секунда - конец вьюги
-            b.timer = 20;
+            b.markDirty();
         }
-        b.markDirty();
-        sender.addChatMessage(new ChatComponentTranslation("dre.command.blizzard.ok"));
+        for (int dim : new int[] { ConfigurationHelper.wildwood, ConfigurationHelper.apalachia }) {
+            WorldWeather w = WorldWeather.get(server.worldServerForDimension(dim));
+            if (start ? w.phase != WorldWeather.CALM : w.phase == WorldWeather.CALM) continue;
+            w.phase = start ? WorldWeather.CALM : WorldWeather.ACTIVE;
+            w.timer = 20;
+            w.markDirty();
+        }
+        sender.addChatMessage(new ChatComponentTranslation(start ? "dre.command.blizzard.started" : "dre.command.blizzard.stopped"));
     }
 }

@@ -5724,6 +5724,43 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
+        t("Прохождение", "/dreblizzard: метель, ливень и камнепад одной командой", () -> {
+            com.divinerpgextended.cold.Blizzard bz = com.divinerpgextended.cold.Blizzard.get(server.worldServerForDimension(ConfigurationHelper.iceika));
+            com.divinerpgextended.world.twilight.WorldWeather rain = com.divinerpgextended.world.twilight.WorldWeather.get(server.worldServerForDimension(ConfigurationHelper.wildwood)),
+                quake = com.divinerpgextended.world.twilight.WorldWeather.get(server.worldServerForDimension(ConfigurationHelper.apalachia));
+            int[] was = { bz.phase, bz.timer, rain.phase, rain.timer, quake.phase, quake.timer };
+            com.divinerpgextended.cold.CommandBlizzard cmd = new com.divinerpgextended.cold.CommandBlizzard();
+            final int CALM = com.divinerpgextended.world.twilight.WorldWeather.CALM, ACTIVE = com.divinerpgextended.world.twilight.WorldWeather.ACTIVE;
+            String rep;
+            try {
+                bz.phase = com.divinerpgextended.cold.Blizzard.CALM;
+                bz.timer = rain.timer = quake.timer = 99999;
+                rain.phase = quake.phase = CALM;
+                cmd.processCommand(server, new String[] { "start" });
+                boolean started = bz.timer == 20 && rain.timer == 20 && quake.timer == 20 && bz.phase == com.divinerpgextended.cold.Blizzard.CALM && rain.phase == CALM && quake.phase == CALM;
+                bz.phase = com.divinerpgextended.cold.Blizzard.STORM;
+                rain.phase = quake.phase = ACTIVE;
+                bz.timer = rain.timer = quake.timer = 99999;
+                cmd.processCommand(server, new String[] { "stop" });
+                boolean stopped = bz.timer == 20 && rain.timer == 20 && quake.timer == 20 && bz.phase == com.divinerpgextended.cold.Blizzard.STORM && rain.phase == ACTIVE;
+                rain.phase = CALM;
+                rain.timer = 99999;
+                quake.phase = ACTIVE;
+                quake.timer = 99999;
+                cmd.processCommand(server, new String[] { "start" });
+                boolean keep = rain.timer == 20 && quake.timer == 99999 && quake.phase == ACTIVE;
+                check(started && stopped && keep, "старт из затишья во всех трёх мирах " + started + ", стоп идущих " + stopped + ", идущий камнепад старт не сбросил " + keep);
+                rep = "start из затишья запускает метель Айсики, ливень Дикого леса и камнепад Апалачии (через предупреждение), stop обрывает идущие, уже идущее событие старт не перезапускает";
+            } finally {
+                bz.phase = was[0];
+                bz.timer = was[1];
+                rain.phase = was[2];
+                rain.timer = was[3];
+                quake.phase = was[4];
+                quake.timer = was[5];
+            }
+            return rep;
+        });
         t("Прохождение", "Вьюжная ель: приходит с метелью и уходит с ней", () -> {
             int dim = ConfigurationHelper.iceika;
             WorldServer w = server.worldServerForDimension(dim);
