@@ -90,7 +90,7 @@ public class GuiWandererAnvil extends GuiContainer {
     private void placeButton() {
         if (action == null) return;
         int m = container.mode;
-        action.displayString = t(BUTTON_KEYS[m]);
+        action.displayString = t(status() == AnvilLogic.Status.READY_UNBIND ? "dre.gui.unbind" : BUTTON_KEYS[m]);
         action.xPosition = guiLeft + 100;
         action.yPosition = guiTop + (m == AnvilLogic.UPGRADE ? ContainerWandererAnvil.FUEL_Y - 2 : m == AnvilLogic.SOCKETS ? 60 : ContainerWandererAnvil.ROW1_Y - 2);
         action.enabled = ready(status()) && helpPage < 0;
@@ -98,7 +98,7 @@ public class GuiWandererAnvil extends GuiContainer {
 
     private static boolean ready(AnvilLogic.Status s) {
         return s == AnvilLogic.Status.READY_UPGRADE || s == AnvilLogic.Status.READY_PERK || s == AnvilLogic.Status.READY_SOCKET
-            || s == AnvilLogic.Status.READY_UNLOAD || s == AnvilLogic.Status.READY_CORE;
+            || s == AnvilLogic.Status.READY_UNLOAD || s == AnvilLogic.Status.READY_CORE || s == AnvilLogic.Status.READY_UNBIND;
     }
 
     private AnvilLogic.Status status() {
@@ -155,6 +155,11 @@ public class GuiWandererAnvil extends GuiContainer {
             case SOCKET_SAME:
             case DONOR_SOCKETS:
                 return StatCollector.translateToLocalFormatted(key, donorName());
+            case FOREIGN: {
+                ItemStack a = station(AnvilLogic.ARMOR + Math.max(0, Math.min(3, container.param)));
+                String who = a == null ? null : com.divinerpgextended.item.ArmorData.ownerName(a);
+                return StatCollector.translateToLocalFormatted(key, who == null || who.isEmpty() ? "?" : who);
+            }
             case READY_UNLOAD:
                 return StatCollector.translateToLocalFormatted(key, container.param, ammoName());
             default:
@@ -193,6 +198,7 @@ public class GuiWandererAnvil extends GuiContainer {
                 out.add("§8" + StatCollector.translateToLocalFormatted("dre.core." + c.key() + ".desc", speed));
             }
             out.add("§7" + t("dre.gui.core_swap"));
+            out.add("§7" + t("dre.gui.unbind_hint"));
             out.add("");
             out.add("§6" + t("dre.gui.tiers_hint"));
             for (int tier = 2; tier <= 7; tier++) out.add("§7" + t("dre.gui.tier_hint." + tier));

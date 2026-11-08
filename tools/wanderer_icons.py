@@ -6,6 +6,10 @@
 
 Символы шаблона: . пусто, o контур, h блик, b основа, s тень, a отделка; детали ступени рисуются поверх любыми символами
 своей палитры.
+
+Покраска: рядом с каждым значком маска <облик>_<часть>_dye.png - серым те пиксели, что в игре перекрашивает краситель
+(основной материал: по умолчанию h, b, s; где основа на модели другая - DYE_CHARS). В игре это второй проход значка,
+умноженный на цвет.
 """
 import os
 
@@ -243,6 +247,38 @@ ICONS = {
 }
 
 
+# Какие символы значка - основной материал облика (как DYE в wanderer_armor.py); по умолчанию 'hbs'.
+DYE_CHARS = {
+    (1, 'chest'): 'hbsA', (1, 'legs'): 'a',
+    ('r1_shadow', 'legs'): 'hbsa', ('r1_corrupted', 'legs'): 'hbsa', ('r1_corrupted', 'boots'): 'hbsa',
+    (3, 'helmet'): 'hbsa',
+    (4, 'helmet'): 'hbsaA', (4, 'chest'): 'hbsa', (4, 'legs'): 'hbsa', (4, 'boots'): 'hbsa',
+    (6, 'legs'): 'hbsa',
+    (7, 'helmet'): 'hbsa', (7, 'chest'): 'hbsa', (7, 'legs'): 'hbsac',
+}
+
+
+def luma(value):
+    r, g, b, _ = color(value)
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
+
+
+def draw_dye(template, palette, details, chars):
+    """Серая маска покраски: яркость пикселя относительно самого светлого из красящихся цветов."""
+    grid = [list(r) for r in template.strip().splitlines()]
+    for ch, x, y in details:
+        grid[y][x] = ch
+    lums = {ch: luma(palette[ch]) for ch in chars if ch in palette}
+    ref = max(lums.values())
+    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    for y, row in enumerate(grid):
+        for x, ch in enumerate(row):
+            if ch in lums:
+                g = int(255 * (0.25 + 0.75 * min(1.0, lums[ch] / ref) ** 0.7) + 0.5)
+                img.putpixel((x, y), (g, g, g, 255))
+    return img
+
+
 def color(value):
     value = value.lstrip('#')
     return tuple(int(value[i:i + 2], 16) for i in (0, 2, 4)) + (255,)
@@ -266,6 +302,7 @@ def main():
     for (look, part), (template, palette, details) in ICONS.items():
         name = 'r%d' % look if isinstance(look, int) else look
         draw(template, palette, details).save(os.path.join(OUT, '%s_%s.png' % (name, part)))
+        draw_dye(template, palette, details, DYE_CHARS.get((look, part), 'hbs')).save(os.path.join(OUT, '%s_%s_dye.png' % (name, part)))
     print('значков:', len(ICONS))
 
 

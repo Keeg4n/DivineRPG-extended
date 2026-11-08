@@ -71,16 +71,68 @@ public final class ArmorData {
         root(stack, true).setTag("perks", list);
     }
 
+    /** Владелец части (UUID строкой) или null - её ещё никто не надевал. */
+    public static String owner(ItemStack stack) {
+        NBTTagCompound r = root(stack, false);
+        return r == null || !r.hasKey("owner") ? null : r.getString("owner");
+    }
+
+    public static String ownerName(ItemStack stack) {
+        NBTTagCompound r = root(stack, false);
+        return r == null ? null : r.getString("ownerName");
+    }
+
+    /** Привязать часть к игроку: защита, перки, ядро и гнёзда дальше работают только на нём. */
+    public static void bind(ItemStack stack, EntityPlayer p) {
+        NBTTagCompound r = root(stack, true);
+        r.setString("owner", p.getUniqueID().toString());
+        r.setString("ownerName", p.getCommandSenderName());
+    }
+
+    public static void unbind(ItemStack stack) {
+        NBTTagCompound r = root(stack, false);
+        if (r == null) return;
+        r.removeTag("owner");
+        r.removeTag("ownerName");
+    }
+
+    /**
+     * Работает ли часть на игроке: своя или ничья (ничью привяжет первый же тик на нём). На сервере сверяется UUID; на клиенте
+     * ещё и ник: у клиента без входа в аккаунт UUID может не совпасть с серверным, а подсказке и полоске брони нужен ответ.
+     */
+    public static boolean owns(ItemStack stack, EntityPlayer p) {
+        String o = owner(stack);
+        if (o == null) return true;
+        if (p == null) return false;
+        if (o.equals(p.getUniqueID().toString())) return true;
+        return p.worldObj != null && p.worldObj.isRemote && p.getCommandSenderName().equals(ownerName(stack));
+    }
+
+    /** Цвет покраски 0xRRGGBB или -1 - не крашена. Только облик. */
+    public static int color(ItemStack stack) {
+        NBTTagCompound r = root(stack, false);
+        return r == null || !r.hasKey("color") ? -1 : r.getInteger("color") & 0xFFFFFF;
+    }
+
+    public static void setColor(ItemStack stack, int color) {
+        root(stack, true).setInteger("color", color & 0xFFFFFF);
+    }
+
+    public static void clearColor(ItemStack stack) {
+        NBTTagCompound r = root(stack, false);
+        if (r != null) r.removeTag("color");
+    }
+
     /**
      * Полный сет Странника на игроке.
      *
-     * @return минимальная ступень сета или 0, если сет не полный
+     * @return минимальная ступень сета или 0, если сет не полный или чужой ({@link #owns})
      */
     public static int equippedTier(EntityPlayer player) {
         int tier = Integer.MAX_VALUE;
         for (int i = 0; i < 4; i++) {
             ItemStack s = player.getCurrentArmor(i);
-            if (s == null || !(s.getItem() instanceof ItemWandererArmor)) return 0;
+            if (s == null || !(s.getItem() instanceof ItemWandererArmor) || !owns(s, player)) return 0;
             tier = Math.min(tier, tier(s));
         }
         return tier;

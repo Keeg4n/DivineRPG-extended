@@ -15,8 +15,10 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.World;
 import net.minecraftforge.common.ISpecialArmor;
 import net.minecraftforge.common.util.EnumHelper;
+import net.minecraftforge.common.util.FakePlayer;
 
 import com.divinerpgextended.Config;
 import com.divinerpgextended.perk.Perk;
@@ -29,6 +31,8 @@ import net.divinerpg.utils.items.VanillaItemsArmor;
  * Броня Странника: одна броня на всю игру. Защита считается так же, как у брони Divine: полный сет даёт
  * процент снижения урона ступени, части делят его в пропорции 5/8/7/4 из 24. У каждой ступени R1-R7 свой облик: модель
  * ({@link com.divinerpgextended.client.ModelWandererArmor}) и значки частей; без облика - как божественная броня.
+ * Привязывается к тому, кто наденет первым ({@link ArmorData#owner}): на чужом не защищает и не даёт эффектов. Красится
+ * красителями в верстаке ({@link RecipeWandererDye}), это только облик: основной материал части под цвет.
  */
 public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
 
@@ -44,7 +48,7 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
     public static final int LOOK_COUNT = LOOKS + ArmorCore.values().length - 1;
 
     @SideOnly(Side.CLIENT)
-    private IIcon[] looks;
+    private IIcon[] looks, dyeLooks;
 
     public static boolean hasLook(int tier) {
         return tier >= 1 && tier <= LOOKS;
@@ -113,6 +117,8 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
         super.registerIcons(reg);
         looks = new IIcon[LOOK_COUNT + 1];
         for (int t = 1; t <= LOOK_COUNT; t++) looks[t] = reg.registerIcon("divinerpgextended:wanderer/" + lookName(t) + "_" + PARTS[armorType]);
+        dyeLooks = new IIcon[LOOK_COUNT + 1];
+        for (int t = 1; t <= LOOK_COUNT; t++) dyeLooks[t] = reg.registerIcon("divinerpgextended:wanderer/" + lookName(t) + "_" + PARTS[armorType] + "_dye");
     }
 
     @Override
@@ -124,13 +130,28 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
     @Override
     @SideOnly(Side.CLIENT)
     public IIcon getIcon(ItemStack stack, int pass) {
+        // второй проход - покраска: серая маска основного материала, умноженная на цвет (не крашена - тот же значок ещё раз)
+        if (pass == 1 && dyeLooks != null && ArmorData.color(stack) >= 0 && hasLook(ArmorData.tier(stack))) return dyeLooks[look(stack)];
         return getIconIndex(stack);
     }
 
     @Override
     @SideOnly(Side.CLIENT)
+    public boolean requiresMultipleRenderPasses() {
+        return true;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public int getColorFromItemStack(ItemStack stack, int pass) {
+        int c = ArmorData.color(stack);
+        return pass == 1 && c >= 0 ? c : 0xFFFFFF;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
     public ModelBiped getArmorModel(EntityLivingBase entity, ItemStack stack, int slot) {
-        return hasLook(ArmorData.tier(stack)) ? com.divinerpgextended.client.ModelWandererArmor.forMob(look(stack), armorType) : null;
+        return hasLook(ArmorData.tier(stack)) ? com.divinerpgextended.client.ModelWandererArmor.forMob(look(stack), armorType, ArmorData.color(stack)) : null;
     }
 
     private double pieceRatio(ItemStack stack) {
@@ -140,13 +161,26 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
     @Override
     public ArmorProperties getProperties(EntityLivingBase player, ItemStack armor, DamageSource source,
         double damage, int slot) {
-        if (source.isUnblockable()) return new ArmorProperties(0, 0, 0);
+        if (source.isUnblockable() || !works(player, armor)) return new ArmorProperties(0, 0, 0);
         return new ArmorProperties(0, pieceRatio(armor), Integer.MAX_VALUE);
     }
 
     @Override
     public int getArmorDisplay(EntityPlayer player, ItemStack armor, int slot) {
-        return (int) Math.round(pieceRatio(armor) * 100.0 / 4.0);
+        return ArmorData.owns(armor, player) ? (int) Math.round(pieceRatio(armor) * 100.0 / 4.0) : 0;
+    }
+
+    /** Защищает ли часть того, на ком надета: игрока - только своя, моба - только ничья. */
+    private static boolean works(EntityLivingBase wearer, ItemStack armor) {
+        return wearer instanceof EntityPlayer ? ArmorData.owns(armor, (EntityPlayer) wearer) : ArmorData.owner(armor) == null;
+    }
+
+    /** Кто первым надел, тот и владелец (игроки-заглушки модов не в счёт). */
+    @Override
+    public void onArmorTick(World world, EntityPlayer player, ItemStack stack) {
+        if (world.isRemote || player instanceof FakePlayer || ArmorData.owner(stack) != null) return;
+        ArmorData.bind(stack, player);
+        com.divinerpgextended.audit.Audit.log(player, "Wanderer", "привязана " + stack.getDisplayName());
     }
 
     @Override
@@ -178,6 +212,12 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
             StatCollector.translateToLocal(tier == 1 ? "dre.core." + core.key() + ".name" : "dre.tier." + tier)));
         list.add(StatCollector.translateToLocalFormatted("dre.tooltip.full_reduction", Config.fullReduction(tier)));
         list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.tooltip.unbreakable"));
+        if (ArmorData.owner(stack) == null) list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.tooltip.owner_free"));
+        else {
+            list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("dre.tooltip.owner", ArmorData.ownerName(stack)));
+            if (player != null && !ArmorData.owns(stack, player)) list.add(EnumChatFormatting.RED + StatCollector.translateToLocal("dre.tooltip.owner_foreign"));
+        }
+        if (ArmorData.color(stack) >= 0) list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.tooltip.dyed"));
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.no_fall"));
         list.add(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocalFormatted("dre.core." + core.key() + ".desc", new java.text.DecimalFormat("0.##").format(Config.coreShadowSpeed)));
         List<Perk> perks = ArmorData.perks(stack);

@@ -30,6 +30,7 @@ import com.divinerpgextended.world.ArmorTier;
  * <li>сет Странника + донорский сет перка -> перк в свободный слот;</li>
  * <li>любые части брони с гнёздами + аксессуары в доноре -> аксессуары встроены ({@link Sockets}), цена - уровни опыта;
  * клик по занятому гнезду - аксессуар выходит в свободный слот донора (бесплатно);</li>
+ * <li>части Странника, донор и топливо пусты -> снять привязку (только владелец; чужая - {@link Status#FOREIGN});</li>
  * <li>заряженное оружие в слоте топлива, остальное пусто -> разрядить в инвентарь ({@link Ammo#unload}).</li>
  * </ul>
  * Донорская броня с аксессуарами не принимается: её съедает улучшение - сначала вынуть.
@@ -54,7 +55,9 @@ public final class AnvilLogic {
         // переход в Странника без донора
         DONOR_UNNEEDED,
         // смена ядра
-        READY_CORE
+        READY_CORE,
+        // привязка: снять со своей брони; броня чужая
+        READY_UNBIND, FOREIGN
     }
 
     public static final class Result {
@@ -81,7 +84,8 @@ public final class AnvilLogic {
         }
 
         public boolean ready() {
-            return status == Status.READY_UPGRADE || status == Status.READY_PERK || status == Status.READY_SOCKET || status == Status.READY_UNLOAD || status == Status.READY_CORE;
+            return status == Status.READY_UPGRADE || status == Status.READY_PERK || status == Status.READY_SOCKET || status == Status.READY_UNLOAD || status == Status.READY_CORE
+                || status == Status.READY_UNBIND;
         }
     }
 
@@ -230,6 +234,22 @@ public final class AnvilLogic {
         return true;
     }
 
+    /** Снятие привязки: сверху только части Странника (хоть одна привязана), донор и топливо пусты. Иначе null. */
+    private static Result unbind(IInventory inv, EntityPlayer player) {
+        if (!emptySlots(inv, DONOR) || inv.getStackInSlot(FUEL) != null) return null;
+        int bound = 0, foreign = -1;
+        for (int i = 0; i < 4; i++) {
+            ItemStack s = inv.getStackInSlot(ARMOR + i);
+            if (s == null) continue;
+            if (!(s.getItem() instanceof ItemWandererArmor)) return null;
+            if (ArmorData.owner(s) == null) continue;
+            bound++;
+            if (foreign < 0 && !ArmorData.owns(s, player)) foreign = i;
+        }
+        if (bound == 0) return null;
+        return foreign >= 0 ? new Result(Status.FOREIGN, foreign) : new Result(Status.READY_UNBIND, bound);
+    }
+
     public static Result evaluate(IInventory inv, EntityPlayer player) {
         return evaluate(inv, player, AUTO);
     }
@@ -255,6 +275,8 @@ public final class AnvilLogic {
         Item[] armor = items(inv, ARMOR);
         Item[] donor = items(inv, DONOR);
         if (allNull(armor) && allNull(donor)) return new Result(Status.EMPTY, 0);
+        Result bind = unbind(inv, player);
+        if (bind != null) return bind;
         // только броня с гнёздами (не сет для улучшения) - подсказка про гнёзда
         ArmorCore forge = ArmorCore.ofSet(armor);
         boolean setFlow = forge != null || !anyNull(armor) && wanderers(armor);
@@ -347,6 +369,16 @@ public final class AnvilLogic {
     public static boolean execute(IInventory inv, EntityPlayer player, int mode) {
         Result r = evaluate(inv, player, mode);
         if (!r.ready()) return false;
+        if (r.status == Status.READY_UNBIND) {
+            for (int i = 0; i < 4; i++) {
+                ItemStack s = inv.getStackInSlot(ARMOR + i);
+                if (s == null || ArmorData.owner(s) == null) continue;
+                ArmorData.unbind(s);
+                com.divinerpgextended.audit.Audit.log(player, "Wanderer", "снята привязка " + s.getDisplayName());
+            }
+            inv.markDirty();
+            return true;
+        }
         if (r.status == Status.READY_SOCKET) {
             Plan pl = plan(inv, player);
             for (int d = 0; d < 4; d++) {

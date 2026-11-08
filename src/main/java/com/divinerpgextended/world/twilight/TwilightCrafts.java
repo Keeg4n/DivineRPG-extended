@@ -32,9 +32,12 @@ import cpw.mods.fml.common.registry.GameRegistry;
  * Крафты сумеречных миров вместо рецептов Divine:
  * <ul>
  * <li>палки мира из досок дерева мира, факелы мира (пыль на палке), стрелы мира на палках мира;</li>
- * <li>броня, оружие и инструменты - цепочкой: вещь мира = такая же вещь прошлого мира + куски мира + материал мобов
- * мира, рукояти из палок мира. Эдем начинается с божественных вещей верхнего мира. Дикий лес вдобавок просит морское: китовый
- * плавник в броню, акулий якорь в клинок, зубы лиоплевродона в луки и пушки, клешню краба в инструменты;</li>
+ * <li>броня мира = куски мира + материал мобов мира + шестерня времени прошлого мира ({@link #gear}, в верстаке не тратится,
+ * у Эдема её нет): сет прошлого мира в крафт больше не идёт;</li>
+ * <li>оружие и инструменты - цепочкой: вещь мира = такая же вещь прошлого мира + куски мира + материал мобов мира, рукояти
+ * из палок мира. Эдем начинается с божественных вещей верхнего мира;</li>
+ * <li>Дикий лес вдобавок просит морское: китовый плавник в броню, акулий якорь в клинок, зубы лиоплевродона в луки и
+ * пушки, клешню краба в инструменты;</li>
  * <li>рамка портала в следующий мир - камни врат из сердца стража (трофей Великого кадиллиона).</li>
  * </ul>
  */
@@ -90,7 +93,15 @@ public final class TwilightCrafts {
         }
     }
 
-    /** Вещи перед Эдемом: божественная броня, меч и инструменты верхнего мира, ванильный лук; фазера и блица нет. */
+    /** Шестерня времени прошлого мира - ключ к броне мира w (перед Эдемом обычный мир, шестерни нет - null). */
+    public static ItemStack gear(TwilightWorld w) {
+        return w == TwilightWorld.EDEN ? null : new ItemStack(ModItems.timeGear, 1, w.ordinal() - 1);
+    }
+
+    /**
+     * Сет прошлого мира цепочки (перед Эдемом - божественный): в крафт брони больше не идёт, дома даёт полуступень
+     * ({@link com.divinerpgextended.perk.HomeArmor}).
+     */
     public static Item[] prevArmor(TwilightWorld w) {
         if (w == TwilightWorld.EDEN) return new Item[] { VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots };
         return TwilightWorld.values()[w.ordinal() - 1].armor();
@@ -260,12 +271,18 @@ public final class TwilightCrafts {
         boolean sea = w == TwilightWorld.WILDWOOD;
         ItemStack cs = new ItemStack(c), fin = sea ? new ItemStack(VanillaItemsOther.whaleFin) : cs, teeth = sea ? new ItemStack(VanillaItemsOther.liopleurodonTeeth) : cs,
             claw = sea ? new ItemStack(VanillaItemsOther.crabClaw) : cs, hook = sea ? any(VanillaItemsWeapons.sharkAnchor) : cs;
-        Item[] armor = w.armor(), pa = prevArmor(w);
+        // броня: на месте части прошлого сета - шестерня времени прошлого мира (остаётся в верстаке); у Эдема место пустое
+        Item[] armor = w.armor();
+        ItemStack gear = gear(w);
         for (Item i : armor) remove(i);
-        GameRegistry.addRecipe(new ItemStack(armor[0]), "CMC", "FPF", 'C', c, 'F', fin, 'M', am, 'P', any(pa[0]));
-        GameRegistry.addRecipe(new ItemStack(armor[1]), "CPC", "MCM", "FCF", 'C', c, 'F', fin, 'M', am, 'P', any(pa[1]));
-        GameRegistry.addRecipe(new ItemStack(armor[2]), "CPC", "M M", "F F", 'C', c, 'F', fin, 'M', am, 'P', any(pa[2]));
-        GameRegistry.addRecipe(new ItemStack(armor[3]), "MPM", "F F", 'F', fin, 'M', am, 'P', any(pa[3]));
+        String[][] shapes = { { "CMC", "FPF" }, { "CPC", "MCM", "FCF" }, { "CPC", "M M", "F F" }, { "MPM", "F F" } };
+        for (int k = 0; k < 4; k++) {
+            List<Object> in = new java.util.ArrayList<Object>();
+            for (String row : shapes[k]) in.add(gear == null ? row.replace('P', ' ') : row);
+            in.addAll(java.util.Arrays.asList('C', c, 'F', fin, 'M', am));
+            if (gear != null) in.addAll(java.util.Arrays.asList('P', gear));
+            GameRegistry.addRecipe(new ItemStack(armor[k]), in.toArray());
+        }
 
         Item[] wp = weapons(w), pw = prevWeapons(w);
         for (Item i : wp) remove(i);

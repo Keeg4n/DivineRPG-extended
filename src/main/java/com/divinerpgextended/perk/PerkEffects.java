@@ -274,7 +274,7 @@ public class PerkEffects {
         } catch (Throwable ignored) {}
     }
 
-    /** Без урона от падения встроено в ступень R1 (элитный реалмит). */
+    /** Без урона от падения - свойство брони Странника любой ступени (сет для удобного позднего прохождения); чужая не спасает. */
     @SubscribeEvent
     public void onFall(LivingFallEvent event) {
         if (event.entityLiving instanceof EntityPlayer && ArmorData.equippedTier((EntityPlayer) event.entityLiving) >= 1) {

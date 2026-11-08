@@ -170,6 +170,7 @@ public final class Sockets {
      */
     public static boolean wears(EntityPlayer p, Trinket t) {
         for (ItemStack armor : p.inventory.armorInventory) {
+            if (foreign(armor, p)) continue;
             NBTTagList l = list(armor);
             for (int i = 0; l != null && i < l.tagCount(); i++) {
                 NBTTagCompound c = l.getCompoundTagAt(i);
@@ -188,9 +189,15 @@ public final class Sockets {
         return false;
     }
 
+    /** Чужая броня Странника: её гнёзда на этом игроке молчат. */
+    private static boolean foreign(ItemStack armor, EntityPlayer p) {
+        return armor != null && armor.getItem() instanceof ItemWandererArmor && !com.divinerpgextended.item.ArmorData.owns(armor, p);
+    }
+
     /** Встроена ли вещь (Divine-аксессуар) в надетую броню. */
     public static boolean wearsItem(EntityPlayer p, Item item) {
         for (ItemStack armor : p.inventory.armorInventory) {
+            if (foreign(armor, p)) continue;
             NBTTagList l = list(armor);
             for (int i = 0; l != null && i < l.tagCount(); i++) if (Item.getItemById(l.getCompoundTagAt(i).getShort("id")) == item) return true;
         }

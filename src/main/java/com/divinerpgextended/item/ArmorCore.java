@@ -83,12 +83,12 @@ public enum ArmorCore {
         return DIVINE;
     }
 
-    /** Ядро надетого полного сета Странника (null - не полный сет или части с разным ядром). */
+    /** Ядро надетого полного сета Странника (null - не полный сет, чужой или части с разным ядром). */
     public static ArmorCore worn(EntityPlayer p) {
         ArmorCore core = null;
         for (int i = 0; i < 4; i++) {
             ItemStack s = p.getCurrentArmor(i);
-            if (s == null || !(s.getItem() instanceof ItemWandererArmor)) return null;
+            if (s == null || !(s.getItem() instanceof ItemWandererArmor) || !ArmorData.owns(s, p)) return null;
             ArmorCore c = ArmorData.core(s);
             if (core != null && core != c) return null;
             core = c;

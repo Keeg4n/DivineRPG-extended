@@ -8231,12 +8231,33 @@ public class SelfTest {
             ItemStack horn = com.divinerpgextended.world.twilight.TwilightCrafts.mat(com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD,
                 com.divinerpgextended.world.twilight.TwilightCrafts.ARMOR_MAT);
             ItemStack worn = new ItemStack(net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet);
-            worn.setItemDamage(worn.getMaxDamage() / 2); // изношенный шлем прошлого мира тоже годится
             net.minecraft.inventory.InventoryCrafting cg = grid();
             ItemStack fin = new ItemStack(VanillaItemsOther.whaleFin);
-            ItemStack[] lay = { new ItemStack(chunk), horn, new ItemStack(chunk), fin, worn, fin.copy() };
-            for (int i = 0; i < 6; i++) cg.setInventorySlotContents(i, lay[i]);
+            ItemStack[] lay = { new ItemStack(chunk), horn, new ItemStack(chunk), fin, new ItemStack(ModItems.timeGear, 1, 0), fin.copy() };
+            for (int i = 0; i < 6; i++) cg.setInventorySlotContents(i, lay[i].copy());
             ItemStack helm = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, server.worldServers[0]);
+            // шестерня Эдема остаётся в верстаке, остальное тратится
+            TestPlayer cp = player(0, "TestGearKeep", 0, 100, 0);
+            new net.minecraft.inventory.SlotCrafting(cp, cg, new net.minecraft.inventory.InventoryCraftResult(), 0, 0, 0).onPickupFromSlot(cp, helm);
+            ItemStack kept = cg.getStackInSlot(4);
+            boolean gearKept = kept != null && kept.getItem() == ModItems.timeGear && kept.getItemDamage() == 0 && cg.getStackInSlot(0) == null
+                && cg.getStackInSlot(3) == null;
+            // шлем Эдема на месте шестерни больше не годится, шестерня другого мира - тоже
+            for (int i = 0; i < 6; i++) cg.setInventorySlotContents(i, lay[i].copy());
+            cg.setInventorySlotContents(4, worn);
+            ItemStack byOldSet = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, server.worldServers[0]);
+            cg.setInventorySlotContents(4, new ItemStack(ModItems.timeGear, 1, 1));
+            ItemStack wrongGear = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, server.worldServers[0]);
+            // шлем Эдема - только из материалов Эдема, без божественного шлема
+            Item ec = net.divinerpg.utils.items.TwilightItemsOther.edenChunk;
+            ItemStack em = com.divinerpgextended.world.twilight.TwilightCrafts.mat(com.divinerpgextended.world.twilight.TwilightWorld.EDEN,
+                com.divinerpgextended.world.twilight.TwilightCrafts.ARMOR_MAT);
+            net.minecraft.inventory.InventoryCrafting eg = grid();
+            ItemStack[] el = { new ItemStack(ec), em, new ItemStack(ec), new ItemStack(ec), null, new ItemStack(ec) };
+            for (int i = 0; i < 6; i++) eg.setInventorySlotContents(i, el[i]);
+            ItemStack edenHelm = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(eg, server.worldServers[0]);
+            eg.setInventorySlotContents(4, new ItemStack(VanillaItemsArmor.divineHelmet));
+            ItemStack edenOld = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(eg, server.worldServers[0]);
             net.minecraft.inventory.InventoryCrafting old = grid(); // рецепт Divine: 5 кусков
             for (int i : new int[] { 0, 1, 2, 3, 5 }) old.setInventorySlotContents(i, new ItemStack(chunk));
             ItemStack oldHelm = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(old, server.worldServers[0]);
@@ -8252,10 +8273,119 @@ public class SelfTest {
             ItemStack blade = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(b, server.worldServers[0]);
             b.setInventorySlotContents(7, new ItemStack(Items.stick));
             ItemStack plainStick = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(b, server.worldServers[0]);
-            check(helm != null && helm.getItem() == net.divinerpg.utils.items.TwilightItemsArmor.wildwoodHelmet && oldHelm == null
+            check(helm != null && helm.getItem() == net.divinerpg.utils.items.TwilightItemsArmor.wildwoodHelmet && gearKept && byOldSet == null && wrongGear == null
+                && edenHelm != null && edenHelm.getItem() == net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet && edenOld == null && oldHelm == null
                 && blade != null && blade.getItem() == net.divinerpg.utils.items.TwilightItemsWeapons.edenBlade && plainStick == null,
-                "шлем Дикого леса " + helm + ", старый рецепт " + oldHelm + ", клинок Эдема " + blade + ", на обычной палке " + plainStick);
-            return "шлем Дикого леса = шлем Эдема + 2 куска + лунный рог + 2 китовых плавника; 5 кусков больше не крафтят; клинок Эдема из божественного меча на палке Эдема (обычная не подходит)";
+                "шлем Дикого леса " + helm + ", шестерня осталась " + gearKept + ", со шлемом Эдема " + byOldSet + ", с шестернёй Дикого леса " + wrongGear
+                    + "; шлем Эдема " + edenHelm + ", с божественным шлемом " + edenOld + "; старый рецепт " + oldHelm + ", клинок Эдема " + blade
+                    + ", на обычной палке " + plainStick);
+            return "шлем Дикого леса = шестерня Эдема (остаётся в верстаке) + 2 куска + лунный рог + 2 китовых плавника, прошлый сет не нужен; шлем Эдема - из кусков и материала Эдема;"
+                + " 5 кусков больше не крафтят; клинок Эдема по-прежнему из божественного меча на палке Эдема (обычная не подходит)";
+        });
+        t("Прогрессия", "Шестерня времени не тратится", () -> {
+            TestPlayer cp = player(0, "TestClockGear", 0, 100, 0);
+            net.minecraft.inventory.InventoryCrafting cg = grid();
+            cg.setInventorySlotContents(0, com.divinerpgextended.item.ItemWandererClock.withTier(ModItems.wandererClock, 1));
+            cg.setInventorySlotContents(1, new ItemStack(ModItems.timeGear, 1, 0));
+            ItemStack up = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, server.worldServers[0]);
+            new net.minecraft.inventory.SlotCrafting(cp, cg, new net.minecraft.inventory.InventoryCraftResult(), 0, 0, 0).onPickupFromSlot(cp, up);
+            ItemStack left = cg.getStackInSlot(1);
+            boolean kept = left != null && left.getItem() == ModItems.timeGear && left.getItemDamage() == 0 && cg.getStackInSlot(0) == null;
+            int max = new ItemStack(ModItems.timeGear).getMaxStackSize();
+            check(up != null && com.divinerpgextended.item.ItemWandererClock.tier(up) == 2 && kept && max == 1,
+                "часы " + (up == null ? null : com.divinerpgextended.item.ItemWandererClock.tier(up)) + ", шестерня в сетке " + left + ", в стопке до " + max);
+            return "часы I + шестерня Эдема - часы II, шестерня остаётся в верстаке; шестерни не складываются в стопку (хватает одной на мир)";
+        });
+        t("Броня", "Странник: привязка к владельцу", () -> {
+            WorldServer w = server.worldServers[0];
+            TestPlayer a = player(0, "TestOwnerA", 0, 100, 0), b = player(0, "TestOwnerB", 0, 100, 0);
+            ItemStack[] set = new ItemStack[4];
+            for (int i = 0; i < 4; i++) {
+                set[i] = com.divinerpgextended.item.ItemWandererArmor.stack(ModItems.wanderer[i], 3, com.divinerpgextended.item.ArmorCore.BEDROCK);
+                com.divinerpgextended.item.ArmorData.bind(set[i], a);
+            }
+            Sockets.insert(set[1], trinket(Trinket.VALOR_MEDAL));
+            TestPlayer[] who = { a, b };
+            int[] tier = new int[2], display = new int[2];
+            boolean[] core = new boolean[2], sock = new boolean[2];
+            float[] ratio = new float[2], fall = new float[2];
+            com.divinerpgextended.item.ItemWandererArmor chest = (com.divinerpgextended.item.ItemWandererArmor) set[1].getItem();
+            for (int wq = 0; wq < 2; wq++) {
+                for (int i = 0; i < 4; i++) who[wq].inventory.armorInventory[3 - i] = set[i];
+                tier[wq] = com.divinerpgextended.item.ArmorData.effectiveTier(who[wq]);
+                core[wq] = com.divinerpgextended.item.ArmorCore.worn(who[wq]) == com.divinerpgextended.item.ArmorCore.BEDROCK;
+                sock[wq] = Sockets.wears(who[wq], Trinket.VALOR_MEDAL);
+                ratio[wq] = (float) chest.getProperties(who[wq], set[1], DamageSource.cactus, 10, 2).AbsorbRatio;
+                display[wq] = chest.getArmorDisplay(who[wq], set[1], 2);
+                net.minecraftforge.event.entity.living.LivingFallEvent fe = new net.minecraftforge.event.entity.living.LivingFallEvent(who[wq], 20F);
+                MinecraftForge.EVENT_BUS.post(fe);
+                fall[wq] = fe.distance;
+                for (int i = 0; i < 4; i++) who[wq].inventory.armorInventory[i] = null;
+            }
+            // первая примерка: настоящий игрок привязывает ничью часть, игрок-заглушка мода - нет
+            ItemStack free = com.divinerpgextended.item.ItemWandererArmor.stack(ModItems.wanderer[0], 2, com.divinerpgextended.item.ArmorCore.DIVINE);
+            free.getItem().onArmorTick(w, b, free);
+            boolean fakeSkips = com.divinerpgextended.item.ArmorData.owner(free) == null;
+            EntityPlayerMP real = new EntityPlayerMP(server, w, new GameProfile(UUID.nameUUIDFromBytes("dre-selftest-TestBindReal".getBytes(StandardCharsets.UTF_8)), "TestBindReal"),
+                new net.minecraft.server.management.ItemInWorldManager(w));
+            free.getItem().onArmorTick(w, real, free);
+            boolean bound = real.getUniqueID().toString().equals(com.divinerpgextended.item.ArmorData.owner(free))
+                && "TestBindReal".equals(com.divinerpgextended.item.ArmorData.ownerName(free));
+            // наковальня: чужой снять привязку не может, владелец - может
+            com.divinerpgextended.station.AnvilWork an = new com.divinerpgextended.station.AnvilWork();
+            for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.ARMOR + i, set[i]);
+            AnvilLogic.Result foreign = AnvilLogic.evaluate(an, b, AnvilLogic.UPGRADE);
+            boolean stranger = !AnvilLogic.execute(an, b, AnvilLogic.UPGRADE) && com.divinerpgextended.item.ArmorData.owner(set[0]) != null;
+            AnvilLogic.Status mine = AnvilLogic.evaluate(an, a, AnvilLogic.UPGRADE).status;
+            boolean freed = AnvilLogic.execute(an, a, AnvilLogic.UPGRADE);
+            boolean allFree = true;
+            for (ItemStack s : set) allFree &= com.divinerpgextended.item.ArmorData.owner(s) == null;
+            AnvilLogic.Status after = AnvilLogic.evaluate(an, a, AnvilLogic.UPGRADE).status;
+            check(tier[0] == 3 && tier[1] == 0 && core[0] && !core[1] && sock[0] && !sock[1] && ratio[0] > 0.2F && ratio[1] == 0F && display[0] > 0 && display[1] == 0
+                && fall[0] == 0F && fall[1] == 20F && fakeSkips && bound && foreign.status == AnvilLogic.Status.FOREIGN && foreign.param == 0 && stranger
+                && mine == AnvilLogic.Status.READY_UNBIND && freed && allFree && after == AnvilLogic.Status.NEED_DONOR,
+                "ступень для боссов: владелец " + tier[0] + ", чужой " + tier[1] + "; ядро " + core[0] + "/" + core[1] + "; гнездо " + sock[0] + "/" + sock[1]
+                    + "; защита нагрудника " + f(ratio[0]) + "/" + f(ratio[1]) + ", полоска " + display[0] + "/" + display[1] + "; падение 20 > " + f(fall[0]) + "/" + f(fall[1])
+                    + "; заглушка не привязала " + fakeSkips + ", игрок привязал " + bound + "; наковальня чужому " + foreign.status + " (" + foreign.param + "), снял " + !stranger
+                    + "; владельцу " + mine + ", снято " + freed + "/" + allFree + ", потом " + after);
+            return "на владельце R3: ступень 3, ядро, гнёзда, защита и без падения; на чужом - ступень 0 (тройной урон боссов), ни защиты, ни эффектов;"
+                + " привязывается при первой примерке (заглушки модов - нет); на наковальне снять привязку может только владелец";
+        });
+        t("Броня", "Странник: покраска и отмывка", () -> {
+            ItemStack helm = com.divinerpgextended.item.ItemWandererArmor.stack(ModItems.wanderer[0], 4, com.divinerpgextended.item.ArmorCore.DIVINE);
+            com.divinerpgextended.item.ArmorData.setPerks(helm, java.util.Arrays.asList(com.divinerpgextended.perk.Perk.values()[0]));
+            net.minecraft.inventory.InventoryCrafting cg = grid();
+            cg.setInventorySlotContents(0, helm);
+            cg.setInventorySlotContents(4, new ItemStack(Items.dye, 1, 1)); // красный
+            ItemStack red = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, server.worldServers[0]);
+            cg.setInventorySlotContents(0, red);
+            cg.setInventorySlotContents(5, new ItemStack(Items.dye, 1, 4)); // и лазурит
+            ItemStack mixed = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, server.worldServers[0]);
+            cg.setInventorySlotContents(5, new ItemStack(Items.stick));
+            ItemStack withStick = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, server.worldServers[0]);
+            cg.setInventorySlotContents(5, com.divinerpgextended.item.ItemWandererArmor.stack(ModItems.wanderer[1], 4, com.divinerpgextended.item.ArmorCore.DIVINE));
+            ItemStack two = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, server.worldServers[0]);
+            // отмывка: правый клик крашеной частью по котлу с водой
+            WorldServer w = server.worldServers[0];
+            int x = 9640, y = 100, z = 9640;
+            loadAround(w, x, z, 0);
+            w.setBlock(x, y, z, Blocks.cauldron, 3, 2);
+            TestPlayer tp = player(0, "TestDyeWash", x + 1, y, z);
+            ItemStack washed = red == null ? null : red.copy();
+            hold(tp, washed);
+            boolean cancel = net.minecraftforge.event.ForgeEventFactory.onPlayerInteract(tp, net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK,
+                x, y, z, 1, w).isCanceled();
+            int level = w.getBlockMetadata(x, y, z);
+            w.setBlockToAir(x, y, z);
+            int rc = red == null ? -2 : com.divinerpgextended.item.ArmorData.color(red), mc = mixed == null ? -2 : com.divinerpgextended.item.ArmorData.color(mixed);
+            check(rc == 0x993333 && com.divinerpgextended.item.ArmorData.tier(red) == 4 && com.divinerpgextended.item.ArmorData.perks(red).size() == 1
+                && com.divinerpgextended.item.ArmorData.color(helm) == -1 && mc >= 0 && mc != 0x993333 && withStick == null && two == null && cancel
+                && com.divinerpgextended.item.ArmorData.color(washed) == -1 && level == 2,
+                "красная " + Integer.toHexString(rc) + ", ступень и перки на месте; с лазуритом " + Integer.toHexString(mc) + "; с палкой " + withStick + ", две части " + two
+                    + "; котёл: клик перехвачен " + cancel + ", цвет после " + (washed == null ? null : Integer.toHexString(com.divinerpgextended.item.ArmorData.color(washed)))
+                    + ", вода " + level + " из 3");
+            return "часть Странника + красители в верстаке - цвет как у кожаной брони (смешивается), ступень и перки остаются; с чужим предметом или двумя частями не красится;"
+                + " котёл с водой отмывает и тратит треть воды";
         });
         t("Прогрессия", "Камни врат", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);

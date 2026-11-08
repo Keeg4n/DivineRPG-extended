@@ -131,6 +131,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.EnderGear());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.portal.PortalFrames.Drops());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.item.ItemLetheBucket.Fill());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.item.RecipeWandererDye.Wash());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.TorchWards());
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.item.ItemLairMap.Unfold());
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.item.ExplorerMaps.Marks());
@@ -226,6 +227,9 @@ public class CommonProxy {
         RecipeSorter.register("divinerpgextended:temper", com.divinerpgextended.item.TemperRecipe.class,
             RecipeSorter.Category.SHAPELESS, "after:minecraft:shapeless");
         GameRegistry.addRecipe(new com.divinerpgextended.item.TemperRecipe());
+        RecipeSorter.register("divinerpgextended:wanderer_dye", com.divinerpgextended.item.RecipeWandererDye.class,
+            RecipeSorter.Category.SHAPELESS, "after:minecraft:shapeless");
+        GameRegistry.addRecipe(new com.divinerpgextended.item.RecipeWandererDye());
         RecipeSorter.register("divinerpgextended:nether_reload", com.divinerpgextended.boss.NetherArsenal.Reload.class,
             RecipeSorter.Category.SHAPELESS, "after:minecraft:shapeless");
         GameRegistry.addRecipe(new com.divinerpgextended.boss.NetherArsenal.Reload());
