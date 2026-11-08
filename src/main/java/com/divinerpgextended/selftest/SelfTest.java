@@ -11483,8 +11483,21 @@ public class SelfTest {
             boolean nest = w.getBlock(c[0], f, c[2]) == net.divinerpg.utils.blocks.VanillaBlocks.lamp1 && w.getBlockMetadata(c[0], f, c[2]) == 8 && w.isAirBlock(c[0] + 2, f + 4, c[2] + 2);
             TestPlayer v = player(1, "TestAerie", c[0], f + 1, c[2]);
             net.minecraft.item.Item horn = net.divinerpg.utils.items.VanillaItemsOther.hordeHorn;
-            String in = com.divinerpgextended.boss.LairSummons.refusal(v, horn, c[0] + 2, f, c[2] + 3);
+            String floorClick = com.divinerpgextended.boss.LairSummons.refusal(v, horn, c[0] + 2, f, c[2] + 3);
+            boolean altar = w.getBlock(c[0], f + 1, c[2]) == com.divinerpgextended.registry.ModBlocks.ayeracoAltar && w.isAirBlock(c[0], f + 2, c[2]);
+            String in = com.divinerpgextended.boss.LairSummons.refusal(v, horn, c[0], f + 1, c[2]);
             String out = com.divinerpgextended.boss.LairSummons.refusal(v, horn, 0, 64, 0);
+            // в 160 блоках от центра сам никто не появляется, дальше - как везде
+            net.minecraft.entity.monster.EntityEnderman ender = new net.minecraft.entity.monster.EntityEnderman(w);
+            String[] calm = new String[2];
+            int[][] at = { { c[0] + 120, c[2] }, { c[0] + 200, c[2] } };
+            for (int i = 0; i < 2; i++) {
+                ender.setPosition(at[i][0] + 0.5, f + 1, at[i][1] + 0.5);
+                net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn ce = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(ender, w,
+                    (float) ender.posX, (float) ender.posY, (float) ender.posZ);
+                MinecraftForge.EVENT_BUS.post(ce);
+                calm[i] = ce.getResult().name();
+            }
             int dist = (int) Math.sqrt(c[0] * c[0] + c[2] * c[2]);
             // столпы пяти цветов на скалах вокруг
             int pillars = 0;
@@ -11523,12 +11536,233 @@ public class SelfTest {
             }
             boolean tower = w.getBlock(pr[0] + 1, pr[1] - 1, pr[2]) == Blocks.obsidian && steps >= com.divinerpgextended.boss.AyeracoHorde.PILLAR_LIFT - 1;
             int far = Math.max(Math.abs(c[0]), Math.abs(c[2])) + com.divinerpgextended.world.WorldGenOuterLairs.BELT_OUT + 6;
-            check(nest && in == null && "dre.chat.summon_lair_2".equals(out) && dist >= 800 && dist <= 900 && far <= com.divinerpgextended.world.WorldGenOuterLairs.WORLD_EDGE && pillars == 5 && islet && overVoid && big && rocks > 30 && tower,
-                "гнездовье " + nest + " в " + dist + " блоках (дальний край пояса " + far + "), внутри " + in + ", снаружи " + out + "; столпов " + pillars + "/5, островок-передышка " + islet
+            check(nest && altar && in == null && "dre.chat.summon_altar_ayeraco".equals(floorClick) && "DENY".equals(calm[0]) && !"DENY".equals(calm[1])
+                && "dre.chat.summon_lair_2".equals(out) && dist >= 800 && dist <= 900 && far <= com.divinerpgextended.world.WorldGenOuterLairs.WORLD_EDGE && pillars == 5 && islet && overVoid && big && rocks > 30 && tower,
+                "гнездовье " + nest + " в " + dist + " блоках (дальний край пояса " + far + "), алтарь " + altar + ", рог на алтаре " + in + ", на полу " + floorClick + ", снаружи " + out
+                    + "; спавн в 120 блоках " + calm[0] + ", в 200 " + calm[1] + "; столпов " + pillars + "/5, островок-передышка " + islet
                     + ", остров над бездной " + overVoid + ", большой " + big + ", направлений с астероидами " + rocks + "/180, башня с лестницей " + tower + " (ступеней " + steps + ")");
             return "гнездовье - большой остров над бездной в " + c[0] + "," + c[2] + " (" + dist + " блоков от центра), пояс астероидов (" + rocks
                 + "/180 направлений), 5 башен с лестницами и цветными столпами, островки-передышки через "
-                + com.divinerpgextended.world.WorldGenOuterLairs.ISLET_STEP + "; рог только там";
+                + com.divinerpgextended.world.WorldGenOuterLairs.ISLET_STEP + "; рог только на алтаре в центре арены, в 160 блоках сам никто не появляется";
+        });
+        t("Логова", "Алтарь орды Айрако вызывает орду, в творческом - и без рога", () -> {
+            int type = com.divinerpgextended.world.WorldGenOuterLairs.AYERACO;
+            WorldServer w = server.worldServerForDimension(1);
+            int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
+            loadAround(w, c[0], c[2], 2);
+            int f = com.divinerpgextended.world.WorldGenOuterLairs.FLOOR[type], ay = f + 1;
+            // в гнездовье старого вида алтаря нет: его ставит обход, когда рядом игрок
+            w.setBlockToAir(c[0], ay, c[2]);
+            TestPlayer v = join(player(1, "TestHordeAltar", c[0] + 4.5, ay, c[2] + 0.5), true);
+            boolean placed = com.divinerpgextended.world.WorldGenOuterLairs.keepAyeracoAltar(v) && w.getBlock(c[0], ay, c[2]) == com.divinerpgextended.registry.ModBlocks.ayeracoAltar;
+            net.minecraft.block.Block spawnBlock = net.divinerpg.utils.blocks.VanillaBlocks.ayeracoSpawn;
+            v.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            v.inventory.mainInventory[v.inventory.currentItem] = null;
+            com.divinerpgextended.registry.ModBlocks.ayeracoAltar.onBlockActivated(w, c[0], ay, c[2], v, 1, 0.5F, 1F, 0.5F);
+            boolean emptySurvival = w.getBlock(c[0], ay + 1, c[2]) != spawnBlock;
+            v.inventory.mainInventory[v.inventory.currentItem] = new ItemStack(net.divinerpg.utils.items.VanillaItemsOther.hordeHorn);
+            com.divinerpgextended.registry.ModBlocks.ayeracoAltar.onBlockActivated(w, c[0], ay, c[2], v, 1, 0.5F, 1F, 0.5F);
+            boolean horn = w.getBlock(c[0], ay + 1, c[2]) == spawnBlock && v.getHeldItem() == null;
+            w.setBlockToAir(c[0], ay + 1, c[2]);
+            v.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.CREATIVE);
+            com.divinerpgextended.registry.ModBlocks.ayeracoAltar.onBlockActivated(w, c[0], ay, c[2], v, 1, 0.5F, 1F, 0.5F);
+            boolean creative = w.getBlock(c[0], ay + 1, c[2]) == spawnBlock;
+            w.setBlockToAir(c[0], ay + 1, c[2]);
+            server.getConfigurationManager().playerEntityList.remove(v);
+            w.removeEntity(v);
+            check(placed && emptySurvival && horn && creative, "алтарь поставлен обходом " + placed + "; пустой рукой в выживании ничего " + emptySurvival + "; рогом - знак призыва и рог потрачен " + horn
+                + "; в творческом пустой рукой " + creative);
+            return "в старом гнездовье алтарь ставится, когда рядом игрок; рог на алтаре зовёт орду и тратится, пустая рука в выживании - нет, в творческом - да";
+        });
+        t("Логова", "Алтари боссов: сломанный ничего не роняет, предмет алтаря исчезает", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int x = 21640, y = 150, z = 21640;
+            net.minecraft.block.Block[] altars = { com.divinerpgextended.registry.ModBlocks.carcinusAltar, com.divinerpgextended.registry.ModBlocks.glaconAltar,
+                com.divinerpgextended.registry.ModBlocks.throneAltar, com.divinerpgextended.registry.ModBlocks.tombAltar, com.divinerpgextended.registry.ModBlocks.nestAltar,
+                com.divinerpgextended.registry.ModBlocks.jungleAltar, com.divinerpgextended.registry.ModBlocks.ayeracoAltar, com.divinerpgextended.registry.ModBlocks.arenaAltar };
+            TestPlayer v = join(player(0, "TestAltarDrop", x + 0.5, y + 2, z + 0.5), true);
+            v.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            int dropped = 0, silk = 0, onGround = 0;
+            for (net.minecraft.block.Block b : altars) {
+                w.setBlock(x, y, z, b);
+                dropped += b.getDrops(w, x, y, z, 0, 3).size();
+                if (b.canSilkHarvest(w, v, x, y, z, 0)) silk++;
+                // как ломает особая кирка: снять блок и бросить его же предметом
+                b.harvestBlock(w, v, x, y, z, 0);
+                w.setBlockToAir(x, y, z);
+                net.minecraft.entity.item.EntityItem ei = new net.minecraft.entity.item.EntityItem(w, x + 0.5, y + 0.5, z + 0.5, new ItemStack(b));
+                if (w.spawnEntityInWorld(ei) && !ei.isDead) onGround++;
+            }
+            for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 3, y - 3, z - 3, x + 4, y + 4, z + 4))) {
+                onGround++;
+                ((net.minecraft.entity.Entity) o).setDead();
+            }
+            v.inventory.mainInventory[5] = new ItemStack(com.divinerpgextended.registry.ModBlocks.tombAltar);
+            v.inventory.mainInventory[6] = new ItemStack(net.minecraft.init.Blocks.stone);
+            int swept = com.divinerpgextended.boss.AltarGuard.sweep(v);
+            boolean stoneKept = v.inventory.mainInventory[6] != null && v.inventory.mainInventory[5] == null;
+            v.inventory.mainInventory[6] = null;
+            server.getConfigurationManager().playerEntityList.remove(v);
+            w.removeEntity(v);
+            check(dropped == 0 && silk == 0 && onGround == 0 && swept == 1 && stoneKept, "дроп " + dropped + ", шёлком " + silk + ", на земле " + onGround + "; из инвентаря убрано " + swept + ", камень остался " + stoneKept);
+            return altars.length + " алтарей: ничего не роняют (и с шёлком), брошенный предметом алтарь на землю не попадает, из инвентаря в выживании исчезает";
+        });
+        t("Логова", "Арены Мортума: под постройкой нет пустот", () -> {
+            int dim = ConfigurationHelper.mortum;
+            WorldServer w = server.worldServerForDimension(dim);
+            int top = com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP;
+            StringBuilder sb = new StringBuilder();
+            int total = 0;
+            for (com.divinerpgextended.world.twilight.MortumArenas.Type t : com.divinerpgextended.world.twilight.MortumArenas.Type.values()) {
+                int[] c = com.divinerpgextended.world.twilight.MortumArenas.nearestOf(w, t, 0, 0, 6);
+                if (c == null) continue;
+                int reach = com.divinerpgextended.world.twilight.MortumArenas.extent(t);
+                loadAround(w, c[0], c[2], reach / 16 + 2);
+                // воздух в слоях пола и фундамента под самой постройкой, где чертёж его не задумывал: свисающий кирпич над пещерой
+                int[] fh = com.divinerpgextended.world.twilight.MortumArenas.floorHoles(w, c);
+                int holes = fh[0], hx = fh[1], hy = fh[2], hz = fh[3];
+                if (fh[4] > 0) { // чертёж ставит блок, а его нет: подмыло позже - рядом ли Лета
+                    int lethe = 0;
+                    for (int ddx = -4; ddx <= 4; ddx++) for (int ddz = -4; ddz <= 4; ddz++) for (int ddy = -4; ddy <= 2; ddy++)
+                        if (w.getBlock(c[0] + fh[5] + ddx, top + fh[6] + ddy, c[2] + fh[7] + ddz) instanceof com.divinerpgextended.block.BlockLethe) lethe++;
+                    sb.append("[").append(t.key()).append(": подмыто ").append(fh[4]).append(" у ").append(fh[5]).append(',').append(fh[6]).append(',').append(fh[7])
+                        .append(", Леты рядом ").append(lethe).append("] ");
+                }
+                total += holes;
+                sb.append(t.key()).append(' ').append(holes);
+                if (holes > 0) sb.append(" (первая ").append(hx).append(',').append(hy).append(',').append(hz).append(')');
+                sb.append("; ");
+            }
+            // старая арена: под внешней стеной Костяной ямы вырыть пустоту - долечивание её засыплет, яму и рёбра не тронет
+            com.divinerpgextended.world.twilight.MortumArenas.Type vt = com.divinerpgextended.world.twilight.MortumArenas.Type.VAMACHERON;
+            int[] vc = com.divinerpgextended.world.twilight.MortumArenas.nearestOf(w, vt, 0, 0, 6);
+            w.setBlockToAir(vc[0] - 28, top, vc[2] - 7);
+            w.setBlockToAir(vc[0] - 28, top - 1, vc[2] - 7);
+            boolean pitBefore = w.isAirBlock(vc[0] + 3, top, vc[2] + 3);
+            int healed = com.divinerpgextended.world.twilight.MortumArenas.healFloor(w, vc);
+            boolean filled = !w.isAirBlock(vc[0] - 28, top, vc[2] - 7) && !w.isAirBlock(vc[0] - 28, top - 1, vc[2] - 7), pitKept = pitBefore && w.isAirBlock(vc[0] + 3, top, vc[2] + 3);
+            check(total == 0 && healed == 2 && filled && pitKept, "пустоты под потолком в слоях фундамента и пола: " + sb + "; долечивание старой арены: засыпано " + healed + ", пустота закрыта " + filled
+                + ", яма не тронута " + pitKept);
+            return "под всеми шестью аренами в слоях фундамента и пола нет пустот под блоками: " + sb + "; в старой Костяной яме пустота под стеной засыпается, яма остаётся";
+        });
+        t("Логова", "Арены Мортума: в творческом босс без кристалла", () -> {
+            int dim = ConfigurationHelper.mortum;
+            WorldServer w = server.worldServerForDimension(dim);
+            com.divinerpgextended.world.twilight.MortumArenas.Type t = com.divinerpgextended.world.twilight.MortumArenas.Type.FIEND;
+            int[] c = com.divinerpgextended.world.twilight.MortumArenas.nearestOf(w, t, 0, 0, 6);
+            loadAround(w, c[0], c[2], 3);
+            int[] al = com.divinerpgextended.world.twilight.MortumArenas.altars(t).get(0);
+            int ax = c[0] + al[0], ay = al[1], az = c[2] + al[2];
+            TestPlayer v = join(player(dim, "TestArenaCreative", ax + 3.5, ay, az + 0.5), true);
+            v.inventory.mainInventory[v.inventory.currentItem] = null;
+            int[] got = new int[2];
+            for (int run = 0; run < 2; run++) {
+                v.theItemInWorldManager.setGameType(run == 0 ? net.minecraft.world.WorldSettings.GameType.SURVIVAL : net.minecraft.world.WorldSettings.GameType.CREATIVE);
+                java.util.Set<Object> before = new java.util.HashSet<Object>(w.loadedEntityList);
+                com.divinerpgextended.registry.ModBlocks.arenaAltar.onBlockActivated(w, ax, ay, az, v, 1, 0.5F, 1F, 0.5F);
+                for (Object o : new java.util.ArrayList<Object>(w.loadedEntityList))
+                    if (!before.contains(o) && (o instanceof net.minecraft.entity.boss.IBossDisplayData || o instanceof net.divinerpg.entities.base.EntityDivineRPGBoss)) {
+                        got[run]++;
+                        ((net.minecraft.entity.Entity) o).setDead();
+                    }
+            }
+            server.getConfigurationManager().playerEntityList.remove(v);
+            w.removeEntity(v);
+            check(got[0] == 0 && got[1] == 1, "пустой рукой: в выживании боссов " + got[0] + ", в творческом " + got[1]);
+            return "алтарь арены Погоста: пустой рукой в выживании - подсказка, в творческом - Пожиратель душ без кристалла";
+        });
+        t("Прохождение", "Перевод: описания Divine из кода, Край, бедрок, Халит, Повреждённая броня", () -> {
+            java.util.Map<String, String> ru = new java.util.HashMap<String, String>();
+            java.io.InputStream in = SelfTest.class.getResourceAsStream("/assets/divinerpgextended/lang/ru_RU.lang");
+            java.util.Scanner sc = new java.util.Scanner(in, "UTF-8").useDelimiter("\\A");
+            for (String l : (sc.hasNext() ? sc.next() : "").split("\n"))
+                if (l.contains("=") && !l.startsWith("#")) ru.put(l.substring(0, l.indexOf('=')), l.substring(l.indexOf('=') + 1).trim());
+            StringBuilder lost = new StringBuilder();
+            for (String tipKey : com.divinerpgextended.client.TooltipRu.keys()) if (!ru.containsKey(tipKey)) lost.append(tipKey).append(' ');
+            String[] fills = com.divinerpgextended.client.TooltipRu.rule("Fills 3.0 Hunger Bars"), pet = com.divinerpgextended.client.TooltipRu.rule("Spawns a pet Paratiku"),
+                food = com.divinerpgextended.client.TooltipRu.rule("Pet Food:  false"), none = com.divinerpgextended.client.TooltipRu.rule("Damage: 12");
+            boolean rules = fills != null && "dre.tip.fills".equals(fills[0]) && "3.0".equals(fills[1]) && pet != null && "dre.tip.pet_named".equals(pet[0]) && "Paratiku".equals(pet[1])
+                && food != null && "dre.tip.pet_food_no".equals(food[0]) && none == null;
+            // старые слова: Энд, коренная порода, Галит, порча как имя сета
+            StringBuilder old = new StringBuilder();
+            for (java.util.Map.Entry<String, String> en : ru.entrySet()) {
+                String v = en.getValue();
+                if (v.matches(".*(Энд(?!ермен|ику)|коренн|(?<![А-Яа-яЁё])[Гг]алит|Броня порчи|Ядро порчи).*")) old.append(en.getKey()).append(' ');
+            }
+            boolean bedrock = "Шлем из бедрока".equals(ru.get("item.bedrockHelmet.name")) && "Халит".equals(ru.get("tooltip.halite")) && "Край".equals(ru.get("dre.bestiary.chapter.end"));
+            check(lost.length() == 0 && rules && old.length() == 0 && bedrock, "нет ключей: " + lost + "; образцы " + rules + "; старые слова: " + old + "; бедрок, Халит, Край " + bedrock);
+            return com.divinerpgextended.client.TooltipRu.keys().length + " описаний Divine из кода переводятся; Энд, коренная порода, Галит и порча как имя сета не встречаются";
+        });
+        t("Мир", "Лагерь Странника вписан в рельеф: без постамента и вырезов", () -> {
+            com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.EDEN;
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            int x = 40000, z = 40000;
+            loadAround(w, x + 4, z + 4, 2);
+            // остров с уступом в 3 блока посреди будущей площадки: запад на 80, восток на 83
+            for (int ci = -12; ci < 22; ci++) for (int ck = -12; ck < 22; ck++) {
+                for (int y = 60; y <= 100; y++) w.setBlock(x + ci, y, z + ck, Blocks.air, 0, 2);
+                int h = ci < 4 ? 80 : 83;
+                for (int y = 70; y < h; y++) w.setBlock(x + ci, y, z + ck, tw.dirt(), 0, 2);
+                w.setBlock(x + ci, h, z + ck, tw.grass(), 0, 2);
+            }
+            boolean built = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.camp(w, new java.util.Random(7), tw, x, z);
+            int base = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.surface(w, tw, x + 5, z + 7);
+            int step = 0, at = 0;
+            StringBuilder row = new StringBuilder();
+            for (int ck = 0; ck < 8; ck++) {
+                int prev = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.surface(w, tw, x - 6, z + ck);
+                for (int ci = -5; ci <= 13; ci++) {
+                    int h = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.surface(w, tw, x + ci, z + ck);
+                    if (ck == 7) row.append(h - 80).append(' ');
+                    if (Math.abs(h - prev) > step) {
+                        step = Math.abs(h - prev);
+                        at = ci;
+                    }
+                    prev = h;
+                }
+            }
+            boolean tent = w.getBlock(x + 1, base + 3, z + 3) == Blocks.wool;
+            for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.Entity.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 12, 60, z - 12, x + 22, 100, z + 22)))
+                if (!(o instanceof EntityPlayer)) ((net.minecraft.entity.Entity) o).setDead();
+            for (int ci = -12; ci < 22; ci++) for (int ck = -12; ck < 22; ck++) for (int y = 60; y <= 100; y++) w.setBlock(x + ci, y, z + ck, Blocks.air, 0, 2);
+            check(built && tent && step <= 1, "лагерь " + built + ", палатка " + tent + ", площадка на " + (base - 80) + " над западом; самый крутой шаг рельефа " + step + " (x+" + at + "); край z+7: " + row);
+            return "лагерь на склоне с уступом в 3 блока: площадка на средней высоте, вокруг откос, ни одного шага выше блока (было: земляной постамент в 3 блока)";
+        });
+        t("Мортум", "Лета: дыры в русле заливаются, аркану съедает", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int x = 21680, y = 150, z = 21680;
+            com.divinerpgextended.block.BlockLethe river = (com.divinerpgextended.block.BlockLethe) com.divinerpgextended.registry.ModBlocks.lethe;
+            for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) {
+                w.setBlock(x + dx, y - 3, z + dz, Blocks.stone);
+                for (int dy = -2; dy <= 0; dy++) w.setBlock(x + dx, y + dy, z + dz, Math.abs(dx) == 3 || Math.abs(dz) == 3 ? Blocks.stone : river, 0, 2);
+            }
+            // ведро у поверхности, дыра на дне, блок поставили и сломали
+            w.setBlockToAir(x, y, z);
+            w.setBlockToAir(x + 1, y - 2, z);
+            w.setBlock(x - 1, y - 1, z, Blocks.stone);
+            w.setBlockToAir(x - 1, y - 1, z);
+            for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) for (int dy = -2; dy <= 0; dy++)
+                if (w.getBlock(x + dx, y + dy, z + dz) == river) river.refill(w, x + dx, y + dy, z + dz);
+            boolean top = w.getBlock(x, y, z) == river, bottom = w.getBlock(x + 1, y - 2, z) == river, mid = w.getBlock(x - 1, y - 1, z) == river;
+            // над рекой и за берегом пусто
+            int over = 0;
+            for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) if (w.getBlock(x + dx, y + 1, z + dz) == river) over++;
+            // аркана: съедается, пока есть; без неё Лета кусает
+            TestPlayer v = join(player(0, "TestLetheArcana", x + 0.5, y + 1, z + 0.5), true);
+            net.divinerpg.utils.events.ArcanaHelper h = net.divinerpg.utils.events.ArcanaHelper.getProperties(v);
+            boolean helper = h != null;
+            int seconds = 0;
+            if (helper) {
+                h.setBarValue(100);
+                while (com.divinerpgextended.world.twilight.MortumWorld.eatArcana(v, com.divinerpgextended.world.twilight.MortumWorld.ARCANA_BITE) && seconds < 50) seconds++;
+            }
+            float left = helper ? h.getBarValue() : -1;
+            server.getConfigurationManager().playerEntityList.remove(v);
+            w.removeEntity(v);
+            for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) for (int dy = -3; dy <= 1; dy++) w.setBlock(x + dx, y + dy, z + dz, Blocks.air, 0, 2);
+            check(top && bottom && mid && over == 0 && helper && seconds == 4 && left == 0, "залито: у поверхности " + top + ", на дне " + bottom + ", после блока " + mid + "; над рекой " + over
+                + "; аркана 100 съедена за " + seconds + " с, осталось " + left);
+            return "вычерпанное ведром, дыра на дне и место сломанного блока снова заливаются, над рекой и за берегом - нет; аркана 100 тает за 4 с, потом Лета кусает";
         });
         t("Логова", "Орда Айрако: коршуны, ауры, столпы; броня Энда: цвета, шаг, спасение", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.AYERACO;

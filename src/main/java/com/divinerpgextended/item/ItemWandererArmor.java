@@ -75,6 +75,23 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
         setMaxDamage(0);
     }
 
+    /** Часть брони этой ступени с этим ядром. */
+    public static ItemStack stack(Item item, int tier, ArmorCore core) {
+        ItemStack s = new ItemStack(item);
+        ArmorData.setTier(s, tier);
+        ArmorData.setCore(s, core);
+        return s;
+    }
+
+    /** В творческом и в NEI - все облики: R1 с ядром каждого финального сета и R2-R7. */
+    @Override
+    @SideOnly(Side.CLIENT)
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public void getSubItems(Item item, CreativeTabs tab, List list) {
+        for (ArmorCore c : ArmorCore.values()) list.add(stack(item, 1, c));
+        for (com.divinerpgextended.world.ArmorTier t : com.divinerpgextended.world.ArmorTier.values()) list.add(stack(item, t.tier, ArmorCore.DIVINE));
+    }
+
     /** Та же часть божественной брони (ищется при вызове: поля Divine заполняются в его preInit). */
     private Item divine() {
         Item[] set = { VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs,

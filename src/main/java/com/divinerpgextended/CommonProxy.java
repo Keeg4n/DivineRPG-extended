@@ -77,6 +77,9 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(horde);
         FMLCommonHandler.instance().bus().register(horde);
         FMLCommonHandler.instance().bus().register(new com.divinerpgextended.boss.EnderGear());
+        com.divinerpgextended.boss.AltarGuard altarGuard = new com.divinerpgextended.boss.AltarGuard();
+        MinecraftForge.EVENT_BUS.register(altarGuard);
+        FMLCommonHandler.instance().bus().register(altarGuard);
         com.divinerpgextended.magic.ArcaneEffects arcaneEffects = new com.divinerpgextended.magic.ArcaneEffects();
         MinecraftForge.EVENT_BUS.register(arcaneEffects);
         FMLCommonHandler.instance().bus().register(arcaneEffects);

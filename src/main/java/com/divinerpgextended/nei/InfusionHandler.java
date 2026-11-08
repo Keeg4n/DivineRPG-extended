@@ -35,8 +35,6 @@ public class InfusionHandler extends DreHandler {
         p.add(r.template.copy(), gx(1), gy(0), tierColor(View.UNCOMMON), null, true);
         p.result = p.add(r.output.copy(), gx(3), gy(0), tierColor(View.RARE), null, false);
         p.others.remove(p.result);
-        p.noteY = gy(0) + 20;
-        p.notes.add(StatCollector.translateToLocal("dre.nei.infusion.how"));
         return p;
     }
 

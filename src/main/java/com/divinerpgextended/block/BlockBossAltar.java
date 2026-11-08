@@ -1,5 +1,6 @@
 package com.divinerpgextended.block;
 
+import java.util.ArrayList;
 import java.util.Random;
 
 import net.divinerpg.utils.items.IceikaItems;
@@ -28,15 +29,16 @@ import cpw.mods.fml.relauncher.SideOnly;
  * Алтарь призыва босса в логове: Карцинус (4 крабовые клешни), Снежный Глакон (Панцирь глубин) или Ледяной Колосс
  * с Королём-личом (снежинки; алтарь у трона, Колосс встаёт в центре зала), Древняя сущность (Таинственные часы;
  * алтарь в погребальном зале гробницы, босс встаёт в центре зала), Великий кадиллион (Зов своего мира; алтарь на
- * помосте гнезда, босс встаёт в центре гнезда). Неразрушим в выживании.
+ * помосте гнезда, босс встаёт в центре гнезда), орда Айрако (Рог орды; алтарь в центре арены гнездовья в Энде). Неразрушим в
+ * выживании; если его всё же сломал особый инструмент - ничего не роняет ({@link com.divinerpgextended.boss.AltarGuard}).
  */
 public class BlockBossAltar extends Block {
 
-    public static final int CARCINUS = 0, SNOW_GLACON = 1, THRONE = 2, TOMB = 3, NEST = 4, JUNGLE = 5;
+    public static final int CARCINUS = 0, SNOW_GLACON = 1, THRONE = 2, TOMB = 3, NEST = 4, JUNGLE = 5, AYERACO = 6;
     private static final String[] NAMES = { "dre.carcinusAltar", "dre.glaconAltar", "dre.throneAltar", "dre.tombAltar",
-        "dre.nestAltar", "dre.jungleAltar" };
+        "dre.nestAltar", "dre.jungleAltar", "dre.ayeracoAltar" };
     private static final String[] TEXTURES = { "minecraft:stonebrick_carved", "minecraft:lapis_block",
-        "minecraft:diamond_block", "minecraft:gold_block", "minecraft:emerald_block", "minecraft:stonebrick_mossy" };
+        "minecraft:diamond_block", "minecraft:gold_block", "minecraft:emerald_block", "minecraft:stonebrick_mossy", "minecraft:quartz_block_chiseled" };
     private final int type;
 
     public BlockBossAltar(int type) {
@@ -56,6 +58,10 @@ public class BlockBossAltar extends Block {
     @SideOnly(Side.CLIENT)
     public void randomDisplayTick(World world, int x, int y, int z, Random rand) {
         if (type == CARCINUS) return;
+        if (type == AYERACO) { // фиолетовые искры Края
+            for (int i = 0; i < 2; i++) world.spawnParticle("portal", x + rand.nextDouble(), y + 1.0 + rand.nextDouble() * 0.8, z + rand.nextDouble(), 0, 0.2, 0);
+            return;
+        }
         if (type == JUNGLE) { // зелёные споры
             world.spawnParticle("happyVillager", x + rand.nextDouble(), y + 1.0 + rand.nextDouble() * 0.6, z + rand.nextDouble(), 0, 0, 0);
             return;
@@ -125,11 +131,52 @@ public class BlockBossAltar extends Block {
         return true;
     }
 
+    /**
+     * Алтарь орды Айрако: Рог орды (в творческом - и пустой рукой) работает только здесь. Сам вызов делает рог Divine - как
+     * если бы им щёлкнули по алтарю: над алтарём появляется знак призыва, из него вылетает орда.
+     */
+    private boolean horde(World world, int x, int y, int z, EntityPlayer player) {
+        Item horn = VanillaItemsOther.hordeHorn;
+        ItemStack held = player.getHeldItem();
+        if (held == null || held.getItem() != horn) {
+            if (!player.capabilities.isCreativeMode) {
+                player.addChatMessage(new ChatComponentTranslation("dre.chat.altar_cost", 1, new ItemStack(horn).getDisplayName()));
+                return true;
+            }
+            held = new ItemStack(horn);
+        }
+        net.minecraft.util.AxisAlignedBB area = net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 64, y - 32, z - 64, x + 64, y + 48, z + 64);
+        for (Object o : world.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.EntityAyeraco.class, area))
+            if (((net.minecraft.entity.Entity) o).isEntityAlive()) {
+                player.addChatMessage(new ChatComponentTranslation("dre.chat.altar_busy"));
+                return true;
+            }
+        horn.onItemUse(held, player, world, x, y, z, 1, 0.5F, 1.0F, 0.5F);
+        return true;
+    }
+
+    // сломанный особым инструментом - пропадает без следа
+    @Override
+    public Item getItemDropped(int meta, Random rand, int fortune) {
+        return null;
+    }
+
+    @Override
+    public ArrayList<ItemStack> getDrops(World world, int x, int y, int z, int meta, int fortune) {
+        return new ArrayList<ItemStack>();
+    }
+
+    @Override
+    public boolean canSilkHarvest(World world, EntityPlayer player, int x, int y, int z, int meta) {
+        return false;
+    }
+
     @Override
     public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hx,
         float hy, float hz) {
         if (world.isRemote) return true;
         if (type == NEST) return nest(world, x, y, z, player);
+        if (type == AYERACO) return horde(world, x, y, z, player);
         Class<? extends EntityLiving> bossClass = type == JUNGLE ? com.divinerpgextended.entity.EntityAncientDramcryx.class : type == CARCINUS ? EntityCarcinus.class
             : type == THRONE ? EntityFrostColossus.class
                 : type == TOMB ? net.divinerpg.entities.vanilla.EntityAncientEntity.class : EntitySnowGlacon.class;

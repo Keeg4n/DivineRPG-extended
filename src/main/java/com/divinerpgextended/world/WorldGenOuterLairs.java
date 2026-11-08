@@ -26,7 +26,8 @@ import cpw.mods.fml.common.IWorldGenerator;
  * в небе Ада: в уже созданных чанках он остался и работает.)</li>
  * <li>Гнездовье Айрако (Энд): большой остров в {@link #AYERACO_DIST} блоках от центра по диагонали - целиком внутри границы
  * мира {@link #WORLD_EDGE} (в 0.99.36-0.99.37 был в 1400, до того малый в 1000): рваный край, каплевидное основание, плоская арена с обсидиановыми кольцами,
- * пять башен со столпами орды, вокруг - пояс астероидов из эндерняка. Рог орды - на острове.</li>
+ * пять башен со столпами орды, вокруг - пояс астероидов из эндерняка. Рог орды - на алтаре в центре арены; в 160 блоках от центра
+ * сам никто не появляется.</li>
  * </ul>
  */
 public class WorldGenOuterLairs implements IWorldGenerator {
@@ -50,6 +51,30 @@ public class WorldGenOuterLairs implements IWorldGenerator {
     public static final int ISLET_STEP = 170, ISLETS = 4;
     /** Гнездовье: плоская арена в центре острова; пояс астероидов - кольцо от BELT_IN до BELT_OUT, камней в нём. */
     public static final int ARENA = 32, BELT_IN = 78, BELT_OUT = 112, BELT_ROCKS = 110;
+    /** В этом радиусе от центра гнездовья сам никто не появляется: ни эндермены, ни мобы Divine и других модов. */
+    public static final int AYERACO_CALM = 160;
+
+    /** Точка в тихой зоне гнездовья Айрако. */
+    public static boolean nearAerie(World w, double x, double z) {
+        if (!enabled(AYERACO) || w.provider.dimensionId != dim(AYERACO)) return false;
+        int[] c = nearest(w.getSeed(), AYERACO, x, z);
+        double dx = x - c[0] - 0.5, dz = z - c[2] - 0.5;
+        return dx * dx + dz * dz <= AYERACO_CALM * AYERACO_CALM;
+    }
+
+    /**
+     * Алтарь орды в центре арены. Новые гнездовья строятся с ним, в уже построенных (до 0.99.96) его ставит обход игроков,
+     * когда кто-то рядом. true - поставлен сейчас.
+     */
+    public static boolean keepAyeracoAltar(net.minecraft.entity.player.EntityPlayer p) {
+        World w = p.worldObj;
+        if (!nearAerie(w, p.posX, p.posZ)) return false;
+        int[] c = nearest(w.getSeed(), AYERACO, p.posX, p.posZ);
+        int y = FLOOR[AYERACO] + 1;
+        if (!w.blockExists(c[0], y, c[2]) || w.getBlock(c[0], y, c[2]) == com.divinerpgextended.registry.ModBlocks.ayeracoAltar) return false;
+        w.setBlock(c[0], y, c[2], com.divinerpgextended.registry.ModBlocks.ayeracoAltar);
+        return true;
+    }
 
     /**
      * Мир логова (как в конфиге Divine); логово строится только в Аду / Энде. Настройки миров боссов есть только с
@@ -153,12 +178,20 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         }
     }
 
-    /** В залах логов Ада (под лавой) сами не появляются ни гасты, ни прочие: их файерболы ломали бы зал. */
+    /**
+     * В залах логов Ада (под лавой) сами не появляются ни гасты, ни прочие: их файерболы ломали бы зал. У гнездовья Айрако
+     * ({@link #AYERACO_CALM} блоков) - тоже никто: остров заполоняли эндермены и мобы других модов.
+     */
     public static class NoSpawns {
 
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
         public void onCheckSpawn(net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn e) {
-            if (e.world.isRemote || e.y > WatcherVault.TOP + 4) return;
+            if (e.world.isRemote) return;
+            if (nearAerie(e.world, e.x, e.z)) {
+                e.setResult(cpw.mods.fml.common.eventhandler.Event.Result.DENY);
+                return;
+            }
+            if (e.y > WatcherVault.TOP + 4) return;
             for (int type = 0; type < 2; type++)
                 if (inside(e.world, type, e.x, e.y, e.z)) {
                     e.setResult(cpw.mods.fml.common.eventhandler.Event.Result.DENY);
@@ -231,6 +264,12 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         @Override
         protected boolean lit(Block b) {
             return b == net.divinerpg.utils.blocks.VanillaBlocks.lamp1;
+        }
+
+        /** Алтарь орды - над огнём в центре арены. */
+        @Override
+        protected void decorate(World w, int cx, int cz, int x0, int z0) {
+            place(w, cx, cz, x0, z0, 0, FLOOR[AYERACO] + 1, 0, com.divinerpgextended.registry.ModBlocks.ayeracoAltar, 0);
         }
 
         @Override

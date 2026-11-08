@@ -121,6 +121,93 @@ public final class MortumArenas {
         return null;
     }
 
+    /** Арены, уже проверенные на пустоты под полом в этом запуске сервера: "мир:x:z". */
+    private static final java.util.Set<String> HEALED = new java.util.HashSet<String>();
+
+    /**
+     * Арены, построенные до 0.99.96, местами висят над пещерой: слой пола под стенами и трибунами не засыпался. Когда игрок
+     * рядом, по чертежу этой же арены засыпаются только такие места - раз за запуск сервера. Сколько блоков засыпано.
+     */
+    public static int heal(net.minecraft.entity.player.EntityPlayer p) {
+        World w = p.worldObj;
+        if (TwilightWorld.of(w.provider.dimensionId) != TwilightWorld.MORTUM) return 0;
+        int[] c = nearest(w, p.posX, p.posZ);
+        if (c == null) return 0;
+        Type t = typeAt(w, c);
+        int reach = extent(t);
+        double dx = p.posX - c[0], dz = p.posZ - c[2];
+        if (dx * dx + dz * dz > (reach + 48) * (reach + 48) || !w.checkChunksExist(c[0] - reach, 0, c[2] - reach, c[0] + reach, 0, c[2] + reach)) return 0;
+        if (!HEALED.add(w.provider.dimensionId + ":" + c[0] + ":" + c[2])) return 0;
+        return healFloor(w, c);
+    }
+
+    /** Засыпать пустоты в слое пола арены с центром c там, где его не задаёт чертёж. Сколько блоков засыпано. */
+    public static int healFloor(World w, int[] c) {
+        Type t = typeAt(w, c);
+        Building b = (Building) shape(t);
+        int top = WorldGenNests.MORTUM_TOP, reach = b.reach(), n = 0;
+        Block dirt = b.foundation();
+        int[] col = new int[256 * 2];
+        for (int dx = -reach; dx <= reach; dx++) for (int dz = -reach; dz <= reach; dz++) {
+            if (!b.footprint(dx, dz)) continue;
+            for (int i = 0; i < col.length; i += 2) col[i] = ColumnStructure.KEEP;
+            if (!b.columnAt(dx, dz, col) || col[top * 2] != ColumnStructure.FOUNDATION) continue;
+            for (int y = top; y > top - 6; y--) {
+                Block was = w.getBlock(c[0] + dx, y, c[2] + dz);
+                if (!(was.isAir(w, c[0] + dx, y, c[2] + dz) || was.getMaterial().isLiquid() || was.getMaterial().isReplaceable())) break;
+                w.setBlock(c[0] + dx, y, c[2] + dz, dirt, 0, 2);
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /**
+     * Пустоты под постройкой: воздух в слоях фундамента и пола, где чертёж ничего не задаёт (или задаёт блок), а сверху
+     * блок. Задуманный чертежом воздух (яма, ров, проходы под мостами) не считается. {число, dx, dy, dz первой; потом то же для
+     * мест, где чертёж ставит блок, а его нет (подмыло позже, например рекой)}.
+     */
+    public static int[] floorHoles(World w, int[] c) {
+        Building b = (Building) shape(typeAt(w, c));
+        int top = WorldGenNests.MORTUM_TOP, reach = b.reach();
+        int[] out = new int[8];
+        int[] col = new int[256 * 2];
+        for (int dx = -reach; dx <= reach; dx++) for (int dz = -reach; dz <= reach; dz++) {
+            if (!b.footprint(dx, dz)) continue;
+            for (int i = 0; i < col.length; i += 2) col[i] = ColumnStructure.KEEP;
+            if (!b.columnAt(dx, dz, col)) continue;
+            for (int y = top - 5; y <= top; y++) {
+                if (col[y * 2] == ColumnStructure.AIR || !w.isAirBlock(c[0] + dx, y, c[2] + dz)) continue;
+                Block up = w.getBlock(c[0] + dx, y + 1, c[2] + dz);
+                if (!up.getMaterial().isSolid() || up.getMaterial() == net.minecraft.block.material.Material.leaves) continue;
+                int code = col[y * 2], at = code == ColumnStructure.KEEP || code == ColumnStructure.FOUNDATION ? 0 : 4;
+                if (out[at]++ == 0) {
+                    out[at + 1] = dx;
+                    out[at + 2] = y - top;
+                    out[at + 3] = dz;
+                }
+            }
+        }
+        return out;
+    }
+
+    /** Столбец (смещение от центра) входит в саму постройку арены, без склонов вокруг. */
+    public static boolean footprint(Type t, int dx, int dz) {
+        return ((Building) shape(t)).footprint(dx, dz);
+    }
+
+    /** Кристалл босса арены (у близнецов кристалл Денсоса: он вызывает обоих). */
+    public static Item crystal(Type t) {
+        switch (t) {
+            case TWINS: return TwilightItemsOther.densosCrystal;
+            case KAROT: return TwilightItemsOther.karotCrystal;
+            case ARCHER: return TwilightItemsOther.eternalArcherCrystal;
+            case FIEND: return TwilightItemsOther.soulFiendCrystal;
+            case VAMACHERON: return TwilightItemsOther.vamacheronCrystal;
+            default: return TwilightItemsOther.twilightDemonCrystal;
+        }
+    }
+
     /** Где стоит босс арены (смещение от центра): лучник - на помосте в конце галереи; null - где вызвали. */
     public static int[] bossSpot(Type t) {
         return t == Type.ARCHER ? new int[] { 0, Gallery.DAIS_H, -(Gallery.HZ - 4) } : null;
@@ -233,7 +320,7 @@ public final class MortumArenas {
 
         /** Фундамент - земля Мортума: арена стоит на холме, а не на сером столбе. */
         @Override
-        protected Block foundation() {
+        public Block foundation() {
             return WorldGenNests.palette(TwilightWorld.MORTUM, foundationCode());
         }
 
@@ -366,6 +453,9 @@ public final class MortumArenas {
             int c = clear(dx, dz);
             for (int y = TOP + 1; y <= TOP + c + (slopes() ? 4 : 0); y++) put(col, y, AIR, 0); // запас над крышей - начало свода
             build(dx, dz, col);
+            // слой пола, который постройка не задала (под стенами и трибунами): была там пещера - засыпать, иначе кирпич висит над
+            // пустотой (Костяная яма); земля или трава остаются как были
+            if (col[TOP * 2] == KEEP) put(col, TOP, FOUNDATION, 0);
             return true;
         }
 

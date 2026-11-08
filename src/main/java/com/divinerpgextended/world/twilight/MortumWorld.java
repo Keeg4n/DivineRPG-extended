@@ -24,7 +24,8 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * <li>Лета, река забвения: багровая, по дну мира, как лава в Аду - гладь на одной высоте, русло прорезает дно, под
  * холмами уходит в тоннель, со скал падают водопады. Плыть по ней без ладьи Харона - души утопленников тянут
  * на дно и грызут ({@link #BITE} в секунду); обычная лодка в Лете за пару секунд разъедается. Вошёл - слетают все эффекты (и яды, и бафы), мобы на {@link #FORGET}
- * тиков теряют тебя из виду; пока стоишь в реке - утекает опыт ({@link #DRAIN} очков в секунду). Переправа - у Харона.</li>
+ * тиков теряют тебя из виду; пока стоишь в реке - утекает опыт ({@link #DRAIN} очков в секунду) и аркана ({@link #ARCANA_BITE} в секунду);
+ * кусают души ({@link #BITE}), только когда арканы не осталось. Переправа - у Харона.</li>
  * <li>Склепы с саркофагами, останки гигантов (череп наполовину в земле - внутри сундук, грудная клетка), редкие черепа и
  * одинокие надгробия ({@link WorldGenTwilightFeatures}).</li>
  * </ul>
@@ -38,7 +39,7 @@ public class MortumWorld {
     /** Ширина русла (в долях шума: ~10 блоков). */
     static final double WIDTH = 0.11;
     /** Без ладьи: урон в секунду, тяга вниз за тик; обычная лодка разъедается за BOAT_ROT тиков. */
-    public static final float BITE = 3;
+    public static final float BITE = 3, ARCANA_BITE = 25;
     public static final double PULL = 0.04;
     public static final int BOAT_ROT = 60;
     public static final net.minecraft.util.DamageSource LETHE = new net.minecraft.util.DamageSource("dre.lethe").setDamageBypassesArmor().setMagicDamage();
@@ -67,9 +68,18 @@ public class MortumWorld {
         p.addPotionEffect(new net.minecraft.potion.PotionEffect(net.minecraft.potion.Potion.moveSlowdown.id, 30, 1));
         if (now % 20 == 0) {
             drainXp(p, DRAIN);
-            p.attackEntityFrom(LETHE, BITE);
+            if (!eatArcana(p, ARCANA_BITE)) p.attackEntityFrom(LETHE, BITE);
             ((WorldServer) p.worldObj).func_147487_a("reddust", p.posX, p.posY + 0.3, p.posZ, 12, 0.5, 0.2, 0.5, 0);
         }
+    }
+
+    /** Лета съедает аркану и не даёт ей восстанавливаться, пока игрок в реке. false - арканы уже нет (тогда кусает). */
+    public static boolean eatArcana(EntityPlayer p, float amount) {
+        net.divinerpg.utils.events.ArcanaHelper h = net.divinerpg.utils.events.ArcanaHelper.getProperties(p);
+        if (h == null || h.getBarValue() <= 0) return false;
+        h.setBarValue(Math.max(0, h.getBarValue() - amount));
+        h.regenDelay = Math.max(h.regenDelay, 40);
+        return true;
     }
 
     /**

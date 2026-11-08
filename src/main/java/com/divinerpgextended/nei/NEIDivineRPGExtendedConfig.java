@@ -31,6 +31,9 @@ public class NEIDivineRPGExtendedConfig implements IConfigureNEI {
         BrewingHandler brewing = new BrewingHandler();
         API.registerRecipeHandler(brewing);
         API.registerUsageHandler(brewing);
+        AnvilHandler anvil = new AnvilHandler();
+        API.registerRecipeHandler(anvil);
+        API.registerUsageHandler(anvil);
         // служебные блоки рельсов (ставятся предметами-рельсами) и убранные рельсы Divine
         for (net.minecraft.block.Block b : new net.minecraft.block.Block[] { com.divinerpgextended.registry.ModBlocks.skyRail,
             com.divinerpgextended.registry.ModBlocks.apalachiaRail, com.divinerpgextended.registry.ModBlocks.skyBoostRail,
@@ -39,6 +42,11 @@ public class NEIDivineRPGExtendedConfig implements IConfigureNEI {
             com.divinerpgextended.registry.ModBlocks.dreamMelonStem,
             net.divinerpg.utils.blocks.TwilightBlocks.apalachiaRails, net.divinerpg.utils.blocks.ArcanaBlocks.arcaniteRails })
             if (b != null) API.hideItem(new net.minecraft.item.ItemStack(b));
+        try {
+            NeiSort.install();
+        } catch (Throwable t) {
+            com.divinerpgextended.DivineRPGExtended.LOG.warn("NEI: порядок предметов аддона не подключён - " + t);
+        }
         if (!Nei.gtnh()) return;
         try {
             NeiGtnh.setup(fishing, brewing);

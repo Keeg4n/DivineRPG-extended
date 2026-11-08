@@ -58,7 +58,7 @@ public final class DreTab extends CreativeTabs {
     static final Set<String> FISHING_NAMES = set("fish", "crate", "worm", "wormShovel", "fishGuide", "baitBag", "nightmareDrill");
     static final Set<String> MAGIC_NAMES = set("arcanePotion", "arcaneBrewer", "arcaneConcentrate", "lureTorch", "memoryCrystal", "furnaceModule",
         "petCarrier");
-    static final Set<String> BOSS_NAMES = set("carcinusAltar", "glaconAltar", "throneAltar", "tombAltar", "nestAltar", "arenaAltar", "jungleAltar",
+    static final Set<String> BOSS_NAMES = set("carcinusAltar", "glaconAltar", "throneAltar", "tombAltar", "nestAltar", "arenaAltar", "jungleAltar", "ayeracoAltar",
         "windTotem", "lairSpawner", "burrow", "carcinusHeart", "sharkNest", "cadillionCall", "lairMap", "twilightMaterial", "sanctumSeal", "rimeOre",
         "rimeIngot", "watcherEye", "frozenHeart", "throneShard", "bestiary", "jungleOre", "jungleGem", "jungleTotem", "haliteMaterial", "mortumTrophy",
         "spiritSpark", "worldSpirit", "guardianHeart", "dreamItem", "bossEgg");

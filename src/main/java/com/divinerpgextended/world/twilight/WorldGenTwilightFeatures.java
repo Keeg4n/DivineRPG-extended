@@ -100,6 +100,41 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         return -1;
     }
 
+    // ---------------------------------------------------------------- площадка в рельефе
+
+    /** Высота площадки: середина по участку (не самая высокая точка - иначе постройка стоит на земляном постаменте). */
+    static int middle(World w, TwilightWorld tw, int x, int z, int wd, int dp) {
+        int[] hs = new int[wd * dp];
+        int n = 0;
+        for (int i = 0; i < wd; i++) for (int k = 0; k < dp; k++) hs[n++] = surface(w, tw, x + i, z + k);
+        java.util.Arrays.sort(hs);
+        return hs[hs.length / 2];
+    }
+
+    /**
+     * Вписать площадку wd x dp с углом (x, z) на высоте base: внутри засыпать ямы и срезать бугры до base, вокруг на margin
+     * блоков - откос к живому рельефу (раньше были отвесные земляные стенки и вырезанные ящиком склоны). Обрывы (разница
+     * больше 6), пустота у края острова и земля под деревьями не трогаются.
+     */
+    public static void fit(World w, TwilightWorld tw, int x, int z, int wd, int dp, int base, int margin) {
+        for (int i = -margin; i < wd + margin; i++) for (int k = -margin; k < dp + margin; k++) {
+            int dist = Math.max(Math.max(-i, i - (wd - 1)), Math.max(-k, k - (dp - 1)));
+            int px = x + i, pz = z + k, s0 = surface(w, tw, px, pz);
+            if (s0 < 0 || Math.abs(s0 - base) > 6) continue;
+            int target = dist <= 0 ? base : (int) Math.round(base + (s0 - base) * dist / (double) (margin + 1));
+            if (target == s0) continue;
+            Block over = w.getBlock(px, s0 + 1, pz);
+            if (target < s0 && dist > 0 && !(over.isAir(w, px, s0 + 1, pz) || over.getMaterial().isReplaceable() || over.getMaterial() == net.minecraft.block.material.Material.plants))
+                continue; // на бугре вокруг дерево или постройка - срезать нельзя
+            if (target > s0) {
+                for (int y = s0; y <= target; y++) w.setBlock(px, y, pz, y == target ? tw.grass() : tw.dirt(), 0, 2);
+            } else {
+                for (int y = s0 + 1; y > target; y--) if (y > s0 || !w.isAirBlock(px, y, pz)) w.setBlock(px, y, pz, Blocks.air, 0, 2);
+                w.setBlock(px, target, pz, tw.grass(), 0, 2);
+            }
+        }
+    }
+
     // ---------------------------------------------------------------- руины
 
     /** Руины 9 x 9 с углом в (x, z); false - место не подошло (неровно или не остров). */
@@ -112,11 +147,10 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
             hi = Math.max(hi, y);
         }
         if (hi - lo > 5) return false;
-        int base = hi;
+        int base = middle(w, tw, x, z, 9, 9);
+        fit(w, tw, x, z, 9, 9, base, 3);
         Block stone = TwilightBlocks.twilightStone, planks = tw.planks(), gem = tw.gemBlock();
         for (int i = 0; i < 9; i++) for (int k = 0; k < 9; k++) {
-            int s = surface(w, tw, x + i, z + k);
-            for (int y = s + 1; y < base; y++) w.setBlock(x + i, y, z + k, tw.dirt(), 0, 2);
             for (int y = base + 1; y <= base + 7; y++) if (!w.isAirBlock(x + i, y, z + k)) w.setBlock(x + i, y, z + k, Blocks.air, 0, 2);
             int roll = r.nextInt(10);
             if (roll < 6) w.setBlock(x + i, base, z + k, stone, 0, 2);
@@ -221,7 +255,8 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
 
     /**
      * Лагерь странника 8 x 8 с углом в (x, z): палатка-шалаш из шерсти цвета мира с сундуком, горящий костёр (жаровня)
-     * с брёвнами-сиденьями, у костра Странник-торговец. Присесть и ПКМ по костру - точка возрождения в этом мире.
+     * с брёвнами-сиденьями, у костра Странник-торговец. Присесть и ПКМ по костру - точка возрождения в этом мире. Площадка на
+     * средней высоте участка с откосом вокруг ({@link #fit}).
      */
     public static boolean camp(World w, Random r, TwilightWorld tw, int x, int z) {
         int lo = 999, hi = -1;
@@ -232,12 +267,10 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
             hi = Math.max(hi, y);
         }
         if (hi - lo > 3) return false;
-        int base = hi;
-        for (int i = 0; i < 8; i++) for (int k = 0; k < 8; k++) {
-            int s = surface(w, tw, x + i, z + k);
-            for (int y = s + 1; y <= base; y++) w.setBlock(x + i, y, z + k, y == base ? tw.grass() : tw.dirt(), 0, 2);
+        int base = middle(w, tw, x, z, 8, 8);
+        fit(w, tw, x, z, 8, 8, base, 3);
+        for (int i = 0; i < 8; i++) for (int k = 0; k < 8; k++)
             for (int y = base + 1; y <= base + 5; y++) if (!w.isAirBlock(x + i, y, z + k)) w.setBlock(x + i, y, z + k, Blocks.air, 0, 2);
-        }
         // шалаш вдоль X: x..x+3, поперёк z+1..z+5 (высоты 1-2-3-2-1), задняя стенка закрыта
         int c = wool(tw);
         int[] roof = { 1, 2, 3, 2, 1 };
@@ -278,7 +311,8 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         int base = lo;
         for (int i = 0; i < 15; i += 2) for (int k = 0; k < 15; k += 2) // под дном - земля острова, не пустота
             for (int y = base - 4; y < base; y++) if (w.isAirBlock(x + i, y, z + k)) return false;
-        // выровнять площадку
+        // выровнять площадку, по краям - откос к рельефу
+        fit(w, tw, x, z, 15, 15, base, 2);
         for (int i = 0; i < 15; i++) for (int k = 0; k < 15; k++) {
             for (int y = base + 1; y <= base + 6; y++) if (!w.isAirBlock(x + i, y, z + k)) w.setBlock(x + i, y, z + k, Blocks.air, 0, 2);
             w.setBlock(x + i, base, z + k, tw.grass(), 0, 2);

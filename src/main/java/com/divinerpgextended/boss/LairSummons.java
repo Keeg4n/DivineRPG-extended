@@ -23,8 +23,8 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * <li>Кристаллы сумеречных боссов (Сумеречный демон, Карот, Вечный лучник, Денсос и Рейвор, Пожиратель душ,
  * Вамачерон) - только на своей арене Мортума ({@link com.divinerpgextended.world.twilight.MortumArenas}).</li>
  * <li>Таинственные часы (Древняя сущность) - только на алтаре гробницы.</li>
- * <li>Зов Смотрителя, Инфернальное пламя, Рог орды Айрако - только в своих логовах в Аду и Энде
- * ({@link WorldGenOuterLairs}).</li>
+ * <li>Зов Смотрителя, Инфернальное пламя - только в своих логовах в Аду; Рог орды Айрако - только на алтаре в центре арены
+ * гнездовья в Энде ({@link WorldGenOuterLairs}).</li>
  * </ul>
  * Правила одни для всех, и в творческом режиме тоже (иначе при проверках боссы оказывались где попало).
  */
@@ -160,6 +160,9 @@ public class LairSummons {
             : item instanceof net.divinerpg.items.vanilla.ItemInfernalFlame ? WorldGenOuterLairs.SCORCHERS
                 : item instanceof net.divinerpg.items.vanilla.ItemHordeHorn ? WorldGenOuterLairs.AYERACO : -1;
         if (type < 0 || !WorldGenOuterLairs.enabled(type)) return null;
-        return WorldGenOuterLairs.inside(p.worldObj, type, x + 0.5, y + 1, z + 0.5) ? null : "dre.chat.summon_lair_" + type;
+        boolean inside = WorldGenOuterLairs.inside(p.worldObj, type, x + 0.5, y + 1, z + 0.5);
+        if (type == WorldGenOuterLairs.AYERACO && inside)
+            return p.worldObj.getBlock(x, y, z) == com.divinerpgextended.registry.ModBlocks.ayeracoAltar ? null : "dre.chat.summon_altar_ayeraco";
+        return inside ? null : "dre.chat.summon_lair_" + type;
     }
 }
