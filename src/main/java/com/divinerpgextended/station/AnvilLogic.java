@@ -57,7 +57,9 @@ public final class AnvilLogic {
         // смена ядра
         READY_CORE,
         // привязка: снять со своей брони; броня чужая
-        READY_UNBIND, FOREIGN
+        READY_UNBIND, FOREIGN,
+        // ядро уже такое, плата камнями за смену ядра, донор-Странник только R1
+        CORE_SAME, CORE_FUEL, CORE_R1_ONLY
     }
 
     public static final class Result {
@@ -65,7 +67,7 @@ public final class AnvilLogic {
         public final Status status;
         /**
          * NEED_BOSS - номер босса, NEED_FUEL - сколько нужно, READY_UPGRADE - целевая ступень, READY_PERK и
-         * PERK_PRESENT - номер перка, READY_CORE - номер ядра.
+         * PERK_PRESENT - номер перка, READY_CORE и CORE_SAME - номер ядра, CORE_FUEL - сколько камней нужно.
          */
         public final int param;
         /** Какое топливо нужно для текущей операции (или null). */
@@ -316,10 +318,25 @@ public final class AnvilLogic {
             if (fuelCount(inv, fuel) < need) return new Result(Status.NEED_FUEL, need, fuel);
             return new Result(Status.READY_UPGRADE, next.tier, fuel);
         }
-        // Смена ядра: финальный сет в доноре. Плата в топливе отличает её от установки перка этого же сета (у божественной перка нет)
+        // Смена ядра донором R1 Странника: ядро переходит, донор расходуется, топливо не нужно - за ядро уже заплатили при ковке
+        if (wanderers(donor)) {
+            ArmorCore given = ArmorData.core(inv.getStackInSlot(DONOR));
+            for (int i = 0; i < 4; i++) {
+                ItemStack s = inv.getStackInSlot(DONOR + i);
+                if (!ArmorData.owns(s, player)) return new Result(Status.FOREIGN, DONOR + i); // чужой R1 не сжечь ради ядра
+                if (ArmorData.tier(s) != 1) return new Result(Status.CORE_R1_ONLY, 0);
+                if (ArmorData.core(s) != given) return new Result(Status.BAD_DONOR, 0);
+            }
+            if (given == core) return new Result(Status.CORE_SAME, core.ordinal());
+            return new Result(Status.READY_CORE, given.ordinal());
+        }
+        // Смена ядра финальным сетом - за его плату. Арлемит в топливе вместо неё - перк этого же сета (у божественной перка нет)
         ArmorCore wanted = ArmorCore.ofSet(donor);
-        if (wanted != null && wanted != core && (wanted == ArmorCore.DIVINE || fuelCount(inv, wanted.fuel()) > 0)) {
-            if (fuelCount(inv, wanted.fuel()) < wanted.fuelCount()) return new Result(Status.NEED_FUEL, wanted.fuelCount(), wanted.fuel());
+        ItemStack fuelNow = inv.getStackInSlot(FUEL);
+        if (wanted != null && (wanted == ArmorCore.DIVINE || fuelNow == null || fuelNow.getItem() != VanillaItemsOther.arlemiteIngot)) {
+            if (wanted == core) return new Result(Status.CORE_SAME, core.ordinal());
+            if (fuelCount(inv, wanted.fuel()) < wanted.fuelCount())
+                return new Result(wanted == ArmorCore.DIVINE ? Status.NEED_FUEL : Status.CORE_FUEL, wanted.fuelCount(), wanted.fuel());
             return new Result(Status.READY_CORE, wanted.ordinal(), wanted.fuel());
         }
         // Донор - сет другого мира: подсказать, что ступень не та
@@ -421,7 +438,7 @@ public final class AnvilLogic {
         } else if (r.status == Status.READY_CORE) {
             ArmorCore wanted = ArmorCore.values()[r.param];
             for (int i = 0; i < 4; i++) ArmorData.setCore(inv.getStackInSlot(ARMOR + i), wanted);
-            inv.decrStackSize(FUEL, wanted.fuelCount());
+            if (r.fuel != null) inv.decrStackSize(FUEL, wanted.fuelCount()); // донор-Странник: без платы
         } else {
             Perk perk = Perk.values()[r.param];
             for (int i = 0; i < 4; i++) {

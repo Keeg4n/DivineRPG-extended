@@ -116,6 +116,42 @@ public final class Ammo {
         return true;
     }
 
+    /** Сколько этих патронов уходит на выстрел оружием w: блиц - пыль на каждую дробину, остальные - один. */
+    public static int perShot(ItemStack w, Item a) {
+        return w != null && a != null && RangedRoles.kind(w) == RangedRoles.BLITZ && RangedRoles.dust(w.getItem()) == a ? Math.max(1, com.divinerpgextended.Config.blitzDustPerShot) : 1;
+    }
+
+    /** Запас на выстрелы: заряд оружия w под этот патрон и все такие патроны в инвентаре (как их видит inventory.hasItem). */
+    public static int stock(net.minecraft.entity.player.InventoryPlayer inv, ItemStack w, Item a) {
+        if (a == null) return 0;
+        int n = of(w) == a ? loaded(w) : 0;
+        for (ItemStack s : inv.mainInventory) if (s != null && s.getItem() == a) n += s.stackSize;
+        return n;
+    }
+
+    /** Бесконечные ли патроны у оружия w у этого игрока (на клиенте - по флагам от сервера). */
+    public static boolean endless(EntityPlayer p, ItemStack w) {
+        if (RangedRoles.dust(w.getItem()) != null) return RangedRoles.infiniteDust(p, w);
+        return (w.getItem() instanceof ItemBow || w.getItem() instanceof net.divinerpg.items.base.ItemModBow) && RangedRoles.quiverOn(p); // колчан: лук без стрел
+    }
+
+    /**
+     * Цифра на значке стрелкового оружия из инвентаря игрока: запас патронов (заряд + инвентарь), бесконечные - "∞", меньше
+     * чем на выстрел - красным, тысячи сокращаются ("2k"). null - не стрелковое оружие или не из инвентаря этого игрока.
+     */
+    public static String label(EntityPlayer p, ItemStack w) {
+        if (p == null || w == null || !com.divinerpgextended.Config.ammoCountOnIcon) return null;
+        Item a = of(w);
+        if (a == null) return null;
+        boolean own = false;
+        for (ItemStack s : p.inventory.mainInventory) if (s == w) own = true;
+        if (!own) return null; // NEI, сундуки, чужие руки - без цифры
+        if (endless(p, w)) return "∞";
+        int n = stock(p.inventory, w, a);
+        if (n < perShot(w, a)) return "§c" + n; // не хватит на выстрел (блицу нужно 5)
+        return n < 1000 ? String.valueOf(n) : (n / 1000) + "k";
+    }
+
     /** Годится в заряд: тот же предмет без своих данных и подвида (иначе пропали бы при превращении в число). */
     static boolean plain(ItemStack s, Item a) {
         return s != null && s.getItem() == a && s.stackSize > 0 && s.getItemDamage() == 0 && !s.hasTagCompound();

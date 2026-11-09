@@ -182,7 +182,7 @@ public class RangedRoles {
 
     /** Бесконечные патроны фазеру и блицу: надет подсумок пыли или на оружии Бесконечность. */
     public static boolean infiniteDust(EntityPlayer p, ItemStack held) {
-        return wears(p, com.divinerpgextended.trinket.Trinket.DUST_POUCH)
+        return (p.worldObj.isRemote ? clientPouch : wears(p, com.divinerpgextended.trinket.Trinket.DUST_POUCH))
             || net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(INFINITY, held) > 0;
     }
 
@@ -335,7 +335,14 @@ public class RangedRoles {
 
     /** Клиент: надет ли колчан у своего игрока (лук натягивается без стрел и на клиенте). */
     public static boolean clientQuiver;
+    /** Клиент: надет ли подсумок пыли (цифра на значке фазера и блица - "∞"). */
+    public static boolean clientPouch;
     private static final java.util.Map<EntityPlayer, String> QUIVER_SENT = new java.util.WeakHashMap<EntityPlayer, String>();
+
+    /** Надет ли колчан: лук стреляет без стрел (на клиенте - по флагу от сервера). */
+    public static boolean quiverOn(EntityPlayer p) {
+        return quiver(p);
+    }
 
     private static boolean quiver(EntityPlayer p) {
         return p.worldObj.isRemote ? clientQuiver : wears(p, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER);
@@ -356,36 +363,40 @@ public class RangedRoles {
         Ammo.settle(p);
         if (p.ticksExisted % 10 == 0 && p instanceof net.minecraft.entity.player.EntityPlayerMP) {
             boolean q = wears(p, com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER);
+            boolean pouch = wears(p, com.divinerpgextended.trinket.Trinket.DUST_POUCH);
             boolean left = com.divinerpgextended.accessory.Accessories.of(p).leftovers();
-            String sig = q + "/" + left;
+            String sig = q + "/" + left + "/" + pouch;
             if (!sig.equals(QUIVER_SENT.get(p))) {
                 QUIVER_SENT.put(p, sig);
-                com.divinerpgextended.cold.ColdHandler.NET.sendTo(new QuiverSync(q, left), (net.minecraft.entity.player.EntityPlayerMP) p);
+                com.divinerpgextended.cold.ColdHandler.NET.sendTo(new QuiverSync(q, left, pouch), (net.minecraft.entity.player.EntityPlayerMP) p);
             }
         }
     }
 
     public static class QuiverSync implements cpw.mods.fml.common.network.simpleimpl.IMessage {
 
-        boolean on, leftovers;
+        boolean on, leftovers, pouch;
 
         public QuiverSync() {}
 
-        QuiverSync(boolean on, boolean leftovers) {
+        QuiverSync(boolean on, boolean leftovers, boolean pouch) {
             this.on = on;
             this.leftovers = leftovers;
+            this.pouch = pouch;
         }
 
         @Override
         public void fromBytes(io.netty.buffer.ByteBuf buf) {
             on = buf.readBoolean();
             leftovers = buf.readBoolean();
+            pouch = buf.isReadable() && buf.readBoolean();
         }
 
         @Override
         public void toBytes(io.netty.buffer.ByteBuf buf) {
             buf.writeBoolean(on);
             buf.writeBoolean(leftovers);
+            buf.writeBoolean(pouch);
         }
     }
 
@@ -394,6 +405,7 @@ public class RangedRoles {
         @Override
         public cpw.mods.fml.common.network.simpleimpl.IMessage onMessage(QuiverSync msg, cpw.mods.fml.common.network.simpleimpl.MessageContext ctx) {
             clientQuiver = msg.on;
+            clientPouch = msg.pouch;
             com.divinerpgextended.accessory.Accessories.clientLeftovers = msg.leftovers;
             return null;
         }

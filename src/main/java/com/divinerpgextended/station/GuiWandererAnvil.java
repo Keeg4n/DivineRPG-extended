@@ -130,7 +130,8 @@ public class GuiWandererAnvil extends GuiContainer {
         switch (s) {
             case NEED_BOSS:
                 return StatCollector.translateToLocalFormatted(key, t(Boss.values()[container.param].langKey()));
-            case NEED_FUEL: {
+            case NEED_FUEL:
+            case CORE_FUEL: {
                 Item fuel = Item.getItemById(container.fuelItem);
                 String item = fuel == null ? "?" : new ItemStack(fuel).getDisplayName();
                 return StatCollector.translateToLocalFormatted(key, container.param, item);
@@ -142,6 +143,7 @@ public class GuiWandererAnvil extends GuiContainer {
             case NEED_LEVELS:
                 return StatCollector.translateToLocalFormatted(key, container.param);
             case READY_CORE:
+            case CORE_SAME:
                 return StatCollector.translateToLocalFormatted(key, t("dre.core." + com.divinerpgextended.item.ArmorCore.values()[container.param].key() + ".name"));
             case READY_PERK:
             case PERK_PRESENT:
@@ -156,7 +158,7 @@ public class GuiWandererAnvil extends GuiContainer {
             case DONOR_SOCKETS:
                 return StatCollector.translateToLocalFormatted(key, donorName());
             case FOREIGN: {
-                ItemStack a = station(AnvilLogic.ARMOR + Math.max(0, Math.min(3, container.param)));
+                ItemStack a = station(AnvilLogic.ARMOR + Math.max(0, Math.min(AnvilLogic.DONOR + 3, container.param))); // часть сверху или донор
                 String who = a == null ? null : com.divinerpgextended.item.ArmorData.ownerName(a);
                 return StatCollector.translateToLocalFormatted(key, who == null || who.isEmpty() ? "?" : who);
             }

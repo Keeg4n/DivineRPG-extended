@@ -145,6 +145,7 @@ public final class MortumArenas {
     public static int healFloor(World w, int[] c) {
         Type t = typeAt(w, c);
         Building b = (Building) shape(t);
+        if (!b.floorLayer()) return 0; // утёс демона: на этой высоте природный склон
         int top = WorldGenNests.MORTUM_TOP, reach = b.reach(), n = 0;
         Block dirt = b.foundation();
         int[] col = new int[256 * 2];
@@ -168,19 +169,22 @@ public final class MortumArenas {
      * мест, где чертёж ставит блок, а его нет (подмыло позже, например рекой)}.
      */
     public static int[] floorHoles(World w, int[] c) {
-        Building b = (Building) shape(typeAt(w, c));
-        int top = WorldGenNests.MORTUM_TOP, reach = b.reach();
+        Type t = typeAt(w, c);
+        Building b = (Building) shape(t);
+        int top = holesTop(t), reach = b.reach();
         int[] out = new int[8];
         int[] col = new int[256 * 2];
         for (int dx = -reach; dx <= reach; dx++) for (int dz = -reach; dz <= reach; dz++) {
             if (!b.footprint(dx, dz)) continue;
             for (int i = 0; i < col.length; i += 2) col[i] = ColumnStructure.KEEP;
             if (!b.columnAt(dx, dz, col)) continue;
+            if (!b.floorLayer() && (col[top * 2] == ColumnStructure.KEEP || col[top * 2] == ColumnStructure.AIR)) continue; // склон утёса: природный рельеф и купол, не пол
             for (int y = top - 5; y <= top; y++) {
                 if (col[y * 2] == ColumnStructure.AIR || !w.isAirBlock(c[0] + dx, y, c[2] + dz)) continue;
                 Block up = w.getBlock(c[0] + dx, y + 1, c[2] + dz);
                 if (!up.getMaterial().isSolid() || up.getMaterial() == net.minecraft.block.material.Material.leaves) continue;
                 int code = col[y * 2], at = code == ColumnStructure.KEEP || code == ColumnStructure.FOUNDATION ? 0 : 4;
+                if (!b.floorLayer() && code == ColumnStructure.KEEP) continue; // в теле утёса - природные пещеры, чертёж их не трогает
                 if (out[at]++ == 0) {
                     out[at + 1] = dx;
                     out[at + 2] = y - top;
@@ -189,6 +193,11 @@ public final class MortumArenas {
             }
         }
         return out;
+    }
+
+    /** Высота пола, под которым {@link #floorHoles} ищет пустоты: общая высота арен, у утёса демона - его площадка. */
+    public static int holesTop(Type t) {
+        return ((Building) shape(t)).floorLayer() ? WorldGenNests.MORTUM_TOP : floorY(t);
     }
 
     /** Столбец (смещение от центра) входит в саму постройку арены, без склонов вокруг. */
@@ -418,6 +427,15 @@ public final class MortumArenas {
             return true;
         }
 
+        /**
+         * Пол постройки на общей высоте арен (TOP): тогда слой пола, который чертёж не задал, засыпается. У утёса демона
+         * площадка выше, а на высоте TOP - природный склон и купол расчистки: там засыпать нельзя (клал камень над пустотой
+         * у подножия и заваливал Лету).
+         */
+        boolean floorLayer() {
+            return true;
+        }
+
         /** Насколько столбец за краем постройки (по её форме); <= 0 - внутри. */
         double outside(int dx, int dz) {
             return Math.sqrt(dx * dx + dz * dz) - reach();
@@ -455,7 +473,7 @@ public final class MortumArenas {
             build(dx, dz, col);
             // слой пола, который постройка не задала (под стенами и трибунами): была там пещера - засыпать, иначе кирпич висит над
             // пустотой (Костяная яма); земля или трава остаются как были
-            if (col[TOP * 2] == KEEP) put(col, TOP, FOUNDATION, 0);
+            if (floorLayer() && col[TOP * 2] == KEEP) put(col, TOP, FOUNDATION, 0);
             return true;
         }
 
@@ -1101,6 +1119,11 @@ public final class MortumArenas {
         @Override
         boolean slopes() {
             return false;
+        }
+
+        @Override
+        boolean floorLayer() {
+            return false; // площадка на LIFT выше, под ней сплошная скала; на высоте прочих арен - склон
         }
 
         @Override

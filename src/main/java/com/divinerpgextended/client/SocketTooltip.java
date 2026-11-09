@@ -37,6 +37,8 @@ public class SocketTooltip {
             int n = Ammo.loaded(s);
             e.toolTip.add((n > 0 ? EnumChatFormatting.YELLOW : EnumChatFormatting.GRAY)
                 + StatCollector.translateToLocalFormatted("dre.ammo.loaded", n, Ammo.capacity(s), new ItemStack(ammo).getDisplayName()));
+            int per = Ammo.perShot(s, ammo);
+            if (per > 1) e.toolTip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("dre.ammo.per_shot", per, new ItemStack(ammo).getDisplayName()));
             e.toolTip.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.ammo.how"));
         }
     }

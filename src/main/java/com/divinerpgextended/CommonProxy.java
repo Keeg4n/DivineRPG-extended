@@ -466,6 +466,7 @@ public class CommonProxy {
         com.divinerpgextended.perk.RangedRoles.setupDust();
         com.divinerpgextended.perk.ColorGear.setup();
         com.divinerpgextended.perk.MeleeRoles.setup();
+        com.divinerpgextended.world.ForeignTweaks.apply(); // броня из бедрока, острова Tinkers
         // Divine при входе игрока проверяет обновления сетевым запросом в потоке сервера без таймаута: нет ответа - сервер стоит
         try {
             net.divinerpg.utils.config.ConfigurationHelper.class.getField("updateChecker").setBoolean(null, false);

@@ -1007,7 +1007,7 @@ public class SelfTest {
             check(bad.length() == 0, bad.toString());
             return "R1-R" + looks + " и R1 по ядрам: меш с шлемом, нагрудником, поножами и ботинками, атлас, значки частей, свой скин";
         });
-        t("Броня", "Вилка R1: ковка из финальных сетов, плата божественными камнями, смена ядра", () -> {
+        t("Броня", "Вилка R1: ковка из финальных сетов, плата божественными камнями, смена ядра (и донором R1 Странника)", () -> {
             reset(p);
             com.divinerpgextended.station.AnvilWork an = new com.divinerpgextended.station.AnvilWork();
             Item stone = VanillaItemsOther.divineStone;
@@ -1094,7 +1094,51 @@ public class SelfTest {
             AnvilLogic.Result backNoFuel = AnvilLogic.evaluate(an, p);
             com.divinerpgextended.item.ArmorData.setCore(an.getStackInSlot(AnvilLogic.ARMOR + 1), com.divinerpgextended.item.ArmorCore.ENDER);
             AnvilLogic.Status differ = AnvilLogic.evaluate(an, p).status;
-            ok &= perkWay.status == AnvilLogic.Status.READY_PERK && perkWay.param == Perk.FIRE_PROTECTION.ordinal() && fewStones.status == AnvilLogic.Status.NEED_FUEL && fewStones.param == 12
+            // донор - R1 Странника с другим ядром: ядро переходит без платы; то же ядро, R2+ в доноре и сет без топлива - понятный отказ
+            com.divinerpgextended.item.ArmorData.setCore(an.getStackInSlot(AnvilLogic.ARMOR + 1), com.divinerpgextended.item.ArmorCore.BEDROCK);
+            ItemStack[] r1 = new ItemStack[4];
+            for (int i = 0; i < 4; i++) {
+                r1[i] = new ItemStack(ModItems.wanderer[i]);
+                com.divinerpgextended.item.ArmorData.setTier(r1[i], 1);
+                com.divinerpgextended.item.ArmorData.setCore(r1[i], com.divinerpgextended.item.ArmorCore.SHADOW);
+                an.setInventorySlotContents(AnvilLogic.DONOR + i, r1[i].copy());
+            }
+            an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(VanillaItemsOther.arlemiteIngot, 5));
+            AnvilLogic.Result byR1 = AnvilLogic.evaluate(an, p);
+            boolean r1Done = AnvilLogic.execute(an, p);
+            ItemStack fuelAfter = an.getStackInSlot(AnvilLogic.FUEL);
+            r1Done &= com.divinerpgextended.item.ArmorData.core(an.getStackInSlot(AnvilLogic.ARMOR + 2)) == com.divinerpgextended.item.ArmorCore.SHADOW
+                && com.divinerpgextended.item.ArmorData.tier(an.getStackInSlot(AnvilLogic.ARMOR)) == 2 && an.getStackInSlot(AnvilLogic.DONOR + 3) == null && fuelAfter != null && fuelAfter.stackSize == 5;
+            for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.DONOR + i, r1[i].copy());
+            AnvilLogic.Status r1Same = AnvilLogic.evaluate(an, p).status;
+            for (int i = 0; i < 4; i++) {
+                ItemStack up3 = r1[i].copy();
+                com.divinerpgextended.item.ArmorData.setTier(up3, 3);
+                com.divinerpgextended.item.ArmorData.setCore(up3, com.divinerpgextended.item.ArmorCore.ENDER);
+                an.setInventorySlotContents(AnvilLogic.DONOR + i, up3);
+            }
+            AnvilLogic.Status r3Donor = AnvilLogic.evaluate(an, p).status;
+            TestPlayer coreStranger = player(0, "TestCoreStranger", 0, 100, 0);
+            for (int i = 0; i < 4; i++) {
+                ItemStack theirs = r1[i].copy();
+                com.divinerpgextended.item.ArmorData.setCore(theirs, com.divinerpgextended.item.ArmorCore.ENDER);
+                com.divinerpgextended.item.ArmorData.bind(theirs, coreStranger);
+                an.setInventorySlotContents(AnvilLogic.DONOR + i, theirs);
+            }
+            AnvilLogic.Result foreignDonor = AnvilLogic.evaluate(an, p);
+            an.setInventorySlotContents(AnvilLogic.FUEL, null);
+            for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.DONOR + i, new ItemStack(rock[i]));
+            AnvilLogic.Result rockEmpty = AnvilLogic.evaluate(an, p);
+            for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.DONOR + i, new ItemStack(sets[0][i]));
+            AnvilLogic.Status shadowSame = AnvilLogic.evaluate(an, p).status;
+            boolean viaR1 = byR1.status == AnvilLogic.Status.READY_CORE && byR1.param == com.divinerpgextended.item.ArmorCore.SHADOW.ordinal() && byR1.fuel == null && r1Done
+                && r1Same == AnvilLogic.Status.CORE_SAME && r3Donor == AnvilLogic.Status.CORE_R1_ONLY && foreignDonor.status == AnvilLogic.Status.FOREIGN && foreignDonor.param == AnvilLogic.DONOR
+                && rockEmpty.status == AnvilLogic.Status.CORE_FUEL && rockEmpty.param == 12 && rockEmpty.fuel == stone
+                && shadowSame == AnvilLogic.Status.CORE_SAME;
+            ok &= viaR1;
+            rep.append("; донор R1 Тени ").append(byR1.status).append(", сменено без платы ").append(r1Done).append(", то же ядро ").append(r1Same).append(", донор R3 ").append(r3Donor).append(", чужой R1 ").append(foreignDonor.status)
+                .append(", бедрок без топлива ").append(rockEmpty.status).append(' ').append(rockEmpty.param).append(", сет Тени на ядре Тени ").append(shadowSame).append("; ");
+            ok &= perkWay.status == AnvilLogic.Status.READY_PERK && perkWay.param == Perk.FIRE_PROTECTION.ordinal() && fewStones.status == AnvilLogic.Status.CORE_FUEL && fewStones.param == 12
                 && coreWay.status == AnvilLogic.Status.READY_CORE && coreWay.param == com.divinerpgextended.item.ArmorCore.BEDROCK.ordinal() && swapDone
                 && backNoFuel.status == AnvilLogic.Status.NEED_FUEL && backNoFuel.fuel == VanillaItemsOther.realmiteIngot && differ == AnvilLogic.Status.BAD_ARMOR;
             rep.append("закалка сохранила ядро ").append(kept).append("; бедрок с арлемитом ").append(perkWay.status).append(", 11 камней ").append(fewStones.status).append(", 12 камней ").append(coreWay.status).append(", сменено ").append(swapDone)
@@ -7715,7 +7759,9 @@ public class SelfTest {
             Item blitz = net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz, phaser = net.divinerpg.utils.items.TwilightItemsWeapons.edenPhaser;
             boolean mapped = com.divinerpgextended.perk.RangedRoles.dust(blitz) == dust && com.divinerpgextended.perk.RangedRoles.dust(phaser) == dust;
             // случаи: оружие, подсумок, Бесконечность, пыль в инвентаре, пыль зарядом в оружии
-            Object[][] cases = { { blitz, false, false, 0, 0 }, { blitz, true, false, 0, 0 }, { blitz, false, true, 0, 0 }, { blitz, false, false, 0, 2 },
+            // блиц тратит Config.blitzDustPerShot (5) пыли: 7 в заряде - выстрел и 2 остаётся, 4 в инвентаре - молчит, 3 в заряде + 2 в инвентаре - выстрел
+            Object[][] cases = { { blitz, false, false, 0, 0 }, { blitz, true, false, 0, 0 }, { blitz, false, true, 0, 0 }, { blitz, false, false, 0, 7 },
+                { blitz, false, false, 4, 0 }, { blitz, false, false, 2, 3 },
                 { phaser, false, false, 3, 0 }, { phaser, false, false, 0, 0 }, { phaser, true, false, 3, 0 }, { phaser, false, false, 0, 2 } };
             boolean dustNeverInBag = true;
             int[] shots = new int[cases.length], left = new int[cases.length];
@@ -7779,13 +7825,84 @@ public class SelfTest {
             fv.inventory.clearInventory(null, -1);
             unwearT(fv);
             int P = com.divinerpgextended.perk.RangedRoles.PELLETS;
-            boolean ok = shots[0] == 0 && shots[1] == P && shots[2] == P && shots[3] == P && left[3] == 1 && shots[4] > 0 && left[4] == 2 && shots[5] == 0
-                && shots[6] > 0 && left[6] == 3 && shots[7] > 0 && left[7] == 1 && dustNeverInBag;
+            boolean ok = shots[0] == 0 && shots[1] == P && shots[2] == P && shots[3] == P && left[3] == 2 && shots[4] == 0 && left[4] == 4 && shots[5] == P && left[5] == 0
+                && shots[6] > 0 && left[6] == 2 && shots[7] == 0 && shots[8] > 0 && left[8] == 3 && shots[9] > 0 && left[9] == 1 && dustNeverInBag;
             check(mapped && ok && dirtSafe && restored && anvil && still,
-                "пыль задана " + mapped + "; блиц без пыли " + shots[0] + ", с подсумком " + shots[1] + ", с Бесконечностью " + shots[2] + ", зарядом " + shots[3] + " (осталось " + left[3]
-                    + "); фазер с пылью " + shots[4] + " (осталось " + left[4] + " из 3), без пыли " + shots[5] + ", с подсумком " + shots[6] + " (осталось " + left[6] + "); фазер зарядом, рюкзак забит: " + shots[7] + " (осталось " + left[7] + "), пыль в рюкзак не попадала " + dustNeverInBag + "; земля цела " + dirtSafe
+                "пыль задана " + mapped + "; блиц без пыли " + shots[0] + ", с подсумком " + shots[1] + ", с Бесконечностью " + shots[2] + ", зарядом 7 " + shots[3] + " (осталось " + left[3]
+                    + "), 4 пыли " + shots[4] + " (осталось " + left[4] + "), 3 зарядом + 2 в инвентаре " + shots[5] + " (осталось " + left[5]
+                    + "); фазер с пылью " + shots[6] + " (осталось " + left[6] + " из 3), без пыли " + shots[7] + ", с подсумком " + shots[8] + " (осталось " + left[8] + "); фазер зарядом, рюкзак забит: " + shots[9] + " (осталось " + left[9] + "), пыль в рюкзак не попадала " + dustNeverInBag + "; земля цела " + dirtSafe
                     + ", патрон вернулся " + restored + ", наковальня " + anvil + ", зомби не отброшен " + still);
-            return "фазер и блиц тратят пыль своего мира (из заряда и инвентаря), без пыли молчат; подсумок или Бесконечность (книгой на наковальне) - пыль не нужна; вещи рюкзака не трогаются; дробь не отбрасывает";
+            return "фазер и блиц тратят пыль своего мира (из заряда и инвентаря), блиц - 5 за выстрел, меньше - молчит; подсумок или Бесконечность (книгой на наковальне) - пыль не нужна; вещи рюкзака не трогаются; дробь не отбрасывает";
+        });
+        t("Прохождение", "Цифра патронов на значке оружия", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
+            loadAround(w, 9476, 9846, 1);
+            TestPlayer lp = join(player(ConfigurationHelper.eden, "TestAmmoLabel", 9476.5, 120, 9846.5), true);
+            lp.inventory.clearInventory(null, -1);
+            unwearT(lp);
+            ItemStack bow = new ItemStack(Items.bow);
+            lp.inventory.mainInventory[0] = bow;
+            String noArrows = com.divinerpgextended.perk.Ammo.label(lp, bow);
+            lp.inventory.mainInventory[7] = new ItemStack(Items.arrow, 5);
+            com.divinerpgextended.perk.Ammo.setLoaded(bow, 3);
+            String eight = com.divinerpgextended.perk.Ammo.label(lp, bow);
+            String outside = com.divinerpgextended.perk.Ammo.label(lp, bow.copy()); // та же вещь не из инвентаря (NEI, сундук)
+            String stone = com.divinerpgextended.perk.Ammo.label(lp, lp.inventory.mainInventory[7]);
+            for (int li = 8; li < 30; li++) lp.inventory.mainInventory[li] = new ItemStack(Items.arrow, 64);
+            String many = com.divinerpgextended.perk.Ammo.label(lp, bow);
+            wearT(lp, Trinket.ENDLESS_QUIVER);
+            String quiver = com.divinerpgextended.perk.Ammo.label(lp, bow);
+            unwearT(lp);
+            lp.inventory.clearInventory(null, -1);
+            ItemStack blitzGun = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz);
+            lp.inventory.mainInventory[0] = blitzGun;
+            lp.inventory.mainInventory[4] = new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.edenDust, 3);
+            String few = com.divinerpgextended.perk.Ammo.label(lp, blitzGun);
+            lp.inventory.mainInventory[5] = new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.edenDust, 4);
+            String enough = com.divinerpgextended.perk.Ammo.label(lp, blitzGun);
+            lp.inventory.clearInventory(null, -1);
+            check("\u00a7c0".equals(noArrows) && "8".equals(eight) && outside == null && stone == null && "1k".equals(many) && "\u221e".equals(quiver)
+                && "\u00a7c3".equals(few) && "7".equals(enough),
+                "лук без стрел " + noArrows + ", 3 зарядом + 5 в инвентаре " + eight + ", копия не из инвентаря " + outside + ", у стрел " + stone + ", 1413 стрел " + many
+                    + ", с колчаном " + quiver + "; блиц с 3 пыли " + few + ", с 7 " + enough);
+            return "на значке оружия из своего инвентаря - запас патронов (заряд + инвентарь), тысячи как 1k, колчан или подсумок - бесконечность, меньше чем на выстрел - красным; вне инвентаря цифры нет";
+        });
+        t("Броня", "Броня из бедрока не изнашивается", () -> {
+            boolean all = true;
+            StringBuilder sb = new StringBuilder();
+            TestPlayer bp = player(0, "TestBedrockWear", 0, 100, 0);
+            for (Item bi : new Item[] { VanillaItemsArmor.bedrockHelmet, VanillaItemsArmor.bedrockBody, VanillaItemsArmor.bedrockLegs, VanillaItemsArmor.bedrockBoots }) {
+                ItemStack st = new ItemStack(bi);
+                st.damageItem(40, bp);
+                boolean flag = false;
+                try {
+                    java.lang.reflect.Field f = net.divinerpg.items.base.ItemDivineArmor.class.getDeclaredField("unbreakable");
+                    f.setAccessible(true);
+                    flag = f.getBoolean(bi);
+                } catch (Exception ex) {
+                    flag = false;
+                }
+                boolean one = st.stackSize == 1 && st.getItemDamage() == 0 && !st.isItemStackDamageable() && flag;
+                all &= one;
+                sb.append(bi.getUnlocalizedName()).append(' ').append(one).append("; ");
+            }
+            ItemStack iron = new ItemStack(Items.iron_helmet);
+            iron.damageItem(5, bp);
+            check(all && iron.getItemDamage() == 5, sb + "железный шлем износился на " + iron.getItemDamage());
+            return "удар 40 по броне из бедрока не снимает прочность, Divine пишет бесконечную прочность; обычная броня изнашивается как прежде";
+        });
+        t("Мир", "Острова слизи Tinkers не появляются в мирах Divine", () -> {
+            Boolean over = com.divinerpgextended.world.ForeignTweaks.tinkersIslandsAllowed(0);
+            if (over == null) return "Tinkers' Construct нет в сборке - нечего проверять";
+            StringBuilder sb = new StringBuilder();
+            boolean none = true;
+            for (int dim : com.divinerpgextended.world.ForeignTweaks.divineDims()) {
+                Boolean allowed = com.divinerpgextended.world.ForeignTweaks.tinkersIslandsAllowed(dim);
+                none &= Boolean.FALSE.equals(allowed);
+                sb.append(dim).append(':').append(allowed).append(' ');
+            }
+            check(none, "острова разрешены: " + sb + "; обычный мир " + over);
+            return "чёрный список измерений Tinkers дополнен мирами Divine (новые чанки), обычный мир как в настройке Tinkers";
         });
         t("Прохождение", "Заряд в оружии", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
@@ -8323,6 +8440,10 @@ public class SelfTest {
                 fall[wq] = fe.distance;
                 for (int i = 0; i < 4; i++) who[wq].inventory.armorInventory[i] = null;
             }
+            // чужому - как без брони (в сборке Magic кто-то из модов сам снимает с падения блок, поэтому не ровно 20)
+            net.minecraftforge.event.entity.living.LivingFallEvent bareFall = new net.minecraftforge.event.entity.living.LivingFallEvent(b, 20F);
+            MinecraftForge.EVENT_BUS.post(bareFall);
+            float bare = bareFall.distance;
             // первая примерка: настоящий игрок привязывает ничью часть, игрок-заглушка мода - нет
             ItemStack free = com.divinerpgextended.item.ItemWandererArmor.stack(ModItems.wanderer[0], 2, com.divinerpgextended.item.ArmorCore.DIVINE);
             free.getItem().onArmorTick(w, b, free);
@@ -8343,10 +8464,10 @@ public class SelfTest {
             for (ItemStack s : set) allFree &= com.divinerpgextended.item.ArmorData.owner(s) == null;
             AnvilLogic.Status after = AnvilLogic.evaluate(an, a, AnvilLogic.UPGRADE).status;
             check(tier[0] == 3 && tier[1] == 0 && core[0] && !core[1] && sock[0] && !sock[1] && ratio[0] > 0.2F && ratio[1] == 0F && display[0] > 0 && display[1] == 0
-                && fall[0] == 0F && fall[1] == 20F && fakeSkips && bound && foreign.status == AnvilLogic.Status.FOREIGN && foreign.param == 0 && stranger
+                && fall[0] == 0F && fall[1] == bare && bare > 15F && fakeSkips && bound && foreign.status == AnvilLogic.Status.FOREIGN && foreign.param == 0 && stranger
                 && mine == AnvilLogic.Status.READY_UNBIND && freed && allFree && after == AnvilLogic.Status.NEED_DONOR,
                 "ступень для боссов: владелец " + tier[0] + ", чужой " + tier[1] + "; ядро " + core[0] + "/" + core[1] + "; гнездо " + sock[0] + "/" + sock[1]
-                    + "; защита нагрудника " + f(ratio[0]) + "/" + f(ratio[1]) + ", полоска " + display[0] + "/" + display[1] + "; падение 20 > " + f(fall[0]) + "/" + f(fall[1])
+                    + "; защита нагрудника " + f(ratio[0]) + "/" + f(ratio[1]) + ", полоска " + display[0] + "/" + display[1] + "; падение 20 > " + f(fall[0]) + "/" + f(fall[1]) + " (без брони " + f(bare) + ")"
                     + "; заглушка не привязала " + fakeSkips + ", игрок привязал " + bound + "; наковальня чужому " + foreign.status + " (" + foreign.param + "), снял " + !stranger
                     + "; владельцу " + mine + ", снято " + freed + "/" + allFree + ", потом " + after);
             return "на владельце R3: ступень 3, ядро, гнёзда, защита и без падения; на чужом - ступень 0 (тройной урон боссов), ни защиты, ни эффектов;"
@@ -11819,7 +11940,7 @@ public class SelfTest {
                 if (fh[4] > 0) { // чертёж ставит блок, а его нет: подмыло позже - рядом ли Лета
                     int lethe = 0;
                     for (int ddx = -4; ddx <= 4; ddx++) for (int ddz = -4; ddz <= 4; ddz++) for (int ddy = -4; ddy <= 2; ddy++)
-                        if (w.getBlock(c[0] + fh[5] + ddx, top + fh[6] + ddy, c[2] + fh[7] + ddz) instanceof com.divinerpgextended.block.BlockLethe) lethe++;
+                        if (w.getBlock(c[0] + fh[5] + ddx, com.divinerpgextended.world.twilight.MortumArenas.holesTop(t) + fh[6] + ddy, c[2] + fh[7] + ddz) instanceof com.divinerpgextended.block.BlockLethe) lethe++;
                     sb.append("[").append(t.key()).append(": подмыто ").append(fh[4]).append(" у ").append(fh[5]).append(',').append(fh[6]).append(',').append(fh[7])
                         .append(", Леты рядом ").append(lethe).append("] ");
                 }
@@ -11836,8 +11957,11 @@ public class SelfTest {
             boolean pitBefore = w.isAirBlock(vc[0] + 3, top, vc[2] + 3);
             int healed = com.divinerpgextended.world.twilight.MortumArenas.healFloor(w, vc);
             boolean filled = !w.isAirBlock(vc[0] - 28, top, vc[2] - 7) && !w.isAirBlock(vc[0] - 28, top - 1, vc[2] - 7), pitKept = pitBefore && w.isAirBlock(vc[0] + 3, top, vc[2] + 3);
-            check(total == 0 && healed == 2 && filled && pitKept, "пустоты под потолком в слоях фундамента и пола: " + sb + "; долечивание старой арены: засыпано " + healed + ", пустота закрыта " + filled
-                + ", яма не тронута " + pitKept);
+            // утёс демона: площадка выше прочих, на их высоте - природный склон и Лета; долечивание его не трогает
+            int[] dc = com.divinerpgextended.world.twilight.MortumArenas.nearestOf(w, com.divinerpgextended.world.twilight.MortumArenas.Type.DEMON, 0, 0, 6);
+            int demonHeal = dc == null ? 0 : com.divinerpgextended.world.twilight.MortumArenas.healFloor(w, dc);
+            check(total == 0 && healed == 2 && filled && pitKept && demonHeal == 0, "пустоты под потолком в слоях фундамента и пола: " + sb + "; долечивание старой арены: засыпано " + healed + ", пустота закрыта " + filled
+                + ", яма не тронута " + pitKept + "; у утёса демона долечивание засыпало " + demonHeal);
             return "под всеми шестью аренами в слоях фундамента и пола нет пустот под блоками: " + sb + "; в старой Костяной яме пустота под стеной засыпается, яма остаётся";
         });
         t("Логова", "Арены Мортума: в творческом босс без кристалла", () -> {
@@ -11966,7 +12090,7 @@ public class SelfTest {
             int f = com.divinerpgextended.world.WorldGenOuterLairs.FLOOR[type];
             loadAround(w, c[0], c[2], 3);
             com.divinerpgextended.boss.AyeracoHorde.reset();
-            TestPlayer v = join(player(1, "TestHorde", c[0] + 0.5, f + 1, c[2] + 0.5), true);
+            TestPlayer v = join(player(1, "TestHorde", c[0] + 0.5, f + 1, c[2] + 2.5), true); // в центре - алтарь орды
             @SuppressWarnings("unchecked")
             java.util.List<Object> players = w.playerEntities;
             boolean added = !players.contains(v);
@@ -12010,7 +12134,7 @@ public class SelfTest {
             ArcanaHelper a = ArcanaHelper.getProperties(v);
             a.setBarValue(100);
             com.divinerpgextended.magic.ArcanaRules.resetCooldowns();
-            v.setPositionAndRotation(c[0] + 0.5, f + 1, c[2] + 0.5, -90F, 0F); // смотрит на восток (+x) над островом
+            v.setPositionAndRotation(c[0] + 0.5, f + 1, c[2] + 2.5, -90F, 0F); // смотрит на восток (+x) над островом, мимо алтаря в центре
             double x0 = v.posX;
             boolean blink = com.divinerpgextended.boss.EnderGear.blink(v);
             double moved = v.posX - x0;

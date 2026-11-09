@@ -22,6 +22,14 @@ public class Config {
     public static int[] bedrockStanceTicks = { 40, 100 };
     /** Полный сет Inferno или Netherite: шанс, что руда упадёт сразу переплавленной. */
     public static double netherSmeltChance = 0.25;
+    /** Сколько пыли тратит один выстрел блица (5 дробин - 5 пыли). */
+    public static int blitzDustPerShot = 5;
+    /** Цифра запаса патронов на значке стрелкового оружия в инвентаре (клиент). */
+    public static boolean ammoCountOnIcon = true;
+    /** Броня из бедрока Divine не изнашивается. */
+    public static boolean bedrockArmorUnbreakable = true;
+    /** Острова слизи Tinkers' Construct не появляются в мирах Divine. */
+    public static boolean noTinkersIslandsInDivine = true;
     /** Порыв от удара моба Небесного терна: толчок вбок, как у Повелителя ветров. */
     public static double skythernGust = 1.6;
     /** Посмертие Мортума: шанс, что убитый моб оставит душу. */
@@ -153,9 +161,17 @@ public class Config {
         upgradeR1FuelRealmiteIngots = cfg.getInt("upgradeR1FuelRealmiteIngots", bal, upgradeR1FuelRealmiteIngots,
             0, 64, "Сколько реалмитовых слитков стоит переход божественной брони в броню Странника R1");
         coreForgeStones = intList(cfg, bal, "coreForgeStones", coreForgeStones,
-            "Сколько божественных камней стоит ковка брони Странника R1 и смена ядра на этот сет: Тень, Бедрок, Энд, Порча. Сами сеты стоят очень по-разному, плата это выравнивает и оставляет на пути в Эдем боссов");
+            "Сколько божественных камней стоит ковка брони Странника R1 и смена ядра на этот сет: Тень, Бедрок, Край, Повреждённая. Сами сеты стоят очень по-разному, плата это выравнивает и оставляет на пути в Эдем боссов");
         bedrockStanceTicks = intList(cfg, bal, "bedrockStanceTicks", bedrockStanceTicks,
             "Нерушимость бедрока (полный сет и ядро): через сколько тиков на месте Сопротивление I и Сопротивление II, отброса нет с первой ступени. 20 тиков = 1 секунда");
+        blitzDustPerShot = cfg.getInt("blitzDustPerShot", bal, blitzDustPerShot, 1, 64,
+            "Сколько пыли своего мира тратит один выстрел блица (он стреляет 5 дробинами). Меньше этого в заряде и инвентаре - блиц не стреляет");
+        ammoCountOnIcon = cfg.getBoolean("ammoCountOnIcon", "client", ammoCountOnIcon,
+            "Цифра запаса патронов (заряд + инвентарь) на значке лука, блица, фазера и другого стрелкового оружия в своём инвентаре; бесконечные - знак бесконечности, меньше чем на выстрел - красным");
+        bedrockArmorUnbreakable = cfg.getBoolean("bedrockArmorUnbreakable", bal, bedrockArmorUnbreakable,
+            "Броня из бедрока Divine не изнашивается (как сам бедрок). Нужен перезапуск");
+        noTinkersIslandsInDivine = cfg.getBoolean("noTinkersIslandsInDivine", bal, noTinkersIslandsInDivine,
+            "Острова слизи Tinkers' Construct не появляются в мирах Divine (в новых чанках; уже появившиеся остаются). Нужен перезапуск");
         netherSmeltChance = cfg.get(bal, "netherSmeltChance", netherSmeltChance, "Полный сет Inferno или Netherite: шанс, что добытая руда упадёт сразу переплавленной (0 - выключено, 1 - всегда). С Шёлковым касанием не работает").getDouble();
         skythernGust = cfg.get(bal, "skythernGust", skythernGust, "Небесный терн: на сколько удар моба толкает игрока вбок (1.6 - как порыв Повелителя ветров, 0 - без толчка вбок). Один моб толкает не чаще раза в 4 секунды").getDouble();
         mortumSoulChance = cfg.get(bal, "mortumSoulChance", mortumSoulChance, "Мортум: шанс, что убитый игроком моб оставит душу на 3 секунды; не рассеял - моб встанет снова, без добычи (0 - выключено)").getDouble();
