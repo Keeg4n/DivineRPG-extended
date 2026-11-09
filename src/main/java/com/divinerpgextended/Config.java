@@ -26,6 +26,8 @@ public class Config {
     public static int blitzDustPerShot = 5;
     /** Цифра запаса патронов на значке стрелкового оружия в инвентаре (клиент). */
     public static boolean ammoCountOnIcon = true;
+    /** Противоядие (сет джунглей, перк "Сопротивление яду"): во сколько раз быстрее проходят плохие эффекты. */
+    public static double jungleDebuffSpeed = 2.0;
     /** Броня из бедрока Divine не изнашивается. */
     public static boolean bedrockArmorUnbreakable = true;
     /** Острова слизи Tinkers' Construct не появляются в мирах Divine. */
@@ -170,6 +172,8 @@ public class Config {
             "Сколько пыли своего мира тратит один выстрел блица (он стреляет 5 дробинами). Меньше этого в заряде и инвентаре - блиц не стреляет");
         ammoCountOnIcon = cfg.getBoolean("ammoCountOnIcon", "client", ammoCountOnIcon,
             "Цифра запаса патронов (заряд + инвентарь) на значке лука, блица, фазера и другого стрелкового оружия в своём инвентаре; бесконечные - знак бесконечности, меньше чем на выстрел - красным");
+        jungleDebuffSpeed = cfg.get(bal, "jungleDebuffSpeed", jungleDebuffSpeed,
+            "Противоядие: полный сет джунглей Divine и перк \"Сопротивление яду\" на броне Странника - яд не действует, а остальные плохие эффекты (и чужие, которые не снимает молоко, например варп Таумкрафта) не снимаются, а проходят во столько раз быстрее. 1 - как обычно").getDouble();
         bedrockArmorUnbreakable = cfg.getBoolean("bedrockArmorUnbreakable", bal, bedrockArmorUnbreakable,
             "Броня из бедрока Divine не изнашивается (как сам бедрок). Нужен перезапуск");
         noTinkersIslandsInDivine = cfg.getBoolean("noTinkersIslandsInDivine", bal, noTinkersIslandsInDivine,

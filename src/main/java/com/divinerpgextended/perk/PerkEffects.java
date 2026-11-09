@@ -337,6 +337,9 @@ public class PerkEffects {
 
         angelFlight(player);
         stance(player);
+        // противоядие сета джунглей (у Странника - перком ниже): яд снят, остальные плохие эффекты проходят быстрее
+        if (Antidote.jungleSet(player) && player.isPotionActive(Potion.poison)) player.removePotionEffect(Potion.poison.id);
+        if (player.ticksExisted % Antidote.PERIOD == 0) Antidote.tick(player);
         if (ArmorData.equippedTier(player) == 0) return;
         if (player.getHealth() < player.getMaxHealth() && ArmorData.hasEquippedPerk(player, Perk.REGENERATION)) player.heal(0.1F);
         if (ArmorData.hasEquippedPerk(player, Perk.ARCANA_FLOW)) arcana(player, 1.0F);

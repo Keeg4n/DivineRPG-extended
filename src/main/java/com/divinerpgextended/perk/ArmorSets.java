@@ -104,7 +104,8 @@ public class ArmorSets {
             note(p, "Сет Wither Reaper: иссушение не ранит");
         }
         else if (set(a, VanillaItemsArmor.jungleBoots, VanillaItemsArmor.jungleLegs, VanillaItemsArmor.jungleBody,
-            VanillaItemsArmor.jungleHelmet) && s == DamageSource.magic) {
+            VanillaItemsArmor.jungleHelmet) && s == DamageSource.magic && p.isPotionActive(net.minecraft.potion.Potion.poison) && e.ammount <= 1.0F) {
+            // только тик яда (1 урона при яде): зелье вреда и чужая магия - как обычно
             e.setCanceled(true);
             note(p, "Сет Jungle: яд не ранит");
         }

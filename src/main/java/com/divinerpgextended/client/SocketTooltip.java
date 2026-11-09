@@ -32,6 +32,9 @@ public class SocketTooltip {
             for (ItemStack a : in) e.toolTip.add(EnumChatFormatting.LIGHT_PURPLE + " - " + a.getDisplayName());
             if (in.isEmpty()) e.toolTip.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.sockets.empty"));
         }
+        if (s.getItem() == net.divinerpg.utils.items.VanillaItemsArmor.jungleHelmet || s.getItem() == net.divinerpg.utils.items.VanillaItemsArmor.jungleBody
+            || s.getItem() == net.divinerpg.utils.items.VanillaItemsArmor.jungleLegs || s.getItem() == net.divinerpg.utils.items.VanillaItemsArmor.jungleBoots)
+            e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocalFormatted("dre.tooltip.jungle_set", new java.text.DecimalFormat("0.#").format(com.divinerpgextended.Config.jungleDebuffSpeed)));
         Item ammo = Ammo.of(s);
         if (ammo != null) {
             int n = Ammo.loaded(s);

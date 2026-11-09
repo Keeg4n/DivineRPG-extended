@@ -218,13 +218,21 @@ def pauldron(a, c, trim, side='R', big=False, spikes=None):
 
 def scarf(a, c1, c2, tail=True, fat=False, fur=None):
     """Шарф: воротник вокруг шеи и хвост на груди."""
-    z0 = chest_z(a, 2.0) - .3
-    z1 = max(back_z(a, 2.0), 2.3) + .3
-    x = a.env('body', 2.0, zlim=(-9, 3.4))[1] + .2
     h = 2.3 if fat else 1.6
-    bottom = max([hi[1] for b, lo, hi in a.surface if b == 'head' and hi[0] - lo[0] >= 6] + [-1.7])
-    top = max(-1.7, bottom - .1)
-    x = max(x, 4.3)
+    # не выше низа головы (y=0): у Странника шлем кончается выше подбородка, и воротник на его высоте прятала голова
+    bottom = max([hi[1] for b, lo, hi in a.surface if b == 'head'] + [-1.7])
+    top = max(-.1, bottom - .15)
+    # огибающая по всей высоте воротника: самая выступающая броня у шеи и на плечах
+    xs, z0s, z1s = [], [], []
+    for k in range(int(h / .25) + 1):
+        y = top + k * .25
+        ex = a.env('body', y, zlim=(-9, 3.4))
+        xs.append(max(-ex[0], ex[1]))
+        z0s.append(min(chest_z(a, y), ex[2]))
+        z1s.append(max(back_z(a, y), ex[3]))
+    x = max(max(xs), 4.3) + .25
+    z0 = min(z0s) - .3
+    z1 = max(max(z1s), 2.3) + .3
     col = fur or c1
     out = cube('body', -x, top, z0, x * 2, h, z1 - z0, col)
     for i in range(0, 6, 2):
@@ -232,7 +240,8 @@ def scarf(a, c1, c2, tail=True, fat=False, fur=None):
         out += cube('body', px, top - .03, z0 - .03, .9, h + .06, .1, c2 if not fur else '#e8e0d0')
     if tail:
         for i in range(5):
-            out += cube('body', -2.9, top + h + i * 1.1, z0 - .1, 2.2, 1.1, .5, c1 if i % 2 == 0 else c2)
+            yy = top + h + i * 1.1
+            out += cube('body', -2.9, yy, min(chest_z(a, yy + .5) - .35, z0 + .1), 2.2, 1.1, .5, c1 if i % 2 == 0 else c2)  # поверх нагрудника
     return out
 
 

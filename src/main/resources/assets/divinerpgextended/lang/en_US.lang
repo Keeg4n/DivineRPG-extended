@@ -100,7 +100,7 @@ dre.tooltip.required_tier=Requires R%d (%s) armor or better, otherwise it kills 
 dre.perk.fire_protection=Fire Protection
 dre.perk.explosion_protection=Explosion Protection
 dre.perk.water_breathing=Water Breathing
-dre.perk.poison_resistance=Poison Resistance
+dre.perk.poison_resistance=Antidote
 dre.perk.wither_protection=Wither Protection
 
 dre.boss.ancient_entity=Ancient Entity
@@ -1468,6 +1468,7 @@ dre.sockets.tooltip=Accessory sockets: %s of %s
 dre.sockets.empty=Empty - accessories are socketed at the Wanderer Anvil
 dre.ammo.loaded=Loaded: %s / %s (%s)
 dre.ammo.how=Sneak + right-click to load from the inventory; unload at the Wanderer Anvil
+dre.tooltip.jungle_set=Set: antidote. Poison does nothing, other bad effects (Thaumcraft warp too) are not removed but wear off %s times faster. On Wanderer armor - as a perk
 dre.ammo.per_shot=Per shot: %s x %s (fewer - no shot)
 dre.accessories.legacy=Take only (hover for why)
 dre.accessories.legacy_hint=Accessory and ammo slots are gone. Accessories are socketed into armor at the Wanderer Anvil, ammo is loaded into the weapon itself (sneak + right-click). Items here can only be taken out - the button disappears once this is empty.

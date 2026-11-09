@@ -7944,6 +7944,60 @@ public class SelfTest {
                     + "; Король Скорчеров вдвоём: дроп " + kingDrops + ", победа ниже " + loKing + "/выше " + hiKing + "; Карот в обычном мире " + karotHere + ", в Мортуме " + karotHome);
             return "мобы Айсики, сумеречных миров, Арканы и Ветеи в обычном мире не замечают и не бьют игрока, не дошедшего до их мира, и с убитых им ничего не падает; у себя дома - как обычно. Босс не своего этапа (обычный мир, Ад, Край) - ни победы, ни доли; не дошёл никто - ничего не падает";
         });
+        t("Броня", "Противоядие: сет джунглей и перк - плохие эффекты проходят быстрее", () -> {
+            TestPlayer ap = player(0, "TestAntidote", 0, 100, 0);
+            Item[] jg = { VanillaItemsArmor.jungleBoots, VanillaItemsArmor.jungleLegs, VanillaItemsArmor.jungleBody, VanillaItemsArmor.jungleHelmet };
+            int extra = (int) Math.round(com.divinerpgextended.perk.Antidote.PERIOD * (com.divinerpgextended.Config.jungleDebuffSpeed - 1));
+            int[][] got = new int[3][];
+            boolean[] poisoned = new boolean[3];
+            for (int run = 0; run < 3; run++) { // без брони, сет джунглей, Странник с перком
+                for (int ai = 0; ai < 4; ai++) ap.inventory.armorInventory[ai] = null;
+                if (run == 1) for (int ai = 0; ai < 4; ai++) ap.inventory.armorInventory[ai] = new ItemStack(jg[ai]);
+                if (run == 2) for (int ai = 0; ai < 4; ai++) {
+                    ItemStack ws = com.divinerpgextended.item.ItemWandererArmor.stack(ModItems.wanderer[3 - ai], 3, com.divinerpgextended.item.ArmorCore.DIVINE);
+                    com.divinerpgextended.item.ArmorData.setPerks(ws, java.util.Arrays.asList(Perk.POISON_RESISTANCE));
+                    ap.inventory.armorInventory[ai] = ws;
+                }
+                ap.clearActivePotions();
+                ap.addPotionEffect(new net.minecraft.potion.PotionEffect(net.minecraft.potion.Potion.weakness.id, 200, 0));
+                ap.addPotionEffect(new net.minecraft.potion.PotionEffect(net.minecraft.potion.Potion.hunger.id, 15, 0));
+                ap.addPotionEffect(new net.minecraft.potion.PotionEffect(net.minecraft.potion.Potion.moveSpeed.id, 200, 0));
+                ap.addPotionEffect(new net.minecraft.potion.PotionEffect(net.minecraft.potion.Potion.poison.id, 200, 0));
+                ap.ticksExisted = com.divinerpgextended.perk.Antidote.PERIOD; // тик, на котором противоядие срезает время
+                FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, ap));
+                net.minecraft.potion.PotionEffect wk = ap.getActivePotionEffect(net.minecraft.potion.Potion.weakness), sp = ap.getActivePotionEffect(net.minecraft.potion.Potion.moveSpeed);
+                got[run] = new int[] { wk == null ? 0 : wk.getDuration(), ap.isPotionActive(net.minecraft.potion.Potion.hunger) ? 1 : 0, sp == null ? 0 : sp.getDuration() };
+                poisoned[run] = ap.isPotionActive(net.minecraft.potion.Potion.poison);
+            }
+            // сет: только тик яда не ранит, зелье вреда ранит
+            for (int ai = 0; ai < 4; ai++) ap.inventory.armorInventory[ai] = new ItemStack(jg[ai]);
+            ap.clearActivePotions();
+            ap.addPotionEffect(new net.minecraft.potion.PotionEffect(net.minecraft.potion.Potion.poison.id, 200, 0));
+            net.minecraftforge.event.entity.living.LivingAttackEvent tickPoison = new net.minecraftforge.event.entity.living.LivingAttackEvent(ap, DamageSource.magic, 1.0F);
+            MinecraftForge.EVENT_BUS.post(tickPoison);
+            net.minecraftforge.event.entity.living.LivingAttackEvent harm = new net.minecraftforge.event.entity.living.LivingAttackEvent(ap, DamageSource.magic, 6.0F);
+            MinecraftForge.EVENT_BUS.post(harm);
+            for (int ai = 0; ai < 4; ai++) ap.inventory.armorInventory[ai] = null;
+            ap.clearActivePotions();
+            // эффекты Таумкрафта (если он есть): варп помечен плохим - его и укорачиваем, защита от варпа - нет
+            StringBuilder tc = new StringBuilder();
+            boolean tcOk = true;
+            for (net.minecraft.potion.Potion po : net.minecraft.potion.Potion.potionTypes) {
+                if (po == null || !po.getClass().getName().startsWith("thaumcraft.")) continue;
+                boolean bad = com.divinerpgextended.vethea.Nightmare.bad(po);
+                String cn = po.getClass().getSimpleName();
+                tc.append(cn.replace("Potion", "")).append(bad ? "+" : "-").append(' ');
+                if (cn.equals("PotionSunScorned") || cn.equals("PotionUnnaturalHunger")) tcOk &= bad;
+                if (cn.equals("PotionWarpWard")) tcOk &= !bad;
+            }
+            boolean bare = got[0][0] == 200 && got[0][1] == 1 && got[0][2] == 200 && poisoned[0];
+            boolean set = got[1][0] == 200 - extra && got[1][1] == 0 && got[1][2] == 200 && !poisoned[1];
+            boolean perk = got[2][0] == 200 - extra && got[2][1] == 0 && got[2][2] == 200 && !poisoned[2];
+            check(bare && set && perk && tickPoison.isCanceled() && !harm.isCanceled() && tcOk,
+                "слабость 200 / голод 15 / скорость 200 / яд: без брони " + java.util.Arrays.toString(got[0]) + " яд " + poisoned[0] + "; сет джунглей " + java.util.Arrays.toString(got[1]) + " яд " + poisoned[1]
+                    + "; Странник с перком " + java.util.Arrays.toString(got[2]) + " яд " + poisoned[2] + "; тик яда отменён " + tickPoison.isCanceled() + ", зелье вреда отменено " + harm.isCanceled() + "; Таумкрафт: " + tc);
+            return "в сете джунглей и с перком на броне Странника яд снят, плохие эффекты за секунду теряют лишнюю секунду (короткие кончаются), хорошие не трогаются; эффекты варпа Таумкрафта помечены плохими - их тоже укорачивает; зелье вреда ранит как обычно";
+        });
         t("Броня", "Броня из бедрока не изнашивается", () -> {
             boolean all = true;
             StringBuilder sb = new StringBuilder();
