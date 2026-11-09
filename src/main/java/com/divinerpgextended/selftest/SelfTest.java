@@ -2312,28 +2312,124 @@ public class SelfTest {
         t("Аркана", "Фазы боссов под аркану: Драмикс, Парасекта, души Пожирателя", () -> {
             net.minecraft.world.World w = p.worldObj;
             DamageSource plain = DamageSource.causePlayerDamage(p), arc = com.divinerpgextended.magic.ArcanaCombat.arcaneSource(p);
+            DamageSource boom = new DamageSource("explosion.player").setExplosion();
             net.divinerpg.entities.arcana.EntityDramix dr = new net.divinerpg.entities.arcana.EntityDramix(w);
             dr.setInvisible(true);
-            float drPlain = hurt(dr, plain, 10), drArc = hurt(dr, arc, 10);
+            float drPlain = hurt(dr, plain, 10), drArc = hurt(dr, arc, 10), drBoomHidden = hurt(dr, boom, 10);
             dr.setInvisible(false);
-            float drSeen = hurt(dr, plain, 10);
+            float drSeen = hurt(dr, plain, 10), drSeenArc = hurt(dr, arc, 10), drBoom = hurt(dr, boom, 10);
+            // обычный удар не проходит ещё на атаке (без отброса), аркана и взрыв - проходят
+            net.minecraftforge.event.entity.living.LivingAttackEvent hit = new net.minecraftforge.event.entity.living.LivingAttackEvent(dr, plain, 10);
+            MinecraftForge.EVENT_BUS.post(hit);
+            net.minecraftforge.event.entity.living.LivingAttackEvent hitArc = new net.minecraftforge.event.entity.living.LivingAttackEvent(dr, arc, 10);
+            MinecraftForge.EVENT_BUS.post(hitArc);
             net.divinerpg.entities.arcana.EntityParasecta pa = new net.divinerpg.entities.arcana.EntityParasecta(w);
             pa.setPosition(p.posX, p.posY, p.posZ);
             pa.setHealth(pa.getMaxHealth() * 0.8F);
-            hurt(pa, plain, pa.getMaxHealth() * 0.06F); // ниже 75% - кокон
+            hurt(pa, boom, pa.getMaxHealth() * 0.06F); // ниже 75% - кокон
             boolean shell = com.divinerpgextended.magic.ArcanePhases.shelled(pa);
-            float paPlain = hurt(pa, plain, 100);
+            float paPlain = hurt(pa, plain, 100), paBoomShell = hurt(pa, boom, 100);
             float paCrack = hurt(pa, arc, 1000); // аркана раскалывает
             boolean cracked = !com.divinerpgextended.magic.ArcanePhases.shelled(pa);
-            float paExposed = hurt(pa, plain, 10);
+            float paExposed = hurt(pa, boom, 10), paExposedPlain = hurt(pa, plain, 10);
             net.divinerpg.entities.twilight.EntitySoulSpider soul = new net.divinerpg.entities.twilight.EntitySoulSpider(w);
             soul.getEntityData().setBoolean(com.divinerpgextended.boss.MortumArenaBosses.SOUL, true);
             float soulArc = hurt(soul, arc, 10), soulPlain = hurt(soul, plain, 10);
-            check(near(drPlain, 2) && near(drArc, 15) && near(drSeen, 10) && shell && near(paPlain, 10) && cracked && near(paExposed, 15) && near(soulArc, 30)
-                && near(soulPlain, 5), "Драмикс невидим: обычный " + f(drPlain) + ", арканный " + f(drArc) + ", видим " + f(drSeen) + "; Парасекта: кокон " + shell
-                    + ", обычный 100 -> " + f(paPlain) + ", аркана раскалывает " + cracked + " (" + f(paCrack) + "), открыта: 10 -> " + f(paExposed)
+            check(near(drPlain, 0) && near(drArc, 15) && near(drBoomHidden, 2) && near(drSeen, 0) && near(drSeenArc, 10) && near(drBoom, 10) && hit.isCanceled() && !hitArc.isCanceled()
+                && shell && near(paPlain, 0) && near(paBoomShell, 10) && cracked && near(paExposed, 15) && near(paExposedPlain, 0) && near(soulArc, 30) && near(soulPlain, 5),
+                "Драмикс невидим: обычный " + f(drPlain) + ", арканный " + f(drArc) + ", взрыв " + f(drBoomHidden) + "; видим: обычный " + f(drSeen) + ", арканный " + f(drSeenArc) + ", взрыв " + f(drBoom)
+                    + "; обычный удар отменён на атаке " + hit.isCanceled() + ", арканный нет " + !hitArc.isCanceled() + "; Парасекта: кокон " + shell + ", обычный 100 -> " + f(paPlain) + ", взрыв 100 -> " + f(paBoomShell)
+                    + ", аркана раскалывает " + cracked + " (" + f(paCrack) + "), открыта: взрыв 10 -> " + f(paExposed) + ", обычный -> " + f(paExposedPlain)
                     + "; душа: аркана 10 -> " + f(soulArc) + ", обычный 10 -> " + f(soulPlain));
-            return "Драмикс в невидимости: обычный урон x0.2, арканный x1.5; Парасекта в коконе x0.1, аркана раскалывает и открывает (x1.5); души Пожирателя: аркана x3, обычный x0.5";
+            return "боссов Арканы ранят только аркана и взрывы (обычный удар отменяется ещё на атаке); Драмикс в невидимости: аркана x1.5, взрыв x0.2; Парасекта в коконе: взрыв x0.1, аркана раскалывает и открывает (x1.5); души Пожирателя: аркана x3, обычный x0.5";
+        });
+        t("Аркана", "Ракета Мерика находит босса Арканы, взрыватель бьёт всеми пулями", () -> {
+            reset(p);
+            net.minecraft.world.World w = p.worldObj;
+            ArcanaHelper ah = ArcanaHelper.getProperties(p);
+            // ракета: ближе к игроку зомби, дальше невидимый Драмикс - цель всё равно Драмикс
+            net.minecraft.entity.monster.EntityZombie near = new net.minecraft.entity.monster.EntityZombie(w);
+            near.setPosition(p.posX + 2, p.posY, p.posZ);
+            w.spawnEntityInWorld(near);
+            net.divinerpg.entities.arcana.EntityDramix dr = new net.divinerpg.entities.arcana.EntityDramix(w);
+            dr.setPosition(p.posX + 12, p.posY, p.posZ + 3);
+            dr.setInvisible(true);
+            w.spawnEntityInWorld(dr);
+            net.divinerpg.entities.arcana.projectile.EntityMerikMissile mm = new net.divinerpg.entities.arcana.projectile.EntityMerikMissile(w, p);
+            w.spawnEntityInWorld(mm);
+            Object aim = null;
+            try {
+                java.lang.reflect.Field tf = net.divinerpg.entities.base.EntityHeatSeekingProjectile.class.getDeclaredField("target");
+                tf.setAccessible(true);
+                aim = tf.get(mm);
+            } catch (Exception ex) {
+                aim = ex.toString();
+            }
+            mm.setDead();
+            dr.setDead();
+            // взрыватель: настоящий выстрел, пули летят тиками; цель - зомби с запасом здоровья прямо перед игроком,
+            // в воздухе в стороне: на месте проверок стоят тестовые игроки других тестов и ловят пули
+            double ox = p.posX, oy = p.posY, oz = p.posZ;
+            loadAround((net.minecraft.world.WorldServer) w, (int) ox + 400, (int) oz, 1);
+            p.setPosition(ox + 400.5, 200, oz + 0.5);
+            near.setDead();
+            final net.minecraft.entity.monster.EntityZombie tz = new net.minecraft.entity.monster.EntityZombie(w); // новый: переставленный остаётся в старом чанке
+            tz.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(1000);
+            tz.setHealth(1000);
+            tz.setPosition(p.posX, p.posY, p.posZ + 2.5);
+            w.spawnEntityInWorld(tz);
+            p.rotationYaw = 0;
+            p.rotationPitch = 0;
+            ah.setBarValue(200);
+            ItemStack gun = new ItemStack(net.divinerpg.utils.items.ArcanaItems.arcaniteBlaster);
+            hold(p, gun);
+            java.util.Set<Object> before = new java.util.HashSet<Object>(w.loadedEntityList);
+            gun.getItem().onItemRightClick(gun, w, p);
+            java.util.List<net.minecraft.entity.Entity> shots = new java.util.ArrayList<net.minecraft.entity.Entity>();
+            for (Object o : w.loadedEntityList) if (!before.contains(o) && o instanceof net.divinerpg.entities.vanilla.projectile.EntityShooterBullet) shots.add((net.minecraft.entity.Entity) o);
+            float hp0 = tz.getHealth();
+            int wounded = 0, ground = 0; // пуля ранила / погибла, не ранив
+            StringBuilder missWhere = new StringBuilder();
+            String startAt = String.format("игрок %.1f %.1f %.1f, цель %.1f %.1f %.1f; ", p.posX, p.posY, p.posZ, tz.posX - p.posX, tz.posY - p.posY, tz.posZ - p.posZ);
+            AttackCounter ac = new AttackCounter(tz, net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class);
+            AttackCounter any = new AttackCounter(null, net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class); // рядом стоят тестовые игроки других проверок
+            MinecraftForge.EVENT_BUS.register(ac);
+            MinecraftForge.EVENT_BUS.register(any);
+            try {
+                for (int tk = 0; tk < 20; tk++) for (net.minecraft.entity.Entity sh : shots) {
+                    if (sh.isDead) continue;
+                    float hb = tz.getHealth();
+                    sh.onUpdate();
+                    if (tz.getHealth() < hb) wounded++;
+                    else if (sh.isDead) {
+                        ground++;
+                        if (ground <= 4) {
+                            int gx = net.minecraft.util.MathHelper.floor_double(sh.posX), gy = net.minecraft.util.MathHelper.floor_double(sh.posY), gz = net.minecraft.util.MathHelper.floor_double(sh.posZ);
+                            missWhere.append(String.format("(%.1f %.1f %.1f %s тик %d) ", sh.posX - p.posX, sh.posY - p.posY, sh.posZ - p.posZ, w.getBlock(gx, gy, gz).getUnlocalizedName(), tk));
+                        }
+                    }
+                }
+            } finally {
+                MinecraftForge.EVENT_BUS.unregister(ac);
+                MinecraftForge.EVENT_BUS.unregister(any);
+            }
+            int touched = ac.attacks, hitAny = any.attacks;
+            int flying = 0;
+            for (net.minecraft.entity.Entity sh : shots) {
+                if (!sh.isDead) flying++;
+                sh.setDead();
+            }
+            float lost = hp0 - tz.getHealth();
+            float per = com.divinerpgextended.magic.ArcanaCombat.damage(p, gun);
+            int hits = per > 0 ? Math.round(lost / per) : 0; // каждая попавшая пуля - ровно per арканного урона
+            tz.setDead();
+            hold(p, null);
+            p.setPosition(ox, oy, oz);
+            check(aim == dr && shots.size() == 30 && wounded == touched && wounded >= 28 && hitAny >= 28,
+                "ракета Мерика целится в " + (aim == dr ? "Драмикса" : String.valueOf(aim)) + "; взрыватель: пуль " + shots.size() + ", попало во что-то " + hitAny + ", до цели долетело " + touched + ", из них ранило " + wounded
+                    + ", погибло, не ранив цель, " + ground + ", ещё летят " + flying + " [" + startAt + missWhere + "]; урон " + f(lost) + " (по " + f(per) + " за пулю, попаданий " + hits + ")");
+            return "ракета Мерика рядом с боссом Арканы берёт целью его, даже невидимого и даже если ближе стоит другой моб; взрыватель Арканы: пули сходятся в точку прицела, во что-то попало "
+                + hitAny + " из 30 (в цель " + wounded + "), каждое попадание ранит";
         });
     }
 
@@ -2400,6 +2496,23 @@ public class SelfTest {
             return "призрак-призыв: летит к цели хозяина сквозь стены, бьёт на " + f(hit) + " арканного урона, не больше двух, " + (int) com.divinerpgextended.magic.EntityArcaneWraith.UPKEEP
                 + " арканы в секунду, неуязвим";
         });
+    }
+
+    /** Сколько атак по цели пришло от снарядов класса cls (обработчик шины Forge обязан быть публичным классом). */
+    public static class AttackCounter {
+        final net.minecraft.entity.Entity target;
+        final Class<?> cls;
+        public int attacks;
+
+        public AttackCounter(net.minecraft.entity.Entity target, Class<?> cls) {
+            this.target = target;
+            this.cls = cls;
+        }
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.LOWEST)
+        public void onAttack(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
+            if ((target == null || e.entityLiving == target) && cls.isInstance(e.source.getSourceOfDamage())) attacks++;
+        }
     }
 
     private static float hurt(net.minecraft.entity.EntityLivingBase e, DamageSource s, float a) {

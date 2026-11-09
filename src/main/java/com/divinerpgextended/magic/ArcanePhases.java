@@ -23,9 +23,10 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 /**
  * Фазы боссов, где решает арканный урон.
  * <ul>
- * <li>Драмикс: пока невидим (полцикла), обычный урон проходит на {@link #DRAMIX_OTHER}, арканный - x{@link #DRAMIX_ARCANE}
- * (самонаводящиеся снаряды находят его сами).</li>
- * <li>Парасекта: на 75%, 50% и 25% здоровья закрывается хитиновым коконом до {@link #SHELL_TICKS} тиков - обычный урон
+ * <li>Боссов Арканы (Драмикс, Парасекта) ранят только аркана и взрывы ({@link #hurtsArcanaBoss}); обычный удар не проходит,
+ * бившему - подсказка. Ракета Мерика рядом с боссом Арканы берёт целью его, невидимость ей не мешает.</li>
+ * <li>Драмикс: пока невидим (полцикла), арканный урон x{@link #DRAMIX_ARCANE}, взрывы - x{@link #DRAMIX_OTHER}.</li>
+ * <li>Парасекта: на 75%, 50% и 25% здоровья закрывается хитиновым коконом до {@link #SHELL_TICKS} тиков - взрывы
  * x{@link #SHELL_OTHER}; арканный урон кокон раскалывает ({@link #CRACK} на каждого игрока рядом): кокон спадает, она
  * оглушена и {@link #EXPOSED_TICKS} тиков получает x{@link #EXPOSED}.</li>
  * <li>Души Пожирателя (пока живы, он неуязвим): от арканы гибнут втрое быстрее, от обычного урона - вдвое медленнее.</li>
@@ -45,6 +46,36 @@ public class ArcanePhases {
         if (src == null) return false;
         NBTTagCompound t = src.getEntityData();
         return t.hasKey(ArcanaCombat.DMG) || t.getBoolean(ArcanaCombat.MOB) && s.getEntity() instanceof EntityPlayer;
+    }
+
+    /** Босс Арканы: ранят только аркана и взрывы. */
+    public static boolean arcanaBoss(Entity e) {
+        return e instanceof EntityDramix || e instanceof EntityParasecta;
+    }
+
+    /** Проходит ли такой урон по боссу Арканы: аркана, взрыв, пустота и /kill, игрок в творческом. */
+    public static boolean hurtsArcanaBoss(DamageSource s) {
+        if (arcane(s) || s.isExplosion() || s == DamageSource.outOfWorld) return true;
+        Entity a = s.getEntity();
+        return a instanceof EntityPlayer && ((EntityPlayer) a).capabilities.isCreativeMode;
+    }
+
+    static final String HINT_AT = "dreArcBossHint";
+
+    /** Обычный удар по боссу Арканы не проходит (ни урона, ни отброса); бившему раз в 10 с - подсказка. */
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public void onAttack(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
+        if (e.entityLiving.worldObj.isRemote || !arcanaBoss(e.entityLiving) || hurtsArcanaBoss(e.source)) return;
+        e.setCanceled(true);
+        Entity a = e.source.getEntity();
+        if (!(a instanceof EntityPlayer)) return;
+        EntityPlayer p = (EntityPlayer) a;
+        long now = p.worldObj.getTotalWorldTime();
+        if (now - p.getEntityData().getLong(HINT_AT) < 200) return;
+        p.getEntityData().setLong(HINT_AT, now);
+        ChatComponentTranslation m = new ChatComponentTranslation("dre.chat.arcana_boss_immune");
+        m.getChatStyle().setColor(EnumChatFormatting.LIGHT_PURPLE);
+        p.addChatMessage(m);
     }
 
     private static int playersNear(EntityLivingBase b) {
@@ -68,6 +99,10 @@ public class ArcanePhases {
         EntityLivingBase t = e.entityLiving;
         if (t.worldObj.isRemote) return;
         boolean arc = arcane(e.source);
+        if (arcanaBoss(t) && !hurtsArcanaBoss(e.source)) { // мимо события атаки (шипы, чужие моды) - всё равно ноль
+            e.ammount = 0;
+            return;
+        }
         if (t instanceof EntityDramix && t.isInvisible()) {
             e.ammount *= arc ? DRAMIX_ARCANE : DRAMIX_OTHER;
             return;

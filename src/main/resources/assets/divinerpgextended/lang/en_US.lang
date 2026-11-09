@@ -1383,6 +1383,7 @@ dre.nei.brewing.mods=Glowstone - strong, redstone - long, gunpowder - shared
 dre.nei.brewing.fuel=Fuel: Arcanium (4 brews). Lord Vatticus sells the stand
 dre.tooltip.potion_ingredient=Arcane potion ingredient: %s
 death.attack.dre.arcane=%1$s was struck down by arcana from %2$s
+dre.chat.arcana_boss_immune=Arcana bosses are hurt only by arcana and explosions. Merik's Missile homes in and finds invisible Dramix.
 dre.chat.parasecta_shell=Parasecta hides in a chitin cocoon: ordinary weapons barely hurt it, arcana cracks the cocoon!
 dre.chat.parasecta_cracked=The cocoon cracks: Parasecta is stunned and vulnerable!
 dre.chat.horde_heart=The last Ayeraco took the strength of its fallen brothers: Heart of the Horde!

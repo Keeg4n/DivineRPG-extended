@@ -129,6 +129,9 @@ public class ArcanaCombat {
             }
             return;
         }
+        if (thrower instanceof EntityPlayer && "EntityMerikMissile".equals(cls)) aimAtArcanaBoss(t);
+        if (thrower instanceof EntityPlayer && "EntityShooterBullet".equals(cls) && thrower.getHeldItem() != null
+            && thrower.getHeldItem().getItem() == ArcanaItems.arcaniteBlaster) converge(t, (EntityPlayer) thrower);
         if (thrower instanceof EntityPlayer) {
             float dmg = damage((EntityPlayer) thrower, thrower.getHeldItem());
             if (dmg > 0) d.setFloat(DMG, dmg);
@@ -141,6 +144,86 @@ public class ArcanaCombat {
                 return;
             }
             d.setBoolean(MOB, true);
+        }
+    }
+
+    /** Точка прицела игрока на этот тик (у взрывателя 30 пуль за раз - луч считаем один раз). */
+    private static final Map<EntityPlayer, Object[]> AIM = new java.util.WeakHashMap<EntityPlayer, Object[]>();
+    static final double AIM_RANGE = 32;
+
+    /** Куда смотрит игрок: первое существо на луче, иначе блок, иначе точка на AIM_RANGE. */
+    static net.minecraft.util.Vec3 aimPoint(EntityPlayer p) {
+        long now = p.worldObj.getTotalWorldTime();
+        Object[] c = AIM.get(p);
+        if (c != null && (Long) c[0] == now) return (net.minecraft.util.Vec3) c[1];
+        net.minecraft.util.Vec3 eye = net.minecraft.util.Vec3.createVectorHelper(p.posX, p.posY + p.getEyeHeight(), p.posZ);
+        net.minecraft.util.Vec3 look = p.getLookVec();
+        net.minecraft.util.Vec3 far = eye.addVector(look.xCoord * AIM_RANGE, look.yCoord * AIM_RANGE, look.zCoord * AIM_RANGE);
+        net.minecraft.util.MovingObjectPosition blk = p.worldObj.rayTraceBlocks(net.minecraft.util.Vec3.createVectorHelper(eye.xCoord, eye.yCoord, eye.zCoord),
+            net.minecraft.util.Vec3.createVectorHelper(far.xCoord, far.yCoord, far.zCoord));
+        double reach = blk != null && blk.hitVec != null ? blk.hitVec.distanceTo(eye) : AIM_RANGE;
+        net.minecraft.util.Vec3 best = blk != null && blk.hitVec != null ? blk.hitVec : far;
+        net.minecraft.util.AxisAlignedBB sweep = p.boundingBox.addCoord(look.xCoord * reach, look.yCoord * reach, look.zCoord * reach).expand(1, 1, 1);
+        for (Object o : p.worldObj.getEntitiesWithinAABBExcludingEntity(p, sweep)) {
+            Entity en = (Entity) o;
+            if (!(en instanceof EntityLivingBase) || !en.canBeCollidedWith()) continue;
+            net.minecraft.util.MovingObjectPosition hit = en.boundingBox.expand(0.3, 0.3, 0.3).calculateIntercept(eye, far);
+            if (hit == null) continue;
+            double d = hit.hitVec.distanceTo(eye);
+            if (d < reach) {
+                reach = d;
+                best = net.minecraft.util.Vec3.createVectorHelper(en.posX, en.boundingBox.minY + en.height * 0.55, en.posZ);
+            }
+        }
+        AIM.put(p, new Object[] { now, best });
+        return best;
+    }
+
+    /**
+     * Пули взрывателя Арканы сходятся в точку прицела. Divine разбрасывает их не по направлению, а по точке старта (+-1.5
+     * блока по каждой оси), и 30 пуль летят параллельным облаком шириной 3 блока: цель ловила лишь его часть на любой
+     * дистанции, а стартовавшие в стене рядом гибли сразу. Скорость пули та же; стартовавшая в блоке или за преградой - вылетает от глаз.
+     */
+    static void converge(EntityThrowable b, EntityPlayer p) {
+        net.minecraft.util.Vec3 aim = aimPoint(p);
+        boolean inBlock = b.worldObj.getBlock(net.minecraft.util.MathHelper.floor_double(b.posX), net.minecraft.util.MathHelper.floor_double(b.posY),
+            net.minecraft.util.MathHelper.floor_double(b.posZ)).getMaterial().blocksMovement();
+        // в стене или путь до прицела перегорожен блоком - вылетает от глаз (оттуда до прицела чисто)
+        if (inBlock || b.worldObj.rayTraceBlocks(net.minecraft.util.Vec3.createVectorHelper(b.posX, b.posY, b.posZ),
+            net.minecraft.util.Vec3.createVectorHelper(aim.xCoord, aim.yCoord, aim.zCoord)) != null) b.setPosition(p.posX, p.posY + p.getEyeHeight() - 0.1, p.posZ);
+        double dx = aim.xCoord - b.posX, dy = aim.yCoord - b.posY, dz = aim.zCoord - b.posZ, len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        double v = Math.sqrt(b.motionX * b.motionX + b.motionY * b.motionY + b.motionZ * b.motionZ);
+        if (len < 0.01 || v < 0.01) return;
+        b.motionX = dx / len * v;
+        b.motionY = dy / len * v;
+        b.motionZ = dz / len * v;
+    }
+
+    private static java.lang.reflect.Field seekTarget;
+
+    /**
+     * Ракета Мерика рядом с боссом Арканы сразу берёт целью его (Divine берёт ближнее живое и не меняет цель, пока та жива:
+     * миньон или напарник рядом уводили ракету). Невидимость Драмикса самонаводке не мешает. Для автотеста - публичный.
+     */
+    public static net.minecraft.entity.Entity aimAtArcanaBoss(EntityThrowable missile) {
+        net.minecraft.entity.Entity best = null;
+        double bd = 50 * 50;
+        for (Object o : missile.worldObj.getEntitiesWithinAABB(EntityLivingBase.class, missile.boundingBox.expand(50, 50, 50))) {
+            EntityLivingBase b = (EntityLivingBase) o;
+            if (!ArcanePhases.arcanaBoss(b) || !b.isEntityAlive()) continue;
+            double d = b.getDistanceSqToEntity(missile);
+            if (d < bd) {
+                bd = d;
+                best = b;
+            }
+        }
+        if (best == null) return null;
+        try {
+            if (seekTarget == null) seekTarget = cpw.mods.fml.relauncher.ReflectionHelper.findField(net.divinerpg.entities.base.EntityHeatSeekingProjectile.class, "target");
+            seekTarget.set(missile, best);
+            return best;
+        } catch (Throwable ex) {
+            return null; // нет поля - наводится как у Divine
         }
     }
 
