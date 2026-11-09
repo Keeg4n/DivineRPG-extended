@@ -25,7 +25,7 @@ public class BossTracker {
 
     @SubscribeEvent
     public void onHurt(LivingHurtEvent event) {
-        if (event.entityLiving.worldObj.isRemote || Boss.of(event.entityLiving) == null) return;
+        if (event.entityLiving.worldObj.isRemote || Boss.of(event.entityLiving) == null && !(event.entityLiving instanceof net.divinerpg.entities.vanilla.EntityAyeraco)) return;
         Entity source = event.source.getEntity();
         if (source instanceof EntityPlayer) {
             Set<UUID> set = attackers.get(event.entityLiving);
@@ -41,7 +41,7 @@ public class BossTracker {
     public void onDeath(LivingDeathEvent event) {
         if (event.entityLiving.worldObj.isRemote) return;
         Boss boss = Boss.of(event.entityLiving);
-        if (boss == null) return;
+        if (boss == null && !(event.entityLiving instanceof net.divinerpg.entities.vanilla.EntityAyeraco)) return;
 
         Set<UUID> ids = attackers.remove(event.entityLiving);
         if (ids == null) ids = new HashSet<UUID>();
@@ -57,9 +57,27 @@ public class BossTracker {
             }
         }
 
+        // этап: в обычном мире, Аду и Крае не дошедший до босса не получает ни доли, ни победы; не дошёл никто - ничего не падает
+        boolean anyReady = ids.isEmpty();
+        for (Object o : MinecraftServer.getServer().getConfigurationManager().playerEntityList) {
+            EntityPlayerMP player = (EntityPlayerMP) o;
+            if (!ids.contains(player.getUniqueID())) continue;
+            if (ProgressSpawns.bossReady(player, event.entityLiving)) anyReady = true;
+            else {
+                String need = ProgressSpawns.bossNeedKey(event.entityLiving);
+                ChatComponentTranslation early = new ChatComponentTranslation("dre.chat.boss_too_early", new ChatComponentTranslation("entity." + net.minecraft.entity.EntityList.getEntityString(event.entityLiving) + ".name"),
+                    need == null ? "?" : new ChatComponentTranslation(need));
+                early.getChatStyle().setColor(EnumChatFormatting.GRAY);
+                player.addChatMessage(early);
+            }
+        }
+        if (!anyReady && com.divinerpgextended.Config.lowRankNoDrops) ProgressSpawns.markNoDrops(event.entityLiving);
+        if (boss == null) return; // Айрако: победа не пишется
+
         for (Object o : MinecraftServer.getServer()
             .getConfigurationManager().playerEntityList) {
             EntityPlayerMP player = (EntityPlayerMP) o;
+            if (ids.contains(player.getUniqueID()) && !ProgressSpawns.bossReady(player, event.entityLiving)) continue;
             if (ids.contains(player.getUniqueID())) {
                 com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.forBoss(boss), event.entityLiving);
                 com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.extraForBoss(boss), event.entityLiving);

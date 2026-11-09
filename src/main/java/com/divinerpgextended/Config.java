@@ -116,6 +116,8 @@ public class Config {
     public static boolean snowflakesInSummons = true;
     public static boolean warnVetheaInventory = true;
     public static boolean progressSpawns = true, lowRankNoDrops = true;
+    /** Мобы других миров Divine в обычном мире - по доступу игрока к их миру. */
+    public static boolean foreignMobsByStage = true;
     public static boolean arcanaNoDeadEnds = true;
     /** Рыбалка: реликвии (кошмарный бур из Ветеи), шанс червей у червекопалки. */
     public static boolean fishingRelics = true, drillArea = true;
@@ -347,6 +349,8 @@ public class Config {
             "Аркана без тупиков: на стыках комнат, где проёмы не совпадают, прорубается проход 2x2 (только новые чанки)");
         progressSpawns = cfg.getBoolean("progressSpawns", Configuration.CATEGORY_GENERAL, progressSpawns,
             "Мобы Divine в обычном мире, аду и Энде открываются по рангу: 0 - крабы, 1 (Карцинус) - снег, океан, Wildfire и адские пауки, 2 (Король-лич) - все остальные, кроме Энда, 3 (Древняя сущность) - мобы Энда");
+        foreignMobsByStage = cfg.getBoolean("foreignMobsByStage", Configuration.CATEGORY_GENERAL, foreignMobsByStage,
+            "Мобы Айсики, сумеречных миров, Арканы и Ветеи, попавшие в обычный мир (спавнер, яйцо), не трогают игрока, не дошедшего до их мира, и с них ничего не падает, если убил он. Айсика - после Карцинуса, Эдем и Аркана - после Смотрителя, следующий сумеречный мир - после стража предыдущего, Ветея - после боссов Духа вселенной");
         lowRankNoDrops = cfg.getBoolean("lowRankNoDrops", Configuration.CATEGORY_GENERAL, lowRankNoDrops,
             "С моба Divine, которого убил игрок ниже нужного ранга, не падают дроп и опыт (убить можно, нафармить - нет)");
         warnVetheaInventory = cfg.getBoolean("warnVetheaInventory", Configuration.CATEGORY_GENERAL,

@@ -162,18 +162,19 @@ public class ProgressSpawns {
     public void onTarget(LivingSetAttackTargetEvent event) {
         if (!(event.target instanceof EntityPlayer) || !(event.entityLiving instanceof EntityLiving)
             || event.entityLiving.worldObj.isRemote || !gated(event.entityLiving.worldObj)) return;
-        if (rank((EntityPlayer) event.target) >= tier(event.entityLiving)) return;
+        if (ready((EntityPlayer) event.target, event.entityLiving)) return;
         EntityLiving m = (EntityLiving) event.entityLiving;
         m.setAttackTarget(null);
         if (m instanceof EntityCreature) ((EntityCreature) m).setTarget(null);
     }
 
-    /** Моб не наносит урона игроку ниже своего ранга. */
+    /** Моб не наносит урона игроку ниже своего ранга (и не дошедшему до его мира). */
     @SubscribeEvent
     public void onAttack(LivingAttackEvent event) {
         if (!(event.entityLiving instanceof EntityPlayer) || event.entityLiving.worldObj.isRemote
             || !gated(event.entityLiving.worldObj)) return;
-        if (tier(event.source.getEntity()) > rank((EntityPlayer) event.entityLiving)) {
+        Entity src = event.source.getEntity();
+        if (src != null && !(src instanceof EntityPlayer) && !ready((EntityPlayer) event.entityLiving, src)) {
             event.setCanceled(true);
             com.divinerpgextended.debug.Debug.note(event.entityLiving, "Моб выше твоего ранга: урон отменён");
         }
@@ -193,22 +194,154 @@ public class ProgressSpawns {
     public void onDeath(LivingDeathEvent event) {
         if (!Config.lowRankNoDrops || event.entityLiving.worldObj.isRemote || !gated(event.entityLiving.worldObj)
             || !(event.entityLiving instanceof EntityLiving)) return;
-        int need = tier(event.entityLiving);
-        if (need == 0) return;
+        if (tier(event.entityLiving) == 0 && foreign(event.entityLiving) == null) return; // боссов решает BossTracker
         EntityPlayer k = killer(event.entityLiving, event.source.getEntity());
-        if (k == null || rank(k) >= need) return;
-        event.entityLiving.getEntityData()
-            .setBoolean(NO_DROPS, true);
-        ObfuscationReflectionHelper.setPrivateValue(EntityLiving.class, (EntityLiving) event.entityLiving, 0,
-            "experienceValue", "field_70728_aV");
+        if (k == null || ready(k, event.entityLiving)) return;
+        markNoDrops(event.entityLiving);
     }
 
-    @SubscribeEvent
+    /** Без дропа и опыта (дроп убирает {@link #onDrops} последним). */
+    public static void markNoDrops(EntityLivingBase e) {
+        e.getEntityData().setBoolean(NO_DROPS, true);
+        if (e instanceof EntityLiving) ObfuscationReflectionHelper.setPrivateValue(EntityLiving.class, (EntityLiving) e, 0, "experienceValue", "field_70728_aV");
+    }
+
+    public static boolean noDrops(Entity e) {
+        return e != null && e.getEntityData().getBoolean(NO_DROPS);
+    }
+
+    // ---------------------------------------------------------------- мобы других миров Divine в обычном мире и боссы
+
+    /** Мир Divine, откуда моб, по пакету класса (сумеречный - по главе бестиария); null - обычный мир, Ад, Край или не Divine. */
+    public static com.divinerpgextended.bestiary.Bestiary.Chapter home(Entity e) {
+        String c = e.getClass().getName();
+        if (!c.startsWith("net.divinerpg.entities.")) return null;
+        if (c.contains(".iceika.")) return com.divinerpgextended.bestiary.Bestiary.Chapter.ICEIKA;
+        if (c.contains(".arcana.")) return com.divinerpgextended.bestiary.Bestiary.Chapter.ARCANA;
+        if (c.contains(".vethea.")) return com.divinerpgextended.bestiary.Bestiary.Chapter.VETHEA;
+        if (!c.contains(".twilight.")) return null;
+        String name = net.minecraft.entity.EntityList.getEntityString(e);
+        com.divinerpgextended.bestiary.Bestiary.Chapter ch = name == null ? null : com.divinerpgextended.bestiary.Bestiary.chapterOf(name);
+        return ch != null ? ch : com.divinerpgextended.bestiary.Bestiary.Chapter.EDEN;
+    }
+
+    static boolean bossLike(Entity e) {
+        return Boss.of(e) != null || e instanceof net.minecraft.entity.boss.IBossDisplayData || e instanceof net.divinerpg.entities.base.EntityDivineRPGBoss;
+    }
+
+    /**
+     * Моб другого мира Divine, попавший в обычный мир (спавнер, яйцо, портал): мир, до которого должен дойти игрок, чтобы
+     * этот моб его замечал и что-то с него падало. Боссы (их решает {@link BossTracker}), торговцы и приручённые - null.
+     */
+    public static com.divinerpgextended.bestiary.Bestiary.Chapter foreign(Entity e) {
+        if (e == null || e.worldObj == null || e.worldObj.provider.dimensionId != 0 || !Config.foreignMobsByStage || !(e instanceof EntityLiving)) return null;
+        if (bossLike(e) || e instanceof net.minecraft.entity.IMerchant || e instanceof net.minecraft.entity.INpc) return null;
+        if (e instanceof net.minecraft.entity.passive.EntityTameable && ((net.minecraft.entity.passive.EntityTameable) e).isTamed()) return null;
+        return home(e);
+    }
+
+    /** Шесть боссов Мортума: частички трёх разных - Дух сумерек. */
+    static final Boss[] MORTUM_SIX = { Boss.TWILIGHT_DEMON, Boss.KAROT, Boss.ETERNAL_ARCHER, Boss.TWINS, Boss.SOUL_FIEND, Boss.VAMACHERON };
+
+    /**
+     * Дошёл ли игрок до мира: Айсика - после Карцинуса (как снежные мобы обычного мира), Эдем и Аркана - после Смотрителя,
+     * следующий сумеречный мир - после стража предыдущего (его шестерня открывает портал), Ветея - когда побеждены боссы
+     * Духа вселенной (три босса Мортума, Драмикс, Парасекта, Древняя сущность, Король Скорчеров; Айрако победой не пишется).
+     */
+    public static boolean reached(EntityPlayer p, com.divinerpgextended.bestiary.Bestiary.Chapter ch) {
+        switch (ch) {
+            case ICEIKA: return rank(p) >= 1;
+            case EDEN: case ARCANA: return BossProgress.has(p, Boss.WATCHER);
+            case WILDWOOD: return BossProgress.has(p, Boss.CADILLION_EDEN);
+            case APALACHIA: return BossProgress.has(p, Boss.CADILLION_WILDWOOD);
+            case SKYTHERN: return BossProgress.has(p, Boss.CADILLION_APALACHIA);
+            case MORTUM: return BossProgress.has(p, Boss.CADILLION_SKYTHERN);
+            case VETHEA: {
+                if (!BossProgress.has(p, Boss.DRAMIX) || !BossProgress.has(p, Boss.PARASECTA) || !BossProgress.has(p, Boss.ANCIENT_ENTITY)
+                    || !BossProgress.has(p, Boss.KING_OF_SCORCHERS)) return false;
+                int m = 0;
+                for (Boss b : MORTUM_SIX) if (BossProgress.has(p, b)) m++;
+                return m >= 3;
+            }
+            default: return true;
+        }
+    }
+
+    /** Кого победить раньше, чтобы дойти до мира (ключ перевода). */
+    public static String needKey(com.divinerpgextended.bestiary.Bestiary.Chapter ch) {
+        switch (ch) {
+            case ICEIKA: return Boss.CARCINUS.langKey();
+            case EDEN: case ARCANA: return Boss.WATCHER.langKey();
+            case WILDWOOD: return Boss.CADILLION_EDEN.langKey();
+            case APALACHIA: return Boss.CADILLION_WILDWOOD.langKey();
+            case SKYTHERN: return Boss.CADILLION_APALACHIA.langKey();
+            case MORTUM: return Boss.CADILLION_SKYTHERN.langKey();
+            default: return "dre.stage.vethea";
+        }
+    }
+
+    /** Замечает ли моб игрока и падает ли с него что-то: ранг для мобов обычного мира, Ада и Края, мир - для чужих в обычном мире. */
+    public static boolean ready(EntityPlayer p, Entity mob) {
+        int t = tier(mob);
+        if (t > 0) return rank(p) >= t;
+        com.divinerpgextended.bestiary.Bestiary.Chapter ch = foreign(mob);
+        return ch == null || reached(p, ch);
+    }
+
+    /** Этап босса: мир, до которого надо дойти (null - ранг по {@link #bossRank} или без условий). */
+    static com.divinerpgextended.bestiary.Bestiary.Chapter bossWorld(Boss b) {
+        switch (b) {
+            case CADILLION_EDEN: return com.divinerpgextended.bestiary.Bestiary.Chapter.EDEN;
+            case CADILLION_WILDWOOD: return com.divinerpgextended.bestiary.Bestiary.Chapter.WILDWOOD;
+            case CADILLION_APALACHIA: return com.divinerpgextended.bestiary.Bestiary.Chapter.APALACHIA;
+            case CADILLION_SKYTHERN: return com.divinerpgextended.bestiary.Bestiary.Chapter.SKYTHERN;
+            case TWILIGHT_DEMON: case KAROT: case ETERNAL_ARCHER: case TWINS: case SOUL_FIEND: case VAMACHERON:
+                return com.divinerpgextended.bestiary.Bestiary.Chapter.MORTUM;
+            case DRAMIX: case PARASECTA: return com.divinerpgextended.bestiary.Bestiary.Chapter.ARCANA;
+            case WRECK: case RAGLOK: case LADY_LUNA: return com.divinerpgextended.bestiary.Bestiary.Chapter.VETHEA;
+            default: return null;
+        }
+    }
+
+    /** Ранг, нужный боссу обычного мира, Ада и Края: цепочка Карцинус - Король-лич - Древняя сущность - Смотритель. */
+    static int bossRank(Boss b) {
+        switch (b) {
+            case SNOW_GLACON: case LICH_KING: return 1;
+            case ANCIENT_ENTITY: case KING_OF_SCORCHERS: case JUNGLE_DRAMCRYX: case JUNGLE_KING: return 2;
+            case WATCHER: return 3;
+            default: return 0;
+        }
+    }
+
+    /**
+     * Босс в обычном мире, Аду или Крае: дошёл ли игрок до его этапа. Не дошёл - ни доли добычи, ни победы
+     * ({@link BossTracker}, {@link com.divinerpgextended.halite.HaliteDrops}). В остальных мирах - всегда да.
+     */
+    public static boolean bossReady(EntityPlayer p, Entity boss) {
+        if (boss == null || boss.worldObj == null || !gated(boss.worldObj)) return true;
+        Boss b = Boss.of(boss);
+        if (b == null) return !(boss instanceof EntityAyeraco) || rank(p) >= 3; // орда Айрако в Крае - после Древней сущности
+        com.divinerpgextended.bestiary.Bestiary.Chapter ch = bossWorld(b);
+        return ch != null ? reached(p, ch) : rank(p) >= bossRank(b);
+    }
+
+    /** Кого победить раньше этого босса (ключ перевода; null - условий нет). */
+    public static String bossNeedKey(Entity boss) {
+        Boss b = Boss.of(boss);
+        if (b == null) return boss instanceof EntityAyeraco ? Boss.ANCIENT_ENTITY.langKey() : null;
+        com.divinerpgextended.bestiary.Bestiary.Chapter ch = bossWorld(b);
+        if (ch != null) return needKey(ch);
+        int r = bossRank(b);
+        return r == 1 ? Boss.CARCINUS.langKey() : r == 2 ? Boss.LICH_KING.langKey() : r == 3 ? Boss.ANCIENT_ENTITY.langKey() : null;
+    }
+
+    /** Последним: что бы ни добавили другие обработчики, у помеченного ничего не падает. */
+    @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.LOWEST)
     public void onDrops(LivingDropsEvent event) {
         if (event.entityLiving.getEntityData()
             .getBoolean(NO_DROPS)) {
             event.drops.clear();
-            com.divinerpgextended.debug.Debug.note(event.source.getEntity(), "Моб убит ниже нужного ранга: дроп и опыт не выпали");
+            com.divinerpgextended.debug.Debug.note(event.source.getEntity(), "Убит не на своём этапе: дроп и опыт не выпали");
         }
     }
 }

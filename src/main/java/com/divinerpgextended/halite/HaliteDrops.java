@@ -61,6 +61,7 @@ public class HaliteDrops {
         boolean ayeraco = lastAyeraco(v);
         if (b == null && !ayeraco) return;
         for (EntityPlayer p : near(v)) {
+            if (!com.divinerpgextended.boss.ProgressSpawns.bossReady(p, v)) continue; // не дошёл до этого босса - доли нет
             List<ItemStack> share = ayeraco ? java.util.Collections.singletonList(Halite.own(Halite.spark(Halite.Spark.AYERACO), p)) : Halite.share(p, b, v.worldObj.rand);
             for (ItemStack s : share) {
                 EntityItem it = new EntityItem(v.worldObj, v.posX, v.posY + 1, v.posZ, s);

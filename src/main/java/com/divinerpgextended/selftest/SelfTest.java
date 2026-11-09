@@ -7867,6 +7867,83 @@ public class SelfTest {
                     + ", с колчаном " + quiver + "; блиц с 3 пыли " + few + ", с 7 " + enough);
             return "на значке оружия из своего инвентаря - запас патронов (заряд + инвентарь), тысячи как 1k, колчан или подсумок - бесконечность, меньше чем на выстрел - красным; вне инвентаря цифры нет";
         });
+        t("Прохождение", "Мобы других миров в обычном мире и боссы не своего этапа", () -> {
+            WorldServer w = server.worldServers[0];
+            loadAround(w, 7300, 7300, 1);
+            TestPlayer lo = join(player(0, "TestStageLow", 7300.5, 100, 7300.5), true), hi = join(player(0, "TestStageHigh", 7303.5, 100, 7300.5), true);
+            BossProgress.grant(lo, Boss.CARCINUS);
+            for (Boss bb : new Boss[] { Boss.CARCINUS, Boss.LICH_KING, Boss.ANCIENT_ENTITY, Boss.WATCHER, Boss.CADILLION_EDEN }) BossProgress.grant(hi, bb);
+            com.divinerpgextended.bestiary.Bestiary.Chapter[] chs = { com.divinerpgextended.bestiary.Bestiary.Chapter.WILDWOOD, com.divinerpgextended.bestiary.Bestiary.Chapter.ARCANA,
+                com.divinerpgextended.bestiary.Bestiary.Chapter.VETHEA, com.divinerpgextended.bestiary.Bestiary.Chapter.ICEIKA, com.divinerpgextended.bestiary.Bestiary.Chapter.MORTUM };
+            // кто кого замечает: ниже - игрок с Карцинусом, выше - со Смотрителем и стражем Эдема
+            boolean[][] want = { { false, true }, { false, true }, { false, false }, { true, true }, { false, false } };
+            StringBuilder sb = new StringBuilder();
+            boolean ok = true;
+            for (int ci = 0; ci < chs.length; ci++) {
+                java.util.List<String> names = com.divinerpgextended.bestiary.Bestiary.mobs(chs[ci]);
+                net.minecraft.entity.EntityLiving mob = null;
+                for (String nm : names) {
+                    net.minecraft.entity.Entity cand = net.minecraft.entity.EntityList.createEntityByName(nm, w);
+                    if (cand instanceof net.minecraft.entity.EntityLiving && com.divinerpgextended.boss.ProgressSpawns.foreign(cand) == chs[ci]) {
+                        mob = (net.minecraft.entity.EntityLiving) cand;
+                        break;
+                    }
+                }
+                if (mob == null) {
+                    ok = false;
+                    sb.append(chs[ci].key()).append(": нет моба; ");
+                    continue;
+                }
+                mob.setPosition(7301.5, 100, 7302.5);
+                boolean seesLo = com.divinerpgextended.boss.ProgressSpawns.ready(lo, mob), seesHi = com.divinerpgextended.boss.ProgressSpawns.ready(hi, mob);
+                mob.setAttackTarget(lo);
+                boolean targetLo = mob.getAttackTarget() == lo;
+                mob.setAttackTarget(hi);
+                boolean targetHi = mob.getAttackTarget() == hi;
+                mob.setAttackTarget(null);
+                net.minecraftforge.event.entity.living.LivingAttackEvent hitLo = new net.minecraftforge.event.entity.living.LivingAttackEvent(lo, DamageSource.causeMobDamage(mob), 4);
+                MinecraftForge.EVENT_BUS.post(hitLo);
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(mob, DamageSource.causePlayerDamage(lo)));
+                boolean dropsLo = !com.divinerpgextended.boss.ProgressSpawns.noDrops(mob);
+                net.minecraft.entity.Entity twin = net.minecraft.entity.EntityList.createEntityByName(net.minecraft.entity.EntityList.getEntityString(mob), w);
+                twin.setPosition(7301.5, 100, 7302.5);
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent((net.minecraft.entity.EntityLivingBase) twin, DamageSource.causePlayerDamage(hi)));
+                boolean dropsHi = !com.divinerpgextended.boss.ProgressSpawns.noDrops(twin);
+                boolean one = seesLo == want[ci][0] && seesHi == want[ci][1] && targetLo == seesLo && targetHi == seesHi && hitLo.isCanceled() == !seesLo
+                    && dropsLo == seesLo && dropsHi == seesHi;
+                ok &= one;
+                sb.append(chs[ci].key()).append(" (").append(net.minecraft.entity.EntityList.getEntityString(mob)).append("): ниже ").append(seesLo).append("/цель ").append(targetLo)
+                    .append("/дроп ").append(dropsLo).append(", выше ").append(seesHi).append("/дроп ").append(dropsHi).append(one ? "" : " НЕ ТАК").append("; ");
+            }
+            // тот же моб у себя дома - как обычно
+            String wildName = com.divinerpgextended.bestiary.Bestiary.mobs(com.divinerpgextended.bestiary.Bestiary.Chapter.WILDWOOD).get(0);
+            net.minecraft.entity.Entity home = net.minecraft.entity.EntityList.createEntityByName(wildName, server.worldServerForDimension(ConfigurationHelper.wildwood));
+            boolean homeFree = com.divinerpgextended.boss.ProgressSpawns.ready(lo, home);
+            // боссы: Смотрителя бил только игрок без Древней сущности - ни победы, ни добычи; Короля Скорчеров били оба - падает, победа только у дошедшего
+            net.divinerpg.entities.vanilla.EntityTheWatcher watcher = new net.divinerpg.entities.vanilla.EntityTheWatcher(w);
+            watcher.setPosition(7301.5, 100, 7306.5);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(watcher, DamageSource.causePlayerDamage(lo), 5));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(watcher, DamageSource.causePlayerDamage(lo)));
+            boolean watcherDrops = !com.divinerpgextended.boss.ProgressSpawns.noDrops(watcher), loWatcher = BossProgress.has(lo, Boss.WATCHER);
+            net.divinerpg.entities.vanilla.EntityKingOfScorchers king = new net.divinerpg.entities.vanilla.EntityKingOfScorchers(w);
+            king.setPosition(7301.5, 100, 7306.5);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(king, DamageSource.causePlayerDamage(lo), 5));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(king, DamageSource.causePlayerDamage(hi), 5));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(king, DamageSource.causePlayerDamage(lo)));
+            boolean kingDrops = !com.divinerpgextended.boss.ProgressSpawns.noDrops(king), loKing = BossProgress.has(lo, Boss.KING_OF_SCORCHERS), hiKing = BossProgress.has(hi, Boss.KING_OF_SCORCHERS);
+            // Карот вне Мортума: обоим рано; в Мортуме - как раньше
+            net.divinerpg.entities.twilight.EntityKarot karot = new net.divinerpg.entities.twilight.EntityKarot(w);
+            boolean karotHere = com.divinerpgextended.boss.ProgressSpawns.bossReady(hi, karot);
+            boolean karotHome = com.divinerpgextended.boss.ProgressSpawns.bossReady(lo, new net.divinerpg.entities.twilight.EntityKarot(server.worldServerForDimension(ConfigurationHelper.mortum)));
+            for (TestPlayer tp : new TestPlayer[] { lo, hi }) {
+                server.getConfigurationManager().playerEntityList.remove(tp);
+                w.removeEntity(tp);
+            }
+            check(ok && homeFree && !watcherDrops && !loWatcher && kingDrops && !loKing && hiKing && !karotHere && karotHome,
+                sb + "дома в Диком лесу " + homeFree + "; Смотритель от игрока без Древней сущности: дроп " + watcherDrops + ", победа " + loWatcher
+                    + "; Король Скорчеров вдвоём: дроп " + kingDrops + ", победа ниже " + loKing + "/выше " + hiKing + "; Карот в обычном мире " + karotHere + ", в Мортуме " + karotHome);
+            return "мобы Айсики, сумеречных миров, Арканы и Ветеи в обычном мире не замечают и не бьют игрока, не дошедшего до их мира, и с убитых им ничего не падает; у себя дома - как обычно. Босс не своего этапа (обычный мир, Ад, Край) - ни победы, ни доли; не дошёл никто - ничего не падает";
+        });
         t("Броня", "Броня из бедрока не изнашивается", () -> {
             boolean all = true;
             StringBuilder sb = new StringBuilder();
@@ -8476,6 +8553,9 @@ public class SelfTest {
         t("Броня", "Странник: мягкое приземление только перком", () -> {
             TestPlayer slP = player(0, "TestSoftLanding", 0, 100, 0);
             float[] slFall = new float[2];
+            // без брони (в сборке Magic кто-то из модов сам снимает с падения блок, поэтому не ровно 20)
+            net.minecraftforge.event.entity.living.LivingFallEvent slBare = new net.minecraftforge.event.entity.living.LivingFallEvent(slP, 20F);
+            MinecraftForge.EVENT_BUS.post(slBare);
             for (int slIx = 0; slIx < 2; slIx++) {
                 for (int i = 0; i < 4; i++) {
                     ItemStack s = com.divinerpgextended.item.ItemWandererArmor.stack(ModItems.wanderer[i], 5, com.divinerpgextended.item.ArmorCore.DIVINE);
@@ -8496,8 +8576,8 @@ public class SelfTest {
             slAn.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(VanillaItemsOther.arlemiteIngot, 64));
             AnvilLogic.Result slR = AnvilLogic.evaluate(slAn, slP, AnvilLogic.UPGRADE);
             reset(slP);
-            check(slFall[0] == 20F && slFall[1] == 0F && Perk.byDonor(slEl) == Perk.SOFT_LANDING && slR.status == AnvilLogic.Status.READY_PERK && slR.param == Perk.SOFT_LANDING.ordinal(),
-                "падение 20 > без перка " + f(slFall[0]) + ", с перком " + f(slFall[1]) + "; донор элитный реалмит " + Perk.byDonor(slEl) + ", наковальня R1 " + slR.status);
+            check(slFall[0] == slBare.distance && slBare.distance > 15F && slFall[1] == 0F && Perk.byDonor(slEl) == Perk.SOFT_LANDING && slR.status == AnvilLogic.Status.READY_PERK && slR.param == Perk.SOFT_LANDING.ordinal(),
+                "падение 20 > без перка " + f(slFall[0]) + " (без брони " + f(slBare.distance) + "), с перком " + f(slFall[1]) + "; донор элитный реалмит " + Perk.byDonor(slEl) + ", наковальня R1 " + slR.status);
             return "сет Странника R5 без перка падение не гасит, с \"Мягким приземлением\" - гасит; перк ставится на наковальне сетом элитного реалмита за арлемит";
         });
         t("Броня", "Странник: покраска и отмывка", () -> {
@@ -9929,6 +10009,7 @@ public class SelfTest {
             loadAround(w, x0, z0, 1);
             TestPlayer hp = join(player(0, "TestHalite", x0 + 0.5, y0, z0 + 2.5), true);
             hp.inventory.clearInventory(null, -1);
+            BossProgress.grant(hp, Boss.CADILLION_SKYTHERN); // Карот в обычном мире: доля - только дошедшему до Мортума
             // Карот: игроку рядом - своя доля на землю (осколки, трофей, частичка) с его именем; готового халита нет
             net.divinerpg.entities.twilight.EntityKarot kh = new net.divinerpg.entities.twilight.EntityKarot(w);
             kh.setLocationAndAngles(x0 + 5.5, y0, z0 + 0.5, 0, 0);
