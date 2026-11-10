@@ -52,7 +52,7 @@ public enum Perk {
     WARMTH(Boss.LICH_KING, new Item[][] {
         { IceikaItems.santaCap, IceikaItems.santaTunic, IceikaItems.santaPants, IceikaItems.santaBoots } }),
 
-    /** Сытость: голод сам понемногу утоляется (как сет Skeleman у Divine). */
+    /** Сытость (донор - сет скелета): голод тратится вдвое медленнее, от голода не умираешь, бегать можно и голодным ({@link Satiety}). */
     SATIETY(null, new Item[][] {
         { VanillaItemsArmor.skelemanHelmet, VanillaItemsArmor.skelemanBody, VanillaItemsArmor.skelemanLegs,
             VanillaItemsArmor.skelemanBoots } }),

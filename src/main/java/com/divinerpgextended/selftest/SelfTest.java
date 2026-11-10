@@ -699,7 +699,9 @@ public class SelfTest {
             armor(p, VanillaItemsArmor.krakenHelmet, VanillaItemsArmor.krakenBody, VanillaItemsArmor.krakenLegs, VanillaItemsArmor.krakenBoots);
             float drown = hit(p, DamageSource.drown, 4);
             armor(p, VanillaItemsArmor.jungleHelmet, VanillaItemsArmor.jungleBody, VanillaItemsArmor.jungleLegs, VanillaItemsArmor.jungleBoots);
-            float poison = hit(p, DamageSource.magic, 4);
+            p.addPotionEffect(new net.minecraft.potion.PotionEffect(net.minecraft.potion.Potion.poison.id, 100, 0));
+            float poison = hit(p, DamageSource.magic, 1); // сет джунглей гасит только тик яда (с 0.99.102)
+            p.removePotionEffect(net.minecraft.potion.Potion.poison.id);
             armor(p, TwilightItemsArmor.apalachiaHelmet, TwilightItemsArmor.apalachiaChestplate, TwilightItemsArmor.apalachiaLeggings, TwilightItemsArmor.apalachiaBoots);
             float cactus = hit(p, DamageSource.cactus, 4);
             check(ender == 0 && bedrock == 0 && wither == 0 && drown == 0 && poison == 0 && cactus == 0, "урон: Ender " + f(ender) + ", Bedrock " + f(bedrock)
@@ -2308,6 +2310,137 @@ public class SelfTest {
             z.setDead();
             check(near(edge, expect), "арканный удар сабли по зомби в алмазном нагруднике " + f(edge) + " (ждали " + f(expect) + " сквозь броню)");
             return "после удара саблей Арканы - отдельный арканный удар " + f(expect) + " сквозь броню, с фиолетовыми искрами";
+        });
+        t("Броня", "Коса Джека: страх, провокация с сетом скелета, подчинение с сетом жнеца", () -> {
+            net.minecraft.world.World w = p.worldObj;
+            com.divinerpgextended.perk.Scythe.testRoll = 0F; // все шансы срабатывают
+            java.util.List<net.minecraft.entity.Entity> spawned = new java.util.ArrayList<net.minecraft.entity.Entity>();
+            try {
+                // страх: без сета 20%, с сетом Джек-О-Мена 50%
+                reset(p);
+                float chanceBare = com.divinerpgextended.perk.Scythe.fearChance(p);
+                p.inventory.armorInventory[0] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.jackOManBoots);
+                p.inventory.armorInventory[1] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.jackOManLegs);
+                p.inventory.armorInventory[2] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.jackOManBody);
+                p.inventory.armorInventory[3] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.jackOManHelmet);
+                float chanceJack = com.divinerpgextended.perk.Scythe.fearChance(p);
+                reset(p);
+                net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w);
+                z.setPosition(p.posX + 3, p.posY, p.posZ);
+                w.spawnEntityInWorld(z);
+                spawned.add(z);
+                z.setAttackTarget(p);
+                com.divinerpgextended.perk.Scythe.hit(z, p);
+                boolean afraid = com.divinerpgextended.perk.Scythe.afraid(z), calm = z.getAttackTarget() == null;
+                net.minecraftforge.event.entity.living.LivingAttackEvent bite = new net.minecraftforge.event.entity.living.LivingAttackEvent(p, DamageSource.causeMobDamage(z), 4);
+                MinecraftForge.EVENT_BUS.post(bite);
+                z.setAttackTarget(p);
+                boolean noTarget = z.getAttackTarget() == null, again = com.divinerpgextended.perk.Scythe.fear(z, p);
+                boolean bossFear = com.divinerpgextended.perk.Scythe.fear(new net.divinerpg.entities.arcana.EntityDramix(w), p);
+                check(near(chanceBare, 0.2F) && near(chanceJack, 0.5F) && afraid && calm && bite.isCanceled() && noTarget && !again && !bossFear,
+                    "страх: шанс без сета " + f(chanceBare) + ", с сетом Джек-О-Мена " + f(chanceJack) + "; напуган " + afraid + ", цель сброшена " + calm
+                        + ", укус отменён " + bite.isCanceled() + ", новую цель не берёт " + noTarget + ", напуган повторно " + again + ", Драмикс напуган " + bossFear);
+                z.setDead();
+                // провокация: сет скелета - мобы вокруг бьют того, в кого попала коса
+                reset(p);
+                p.inventory.armorInventory[0] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.skelemanBoots);
+                p.inventory.armorInventory[1] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.skelemanLegs);
+                p.inventory.armorInventory[2] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.skelemanBody);
+                p.inventory.armorInventory[3] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.skelemanHelmet);
+                net.minecraft.entity.monster.EntityZombie hitZ = new net.minecraft.entity.monster.EntityZombie(w), z2 = new net.minecraft.entity.monster.EntityZombie(w);
+                net.minecraft.entity.passive.EntityCow cow = new net.minecraft.entity.passive.EntityCow(w);
+                hitZ.setPosition(p.posX + 3, p.posY, p.posZ + 6);
+                z2.setPosition(p.posX + 3.6, p.posY, p.posZ + 6);
+                cow.setPosition(p.posX + 4, p.posY, p.posZ + 7);
+                for (net.minecraft.entity.Entity o : new net.minecraft.entity.Entity[] { hitZ, z2, cow }) {
+                    w.spawnEntityInWorld(o);
+                    spawned.add(o);
+                }
+                com.divinerpgextended.perk.Scythe.hit(hitZ, p);
+                boolean provoked = z2.getAttackTarget() == hitZ, cowCalm = cow.getAttackTarget() == null;
+                float hp = hitZ.getHealth();
+                com.divinerpgextended.perk.Scythe.tick(z2); // вплотную: удар за зомби (его собственный удар берёт только игроков и жителей)
+                float bitten = hp - hitZ.getHealth();
+                check(provoked && cowCalm && bitten > 0.5F, "провокация: зомби рядом взял целью задетого " + provoked + ", корова не тронута " + cowCalm
+                    + ", укус по задетому " + f(bitten));
+                // подчинение: сет жнеца - моб воюет за игрока, игроков не трогает
+                reset(p);
+                p.inventory.armorInventory[0] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.witherReaperBoots);
+                p.inventory.armorInventory[1] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.witherReaperLegs);
+                p.inventory.armorInventory[2] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.witherReaperBody);
+                p.inventory.armorInventory[3] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.witherReaperHelmet);
+                net.minecraft.entity.monster.EntityZombie zc = new net.minecraft.entity.monster.EntityZombie(w), zt = new net.minecraft.entity.monster.EntityZombie(w);
+                zc.setPosition(p.posX - 3, p.posY, p.posZ - 6);
+                zt.setPosition(p.posX - 3.6, p.posY, p.posZ - 6);
+                w.spawnEntityInWorld(zc);
+                w.spawnEntityInWorld(zt);
+                spawned.add(zc);
+                spawned.add(zt);
+                com.divinerpgextended.perk.Scythe.hit(zc, p);
+                boolean charmed = com.divinerpgextended.perk.Scythe.charmed(zc), charmNoFear = !com.divinerpgextended.perk.Scythe.afraid(zc);
+                net.minecraftforge.event.entity.living.LivingAttackEvent onPlayer = new net.minecraftforge.event.entity.living.LivingAttackEvent(p, DamageSource.causeMobDamage(zc), 4);
+                MinecraftForge.EVENT_BUS.post(onPlayer);
+                zc.setAttackTarget(p);
+                boolean redirected = zc.getAttackTarget() == zt;
+                float zhp = zt.getHealth();
+                com.divinerpgextended.perk.Scythe.tick(zc);
+                float dealt = zhp - zt.getHealth();
+                boolean again2 = com.divinerpgextended.perk.Scythe.charm(zc, p);
+                check(charmed && charmNoFear && onPlayer.isCanceled() && redirected && dealt > 0.5F && !again2, "подчинение: подчинён " + charmed + " (без страха " + charmNoFear
+                    + "), удар по игроку отменён " + onPlayer.isCanceled() + ", цель-игрок заменена врагом " + redirected + ", удар по зомби " + f(dealt)
+                    + ", подчинён повторно " + again2);
+            } finally {
+                com.divinerpgextended.perk.Scythe.testRoll = null;
+                for (net.minecraft.entity.Entity o : spawned) o.setDead();
+                reset(p);
+            }
+            return "коса: страх 20% (с сетом Джек-О-Мена 50%) - убегает, не бьёт, повторно не боится, боссы не боятся; сет скелета - мобы рядом бьют задетого; "
+                + "сет жнеца - моб бьёт врагов, а не игроков";
+        });
+        t("Броня", "Сытость: голод вдвое медленнее, от голода не умираешь", () -> {
+            reset(p);
+            wearCore(p, null, Perk.SATIETY);
+            com.divinerpgextended.perk.Satiety.setExhaustion(p, 0F);
+            com.divinerpgextended.perk.Satiety.tick(p);
+            p.addExhaustion(2.0F);
+            com.divinerpgextended.perk.Satiety.tick(p);
+            float slowed = com.divinerpgextended.perk.Satiety.exhaustion(p);
+            net.minecraftforge.event.entity.living.LivingAttackEvent starve = new net.minecraftforge.event.entity.living.LivingAttackEvent(p, DamageSource.starve, 1);
+            MinecraftForge.EVENT_BUS.post(starve);
+            reset(p);
+            com.divinerpgextended.perk.Satiety.setExhaustion(p, 0F);
+            p.addExhaustion(2.0F);
+            float plain = com.divinerpgextended.perk.Satiety.exhaustion(p);
+            net.minecraftforge.event.entity.living.LivingAttackEvent starveBare = new net.minecraftforge.event.entity.living.LivingAttackEvent(p, DamageSource.starve, 1);
+            MinecraftForge.EVENT_BUS.post(starveBare);
+            com.divinerpgextended.perk.Satiety.setExhaustion(p, 0F);
+            check(near(slowed, 1.0F) && near(plain, 2.0F) && starve.isCanceled() && !starveBare.isCanceled(), "усталость от 2.0: с перком " + f(slowed) + ", без " + f(plain)
+                + "; голод ранит: с перком " + !starve.isCanceled() + ", без " + !starveBare.isCanceled());
+            return "перк Сытость: усталость копится вдвое медленнее, урона от голода нет (бег голодным решает клиент - не проверяется здесь)";
+        });
+        t("Броня", "Сеты Джека: защита по этапам", () -> {
+            Item[][] sets = { { net.divinerpg.utils.items.VanillaItemsArmor.skelemanHelmet, net.divinerpg.utils.items.VanillaItemsArmor.skelemanBody,
+                net.divinerpg.utils.items.VanillaItemsArmor.skelemanLegs, net.divinerpg.utils.items.VanillaItemsArmor.skelemanBoots },
+                { net.divinerpg.utils.items.VanillaItemsArmor.jackOManHelmet, net.divinerpg.utils.items.VanillaItemsArmor.jackOManBody,
+                    net.divinerpg.utils.items.VanillaItemsArmor.jackOManLegs, net.divinerpg.utils.items.VanillaItemsArmor.jackOManBoots },
+                { net.divinerpg.utils.items.VanillaItemsArmor.witherReaperHelmet, net.divinerpg.utils.items.VanillaItemsArmor.witherReaperBody,
+                    net.divinerpg.utils.items.VanillaItemsArmor.witherReaperLegs, net.divinerpg.utils.items.VanillaItemsArmor.witherReaperBoots } };
+            int[] want = { com.divinerpgextended.Config.skelemanArmor, com.divinerpgextended.Config.jackOManArmor, com.divinerpgextended.Config.witherReaperArmor };
+            java.lang.reflect.Field full = net.divinerpg.items.base.ItemDivineArmor.class.getDeclaredField("fullReduction");
+            java.lang.reflect.Field part = net.divinerpg.items.base.ItemDivineArmor.class.getDeclaredField("damageReduction");
+            full.setAccessible(true);
+            part.setAccessible(true);
+            StringBuilder sb = new StringBuilder();
+            boolean ok = want[0] < want[1] && want[1] < want[2];
+            for (int si = 0; si < 3; si++) {
+                double sum = 0;
+                int f0 = full.getInt(sets[si][0]);
+                for (Item it : sets[si]) sum += part.getDouble(it);
+                ok &= f0 == want[si] && near((float) sum, want[si] / 100F);
+                sb.append(si == 0 ? "скелет " : si == 1 ? ", Джек-О-Мен " : ", Увядший жнец ").append(f0).append("% (части в сумме ").append(f((float) sum * 100)).append("%)");
+            }
+            check(ok, "защита сетов Джека: " + sb + "; ждали " + want[0] + "/" + want[1] + "/" + want[2]);
+            return "сеты Джека с защитой по этапу: " + sb;
         });
         t("Аркана", "Корма и Поток арканы: удары мечей Арканы не останавливают восстановление", () -> {
             reset(p);

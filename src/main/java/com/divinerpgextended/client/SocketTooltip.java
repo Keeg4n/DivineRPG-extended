@@ -39,6 +39,7 @@ public class SocketTooltip {
             || s.getItem() == net.divinerpg.utils.items.ArcanaItems.kormaLegs || s.getItem() == net.divinerpg.utils.items.ArcanaItems.kormaBoots)
             e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocalFormatted("dre.tooltip.korma_set", (int) com.divinerpgextended.magic.ArcanaRules.KORMA_MAX,
                 Math.round((1 - com.divinerpgextended.magic.ArcanaRules.KORMA_DISCOUNT) * 100), com.divinerpgextended.magic.ArcaneSummons.CAP_KORMA));
+        if (s.getItem() == net.divinerpg.utils.items.VanillaItemsWeapons.scythe) scythe(e);
         Item ammo = Ammo.of(s);
         if (ammo != null) {
             int n = Ammo.loaded(s);
@@ -48,6 +49,21 @@ public class SocketTooltip {
             if (per > 1) e.toolTip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("dre.ammo.per_shot", per, new ItemStack(ammo).getDisplayName()));
             e.toolTip.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.ammo.how"));
         }
+    }
+
+    private static void scythe(ItemTooltipEvent e) {
+        net.minecraft.entity.player.EntityPlayer p = e.entityPlayer;
+        e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocalFormatted("dre.tooltip.scythe.fear", pct(com.divinerpgextended.perk.Scythe.FEAR_CHANCE),
+            pct(com.divinerpgextended.perk.Scythe.FEAR_CHANCE_JACK), com.divinerpgextended.perk.Scythe.FEAR_TICKS / 20, com.divinerpgextended.perk.Scythe.FEAR_IMMUNE / 20));
+        boolean sk = p != null && com.divinerpgextended.perk.Scythe.skelemanSet(p), rp = p != null && com.divinerpgextended.perk.Scythe.reaperSet(p);
+        e.toolTip.add((sk ? EnumChatFormatting.GREEN : EnumChatFormatting.GRAY) + StatCollector.translateToLocalFormatted("dre.tooltip.scythe.skeleman",
+            pct(com.divinerpgextended.perk.Scythe.PROVOKE_CHANCE), (int) com.divinerpgextended.perk.Scythe.PROVOKE_R, com.divinerpgextended.perk.Scythe.PROVOKE_TICKS / 20));
+        e.toolTip.add((rp ? EnumChatFormatting.GREEN : EnumChatFormatting.GRAY) + StatCollector.translateToLocalFormatted("dre.tooltip.scythe.reaper",
+            pct(com.divinerpgextended.perk.Scythe.CHARM_CHANCE), com.divinerpgextended.perk.Scythe.CHARM_TICKS / 20));
+    }
+
+    private static int pct(float f) {
+        return Math.round(f * 100);
     }
 
     /** Справа от хотбара: заряжено / вместимость у оружия в руке. */

@@ -86,6 +86,8 @@ public class CommonProxy {
 
         PerkEffects perks = new PerkEffects();
         MinecraftForge.EVENT_BUS.register(perks);
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.Satiety());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.Scythe());
         FMLCommonHandler.instance()
             .bus()
             .register(perks);

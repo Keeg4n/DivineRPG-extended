@@ -30,6 +30,8 @@ public class Config {
     public static double jungleDebuffSpeed = 2.0;
     /** Броня из бедрока Divine не изнашивается. */
     public static boolean bedrockArmorUnbreakable = true;
+    /** Защита полных сетов Джека в процентах (у Divine у всех трёх 0): скелет, Джек-О-Мен, Увядший жнец. */
+    public static int skelemanArmor = 35, jackOManArmor = 50, witherReaperArmor = 60;
     /** Острова слизи Tinkers' Construct не появляются в мирах Divine. */
     public static boolean noTinkersIslandsInDivine = true;
     /** Порыв от удара моба Небесного терна: толчок вбок, как у Повелителя ветров. */
@@ -176,6 +178,12 @@ public class Config {
             "Противоядие: полный сет джунглей Divine и перк \"Сопротивление яду\" на броне Странника - яд не действует, а остальные плохие эффекты (и чужие, которые не снимает молоко, например варп Таумкрафта) не снимаются, а проходят во столько раз быстрее. 1 - как обычно").getDouble();
         bedrockArmorUnbreakable = cfg.getBoolean("bedrockArmorUnbreakable", bal, bedrockArmorUnbreakable,
             "Броня из бедрока Divine не изнашивается (как сам бедрок). Нужен перезапуск");
+        skelemanArmor = cfg.getInt("skelemanArmor", bal, skelemanArmor, 0, 90,
+            "Защита полного сета скелета (Джек продаёт с начала), в процентах, как у брони Divine. 0 - как у Divine (без защиты). Нужен перезапуск");
+        jackOManArmor = cfg.getInt("jackOManArmor", bal, jackOManArmor, 0, 90,
+            "Защита полного сета Джек-О-Мена (после Карцинуса), в процентах. 0 - как у Divine (без защиты). Нужен перезапуск");
+        witherReaperArmor = cfg.getInt("witherReaperArmor", bal, witherReaperArmor, 0, 90,
+            "Защита полного сета Увядшего жнеца (после Короля-лича), в процентах. 0 - как у Divine (без защиты). Нужен перезапуск");
         noTinkersIslandsInDivine = cfg.getBoolean("noTinkersIslandsInDivine", bal, noTinkersIslandsInDivine,
             "Острова слизи Tinkers' Construct не появляются в мирах Divine (в новых чанках; уже появившиеся остаются). Нужен перезапуск");
         netherSmeltChance = cfg.get(bal, "netherSmeltChance", netherSmeltChance, "Полный сет Inferno или Netherite: шанс, что добытая руда упадёт сразу переплавленной (0 - выключено, 1 - всегда). С Шёлковым касанием не работает").getDouble();

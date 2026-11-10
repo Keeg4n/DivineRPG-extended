@@ -1592,3 +1592,6 @@ dre.tooltip.nether_smelt=Full set: ore has a %d%% chance to drop already smelted
 dre.tooltip.goggles_socket=Fits into a Divine or Wanderer helmet: Wanderer Anvil, "Sockets" tab
 dre.gui.socket_goggles=Goggles of Revealing fit here
 dre.tooltip.korma_set=Full set: +%s arcana capacity, %s%% cheaper spending, up to %s arcane wraiths; Arcana sword hits do not stop arcana regeneration
+dre.tooltip.scythe.fear=Hit: %s%% chance of fear (%s%% with the full Jack o' Man set) - the mob flees for %s s and attacks no one, then is fearless for %s s. Bosses are not afraid
+dre.tooltip.scythe.skeleman=Skeleman set: %s%% chance that hostile mobs within %s blocks attack the hit mob for %s s
+dre.tooltip.scythe.reaper=Wither Reaper set: %s%% chance the mob fights for you for %s s - it attacks hostile mobs nearby and spares players and peaceful creatures

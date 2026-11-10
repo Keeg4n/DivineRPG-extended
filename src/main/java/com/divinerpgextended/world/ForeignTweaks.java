@@ -21,6 +21,7 @@ public final class ForeignTweaks {
     }
 
     public static void apply() {
+        log(jackSetsArmor() + " частей брони сетов Джека получили защиту по этапу");
         if (Config.bedrockArmorUnbreakable) log(bedrockUnbreakable() + " частей брони из бедрока больше не изнашиваются");
         if (Config.noTinkersIslandsInDivine) {
             int n = noTinkersIslands();
@@ -54,6 +55,42 @@ public final class ForeignTweaks {
                 // подсказка останется прежней, износа всё равно нет
             }
             n++;
+        }
+        return n;
+    }
+
+    private static final int[] SHARE = { 5, 8, 7, 4 }; // доли шлема, нагрудника, поножей и ботинок у Divine (из 24)
+
+    /**
+     * Сеты, которые продаёт Джек (скелет - с начала, Джек-О-Мен - после Карцинуса, Увядший жнец - после Короля-лича), у
+     * Divine без защиты. Divine считает защиту части из полной защиты сета (fullReduction, проценты) по долям SHARE - ставим
+     * оба поля, тогда и подсказка, и значки брони покажут новое.
+     */
+    public static int jackSetsArmor() {
+        int n = 0;
+        try {
+            java.lang.reflect.Field full = net.divinerpg.items.base.ItemDivineArmor.class.getDeclaredField("fullReduction");
+            java.lang.reflect.Field part = net.divinerpg.items.base.ItemDivineArmor.class.getDeclaredField("damageReduction");
+            full.setAccessible(true);
+            part.setAccessible(true);
+            Object[][] sets = {
+                { Config.skelemanArmor, VanillaItemsArmor.skelemanHelmet, VanillaItemsArmor.skelemanBody, VanillaItemsArmor.skelemanLegs, VanillaItemsArmor.skelemanBoots },
+                { Config.jackOManArmor, VanillaItemsArmor.jackOManHelmet, VanillaItemsArmor.jackOManBody, VanillaItemsArmor.jackOManLegs, VanillaItemsArmor.jackOManBoots },
+                { Config.witherReaperArmor, VanillaItemsArmor.witherReaperHelmet, VanillaItemsArmor.witherReaperBody, VanillaItemsArmor.witherReaperLegs,
+                    VanillaItemsArmor.witherReaperBoots } };
+            for (Object[] set : sets) {
+                int pct = (Integer) set[0];
+                if (pct <= 0) continue;
+                for (int i = 1; i < set.length; i++) {
+                    if (!(set[i] instanceof net.divinerpg.items.base.ItemDivineArmor)) continue;
+                    net.minecraft.item.ItemArmor a = (net.minecraft.item.ItemArmor) set[i];
+                    full.setInt(a, pct);
+                    part.setDouble(a, pct / 100.0 * SHARE[a.armorType] / 24.0);
+                    n++;
+                }
+            }
+        } catch (Exception ex) {
+            DivineRPGExtended.LOG.warn("Сеты Джека: не удалось поставить защиту - " + ex);
         }
         return n;
     }

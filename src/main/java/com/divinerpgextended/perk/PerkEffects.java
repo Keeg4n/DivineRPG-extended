@@ -353,9 +353,7 @@ public class PerkEffects {
         if (player.isPotionActive(Potion.wither) && ArmorData.hasEquippedPerk(player, Perk.WITHER_PROTECTION)) {
             player.removePotionEffect(Potion.wither.id);
         }
-        if (player.ticksExisted % 40 == 0 && player.getFoodStats().needFood() && ArmorData.hasEquippedPerk(player, Perk.SATIETY)) {
-            player.getFoodStats().addStats(1, 0.0F);
-        }
+        if (ArmorData.hasEquippedPerk(player, Perk.SATIETY)) Satiety.tick(player); // голод вдвое медленнее (смерти от голода нет - Satiety)
         if (player.ticksExisted % 20 == 0 && ArmorData.hasEquippedPerk(player, Perk.COLD_AURA)) {
             @SuppressWarnings("unchecked")
             List<EntityLivingBase> near = player.worldObj.getEntitiesWithinAABB(EntityLivingBase.class,
