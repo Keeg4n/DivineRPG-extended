@@ -2311,6 +2311,23 @@ public class SelfTest {
             check(near(edge, expect), "арканный удар сабли по зомби в алмазном нагруднике " + f(edge) + " (ждали " + f(expect) + " сквозь броню)");
             return "после удара саблей Арканы - отдельный арканный удар " + f(expect) + " сквозь броню, с фиолетовыми искрами";
         });
+        t("Совместимость", "Текстуры из текстур DivineRPG собираются по таблицам, в jar их нет", () -> {
+            java.util.Map<String, com.divinerpgextended.registry.DerivedTextures.Recipe> all = com.divinerpgextended.registry.DerivedTextures.recipes();
+            int exact = 0;
+            java.util.List<String> missing = new java.util.ArrayList<String>(), differ = new java.util.ArrayList<String>(), shipped = new java.util.ArrayList<String>();
+            for (com.divinerpgextended.registry.DerivedTextures.Recipe rc : all.values()) {
+                java.awt.image.BufferedImage img = com.divinerpgextended.registry.DerivedTextures.build(rc);
+                if (img == null) missing.add(rc.out);
+                else if (com.divinerpgextended.registry.DerivedTextures.md5(img).equals(rc.md5)) exact++;
+                else differ.add(rc.out.substring(rc.out.lastIndexOf('/') + 1) + " (" + com.divinerpgextended.registry.DerivedTextures.lastWay + ")");
+                String dom = rc.out.substring(0, rc.out.indexOf(':'));
+                if ("divinerpgextended".equals(dom) && com.divinerpgextended.registry.DerivedTextures.class.getResource("/assets/" + dom + "/" + rc.out.substring(rc.out.indexOf(':') + 1)) != null)
+                    shipped.add(rc.out);
+            }
+            check(all.size() >= 32 && missing.isEmpty() && shipped.isEmpty(), "рецептов " + all.size() + ", нет исходника: " + missing + ", картинка всё ещё в jar: " + shipped);
+            return "текстур по таблицам " + all.size() + ": точно как задумано " + exact + (differ.isEmpty() ? "" : ", по палитре (другая версия DivineRPG) " + differ.size() + ": " + differ)
+                + "; в jar ни одной";
+        });
         t("Броня", "Коса Джека: страх, провокация с сетом скелета, подчинение с сетом жнеца", () -> {
             net.minecraft.world.World w = p.worldObj;
             com.divinerpgextended.perk.Scythe.testRoll = 0F; // все шансы срабатывают

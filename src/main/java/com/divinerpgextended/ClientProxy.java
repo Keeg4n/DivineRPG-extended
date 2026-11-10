@@ -35,6 +35,7 @@ public class ClientProxy extends CommonProxy {
     public void preInit(cpw.mods.fml.common.event.FMLPreInitializationEvent event) {
         super.preInit(event);
         com.divinerpgextended.client.HevSounds.addPack(net.minecraft.client.Minecraft.getMinecraft().mcDataDir); // звуки Half-Life, если установлены
+        com.divinerpgextended.client.DerivedTexturePack.install(); // текстуры из текстур DivineRPG собираются здесь, в jar их нет
     }
 
     @Override
