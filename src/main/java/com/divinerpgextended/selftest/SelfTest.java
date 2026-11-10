@@ -2311,6 +2311,64 @@ public class SelfTest {
             check(near(edge, expect), "арканный удар сабли по зомби в алмазном нагруднике " + f(edge) + " (ждали " + f(expect) + " сквозь броню)");
             return "после удара саблей Арканы - отдельный арканный удар " + f(expect) + " сквозь броню, с фиолетовыми искрами";
         });
+        t("Аксессуары", "Аксессуары видны на теле: посадка на всех профилях брони, значки и грани алтарей на месте", () -> {
+            java.util.Map<String, java.util.Map<String, java.util.Map<String, com.divinerpgextended.accessory.WearData.Mesh>>> all = com.divinerpgextended.accessory.WearData.all();
+            String[] profiles = { "bare", "divine", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r1_shadow", "r1_bedrock", "r1_ender", "r1_corrupted" };
+            StringBuilder bad = new StringBuilder();
+            int quads = 0;
+            for (com.divinerpgextended.trinket.Trinket tr : com.divinerpgextended.trinket.Trinket.values()) {
+                if (SelfTest.class.getResource("/assets/divinerpgextended/textures/items/trinket_" + tr.key() + ".png") == null) bad.append(" нет значка ").append(tr.key()).append(';');
+                if (tr == com.divinerpgextended.trinket.Trinket.MAGIC_CARPET) continue; // ковёр на теле не рисуется (оставлен как есть)
+                java.util.Map<String, java.util.Map<String, com.divinerpgextended.accessory.WearData.Mesh>> a = all.get(tr.key());
+                if (a == null) {
+                    bad.append(" нет посадки ").append(tr.key()).append(';');
+                    continue;
+                }
+                for (String pr : profiles) {
+                    java.util.Map<String, com.divinerpgextended.accessory.WearData.Mesh> m = a.get(pr);
+                    int n = 0;
+                    if (m != null) for (com.divinerpgextended.accessory.WearData.Mesh mesh : m.values()) n += mesh.quads.size();
+                    if (n == 0) bad.append(' ').append(tr.key()).append('/').append(pr).append(" пусто;");
+                    quads += n;
+                }
+            }
+            for (String al : new String[] { "carcinus", "glacon", "throne", "tomb", "nest", "jungle", "arena" })
+                for (String part : new String[] { "side", "top" })
+                    if (SelfTest.class.getResource("/assets/divinerpgextended/textures/blocks/altar/" + al + "_" + part + ".png") == null) bad.append(" нет грани алтаря ").append(al).append('_').append(part).append(';');
+            // проверка геометрии: кольцо костяного стрелка на руке без брони - у кисти правой руки
+            com.divinerpgextended.accessory.WearData.Mesh ring = com.divinerpgextended.accessory.WearData.mesh("bone_ring", "bare", "rightArm");
+            float minY = 99, maxY = -99;
+            if (ring != null) for (float[] q : ring.quads) for (int v = 0; v < 4; v++) {
+                minY = Math.min(minY, q[v * 3 + 1]);
+                maxY = Math.max(maxY, q[v * 3 + 1]);
+            }
+            // геометрия, которую строит Java, против граней концепта (контрольные суммы из tools/concepts/acc_export_check.py)
+            int sumsOk = 0;
+            java.util.List<String> sumsBad = new java.util.ArrayList<String>();
+            java.io.InputStream sin = SelfTest.class.getResourceAsStream("/assets/divinerpgextended/wear/accessories_check.txt");
+            if (sin == null) sumsBad.add("нет файла контрольных сумм");
+            else {
+                java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(sin, "UTF-8"));
+                for (String ln; (ln = br.readLine()) != null;) {
+                    if (ln.isEmpty() || ln.startsWith("#")) continue;
+                    String[] fs = ln.split(" ");
+                    java.util.Map<String, java.util.Map<String, com.divinerpgextended.accessory.WearData.Mesh>> a = all.get(fs[0]);
+                    com.divinerpgextended.accessory.WearData.Mesh mesh = a == null || a.get(fs[1]) == null ? null : a.get(fs[1]).get(fs[2]);
+                    int cnt = Integer.parseInt(fs[3]);
+                    double[] sum = new double[3];
+                    if (mesh != null) for (float[] q : mesh.quads) for (int v = 0; v < 4; v++) for (int ax = 0; ax < 3; ax++) sum[ax] += q[v * 3 + ax];
+                    double tol = 0.01 * cnt * 4 + 0.05, dev = 0;
+                    for (int ax = 0; ax < 3; ax++) dev = Math.max(dev, Math.abs(sum[ax] - Double.parseDouble(fs[4 + ax])));
+                    if (mesh != null && mesh.quads.size() == cnt && dev <= tol) sumsOk++;
+                    else if (sumsBad.size() < 6) sumsBad.add(fs[0] + "/" + fs[1] + "/" + fs[2] + " граней " + (mesh == null ? 0 : mesh.quads.size()) + " из " + cnt + ", расхождение " + f((float) dev));
+                }
+                br.close();
+            }
+            check(bad.length() == 0 && ring != null && minY > 6 && maxY < 11 && sumsBad.isEmpty() && sumsOk > 600, "аксессуары:" + bad + " кольцо на руке по высоте " + f(minY) + ".." + f(maxY)
+                + "; сверка с концептами: совпало " + sumsOk + ", не так " + sumsBad);
+            return "у всех " + (com.divinerpgextended.trinket.Trinket.values().length - 1) + " аксессуаров (кроме ковра) посадка на 13 профилях брони, граней " + quads
+                + ", геометрия совпала с концептами по " + sumsOk + " костям; значки и грани 7 алтарей на месте";
+        });
         t("Совместимость", "Текстуры из текстур DivineRPG собираются по таблицам, в jar их нет", () -> {
             java.util.Map<String, com.divinerpgextended.registry.DerivedTextures.Recipe> all = com.divinerpgextended.registry.DerivedTextures.recipes();
             int exact = 0;
@@ -2324,7 +2382,7 @@ public class SelfTest {
                 if ("divinerpgextended".equals(dom) && com.divinerpgextended.registry.DerivedTextures.class.getResource("/assets/" + dom + "/" + rc.out.substring(rc.out.indexOf(':') + 1)) != null)
                     shipped.add(rc.out);
             }
-            check(all.size() >= 32 && missing.isEmpty() && shipped.isEmpty(), "рецептов " + all.size() + ", нет исходника: " + missing + ", картинка всё ещё в jar: " + shipped);
+            check(all.size() >= 30 && missing.isEmpty() && shipped.isEmpty(), "рецептов " + all.size() + ", нет исходника: " + missing + ", картинка всё ещё в jar: " + shipped);
             return "текстур по таблицам " + all.size() + ": точно как задумано " + exact + (differ.isEmpty() ? "" : ", по палитре (другая версия DivineRPG) " + differ.size() + ": " + differ)
                 + "; в jar ни одной";
         });

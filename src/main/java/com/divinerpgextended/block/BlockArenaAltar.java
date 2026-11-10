@@ -33,6 +33,23 @@ public class BlockArenaAltar extends Block {
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
     }
 
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    private net.minecraft.util.IIcon top;
+
+    /** Грань и верх: обсидиан с трещинами красного камня (tools/concepts/acc_export.py). */
+    @Override
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    public void registerBlockIcons(net.minecraft.client.renderer.texture.IIconRegister reg) {
+        blockIcon = reg.registerIcon("divinerpgextended:altar/arena_side");
+        top = reg.registerIcon("divinerpgextended:altar/arena_top");
+    }
+
+    @Override
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    public net.minecraft.util.IIcon getIcon(int s, int meta) {
+        return s <= 1 ? top : blockIcon;
+    }
+
     /** Над алтарём поднимаются багровые искры. */
     @Override
     @SideOnly(Side.CLIENT)

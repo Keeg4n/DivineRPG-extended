@@ -9,7 +9,9 @@ O = '//wsl.localhost/Ubuntu/root/mc/dre/src/main/resources/assets'
 OUT = O + '/divinerpgextended/derived_textures.txt'
 ORIG = 'orig_derived'  # сохранённые наши картинки (из jar они удалены)
 
-OWN_ART = ('spiritSpark_', 'worldSpirit_', 'mortumTrophy_twins')
+OWN_ART = ('spiritSpark_', 'worldSpirit_', 'mortumTrophy_twins',
+           # с 0.99.108 свои значки из концептов аксессуаров (tools/concepts/acc_export.py)
+           'trinket_arcane_ward', 'trinket_clarity_crystal')
 # если исходник не тот (другая версия DivineRPG): перекраска запасного по палитре
 FALLBACK = {'divinerpgextended/textures/items/haliteMultitool.png': ['divinerpg/textures/items/divineShickaxe.png'],
             'divinerpgextended/textures/items/trinket_clarity_crystal.png': ['divinerpg/textures/items/baseSpawnCrystal.png'],

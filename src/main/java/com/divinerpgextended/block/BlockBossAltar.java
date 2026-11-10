@@ -39,7 +39,11 @@ public class BlockBossAltar extends Block {
         "dre.nestAltar", "dre.jungleAltar", "dre.ayeracoAltar" };
     private static final String[] TEXTURES = { "minecraft:stonebrick_carved", "minecraft:lapis_block",
         "minecraft:diamond_block", "minecraft:gold_block", "minecraft:emerald_block", "minecraft:stonebrick_mossy", "minecraft:quartz_block_chiseled" };
+    /** Свои грани (textures/blocks/altar/<имя>_side и _top); null - ванильная текстура из TEXTURES. */
+    private static final String[] FACES = { "carcinus", "glacon", "throne", "tomb", "nest", "jungle", null };
     private final int type;
+    @SideOnly(Side.CLIENT)
+    private net.minecraft.util.IIcon side, top;
 
     public BlockBossAltar(int type) {
         super(Material.rock);
@@ -51,6 +55,25 @@ public class BlockBossAltar extends Block {
         // ледяные алтари яркие, чтобы не терялись среди льда и мёрзлого камня
         setBlockTextureName(TEXTURES[type]);
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void registerBlockIcons(net.minecraft.client.renderer.texture.IIconRegister reg) {
+        if (FACES[type] == null) {
+            super.registerBlockIcons(reg);
+            return;
+        }
+        side = reg.registerIcon("divinerpgextended:altar/" + FACES[type] + "_side");
+        top = reg.registerIcon("divinerpgextended:altar/" + FACES[type] + "_top");
+        blockIcon = side;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public net.minecraft.util.IIcon getIcon(int s, int meta) {
+        if (FACES[type] == null) return super.getIcon(s, meta);
+        return s <= 1 ? top : side;
     }
 
     /** Над алтарём Глакона кружат снежные искры. */

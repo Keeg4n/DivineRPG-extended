@@ -26,6 +26,8 @@ public class Config {
     public static int blitzDustPerShot = 5;
     /** Цифра запаса патронов на значке стрелкового оружия в инвентаре (клиент). */
     public static boolean ammoCountOnIcon = true;
+    /** Аксессуары из гнёзд брони видны на теле (как фенечки Ботании). */
+    public static boolean accessoriesOnBody = true;
     /** Противоядие (сет джунглей, перк "Сопротивление яду"): во сколько раз быстрее проходят плохие эффекты. */
     public static double jungleDebuffSpeed = 2.0;
     /** Броня из бедрока Divine не изнашивается. */
@@ -172,6 +174,8 @@ public class Config {
             "Нерушимость бедрока (полный сет и ядро): через сколько тиков на месте Сопротивление I и Сопротивление II, отброса нет с первой ступени. 20 тиков = 1 секунда");
         blitzDustPerShot = cfg.getInt("blitzDustPerShot", bal, blitzDustPerShot, 1, 64,
             "Сколько пыли своего мира тратит один выстрел блица (он стреляет 5 дробинами). Меньше этого в заряде и инвентаре - блиц не стреляет");
+        accessoriesOnBody = cfg.getBoolean("accessoriesOnBody", "client", accessoriesOnBody,
+            "Аксессуары, встроенные в надетую броню, видны на теле игрока (кольца, подвески, пояса, крылья и т.д.), у себя и у других игроков");
         ammoCountOnIcon = cfg.getBoolean("ammoCountOnIcon", "client", ammoCountOnIcon,
             "Цифра запаса патронов (заряд + инвентарь) на значке лука, блица, фазера и другого стрелкового оружия в своём инвентаре; бесконечные - знак бесконечности, меньше чем на выстрел - красным");
         jungleDebuffSpeed = cfg.get(bal, "jungleDebuffSpeed", jungleDebuffSpeed,
