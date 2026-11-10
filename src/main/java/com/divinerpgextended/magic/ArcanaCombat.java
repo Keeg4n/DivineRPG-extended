@@ -292,6 +292,22 @@ public class ArcanaCombat {
         }
     }
 
+    /** Уже ждёт ли цель арканного удара (два клика за тик - один удар). */
+    static boolean edgeQueued(EntityLivingBase target) {
+        for (Object[] o : PENDING) if (o[0] == target) return true;
+        return false;
+    }
+
+    /**
+     * Оплата арканного удара по боссу Арканы: обычный удар там отменён ещё на атаке, попадания нет, и теневой меч (Divine
+     * берёт его 12 арканы при попадании) платит здесь.
+     */
+    static boolean edgePaidOnArcanaBoss(EntityPlayer p, Item sword) {
+        if (sword != ArcanaItems.shadowSword) return edgePaid(p, sword);
+        ArcanaHelper h = ArcanaHelper.getProperties(p);
+        return h != null && ArcanaRules.useBar(h, 12F, "ItemShadowSword");
+    }
+
     /** Арканный удар меча Арканы по цели - отдельным ударом следующим тиком. */
     static void queueEdge(EntityLivingBase target, EntityPlayer p) {
         PENDING.add(new Object[] { target, p, SWORD_BONUS * ArcanaRules.stage(p) });

@@ -2309,6 +2309,40 @@ public class SelfTest {
             check(near(edge, expect), "арканный удар сабли по зомби в алмазном нагруднике " + f(edge) + " (ждали " + f(expect) + " сквозь броню)");
             return "после удара саблей Арканы - отдельный арканный удар " + f(expect) + " сквозь броню, с фиолетовыми искрами";
         });
+        t("Аркана", "Корма и Поток арканы: удары мечей Арканы не останавливают восстановление", () -> {
+            reset(p);
+            ArcanaHelper h = ArcanaHelper.getProperties(p);
+            int[] d = new int[6];
+            h.setBarValue(150);
+            h.regenDelay = 0;
+            com.divinerpgextended.magic.ArcanaRules.useBar(h, 6F, "ArcaneEdge");
+            d[0] = h.regenDelay; // без сета - обычная пауза
+            p.inventory.armorInventory[0] = new ItemStack(net.divinerpg.utils.items.ArcanaItems.kormaBoots);
+            p.inventory.armorInventory[1] = new ItemStack(net.divinerpg.utils.items.ArcanaItems.kormaLegs);
+            p.inventory.armorInventory[2] = new ItemStack(net.divinerpg.utils.items.ArcanaItems.kormaBody);
+            p.inventory.armorInventory[3] = new ItemStack(net.divinerpg.utils.items.ArcanaItems.kormaHelmet);
+            h.regenDelay = 0;
+            com.divinerpgextended.magic.ArcanaRules.useBar(h, 6F, "ArcaneEdge");
+            d[1] = h.regenDelay;
+            com.divinerpgextended.magic.ArcanaRules.useBar(h, 12F, "net.divinerpg.items.arcana.ItemArcaniumSaber");
+            d[2] = h.regenDelay;
+            com.divinerpgextended.magic.ArcanaRules.useBar(h, 20F, "net.divinerpg.items.arcana.ItemStormSword"); // молнии Storm Sword - не удар
+            d[3] = h.regenDelay;
+            reset(p);
+            wearCore(p, null, Perk.ARCANA_FLOW);
+            h.setBarValue(150);
+            h.regenDelay = 0;
+            com.divinerpgextended.magic.ArcanaRules.useBar(h, 12F, "ItemShadowSword");
+            d[4] = h.regenDelay;
+            h.regenDelay = 7; // пауза от выстрела удар меча не сбрасывает и не продлевает
+            com.divinerpgextended.magic.ArcanaRules.useBar(h, 6F, "ArcaneEdge");
+            d[5] = h.regenDelay;
+            reset(p);
+            int D = com.divinerpgextended.magic.ArcanaRules.DELAY;
+            check(d[0] == D && d[1] == 0 && d[2] == 0 && d[3] == D && d[4] == 0 && d[5] == 7, "пауза после траты: без сета " + d[0] + ", Корма: арканный удар "
+                + d[1] + ", сабля " + d[2] + ", молнии Storm Sword " + d[3] + " (ждали " + D + "); Поток арканы: теневой меч " + d[4] + ", удар при паузе 7 - " + d[5]);
+            return "с полным сетом Кормы или перком Поток арканы удары мечей Арканы не включают паузу восстановления (молнии Storm Sword и стрельба - включают)";
+        });
         t("Аркана", "Фазы боссов под аркану: Драмикс, Парасекта, души Пожирателя", () -> {
             net.minecraft.world.World w = p.worldObj;
             DamageSource plain = DamageSource.causePlayerDamage(p), arc = com.divinerpgextended.magic.ArcanaCombat.arcaneSource(p);
@@ -2335,6 +2369,25 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(swing);
             new com.divinerpgextended.magic.ArcanaCombat().onServerTick(new cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END)); // только отложенные удары: на тике сервера едет самопроверка
             float edgeDone = drsHp - drs.getHealth();
+            // закликивание: второй клик, пока босс неуязвим после попадания, и два клика за один тик - не больше одного удара
+            float hpSpam = drs.getHealth();
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(drs, DamageSource.causePlayerDamage(p), 20));
+            new com.divinerpgextended.magic.ArcanaCombat().onServerTick(new cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END));
+            float spamFrames = hpSpam - drs.getHealth();
+            drs.hurtResistantTime = 0;
+            hpSpam = drs.getHealth();
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(drs, DamageSource.causePlayerDamage(p), 20));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(drs, DamageSource.causePlayerDamage(p), 20));
+            new com.divinerpgextended.magic.ArcanaCombat().onServerTick(new cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END));
+            float spamTick = hpSpam - drs.getHealth();
+            // теневой меч: Divine берёт его аркану при попадании, а попадания нет - платит сам арканный удар
+            hold(p, new ItemStack(net.divinerpg.utils.items.ArcanaItems.shadowSword));
+            ArcanaHelper.getProperties(p).setBarValue(200);
+            drs.hurtResistantTime = 0;
+            hpSpam = drs.getHealth();
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(drs, DamageSource.causePlayerDamage(p), 20));
+            new com.divinerpgextended.magic.ArcanaCombat().onServerTick(new cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END));
+            float shadowEdge = hpSpam - drs.getHealth(), shadowPaid = 200 - ArcanaHelper.getProperties(p).getBarValue();
             drs.setDead();
             hold(p, null);
             net.divinerpg.entities.arcana.EntityParasecta pa = new net.divinerpg.entities.arcana.EntityParasecta(w);
@@ -2349,11 +2402,13 @@ public class SelfTest {
             net.divinerpg.entities.twilight.EntitySoulSpider soul = new net.divinerpg.entities.twilight.EntitySoulSpider(w);
             soul.getEntityData().setBoolean(com.divinerpgextended.boss.MortumArenaBosses.SOUL, true);
             float soulArc = hurt(soul, arc, 10), soulPlain = hurt(soul, plain, 10);
-            check(near(drPlain, 0) && near(drArc, 15) && near(drBoomHidden, 2) && near(drSeen, 0) && near(drSeenArc, 10) && near(drBoom, 10) && hit.isCanceled() && !hitArc.isCanceled() && swing.isCanceled() && edgeDone > 5
+            check(near(drPlain, 0) && near(drArc, 15) && near(drBoomHidden, 2) && near(drSeen, 0) && near(drSeenArc, 10) && near(drBoom, 10) && hit.isCanceled() && !hitArc.isCanceled() && swing.isCanceled() && edgeDone > 5 && spamFrames < 0.01F && near(spamTick, edgeDone)
+                && shadowEdge > 5 && near(shadowPaid, 12)
                 && shell && near(paPlain, 0) && near(paBoomShell, 10) && cracked && near(paExposed, 15) && near(paExposedPlain, 0) && near(soulArc, 30) && near(soulPlain, 5),
                 "Драмикс невидим: обычный " + f(drPlain) + ", арканный " + f(drArc) + ", взрыв " + f(drBoomHidden) + "; видим: обычный " + f(drSeen) + ", арканный " + f(drSeenArc) + ", взрыв " + f(drBoom)
                     + "; обычный удар отменён на атаке " + hit.isCanceled() + ", арканный нет " + !hitArc.isCanceled() + "; меч Ливиции: обычная часть отменена " + swing.isCanceled()
-                    + ", арканный удар " + f(edgeDone) + "; Парасекта: кокон " + shell + ", обычный 100 -> " + f(paPlain) + ", взрыв 100 -> " + f(paBoomShell)
+                    + ", арканный удар " + f(edgeDone) + ", клик в неуязвимость " + f(spamFrames) + ", два клика за тик " + f(spamTick)
+                    + ", теневой меч " + f(shadowEdge) + " за " + f(shadowPaid) + " арканы; Парасекта: кокон " + shell + ", обычный 100 -> " + f(paPlain) + ", взрыв 100 -> " + f(paBoomShell)
                     + ", аркана раскалывает " + cracked + " (" + f(paCrack) + "), открыта: взрыв 10 -> " + f(paExposed) + ", обычный -> " + f(paExposedPlain)
                     + "; душа: аркана 10 -> " + f(soulArc) + ", обычный 10 -> " + f(soulPlain));
             return "боссов Арканы ранят только аркана и взрывы (обычный удар отменяется ещё на атаке, у мечей Арканы проходит арканный удар); Драмикс в невидимости: аркана x1.5, взрыв x0.2; Парасекта в коконе: взрыв x0.1, аркана раскалывает и открывает (x1.5); души Пожирателя: аркана x3, обычный x0.5";

@@ -35,6 +35,10 @@ public class SocketTooltip {
         if (s.getItem() == net.divinerpg.utils.items.VanillaItemsArmor.jungleHelmet || s.getItem() == net.divinerpg.utils.items.VanillaItemsArmor.jungleBody
             || s.getItem() == net.divinerpg.utils.items.VanillaItemsArmor.jungleLegs || s.getItem() == net.divinerpg.utils.items.VanillaItemsArmor.jungleBoots)
             e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocalFormatted("dre.tooltip.jungle_set", new java.text.DecimalFormat("0.#").format(com.divinerpgextended.Config.jungleDebuffSpeed)));
+        if (s.getItem() == net.divinerpg.utils.items.ArcanaItems.kormaHelmet || s.getItem() == net.divinerpg.utils.items.ArcanaItems.kormaBody
+            || s.getItem() == net.divinerpg.utils.items.ArcanaItems.kormaLegs || s.getItem() == net.divinerpg.utils.items.ArcanaItems.kormaBoots)
+            e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocalFormatted("dre.tooltip.korma_set", (int) com.divinerpgextended.magic.ArcanaRules.KORMA_MAX,
+                Math.round((1 - com.divinerpgextended.magic.ArcanaRules.KORMA_DISCOUNT) * 100), com.divinerpgextended.magic.ArcaneSummons.CAP_KORMA));
         Item ammo = Ammo.of(s);
         if (ammo != null) {
             int n = Ammo.loaded(s);

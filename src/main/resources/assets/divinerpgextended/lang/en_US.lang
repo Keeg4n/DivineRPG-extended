@@ -1591,3 +1591,4 @@ dre.tooltip.bedrock_stance=Full set: standing still builds up unbreakable (up to
 dre.tooltip.nether_smelt=Full set: ore has a %d%% chance to drop already smelted
 dre.tooltip.goggles_socket=Fits into a Divine or Wanderer helmet: Wanderer Anvil, "Sockets" tab
 dre.gui.socket_goggles=Goggles of Revealing fit here
+dre.tooltip.korma_set=Full set: +%s arcana capacity, %s%% cheaper spending, up to %s arcane wraiths; Arcana sword hits do not stop arcana regeneration

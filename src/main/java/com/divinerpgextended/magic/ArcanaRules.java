@@ -138,13 +138,24 @@ public final class ArcanaRules {
             if (last != null && now - last < sp.cooldown && now >= last) return false;
         }
         if (h.getBarValue() < c) return false; // не хватило - задержку восстановления не трогаем
-        if (!h.useBar(c)) return false;
-        h.regenDelay = delay(p);
+        int was = h.regenDelay;
+        if (!h.useBar(c)) return false; // Divine ставит свою паузу 50 тиков - ниже заменяем
+        h.regenDelay = swordSpend(s) && swordFlow(p) ? was : delay(p);
         if (key != null) {
             if (LAST_USE.size() > 5000) LAST_USE.clear();
             LAST_USE.put(key, now);
         }
         return true;
+    }
+
+    /** Трата мечей Арканы на удар: сабля и клинок (на клик), теневой меч (на попадание), арканный удар Storm Sword и меча Ливиции. */
+    static boolean swordSpend(String s) {
+        return "ItemArcaniumSaber".equals(s) || "ItemArcaniteBlade".equals(s) || "ItemShadowSword".equals(s) || "ArcaneEdge".equals(s);
+    }
+
+    /** Полный сет Кормы или перк Поток арканы: удары мечей Арканы не останавливают восстановление арканы. */
+    public static boolean swordFlow(EntityPlayer p) {
+        return p != null && (korma(p) || com.divinerpgextended.item.ArmorData.hasEquippedPerk(p, com.divinerpgextended.perk.Perk.ARCANA_FLOW));
     }
 
     /** Задержка восстановления после траты. */

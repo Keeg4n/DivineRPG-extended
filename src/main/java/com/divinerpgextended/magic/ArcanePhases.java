@@ -73,7 +73,10 @@ public class ArcanePhases {
         // меч Арканы: обычная часть удара не проходит, а арканный удар (следующим тиком) - проходит
         net.minecraft.item.ItemStack h = p.getHeldItem();
         if (e.source.getSourceOfDamage() == p && "player".equals(e.source.damageType) && h != null && ArcanaCombat.arcanaSword(h.getItem())) {
-            if (ArcanaCombat.edgePaid(p, h.getItem())) ArcanaCombat.queueEdge(e.entityLiving, p);
+            // ритм обычных ударов: событие атаки идёт на каждый клик, а босс после попадания полсекунды неуязвим
+            EntityLivingBase b = e.entityLiving;
+            if (b.hurtResistantTime > b.maxHurtResistantTime / 2 || ArcanaCombat.edgeQueued(b)) return;
+            if (ArcanaCombat.edgePaidOnArcanaBoss(p, h.getItem())) ArcanaCombat.queueEdge(b, p);
             return;
         }
         long now = p.worldObj.getTotalWorldTime();
