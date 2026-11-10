@@ -1,4 +1,6 @@
-"""Модель Наковальни Странника: тёмное железо, реалмитовые пояса, фиолетовый камень-гнездо, молот на рабочей поверхности.
+"""Модель Наковальни Странника. В игре с 0.99.108 - вариант А "Простая" (выбор 10.11, низкополигональная в стиле моделей Divine:
+6 коробок, тексель на единицу, атлас 64x64): тёмное железо, реалмитовые пояса полосами в текстуре, рог, камни-гнёзда спереди и
+сзади. Прежняя подробная модель (19 коробок, молот на рабочей поверхности) - build_detailed().
 
 Координаты: y вниз, пол блока y=24, верх блока y=8, x и z от -8 до 8, лицо (камень) смотрит в -Z, рог - в -X.
 Пишет .mesh и .png в ресурсы мода (аргумент - корень репозитория) и превью в папку скрипта.
@@ -84,7 +86,8 @@ def B(x0, y0, z0, x1, y1, z1, paint, bone='body', rot=(0, 0, 0), pivot=None, k=6
     return mk.Box('anvil', bone, x0, y0, z0, x1 - x0, y1 - y0, z1 - z0, paint, rot=rot, pivot=pivot, k=k)
 
 
-def build():
+def build_detailed():
+    """Прежняя модель (до 0.99.108): 19 коробок, атлас 512, молот на рабочей поверхности."""
     iron = P(IRON, noise=0.07)
     cop = P(COP, trim(0.3, COPD))
     bs = [
@@ -117,6 +120,87 @@ def build():
         B(-1.95, 6.0, -0.95, -1.25, 8.2, 1.7, cop, rot=rot, pivot=piv),                # реалмитовое кольцо
     ]
     return mk.Model('wanderer_anvil', bs, atlas_width=512)
+
+
+# ------------------------------------------------------------------ вариант А (в игре): пиксельная заливка как у Divine
+
+LP_IRON, LP_IRON_D, LP_STEEL, LP_COP, LP_GEM = '#454852', '#2e3037', '#9aa1ad', '#c8642c', '#b27cff'
+FACES = ('north', 'south', 'east', 'west', 'up', 'down')
+SIDES = ('north', 'south', 'east', 'west')
+
+
+def _texel(face):
+    _, fu, fv = face.texel_points()
+    return np.floor(fu).astype(int), np.floor(fv).astype(int)
+
+
+def px(base, *decals, border=0.68, noise=0.11, top=1.10, seed=0):
+    """Плоский цвет, редкий дизеринг в два тона, тёмная рамка в тексель."""
+    b = mk.rgb(base)
+
+    def paint(p, face, box):
+        _, fu, fv = face.texel_points()
+        iu, iv = _texel(face)
+        fi = FACES.index(face.name)
+        h = np.sin(iu * 12.9898 + iv * 78.233 + fi * 3.7 + seed * 11.3) * 43758.5453
+        h = h - np.floor(h)
+        n = np.where(h < 0.22, 1 - noise, np.where(h > 0.86, 1 + noise * 0.8, 1.0))
+        edge = mk.edge_dist(fu, fv, face) < 0.99
+        f = np.where(edge, border, 1.0)
+        if face.name == 'up':
+            n = n * top
+        col = np.broadcast_to(b, p.shape).copy() * (f * n)[..., None]
+        for d in decals:
+            col = d(col, iu, iv, face, edge)
+        return col
+    return paint
+
+
+def rows(faces, vs, color, keep_edge=True, mul=1.0):
+    """Полоса по строкам текселей (v=0 - верх грани)."""
+    c = mk.rgb(color) * mul
+
+    def d(col, iu, iv, face, edge):
+        if face.name not in faces:
+            return col
+        m = np.isin(iv, vs)
+        col[m] = np.where(edge[m][:, None], c * 0.72, c) if keep_edge else c
+        return col
+    return d
+
+
+def cells(faces, u0, u1, v0, v1, color):
+    """Прямоугольник в текселях включительно; отрицательные индексы - от правого/нижнего края."""
+    c = mk.rgb(color)
+
+    def d(col, iu, iv, face, edge):
+        if face.name not in faces:
+            return col
+        W, H = iu.max() + 1, iv.max() + 1
+        m = (iu >= u0 % W) & (iu <= u1 % W) & (iv >= v0 % H) & (iv <= v1 % H)
+        col[m] = c
+        return col
+    return d
+
+
+def LB(x0, y0, z0, x1, y1, z1, paint, bone='body'):
+    return mk.Box('anvil', bone, x0, y0, z0, x1 - x0, y1 - y0, z1 - z0, paint, k=1.0)
+
+
+def build():
+    """Вариант А "Простая": ванильный силуэт наковальни, реалмит - полосами в текстуре, камень спереди и сзади."""
+    top = px(LP_IRON, cells(('up',), 1, -2, 1, -2, LP_STEEL), rows(SIDES, [3], LP_COP))
+    neck = px(LP_IRON, rows(SIDES, [1, 5], LP_COP))
+    gem = px(LP_GEM, cells(FACES, 0, 0, 0, 0, '#f0e4ff'), border=0.8, noise=0.0)
+    bs = [
+        LB(-6, 21, -5, 6, 24, 5, px(LP_IRON_D, rows(SIDES, [0], LP_COP))),    # ступня
+        LB(-3, 14, -3, 3, 21, 3, neck),                                       # шея
+        LB(-5, 9, -4, 7, 14, 4, top),                                         # рабочая часть
+        LB(-8, 9, -2, -5, 12, 2, px(LP_IRON, cells(('up',), 0, -1, 0, -1, LP_STEEL))),  # рог
+        LB(-1, 16, -3.5, 1, 19, -3, gem, bone='glow'),                        # камень спереди (светится)
+        LB(-1, 16, 3, 1, 19, 3.5, gem, bone='glow'),                          # и сзади
+    ]
+    return mk.Model('wanderer_anvil', bs, atlas_width=64)
 
 
 # ------------------------------------------------------------------ превью
