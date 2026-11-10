@@ -287,9 +287,14 @@ public class ArcanaCombat {
             ItemStack h = p.getHeldItem();
             if (h != null && arcanaSword(h.getItem()) && edgePaid(p, h.getItem())) {
                 // отдельным ударом следующим тиком: в этот тик цель уже неуязвима, а прибавка к обычному удару резалась бы бронёй
-                PENDING.add(new Object[] { e.entityLiving, p, SWORD_BONUS * ArcanaRules.stage(p) });
+                queueEdge(e.entityLiving, p);
             }
         }
+    }
+
+    /** Арканный удар меча Арканы по цели - отдельным ударом следующим тиком. */
+    static void queueEdge(EntityLivingBase target, EntityPlayer p) {
+        PENDING.add(new Object[] { target, p, SWORD_BONUS * ArcanaRules.stage(p) });
     }
 
     /** Арканный удар мечом: свой тип урона, сквозь броню. */

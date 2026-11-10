@@ -70,6 +70,12 @@ public class ArcanePhases {
         Entity a = e.source.getEntity();
         if (!(a instanceof EntityPlayer)) return;
         EntityPlayer p = (EntityPlayer) a;
+        // меч Арканы: обычная часть удара не проходит, а арканный удар (следующим тиком) - проходит
+        net.minecraft.item.ItemStack h = p.getHeldItem();
+        if (e.source.getSourceOfDamage() == p && "player".equals(e.source.damageType) && h != null && ArcanaCombat.arcanaSword(h.getItem())) {
+            if (ArcanaCombat.edgePaid(p, h.getItem())) ArcanaCombat.queueEdge(e.entityLiving, p);
+            return;
+        }
         long now = p.worldObj.getTotalWorldTime();
         if (now - p.getEntityData().getLong(HINT_AT) < 200) return;
         p.getEntityData().setLong(HINT_AT, now);

@@ -2323,6 +2323,20 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(hit);
             net.minecraftforge.event.entity.living.LivingAttackEvent hitArc = new net.minecraftforge.event.entity.living.LivingAttackEvent(dr, arc, 10);
             MinecraftForge.EVENT_BUS.post(hitArc);
+            // меч Арканы по боссу Арканы: обычная часть отменена, арканный удар (следующим тиком) - проходит
+            reset(p);
+            ArcanaHelper.getProperties(p).setBarValue(200);
+            hold(p, new ItemStack(net.divinerpg.utils.items.ArcanaItems.liviciaSword));
+            net.divinerpg.entities.arcana.EntityDramix drs = new net.divinerpg.entities.arcana.EntityDramix(w);
+            drs.setPosition(p.posX + 2, p.posY, p.posZ);
+            w.spawnEntityInWorld(drs);
+            float drsHp = drs.getHealth();
+            net.minecraftforge.event.entity.living.LivingAttackEvent swing = new net.minecraftforge.event.entity.living.LivingAttackEvent(drs, DamageSource.causePlayerDamage(p), 20);
+            MinecraftForge.EVENT_BUS.post(swing);
+            new com.divinerpgextended.magic.ArcanaCombat().onServerTick(new cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END)); // только отложенные удары: на тике сервера едет самопроверка
+            float edgeDone = drsHp - drs.getHealth();
+            drs.setDead();
+            hold(p, null);
             net.divinerpg.entities.arcana.EntityParasecta pa = new net.divinerpg.entities.arcana.EntityParasecta(w);
             pa.setPosition(p.posX, p.posY, p.posZ);
             pa.setHealth(pa.getMaxHealth() * 0.8F);
@@ -2335,13 +2349,14 @@ public class SelfTest {
             net.divinerpg.entities.twilight.EntitySoulSpider soul = new net.divinerpg.entities.twilight.EntitySoulSpider(w);
             soul.getEntityData().setBoolean(com.divinerpgextended.boss.MortumArenaBosses.SOUL, true);
             float soulArc = hurt(soul, arc, 10), soulPlain = hurt(soul, plain, 10);
-            check(near(drPlain, 0) && near(drArc, 15) && near(drBoomHidden, 2) && near(drSeen, 0) && near(drSeenArc, 10) && near(drBoom, 10) && hit.isCanceled() && !hitArc.isCanceled()
+            check(near(drPlain, 0) && near(drArc, 15) && near(drBoomHidden, 2) && near(drSeen, 0) && near(drSeenArc, 10) && near(drBoom, 10) && hit.isCanceled() && !hitArc.isCanceled() && swing.isCanceled() && edgeDone > 5
                 && shell && near(paPlain, 0) && near(paBoomShell, 10) && cracked && near(paExposed, 15) && near(paExposedPlain, 0) && near(soulArc, 30) && near(soulPlain, 5),
                 "Драмикс невидим: обычный " + f(drPlain) + ", арканный " + f(drArc) + ", взрыв " + f(drBoomHidden) + "; видим: обычный " + f(drSeen) + ", арканный " + f(drSeenArc) + ", взрыв " + f(drBoom)
-                    + "; обычный удар отменён на атаке " + hit.isCanceled() + ", арканный нет " + !hitArc.isCanceled() + "; Парасекта: кокон " + shell + ", обычный 100 -> " + f(paPlain) + ", взрыв 100 -> " + f(paBoomShell)
+                    + "; обычный удар отменён на атаке " + hit.isCanceled() + ", арканный нет " + !hitArc.isCanceled() + "; меч Ливиции: обычная часть отменена " + swing.isCanceled()
+                    + ", арканный удар " + f(edgeDone) + "; Парасекта: кокон " + shell + ", обычный 100 -> " + f(paPlain) + ", взрыв 100 -> " + f(paBoomShell)
                     + ", аркана раскалывает " + cracked + " (" + f(paCrack) + "), открыта: взрыв 10 -> " + f(paExposed) + ", обычный -> " + f(paExposedPlain)
                     + "; душа: аркана 10 -> " + f(soulArc) + ", обычный 10 -> " + f(soulPlain));
-            return "боссов Арканы ранят только аркана и взрывы (обычный удар отменяется ещё на атаке); Драмикс в невидимости: аркана x1.5, взрыв x0.2; Парасекта в коконе: взрыв x0.1, аркана раскалывает и открывает (x1.5); души Пожирателя: аркана x3, обычный x0.5";
+            return "боссов Арканы ранят только аркана и взрывы (обычный удар отменяется ещё на атаке, у мечей Арканы проходит арканный удар); Драмикс в невидимости: аркана x1.5, взрыв x0.2; Парасекта в коконе: взрыв x0.1, аркана раскалывает и открывает (x1.5); души Пожирателя: аркана x3, обычный x0.5";
         });
         t("Аркана", "Ракета Мерика находит босса Арканы, взрыватель бьёт всеми пулями", () -> {
             reset(p);
