@@ -2068,3 +2068,7 @@ dre.status.ready_crown=Готово: новый Венец - %s.
 dre.status.crown_same=Венец и так %s.
 dre.status.crown_r8_only=%s - свойство Венца R8: ставится только закалкой R7 в R8 (после Леди Луны), в малые слоты не идёт.
 dre.nei.anvil.crown=Закалка до R8, Венец: %s
+item.dre.cyclopsBait.name=Глазок циклопа
+dre.tooltip.bait.cyclops_eye=В пещерах клюёт быстрее, ловится Пещерный удильщик
+item.dre.fish.cave_angler.name=Пещерный удильщик
+dre.tooltip.fish.cave_angler=Ночное зрение на 3 мин

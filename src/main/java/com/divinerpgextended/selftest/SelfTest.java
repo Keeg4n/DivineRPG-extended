@@ -3960,6 +3960,32 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
+        t("Рыбалка", "Пещерный удильщик на Глазок циклопа", () -> {
+            java.util.Random r = new java.util.Random(42);
+            int n = 5000, angler = 0, other = 0, outside = 0;
+            for (int i = 0; i < n; i++) {
+                if (FishingLoot.cave(r, Zone.CAVE, com.divinerpgextended.fishing.Bait.CYCLOPS_EYE, 1F) != null) angler++;
+                if (FishingLoot.cave(r, Zone.CAVE, com.divinerpgextended.fishing.Bait.HITCHAK, 1F) != null) other++;
+                if (FishingLoot.cave(r, Zone.FRESH, com.divinerpgextended.fishing.Bait.CYCLOPS_EYE, 1F) != null) outside++;
+            }
+            float share = angler / (float) n;
+            com.divinerpgextended.fishing.Bait cb = com.divinerpgextended.fishing.Bait.CYCLOPS_EYE;
+            boolean bait = com.divinerpgextended.fishing.Bait.of(ModItems.cyclopsBait) == cb && cb.waitMultiplier(Zone.CAVE) < 1F && cb.waitMultiplier(Zone.FRESH) == 1F;
+            net.minecraft.inventory.InventoryCrafting gr = grid();
+            gr.setInventorySlotContents(4, new ItemStack(VanillaItemsOther.cyclopsEyeShards));
+            ItemStack made = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(gr, server.worldServerForDimension(0));
+            boolean recipe = made != null && made.getItem() == ModItems.cyclopsBait && made.stackSize == 2;
+            boolean quest = FishingLoot.questFish().contains(com.divinerpgextended.fishing.Fish.CAVE_ANGLER);
+            boolean nei = false;
+            for (FishingLoot.View v : FishingLoot.catches(Zone.CAVE))
+                nei |= v.stack.getItem() == ModItems.fish && v.stack.getItemDamage() == com.divinerpgextended.fishing.Fish.CAVE_ANGLER.ordinal();
+            boolean icons = SelfTest.class.getResource("/assets/divinerpgextended/textures/items/cyclops_bait.png") != null
+                && SelfTest.class.getResource("/assets/divinerpgextended/textures/items/fish_cave_angler.png") != null;
+            check(Math.abs(share - FishingLoot.ANGLER_CHANCE) < 0.02F && other == 0 && outside == 0 && bait && recipe && quest && nei && icons,
+                "на " + n + " поклёвок в пещере: удильщиков " + angler + " (" + f(share * 100) + "%), на другую приманку " + other + ", вне пещеры " + outside + "; приманка " + bait
+                    + ", рецепт " + (made == null ? "нет" : made.getDisplayName() + " x" + made.stackSize) + ", задание Леорны " + quest + ", в NEI " + nei + ", значки " + icons);
+            return "Глазок циклопа (осколок глаза циклопа - 2 шт.): в пещере клюёт быстрее, Пещерный удильщик в " + f(share * 100) + "% поклёвок, только там и только на эту приманку; рыба для заданий Леорны";
+        });
         t("Лиоплевродон", "Кость призрака у Мерика", () -> {
             TestPlayer mp = join(player(0, "TestWraithbane", sx + 0.5, sy, sz + 0.5), true);
             boolean before, after, chest;

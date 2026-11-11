@@ -38,7 +38,10 @@ public enum Fish {
     CLOUD_JELLY(Zone.CLOUD, 3, 0.3F, Potion.field_76443_y, 1, 0, true, "pufferfish", 0xE6F0FF),
     BONE_FISH(Zone.MORTUM, 4, 0.4F, null, 0, 0, true, "cod", 0xDCD2BE),
     /** Золотая рыбка: в любом сумеречном мире 1 из 1000 поклёвок (ничем не увеличивается), съесть - +1 сердце навсегда, всего до 5. */
-    GOLDEN_FISH(Zone.EDEN, 2, 0.2F, null, 0, 0, false, "clownfish", 0xFFD84A);
+    GOLDEN_FISH(Zone.EDEN, 2, 0.2F, null, 0, 0, false, "clownfish", 0xFFD84A),
+    // с 0.99.115
+    /** Пещерный удильщик: только в пещерах и только на Глазок циклопа ({@link FishingLoot#cave}), для Леорны. Ночное зрение на 3 мин. */
+    CAVE_ANGLER(Zone.CAVE, 4, 0.4F, Potion.nightVision, 3600, 0, true, "cod", 0x2E3A50);
 
     public final Zone zone;
     public final int food;

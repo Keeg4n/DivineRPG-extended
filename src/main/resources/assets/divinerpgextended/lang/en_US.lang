@@ -1733,3 +1733,7 @@ dre.status.ready_crown=Ready: new Crown - %s.
 dre.status.crown_same=The Crown is already %s.
 dre.status.crown_r8_only=%s is an R8 Crown property: it is set only by tempering R7 into R8 (after Lady Luna), not in the small slots.
 dre.nei.anvil.crown=Temper to R8, Crown: %s
+item.dre.cyclopsBait.name=Cyclops Eye Bait
+dre.tooltip.bait.cyclops_eye=Bites faster in caves, catches the Cave Angler
+item.dre.fish.cave_angler.name=Cave Angler
+dre.tooltip.fish.cave_angler=Night Vision for 3 min

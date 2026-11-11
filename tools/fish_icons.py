@@ -379,6 +379,13 @@ VARIANTS = {
         ('Костяная рыба', dict(SLIM, main=(220, 210, 190), back=(150, 140, 120), belly=(240, 232, 214), pattern='ribs', pat=(90, 80, 70), period=2.0,
                                eyec=(255, 70, 40), fin=(170, 160, 140))),
     ),
+    'cave_angler': (
+        ('Пещерный удильщик', G(main=(64, 78, 104), back=(34, 42, 62), belly=(128, 140, 160), head=-9.0, w=3.8, body=wide_head, pattern='spots', pat=(44, 54, 76),
+                                fin=(44, 54, 76), eyec=(230, 230, 170),
+                                # удочка-фонарик над головой (голова в левом нижнем углу значка): стебель вверх, светящийся шарик
+                                extras=(dots((170, 180, 200), (3, 10), (2, 9), (2, 8), (2, 7)), dots((150, 255, 230), (1, 6), (2, 6), (1, 5)),
+                                        on_fish((240, 240, 240), (-9.2, 0.4))))),
+    ),
     'golden_fish': (
         ('Золотая рыбка', dict(ROUND, **dict(FAN, main=0xFFD84A, belly=(255, 248, 200), pattern='none', fin=(255, 190, 60), tailc=(255, 200, 80),
                                              extras=(dots(WHITE, (6, 7), (9, 9), (4, 11)),)))),
@@ -390,7 +397,8 @@ VARIANTS = {
 CHOSEN = {'sea_bass': 'c', 'coral_wrasse': 'b', 'shark_pup': 'a', 'ruff': 'a', 'gold_crucian': 'a', 'ice_trout': 'b', 'snow_burbot': 'c', 'crystal_fish': 'b',
           'piranha': 'b', 'emerald_catfish': 'a', 'sand_carp': 'c', 'mummy_fish': 'b', 'cavefish': 'c', 'obsidifish': 'b', 'flarefin': 'b', 'ember_fry': 'c',
           'arcane_eel': 'c', 'stargazer': 'b', 'eden_goldfish': 'a', 'wildwood_glowfish': 'b', 'apalachia_ray': 'b', 'skythern_flyer': 'a', 'mortum_eel': 'b', 'dream_carp': 'c',
-          'sun_perch': 'a', 'storm_catfish': 'a', 'amethyst_pike': 'a', 'cloudfin': 'a', 'cloud_jelly': 'a', 'bone_fish': 'a', 'golden_fish': 'a'}
+          'sun_perch': 'a', 'storm_catfish': 'a', 'amethyst_pike': 'a', 'cloudfin': 'a', 'cloud_jelly': 'a', 'bone_fish': 'a', 'golden_fish': 'a',
+          'cave_angler': 'a'}
 
 
 def main(out):

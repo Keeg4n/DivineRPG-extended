@@ -282,6 +282,14 @@ public final class FishingLoot {
         return r.nextFloat() < Math.max(0.05F, power / 600F * rareMult) ? new ItemStack(ModItems.fish, 1, Fish.STORM_CATFISH.ordinal()) : null;
     }
 
+    /** Пещерный удильщик: в пещере на Глазок циклопа - с этим шансом на поклёвку (растёт с редким уловом удочки). */
+    public static final float ANGLER_CHANCE = 0.12F;
+
+    public static ItemStack cave(Random r, Zone zone, Bait bait, float rareMult) {
+        if (zone != Zone.CAVE || bait != Bait.CYCLOPS_EYE) return null;
+        return r.nextFloat() < ANGLER_CHANCE * rareMult ? new ItemStack(ModItems.fish, 1, Fish.CAVE_ANGLER.ordinal()) : null;
+    }
+
     /** Золотой улов Эдема: рыба приходит позолоченной (8%, с Солнечной блесной - 16%). */
     public static final float GILD_CHANCE = 0.08F;
     public static final String GILDED = "dreGilded";
@@ -335,6 +343,7 @@ public final class FishingLoot {
         view(out, t.veryRare, View.VERY_RARE);
         if (zone == Zone.WILDWOOD) out.add(new View(new ItemStack(ModItems.fish, 1, Fish.STORM_CATFISH.ordinal()), View.RARE, 1, 1)); // только в ливень
         if (zone.twilight()) out.add(new View(new ItemStack(ModItems.fish, 1, Fish.GOLDEN_FISH.ordinal()), View.VERY_RARE, 1, 1));
+        if (zone == Zone.CAVE) out.add(new View(new ItemStack(ModItems.fish, 1, Fish.CAVE_ANGLER.ordinal()), View.RARE, 1, 1)); // только на Глазок циклопа
         ItemStack relic = relicOf(zone);
         if (relic != null && com.divinerpgextended.Config.fishingRelics) out.add(new View(relic, View.RELIC, 1, 1));
         out.add(new View(new ItemStack(ModItems.crate, 1, zone.ordinal()), View.CRATE, 1, 1));

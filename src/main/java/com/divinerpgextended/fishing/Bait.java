@@ -23,7 +23,12 @@ public enum Bait {
     VEILO(10, true), MARSINE(15, true), EUCALYPTUS(20, true), PINFLY(20, true), LAMONA(25, true), FIRESTOCK(25, true),
     AQUAMARINE(30, true), HITCHAK(40, true),
     /** Солнечная блесна (из искр Эдема): сильнее аквамарина, в Эдеме вдвое чаще золотой улов. */
-    SUN_LURE(35, false);
+    SUN_LURE(35, false),
+    /** Глазок циклопа (из осколков глаза циклопа): в пещерах клюёт быстрее и ловится Пещерный удильщик. */
+    CYCLOPS_EYE(20, false);
+
+    /** Глазок циклопа в пещере: ожидание поклёвки x0.6. */
+    public static final float CAVE_WAIT = 0.6F;
 
     public final int power;
     /** Урожай Арканы (их Леорна даёт в награду). */
@@ -62,6 +67,8 @@ public enum Bait {
                 return ArcanaItems.aquamarine;
             case SUN_LURE:
                 return ModItems.sunLure;
+            case CYCLOPS_EYE:
+                return ModItems.cyclopsBait;
             default:
                 return ArcanaItems.hitchak;
         }
@@ -85,8 +92,9 @@ public enum Bait {
         return this == FIRESTOCK;
     }
 
-    /** Pinfly - клюёт быстрее. */
-    public float waitMultiplier() {
+    /** Pinfly - клюёт быстрее; Глазок циклопа - в пещере ещё быстрее. */
+    public float waitMultiplier(Zone zone) {
+        if (this == CYCLOPS_EYE && zone == Zone.CAVE) return CAVE_WAIT;
         return this == PINFLY ? 0.8F : 1.0F;
     }
 

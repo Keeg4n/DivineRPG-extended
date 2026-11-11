@@ -423,6 +423,30 @@ def anchor(pal):
     return image(outline(g))
 
 
+def cyclops_bait():
+    """Глазок циклопа: кусочек глаза - белок в красных прожилках, жёлтая радужка, чёрный зрачок, снизу крючок."""
+    g = blank()
+    white, vein, iris, iris_d, pupil = hexc('f0ece0'), hexc('c83a3a'), hexc('f0c030'), hexc('b07a10'), hexc('141008')
+    for y in range(16):
+        for x in range(16):
+            if (x - 7.0) ** 2 + (y - 6.5) ** 2 <= 22:
+                g[y][x] = white
+    for x, y in ((3, 6), (4, 5), (3, 8), (11, 4), (11, 8), (10, 9)):
+        put(g, x, y, vein)
+    for y in range(16):
+        for x in range(16):
+            d = (x - 7.5) ** 2 + (y - 6.5) ** 2
+            if d <= 7.5:
+                g[y][x] = iris if d < 4.5 else iris_d
+    for x, y in ((7, 6), (8, 6), (7, 7), (8, 7)):
+        put(g, x, y, pupil)
+    put(g, 6, 5, hexc('ffffff'))
+    steel = hexc('a8b0bc')
+    for x, y in ((7, 12), (7, 13), (8, 14), (9, 14), (10, 13), (10, 12)):
+        put(g, x, y, steel)
+    return image(outline(g))
+
+
 def main():
     items = os.path.join(RES, 'textures/items')
     icons = {'storm_bow_standby': bow(None), 'storm_bow_pulling_0': bow(0), 'storm_bow_pulling_1': bow(1), 'storm_bow_pulling_2': bow(2),
@@ -430,7 +454,8 @@ def main():
              'sun_lure': sun_lure(), 'wandering_soul': wandering_soul(), 'crate_cloud': crate_cloud(),
              'tsunami_standby': bow(None, TSUNAMI), 'tsunami_pulling_0': bow(0, TSUNAMI), 'tsunami_pulling_1': bow(1, TSUNAMI),
              'tsunami_pulling_2': bow(2, TSUNAMI), 'blood_bait': blood_bait(), 'trinket_lio_fins': lio_fins(),
-             'anchor_crab': anchor(('7a1a0a', 'd0441c', 'f88848', 'ffc070')), 'anchor_lio': anchor(('0a1c50', '1f4fa8', '4f8fe8', 'e8e2c8'))}
+             'anchor_crab': anchor(('7a1a0a', 'd0441c', 'f88848', 'ffc070')), 'anchor_lio': anchor(('0a1c50', '1f4fa8', '4f8fe8', 'e8e2c8')),
+             'cyclops_bait': cyclops_bait()}
     for name, im in icons.items():
         im.save(os.path.join(items, name + '.png'))
     append_halo()

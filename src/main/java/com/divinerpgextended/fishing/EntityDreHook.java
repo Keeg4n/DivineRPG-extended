@@ -333,7 +333,7 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
             Bait bait = currentBait();
             Zone zone = Zone.at(worldObj, posX, posY, posZ, lava);
             int p = power(bait, zone);
-            float mult = 60F / (60F + p) * rod.waitMultiplier() * (bait == null ? 1.0F : bait.waitMultiplier())
+            float mult = 60F / (60F + p) * rod.waitMultiplier() * (bait == null ? 1.0F : bait.waitMultiplier(zone))
                 * com.divinerpgextended.magic.ArcaneEffects.biteFactor(field_146042_b); // Рыбацкий фарт
             if (FishSchools.near(worldObj, posX, posY, posZ)) mult /= FishSchools.BITE; // косяк: клюёт втрое быстрее
             ticksCaughtDelay = (int) (MathHelper.getRandomIntegerInRange(rand, 100, 900) * mult);
@@ -373,6 +373,7 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
                 // особые уловы: золотая рыбка (ничем не усиливается), Грозовой сом в ливень, утопленник Мортума
                 ItemStack loot = FishingLoot.golden(rand, zone);
                 if (loot == null) loot = FishingLoot.storm(rand, zone, com.divinerpgextended.item.ItemStormBow.storm(worldObj), bait != null, power, rareMult);
+                if (loot == null) loot = FishingLoot.cave(rand, zone, bait, rareMult); // Пещерный удильщик на Глазок циклопа
                 if (loot == null && zone == Zone.MORTUM && bait != null && rand.nextFloat() < DROWNED_CHANCE) {
                     drowned(p);
                     caught.append(caught.length() == 0 ? "" : ", ").append("утопленник");

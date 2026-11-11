@@ -88,7 +88,7 @@ public final class ModItems {
     /** Реликварии миров: ключи миров (мета - мир) и вещи из реликвариев. */
     public static Item worldKey, stormBow, tomahawk, cloudStaff, soulHarvest;
     /** Рыбалка миров: Солнечная блесна (приманка из искр Эдема) и блуждающая душа (улов Мортума, заряжает Жатву душ). */
-    public static Item sunLure, wanderingSoul;
+    public static Item sunLure, wanderingSoul, cyclopsBait;
     /** Лиоплевродон: лук Цунами (с босса) и Кровавая наживка (призыв). */
     public static Item tsunami, bloodBait;
 
@@ -224,6 +224,10 @@ public final class ModItems {
         if (net.divinerpg.utils.items.TwilightItemsOther.edenSparkles != null) // 2 искры Эдема и золотой самородок - 2 блесны
             GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(sunLure, 2), net.divinerpg.utils.items.TwilightItemsOther.edenSparkles,
                 net.divinerpg.utils.items.TwilightItemsOther.edenSparkles, net.minecraft.init.Items.gold_nugget);
+        cyclopsBait = new Item().setUnlocalizedName("dre.cyclopsBait").setTextureName("divinerpgextended:cyclops_bait").setCreativeTab(com.divinerpgextended.DreTab.TAB);
+        GameRegistry.registerItem(cyclopsBait, "cyclopsBait");
+        if (net.divinerpg.utils.items.VanillaItemsOther.cyclopsEyeShards != null) // осколок глаза циклопа - 2 глазка
+            GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(cyclopsBait, 2), net.divinerpg.utils.items.VanillaItemsOther.cyclopsEyeShards);
         wanderingSoul = new com.divinerpgextended.fishing.ItemWanderingSoul();
         GameRegistry.registerItem(wanderingSoul, "wanderingSoul");
         tsunami = new com.divinerpgextended.item.ItemTsunamiBow();
