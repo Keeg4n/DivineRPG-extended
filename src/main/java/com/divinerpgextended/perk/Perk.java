@@ -62,17 +62,17 @@ public enum Perk {
         { VanillaItemsArmor.jackOManHelmet, VanillaItemsArmor.jackOManBody, VanillaItemsArmor.jackOManLegs,
             VanillaItemsArmor.jackOManBoots } }),
 
-    /** Восстановление (сет Vemos): здоровье само растёт. Открывает Раглок. */
+    /** Восстановление (сет Vemos): здоровье само растёт. С 0.99.114 - только Венец R8 ({@link com.divinerpgextended.item.ArmorCrown}). */
     REGENERATION(Boss.RAGLOK, new Item[][] {
         { net.divinerpg.utils.items.ArcanaItems.vemosHelmet, net.divinerpg.utils.items.ArcanaItems.vemosBody,
             net.divinerpg.utils.items.ArcanaItems.vemosLegs, net.divinerpg.utils.items.ArcanaItems.vemosBoots } }),
 
-    /** Поток арканы (сет Korma): аркана восстанавливается быстрее. Открывает Крушитель. */
+    /** Поток арканы (сет Korma): аркана восстанавливается быстрее, арканный урон x2. С 0.99.114 - только Венец R8. */
     ARCANA_FLOW(Boss.WRECK, new Item[][] {
         { net.divinerpg.utils.items.ArcanaItems.kormaHelmet, net.divinerpg.utils.items.ArcanaItems.kormaBody,
             net.divinerpg.utils.items.ArcanaItems.kormaLegs, net.divinerpg.utils.items.ArcanaItems.kormaBoots } }),
 
-    /** Ангельский полёт (сет Angelic). Открывает Леди Луна. Во сне (в Ветее) не работает. */
+    /** Ангельский полёт (сет Angelic). Во сне (в Ветее) не работает. С 0.99.114 - только Венец R8. */
     ANGEL_FLIGHT(Boss.LADY_LUNA, new Item[][] {
         { VanillaItemsArmor.angelicHelmet, VanillaItemsArmor.angelicBody, VanillaItemsArmor.angelicLegs,
             VanillaItemsArmor.angelicBoots } }),
@@ -116,8 +116,18 @@ public enum Perk {
         this.donorSets = donorSets;
     }
 
+    /** Свойство Венца R8, не малый перк: в слоты не ставится, со старой брони не действует. */
+    public boolean crown() {
+        return this == REGENERATION || this == ARCANA_FLOW || this == ANGEL_FLIGHT;
+    }
+
     public String langKey() {
         return "dre.perk." + name().toLowerCase();
+    }
+
+    /** Первый подходящий донорский сет [шлем, нагрудник, поножи, ботинки] (для NEI). */
+    public Item[] donorSet() {
+        return donorSets[0];
     }
 
     public boolean matchesDonor(Item[] pieces) {

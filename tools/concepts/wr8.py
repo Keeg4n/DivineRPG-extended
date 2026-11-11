@@ -379,8 +379,63 @@ def r8l():
     return robe(mantle=True, gauntlets=True) + deep_hood('arch', gap=2.2, half=3.6, depth=0.4, tip=True) + hood_back() + mist()
 
 
+# ---- Призрак для игры (11.11): облик Венца полёта на R8. Тело как у А, капюшон Ж (вырез аркой со светящейся кромкой), глаза шире;
+# без хвоста капюшона сзади и без крапин на капюшоне; внутри капюшона - сглаженный арочный тоннель от козырька к тьме, тьма и глаза
+# в глубине. В игре латы полупрозрачные (TRANSLUCENT в tools/wanderer_armor.py), тоннель и тьма - нет (коробки с solid).
+
+
+def arch_inside(cu, cv, half, rv):
+    def inside(u, v):
+        return (v >= cv) & (np.abs(u - cu) < half) | (((u - cu) / half) ** 2 + ((v - cv) / rv) ** 2 < 1)
+    return inside
+
+
+def hole_alpha(inside):
+    def m(p, face, b):
+        if face.name not in ('north', 'south'):
+            return np.ones(p.shape[:-1])
+        return (~inside(p[..., 0], p[..., 1])).astype(float)
+    return m
+
+
+def solid(b):
+    b.solid = True
+    return b
+
+
+def ghost_hood(half=3.4, gap=2.2, layers=5):
+    """Капюшон Призрака для игры: оболочка без крапин, козырёк с арочным вырезом и кромкой, тоннель внутрь, тьма с глазами."""
+    shell = P(SP, trim(0.3, SP_D))
+    m, rim = hole_mask('arch', half=half)
+    brim = P(SP, trim(0.3, SP_D), rim, alpha=m, bevel=0.0)
+    bs = [box('head', -4.6, -9.1, -6.0, 9.2, 9.1, 0.7, brim)]                      # козырёк с вырезом
+    bs += [box('head', -4.6, -9.1, -5.3, 9.2, 1.2, 10.0, shell)]                    # верх
+    bs += sym(box('head', -4.6, -7.9, -5.3, 1.0, 7.9, 10.0, shell))                 # бока
+    bs += [box('head', -4.6, -7.9, 3.7, 9.2, 7.9, 1.0, shell)]                      # затылок
+    bs += [box('head', -3.8, -9.7, -5.6, 7.6, 0.6, 9.6, shell)]                     # скругление макушки ступенькой
+    # тоннель: тонкие пластины внутри оболочки (x -3.6..3.6, y -7.9..0) с тем же вырезом, к глубине вырез сужается и темнеет -
+    # стенки идут гладкой аркой без квадратных углов подкладки
+    z0, z1 = -5.3, -4.25
+    t = (z1 - z0) / layers
+    shades = ('#1d3a66', '#152c50', '#0f2040', '#0a1630', '#070f22', '#050a18')
+    for i in range(layers):
+        f = i / max(1, layers - 1)
+        inside = arch_inside(3.6, 4.6 - 1.2 + 0.4 * f, half - 0.7 * f, 3.4 - 0.4 * f)
+        bs.append(solid(box('head', -3.6, -7.9, z0 + i * t, 7.2, 7.9, t, P(shades[min(i, len(shades) - 1)], alpha=hole_alpha(inside), bevel=0.0, noise=0.0))))
+    h = gap / 2
+    e1 = rect(('north',), 3.6 - h - 1.2, 3.6 - h, 3.6, 4.4, SP_G, glow=True)
+    e2 = rect(('north',), 3.6 + h, 3.6 + h + 1.2, 3.6, 4.4, SP_G, glow=True)
+    bs.append(solid(box('head', -3.6, -7.9, -4.15, 7.2, 7.9, 0.1, P('#03060f', e1, e2, bevel=0.0, noise=0.0))))  # тьма с глазами
+    return bs
+
+
+@slim('r8m', 8, 'Призрак для игры: тело А, капюшон Ж без хвоста и крапин, глаза шире и в глубине, внутри сглаженный арочный тоннель; в игре полупрозрачный')
+def r8m():
+    return ghost_body() + ghost_hood() + ghost_wisps()
+
+
 MODELS = KEYS[MINE:]
-BG = {'r8a': '#2a3654', 'r8b': '#30304a', 'r8c': '#2a2448', 'r8d': '#2a3654', 'r8e': '#2a3654', 'r8f': '#2a3654', 'r8g': '#2a3654', 'r8h': '#2a3654', 'r8i': '#2a3654', 'r8j': '#2a3654', 'r8k': '#2a3654', 'r8l': '#26304c'}
+BG = {'r8a': '#2a3654', 'r8b': '#30304a', 'r8c': '#2a2448', 'r8d': '#2a3654', 'r8e': '#2a3654', 'r8f': '#2a3654', 'r8g': '#2a3654', 'r8h': '#2a3654', 'r8i': '#2a3654', 'r8j': '#2a3654', 'r8k': '#2a3654', 'r8l': '#26304c', 'r8m': '#2a3654'}
 
 
 def build(key):

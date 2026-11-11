@@ -7,6 +7,7 @@ r1_bedrock, r1_ender, r1_corrupted. Коробки делятся по част�
 helmet - всё на голове, chest - торс и руки, legs - пояс и бёдра (на теле - ниже y=9), boots - голени ниже y=6.5.
 Светящиеся тексели (альфа 0.6 в атласе концепта) уходят в отдельную маску r<N>_glow.png: в игре её рисуют вторым
 проходом на полной яркости поверх того же меша.
+Полупрозрачные облики (TRANSLUCENT, сейчас Призрак R8): основа в атласе с частичной альфой, в игре рисуется со смешиванием.
 Покраска (красители в верстаке): маска r<N>_dye.png - серым там, где тексель основного материала облика (цвета из DYE), в игре
 её рисуют поверх того же меша, умножив на цвет. Отделка, камни, кожа и свечение остаются своими.
 
@@ -55,10 +56,15 @@ def _labeled(P):
 w.P = _labeled(w.P)  # до импорта концептов: они берут P из wconcepts при загрузке
 import wslim5  # noqa: E402,F401 (регистрирует концепты пятого раунда и R2 из четвёртого)
 import wr1  # noqa: E402,F401 (облики первой ступени по ядру)
+import wr8  # noqa: E402,F401 (облики R8 по Венцу)
 
 RES = os.path.join(HERE, '..', 'src', 'main', 'resources', 'assets', 'divinerpgextended')
 LOOKS = {'r1': 'r1v', 'r2': 'r2s', 'r3': 'r3v', 'r4': 'r4v', 'r5': 'r5v', 'r6': 'r6v', 'r7': 'r7z',
-         'r1_shadow': 'r1t', 'r1_bedrock': 'r1k', 'r1_ender': 'r1o', 'r1_corrupted': 'r1r'}
+         'r1_shadow': 'r1t', 'r1_bedrock': 'r1k', 'r1_ender': 'r1o', 'r1_corrupted': 'r1r',
+         'r8_flight': 'r8m', 'r8_regen': 'r8b', 'r8_arcana': 'r8c'}
+# Полупрозрачные облики: непрозрачность основы (свечение и коробки с атрибутом solid - полностью непрозрачные). В игре
+# ModelWandererArmor рисует их с прозрачностью.
+TRANSLUCENT = {'r8_flight': 0.6}
 # Основной материал облика - его перекрашивает краситель. По площади граней: золото и сталь R1, камень бедрока, пурпур порчи,
 # синева Энда, чернь Тени, золото R2 (у поножей - алая ткань), синие доски R3, пурпур R4, белые латы R5, тёмная ткань R6,
 # лайм R7.
@@ -74,6 +80,9 @@ DYE = {
     'r5': ('#eef0f4', '#e4e9f1', '#f6f8fb', '#aeb2ba', '#6a6e78'),
     'r6': ('#2a2a31', '#1c1c21', '#34343c', '#232329', '#222226', '#121214', '#2e2e32', '#5a5a60'),
     'r7': ('#3cd400', '#2a9400', '#4cff10', '#10e060', '#8fc83a'),
+    'r8_flight': ('#8ccff4', '#e2f6ff'),
+    'r8_regen': ('#dfe4ee',),
+    'r8_arcana': ('#3a2a6a', '#6a58b0'),
 }
 DYE_PIECE = {('r2', 'legs'): ('#7a2414', '#4a1408', '#7a1a08', '#f0c040', '#9a6a20')}
 K = 2.0  # текселей на единицу модели (у ванильной брони 1)
@@ -175,6 +184,12 @@ def main():
         glow = (a > 25) & (a < 200)
         base = m.img.copy()
         base[..., 3] = np.where(a > 25, 255, 0)
+        if name in TRANSLUCENT:  # полупрозрачная основа, кроме свечения и непрозрачных коробок
+            base[..., 3] = np.where(a > 25, np.where(glow, 255, int(round(255 * TRANSLUCENT[name]))), 0)
+            for f in m.faces:
+                if getattr(f.box, 'solid', False):
+                    blk = base[f.y - 1:f.y + f.ph + 1, f.x - 1:f.x + f.pw + 1, 3]
+                    blk[blk > 0] = 255
         m.save(os.path.join(tex_dir, name + '.png'), os.path.join(mesh_dir, name + '.mesh'))
         Image.fromarray(base, 'RGBA').save(os.path.join(tex_dir, name + '.png'))
         gpath = os.path.join(tex_dir, name + '_glow.png')

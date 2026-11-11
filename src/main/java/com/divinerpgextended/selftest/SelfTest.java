@@ -381,6 +381,11 @@ public class SelfTest {
         }
     }
 
+    /** Надеть сет Странника R8 с Венцом. */
+    private static void wearCrown(EntityPlayer p, com.divinerpgextended.item.ArmorCrown crown) {
+        for (int type = 0; type < 4; type++) p.inventory.armorInventory[3 - type] = com.divinerpgextended.item.ItemWandererArmor.stack(ModItems.wanderer[type], crown);
+    }
+
     /** Сколько урона останется после событий, без самого удара. */
     private static float hurtBy(net.minecraft.entity.EntityLivingBase victim, DamageSource src, float amount) {
         net.minecraftforge.event.entity.living.LivingHurtEvent ev = new net.minecraftforge.event.entity.living.LivingHurtEvent(victim, src, amount);
@@ -1048,15 +1053,136 @@ public class SelfTest {
                     if (SelfTest.class.getResource(root + "textures/items/wanderer/" + name + "_" + parts[a] + ".png") == null)
                         bad.append(' ').append(name).append(": нет значка ").append(parts[a]).append(';');
                     ItemStack piece = new ItemStack(ModItems.wanderer[a]);
-                    com.divinerpgextended.item.ArmorData.setTier(piece, t <= looks ? t : 1);
-                    if (t > looks) com.divinerpgextended.item.ArmorData.setCore(piece, com.divinerpgextended.item.ArmorCore.values()[t - looks]);
+                    int crownBase = com.divinerpgextended.item.ItemWandererArmor.CROWN_BASE;
+                    com.divinerpgextended.item.ArmorData.setTier(piece, t <= looks ? t : t >= crownBase ? 8 : 1);
+                    if (t > looks && t < crownBase) com.divinerpgextended.item.ArmorData.setCore(piece, com.divinerpgextended.item.ArmorCore.values()[t - looks]);
+                    if (t >= crownBase) com.divinerpgextended.item.ArmorData.setCrown(piece, com.divinerpgextended.item.ArmorCrown.values()[t - crownBase]);
                     String skin = piece.getItem().getArmorTexture(piece, p, a, null);
                     if (!com.divinerpgextended.item.ItemWandererArmor.lookTexture(t).equals(skin)) bad.append(' ').append(name).append(": скин ").append(skin).append(';');
                 }
                 if (SelfTest.class.getResource(root + "textures/models/wanderer/" + name + ".png") == null) bad.append(' ').append(name).append(": нет атласа;");
             }
             check(bad.length() == 0, bad.toString());
-            return "R1-R" + looks + " и R1 по ядрам: меш с шлемом, нагрудником, поножами и ботинками, атлас, значки частей, свой скин";
+            return "R1-R" + looks + ", R1 по ядрам и R8 по Венцу: меш с шлемом, нагрудником, поножами и ботинками, атлас, значки частей, свой скин";
+        });
+        t("Броня", "R8: Венец за Леди Луну, смена Венца, свойства только Венцом, облики", () -> {
+            reset(p);
+            com.divinerpgextended.station.AnvilWork an = new com.divinerpgextended.station.AnvilWork();
+            Item[][] sets = { { VanillaItemsArmor.angelicHelmet, VanillaItemsArmor.angelicBody, VanillaItemsArmor.angelicLegs, VanillaItemsArmor.angelicBoots },
+                { ArcanaItems.vemosHelmet, ArcanaItems.vemosBody, ArcanaItems.vemosLegs, ArcanaItems.vemosBoots },
+                { ArcanaItems.kormaHelmet, ArcanaItems.kormaBody, ArcanaItems.kormaLegs, ArcanaItems.kormaBoots } };
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true, hadLuna = BossProgress.has(p, Boss.LADY_LUNA);
+            boolean needBoss = com.divinerpgextended.Config.requireBossUnlocks;
+            try {
+                BossProgress.revoke(p, Boss.LADY_LUNA);
+                for (int i = 0; i < AnvilLogic.SIZE; i++) an.setInventorySlotContents(i, null);
+                for (int i = 0; i < 4; i++) {
+                    ItemStack st = new ItemStack(ModItems.wanderer[i]);
+                    com.divinerpgextended.item.ArmorData.setTier(st, 7);
+                    com.divinerpgextended.item.ArmorData.setPerks(st, java.util.Arrays.asList(Perk.ANGEL_FLIGHT, Perk.WATER_BREATHING)); // полёт поставлен до 0.99.114
+                    com.divinerpgextended.item.ArmorData.bind(st, p);
+                    an.setInventorySlotContents(AnvilLogic.ARMOR + i, st);
+                    an.setInventorySlotContents(AnvilLogic.DONOR + i, new ItemStack(sets[0][i]));
+                }
+                java.util.List<Perk> oldPerks = com.divinerpgextended.item.ArmorData.perks(an.getStackInSlot(AnvilLogic.ARMOR));
+                AnvilLogic.Result noBoss = AnvilLogic.evaluate(an, p);
+                BossProgress.grant(p, Boss.LADY_LUNA);
+                AnvilLogic.Result noFuel = AnvilLogic.evaluate(an, p);
+                an.setInventorySlotContents(AnvilLogic.FUEL, com.divinerpgextended.halite.Halite.spirit(com.divinerpgextended.halite.Halite.Spirit.TWILIGHT));
+                AnvilLogic.Status wrongSpirit = AnvilLogic.evaluate(an, p).status;
+                ItemStack uni = com.divinerpgextended.halite.Halite.spirit(com.divinerpgextended.halite.Halite.Spirit.UNIVERSE);
+                uni.stackSize = 2;
+                an.setInventorySlotContents(AnvilLogic.FUEL, uni);
+                AnvilLogic.Result ready = AnvilLogic.evaluate(an, p);
+                boolean up = AnvilLogic.execute(an, p);
+                ItemStack h0 = an.getStackInSlot(AnvilLogic.ARMOR);
+                boolean r8 = up && com.divinerpgextended.item.ArmorData.tier(h0) == 8 && com.divinerpgextended.item.ArmorData.crown(h0) == com.divinerpgextended.item.ArmorCrown.FLIGHT
+                    && an.getStackInSlot(AnvilLogic.DONOR) == null && an.getStackInSlot(AnvilLogic.FUEL) != null && an.getStackInSlot(AnvilLogic.FUEL).stackSize == 1;
+                boolean flow = (!needBoss || noBoss.status == AnvilLogic.Status.NEED_BOSS && noBoss.param == Boss.LADY_LUNA.ordinal()) && noFuel.status == AnvilLogic.Status.NEED_FUEL
+                    && wrongSpirit == AnvilLogic.Status.NEED_FUEL && ready.status == AnvilLogic.Status.READY_R8 && ready.param == com.divinerpgextended.item.ArmorCrown.FLIGHT.ordinal()
+                    && oldPerks.equals(java.util.Arrays.asList(Perk.WATER_BREATHING));
+                ok &= r8 && flow;
+                rep.append("R7 -> R8: без Луны ").append(noBoss.status).append(", без топлива ").append(noFuel.status).append(", не тот дух ").append(wrongSpirit).append(", готово ")
+                    .append(ready.status).append("; закалено ").append(r8).append("; старый полёт в слотах не считается ").append(oldPerks);
+                // смена Венца: сет Вемоса + арлемит; тот же Венец - нет
+                for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.DONOR + i, new ItemStack(sets[1][i]));
+                an.setInventorySlotContents(AnvilLogic.FUEL, null);
+                AnvilLogic.Status swapNoFuel = AnvilLogic.evaluate(an, p).status;
+                an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(VanillaItemsOther.arlemiteIngot, 8));
+                AnvilLogic.Result swap = AnvilLogic.evaluate(an, p);
+                boolean swapped = AnvilLogic.execute(an, p) && com.divinerpgextended.item.ArmorData.crown(an.getStackInSlot(AnvilLogic.ARMOR + 3)) == com.divinerpgextended.item.ArmorCrown.REGEN
+                    && com.divinerpgextended.item.ArmorData.tier(an.getStackInSlot(AnvilLogic.ARMOR + 3)) == 8;
+                for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.DONOR + i, new ItemStack(sets[1][i]));
+                AnvilLogic.Status same = AnvilLogic.evaluate(an, p).status;
+                ok &= swapNoFuel == AnvilLogic.Status.NEED_FUEL && swap.status == AnvilLogic.Status.READY_CROWN && swapped && same == AnvilLogic.Status.CROWN_SAME;
+                rep.append("; смена Венца: без арлемита ").append(swapNoFuel).append(", готово ").append(swap.status).append(", сменён ").append(swapped).append(", тот же ").append(same);
+                // ниже R7 сет свойства Венца - отказ, малым перком не ставится
+                for (int i = 0; i < 4; i++) {
+                    ItemStack st = new ItemStack(ModItems.wanderer[i]);
+                    com.divinerpgextended.item.ArmorData.setTier(st, 5);
+                    com.divinerpgextended.item.ArmorData.bind(st, p);
+                    an.setInventorySlotContents(AnvilLogic.ARMOR + i, st);
+                    an.setInventorySlotContents(AnvilLogic.DONOR + i, new ItemStack(sets[2][i]));
+                }
+                AnvilLogic.Status low = AnvilLogic.evaluate(an, p).status;
+                ok &= low == AnvilLogic.Status.CROWN_R8_ONLY;
+                rep.append("; R5 с Кормой ").append(low);
+                // действие: свойство только у своего Венца, ступень 8 для боссов, защита R8
+                StringBuilder act = new StringBuilder();
+                for (com.divinerpgextended.item.ArmorCrown c : com.divinerpgextended.item.ArmorCrown.values()) {
+                    wearCrown(p, c);
+                    for (int i = 0; i < 4; i++) com.divinerpgextended.item.ArmorData.bind(p.inventory.armorInventory[i], p);
+                    boolean mine = com.divinerpgextended.item.ArmorData.hasEquippedPerk(p, c.perk), other = false;
+                    for (com.divinerpgextended.item.ArmorCrown o : com.divinerpgextended.item.ArmorCrown.values()) if (o != c) other |= com.divinerpgextended.item.ArmorData.hasEquippedPerk(p, o.perk);
+                    int rank = com.divinerpgextended.item.ArmorData.effectiveTier(p);
+                    int look = com.divinerpgextended.item.ItemWandererArmor.look(p.inventory.armorInventory[3]);
+                    boolean lk = com.divinerpgextended.item.ItemWandererArmor.lookName(look).equals("r8_" + c.key())
+                        && com.divinerpgextended.item.ItemWandererArmor.translucent(look) == (c == com.divinerpgextended.item.ArmorCrown.FLIGHT);
+                    ok &= mine && !other && rank == 8 && lk;
+                    act.append(c).append(": своё ").append(mine).append(", чужое ").append(other).append(", для боссов R").append(rank).append(", облик ").append(lk).append("; ");
+                }
+                // старый перк полёта на R7 больше не действует
+                wearCore(p, null, Perk.ANGEL_FLIGHT);
+                for (int i = 0; i < 4; i++) com.divinerpgextended.item.ArmorData.setTier(p.inventory.armorInventory[i], 7);
+                for (int i = 0; i < 4; i++) com.divinerpgextended.item.ArmorData.bind(p.inventory.armorInventory[i], p);
+                boolean oldFlight = com.divinerpgextended.item.ArmorData.hasEquippedPerk(p, Perk.ANGEL_FLIGHT);
+                ok &= !oldFlight && com.divinerpgextended.Config.fullReduction(8) > com.divinerpgextended.Config.fullReduction(7) && com.divinerpgextended.Config.smallSlots(8) >= 4;
+                rep.append("; ").append(act).append("R7 со старым полётом летает ").append(oldFlight).append("; защита R8 ").append(com.divinerpgextended.Config.fullReduction(8)).append('%');
+                // Венец арканы: арканный урон посоха x2
+                ItemStack staff = new ItemStack(ModItems.mageStaff, 1, 3);
+                reset(p);
+                float plain = com.divinerpgextended.magic.ArcanaCombat.damage(p, staff);
+                wearCrown(p, com.divinerpgextended.item.ArmorCrown.ARCANA);
+                for (int i = 0; i < 4; i++) com.divinerpgextended.item.ArmorData.bind(p.inventory.armorInventory[i], p);
+                float crowned = com.divinerpgextended.magic.ArcanaCombat.damage(p, staff);
+                wearCrown(p, com.divinerpgextended.item.ArmorCrown.FLIGHT);
+                for (int i = 0; i < 4; i++) com.divinerpgextended.item.ArmorData.bind(p.inventory.armorInventory[i], p);
+                float flight = com.divinerpgextended.magic.ArcanaCombat.damage(p, staff);
+                ok &= plain > 0 && Math.abs(crowned - plain * com.divinerpgextended.Config.crownArcanaDamage) < 0.01F && Math.abs(flight - plain) < 0.01F;
+                rep.append("; посох колдуна: ").append(f(plain)).append(", с Венцом арканы ").append(f(crowned)).append(", с Венцом полёта ").append(f(flight));
+                // атлас Призрака полупрозрачный, тьма под капюшоном - нет
+                java.awt.image.BufferedImage atlas = javax.imageio.ImageIO.read(SelfTest.class.getResourceAsStream("/assets/divinerpgextended/textures/models/wanderer/r8_flight.png"));
+                int half = 0, full = 0;
+                for (int y = 0; y < atlas.getHeight(); y++) for (int x = 0; x < atlas.getWidth(); x++) {
+                    int al = atlas.getRGB(x, y) >>> 24;
+                    if (al == 255) full++;
+                    else if (al > 100 && al < 200) half++;
+                }
+                java.awt.image.BufferedImage moon = javax.imageio.ImageIO.read(SelfTest.class.getResourceAsStream("/assets/divinerpgextended/textures/models/wanderer/r8_regen.png"));
+                int moonHalf = 0;
+                for (int y = 0; y < moon.getHeight(); y++) for (int x = 0; x < moon.getWidth(); x++) {
+                    int al = moon.getRGB(x, y) >>> 24;
+                    if (al > 0 && al < 255) moonHalf++;
+                }
+                ok &= half > 1000 && full > 50 && moonHalf == 0;
+                rep.append("; атлас Призрака: полупрозрачных ").append(half).append(", непрозрачных ").append(full).append(", у Лунной полупрозрачных ").append(moonHalf);
+            } finally {
+                if (!hadLuna) BossProgress.revoke(p, Boss.LADY_LUNA);
+                reset(p);
+            }
+            check(ok, rep.toString());
+            return rep.toString();
         });
         t("Броня", "Вилка R1: ковка из финальных сетов, плата божественными камнями, смена ядра (и донором R1 Странника)", () -> {
             reset(p);
@@ -2970,7 +3096,8 @@ public class SelfTest {
         });
         t("Аксессуары", "Аксессуары видны на теле: посадка на всех профилях брони, значки и грани алтарей на месте", () -> {
             java.util.Map<String, java.util.Map<String, java.util.Map<String, com.divinerpgextended.accessory.WearData.Mesh>>> all = com.divinerpgextended.accessory.WearData.all();
-            String[] profiles = { "bare", "divine", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r1_shadow", "r1_bedrock", "r1_ender", "r1_corrupted" };
+            String[] profiles = { "bare", "divine", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r1_shadow", "r1_bedrock", "r1_ender", "r1_corrupted", "r8_flight", "r8_regen",
+                "r8_arcana" };
             StringBuilder bad = new StringBuilder();
             int quads = 0;
             for (com.divinerpgextended.trinket.Trinket tr : com.divinerpgextended.trinket.Trinket.values()) {
@@ -3023,7 +3150,7 @@ public class SelfTest {
             }
             check(bad.length() == 0 && ring != null && minY > 6 && maxY < 11 && sumsBad.isEmpty() && sumsOk > 600, "аксессуары:" + bad + " кольцо на руке по высоте " + f(minY) + ".." + f(maxY)
                 + "; сверка с концептами: совпало " + sumsOk + ", не так " + sumsBad);
-            return "у всех " + (com.divinerpgextended.trinket.Trinket.values().length - 1) + " аксессуаров (кроме ковра) посадка на 13 профилях брони, граней " + quads
+            return "у всех " + (com.divinerpgextended.trinket.Trinket.values().length - 1) + " аксессуаров (кроме ковра) посадка на " + profiles.length + " профилях брони, граней " + quads
                 + ", геометрия совпала с концептами по " + sumsOk + " костям; значки и грани 7 алтарей на месте";
         });
         t("Совместимость", "Текстуры из текстур DivineRPG собираются по таблицам, в jar их нет", () -> {
@@ -3208,7 +3335,7 @@ public class SelfTest {
             com.divinerpgextended.magic.ArcanaRules.useBar(h, 20F, "net.divinerpg.items.arcana.ItemStormSword"); // молнии Storm Sword - не удар
             d[3] = h.regenDelay;
             reset(p);
-            wearCore(p, null, Perk.ARCANA_FLOW);
+            wearCrown(p, com.divinerpgextended.item.ArmorCrown.ARCANA);
             h.setBarValue(150);
             h.regenDelay = 0;
             com.divinerpgextended.magic.ArcanaRules.useBar(h, 12F, "ItemShadowSword");
@@ -3219,8 +3346,8 @@ public class SelfTest {
             reset(p);
             int D = com.divinerpgextended.magic.ArcanaRules.DELAY;
             check(d[0] == D && d[1] == 0 && d[2] == 0 && d[3] == D && d[4] == 0 && d[5] == 7, "пауза после траты: без сета " + d[0] + ", Корма: арканный удар "
-                + d[1] + ", сабля " + d[2] + ", молнии Storm Sword " + d[3] + " (ждали " + D + "); Поток арканы: теневой меч " + d[4] + ", удар при паузе 7 - " + d[5]);
-            return "с полным сетом Кормы или перком Поток арканы удары мечей Арканы не включают паузу восстановления (молнии Storm Sword и стрельба - включают)";
+                + d[1] + ", сабля " + d[2] + ", молнии Storm Sword " + d[3] + " (ждали " + D + "); Венец арканы: теневой меч " + d[4] + ", удар при паузе 7 - " + d[5]);
+            return "с полным сетом Кормы или Венцом арканы R8 удары мечей Арканы не включают паузу восстановления (молнии Storm Sword и стрельба - включают)";
         });
         t("Аркана", "Фазы боссов под аркану: Драмикс, Парасекта, души Пожирателя", () -> {
             net.minecraft.world.World w = p.worldObj;

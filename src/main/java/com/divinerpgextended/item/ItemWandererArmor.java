@@ -42,28 +42,42 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
     private static final String[] ICONS = { "divinerpg:eliteRealmiteHelmet", "divinerpg:eliteRealmiteChestplate",
         "divinerpg:eliteRealmiteLeggings", "divinerpg:eliteRealmiteBoots" };
     private static final String[] PARTS = { "helmet", "chest", "legs", "boots" };
-    /** Сколько ступеней с обликом (R1..LOOKS). */
+    /** Сколько ступеней с одним обликом (R1..LOOKS). */
     public static final int LOOKS = 7;
-    /** Всего обликов: ступени и ещё по одному на первой ступени у каждого ядра, кроме божественного. */
-    public static final int LOOK_COUNT = LOOKS + ArmorCore.values().length - 1;
+    /** Высшая ступень: R8 с Венцом. */
+    public static final int MAX_TIER = 8;
+    /** Номер первого облика R8 (по Венцу): после ступеней и обликов ядер первой ступени. */
+    public static final int CROWN_BASE = LOOKS + ArmorCore.values().length;
+    /** Всего обликов: ступени, по одному на первой ступени у каждого ядра, кроме божественного, и по одному на R8 у каждого Венца. */
+    public static final int LOOK_COUNT = CROWN_BASE + ArmorCrown.values().length - 1;
 
     @SideOnly(Side.CLIENT)
     private IIcon[] looks, dyeLooks;
 
     public static boolean hasLook(int tier) {
-        return tier >= 1 && tier <= LOOKS;
+        return tier >= 1 && tier <= MAX_TIER;
     }
 
     /** Номер облика вещи: ступень, а на первой ступени с ядром не из божественной брони - свой номер после ступеней. */
     public static int look(ItemStack stack) {
         int t = ArmorData.tier(stack);
+        if (t >= MAX_TIER) {
+            ArmorCrown c = ArmorData.crown(stack);
+            return CROWN_BASE + (c == null ? 0 : c.ordinal());
+        }
         ArmorCore core = ArmorData.core(stack);
         return t == 1 && core != ArmorCore.DIVINE ? LOOKS + core.ordinal() : t;
     }
 
-    /** Имя файлов облика: r2, r1_shadow (tools/wanderer_armor.py). */
+    /** Имя файлов облика: r2, r1_shadow, r8_flight (tools/wanderer_armor.py). */
     public static String lookName(int look) {
+        if (look >= CROWN_BASE) return "r8_" + ArmorCrown.values()[look - CROWN_BASE].key();
         return look <= LOOKS ? "r" + look : "r1_" + ArmorCore.values()[look - LOOKS].key();
+    }
+
+    /** Полупрозрачный облик (Призрак R8 - Венец полёта): рисуется со смешиванием. */
+    public static boolean translucent(int look) {
+        return look == CROWN_BASE + ArmorCrown.FLIGHT.ordinal();
     }
 
     /** Атлас облика (модель брони, tools/wanderer_armor.py). */
@@ -87,13 +101,21 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
         return s;
     }
 
-    /** В творческом и в NEI - все облики: R1 с ядром каждого финального сета и R2-R7. */
+    /** Часть R8 с Венцом. */
+    public static ItemStack stack(Item item, ArmorCrown crown) {
+        ItemStack s = stack(item, MAX_TIER, ArmorCore.DIVINE);
+        ArmorData.setCrown(s, crown);
+        return s;
+    }
+
+    /** В творческом и в NEI - все облики: R1 с ядром каждого финального сета, R2-R7 и R8 с каждым Венцом. */
     @Override
     @SideOnly(Side.CLIENT)
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void getSubItems(Item item, CreativeTabs tab, List list) {
         for (ArmorCore c : ArmorCore.values()) list.add(stack(item, 1, c));
         for (com.divinerpgextended.world.ArmorTier t : com.divinerpgextended.world.ArmorTier.values()) list.add(stack(item, t.tier, ArmorCore.DIVINE));
+        for (ArmorCrown c : ArmorCrown.values()) list.add(stack(item, c));
     }
 
     /** Та же часть божественной брони (ищется при вызове: поля Divine заполняются в его preInit). */
@@ -211,6 +233,11 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
         list.add(EnumChatFormatting.GOLD + StatCollector.translateToLocalFormatted("dre.tooltip.tier", tier,
             StatCollector.translateToLocal(tier == 1 ? "dre.core." + core.key() + ".name" : "dre.tier." + tier)));
         list.add(StatCollector.translateToLocalFormatted("dre.tooltip.full_reduction", Config.fullReduction(tier)));
+        ArmorCrown crown = tier >= MAX_TIER ? ArmorData.crown(stack) : null;
+        if (crown != null) {
+            list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocalFormatted("dre.tooltip.crown", StatCollector.translateToLocal("dre.crown." + crown.key() + ".name")));
+            list.add(EnumChatFormatting.DARK_AQUA + "  " + StatCollector.translateToLocal("dre.crown." + crown.key() + ".desc"));
+        }
         list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.tooltip.unbreakable"));
         if (ArmorData.owner(stack) == null) list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.tooltip.owner_free"));
         else {

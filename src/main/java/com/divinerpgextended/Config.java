@@ -9,9 +9,13 @@ import net.minecraftforge.common.config.Property;
 public class Config {
 
     /** Защита полного сета по ступеням R0-R7, в процентах (индекс = ступень). */
-    public static int[] tierFullReduction = { 50, 65, 72, 74, 76, 78, 80, 83 };
+    public static int[] tierFullReduction = { 50, 65, 72, 74, 76, 78, 80, 83, 85 };
     /** Малых слотов под перки по ступеням R0-R7. */
-    public static int[] tierSmallSlots = { 0, 2, 2, 3, 3, 3, 4, 4 };
+    public static int[] tierSmallSlots = { 0, 2, 2, 3, 3, 3, 4, 4, 4 };
+    /** Закалка R7 -> R8: сколько Духов вселенной. */
+    public static int upgradeR8Spirits = 1;
+    /** Венец арканы R8: множитель арканного урона (прибавка мечей Арканы и снаряды посохов). */
+    public static float crownArcanaDamage = 2.0F;
 
     public static int upgradeR1FuelRealmiteIngots = 16;
     /** Плата божественными камнями за ковку R1 и смену ядра: Тень, Бедрок, Энд, Порча (божественная броня платит слитками реалмита). */
@@ -175,9 +179,13 @@ public class Config {
         Configuration cfg = new Configuration(file);
         String bal = "balance";
         tierFullReduction = intList(cfg, bal, "tierFullReduction", tierFullReduction,
-            "Защита полного сета по ступеням R0, R1, ... R7 в процентах");
+            "Защита полного сета по ступеням R0, R1, ... R8 в процентах");
         tierSmallSlots = intList(cfg, bal, "tierSmallSlots", tierSmallSlots,
-            "Число малых слотов под перки по ступеням R0, R1, ... R7");
+            "Число малых слотов под перки по ступеням R0, R1, ... R8");
+        upgradeR8Spirits = cfg.getInt("upgradeR8Spirits", bal, upgradeR8Spirits, 0, 16,
+            "Сколько Духов вселенной стоит закалка брони Странника R7 в R8 (Венец)");
+        crownArcanaDamage = cfg.getFloat("crownArcanaDamage", bal, crownArcanaDamage, 1F, 10F,
+            "Венец арканы R8: множитель арканного урона - прибавки мечей Арканы и снарядов посохов (обычная часть удара меча не растёт)");
         upgradeR1FuelRealmiteIngots = cfg.getInt("upgradeR1FuelRealmiteIngots", bal, upgradeR1FuelRealmiteIngots,
             0, 64, "Сколько реалмитовых слитков стоит переход божественной брони в броню Странника R1");
         coreForgeStones = intList(cfg, bal, "coreForgeStones", coreForgeStones,

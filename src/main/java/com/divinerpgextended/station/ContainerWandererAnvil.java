@@ -42,7 +42,7 @@ public class ContainerWandererAnvil extends Container {
     private final AnvilWork work = new AnvilWork();
 
     // синхронизируемое состояние (сервер считает, клиент показывает)
-    public int status = -1, param, bossMask, fuelItem, mode, targets;
+    public int status = -1, param, bossMask, fuelItem, mode, targets, fuelMeta = -1;
     private int sentMode = -1, sentTargets;
 
     /** Слот станции: что в него кладётся, решает текущая вкладка. */
@@ -182,7 +182,7 @@ public class ContainerWandererAnvil extends Container {
         super.detectAndSendChanges();
         AnvilLogic.Result r = AnvilLogic.evaluate(work, player, mode);
         int s = r.status.ordinal(), p = r.param, m = BossProgress.mask(player), t = r.targets;
-        int f = r.fuel == null ? 0 : net.minecraft.item.Item.getIdFromItem(r.fuel);
+        int f = r.fuel == null ? 0 : net.minecraft.item.Item.getIdFromItem(r.fuel), fm = r.fuelMeta;
         for (Object o : crafters) {
             ICrafting c = (ICrafting) o;
             if (s != status) c.sendProgressBarUpdate(this, 0, s);
@@ -191,7 +191,9 @@ public class ContainerWandererAnvil extends Container {
             if (f != fuelItem) c.sendProgressBarUpdate(this, 3, f);
             if (mode != sentMode) c.sendProgressBarUpdate(this, 4, mode);
             if (t != sentTargets) c.sendProgressBarUpdate(this, 5, t);
+            if (fm != fuelMeta) c.sendProgressBarUpdate(this, 6, fm);
         }
+        fuelMeta = fm;
         status = s;
         param = p;
         bossMask = m;
@@ -211,6 +213,7 @@ public class ContainerWandererAnvil extends Container {
             mode = value;
             layout();
         } else if (id == 5) targets = value;
+        else if (id == 6) fuelMeta = value;
     }
 
     /**

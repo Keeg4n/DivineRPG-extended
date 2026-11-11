@@ -20,7 +20,8 @@ import com.divinerpgextended.world.ArmorTier;
 /**
  * NEI: Наковальня Странника, слоты как в ней самой: сверху броня, ниже донорский сет, внизу топливо, справа - что получится.
  * Ковка R1: финальный сет обычного мира (у Края цвета перебираются) и его плата. Закалка R2-R7: сет Странника прошлой ступени,
- * сет брони следующего мира в доноре, камни мира. Страница открывается с той частью, которую искали.
+ * сет брони следующего мира в доноре, камни мира. R8: сет R7, сет свойства Венца в доноре, Дух вселенной. Страница открывается с той
+ * частью, которую искали.
  */
 public class AnvilHandler extends DreHandler {
 
@@ -69,10 +70,30 @@ public class AnvilHandler extends DreHandler {
         return p;
     }
 
+    private Page crown(com.divinerpgextended.item.ArmorCrown c, int want) {
+        Page p = new Page(StatCollector.translateToLocalFormatted("dre.nei.anvil.crown", StatCollector.translateToLocal("dre.crown." + c.key() + ".name")));
+        Item[] donor = c.perk.donorSet();
+        for (int i = 0; i < 4; i++) {
+            p.add(wanderer(i, 7, ArmorCore.DIVINE), 3 + i * 18, ROW1, ARMOR_C, null, true);
+            p.add(new ItemStack(donor[i]), 3 + i * 18, ROW2, DONOR_C, null, true);
+        }
+        ItemStack fuel = com.divinerpgextended.station.AnvilLogic.r8Fuel();
+        fuel.stackSize = Math.max(1, Config.upgradeR8Spirits);
+        p.add(fuel, 3, FUEL_Y, FUEL_C, null, true);
+        outputs(p, 8, ArmorCore.DIVINE, want, c);
+        p.notes.add(StatCollector.translateToLocalFormatted("dre.nei.anvil.boss", StatCollector.translateToLocal(com.divinerpgextended.boss.Boss.LADY_LUNA.langKey())));
+        return p;
+    }
+
     /** Четыре части результата квадратом; искомая - результат страницы. */
     private void outputs(Page p, int tier, ArmorCore core, int want) {
+        outputs(p, tier, core, want, null);
+    }
+
+    private void outputs(Page p, int tier, ArmorCore core, int want, com.divinerpgextended.item.ArmorCrown crown) {
         for (int i = 0; i < 4; i++) {
-            PositionedStack ps = p.add(wanderer(i, tier, core), OUT_X + i % 2 * 18, ROW1 + i / 2 * 20, OUT_C, null, false);
+            ItemStack out = crown == null ? wanderer(i, tier, core) : ItemWandererArmor.stack(ModItems.wanderer[i], crown);
+            PositionedStack ps = p.add(out, OUT_X + i % 2 * 18, ROW1 + i / 2 * 20, OUT_C, null, false);
             if (i == want) p.result = ps;
         }
         p.others.remove(p.result);
@@ -83,6 +104,7 @@ public class AnvilHandler extends DreHandler {
         List<Page> l = new ArrayList<Page>();
         for (ArmorCore c : ArmorCore.values()) l.add(forge(c, want));
         for (ArmorTier t : ArmorTier.values()) l.add(upgrade(t, want));
+        for (com.divinerpgextended.item.ArmorCrown c : com.divinerpgextended.item.ArmorCrown.values()) l.add(crown(c, want));
         return l;
     }
 
@@ -97,6 +119,7 @@ public class AnvilHandler extends DreHandler {
         if (result == null || !(result.getItem() instanceof ItemWandererArmor)) return;
         int type = ((ItemWandererArmor) result.getItem()).armorType, tier = ArmorData.tier(result);
         if (tier == 1) arecipes.add(forge(ArmorData.core(result), type));
+        else if (tier >= 8 && ArmorData.crown(result) != null) arecipes.add(crown(ArmorData.crown(result), type));
         else if (ArmorTier.next(tier - 1) != null) arecipes.add(upgrade(ArmorTier.next(tier - 1), type));
     }
 
@@ -106,6 +129,8 @@ public class AnvilHandler extends DreHandler {
         if (s.getItem() instanceof ItemWandererArmor) { // броня Странника идёт только в закалку следующей ступени
             ArmorTier next = ArmorTier.next(ArmorData.tier(s));
             if (next != null) arecipes.add(upgrade(next, ((ItemWandererArmor) s.getItem()).armorType));
+            if (ArmorData.tier(s) == 7) for (com.divinerpgextended.item.ArmorCrown c : com.divinerpgextended.item.ArmorCrown.values())
+                arecipes.add(crown(c, ((ItemWandererArmor) s.getItem()).armorType));
             return;
         }
         for (Page p : pages(1)) if (p.has(s)) arecipes.add(p);

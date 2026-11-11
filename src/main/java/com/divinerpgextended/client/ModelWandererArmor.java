@@ -18,7 +18,7 @@ import com.divinerpgextended.item.ItemWandererArmor;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Облик брони Странника по ступени R1-R7 и ядру первой ступени: меш и атлас из tools/wanderer_armor.py. Поза - как у брони игрока (кости
+ * Облик брони Странника по ступени R1-R7, ядру первой ступени и Венцу R8: меш и атлас из tools/wanderer_armor.py. Поза - как у брони игрока (кости
  * ModelBiped), на каждой кости - детали надетой части (helmet, chest, legs, boots), как у костюма H.E.V. Светящиеся детали
  * - вторым проходом: тот же меш с маской r&lt;N&gt;_glow.png на полной яркости. Крашеная часть - ещё проход перед свечением:
  * серая маска основного материала r&lt;N&gt;_dye.png, умноженная на цвет.
@@ -70,7 +70,15 @@ public class ModelWandererArmor extends ModelBiped {
     public void render(Entity e, float f, float f1, float f2, float f3, float f4, float scale) {
         setRotationAngles(f, f1, f2, f3, f4, scale, e);
         EasterMesh mesh = MESH[tier];
+        // Призрак R8: основа полупрозрачная (альфа в атласе), свечение и тьма под капюшоном - нет. Только в обычном проходе: в проходе
+        // блеска зачарования смешивание своё
+        boolean glass = ItemWandererArmor.translucent(tier) && bound(TEX[tier]), wasBlend = glass && GL11.glIsEnabled(GL11.GL_BLEND);
+        if (glass) {
+            GL11.glEnable(GL11.GL_BLEND);
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        }
         draw(mesh, scale);
+        if (glass && !wasBlend) GL11.glDisable(GL11.GL_BLEND);
         // покраска и свечение - только в обычном проходе (в проходе блеска зачарования привязана другая текстура)
         if (!bound(TEX[tier])) return;
         TextureManager tm = Minecraft.getMinecraft().getTextureManager();

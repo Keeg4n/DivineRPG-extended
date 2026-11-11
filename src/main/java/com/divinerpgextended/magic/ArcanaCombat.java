@@ -96,7 +96,13 @@ public class ArcanaCombat {
     /** Арканный урон снаряда этого игрока с этим оружием (с ростом по этапу). */
     public static float damage(EntityPlayer p, ItemStack held) {
         Float b = base(held);
-        return b == null ? 0 : b * ArcanaRules.stage(p);
+        return b == null ? 0 : b * ArcanaRules.stage(p) * crown(p);
+    }
+
+    /** Венец арканы R8: арканный урон x{@link com.divinerpgextended.Config#crownArcanaDamage}. */
+    public static float crown(EntityPlayer p) {
+        return p != null && com.divinerpgextended.item.ArmorData.equippedCrown(p) == com.divinerpgextended.item.ArmorCrown.ARCANA
+            ? com.divinerpgextended.Config.crownArcanaDamage : 1F;
     }
 
     // ---------------- снаряды ----------------
@@ -310,7 +316,7 @@ public class ArcanaCombat {
 
     /** Арканный удар меча Арканы по цели - отдельным ударом следующим тиком. */
     static void queueEdge(EntityLivingBase target, EntityPlayer p) {
-        PENDING.add(new Object[] { target, p, SWORD_BONUS * ArcanaRules.stage(p) });
+        PENDING.add(new Object[] { target, p, SWORD_BONUS * ArcanaRules.stage(p) * crown(p) });
     }
 
     /** Арканный удар мечом: свой тип урона, сквозь броню. */

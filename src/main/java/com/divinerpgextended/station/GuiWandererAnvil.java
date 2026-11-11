@@ -98,7 +98,8 @@ public class GuiWandererAnvil extends GuiContainer {
 
     private static boolean ready(AnvilLogic.Status s) {
         return s == AnvilLogic.Status.READY_UPGRADE || s == AnvilLogic.Status.READY_PERK || s == AnvilLogic.Status.READY_SOCKET
-            || s == AnvilLogic.Status.READY_UNLOAD || s == AnvilLogic.Status.READY_CORE || s == AnvilLogic.Status.READY_UNBIND;
+            || s == AnvilLogic.Status.READY_UNLOAD || s == AnvilLogic.Status.READY_CORE || s == AnvilLogic.Status.READY_UNBIND || s == AnvilLogic.Status.READY_R8
+            || s == AnvilLogic.Status.READY_CROWN;
     }
 
     private AnvilLogic.Status status() {
@@ -133,7 +134,7 @@ public class GuiWandererAnvil extends GuiContainer {
             case NEED_FUEL:
             case CORE_FUEL: {
                 Item fuel = Item.getItemById(container.fuelItem);
-                String item = fuel == null ? "?" : new ItemStack(fuel).getDisplayName();
+                String item = fuel == null ? "?" : new ItemStack(fuel, 1, Math.max(0, container.fuelMeta)).getDisplayName();
                 return StatCollector.translateToLocalFormatted(key, container.param, item);
             }
             case READY_UPGRADE:
@@ -145,6 +146,11 @@ public class GuiWandererAnvil extends GuiContainer {
             case READY_CORE:
             case CORE_SAME:
                 return StatCollector.translateToLocalFormatted(key, t("dre.core." + com.divinerpgextended.item.ArmorCore.values()[container.param].key() + ".name"));
+            case READY_R8:
+            case READY_CROWN:
+            case CROWN_SAME:
+            case CROWN_R8_ONLY:
+                return StatCollector.translateToLocalFormatted(key, t("dre.crown." + com.divinerpgextended.item.ArmorCrown.values()[Math.max(0, Math.min(2, container.param))].key() + ".name"));
             case READY_PERK:
             case PERK_PRESENT:
                 return StatCollector.translateToLocalFormatted(key, t(Perk.values()[container.param].langKey()));
@@ -203,10 +209,14 @@ public class GuiWandererAnvil extends GuiContainer {
             out.add("§7" + t("dre.gui.unbind_hint"));
             out.add("");
             out.add("§6" + t("dre.gui.tiers_hint"));
-            for (int tier = 2; tier <= 7; tier++) out.add("§7" + t("dre.gui.tier_hint." + tier));
+            for (int tier = 2; tier <= 8; tier++) out.add("§7" + t("dre.gui.tier_hint." + tier));
+            for (com.divinerpgextended.item.ArmorCrown c : com.divinerpgextended.item.ArmorCrown.values())
+                out.add("§7  " + t("dre.crown." + c.key() + ".name") + ": §f" + t("dre.donor." + c.perk.name().toLowerCase()) + " §8- " + t("dre.crown." + c.key() + ".desc"));
+            out.add("§8" + t("dre.gui.crown_swap"));
             out.add("");
             out.add("§6" + t("dre.gui.donor_hint"));
             for (Perk p : Perk.values()) {
+                if (p.crown()) continue; // свойства Венца - выше
                 String boss = p.unlock == null ? "" : " §8(" + t(p.unlock.langKey()) + ")";
                 out.add("§7" + t(p.langKey()) + ": §f" + t("dre.donor." + p.name().toLowerCase()) + boss);
             }

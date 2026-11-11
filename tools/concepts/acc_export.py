@@ -5,7 +5,7 @@
 
 Пишет:
 - textures/items/trinket_<ключ>.png - значки 16x16;
-- wear/accessories.txt - посадка на теле: для каждого профиля брони (без брони, обычная броня, 11 обликов Странника) детали
+- wear/accessories.txt - посадка на теле: для каждого профиля брони (без брони, обычная броня, 14 обликов Странника) детали
   на костях ModelBiped: коробки (c) и плоские значки с толщиной (f) со своими спрайтами (s). Рисует client/AccessoryWear;
 - textures/blocks/altar/<имя>_side.png и _top.png - грани алтарей призыва (из ванильных текстур и своего узора).
 """
@@ -27,6 +27,7 @@ import acc_redo as RD  # noqa: E402
 import wconcepts as w  # noqa: E402
 import wslim5  # noqa: E402,F401
 import wr1  # noqa: E402,F401
+import wr8  # noqa: E402,F401
 from acc_pal import RED, WHITE  # noqa: E402
 
 RES = os.path.join(HERE, '../../src/main/resources/assets/divinerpgextended')
@@ -37,7 +38,8 @@ for n in range(37, 48):
     PICK[n] = 2
 ALTAR_PICK = [('carcinus', 1), ('glacon', 1), ('throne', 1), ('tomb', 0), ('nest', 2), ('jungle', 'G'), ('arena', 1)]
 LOOKS = {'r1': 'r1v', 'r2': 'r2s', 'r3': 'r3v', 'r4': 'r4v', 'r5': 'r5v', 'r6': 'r6v', 'r7': 'r7z',
-         'r1_shadow': 'r1t', 'r1_bedrock': 'r1k', 'r1_ender': 'r1o', 'r1_corrupted': 'r1r'}
+         'r1_shadow': 'r1t', 'r1_bedrock': 'r1k', 'r1_ender': 'r1o', 'r1_corrupted': 'r1r',
+         'r8_flight': 'r8m', 'r8_regen': 'r8b', 'r8_arcana': 'r8c'}
 
 # ------------------------------------------------------------------ запись деталей вместо граней
 

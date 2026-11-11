@@ -53,6 +53,17 @@ public final class ArmorData {
         root(stack, true).setString("core", core.name());
     }
 
+    /** Венец R8 или null (ниже R8 Венца нет). */
+    public static ArmorCrown crown(ItemStack stack) {
+        NBTTagCompound r = root(stack, false);
+        return r == null ? null : ArmorCrown.byName(r.getString("crown"));
+    }
+
+    public static void setCrown(ItemStack stack, ArmorCrown crown) {
+        root(stack, true).setString("crown", crown == null ? "" : crown.name());
+    }
+
+    /** Малые перки. Свойства Венца ({@link Perk#crown}), поставленные до 0.99.114, не считаются: их место свободно. */
     public static List<Perk> perks(ItemStack stack) {
         List<Perk> out = new ArrayList<Perk>();
         NBTTagCompound r = root(stack, false);
@@ -60,7 +71,7 @@ public final class ArmorData {
         NBTTagList list = r.getTagList("perks", 8);
         for (int i = 0; i < list.tagCount(); i++) {
             Perk p = Perk.byName(list.getStringTagAt(i));
-            if (p != null) out.add(p);
+            if (p != null && !p.crown()) out.add(p);
         }
         return out;
     }
@@ -138,6 +149,14 @@ public final class ArmorData {
         return tier;
     }
 
+    /** Венец надетого сета R8 (одинаковый на всех частях) или null. */
+    public static ArmorCrown equippedCrown(EntityPlayer player) {
+        if (equippedTier(player) < 8) return null;
+        ArmorCrown c = crown(player.getCurrentArmor(0));
+        for (int i = 1; i < 4; i++) if (crown(player.getCurrentArmor(i)) != c) return null;
+        return c;
+    }
+
     /**
      * Ступень брони игрока для боссов: сет Странника - своя ступень; полные сеты Divine считаются эквивалентом
      * (реалмит и элитный реалмит R0, финальные сеты обычного мира R1, Eden R2 ... Halite R7); всё остальное - R0.
@@ -161,8 +180,9 @@ public final class ArmorData {
         return true;
     }
 
-    /** Перк действует, только если он есть на всех четырёх частях надетого сета. */
+    /** Перк действует, только если он есть на всех четырёх частях надетого сета; свойство Венца - если Венец такой на всех частях R8. */
     public static boolean hasEquippedPerk(EntityPlayer player, Perk perk) {
+        if (perk.crown()) return equippedCrown(player) == ArmorCrown.of(perk);
         if (equippedTier(player) == 0) return false;
         for (int i = 0; i < 4; i++) {
             if (!perks(player.getCurrentArmor(i)).contains(perk)) return false;

@@ -167,6 +167,10 @@ SHADOW = dict(h='#6a6a6a', b='#2e2e2e', s='#1a1a1a', o='#060606')
 ROCK = dict(h='#8e8e8e', b='#525252', s='#343434', o='#141414')
 VOID = dict(h='#16233e', b='#0c1426', s='#050a14', o='#0e60aa')
 ROT = dict(h='#7a6cc4', b='#4b3b82', s='#2a2150', o='#120c24')
+GHOST = dict(h='#e2f6ff', b='#8ccff4', s='#4f8fd0', o='#22407a')
+MOON = dict(h='#ffffff', b='#dfe4ee', s='#a9b2c6', o='#5a6278')
+LILAC = dict(h='#dcc4ff', b='#b89ae8', s='#8a6ac0', o='#3a2a5a')
+DREAM = dict(h='#6a58b0', b='#3a2a6a', s='#1c1438', o='#0e0a1e')
 SPECK = [('s', 5, 5), ('h', 9, 6), ('s', 7, 8), ('h', 6, 10), ('s', 10, 11), ('h', 8, 12)]
 
 
@@ -244,6 +248,23 @@ ICONS = {
     (7, 'chest'): (CHEST, dict(LIME, a='#10e060', A='#dcfaa6'), rect('A', 6, 9, 9, 12) + both('a', (5, 6), (6, 6), (5, 7), (6, 7))),
     (7, 'legs'): (LEGS, dict(LIME, a='#2a9400', A='#dcfaa6', c='#b8ff60'), rect('A', 6, 3, 9, 5) + rect('c', 4, 9, 5, 10) + rect('c', 10, 9, 11, 10)),
     (7, 'boots'): (BOOTS, dict(LIME_BRIGHT, a='#4c4c4c'), []),
+    # R8 по Венцу. Полёт - Призрак: бледно-голубые латы, капюшон с тьмой и голубыми глазами, светящиеся линии
+    ('r8_flight', 'helmet'): (HOOD, dict(GHOST, k='#03060f', e='#8af8ff', g='#8af8ff'), rect('g', 5, 6, 10, 6) + [('g', 5, 7), ('g', 10, 7)]),
+    ('r8_flight', 'chest'): (CHEST, dict(GHOST, g='#8af8ff', A='#22407a'), rect('A', 6, 6, 9, 9) + rect('g', 7, 7, 8, 8) + rect('g', 4, 11, 11, 11)),
+    ('r8_flight', 'legs'): (LEGS, dict(GHOST, a='#22407a', g='#8af8ff'), rect('g', 3, 13, 4, 13) + rect('g', 11, 13, 12, 13) + KNEES),
+    ('r8_flight', 'boots'): (BOOTS, dict(GHOST, a='#8af8ff'), rect('a', 1, 13, 5, 13) + rect('a', 10, 13, 14, 13)),
+    # Восстановление - Лунная: серебро, сиреневое забрало, полумесяц над шлемом и на груди
+    ('r8_regen', 'helmet'): (HELM_CLOSED, dict(MOON, a='#1a1c34', g='#dcc4ff'), rect('a', 4, 8, 11, 8) + rect('g', 5, 8, 10, 8) + both('g', (4, 1), (5, 2), (6, 2)) + rect('g', 7, 2, 8, 2)),
+    ('r8_regen', 'chest'): (CHEST, dict(MOON, g='#dcc4ff', A='#b89ae8'), [('g', 8, 6), ('g', 7, 7), ('g', 7, 8), ('g', 7, 9), ('g', 8, 10)] + rect('A', 4, 12, 11, 12)),
+    ('r8_regen', 'legs'): (LEGS, dict(LILAC, a='#dfe4ee'), KNEES),
+    ('r8_regen', 'boots'): (BOOTS, dict(MOON, a='#dcc4ff'), rect('a', 1, 13, 5, 13) + rect('a', 10, 13, 14, 13)),
+    # Поток арканы - Сновидец: индиго в звёздах, золотая нить, бирюзовый третий глаз и камень
+    ('r8_arcana', 'helmet'): (HELM_CLOSED, dict(DREAM, a='#e3c46a', g='#7ff0d8', w='#f4f0ff'),
+                              both('a', (5, 8), (6, 8)) + rect('a', 7, 4, 8, 6) + [('a', 6, 5), ('a', 9, 5)] + rect('g', 7, 5, 8, 5) + [('w', 5, 5), ('w', 10, 10), ('w', 4, 10)]),
+    ('r8_arcana', 'chest'): (CHEST, dict(DREAM, a='#e3c46a', g='#7ff0d8', w='#f4f0ff'),
+                             [('a', 7, 6), ('a', 8, 6), ('a', 6, 7), ('a', 9, 7), ('a', 7, 8), ('a', 8, 8)] + [('g', 7, 7), ('g', 8, 7)] + rect('a', 4, 12, 11, 12) + [('w', 5, 10), ('w', 10, 4), ('w', 9, 10)]),
+    ('r8_arcana', 'legs'): (LEGS, dict(DREAM, a='#e3c46a', w='#f4f0ff'), KNEES + [('w', 4, 5), ('w', 11, 7), ('w', 4, 12)]),
+    ('r8_arcana', 'boots'): (BOOTS, dict(DREAM, a='#e3c46a'), []),
 }
 
 

@@ -27,6 +27,8 @@ import com.divinerpgextended.world.ArmorTier;
  * <li>финальный сет обычного мира (без донора) -> броня Странника R1 с ядром этого сета ({@link ArmorCore}), топливо - плата сета, босс не нужен;</li>
  * <li>сет Странника + финальный сет в доноре + плата этого сета в топливе -> новое ядро (тот же сет с другим топливом - обычный перк, если есть);</li>
  * <li>сет Странника R(n) + сет брони мира следующей ступени -> R(n+1) (закалка R2-R7);</li>
+ * <li>сет Странника R7 + сет свойства Венца (Ангельский, Вемос, Корма) + Дух вселенной -> R8 с этим Венцом (за Леди Луну); на R8 тот
+ * же сет с арлемитом - смена Венца ({@link com.divinerpgextended.item.ArmorCrown});</li>
  * <li>сет Странника + донорский сет перка -> перк в свободный слот;</li>
  * <li>любые части брони с гнёздами + аксессуары в доноре -> аксессуары встроены ({@link Sockets}), цена - уровни опыта;
  * клик по занятому гнезду - аксессуар выходит в свободный слот донора (бесплатно);</li>
@@ -59,7 +61,9 @@ public final class AnvilLogic {
         // привязка: снять со своей брони; броня чужая
         READY_UNBIND, FOREIGN,
         // ядро уже такое, плата камнями за смену ядра, донор-Странник только R1
-        CORE_SAME, CORE_FUEL, CORE_R1_ONLY
+        CORE_SAME, CORE_FUEL, CORE_R1_ONLY,
+        // Венец R8: закалка R7 -> R8, смена Венца, Венец такой же, сет Венца на ступени ниже R7
+        READY_R8, READY_CROWN, CROWN_SAME, CROWN_R8_ONLY
     }
 
     public static final class Result {
@@ -72,6 +76,8 @@ public final class AnvilLogic {
         public final int param;
         /** Какое топливо нужно для текущей операции (или null). */
         public final Item fuel;
+        /** Подтип топлива (-1 - любой). */
+        public int fuelMeta = -1;
         /** Встраивание: куда встанет аксессуар каждого донора - по 3 бита (слот брони + 1, 0 - никуда). */
         public int targets;
 
@@ -87,7 +93,12 @@ public final class AnvilLogic {
 
         public boolean ready() {
             return status == Status.READY_UPGRADE || status == Status.READY_PERK || status == Status.READY_SOCKET || status == Status.READY_UNLOAD || status == Status.READY_CORE
-                || status == Status.READY_UNBIND;
+                || status == Status.READY_UNBIND || status == Status.READY_R8 || status == Status.READY_CROWN;
+        }
+
+        Result meta(int m) {
+            fuelMeta = m;
+            return this;
         }
     }
 
@@ -134,8 +145,17 @@ public final class AnvilLogic {
     }
 
     private static int fuelCount(IInventory inv, Item fuel) {
+        return fuelCount(inv, fuel, -1);
+    }
+
+    private static int fuelCount(IInventory inv, Item fuel, int meta) {
         ItemStack s = inv.getStackInSlot(FUEL);
-        return s != null && s.getItem() == fuel ? s.stackSize : 0;
+        return s != null && s.getItem() == fuel && (meta < 0 || s.getItemDamage() == meta) ? s.stackSize : 0;
+    }
+
+    /** Плата за закалку в R8: Дух вселенной. */
+    public static ItemStack r8Fuel() {
+        return com.divinerpgextended.halite.Halite.spirit(com.divinerpgextended.halite.Halite.Spirit.UNIVERSE);
     }
 
     private static boolean bossMissing(EntityPlayer player, Boss boss) {
@@ -302,12 +322,33 @@ public final class AnvilLogic {
         int tier = ArmorData.tier(first);
         List<Perk> perks = ArmorData.perks(first);
         ArmorCore core = ArmorData.core(first);
+        com.divinerpgextended.item.ArmorCrown crown = ArmorData.crown(first);
         for (int i = 1; i < 4; i++) {
             ItemStack s = inv.getStackInSlot(ARMOR + i);
-            if (ArmorData.tier(s) != tier || ArmorData.core(s) != core || !ArmorData.perks(s)
+            if (ArmorData.tier(s) != tier || ArmorData.core(s) != core || ArmorData.crown(s) != crown || !ArmorData.perks(s)
                 .equals(perks)) return new Result(Status.BAD_ARMOR, 0);
         }
         if (anyNull(donor)) return new Result(Status.NEED_DONOR, 0);
+
+        // Венец R8: сет свойства Венца (Ангельский, Вемос, Корма) - закалка R7 в R8 за Леди Луну и Дух вселенной, на R8 - смена Венца
+        com.divinerpgextended.item.ArmorCrown wantCrown = com.divinerpgextended.item.ArmorCrown.ofSet(donor);
+        if (wantCrown != null) {
+            if (tier == 7) {
+                if (bossMissing(player, Boss.LADY_LUNA)) return new Result(Status.NEED_BOSS, Boss.LADY_LUNA.ordinal());
+                ItemStack f = r8Fuel();
+                int need = Config.upgradeR8Spirits;
+                if (fuelCount(inv, f.getItem(), f.getItemDamage()) < need) return new Result(Status.NEED_FUEL, need, f.getItem()).meta(f.getItemDamage());
+                return new Result(Status.READY_R8, wantCrown.ordinal(), f.getItem()).meta(f.getItemDamage());
+            }
+            if (tier >= 8) {
+                if (wantCrown == crown) return new Result(Status.CROWN_SAME, wantCrown.ordinal());
+                Item fuel = VanillaItemsOther.arlemiteIngot;
+                int need = Config.perkFuelArlemiteIngots;
+                if (fuelCount(inv, fuel) < need) return new Result(Status.NEED_FUEL, need, fuel);
+                return new Result(Status.READY_CROWN, wantCrown.ordinal(), fuel);
+            }
+            return new Result(Status.CROWN_R8_ONLY, wantCrown.ordinal());
+        }
 
         // Закалка мирами: сет брони следующего мира в доноре
         ArmorTier next = ArmorTier.next(tier);
@@ -435,6 +476,17 @@ public final class AnvilLogic {
         } else if (r.status == Status.READY_UPGRADE) {
             for (int i = 0; i < 4; i++) ArmorData.setTier(inv.getStackInSlot(ARMOR + i), r.param);
             inv.decrStackSize(FUEL, Config.upgradeTwilightFuelCount);
+        } else if (r.status == Status.READY_R8) {
+            com.divinerpgextended.item.ArmorCrown c = com.divinerpgextended.item.ArmorCrown.values()[r.param];
+            for (int i = 0; i < 4; i++) {
+                ArmorData.setTier(inv.getStackInSlot(ARMOR + i), 8);
+                ArmorData.setCrown(inv.getStackInSlot(ARMOR + i), c);
+            }
+            inv.decrStackSize(FUEL, Config.upgradeR8Spirits);
+        } else if (r.status == Status.READY_CROWN) {
+            com.divinerpgextended.item.ArmorCrown c = com.divinerpgextended.item.ArmorCrown.values()[r.param];
+            for (int i = 0; i < 4; i++) ArmorData.setCrown(inv.getStackInSlot(ARMOR + i), c);
+            inv.decrStackSize(FUEL, Config.perkFuelArlemiteIngots);
         } else if (r.status == Status.READY_CORE) {
             ArmorCore wanted = ArmorCore.values()[r.param];
             for (int i = 0; i < 4; i++) ArmorData.setCore(inv.getStackInSlot(ARMOR + i), wanted);
