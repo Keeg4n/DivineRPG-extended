@@ -294,6 +294,43 @@ public class SelfTest {
         return p;
     }
 
+    /** Сколько отдельных частей у проходов комнаты (x0, z0) на высоте y (клетки, где можно стоять; двери Арканы проходимы); (sx, sz) считать занятой. */
+    private static int chestParts(net.minecraft.world.World w, int x0, int y, int z0, int sx, int sz) {
+        boolean[] open = new boolean[256], seen = new boolean[256];
+        for (int x = 0; x < 16; x++) for (int z = 0; z < 16; z++) {
+            int wx = x0 + x, wz = z0 + z;
+            if (wx == sx && wz == sz) continue;
+            open[x * 16 + z] = chestPass(w, wx, y, wz) && chestPass(w, wx, y + 1, wz);
+        }
+        int parts = 0;
+        int[][] nb = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+        for (int c = 0; c < 256; c++) {
+            if (!open[c] || seen[c]) continue;
+            parts++;
+            java.util.ArrayDeque<Integer> q = new java.util.ArrayDeque<Integer>();
+            q.add(c);
+            seen[c] = true;
+            while (!q.isEmpty()) {
+                int cur = q.poll();
+                for (int[] d : nb) {
+                    int nx = cur / 16 + d[0], nz = cur % 16 + d[1];
+                    if (nx < 0 || nz < 0 || nx > 15 || nz > 15) continue;
+                    int n = nx * 16 + nz;
+                    if (open[n] && !seen[n]) {
+                        seen[n] = true;
+                        q.add(n);
+                    }
+                }
+            }
+        }
+        return parts;
+    }
+
+    private static boolean chestPass(net.minecraft.world.World w, int x, int y, int z) {
+        net.minecraft.block.Block b = w.getBlock(x, y, z);
+        return !b.getMaterial().blocksMovement() || com.divinerpgextended.world.ArcanaChests.doorKind(b) != null;
+    }
+
     private static void reset(TestPlayer p) {
         for (int i = 0; i < 4; i++) p.inventory.armorInventory[i] = null;
         for (int i = 0; i < p.inventory.mainInventory.length; i++) p.inventory.mainInventory[i] = null;
@@ -315,6 +352,14 @@ public class SelfTest {
         p.inventory.armorInventory[2] = body == null ? null : new ItemStack(body);
         p.inventory.armorInventory[1] = legs == null ? null : new ItemStack(legs);
         p.inventory.armorInventory[0] = boots == null ? null : new ItemStack(boots);
+    }
+
+    /** Аудит предметов: все ItemStack в значении поля рецепта (массивы, списки, списки рудного словаря). */
+    private static void auditCollect(Object v, List<ItemStack> out, int depth) {
+        if (v == null || depth > 3) return;
+        if (v instanceof ItemStack) out.add((ItemStack) v);
+        else if (v instanceof Object[]) for (Object o : (Object[]) v) auditCollect(o, out, depth + 1);
+        else if (v instanceof java.util.Collection) for (Object o : (java.util.Collection<?>) v) auditCollect(o, out, depth + 1);
     }
 
     /** Номер гнезда, где лежит вещь (-1 - нет). */
@@ -2310,6 +2355,326 @@ public class SelfTest {
             z.setDead();
             check(near(edge, expect), "арканный удар сабли по зомби в алмазном нагруднике " + f(edge) + " (ждали " + f(expect) + " сквозь броню)");
             return "после удара саблей Арканы - отдельный арканный удар " + f(expect) + " сквозь броню, с фиолетовыми искрами";
+        });
+        t("Аркана", "Подземельный конструктор: Заряженный коллектор на алтаре Драмикса призывает его, с него падает ключ (через раз)", () -> {
+            int dim = net.divinerpg.utils.config.ConfigurationHelper.arcana;
+            WorldServer aw = server.worldServerForDimension(dim);
+            int ax = 3200, ay = 120, az = 3200;
+            for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) for (int dy = -1; dy <= 5; dy++) aw.setBlockToAir(ax + dx, ay + dy, az + dz);
+            aw.setBlock(ax, ay, az, net.divinerpg.utils.blocks.ArcanaBlocks.dramixAltar);
+            TestPlayer kp = join(player(dim, "TestKeys", ax + 2.5, ay + 1, az + 0.5), true);
+            kp.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            com.divinerpgextended.boss.BossProgress.grant(kp, com.divinerpgextended.boss.Boss.WATCHER); // в Аркану пускают только после Смотрителя
+            hold(kp, new ItemStack(net.divinerpg.utils.items.ArcanaItems.chargedCollector, 2));
+            net.minecraft.util.AxisAlignedBB box = net.minecraft.util.AxisAlignedBB.getBoundingBox(ax - 3, ay - 1, az - 3, ax + 4, ay + 6, az + 4);
+            boolean used = false;
+            java.util.List<?> cons = java.util.Collections.emptyList();
+            int left = -1, keys = 0, kills = 0;
+            String keyNames = "", drops = "", state = "";
+            try {
+                used = kp.theItemInWorldManager.activateBlockOrUseItem(kp, aw, kp.getHeldItem(), ax, ay, az, 1, 0.5F, 1F, 0.5F);
+                cons = aw.getEntitiesWithinAABB(net.divinerpg.entities.arcana.EntityConstructor.class, box);
+                left = kp.getHeldItem() == null ? 0 : kp.getHeldItem().stackSize;
+                // ключ у Divine падает с вероятностью 1/2 (потом 1/4 на вид): бьём призванного и, пока ключа нет, новых (до 16)
+                for (net.divinerpg.entities.arcana.EntityConstructor c = cons.isEmpty() ? null : (net.divinerpg.entities.arcana.EntityConstructor) cons.get(0); c != null
+                    && keys == 0 && kills < 16;) {
+                    boolean hit = c.attackEntityFrom(DamageSource.causePlayerDamage(kp), 5000F);
+                    kills++;
+                    state = "убито " + kills + ", удар прошёл " + hit + ", мёртв " + c.isDead + ", здоровье " + f(c.getHealth()) + "; ";
+                    for (Object o : aw.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, box)) {
+                        net.minecraft.entity.item.EntityItem en = (net.minecraft.entity.item.EntityItem) o;
+                        Item it = en.getEntityItem().getItem();
+                        if (it == net.divinerpg.utils.items.ArcanaItems.sludgeKey || it == net.divinerpg.utils.items.ArcanaItems.ancientKey
+                            || it == net.divinerpg.utils.items.ArcanaItems.soulKey || it == net.divinerpg.utils.items.ArcanaItems.degradedKey) {
+                            keys += en.getEntityItem().stackSize;
+                            keyNames += en.getEntityItem().getDisplayName() + " ";
+                        }
+                        drops += en.getEntityItem().getDisplayName() + " x" + en.getEntityItem().stackSize + "; ";
+                        en.setDead();
+                    }
+                    if (keys > 0) break;
+                    c = new net.divinerpg.entities.arcana.EntityConstructor(aw);
+                    c.setPosition(ax + 0.5, ay + 1, az + 0.5);
+                    aw.spawnEntityInWorld(c);
+                }
+            } finally {
+                for (Object o : aw.getEntitiesWithinAABB(net.minecraft.entity.Entity.class, box)) if (!(o instanceof EntityPlayer)) ((net.minecraft.entity.Entity) o).setDead();
+                server.getConfigurationManager().playerEntityList.remove(kp);
+                aw.removeEntity(kp);
+                aw.setBlockToAir(ax, ay, az);
+            }
+            check(used && cons.size() == 1 && left == 1 && keys == 1, "коллектор сработал " + used + ", конструкторов над алтарём " + cons.size() + ", коллекторов осталось " + left
+                + " из 2, ключей " + keys + " " + keyNames + "; " + state + "упало: " + drops);
+            return "Заряженный коллектор на алтаре Драмикса призывает Подземельного конструктора (коллектор тратится), с убитого игроком через раз падает ключ: "
+                + keyNames.trim() + " (с " + kills + "-го)";
+        });
+        t("Аркана", "Запертые сундуки: в каморках за дверьми под ключ, проходы не перекрыты, гарантия участка, свой ключ открывает, нерушимы", () -> {
+            int dim = ConfigurationHelper.arcana;
+            WorldServer aw = server.worldServerForDimension(dim);
+            java.util.Map<com.divinerpgextended.block.BlockLockedChest.Kind, int[]> found = new java.util.EnumMap<com.divinerpgextended.block.BlockLockedChest.Kind, int[]>(
+                com.divinerpgextended.block.BlockLockedChest.Kind.class);
+            java.util.Map<com.divinerpgextended.block.BlockLockedChest.Kind, int[]> rooms = new java.util.EnumMap<com.divinerpgextended.block.BlockLockedChest.Kind, int[]>(
+                com.divinerpgextended.block.BlockLockedChest.Kind.class);
+            String bad = "";
+            int vaults = 0;
+            boolean wasOn = Config.arcanaChests;
+            Config.arcanaChests = false; // каморки ищем в нетронутых комнатах
+            try {
+                for (int cc = 0; cc < 80 && found.size() < 4; cc++) {
+                    int cx = 200 + cc, cz = 200;
+                    aw.theChunkProviderServer.loadChunk(cx, cz);
+                    for (int lv = 0; lv < 4; lv++) {
+                        int y0 = (lv + 1) * 8;
+                        int[] v = com.divinerpgextended.world.ArcanaChests.vault(aw, cx * 16, y0, cz * 16);
+                        if (v == null) continue;
+                        vaults++;
+                        com.divinerpgextended.block.BlockLockedChest.Kind kd = com.divinerpgextended.block.BlockLockedChest.Kind.of(v[3]);
+                        net.minecraft.block.Block oreB = net.divinerpg.utils.blocks.ArcanaBlocks.arcaniumOre;
+                        boolean ore = aw.getBlock(v[0], v[1], v[2]) == oreB || aw.isAirBlock(v[0], v[1], v[2]) && (aw.getBlock(v[0] + 1, v[1], v[2]) == oreB
+                            || aw.getBlock(v[0] - 1, v[1], v[2]) == oreB || aw.getBlock(v[0], v[1], v[2] + 1) == oreB || aw.getBlock(v[0], v[1], v[2] - 1) == oreB);
+                        if (v[0] - cx * 16 < com.divinerpgextended.world.ArcanaChests.EDGE || v[2] - cz * 16 < com.divinerpgextended.world.ArcanaChests.EDGE)
+                            bad += kd + " у западного или северного края чанка " + (v[0] - cx * 16) + "," + (v[2] - cz * 16) + "; ";
+                        int before = chestParts(aw, cx * 16, v[1], cz * 16, Integer.MIN_VALUE, 0), after = chestParts(aw, cx * 16, v[1], cz * 16, v[0], v[2]);
+                        if (ore == (kd == com.divinerpgextended.block.BlockLockedChest.Kind.DEGRADED) || before != after)
+                            bad += kd + " " + v[0] + "," + v[1] + "," + v[2] + " на руде или рядом " + ore + ", частей прохода " + before + " -> " + after + "; ";
+                        if (!found.containsKey(kd)) {
+                            found.put(kd, v);
+                            rooms.put(kd, new int[] { cx * 16, y0, cz * 16 });
+                        }
+                    }
+                }
+            } finally {
+                Config.arcanaChests = wasOn;
+            }
+            check(found.size() == 4 && bad.isEmpty(), "виды каморок в 80 чанках: " + found.keySet() + " (всего " + vaults + "); не так: " + bad);
+            // гарантия: на участке без сундука этого вида N-я каморка получает его без броска
+            com.divinerpgextended.block.BlockLockedChest.Kind sk = com.divinerpgextended.block.BlockLockedChest.Kind.SOUL;
+            int[] sv = found.get(sk), sr = rooms.get(sk);
+            com.divinerpgextended.world.ArcanaChests.Data data = com.divinerpgextended.world.ArcanaChests.Data.get(aw);
+            long rkey = com.divinerpgextended.world.ArcanaChests.Data.key(com.divinerpgextended.world.ArcanaChests.region(sv[0]),
+                com.divinerpgextended.world.ArcanaChests.region(sv[2]), sk);
+            data.forget(rkey);
+            net.minecraft.block.Block wasB = aw.getBlock(sv[0], sv[1], sv[2]);
+            int savedChance = Config.arcanaChestChance, savedPity = Config.arcanaChestPity, forcedBefore = com.divinerpgextended.world.ArcanaChests.forced;
+            boolean[] got = new boolean[3];
+            Config.arcanaChestChance = 10000;
+            Config.arcanaChestPity = 3;
+            try {
+                for (int rr = 0; rr < 3; rr++) got[rr] = com.divinerpgextended.world.ArcanaChests.room(aw, sr[0], sr[1], sr[2]);
+            } finally {
+                Config.arcanaChestChance = savedChance;
+                Config.arcanaChestPity = savedPity;
+            }
+            boolean chestThere = aw.getBlock(sv[0], sv[1], sv[2]) == com.divinerpgextended.registry.ModBlocks.lockedChest && aw.getBlockMetadata(sv[0], sv[1], sv[2]) == sk.ordinal();
+            check(!got[0] && !got[1] && got[2] && chestThere && data.count(rkey) == 1 && com.divinerpgextended.world.ArcanaChests.forced == forcedBefore + 1,
+                "гарантия на 3-й каморке: " + got[0] + " " + got[1] + " " + got[2] + ", сундук на месте руды " + chestThere + ", на участке " + data.count(rkey));
+            // открыть: чужой ключ не подходит, свой тратится, внутри добыча вида
+            int[][] side = { {}, {}, { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } };
+            int[] off = side[sv[4]];
+            TestPlayer cp = join(player(dim, "TestChests", sv[0] + off[0] + 0.5, sv[1], sv[2] + off[1] + 0.5), true);
+            cp.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            com.divinerpgextended.boss.BossProgress.grant(cp, com.divinerpgextended.boss.Boss.WATCHER);
+            com.divinerpgextended.block.TileLockedChest te = (com.divinerpgextended.block.TileLockedChest) aw.getTileEntity(sv[0], sv[1], sv[2]);
+            boolean wrongLocked, opened, gui, trinket = false, survivesBoom, unbreakable, guarded;
+            int wrongLeft, keyLeft, stacks = 0;
+            try {
+                hold(cp, new ItemStack(net.divinerpg.utils.items.ArcanaItems.sludgeKey, 1));
+                cp.theItemInWorldManager.activateBlockOrUseItem(cp, aw, cp.getHeldItem(), sv[0], sv[1], sv[2], 1, 0.5F, 0.5F, 0.5F);
+                wrongLocked = te.locked;
+                wrongLeft = cp.getHeldItem() == null ? 0 : cp.getHeldItem().stackSize;
+                hold(cp, new ItemStack(net.divinerpg.utils.items.ArcanaItems.soulKey, 2));
+                cp.theItemInWorldManager.activateBlockOrUseItem(cp, aw, cp.getHeldItem(), sv[0], sv[1], sv[2], 1, 0.5F, 0.5F, 0.5F);
+                opened = !te.locked;
+                keyLeft = cp.getHeldItem() == null ? 0 : cp.getHeldItem().stackSize;
+                gui = cp.openContainer instanceof net.minecraft.inventory.ContainerChest;
+                cp.closeScreen();
+                for (int sl = 0; sl < te.getSizeInventory(); sl++) {
+                    ItemStack in = te.getStackInSlot(sl);
+                    if (in == null) continue;
+                    stacks++;
+                    if (in.getItem() == ModItems.trinket) trinket = true;
+                }
+                aw.newExplosion(null, sv[0] + 0.5, sv[1] + 0.5, sv[2] + 0.5, 4F, false, true);
+                survivesBoom = aw.getBlock(sv[0], sv[1], sv[2]) == com.divinerpgextended.registry.ModBlocks.lockedChest;
+                unbreakable = com.divinerpgextended.registry.ModBlocks.lockedChest.getBlockHardness(aw, sv[0], sv[1], sv[2]) < 0;
+                guarded = com.divinerpgextended.boss.AltarGuard.altar(new ItemStack(com.divinerpgextended.registry.ModBlocks.lockedChest, 1, sk.ordinal()));
+            } finally {
+                for (int sl = 0; sl < te.getSizeInventory(); sl++) te.setInventorySlotContents(sl, null);
+                aw.setBlock(sv[0], sv[1], sv[2], wasB, 0, 2);
+                server.getConfigurationManager().playerEntityList.remove(cp);
+                aw.removeEntity(cp);
+            }
+            check(wrongLocked && wrongLeft == 1 && opened && keyLeft == 1 && gui && trinket && survivesBoom && unbreakable && guarded,
+                "чужой ключ: заперт " + wrongLocked + ", ключ цел " + wrongLeft + "; свой: открыт " + opened + ", ключей осталось " + keyLeft + " из 2, окно " + gui
+                    + ", стопок " + stacks + ", аксессуар " + trinket + "; после взрыва на месте " + survivesBoom + ", неломаемый " + unbreakable + ", особой киркой не унести " + guarded);
+            // добыча по видам
+            Random lr = new Random(7);
+            String lootBad = "";
+            java.util.Set<Item> weapons = new java.util.HashSet<Item>(java.util.Arrays.asList(com.divinerpgextended.world.ArcanaChests.weapons()));
+            for (int roll = 0; roll < 30; roll++) {
+                boolean col = false, wpn = false, acc = false, charged = false;
+                for (ItemStack s : com.divinerpgextended.world.ArcanaChests.loot(com.divinerpgextended.block.BlockLockedChest.Kind.SLUDGE, lr))
+                    col |= s.getItem() == net.divinerpg.utils.items.ArcanaItems.collector;
+                for (ItemStack s : com.divinerpgextended.world.ArcanaChests.loot(com.divinerpgextended.block.BlockLockedChest.Kind.ANCIENT, lr)) wpn |= weapons.contains(s.getItem());
+                for (ItemStack s : com.divinerpgextended.world.ArcanaChests.loot(sk, lr)) acc |= s.getItem() == ModItems.trinket;
+                for (ItemStack s : com.divinerpgextended.world.ArcanaChests.loot(com.divinerpgextended.block.BlockLockedChest.Kind.DEGRADED, lr))
+                    charged |= s.getItem() == net.divinerpg.utils.items.ArcanaItems.chargedCollector;
+                if (!col || !wpn || !acc || !charged) lootBad += "бросок " + roll + ": коллектор " + col + ", оружие " + wpn + ", аксессуар " + acc + ", заряженный " + charged + "; ";
+            }
+            check(lootBad.isEmpty(), lootBad);
+            // в новых чанках с шансом 1 сундук встаёт в каждую каморку, вид - по двери
+            int placedBefore = com.divinerpgextended.world.ArcanaChests.placed, wrongKind = 0, chests = 0;
+            String perChunk = "";
+            Config.arcanaChestChance = 1;
+            try {
+                // соседи заранее (как при настоящем заселении, где соседи с востока и юга уже есть): сундуки - только от вызова генератора
+                Config.arcanaChests = false;
+                for (int cx = 299; cx <= 312; cx++) for (int cz = 199; cz <= 201; cz++) aw.theChunkProviderServer.loadChunk(cx, cz);
+                for (int cc = 0; cc < 12; cc++) {
+                    int cx = 300 + cc, cz = 200;
+                    Config.arcanaChests = false;
+                    aw.theChunkProviderServer.loadChunk(cx, cz);
+                    int p0 = com.divinerpgextended.world.ArcanaChests.placed, c0 = chests;
+                    Config.arcanaChests = true;
+                    new com.divinerpgextended.world.ArcanaChests().generate(aw.rand, cx, cz, aw, null, null);
+                    Config.arcanaChests = false; // проверка дверей рядом догружает соседние чанки - в них не ставить
+                    int p1 = com.divinerpgextended.world.ArcanaChests.placed;
+                    for (int bx = cx * 16; bx < cx * 16 + 16; bx++) for (int bz = cz * 16; bz < cz * 16 + 16; bz++) for (int by = 8; by < 40; by++) {
+                        if (aw.getBlock(bx, by, bz) != com.divinerpgextended.registry.ModBlocks.lockedChest) continue;
+                        chests++;
+                        com.divinerpgextended.block.BlockLockedChest.Kind kd = com.divinerpgextended.block.BlockLockedChest.Kind.of(aw.getBlockMetadata(bx, by, bz));
+                        boolean doorNear = false;
+                        for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) for (int dy = -1; dy <= 1; dy++)
+                            doorNear |= com.divinerpgextended.world.ArcanaChests.doorKind(aw.getBlock(bx + dx, by + dy, bz + dz)) == kd;
+                        if (!doorNear) wrongKind++;
+                    }
+                    perChunk += cx + ":" + (p1 - p0) + "/" + (chests - c0) + (com.divinerpgextended.world.ArcanaChests.placed != p1 ? "+" + (com.divinerpgextended.world.ArcanaChests.placed - p1) : "") + " ";
+                }
+            } finally {
+                Config.arcanaChestChance = savedChance;
+                Config.arcanaChests = wasOn;
+            }
+            int made = com.divinerpgextended.world.ArcanaChests.placed - placedBefore, recount = 0;
+            for (int bx = 300 * 16; bx < 312 * 16; bx++) for (int bz = 200 * 16; bz < 201 * 16; bz++) for (int by = 8; by < 40; by++)
+                if (aw.getBlock(bx, by, bz) == com.divinerpgextended.registry.ModBlocks.lockedChest) recount++;
+            String lost = "";
+            int seenLog = 0;
+            for (java.util.Iterator<int[]> it = com.divinerpgextended.world.ArcanaChests.recent.descendingIterator(); it.hasNext() && seenLog < made; seenLog++) {
+                int[] pl = it.next();
+                if (made != chests) lost += "[" + pl[0] + "," + pl[1] + "," + pl[2] + "] ";
+                if (aw.getBlock(pl[0], pl[1], pl[2]) != com.divinerpgextended.registry.ModBlocks.lockedChest)
+                    lost += com.divinerpgextended.block.BlockLockedChest.Kind.of(pl[3]) + " " + pl[0] + "," + pl[1] + "," + pl[2] + " теперь " + aw.getBlock(pl[0], pl[1], pl[2]).getUnlocalizedName()
+                        + " (чанк " + (pl[0] >> 4) + "," + (pl[2] >> 4) + "); ";
+            }
+            check(made > 0 && chests == made && recount == made && wrongKind == 0, "в 12 новых чанках поставлено " + made + ", найдено сундуков " + chests + " (пересчёт в конце " + recount
+                + "), без своей двери рядом " + wrongKind + "; по чанкам поставлено/найдено(+после): " + perChunk + "; места: " + lost);
+            // текстуры: камень стены Арканы на гранях, замок - приглушённый цвет ключа (на сервере - на сером сундуке-заглушке)
+            java.awt.image.BufferedImage gray = new java.awt.image.BufferedImage(64, 64, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+            for (int px = 0; px < 64; px++) for (int py = 0; py < 64; py++) gray.setRGB(px, py, 0xff808080);
+            String texBad = "";
+            for (com.divinerpgextended.block.BlockLockedChest.Kind kd : com.divinerpgextended.block.BlockLockedChest.Kind.values()) {
+                java.awt.image.BufferedImage img = com.divinerpgextended.client.ChestTextures.build(kd, gray);
+                if (img == null) {
+                    texBad += kd + " не собрана; ";
+                    continue;
+                }
+                int latch = img.getRGB(2, 4) & 0xffffff, face = img.getRGB(20, 22) & 0xffffff; // замок спереди и середина передней грани короба
+                if (face == 0x808080 || latch == 0x808080) texBad += kd + " грань " + Integer.toHexString(face) + " замок " + Integer.toHexString(latch) + "; ";
+            }
+            check(texBad.isEmpty(), texBad);
+            return "каморок в 80 чанках " + vaults + " всех 4 видов: руда за дверьми слизи, древнего кирпича и камня душ (у западного и северного края чанка - рядом), угол зала разрушенных дверей; проходы не рвутся; "
+                + "гарантия участка ставит сундук на 3-й каморке; чужой ключ не открывает, свой тратится, внутри " + stacks + " стопок с аксессуаром; взрыв не берёт; "
+                + "в 12 новых чанках с шансом 1 - " + made + " сундуков у своих дверей; текстуры 9 видов собираются";
+        });
+        t("Отладка", "Аудит: предметы Divine без применения (logs/dre-junk.txt)", () -> {
+            // все предметы реестров Divine
+            java.util.Map<net.minecraft.item.Item, String> items = new java.util.LinkedHashMap<net.minecraft.item.Item, String>();
+            for (String cn : new String[] { "ArcanaItems", "IceikaItems", "ItemsFood", "TwilightItemsArmor", "TwilightItemsCrops", "TwilightItemsOther", "TwilightItemsTools",
+                "TwilightItemsWeapons", "VanillaItemsArmor", "VanillaItemsOther", "VanillaItemsTools", "VanillaItemsWeapons", "VetheaItems" }) {
+                try {
+                    for (java.lang.reflect.Field fl : Class.forName("net.divinerpg.utils.items." + cn).getFields())
+                        if (java.lang.reflect.Modifier.isStatic(fl.getModifiers()) && net.minecraft.item.Item.class.isAssignableFrom(fl.getType()) && fl.get(null) != null)
+                            items.put((net.minecraft.item.Item) fl.get(null), cn + " " + fl.getName());
+                } catch (Throwable ignored) {}
+            }
+            java.util.Map<net.minecraft.item.Item, Integer> ingr = new java.util.HashMap<net.minecraft.item.Item, Integer>(), trade = new java.util.HashMap<net.minecraft.item.Item, Integer>();
+            // крафт: всё, что лежит в полях рецепта, кроме результата (подходит и для рецептов Divine, и для рудных)
+            for (Object r : net.minecraft.item.crafting.CraftingManager.getInstance().getRecipeList()) {
+                net.minecraft.item.ItemStack out = ((net.minecraft.item.crafting.IRecipe) r).getRecipeOutput();
+                java.util.List<net.minecraft.item.ItemStack> found = new java.util.ArrayList<net.minecraft.item.ItemStack>();
+                for (Class<?> c = r.getClass(); c != null && c != Object.class; c = c.getSuperclass())
+                    for (java.lang.reflect.Field fl : c.getDeclaredFields()) {
+                        if (java.lang.reflect.Modifier.isStatic(fl.getModifiers())) continue;
+                        fl.setAccessible(true);
+                        Object v = fl.get(r);
+                        if (v == out) continue;
+                        auditCollect(v, found, 0);
+                    }
+                for (net.minecraft.item.ItemStack st : found) if (st != null && st.getItem() != null) ingr.merge(st.getItem(), 1, Integer::sum);
+            }
+            for (Object k : net.minecraft.item.crafting.FurnaceRecipes.smelting().getSmeltingList().keySet())
+                if (k instanceof net.minecraft.item.ItemStack && ((net.minecraft.item.ItemStack) k).getItem() != null) ingr.merge(((net.minecraft.item.ItemStack) k).getItem(), 1, Integer::sum);
+            // наполнение Ветеи (аддон): глыбы и шаблоны
+            for (com.divinerpgextended.vethea.Infusion.Recipe ir : com.divinerpgextended.vethea.Infusion.own()) {
+                if (ir.lump != null) ingr.merge(ir.lump.getItem(), 1, Integer::sum);
+                if (ir.template != null) ingr.merge(ir.template.getItem(), 1, Integer::sum);
+            }
+            try {
+                java.lang.reflect.Method dv = com.divinerpgextended.vethea.Infusion.class.getDeclaredMethod("divine");
+                dv.setAccessible(true);
+                for (Object o : (java.util.List<?>) dv.invoke(null)) {
+                    com.divinerpgextended.vethea.Infusion.Recipe ir = (com.divinerpgextended.vethea.Infusion.Recipe) o;
+                    if (ir.lump != null) ingr.merge(ir.lump.getItem(), 1, Integer::sum);
+                    if (ir.template != null) ingr.merge(ir.template.getItem(), 1, Integer::sum);
+                }
+            } catch (Throwable ignored) {}
+            // торговцы: все сущности-торговцы Divine и аддона
+            WorldServer ow = server.worldServerForDimension(0);
+            int merchants = 0;
+            for (Object o : net.minecraft.entity.EntityList.stringToClassMapping.values()) {
+                Class<?> ec = (Class<?>) o;
+                if (!net.minecraft.entity.IMerchant.class.isAssignableFrom(ec) || !(ec.getName().startsWith("net.divinerpg") || ec.getName().startsWith("com.divinerpgextended"))) continue;
+                try {
+                    net.minecraft.entity.IMerchant m = (net.minecraft.entity.IMerchant) ec.getConstructor(net.minecraft.world.World.class).newInstance(ow);
+                    net.minecraft.village.MerchantRecipeList list = m.getRecipes(p);
+                    if (list == null) continue;
+                    merchants++;
+                    for (Object ro : list) {
+                        net.minecraft.village.MerchantRecipe mr = (net.minecraft.village.MerchantRecipe) ro;
+                        if (mr.getItemToBuy() != null) trade.merge(mr.getItemToBuy().getItem(), 1, Integer::sum);
+                        if (mr.getSecondItemToBuy() != null) trade.merge(mr.getSecondItemToBuy().getItem(), 1, Integer::sum);
+                    }
+                } catch (Throwable ignored) {}
+            }
+            // своё применение: броня, оружие, инструмент, еда, блок, или класс сам переопределяет действие
+            String[] acts = { "onItemRightClick", "func_77659_a", "onItemUse", "func_77648_a", "hitEntity", "func_77644_a", "onEaten", "func_77654_b", "onUpdate", "func_77663_a",
+                "itemInteractionForEntity", "func_111207_a", "onItemUseFirst", "onLeftClickEntity" };
+            StringBuilder out = new StringBuilder("# предмет Divine | в рецептах | в сделках | своё применение\n");
+            int junk = 0;
+            for (java.util.Map.Entry<net.minecraft.item.Item, String> en : items.entrySet()) {
+                net.minecraft.item.Item it = en.getKey();
+                String own = "";
+                if (it instanceof net.minecraft.item.ItemArmor) own = "броня";
+                else if (it instanceof net.minecraft.item.ItemSword || it instanceof net.minecraft.item.ItemTool || it instanceof net.minecraft.item.ItemBow || it instanceof net.minecraft.item.ItemHoe) own = "оружие/инструмент";
+                else if (it instanceof net.minecraft.item.ItemFood) own = "еда";
+                else if (it instanceof net.minecraft.item.ItemBlock || it instanceof net.minecraft.item.ItemSeeds || it instanceof net.minecraft.item.ItemReed) own = "ставится";
+                else
+                    for (Class<?> c = it.getClass(); c != null && c != net.minecraft.item.Item.class && own.isEmpty(); c = c.getSuperclass())
+                        if (!"ItemMod".equals(c.getSimpleName())) // базовый класс Divine сам ловит ПКМ у всех своих предметов - это не применение
+                        for (java.lang.reflect.Method mt : c.getDeclaredMethods())
+                            if (java.util.Arrays.asList(acts).contains(mt.getName())) {
+                                own = "действие " + c.getSimpleName() + "." + mt.getName();
+                                break;
+                            }
+                int ni = ingr.getOrDefault(it, 0), nt = trade.getOrDefault(it, 0);
+                boolean noUse = ni == 0 && nt == 0 && own.isEmpty();
+                if (noUse) junk++;
+                out.append(noUse ? "БЕЗ ПРИМЕНЕНИЯ " : "").append(en.getValue()).append(" (").append(new net.minecraft.item.ItemStack(it).getDisplayName()).append(") | ").append(ni)
+                    .append(" | ").append(nt).append(" | ").append(own).append('\n');
+            }
+            java.io.File f = new java.io.File(server.getFile("logs"), "dre-junk.txt");
+            java.nio.file.Files.write(f.toPath(), out.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return "предметов Divine " + items.size() + ", торговцев " + merchants + "; без рецептов, сделок и своего действия: " + junk + " (список - logs/dre-junk.txt)";
         });
         t("Аксессуары", "Аксессуары видны на теле: посадка на всех профилях брони, значки и грани алтарей на месте", () -> {
             java.util.Map<String, java.util.Map<String, java.util.Map<String, com.divinerpgextended.accessory.WearData.Mesh>>> all = com.divinerpgextended.accessory.WearData.all();

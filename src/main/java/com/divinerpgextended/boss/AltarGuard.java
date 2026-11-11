@@ -13,7 +13,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Алтари боссов неразрушимы, но в сборках есть инструменты, которые ломают и неразрушимое (пробуждённая ихорная кирка
+ * Алтари боссов (и запертые сундуки) неразрушимы, но в сборках есть инструменты, которые ломают и неразрушимое (пробуждённая ихорная кирка
  * Thaumic Tinkerer и подобные). Сломанный алтарь ничего не роняет (сам блок), а если инструмент всё же отдал его предметом -
  * предмет на земле не появляется, а из инвентаря игрока в выживании исчезает. В творческом режиме алтари можно носить и ставить.
  * Здесь же раз в 5 секунд ставится алтарь орды в гнездовьях Айрако, где его ещё нет, и засыпаются пустоты под полом старых
@@ -22,7 +22,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 public class AltarGuard {
 
     public static boolean altar(Block b) {
-        return b instanceof BlockBossAltar || b instanceof BlockArenaAltar;
+        return b instanceof BlockBossAltar || b instanceof BlockArenaAltar || b instanceof com.divinerpgextended.block.BlockLockedChest;
     }
 
     public static boolean altar(ItemStack s) {

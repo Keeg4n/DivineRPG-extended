@@ -137,6 +137,9 @@ public class Config {
     public static boolean divineSpawnFilter = true;
     /** Фонтанный зал Арканы: в среднем один на столько чанков (0 - нет). */
     public static int arcanaFountainChance = 40;
+    /** Запертые сундуки Арканы: шанс на каморку (1 из N), гарантия на участке (N-я каморка вида без сундука), размер участка. */
+    public static boolean arcanaChests = true;
+    public static int arcanaChestChance = 20, arcanaChestPity = 12, arcanaChestRegion = 2048;
     /** Номера эффектов арканных зелий (пусто - свободные сами, от 127 вниз). */
     public static int[] arcanePotionIds = {};
     public static String[] divineSpawnWhitelist = {};
@@ -394,6 +397,15 @@ public class Config {
         arcanaFountainChance = cfg.getInt("arcanaFountainChance", "arcana", arcanaFountainChance, 0, 10000,
             "Фонтанный зал Арканы (чаша арканного концентрата: восстанавливает аркану, только там рыба Арканы и только на арканную удочку): "
                 + "в среднем один на столько новых чанков; 0 - не строить");
+        arcanaChests = cfg.getBoolean("arcanaChests", "arcana", arcanaChests,
+            "Запертые сундуки Арканы (под ключи слизи, древнего кирпича, камня душ и разрушенного кирпича): ставятся в новых чанках в каморках за дверьми "
+                + "вместо арканитовой руды, у разрушенных дверей - в углу центрального зала");
+        arcanaChestChance = cfg.getInt("arcanaChestChance", "arcana", arcanaChestChance, 1, 10000,
+            "Шанс сундука в подходящей каморке: один из стольких");
+        arcanaChestPity = cfg.getInt("arcanaChestPity", "arcana", arcanaChestPity, 1, 10000,
+            "Гарантия: если на участке ещё нет сундука этого вида, столько-я подходящая каморка получает его без броска");
+        arcanaChestRegion = cfg.getInt("arcanaChestRegion", "arcana", arcanaChestRegion, 256, 100000,
+            "Размер участка гарантии, блоков (2048 - в любом квадрате 10000 x 10000 не меньше девяти целых участков)");
         arcanePotionIds = cfg.get("arcana", "arcanePotionIds", arcanePotionIds,
             "Номера эффектов арканных зелий (1-127, по порядку: ясность, чародейство, собранность, оберег от чар, каменная кожа, отвод стрел, стойкость, "
                 + "колючая шкура, внутренний жар, боевой раж, твёрдая рука, жажда арканы, рыбацкий фарт). Пусто - берутся свободные от 127 вниз; "

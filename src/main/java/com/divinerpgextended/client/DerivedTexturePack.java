@@ -54,7 +54,8 @@ public class DerivedTexturePack implements IResourcePack {
         byte[] b = cache.get(k);
         if (b != null) return b;
         DerivedTextures.Recipe r = DerivedTextures.recipes().get(k);
-        BufferedImage img = r == null ? null : DerivedTextures.build(r);
+        com.divinerpgextended.block.BlockLockedChest.Kind chest = ChestTextures.kind(k);
+        BufferedImage img = chest != null ? ChestTextures.build(chest) : r == null ? null : DerivedTextures.build(r);
         if (img == null) throw new FileNotFoundException(k);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ImageIO.write(img, "png", out);
@@ -70,7 +71,7 @@ public class DerivedTexturePack implements IResourcePack {
 
     @Override
     public boolean resourceExists(ResourceLocation rl) {
-        if (!DerivedTextures.recipes().containsKey(key(rl))) return false;
+        if (!DerivedTextures.recipes().containsKey(key(rl)) && ChestTextures.kind(key(rl)) == null) return false;
         try {
             png(rl);
             return true;
@@ -83,6 +84,7 @@ public class DerivedTexturePack implements IResourcePack {
     public Set<String> getResourceDomains() {
         Set<String> d = new HashSet<String>();
         for (String k : DerivedTextures.recipes().keySet()) d.add(k.substring(0, k.indexOf(':')));
+        d.add(ChestTextures.DOMAIN); // запертые сундуки ({@link ChestTextures})
         return d;
     }
 

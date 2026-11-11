@@ -339,6 +339,7 @@ public class CommonProxy {
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.WorldGenTwilightFeatures(), 64);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenOuterLairs(), 99000); // логова Ада и Энда - после озёр и прочего других модов
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaDoors(), 70);
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaChests(), 110); // после фонтанных залов: зал перестраивает комнату
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenTomb(), 55);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.ClockGuard());
         FMLCommonHandler.instance()

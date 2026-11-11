@@ -37,6 +37,8 @@ public final class ModBlocks {
     public static Block jungleOre, jungleAltar;
     public static Block ayeracoAltar;
     public static Block trapFloor;
+    /** Запертые сундуки Арканы и реликварии миров (вид - мета). */
+    public static Block lockedChest;
     /** Факелы сумеречных миров по номеру TwilightWorld. */
     public static final Block[] worldTorch = new Block[5];
     /** Камни врат по номеру CadillionWorld: рамка портала в следующий мир. */
@@ -194,6 +196,9 @@ public final class ModBlocks {
         GameRegistry.registerItem(ModItems.dreamWaterBucket, "dreamWaterBucket");
         net.minecraftforge.fluids.FluidContainerRegistry.registerFluidContainer(dreamWaterFluid, new net.minecraft.item.ItemStack(ModItems.dreamWaterBucket),
             new net.minecraft.item.ItemStack(net.minecraft.init.Items.bucket));
+        lockedChest = new com.divinerpgextended.block.BlockLockedChest();
+        GameRegistry.registerBlock(lockedChest, com.divinerpgextended.block.BlockLockedChest.ItemLockedChest.class, "lockedChest");
+        GameRegistry.registerTileEntity(com.divinerpgextended.block.TileLockedChest.class, "divinerpgextended:lockedChest");
         cloud = new com.divinerpgextended.block.BlockCloud();
         GameRegistry.registerBlock(cloud, "cloud");
         windTotem = new com.divinerpgextended.block.BlockWindTotem();
