@@ -21,7 +21,9 @@ public enum Bait {
 
     ROTTEN_FLESH(5, false), SPIDER_EYE(10, false), WORM(15, false),
     VEILO(10, true), MARSINE(15, true), EUCALYPTUS(20, true), PINFLY(20, true), LAMONA(25, true), FIRESTOCK(25, true),
-    AQUAMARINE(30, true), HITCHAK(40, true);
+    AQUAMARINE(30, true), HITCHAK(40, true),
+    /** Солнечная блесна (из искр Эдема): сильнее аквамарина, в Эдеме вдвое чаще золотой улов. */
+    SUN_LURE(35, false);
 
     public final int power;
     /** Урожай Арканы (их Леорна даёт в награду). */
@@ -58,6 +60,8 @@ public enum Bait {
                 return ArcanaItems.firestock;
             case AQUAMARINE:
                 return ArcanaItems.aquamarine;
+            case SUN_LURE:
+                return ModItems.sunLure;
             default:
                 return ArcanaItems.hitchak;
         }

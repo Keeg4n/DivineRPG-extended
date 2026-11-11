@@ -185,14 +185,16 @@ public class FishingEvents {
             progress(p);
             return true;
         }
+        int pay = FishingLoot.gilded(held) ? 3 : 1; // золотой улов Эдема - Леорна платит втрое
         if (!p.capabilities.isCreativeMode) held.stackSize--;
         if (held.stackSize <= 0) p.inventory.setInventorySlotContents(p.inventory.currentItem, null);
         int n = tag.getInteger(QUESTS) + 1;
         tag.setInteger(QUESTS, n);
         tag.setLong(QUEST_DAY, day(w));
-        give(p, new ItemStack(ArcanaItems.arcanium, 2 + w.rand.nextInt(3)));
+        give(p, new ItemStack(ArcanaItems.arcanium, (2 + w.rand.nextInt(3)) * pay));
         Bait b = Bait.randomArcana(w.rand);
-        give(p, new ItemStack(b.item(), 3 + w.rand.nextInt(4)));
+        give(p, new ItemStack(b.item(), (3 + w.rand.nextInt(4)) * pay));
+        if (pay > 1) say(p, EnumChatFormatting.GOLD, "dre.quest.gilded");
         say(p, EnumChatFormatting.GREEN, "dre.quest.thanks", String.valueOf(n));
         com.divinerpgextended.debug.Debug.note(p, "Леорна: задание сдано, всего " + n + ", награда арканиум и приманка " + b
             + (n % 5 == 0 ? " + ящик" : "") + (milestone(n) != null ? " + веха " + milestone(n).getDisplayName() : ""));

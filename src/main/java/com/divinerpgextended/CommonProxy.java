@@ -255,6 +255,8 @@ public class CommonProxy {
         com.divinerpgextended.perk.RelicEffects relics = new com.divinerpgextended.perk.RelicEffects(); // вещи из реликвариев миров
         MinecraftForge.EVENT_BUS.register(relics);
         FMLCommonHandler.instance().bus().register(relics);
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.fishing.GoldenHearts()); // золотая рыбка: +1 сердце навсегда
+        FMLCommonHandler.instance().bus().register(new com.divinerpgextended.fishing.FishSchools()); // косяки
         FMLCommonHandler.instance()
             .bus()
             .register(trinkets);
@@ -344,6 +346,7 @@ public class CommonProxy {
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaDoors(), 70);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaChests(), 110); // после фонтанных залов: зал перестраивает комнату
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.Reliquaries.Ships(), 66); // терновые корабли с реликварием Терна
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.CloudIslands(), 67); // облачные острова с прудом (рыбалка в облаках)
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenTomb(), 55);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.ClockGuard());
         FMLCommonHandler.instance()

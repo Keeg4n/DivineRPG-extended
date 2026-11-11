@@ -154,6 +154,17 @@ public final class FishingLoot {
             TwilightItemsOther.skythernSoul, TwilightItemsOther.skythernGem, TwilightItemsOther.skythernChunk);
         twilight(Zone.MORTUM, Fish.MORTUM_EEL, TwilightItemsOther.mortumFragments, TwilightItemsOther.mortumSoul,
             TwilightItemsOther.mortumGem, TwilightItemsOther.mortumChunk);
+        // редкие рыбы миров для заданий Леорны (Грозовой сом - только в ливень, см. storm); души Мортума заряжают Жатву душ
+        add(tables.get(Zone.EDEN).rare, fish(Fish.SUN_PERCH, 6));
+        add(tables.get(Zone.APALACHIA).rare, fish(Fish.AMETHYST_PIKE, 6));
+        add(tables.get(Zone.MORTUM).rare, fish(Fish.BONE_FISH, 6));
+        add(tables.get(Zone.MORTUM).uncommon, e(ModItems.wanderingSoul, 1, 1, 12));
+        // пруды облачных островов Небесного терна
+        t = tables.get(Zone.CLOUD);
+        add(t.common, fish(Fish.CLOUDFIN, 40), fish(Fish.SKYTHERN_FLYER, 10));
+        add(t.uncommon, e(TwilightItemsOther.skythernFragments, 1, 3, 10), e(TwilightItemsOther.skythernSoul, 1, 2, 8), e(Items.feather, 2, 5, 6));
+        add(t.rare, fish(Fish.CLOUD_JELLY, 8), e(TwilightItemsOther.skythernGem, 1, 1, 6));
+        add(t.veryRare, e(TwilightItemsOther.skythernChunk, 1, 1, 4));
 
         t = tables.get(Zone.DREAM);
         add(t.common, fish(Fish.DREAM_CARP, 40));
@@ -218,7 +229,72 @@ public final class FishingLoot {
             Bait b = Bait.randomArcana(r);
             out.add(new ItemStack(b.item(), 2 + r.nextInt(3)));
         }
+        // шмот мира: оружие или инструмент ~2%, часть брони ~0.5%
+        com.divinerpgextended.world.twilight.TwilightWorld tw = zone.world();
+        if (tw != null) {
+            float x = r.nextFloat();
+            Item[] tools = gear(tw), armor = tw.armor();
+            if (x < GEAR_CHANCE) {
+                Item it = tools[r.nextInt(tools.length)];
+                if (it != null) out.add(new ItemStack(it));
+            } else if (x < GEAR_CHANCE + ARMOR_CHANCE) {
+                Item it = armor[r.nextInt(armor.length)];
+                if (it != null) out.add(new ItemStack(it));
+            }
+        }
         return out;
+    }
+
+    /** Шанс оружия или инструмента мира в ящике сумеречного мира и шанс части брони. */
+    public static final float GEAR_CHANCE = 0.02F, ARMOR_CHANCE = 0.005F;
+
+    /** Оружие и инструменты мира Divine: клинок, слайсер, блиц, фазер, лук, кирка, топор, лопата. */
+    public static Item[] gear(com.divinerpgextended.world.twilight.TwilightWorld w) {
+        switch (w) {
+            case EDEN: return new Item[] { net.divinerpg.utils.items.TwilightItemsWeapons.edenBlade, net.divinerpg.utils.items.TwilightItemsWeapons.edenSlicer,
+                net.divinerpg.utils.items.TwilightItemsWeapons.edenBlitz, net.divinerpg.utils.items.TwilightItemsWeapons.edenPhaser, net.divinerpg.utils.items.TwilightItemsWeapons.edenBow,
+                net.divinerpg.utils.items.TwilightItemsTools.edenPickaxe, net.divinerpg.utils.items.TwilightItemsTools.edenAxe, net.divinerpg.utils.items.TwilightItemsTools.edenShovel };
+            case WILDWOOD: return new Item[] { net.divinerpg.utils.items.TwilightItemsWeapons.wildwoodBlade, net.divinerpg.utils.items.TwilightItemsWeapons.wildwoodSlicer,
+                net.divinerpg.utils.items.TwilightItemsWeapons.wildwoodBlitz, net.divinerpg.utils.items.TwilightItemsWeapons.wildwoodPhaser, net.divinerpg.utils.items.TwilightItemsWeapons.wildwoodBow,
+                net.divinerpg.utils.items.TwilightItemsTools.wildwoodPickaxe, net.divinerpg.utils.items.TwilightItemsTools.wildwoodAxe, net.divinerpg.utils.items.TwilightItemsTools.wildwoodShovel };
+            case APALACHIA: return new Item[] { net.divinerpg.utils.items.TwilightItemsWeapons.apalachiaBlade, net.divinerpg.utils.items.TwilightItemsWeapons.apalachiaSlicer,
+                net.divinerpg.utils.items.TwilightItemsWeapons.apalachiaBlitz, net.divinerpg.utils.items.TwilightItemsWeapons.apalachiaPhaser, net.divinerpg.utils.items.TwilightItemsWeapons.apalachiaBow,
+                net.divinerpg.utils.items.TwilightItemsTools.apalachiaPickaxe, net.divinerpg.utils.items.TwilightItemsTools.apalachiaAxe, net.divinerpg.utils.items.TwilightItemsTools.apalachiaShovel };
+            case SKYTHERN: return new Item[] { net.divinerpg.utils.items.TwilightItemsWeapons.skythernBlade, net.divinerpg.utils.items.TwilightItemsWeapons.skythernSlicer,
+                net.divinerpg.utils.items.TwilightItemsWeapons.skythernBlitz, net.divinerpg.utils.items.TwilightItemsWeapons.skythernPhaser, net.divinerpg.utils.items.TwilightItemsWeapons.skythernBow,
+                net.divinerpg.utils.items.TwilightItemsTools.skythernPickaxe, net.divinerpg.utils.items.TwilightItemsTools.skythernAxe, net.divinerpg.utils.items.TwilightItemsTools.skythernShovel };
+            default: return new Item[] { net.divinerpg.utils.items.TwilightItemsWeapons.mortumBlade, net.divinerpg.utils.items.TwilightItemsWeapons.mortumSlicer,
+                net.divinerpg.utils.items.TwilightItemsWeapons.mortumBlitz, net.divinerpg.utils.items.TwilightItemsWeapons.mortumPhaser, net.divinerpg.utils.items.TwilightItemsWeapons.mortumBow,
+                net.divinerpg.utils.items.TwilightItemsTools.mortumPickaxe, net.divinerpg.utils.items.TwilightItemsTools.mortumAxe, net.divinerpg.utils.items.TwilightItemsTools.mortumShovel };
+        }
+    }
+
+    /** Золотая рыбка: в сумеречных мирах 1 из {@link #GOLDEN_ODDS} поклёвок, ни сила, ни приманка, ни удочка не влияют. */
+    public static final int GOLDEN_ODDS = 1000;
+
+    public static ItemStack golden(Random r, Zone zone) {
+        return zone.twilight() && r.nextInt(GOLDEN_ODDS) == 0 ? new ItemStack(ModItems.fish, 1, Fish.GOLDEN_FISH.ordinal()) : null;
+    }
+
+    /** Грозовой сом: только в Диком лесу в ливень (и в дождь), с приманкой, с шансом редкого улова (не меньше 5%). */
+    public static ItemStack storm(Random r, Zone zone, boolean raining, boolean baited, int power, float rareMult) {
+        if (zone != Zone.WILDWOOD || !raining || !baited) return null;
+        return r.nextFloat() < Math.max(0.05F, power / 600F * rareMult) ? new ItemStack(ModItems.fish, 1, Fish.STORM_CATFISH.ordinal()) : null;
+    }
+
+    /** Золотой улов Эдема: рыба приходит позолоченной (8%, с Солнечной блесной - 16%). */
+    public static final float GILD_CHANCE = 0.08F;
+    public static final String GILDED = "dreGilded";
+
+    public static void gild(Random r, Zone zone, Bait bait, ItemStack loot) {
+        if (zone != Zone.EDEN || loot == null || loot.getItem() != ModItems.fish) return;
+        if (r.nextFloat() >= GILD_CHANCE * (bait == Bait.SUN_LURE ? 2 : 1)) return;
+        if (!loot.hasTagCompound()) loot.setTagCompound(new net.minecraft.nbt.NBTTagCompound());
+        loot.getTagCompound().setBoolean(GILDED, true);
+    }
+
+    public static boolean gilded(ItemStack s) {
+        return s != null && s.hasTagCompound() && s.getTagCompound().getBoolean(GILDED);
     }
 
     /** Квестовые рыбы (задания Леорны). */
@@ -257,6 +333,8 @@ public final class FishingLoot {
         view(out, t.uncommon, View.UNCOMMON);
         view(out, t.rare, View.RARE);
         view(out, t.veryRare, View.VERY_RARE);
+        if (zone == Zone.WILDWOOD) out.add(new View(new ItemStack(ModItems.fish, 1, Fish.STORM_CATFISH.ordinal()), View.RARE, 1, 1)); // только в ливень
+        if (zone.twilight()) out.add(new View(new ItemStack(ModItems.fish, 1, Fish.GOLDEN_FISH.ordinal()), View.VERY_RARE, 1, 1));
         ItemStack relic = relicOf(zone);
         if (relic != null && com.divinerpgextended.Config.fishingRelics) out.add(new View(relic, View.RELIC, 1, 1));
         out.add(new View(new ItemStack(ModItems.crate, 1, zone.ordinal()), View.CRATE, 1, 1));
@@ -295,6 +373,11 @@ public final class FishingLoot {
         view(out, t.veryRare, View.VERY_RARE);
         view(out, t.common, View.COMMON);
         for (Bait b : Bait.values()) if (b.arcana) out.add(new View(new ItemStack(b.item()), View.BAIT, 2, 4));
+        com.divinerpgextended.world.twilight.TwilightWorld tw = zone.world();
+        if (tw != null) { // шмот мира
+            for (Item it : gear(tw)) if (it != null) out.add(new View(new ItemStack(it), View.VERY_RARE, 1, 1));
+            for (Item it : tw.armor()) if (it != null) out.add(new View(new ItemStack(it), View.VERY_RARE, 1, 1));
+        }
         return out;
     }
 }

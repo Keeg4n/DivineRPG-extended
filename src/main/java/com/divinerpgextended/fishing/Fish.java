@@ -28,7 +28,17 @@ public enum Fish {
     APALACHIA_RAY(Zone.APALACHIA, 6, 0.6F, Potion.jump, 1200, 1, false, "cod", 0xC060F0),
     SKYTHERN_FLYER(Zone.SKYTHERN, 6, 0.6F, Potion.moveSpeed, 1200, 0, false, "salmon", 0xE8F0F8),
     MORTUM_EEL(Zone.MORTUM, 7, 0.7F, Potion.nightVision, 1200, 0, false, "cod", 0x4A2A2A),
-    DREAM_CARP(Zone.DREAM, 8, 1.0F, null, 0, 0, false, "clownfish", 0x50E0B0);
+    DREAM_CARP(Zone.DREAM, 8, 1.0F, null, 0, 0, false, "clownfish", 0x50E0B0),
+    // с 0.99.112 (только в конец: номер - мета предмета): редкие рыбы миров для Леорны, облачные, золотая рыбка
+    SUN_PERCH(Zone.EDEN, 5, 0.5F, Potion.digSpeed, 600, 0, true, "clownfish", 0xFFB830),
+    /** Только в ливень Дикого леса. */
+    STORM_CATFISH(Zone.WILDWOOD, 6, 0.6F, Potion.moveSpeed, 600, 1, true, "cod", 0x40547C),
+    AMETHYST_PIKE(Zone.APALACHIA, 5, 0.5F, null, 0, 0, true, "salmon", 0x9650D2),
+    CLOUDFIN(Zone.CLOUD, 5, 0.5F, Potion.jump, 1200, 0, false, "salmon", 0xF0F6FF),
+    CLOUD_JELLY(Zone.CLOUD, 3, 0.3F, Potion.field_76443_y, 1, 0, true, "pufferfish", 0xE6F0FF),
+    BONE_FISH(Zone.MORTUM, 4, 0.4F, null, 0, 0, true, "cod", 0xDCD2BE),
+    /** Золотая рыбка: в любом сумеречном мире 1 из 1000 поклёвок (ничем не увеличивается), съесть - +1 сердце навсегда, всего до 5. */
+    GOLDEN_FISH(Zone.EDEN, 2, 0.2F, null, 0, 0, false, "clownfish", 0xFFD84A);
 
     public final Zone zone;
     public final int food;

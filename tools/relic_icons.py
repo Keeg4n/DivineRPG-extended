@@ -239,10 +239,69 @@ def append_halo(path=os.path.join(RES, 'wear/accessories.txt')):
     open(path, 'w', encoding='utf-8', newline='\n').write('\n'.join(lines) + '\n')
 
 
+# ---------------------------------------------------------------- рыбалка миров (0.99.112)
+
+def sun_lure():
+    """Солнечная блесна: золотая ложка-лепесток по диагонали, колечко сверху слева, крючок снизу справа."""
+    g = blank()
+    dark, gold, light = hexc('b8801c'), hexc('f6c43a'), hexc('fff0a0')
+    cx, cy = 8.0, 8.0
+    for y in range(16):
+        for x in range(16):
+            u = ((x - cx) + (y - cy)) / math.sqrt(2)  # вдоль ложки (к правому нижнему)
+            v = ((x - cx) - (y - cy)) / math.sqrt(2)
+            if (u / 4.6) ** 2 + (v / 2.6) ** 2 <= 1.0:
+                g[y][x] = light if v < -0.9 else (gold if v < 0.9 else dark)
+    ring = hexc('c8c8d0')
+    for x, y in ((3, 2), (2, 3), (3, 4), (4, 3)):
+        put(g, x, y, ring)
+    hook = hexc('d8d8e0')
+    for x, y in ((12, 12), (13, 13), (13, 14), (12, 14), (11, 13)):
+        put(g, x, y, hook)
+    put(g, 6, 6, hexc('ffffff'))
+    return image(outline(g))
+
+
+def wandering_soul():
+    """Блуждающая душа: бледный огонёк-капля с хвостом, внутри алое ядро."""
+    g = blank()
+    pale, mid, core = hexc('f4d6d8'), hexc('e08a92'), hexc('c02a3a')
+    for y in range(16):
+        for x in range(16):
+            dx, dy = x - 7.5, y - 9.0
+            if dx * dx / 16.0 + dy * dy / 20.0 <= 1.0 or (dy < -2 and abs(dx + (dy + 2) * 0.35) < 1.4 + (dy + 7) * 0.25 and dy > -8):
+                g[y][x] = pale
+    for y in range(16):
+        for x in range(16):
+            if g[y][x] is not None and (x - 7.5) ** 2 + (y - 9.5) ** 2 <= 6.5:
+                g[y][x] = mid
+            if g[y][x] is not None and (x - 7.5) ** 2 + (y - 10) ** 2 <= 2.0:
+                g[y][x] = core
+    put(g, 6, 9, hexc('2a0a10'))
+    put(g, 9, 9, hexc('2a0a10'))
+    return image(outline(g, hexc('7a2a34')))
+
+
+def crate_cloud():
+    """Ящик облачного пруда: ящик Небесного терна, высветленный к белому с голубым."""
+    src = Image.open(os.path.join(RES, 'textures/items/crate_skythern.png')).convert('RGBA')
+    out = Image.new('RGBA', src.size)
+    for y in range(src.height):
+        for x in range(src.width):
+            r, gg, b, a = src.getpixel((x, y))
+            if a == 0:
+                continue
+            lum = (r * 0.299 + gg * 0.587 + b * 0.114) / 255.0  # яркость дерева - в оттенки облака (бело-голубые)
+            k = 0.55 + lum * 0.6
+            out.putpixel((x, y), (min(255, int(200 * k)), min(255, int(218 * k)), min(255, int(245 * k)), a))
+    return out
+
+
 def main():
     items = os.path.join(RES, 'textures/items')
     icons = {'storm_bow_standby': bow(None), 'storm_bow_pulling_0': bow(0), 'storm_bow_pulling_1': bow(1), 'storm_bow_pulling_2': bow(2),
-             'tomahawk': tomahawk(), 'cloud_staff': cloud_staff(), 'soul_harvest': soul_harvest(), 'trinket_sun_halo': sun_halo()}
+             'tomahawk': tomahawk(), 'cloud_staff': cloud_staff(), 'soul_harvest': soul_harvest(), 'trinket_sun_halo': sun_halo(),
+             'sun_lure': sun_lure(), 'wandering_soul': wandering_soul(), 'crate_cloud': crate_cloud()}
     for name, im in icons.items():
         im.save(os.path.join(items, name + '.png'))
     append_halo()

@@ -43,6 +43,19 @@ public class ItemDreFish extends ItemFood {
         return "item.dre.fish." + fish(s).key();
     }
 
+    /** Позолоченная (золотой улов Эдема): "... в позолоте", блестит, съесть - ещё и Спешка. */
+    @Override
+    public String getItemStackDisplayName(ItemStack s) {
+        String name = super.getItemStackDisplayName(s);
+        return FishingLoot.gilded(s) ? StatCollector.translateToLocalFormatted("dre.fish.gilded", name) : name;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public boolean hasEffect(ItemStack s, int pass) {
+        return FishingLoot.gilded(s) || fish(s) == Fish.GOLDEN_FISH;
+    }
+
     @Override
     public int func_150905_g(ItemStack s) { // сытость
         return fish(s).food;
@@ -59,6 +72,8 @@ public class ItemDreFish extends ItemFood {
         if (w.isRemote) return;
         if (f.effect != null) p.addPotionEffect(new PotionEffect(f.effect.id, f.duration, f.amplifier));
         if (f == Fish.SNOW_BURBOT) ColdHandler.addCold(p, -40); // согревает в Iceika
+        if (FishingLoot.gilded(s)) p.addPotionEffect(new PotionEffect(net.minecraft.potion.Potion.digSpeed.id, 1200, 1)); // позолоченная - Спешка II
+        if (f == Fish.GOLDEN_FISH) GoldenHearts.eat(p);
     }
 
     @Override
@@ -87,6 +102,9 @@ public class ItemDreFish extends ItemFood {
         Fish f = fish(s);
         list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.zone." + f.zone.key()));
         if (f.quest) list.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.quest_fish"));
+        if (f == Fish.STORM_CATFISH) list.add(EnumChatFormatting.BLUE + StatCollector.translateToLocal("dre.tooltip.storm_catfish"));
+        if (f == Fish.GOLDEN_FISH) list.add(EnumChatFormatting.GOLD + StatCollector.translateToLocalFormatted("dre.tooltip.golden_fish", GoldenHearts.MAX));
+        if (FishingLoot.gilded(s)) list.add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("dre.tooltip.gilded_fish"));
         if (f.effect != null || f == Fish.SNOW_BURBOT) {
             list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.fish." + f.key()));
         }

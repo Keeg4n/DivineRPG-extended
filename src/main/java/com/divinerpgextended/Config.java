@@ -143,6 +143,9 @@ public class Config {
     /** Реликварии миров: шанс в руинах и склепах (1 из N) и гарантия (N-я постройка без реликвария на участке), то же на кораблях Терна, размер участка, редкость кораблей. */
     public static boolean reliquaries = true;
     public static int reliquaryChance = 12, reliquaryPity = 8, reliquaryShipChance = 3, reliquaryShipPity = 3, reliquaryRegion = 2048, skythernShipRarity = 200;
+    /** Рыбалка миров: облачные острова Терна (1 на N чанков) и косяки. */
+    public static int cloudIslandRarity = 70;
+    public static boolean fishSchools = true;
     /** Номера эффектов арканных зелий (пусто - свободные сами, от 127 вниз). */
     public static int[] arcanePotionIds = {};
     public static String[] divineSpawnWhitelist = {};
@@ -417,6 +420,10 @@ public class Config {
         reliquaryShipChance = cfg.getInt("reliquaryShipChance", "worldgen", reliquaryShipChance, 1, 10000, "Шанс реликвария на терновом корабле: один из стольких");
         reliquaryShipPity = cfg.getInt("reliquaryShipPity", "worldgen", reliquaryShipPity, 1, 10000, "Гарантия на кораблях: столько-й корабль на участке без реликвария получает его");
         reliquaryRegion = cfg.getInt("reliquaryRegion", "worldgen", reliquaryRegion, 256, 100000, "Размер участка гарантии реликвариев, блоков");
+        cloudIslandRarity = cfg.getInt("cloudIslandRarity", "worldgen", cloudIslandRarity, 0, 100000,
+            "Облачные острова Небесного терна с прудом (рыбалка в облаках): в среднем попытка на столько чанков; 0 - не строить");
+        fishSchools = cfg.getBoolean("fishSchools", "fishing", fishSchools,
+            "Косяки: иногда на воде у игрока бурлящее пятно на минуту - клюёт втрое быстрее и чаще редкое");
         skythernShipRarity = cfg.getInt("skythernShipRarity", "worldgen", skythernShipRarity, 0, 100000,
             "Терновые корабли в небе Небесного терна: в среднем попытка на столько чанков (корабль встаёт, если небо вокруг пустое); 0 - не строить");
         arcanePotionIds = cfg.get("arcana", "arcanePotionIds", arcanePotionIds,

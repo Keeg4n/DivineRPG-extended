@@ -335,6 +335,7 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
             int p = power(bait, zone);
             float mult = 60F / (60F + p) * rod.waitMultiplier() * (bait == null ? 1.0F : bait.waitMultiplier())
                 * com.divinerpgextended.magic.ArcaneEffects.biteFactor(field_146042_b); // Рыбацкий фарт
+            if (FishSchools.near(worldObj, posX, posY, posZ)) mult /= FishSchools.BITE; // косяк: клюёт втрое быстрее
             ticksCaughtDelay = (int) (MathHelper.getRandomIntegerInRange(rand, 100, 900) * mult);
             ticksCaughtDelay -= EnchantmentHelper.func_151387_h(field_146042_b) * 20 * 5;
             ticksCaughtDelay = Math.max(20, ticksCaughtDelay);
@@ -363,10 +364,20 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
             int power = power(bait, zone);
             float crate = rod.crateBonus() + (bait == null ? 0 : bait.crateBonus());
             int count = rand.nextFloat() < rod.doubleChance() ? 2 : 1;
+            boolean school = FishSchools.near(worldObj, posX, posY, posZ);
+            float rareMult = rod.rareMultiplier() * com.divinerpgextended.magic.ArcaneEffects.rareFactor(p) * (school ? FishSchools.RARE : 1F);
             StringBuilder caught = new StringBuilder();
             for (int i = 0; i < count; i++) {
-                ItemStack loot = FishingLoot.roll(rand, zone, power, bait != null, crate,
-                    rod.rareMultiplier() * com.divinerpgextended.magic.ArcaneEffects.rareFactor(p));
+                // особые уловы: золотая рыбка (ничем не усиливается), Грозовой сом в ливень, утопленник Мортума
+                ItemStack loot = FishingLoot.golden(rand, zone);
+                if (loot == null) loot = FishingLoot.storm(rand, zone, com.divinerpgextended.item.ItemStormBow.storm(worldObj), bait != null, power, rareMult);
+                if (loot == null && zone == Zone.MORTUM && bait != null && rand.nextFloat() < DROWNED_CHANCE) {
+                    drowned(p);
+                    caught.append(caught.length() == 0 ? "" : ", ").append("утопленник");
+                    continue;
+                }
+                if (loot == null) loot = FishingLoot.roll(rand, zone, power, bait != null, crate, rareMult);
+                FishingLoot.gild(rand, zone, bait, loot); // золотой улов Эдема
                 caught.append(caught.length() == 0 ? "" : ", ").append(loot == null ? "ничего" : loot.getDisplayName()
                     + (loot.stackSize > 1 ? " x" + loot.stackSize : ""));
                 if (loot != null) toss(p, loot);
@@ -396,6 +407,28 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
         if (inGround) dmg = 2;
         setDead();
         return dmg;
+    }
+
+    /** Шанс, что в Мортуме вместо улова выныривает утопленник (моб Мортума). */
+    public static final float DROWNED_CHANCE = 0.03F;
+
+    /** Утопленник Мортума выныривает у поплавка. */
+    private void drowned(EntityPlayer p) {
+        Class<? extends net.minecraft.entity.EntityLiving>[] mobs = com.divinerpgextended.world.twilight.TwilightWorld.MORTUM.mobs();
+        try {
+            net.minecraft.entity.EntityLiving m = mobs[rand.nextInt(mobs.length)].getConstructor(net.minecraft.world.World.class).newInstance(worldObj);
+            m.setLocationAndAngles(posX, posY, posZ, rand.nextFloat() * 360F, 0F);
+            m.onSpawnWithEgg(null);
+            worldObj.spawnEntityInWorld(m);
+            m.setAttackTarget(p);
+        } catch (Exception ex) {
+            return;
+        }
+        if (worldObj instanceof WorldServer) ((WorldServer) worldObj).func_147487_a("bubble", posX, posY + 0.5, posZ, 30, 0.5, 0.3, 0.5, 0.1);
+        playSound("random.splash", 1.0F, 0.6F);
+        net.minecraft.util.ChatComponentTranslation msg = new net.minecraft.util.ChatComponentTranslation("dre.chat.drowned");
+        msg.getChatStyle().setColor(net.minecraft.util.EnumChatFormatting.DARK_RED).setItalic(true);
+        p.addChatMessage(msg);
     }
 
     private void toss(EntityPlayer p, ItemStack loot) {

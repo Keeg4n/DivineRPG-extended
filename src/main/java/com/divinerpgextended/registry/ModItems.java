@@ -87,6 +87,8 @@ public final class ModItems {
     public static Item trainingDummy, petWhistle;
     /** Реликварии миров: ключи миров (мета - мир) и вещи из реликвариев. */
     public static Item worldKey, stormBow, tomahawk, cloudStaff, soulHarvest;
+    /** Рыбалка миров: Солнечная блесна (приманка из искр Эдема) и блуждающая душа (улов Мортума, заряжает Жатву душ). */
+    public static Item sunLure, wanderingSoul;
 
     private ModItems() {}
 
@@ -215,6 +217,13 @@ public final class ModItems {
         GameRegistry.registerItem(cloudStaff, "cloudStaff");
         soulHarvest = new com.divinerpgextended.item.ItemSoulHarvest();
         GameRegistry.registerItem(soulHarvest, "soulHarvest");
+        sunLure = new Item().setUnlocalizedName("dre.sunLure").setTextureName("divinerpgextended:sun_lure").setCreativeTab(com.divinerpgextended.DreTab.TAB);
+        GameRegistry.registerItem(sunLure, "sunLure");
+        if (net.divinerpg.utils.items.TwilightItemsOther.edenSparkles != null) // 2 искры Эдема и золотой самородок - 2 блесны
+            GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(sunLure, 2), net.divinerpg.utils.items.TwilightItemsOther.edenSparkles,
+                net.divinerpg.utils.items.TwilightItemsOther.edenSparkles, net.minecraft.init.Items.gold_nugget);
+        wanderingSoul = new com.divinerpgextended.fishing.ItemWanderingSoul();
+        GameRegistry.registerItem(wanderingSoul, "wanderingSoul");
         // железный свисток на шнурке, золотой мундштук
         GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(petWhistle), net.minecraft.init.Items.iron_ingot, net.minecraft.init.Items.gold_nugget,
             net.minecraft.init.Items.string);

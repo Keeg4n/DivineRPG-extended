@@ -356,13 +356,41 @@ VARIANTS = {
         ('Пятнистый кои', dict(ROUND, **dict(FAN, main=(246, 246, 240), back=(232, 232, 226), belly=WHITE, pattern='koi', pat=(240, 90, 60), fin=(250, 220, 210), tailc=(250, 200, 190)))),
         ('Сон', dict(ROUND, **dict(FAN, main=(150, 110, 240), pattern='gradient', pat=(90, 240, 200), fin=(190, 150, 255), tailc=(120, 240, 210), extras=(dots(WHITE, (5, 6), (9, 10), (3, 11)),)))),
     ),
+    # с 0.99.112: редкие рыбы миров для Леорны, облачные, золотая рыбка (по одному варианту)
+    'sun_perch': (
+        ('Солнечный окунь', G(main=0xFFB830, pattern='stripes', pat=(200, 80, 20), period=2.6, fin=(255, 120, 40), tailc=(255, 140, 40), dorsal=(-4.0, 2.8, 2.0))),
+    ),
+    'storm_catfish': (
+        ('Грозовой сом', G(main=(64, 84, 124), back=(36, 46, 80), belly=(160, 178, 210), head=-9.0, w=3.4, body=wide_head, pattern='spots', pat=(255, 230, 90),
+                           fin=(50, 70, 110), eyec=YELLOW)),
+    ),
+    'amethyst_pike': (
+        ('Аметистовая щука', dict(SLIM, main=(150, 80, 210), back=(90, 40, 140), belly=(220, 180, 250), pattern='line', pat=(240, 200, 255), head=-9.4, w=2.6,
+                                  fin=(110, 50, 160))),
+    ),
+    'cloudfin': (
+        ('Облачный плавник', dict(SLIM, main=(240, 246, 255), back=(190, 210, 240), belly=WHITE, pattern='none', fin=(210, 226, 250), tailc=(210, 226, 250))),
+    ),
+    'cloud_jelly': (
+        ('Облачная медуза', dict(PUFF, main=(230, 240, 255), back=(190, 210, 245), belly=WHITE, pattern='none', tailc=(170, 200, 250),
+                                 extras=(dots((150, 190, 250), (6, 10), (8, 12), (10, 10)),))),
+    ),
+    'bone_fish': (
+        ('Костяная рыба', dict(SLIM, main=(220, 210, 190), back=(150, 140, 120), belly=(240, 232, 214), pattern='ribs', pat=(90, 80, 70), period=2.0,
+                               eyec=(255, 70, 40), fin=(170, 160, 140))),
+    ),
+    'golden_fish': (
+        ('Золотая рыбка', dict(ROUND, **dict(FAN, main=0xFFD84A, belly=(255, 248, 200), pattern='none', fin=(255, 190, 60), tailc=(255, 200, 80),
+                                             extras=(dots(WHITE, (6, 7), (9, 9), (4, 11)),)))),
+    ),
 }
 
 
 # Что выбрал пользователь (06.11.2026): a, b, c - варианты А, Б, В на листе выбора.
 CHOSEN = {'sea_bass': 'c', 'coral_wrasse': 'b', 'shark_pup': 'a', 'ruff': 'a', 'gold_crucian': 'a', 'ice_trout': 'b', 'snow_burbot': 'c', 'crystal_fish': 'b',
           'piranha': 'b', 'emerald_catfish': 'a', 'sand_carp': 'c', 'mummy_fish': 'b', 'cavefish': 'c', 'obsidifish': 'b', 'flarefin': 'b', 'ember_fry': 'c',
-          'arcane_eel': 'c', 'stargazer': 'b', 'eden_goldfish': 'a', 'wildwood_glowfish': 'b', 'apalachia_ray': 'b', 'skythern_flyer': 'a', 'mortum_eel': 'b', 'dream_carp': 'c'}
+          'arcane_eel': 'c', 'stargazer': 'b', 'eden_goldfish': 'a', 'wildwood_glowfish': 'b', 'apalachia_ray': 'b', 'skythern_flyer': 'a', 'mortum_eel': 'b', 'dream_carp': 'c',
+          'sun_perch': 'a', 'storm_catfish': 'a', 'amethyst_pike': 'a', 'cloudfin': 'a', 'cloud_jelly': 'a', 'bone_fish': 'a', 'golden_fish': 'a'}
 
 
 def main(out):
