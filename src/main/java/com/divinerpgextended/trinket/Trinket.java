@@ -55,7 +55,9 @@ public enum Trinket {
     /** Кристалл ясности (у Ваттикуса): задержка восстановления арканы 0.75 с вместо 2, восстановление +50%. */
     CLARITY_CRYSTAL,
     /** Солнечный нимб (реликварий Эдема): днём под открытым небом лечит, перегрев Эдема не действует. */
-    SUN_HALO;
+    SUN_HALO,
+    /** Ласты (с Лиоплевродона): в воде плывёшь быстрее, рывок вперёд на бег. */
+    LIO_FINS;
 
     /** Заказ у Джека: сколько голов [скелет, визер-скелет, зомби, крипер]; null - не заказ Джека. */
     public final int[] heads;
@@ -106,7 +108,7 @@ public enum Trinket {
             case BLAST_BELT: case MASTER_SCABBARD: case ENDLESS_QUIVER: case DUST_POUCH: case SLICER_SLING: case TACKLE_BOX:
             case POCKET_MAGNET:
                 return LEGS;
-            case MAGIC_CARPET: case AYERACO_WING: case BLUE_FLAME:
+            case MAGIC_CARPET: case AYERACO_WING: case BLUE_FLAME: case LIO_FINS:
                 return FEET;
             default:
                 return BODY;

@@ -73,6 +73,8 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcanaPrices());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcanePhases());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcaneSummons());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.AnchorSummons()); // призывные якоря: краб и акула
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.AquatoothEffects()); // зубастое оружие, перезарядка молотов
         com.divinerpgextended.boss.AyeracoHorde horde = new com.divinerpgextended.boss.AyeracoHorde();
         MinecraftForge.EVENT_BUS.register(horde);
         FMLCommonHandler.instance().bus().register(horde);
@@ -473,6 +475,7 @@ public class CommonProxy {
         }
 
         com.divinerpgextended.world.twilight.TwilightCrafts.postInit();
+        com.divinerpgextended.perk.AquatoothEffects.postInit(); // урон зубастого оружия, призывные якоря без рецептов
         com.divinerpgextended.perk.RangedRoles.setupDust();
         com.divinerpgextended.perk.ColorGear.setup();
         com.divinerpgextended.perk.MeleeRoles.setup();

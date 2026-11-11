@@ -1,9 +1,11 @@
 """Значки вещей из реликвариев миров (16x16, своя рисовка) и посадка Солнечного нимба на теле.
 
 Запуск в WSL: python3 tools/relic_icons.py [папка_превью]
-Пишет textures/items/: storm_bow_standby/_pulling_0..2, tomahawk, cloud_staff, soul_harvest, trinket_sun_halo; в
-wear/accessories.txt дописывает (заменяет) блок "a sun_halo" - золотое кольцо над головой на высоте от короны лича в каждом
-профиле брони. acc_export.py перезаписывает accessories.txt - он вызывает append_halo() в конце.
+Пишет textures/items/: storm_bow_standby/_pulling_0..2, tomahawk, cloud_staff, soul_harvest, trinket_sun_halo, а с 0.99.113
+вещи Лиоплевродона: tsunami_standby/_pulling_0..2, blood_bait, trinket_lio_fins, anchor_crab, anchor_lio (последние два
+DerivedTexturePack подставляет вместо текстур якорей Divine). В wear/accessories.txt дописывает (заменяет) блоки "a sun_halo" -
+золотое кольцо над головой на высоте от короны лича - и "a lio_fins" - ласты под подошвой, ширина ноги от крылышек айеракО, в
+каждом профиле брони. acc_export.py перезаписывает accessories.txt - он вызывает append_halo() в конце.
 """
 import math
 import os
@@ -66,10 +68,18 @@ def line(g, x0, y0, x1, y1, c):
 
 # ---------------------------------------------------------------- Грозовой лук (Дикий лес)
 
-def bow(pull):
+STORM = dict(dark='1f3a6a', mid='3f6fc0', light='7fb6ff', tip='cfe3ff', grip='ffd84a', string='e8e8f0', shaft='8a6238', head='4a96ff',
+             flet='e8e8f0', spark='ffd84a')
+# Цунами (Лиоплевродон): глубокая вода, пенные концы, рукоять из зуба, бирюзовый наконечник
+TSUNAMI = dict(dark='0a2c5c', mid='1f7fb0', light='5fd0e8', tip='f0fcff', grip='e8e2c8', string='c8f0ff', shaft='6b4a2a', head='3fd8c8',
+               flet='f0fcff', spark='ffffff')
+
+
+def bow(pull, pal=None):
     """pull: None - покой, 0..2 - натяжение. Как у ванильного лука: дуга выгнута к левому верхнему углу, тетива по диагонали."""
     g = blank()
-    dark, mid, light, tip, grip, string = hexc('1f3a6a'), hexc('3f6fc0'), hexc('7fb6ff'), hexc('cfe3ff'), hexc('ffd84a'), hexc('e8e8f0')
+    c = dict((k, hexc(v)) for k, v in (pal or STORM).items())
+    dark, mid, light, tip, grip, string = c['dark'], c['mid'], c['light'], c['tip'], c['grip'], c['string']
     a, b, ctrl = (14.0, 1.0), (1.0, 14.0), (1.0, 1.0)
     pts = []
     for i in range(41):
@@ -80,8 +90,7 @@ def bow(pull):
     for x, y, t in pts:  # внешняя кромка темнее, внутренняя светлее
         put(g, x - 0.6, y - 0.6, dark)
     for x, y, t in pts:
-        c = tip if t < 0.08 or t > 0.92 else (grip if 0.45 < t < 0.55 else (light if int(t * 20) % 3 == 0 else mid))
-        put(g, x, y, c)
+        put(g, x, y, tip if t < 0.08 or t > 0.92 else (grip if 0.45 < t < 0.55 else (light if int(t * 20) % 3 == 0 else mid)))
     if pull is None:
         line(g, a[0], a[1], b[0], b[1], string)
     else:
@@ -90,13 +99,13 @@ def bow(pull):
         line(g, a[0], a[1], p[0], p[1], string)
         line(g, p[0], p[1], b[0], b[1], string)
         # стрела Дикого леса: древко к левому верхнему, синий наконечник с искрой
-        shaft, head, flet = hexc('8a6238'), hexc('4a96ff'), hexc('e8e8f0')
+        shaft, head, flet = c['shaft'], c['head'], c['flet']
         line(g, p[0] - 1, p[1] - 1, p[0] - 9 + d * 0.3, p[1] - 9 + d * 0.3, shaft)
         hx, hy = p[0] - 9 + d * 0.3, p[1] - 9 + d * 0.3
         put(g, hx, hy, head)
         put(g, hx - 1, hy, head)
         put(g, hx, hy - 1, head)
-        put(g, hx - 1, hy - 1, hexc('ffd84a'))
+        put(g, hx - 1, hy - 1, c['spark'])
         put(g, p[0], p[1] - 1, flet)
         put(g, p[0] - 1, p[1], flet)
     return image(outline(g))
@@ -227,15 +236,50 @@ def halo_block(acc_text):
     return out
 
 
+def fins_block(acc_text):
+    """Блок 'a lio_fins': ласты под подошвой обеих ног, носок вперёд (-z). Половина ширины ноги в профиле - из крылышек айеракО
+    (их спрайт стоит на 0.25 снаружи ноги); подошва опускается вместе с броней, но не больше чем на пиксель."""
+    out, cur, prof, done = ['a lio_fins'], None, None, set()
+    edge, main, rib = '0a2c5c', '1c5c9c', '5cb0f4'
+
+    def fm(v):
+        s = ('%.3f' % v).rstrip('0').rstrip('.')
+        return '0' if s in ('-0', '') else s
+    for ln in acc_text.split('\n'):
+        if ln.startswith('a '):
+            cur = ln[2:].strip()
+            continue
+        if cur != 'ayeraco_wing':
+            continue
+        if ln.startswith('p '):
+            prof = ln[2:].strip()
+            continue
+        if ln.startswith('f rightLeg') and prof and prof not in done:
+            done.add(prof)
+            h = abs(float(ln.split()[2])) - 0.25
+            sole = 12 + min(h - 2, 1.0)
+            out.append('p %s' % prof)
+            for leg in ('rightLeg', 'leftLeg'):
+                # пластина под стопой с выносом вперёд, раструб у носка, две светлые прожилки сверху
+                out.append('c %s %s %s %s %s 0.4 %s %s' % (leg, fm(-h + 0.2), fm(sole - 0.4), fm(-h - 3.0), fm(2 * h - 0.4), fm(2 * h + 2.4), main))
+                out.append('c %s %s %s %s %s 0.3 2 %s' % (leg, fm(-h - 0.6), fm(sole - 0.35), fm(-h - 4.2), fm(2 * h + 1.2), edge))
+                for rx in (-h * 0.45, h * 0.45 - 0.5):
+                    out.append('c %s %s %s %s 0.5 0.2 3.4 %s' % (leg, fm(rx), fm(sole - 0.55), fm(-h - 3.6), rib))
+    assert len(done) >= 13, done
+    return out
+
+
 def append_halo(path=os.path.join(RES, 'wear/accessories.txt')):
+    """Свои посадки не из концептов: нимб и ласты (старые блоки заменяются)."""
     text = open(path, encoding='utf-8').read()
     lines, skip = [], False
     for ln in text.rstrip('\n').split('\n'):
         if ln.startswith('a '):
-            skip = ln.strip() == 'a sun_halo'
+            skip = ln.strip() in ('a sun_halo', 'a lio_fins')
         if not skip:
             lines.append(ln)
     lines += halo_block(text)
+    lines += fins_block(text)
     open(path, 'w', encoding='utf-8', newline='\n').write('\n'.join(lines) + '\n')
 
 
@@ -297,11 +341,96 @@ def crate_cloud():
     return out
 
 
+# ---------------------------------------------------------------- Лиоплевродон (0.99.113)
+
+def pixmap(g, x0, y0, rows, pal):
+    for y, row in enumerate(rows):
+        for x, ch in enumerate(row):
+            if ch != '.':
+                put(g, x0 + x, y0 + y, pal[ch])
+
+
+def blood_bait():
+    """Кровавая наживка: кусок сырого мяса, насаженный на серебряный крючок, капли крови снизу."""
+    g = blank()
+    dark, red, light, fat = hexc('6a0c14'), hexc('c0242c'), hexc('ec5a5a'), hexc('f4c0b0')
+    steel, shine = hexc('a8b0bc'), hexc('eef2f8')
+    for y in range(1, 12):  # цевьё крючка (под мясом его не видно - проткнуто)
+        put(g, 11, y, steel)
+    put(g, 11, 0, shine)
+    for x, y in ((11, 12), (10, 13), (9, 13), (8, 12), (8, 11)):  # изгиб и жало
+        put(g, x, y, steel)
+    put(g, 9, 11, shine)
+    for y in range(16):
+        for x in range(16):
+            dx, dy = x - 7.5, y - 6.5
+            if (dx * 0.8 + dy * 0.45) ** 2 / 16.0 + (dy * 0.8 - dx * 0.45) ** 2 / 9.0 <= 1.0:
+                g[y][x] = light if dy < -1.5 and dx < 1 else (dark if dy > 2.0 or dx > 3.0 else red)
+    for x, y in ((6, 6), (7, 7), (9, 5), (10, 6)):  # прожилки жира
+        put(g, x, y, fat)
+    drop = hexc('8a0c18')
+    for x, y in ((5, 12), (5, 13), (7, 14)):
+        put(g, x, y, drop)
+    return image(outline(g))
+
+
+FIN = ['.aaaaa.',
+       'abbcbba',
+       'abcbcba',
+       'abcbcba',
+       'abcbcba',
+       'abcbcba',
+       '.abcba.',
+       '.abcba.',
+       '.abbba.',
+       '..aba..',
+       '.ddddd.',
+       '.d.e.d.',
+       '.ddddd.']
+
+
+def lio_fins():
+    """Ласты лиоплевродона: пара лопастей носком вверх (тёмно-синие, светлые прожилки), у пятки ремешок с пряжкой."""
+    g = blank()
+    pal = {'a': hexc('1c5c9c'), 'b': hexc('2a80d8'), 'c': hexc('8fd0ff'), 'd': hexc('3a3040'), 'e': hexc('e8e2c8')}
+    pixmap(g, 1, 3, FIN, pal)
+    pixmap(g, 8, 0, FIN, pal)
+    return image(outline(g))
+
+
+def anchor(pal):
+    """Якорь стоймя: кольцо, шток с поперечиной, дуга лап со сходящимися лапами-зубьями по краям."""
+    g = blank()
+    dark, mid, light, acc = (hexc(v) for v in pal)
+    for x, y in ((6, 0), (7, 0), (8, 0), (9, 0), (5, 1), (10, 1), (5, 2), (10, 2), (6, 3), (9, 3)):  # кольцо
+        put(g, x, y, light if y < 2 else mid)
+    for y in range(3, 14):  # шток 2 пикселя
+        put(g, 7, y, light)
+        put(g, 8, y, mid)
+    for x in range(3, 13):  # поперечина
+        put(g, x, 4, mid)
+        put(g, x, 5, dark)
+    put(g, 2, 4, acc)
+    put(g, 13, 4, acc)
+    for i in range(41):  # дуга лап
+        t = i / 40.0
+        a = math.pi * (0.08 + 0.84 * t)
+        x, y = 7.5 - math.cos(a) * 5.8, 8.6 + math.sin(a) * 5.0
+        put(g, x, y, mid if 0.25 < t < 0.75 else dark)
+        put(g, x, y - 1, light if 0.3 < t < 0.7 else mid)
+    for x, y in ((1, 8), (2, 8), (1, 9), (14, 8), (13, 8), (14, 9), (2, 7), (13, 7)):  # лапы
+        put(g, x, y, acc)
+    return image(outline(g))
+
+
 def main():
     items = os.path.join(RES, 'textures/items')
     icons = {'storm_bow_standby': bow(None), 'storm_bow_pulling_0': bow(0), 'storm_bow_pulling_1': bow(1), 'storm_bow_pulling_2': bow(2),
              'tomahawk': tomahawk(), 'cloud_staff': cloud_staff(), 'soul_harvest': soul_harvest(), 'trinket_sun_halo': sun_halo(),
-             'sun_lure': sun_lure(), 'wandering_soul': wandering_soul(), 'crate_cloud': crate_cloud()}
+             'sun_lure': sun_lure(), 'wandering_soul': wandering_soul(), 'crate_cloud': crate_cloud(),
+             'tsunami_standby': bow(None, TSUNAMI), 'tsunami_pulling_0': bow(0, TSUNAMI), 'tsunami_pulling_1': bow(1, TSUNAMI),
+             'tsunami_pulling_2': bow(2, TSUNAMI), 'blood_bait': blood_bait(), 'trinket_lio_fins': lio_fins(),
+             'anchor_crab': anchor(('7a1a0a', 'd0441c', 'f88848', 'ffc070')), 'anchor_lio': anchor(('0a1c50', '1f4fa8', '4f8fe8', 'e8e2c8'))}
     for name, im in icons.items():
         im.save(os.path.join(items, name + '.png'))
     append_halo()
@@ -311,7 +440,7 @@ def main():
             big = im.resize((192, 192), Image.NEAREST)
             sheet.paste(big, (20 + i * 200, 14), big)
         sheet.save(sys.argv[1])
-    print('значков', len(icons), '+ посадка нимба')
+    print('значков', len(icons), '+ посадка нимба и ласт')
 
 
 if __name__ == '__main__':

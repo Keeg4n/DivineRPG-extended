@@ -145,6 +145,9 @@ public class Config {
     public static int reliquaryChance = 12, reliquaryPity = 8, reliquaryShipChance = 3, reliquaryShipPity = 3, reliquaryRegion = 2048, skythernShipRarity = 200;
     /** Рыбалка миров: облачные острова Терна (1 на N чанков) и косяки. */
     public static int cloudIslandRarity = 70;
+    /** Лиоплевродон - рыбий босс на Кровавую наживку (обычный спавн выключен), здоровье. */
+    public static boolean liopleurodonBoss = true;
+    public static int liopleurodonHealth = 600;
     public static boolean fishSchools = true;
     /** Номера эффектов арканных зелий (пусто - свободные сами, от 127 вниз). */
     public static int[] arcanePotionIds = {};
@@ -420,6 +423,9 @@ public class Config {
         reliquaryShipChance = cfg.getInt("reliquaryShipChance", "worldgen", reliquaryShipChance, 1, 10000, "Шанс реликвария на терновом корабле: один из стольких");
         reliquaryShipPity = cfg.getInt("reliquaryShipPity", "worldgen", reliquaryShipPity, 1, 10000, "Гарантия на кораблях: столько-й корабль на участке без реликвария получает его");
         reliquaryRegion = cfg.getInt("reliquaryRegion", "worldgen", reliquaryRegion, 256, 100000, "Размер участка гарантии реликвариев, блоков");
+        liopleurodonBoss = cfg.getBoolean("liopleurodonBoss", "bosses", liopleurodonBoss,
+            "Лиоплевродон - рыбий босс на Кровавую наживку в океане (между Апалачией и Небесным терном); обычные лиоплевродоны не появляются");
+        liopleurodonHealth = cfg.getInt("liopleurodonHealth", "bosses", liopleurodonHealth, 50, 100000, "Здоровье Лиоплевродона");
         cloudIslandRarity = cfg.getInt("cloudIslandRarity", "worldgen", cloudIslandRarity, 0, 100000,
             "Облачные острова Небесного терна с прудом (рыбалка в облаках): в среднем попытка на столько чанков; 0 - не строить");
         fishSchools = cfg.getBoolean("fishSchools", "fishing", fishSchools,

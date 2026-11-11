@@ -75,6 +75,8 @@ public class FishingEvents {
             trade(v, p, new InfiniteTrade(new ItemStack(Items.bone, 40), new ItemStack(Blocks.pumpkin, 16), rod(Rod.JACK)));
         } else if (v instanceof net.divinerpg.entities.arcana.EntityWarGeneral) {
             arcanePick(v, p);
+        } else if (v instanceof net.divinerpg.entities.arcana.EntityCaptianMerik) {
+            wraithbane(v, p);
         } else if (v instanceof EntityTheHunger) {
             hunger(v, p);
             trade(v, p, new InfiniteTrade(new ItemStack(VetheaItems.polishedPearls, 16), rod(Rod.MORTUM), rod(Rod.HUNGER)));
@@ -96,6 +98,21 @@ public class FishingEvents {
             list.add(new InfiniteTrade(new ItemStack(ArcanaItems.arcanium, com.divinerpgextended.item.ItemArcanePick.PRICE), null, new ItemStack(ModItems.arcanePick)));
         if (com.divinerpgextended.item.ItemArcanePick.divineDone(p)) list.add(new InfiniteTrade(new ItemStack(ArcanaItems.arcanium,
             com.divinerpgextended.item.ItemArcanePick.CHARGE_PRICE), new ItemStack(ModItems.arcanePick), new ItemStack(ModItems.arcanePickCharged)));
+    }
+
+    /** Цена кости призрака у Капитана Мерика (арканиум). */
+    public static final int WRAITHBANE_PRICE = 12;
+
+    /** Капитан Мерик: кость призрака (призыв призрака) - только тем, кто победил Повелителя ветров (страж Небесного терна). */
+    private static void wraithbane(EntityDivineRPGVillager v, EntityPlayer p) {
+        MerchantRecipeList list = v.getRecipes(p);
+        if (list == null) return;
+        for (Iterator<?> it = list.iterator(); it.hasNext();) {
+            ItemStack sell = ((MerchantRecipe) it.next()).getItemToSell();
+            if (sell != null && sell.getItem() == ArcanaItems.wraithbane) it.remove();
+        }
+        if (com.divinerpgextended.boss.ProgressSync.has(p, com.divinerpgextended.boss.Boss.CADILLION_SKYTHERN))
+            list.add(new InfiniteTrade(new ItemStack(ArcanaItems.arcanium, WRAITHBANE_PRICE), null, new ItemStack(ArcanaItems.wraithbane)));
     }
 
     public static final int HEIVA_BELT_PRICE = 30, WINGS_TEMPLATE_PRICE = 8, MIDNIGHT_TEMPLATE_PRICE = 8;

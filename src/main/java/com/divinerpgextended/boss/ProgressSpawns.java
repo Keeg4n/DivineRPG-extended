@@ -111,7 +111,9 @@ public class ProgressSpawns {
 
     /** Нельзя ли сейчас появиться этому мобу в этой точке по рангам игроков рядом (и для естественного спавна, и для зова факелом). */
     public static boolean denied(World w, Entity mob, double x, double z) {
-        if (w.isRemote || !gated(w)) return false;
+        if (w.isRemote) return false;
+        if (Config.liopleurodonBoss && mob.getClass() == EntityLiopleurodon.class) return true; // лиоплевродон - только босс на наживку
+        if (!gated(w)) return false;
         int need = tier(mob);
         return need > 0 && need > allowedRank(w, MathHelper.floor_double(x) >> 4, MathHelper.floor_double(z) >> 4);
     }
@@ -289,7 +291,7 @@ public class ProgressSpawns {
     }
 
     /** Этап босса: мир, до которого надо дойти (null - ранг по {@link #bossRank} или без условий). */
-    static com.divinerpgextended.bestiary.Bestiary.Chapter bossWorld(Boss b) {
+    public static com.divinerpgextended.bestiary.Bestiary.Chapter bossWorld(Boss b) {
         switch (b) {
             case CADILLION_EDEN: return com.divinerpgextended.bestiary.Bestiary.Chapter.EDEN;
             case CADILLION_WILDWOOD: return com.divinerpgextended.bestiary.Bestiary.Chapter.WILDWOOD;
@@ -299,6 +301,7 @@ public class ProgressSpawns {
                 return com.divinerpgextended.bestiary.Bestiary.Chapter.MORTUM;
             case DRAMIX: case PARASECTA: return com.divinerpgextended.bestiary.Bestiary.Chapter.ARCANA;
             case WRECK: case RAGLOK: case LADY_LUNA: return com.divinerpgextended.bestiary.Bestiary.Chapter.VETHEA;
+            case LIOPLEURODON: return com.divinerpgextended.bestiary.Bestiary.Chapter.SKYTHERN; // после стража Апалачии
             default: return null;
         }
     }

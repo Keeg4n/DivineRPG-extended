@@ -1,0 +1,133 @@
+package com.divinerpgextended.magic;
+
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLiving;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.DamageSource;
+import net.minecraft.world.World;
+
+/**
+ * Акула якоря лиоплевродона ({@link AnchorSummons}): летает за хозяином сквозь блоки, как призрак, кусает цель хозяина
+ * арканным уроном, держится на аркане хозяина. Не ранится, не сохраняется.
+ */
+public class EntitySummonShark extends EntityLiving {
+
+    public static final int HIT_EVERY = 15;
+    private EntityPlayer master;
+    private int cooldown, life;
+
+    public EntitySummonShark(World w) {
+        super(w);
+        setSize(0.9F, 0.6F);
+        noClip = true;
+    }
+
+    public EntitySummonShark(World w, EntityPlayer owner) {
+        this(w);
+        master = owner;
+    }
+
+    public EntityPlayer owner() {
+        return master != null && !master.isDead ? master : null;
+    }
+
+    /** Без тяжести и трения о землю: только своя скорость. */
+    @Override
+    public void moveEntityWithHeading(float strafe, float forward) {
+        moveEntity(motionX, motionY, motionZ);
+        motionX *= 0.85;
+        motionY *= 0.85;
+        motionZ *= 0.85;
+    }
+
+    @Override
+    public void onUpdate() {
+        noClip = true;
+        super.onUpdate();
+    }
+
+    @Override
+    protected void updateEntityActionState() {
+        if (worldObj.isRemote) return;
+        EntityPlayer o = owner();
+        if (o == null || o.dimension != dimension || getDistanceSqToEntity(o) > AnchorSummons.LEASH * AnchorSummons.LEASH) {
+            setDead();
+            return;
+        }
+        if (++life % 20 == 0 && !AnchorSummons.upkeep(o, AnchorSummons.Kind.SHARK.upkeep)) {
+            AnchorSummons.dismissAll(o);
+            return;
+        }
+        Entity t = AnchorSummons.target(o);
+        double tx, ty, tz, speed;
+        if (t != null) {
+            tx = t.posX;
+            ty = t.posY + t.height * 0.5;
+            tz = t.posZ;
+            speed = 0.6;
+            if (--cooldown <= 0 && getDistanceSqToEntity(t) < 2.2 * 2.2 && t instanceof EntityLivingBase) {
+                cooldown = HIT_EVERY;
+                ((EntityLivingBase) t).hurtResistantTime = 0;
+                t.attackEntityFrom(ArcanaCombat.arcaneSource(o), AnchorSummons.damage(o, AnchorSummons.Kind.SHARK));
+                swingItem();
+                worldObj.playSoundAtEntity(this, "random.splash", 0.4F, 1.6F);
+            }
+        } else {
+            int n = AnchorSummons.index(this, o);
+            double a = life * 0.07 + n * Math.PI;
+            tx = o.posX + Math.cos(a) * 1.8;
+            ty = o.posY + 1.6;
+            tz = o.posZ + Math.sin(a) * 1.8;
+            speed = 0.4;
+        }
+        double dx = tx - posX, dy = ty - posY, dz = tz - posZ, len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (len > 24) {
+            setPosition(o.posX, o.posY + 1.6, o.posZ);
+            return;
+        }
+        double v = Math.min(speed, len * 0.35);
+        if (len > 0.01) {
+            motionX = dx / len * v;
+            motionY = dy / len * v;
+            motionZ = dz / len * v;
+            rotationYaw = renderYawOffset = rotationYawHead = (float) (Math.atan2(dz, dx) * 180 / Math.PI) - 90F;
+        }
+    }
+
+    @Override
+    public boolean attackEntityFrom(DamageSource s, float a) {
+        if (s == DamageSource.outOfWorld) {
+            setDead();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isEntityInsideOpaqueBlock() {
+        return false;
+    }
+
+    @Override
+    protected boolean canDespawn() {
+        return false;
+    }
+
+    @Override
+    public boolean writeToNBTOptional(NBTTagCompound t) {
+        return false;
+    }
+
+    @Override
+    protected void collideWithEntity(Entity e) {}
+
+    @Override
+    public boolean canBePushed() {
+        return false;
+    }
+
+    @Override
+    protected void fall(float d) {}
+}

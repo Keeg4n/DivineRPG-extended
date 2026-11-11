@@ -200,7 +200,7 @@ public class ArcanaChests implements IWorldGenerator {
     /** Оружие Арканы для древнего сундука. */
     public static Item[] weapons() {
         return new Item[] { ArcanaItems.stormSword, ArcanaItems.captainsSparkler, ArcanaItems.laVekor, ArcanaItems.enderScepter, ArcanaItems.arcaniumSaber,
-            ArcanaItems.wraithbane, ArcanaItems.reflector, ArcanaItems.shadowSword, ArcanaItems.liviciaSword, ArcanaItems.meteorMash,
+            ArcanaItems.reflector, ArcanaItems.shadowSword, ArcanaItems.liviciaSword, ArcanaItems.meteorMash,
             ArcanaItems.divineAccumulator, ArcanaItems.arcaniteBlaster, ArcanaItems.arcaniteBlade, ArcanaItems.generalsStaff, ArcanaItems.meriksMissile,
             ArcanaItems.staffStarlight, ArcanaItems.starlight, ArcanaItems.firefly, ArcanaItems.wizardBook };
     }

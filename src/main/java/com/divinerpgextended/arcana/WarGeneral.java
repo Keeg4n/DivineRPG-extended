@@ -67,7 +67,7 @@ public class WarGeneral {
     /** Приказ: кого бить (по имени класса или по миру), сколько, после какого босса доступен. */
     private enum Order {
         ICE_BEASTS(15, Boss.CARCINUS, null, "Glacon", "Frost"),
-        SEA_PATROL(10, Boss.CARCINUS, null, "Shark", "Whale", "Liopleurodon"),
+        SEA_PATROL(10, Boss.CARCINUS, null, "Shark", "Whale"), // лиоплевродон с 0.99.113 - босс, не патрульная цель
         HELLFIRE(20, Boss.CARCINUS, null, "Wildfire", "HellSpider"),
         ICEIKA(25, Boss.SNOW_GLACON, "iceika"),
         SCORCHERS(15, Boss.LICH_KING, null, "Scorcher"),

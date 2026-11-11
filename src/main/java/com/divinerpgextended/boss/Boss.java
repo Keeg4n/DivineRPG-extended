@@ -45,7 +45,9 @@ public enum Boss {
     // ({@link com.divinerpgextended.vethea.VetheaCombat#gate}): Крушителя ранит только гелиозис с Раглока, Луну - арксиан с Крушителя
     WRECK(net.divinerpg.entities.vethea.EntityWreck.class, -1),
     RAGLOK(net.divinerpg.entities.vethea.EntityRaglok.class, -1),
-    LADY_LUNA(net.divinerpg.entities.vethea.EntityLadyLuna.class, -1);
+    LADY_LUNA(net.divinerpg.entities.vethea.EntityLadyLuna.class, -1),
+    /** Рыбий босс океана (необязательный, между Апалачией и Небесным терном). */
+    LIOPLEURODON(com.divinerpgextended.entity.EntityLiopleurodonBoss.class, -1);
 
     private final Class<? extends Entity> entityClass;
     /** Для великого кадиллиона - номер мира, иначе -1. */

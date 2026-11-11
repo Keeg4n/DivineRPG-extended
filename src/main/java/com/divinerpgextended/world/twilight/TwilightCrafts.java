@@ -269,7 +269,7 @@ public final class TwilightCrafts {
         ItemStack s = stick(WorldWood.of(w)), am = mat(w, ARMOR_MAT), wm = mat(w, WEAPON_MAT), tm = mat(w, TOOL_MAT);
         // у других миров на этих местах те же куски мира
         boolean sea = w == TwilightWorld.WILDWOOD;
-        ItemStack cs = new ItemStack(c), fin = sea ? new ItemStack(VanillaItemsOther.whaleFin) : cs, teeth = sea ? new ItemStack(VanillaItemsOther.liopleurodonTeeth) : cs,
+        ItemStack cs = new ItemStack(c), fin = sea ? new ItemStack(VanillaItemsOther.whaleFin) : cs, teeth = sea ? new ItemStack(VanillaItemsOther.sharkFin) : cs, // зубы лиоплевродона с 0.99.113 - только с позднего босса
             claw = sea ? new ItemStack(VanillaItemsOther.crabClaw) : cs, hook = sea ? any(VanillaItemsWeapons.sharkAnchor) : cs;
         // броня: на месте части прошлого сета - шестерня времени прошлого мира (остаётся в верстаке); у Эдема место пустое
         Item[] armor = w.armor();

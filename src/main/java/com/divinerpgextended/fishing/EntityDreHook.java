@@ -357,6 +357,8 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
             field_146043_c.motionY += dy * 0.1 + MathHelper.sqrt_double(d) * 0.08;
             field_146043_c.motionZ += dz * 0.1;
             dmg = 3;
+        } else if (ticksCatchable > 0 && summonLio(p)) {
+            dmg = 1;
         } else if (ticksCatchable > 0) {
             int slot = baitSlot();
             Bait bait = slot < 0 ? null : Bait.of(p.inventory.mainInventory[slot].getItem());
@@ -408,6 +410,50 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
         setDead();
         return dmg;
     }
+
+    /**
+     * Кровавая наживка в инвентаре и поклёвка в океане (не у берега) - вместо улова выныривает Лиоплевродон (если поблизости его
+     * ещё нет). Наживка тратится. true - призван.
+     */
+    public boolean summonLio(EntityPlayer p) {
+        if (!com.divinerpgextended.Config.liopleurodonBoss || p == null || com.divinerpgextended.registry.ModItems.bloodBait == null) return false;
+        int slot = -1;
+        for (int i = 0; i < p.inventory.mainInventory.length; i++) {
+            ItemStack s = p.inventory.mainInventory[i];
+            if (s != null && s.getItem() == com.divinerpgextended.registry.ModItems.bloodBait) {
+                slot = i;
+                break;
+            }
+        }
+        if (slot < 0 || lava || Zone.at(worldObj, posX, posY, posZ, false) != Zone.OCEAN) return false;
+        if (!com.divinerpgextended.entity.EntityLiopleurodonBoss.ocean(this)) {
+            net.minecraft.util.ChatComponentTranslation m = new net.minecraft.util.ChatComponentTranslation("dre.chat.lio_need_ocean");
+            m.getChatStyle().setColor(net.minecraft.util.EnumChatFormatting.GRAY);
+            p.addChatMessage(m);
+            return false;
+        }
+        if (!worldObj.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityLiopleurodonBoss.class, boundingBox.expand(96, 64, 96)).isEmpty()) return false;
+        if (!p.capabilities.isCreativeMode) p.inventory.decrStackSize(slot, 1);
+        p.inventoryContainer.detectAndSendChanges();
+        com.divinerpgextended.entity.EntityLiopleurodonBoss b = new com.divinerpgextended.entity.EntityLiopleurodonBoss(worldObj);
+        b.setLocationAndAngles(posX, posY - 2.5, posZ, rand.nextFloat() * 360F, 0F);
+        b.setAttackTarget(p);
+        worldObj.spawnEntityInWorld(b);
+        lioSummoned++;
+        if (worldObj instanceof WorldServer) ((WorldServer) worldObj).func_147487_a("splash", posX, posY + 0.5, posZ, 120, 2.5, 0.5, 2.5, 0.4);
+        worldObj.playSoundAtEntity(b, "divinerpg:liopleurodon", 4.0F, 0.5F);
+        for (Object o : worldObj.playerEntities) {
+            EntityPlayer q = (EntityPlayer) o;
+            if (q.getDistanceSqToEntity(this) > 64 * 64) continue;
+            net.minecraft.util.ChatComponentTranslation m = new net.minecraft.util.ChatComponentTranslation("dre.chat.lio_rises");
+            m.getChatStyle().setColor(net.minecraft.util.EnumChatFormatting.DARK_AQUA).setBold(true);
+            q.addChatMessage(m);
+        }
+        return true;
+    }
+
+    /** Для самопроверки: сколько Лиоплевродонов призвано. */
+    public static int lioSummoned;
 
     /** Шанс, что в Мортуме вместо улова выныривает утопленник (моб Мортума). */
     public static final float DROWNED_CHANCE = 0.03F;

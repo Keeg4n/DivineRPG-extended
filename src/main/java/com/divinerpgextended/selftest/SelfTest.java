@@ -177,7 +177,8 @@ public class SelfTest {
 
         @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.HIGHEST)
         public void onInteract(net.minecraftforge.event.entity.player.PlayerInteractEvent e) {
-            if (inside(e.world, e.x, e.y, e.z)) e.setCanceled(true);
+            // клик в воздух приходит с координатами 0,0,0 - это не блок, приват его не трогает
+            if (e.action != net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR && inside(e.world, e.x, e.y, e.z)) e.setCanceled(true);
         }
     }
 
@@ -677,6 +678,8 @@ public class SelfTest {
         // ливень и камнепад не должны начаться посреди чужих проверок: прогон идёт полчаса, а затишье короче
         for (int weatherDim : new int[] { ConfigurationHelper.wildwood, ConfigurationHelper.apalachia })
             com.divinerpgextended.world.twilight.WorldWeather.get(server.worldServerForDimension(weatherDim)).timer = Integer.MAX_VALUE;
+        // перезарядка молотов мешает проверкам, которые бьют молотом по нескольку раз за тик; её саму проверяет "Лиоплевродон"
+        com.divinerpgextended.perk.AquatoothEffects.testNoCooldown = true;
 
         armorTests(p, g, ow, sx, sy, sz);
         accessoryTests(p, q, g, ow);
@@ -694,6 +697,7 @@ public class SelfTest {
         serverTests(p, q);
         auditTests(p);
         moreTests(p, q, g, ow, sx, sy, sz);
+        lioTests(p, ow, sx, sy, sz);
         fishingReport();
         g.setDead();
     }
@@ -3466,6 +3470,400 @@ public class SelfTest {
         return h.ammount;
     }
 
+    /** Точка открытого океана в обычном мире (x, верхний блок воды, z): глубокий океан, вокруг на 8 блоков тоже океан. */
+    private int[] lioOcean;
+
+    private int[] lioOcean(WorldServer w, int sx, int sz) {
+        if (lioOcean != null) return lioOcean;
+        java.util.Random r = new java.util.Random(7);
+        net.minecraft.world.biome.BiomeGenBase[][] wants = { { net.minecraft.world.biome.BiomeGenBase.deepOcean }, { net.minecraft.world.biome.BiomeGenBase.ocean } };
+        for (net.minecraft.world.biome.BiomeGenBase[] want : wants) for (int ring = 0; ring < 8 && lioOcean == null; ring++) {
+            int cx = sx + (ring % 2 == 0 ? 1 : -1) * ring * 1500, cz = sz + (ring % 4 < 2 ? 1 : -1) * ring * 1500;
+            net.minecraft.world.ChunkPosition c = w.getWorldChunkManager().findBiomePosition(cx, cz, 1200, java.util.Arrays.asList(want), r);
+            if (c == null) continue;
+            boolean all = true;
+            for (int dx = -8; dx <= 8 && all; dx += 8) for (int dz = -8; dz <= 8 && all; dz += 8)
+                all = com.divinerpgextended.world.Biomes.ocean(w.getBiomeGenForCoords(c.chunkPosX + dx, c.chunkPosZ + dz));
+            if (!all) continue;
+            loadAround(w, c.chunkPosX, c.chunkPosZ, 2);
+            for (int y = 90; y > 20; y--) if (w.getBlock(c.chunkPosX, y, c.chunkPosZ).getMaterial() == net.minecraft.block.material.Material.water) {
+                lioOcean = new int[] { c.chunkPosX, y, c.chunkPosZ };
+                break;
+            }
+        }
+        check(lioOcean != null, "не нашли океан в обычном мире");
+        return lioOcean;
+    }
+
+    private static int countNear(net.minecraft.world.World w, Class<?> c, double x, double y, double z, double r) {
+        int n = 0;
+        for (Object o : w.getEntitiesWithinAABB(c, net.minecraft.util.AxisAlignedBB.getBoundingBox(x - r, y - r, z - r, x + r, y + r, z + r)))
+            if (!((net.minecraft.entity.Entity) o).isDead) n++;
+        return n;
+    }
+
+    private static void killNear(net.minecraft.world.World w, double x, double y, double z, double r) {
+        for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.Entity.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(x - r, y - r, z - r, x + r, y + r, z + r)))
+            if (!(o instanceof EntityPlayer)) ((net.minecraft.entity.Entity) o).setDead();
+    }
+
+    /** Лиоплевродон (0.99.113): поздний рыбий босс, его добыча, зубастое оружие, молоты, призывные якоря. */
+    private void lioTests(final TestPlayer p, final WorldServer ow, final int sx, final int sy, final int sz) {
+        t("Лиоплевродон", "Кровавая наживка в океане", () -> {
+            int[] o = lioOcean(ow, sx, sz);
+            int ox = o[0], wy = o[1], oz = o[2];
+            TestPlayer lp = join(player(0, "TestLioBait", ox + 0.5, wy + 1, oz + 0.5), true);
+            lp.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            boolean first, again, inland, natural;
+            int bosses, baitLeft, baitInland, total0 = com.divinerpgextended.fishing.EntityDreHook.lioSummoned;
+            try {
+                lp.inventory.setInventorySlotContents(5, new ItemStack(ModItems.bloodBait, 2));
+                com.divinerpgextended.fishing.EntityDreHook hk = new com.divinerpgextended.fishing.EntityDreHook(ow, lp, com.divinerpgextended.fishing.Rod.VANILLA);
+                hk.setPosition(ox + 3.5, wy + 0.6, oz + 0.5);
+                first = hk.summonLio(lp);
+                bosses = countNear(ow, com.divinerpgextended.entity.EntityLiopleurodonBoss.class, ox, wy, oz, 16);
+                again = hk.summonLio(lp); // пока первый жив - второго нет
+                baitLeft = lp.inventory.getStackInSlot(5) == null ? 0 : lp.inventory.getStackInSlot(5).stackSize;
+                // на суше (у точки появления) - не зовётся, наживка цела
+                com.divinerpgextended.fishing.EntityDreHook hl = new com.divinerpgextended.fishing.EntityDreHook(ow, lp, com.divinerpgextended.fishing.Rod.VANILLA);
+                hl.setPosition(sx + 0.5, sy + 0.5, sz + 0.5);
+                inland = hl.summonLio(lp);
+                baitInland = lp.inventory.getStackInSlot(5) == null ? 0 : lp.inventory.getStackInSlot(5).stackSize;
+                // лиоплевродон Divine сам не появляется
+                natural = com.divinerpgextended.boss.ProgressSpawns.denied(ow, new net.divinerpg.entities.vanilla.EntityLiopleurodon(ow), ox, oz);
+            } finally {
+                killNear(ow, ox, wy, oz, 24);
+                server.getConfigurationManager().playerEntityList.remove(lp);
+                ow.removeEntity(lp);
+            }
+            check(first && bosses == 1 && !again && baitLeft == 1 && !inland && baitInland == 1 && natural && com.divinerpgextended.fishing.EntityDreHook.lioSummoned == total0 + 1,
+                "океан " + ox + "," + wy + "," + oz + ": призван " + first + " (боссов " + bosses + "), второй при живом " + again + ", наживки осталось " + baitLeft
+                    + "; на суше " + inland + " (наживки " + baitInland + "); Divine-лиоплевродон запрещён " + natural);
+            return "подсечка с Кровавой наживкой в открытом океане - вместо улова Лиоплевродон (наживка тратится, второй при живом не зовётся); на суше не зовётся; свой лиоплевродон Divine больше не появляется";
+        });
+        t("Лиоплевродон", "Только из океана", () -> {
+            int[] o = lioOcean(ow, sx, sz);
+            int ox = o[0], wy = o[1], oz = o[2];
+            TestPlayer lp = join(player(0, "TestLioShore", ox + 4.5, wy + 1, oz + 0.5), true);
+            lp.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            boolean shore, sea, calm, rage;
+            float hp0, hpShore, hpSea;
+            int blocked;
+            try {
+                com.divinerpgextended.entity.EntityLiopleurodonBoss b = new com.divinerpgextended.entity.EntityLiopleurodonBoss(ow);
+                b.setLocationAndAngles(ox + 0.5, wy - 2, oz + 0.5, 0, 0);
+                ow.spawnEntityInWorld(b);
+                hp0 = b.getHealth();
+                lp.onGround = true; // стоит на чём-то в море - как на берегу
+                shore = b.attackEntityFrom(DamageSource.causePlayerDamage(lp), 10F);
+                hpShore = b.getHealth();
+                blocked = b.shoreBlocked;
+                lp.onGround = false; // плывёт над океаном
+                b.hurtResistantTime = 0;
+                sea = b.attackEntityFrom(DamageSource.causePlayerDamage(lp), 10F);
+                hpSea = b.getHealth();
+                b.onUpdate();
+                calm = !b.raging();
+                b.setPosition(sx + 0.5, sy + 1, sz + 0.5); // выманили на сушу
+                b.onUpdate();
+                rage = b.raging();
+            } finally {
+                killNear(ow, ox, wy, oz, 24);
+                killNear(ow, sx, sy, sz, 6);
+                server.getConfigurationManager().playerEntityList.remove(lp);
+                ow.removeEntity(lp);
+            }
+            check(!shore && hpShore == hp0 && blocked == 1 && sea && hpSea < hp0 && calm && rage && hp0 == com.divinerpgextended.Config.liopleurodonHealth,
+                "здоровье " + f(hp0) + "; с берега прошло " + shore + " (" + f(hp0 - hpShore) + ", отбито " + blocked + "), над водой " + sea + " (" + f(hpShore - hpSea)
+                    + "); в океане спокоен " + calm + ", на суше злится " + rage);
+            return "Лиоплевродон (" + (int) hp0 + " здоровья) с берега не ранится, над водой - да; вне океана злится";
+        });
+        t("Лиоплевродон", "Добыча", () -> {
+            int[] o = lioOcean(ow, sx, sz);
+            int ox = o[0], wy = o[1], oz = o[2];
+            TestPlayer lp = join(player(0, "TestLioLoot", ox + 0.5, wy + 3, oz + 0.5), true);
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            try {
+                lp.getEntityData().getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG).removeTag("dreBossItems");
+                com.divinerpgextended.entity.EntityLiopleurodonBoss b = new com.divinerpgextended.entity.EntityLiopleurodonBoss(ow);
+                b.setLocationAndAngles(ox + 0.5, wy + 2, oz + 0.5, 0, 0);
+                // добыча с тела: череп, зубы, океанский ящик
+                com.divinerpgextended.entity.EntityLiopleurodonBoss d = new com.divinerpgextended.entity.EntityLiopleurodonBoss(ow) {
+                    {
+                        captureDrops = true;
+                        dropFewItems(true, 0);
+                    }
+                };
+                boolean skull = false, crate = false;
+                int teeth = 0;
+                for (net.minecraft.entity.item.EntityItem it : d.capturedDrops) {
+                    ItemStack st = it.getEntityItem();
+                    if (st.getItem() == net.divinerpg.utils.items.VanillaItemsOther.liopleurodonSkull) skull = true;
+                    if (st.getItem() == net.divinerpg.utils.items.VanillaItemsOther.liopleurodonTeeth) teeth += st.stackSize;
+                    if (st.getItem() == ModItems.crate && st.getItemDamage() == com.divinerpgextended.fishing.Zone.OCEAN.ordinal()) crate = true;
+                }
+                ok &= skull && teeth >= 4 && teeth <= 8 && crate;
+                rep.append("с тела: череп ").append(skull).append(", зубов ").append(teeth).append(", ящик ").append(crate);
+                // личная добыча: первая победа - Цунами наверняка, дальше с шансом; якорь - только с шансом
+                int[] got = new int[3];
+                for (int round = 0; round < 3; round++) {
+                    com.divinerpgextended.boss.BossDrops.testRoll = round == 2 ? 0F : 0.99F;
+                    killNear(ow, ox, wy + 2, oz, 6);
+                    com.divinerpgextended.boss.BossDrops.reward(lp, com.divinerpgextended.boss.Boss.LIOPLEURODON, b);
+                    int tsu = 0, anc = 0;
+                    boolean inv = true;
+                    for (Object eo : ow.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, b.boundingBox.expand(3, 3, 3))) {
+                        net.minecraft.entity.item.EntityItem it = (net.minecraft.entity.item.EntityItem) eo;
+                        if (it.isDead) continue;
+                        if (it.getEntityItem().getItem() == ModItems.tsunami) tsu++;
+                        if (it.getEntityItem().getItem() == net.divinerpg.utils.items.VanillaItemsWeapons.liopleurodonAnchor) anc++;
+                        net.minecraft.nbt.NBTTagCompound tag = new net.minecraft.nbt.NBTTagCompound();
+                        it.writeToNBT(tag);
+                        inv &= tag.getBoolean("Invulnerable");
+                    }
+                    got[round] = tsu * 10 + anc + (inv ? 0 : 100);
+                }
+                boolean personal = got[0] == 10 && got[1] == 0 && got[2] == 11;
+                ok &= personal;
+                rep.append("; первая победа ").append(got[0]).append(", вторая без удачи ").append(got[1]).append(", с удачей ").append(got[2]).append(" (десятки - Цунами, единицы - якорь)");
+                // Карцинус - крабовый якорь за первую победу
+                com.divinerpgextended.boss.BossDrops.testRoll = 0.99F;
+                killNear(ow, ox, wy + 2, oz, 6);
+                com.divinerpgextended.boss.BossDrops.reward(lp, com.divinerpgextended.boss.Boss.CARCINUS, b);
+                int crab = 0;
+                for (Object eo : ow.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, b.boundingBox.expand(3, 3, 3)))
+                    if (!((net.minecraft.entity.Entity) eo).isDead && ((net.minecraft.entity.item.EntityItem) eo).getEntityItem().getItem() == net.divinerpg.utils.items.VanillaItemsWeapons.crabAnchor) crab++;
+                boolean fins = com.divinerpgextended.trinket.AccessorySources.forBoss(com.divinerpgextended.boss.Boss.LIOPLEURODON) == com.divinerpgextended.trinket.Trinket.LIO_FINS
+                    && com.divinerpgextended.boss.ProgressSpawns.bossWorld(com.divinerpgextended.boss.Boss.LIOPLEURODON) == com.divinerpgextended.bestiary.Bestiary.Chapter.SKYTHERN;
+                ok &= crab == 1 && fins;
+                rep.append("; Карцинус: крабовых якорей ").append(crab).append("; ласты и глава Небесного терна ").append(fins);
+            } finally {
+                com.divinerpgextended.boss.BossDrops.testRoll = -1F;
+                killNear(ow, ox, wy + 2, oz, 8);
+                server.getConfigurationManager().playerEntityList.remove(lp);
+                ow.removeEntity(lp);
+            }
+            check(ok, rep.toString());
+            return "с тела - череп, 4-8 зубов, океанский ящик; каждому бившему: Цунами за первую победу наверняка (дальше 30%), якорь лиоплевродона 30%, ласты; с Карцинуса - крабовый якорь";
+        });
+        t("Лиоплевродон", "Цунами: пять стрел за одну", () -> {
+            int[] o = lioOcean(ow, sx, sz);
+            int ox = o[0], wy = o[1] + 8, oz = o[2];
+            TestPlayer bp = join(player(0, "TestTsunami", ox + 0.5, wy, oz + 0.5), true);
+            bp.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            int arrows = 0, pickable = 0, ammoLeft, divine = 0;
+            java.util.Set<Integer> yaws = new java.util.HashSet<Integer>();
+            try {
+                ItemStack bow = new ItemStack(ModItems.tsunami);
+                hold(bp, bow);
+                bp.inventory.setInventorySlotContents(1, new ItemStack(Items.arrow, 64));
+                ModItems.tsunami.onPlayerStoppedUsing(bow, ow, bp, bow.getMaxItemUseDuration() - 20);
+                ammoLeft = bp.inventory.getStackInSlot(1) == null ? 0 : bp.inventory.getStackInSlot(1).stackSize;
+                for (Object eo : ow.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, bp.boundingBox.expand(6, 6, 6))) {
+                    net.minecraft.entity.projectile.EntityArrow ar = (net.minecraft.entity.projectile.EntityArrow) eo;
+                    arrows++;
+                    if (ar.canBePickedUp == 1) pickable++;
+                    if (ar instanceof net.divinerpg.entities.base.EntityDivineArrow) divine++;
+                    yaws.add((int) Math.round(Math.toDegrees(Math.atan2(ar.motionX, ar.motionZ))));
+                }
+            } finally {
+                killNear(ow, ox, wy, oz, 8);
+                server.getConfigurationManager().playerEntityList.remove(bp);
+                ow.removeEntity(bp);
+            }
+            check(arrows == com.divinerpgextended.item.ItemTsunamiBow.ARROWS && ammoLeft == 63 && pickable == 1 && divine == arrows && yaws.size() == arrows,
+                "стрел " + arrows + " (Divine " + divine + ", направлений " + yaws.size() + "), осталось патронов " + ammoLeft + ", подбираемых " + pickable);
+            return "выстрел полным натяжением: 5 стрел веером в разные стороны за одну обычную, подобрать можно только среднюю";
+        });
+        t("Лиоплевродон", "Зубастое оружие и перезарядка молотов", () -> {
+            WorldServer w = ow;
+            loadAround(w, sx + 236, sz, 1);
+            double px = sx + 236.5, pz = sz + 0.5;
+            TestPlayer a = join(player(0, "TestAquatooth", px, sy, pz), true);
+            TestPlayer foe = join(player(0, "TestAquatoothFoe", px - 2, sy, pz), true);
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            java.util.List<net.minecraft.entity.monster.EntityZombie> zs = new java.util.ArrayList<net.minecraft.entity.monster.EntityZombie>();
+            com.divinerpgextended.perk.AquatoothEffects.testNoCooldown = false;
+            try {
+                for (double[] at : new double[][] { { 1, 0 }, { 3, 0 }, { 9, 0 } }) {
+                    net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w);
+                    z.setLocationAndAngles(px + at[0], sy, pz + at[1], 0, 0);
+                    w.spawnEntityInWorld(z);
+                    z.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(100000);
+                    z.setHealth(z.getMaxHealth());
+                    zs.add(z);
+                }
+                net.minecraft.entity.monster.EntityZombie z = zs.get(0), near = zs.get(1), far = zs.get(2);
+                float sw = com.divinerpgextended.perk.AquatoothEffects.damage(net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothSword),
+                    mw = com.divinerpgextended.perk.AquatoothEffects.damage(net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothMaul);
+                ok &= sw == com.divinerpgextended.perk.AquatoothEffects.SWORD_DAMAGE && mw == com.divinerpgextended.perk.AquatoothEffects.MAUL_DAMAGE;
+                rep.append("урон: меч ").append(f(sw)).append(", молот ").append(f(mw));
+                // меч: кровотечение у моба, не у игрока
+                ItemStack swd = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothSword);
+                hold(a, swd);
+                a.getAttributeMap().applyAttributeModifiers(swd.getAttributeModifiers());
+                a.attackTargetEntityWithCurrentItem(z);
+                a.getAttributeMap().removeAttributeModifiers(swd.getAttributeModifiers());
+                boolean bleeds = com.divinerpgextended.perk.AquatoothEffects.bleeding(z);
+                float hpB = z.getHealth();
+                z.ticksExisted = 20;
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(z));
+                float bled = hpB - z.getHealth();
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(foe, DamageSource.causePlayerDamage(a), 5F));
+                boolean playerBleeds = com.divinerpgextended.perk.AquatoothEffects.bleeding(foe);
+                ok &= bleeds && Math.abs(bled - com.divinerpgextended.perk.AquatoothEffects.BLEED_DAMAGE) < 0.01 && !playerBleeds;
+                rep.append("; кровотечение ").append(bleeds).append(" (").append(f(bled)).append(" за секунду), у игрока ").append(playerBleeds);
+                // молот: два удара за тик - второй не проходит; после перезарядки - проходит
+                ItemStack bm = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.bedrockMaul);
+                hold(a, bm);
+                a.getAttributeMap().applyAttributeModifiers(bm.getAttributeModifiers());
+                a.getEntityData().removeTag(com.divinerpgextended.perk.AquatoothEffects.SWING);
+                z.hurtResistantTime = 0;
+                float h0 = z.getHealth();
+                a.attackTargetEntityWithCurrentItem(z);
+                float h1 = z.getHealth();
+                z.hurtResistantTime = 0;
+                a.attackTargetEntityWithCurrentItem(z);
+                float h2 = z.getHealth();
+                a.getEntityData().setLong(com.divinerpgextended.perk.AquatoothEffects.SWING, w.getTotalWorldTime() - com.divinerpgextended.perk.AquatoothEffects.MAUL_COOLDOWN);
+                z.hurtResistantTime = 0;
+                a.attackTargetEntityWithCurrentItem(z);
+                float h3 = z.getHealth();
+                a.getAttributeMap().removeAttributeModifiers(bm.getAttributeModifiers());
+                boolean cd = h1 < h0 && h2 == h1 && h3 < h2;
+                ok &= cd;
+                rep.append("; бедроковый молот: удар ").append(f(h0 - h1)).append(", сразу ещё ").append(f(h1 - h2)).append(", через секунду ").append(f(h2 - h3));
+                // зубастый молот: волна по мобам рядом, дальних не задевает
+                ItemStack am = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothMaul);
+                hold(a, am);
+                a.getAttributeMap().applyAttributeModifiers(am.getAttributeModifiers());
+                a.getEntityData().removeTag(com.divinerpgextended.perk.AquatoothEffects.SWING);
+                for (net.minecraft.entity.monster.EntityZombie zz : zs) {
+                    zz.hurtResistantTime = 0;
+                    zz.setHealth(zz.getMaxHealth());
+                }
+                a.attackTargetEntityWithCurrentItem(z);
+                a.getAttributeMap().removeAttributeModifiers(am.getAttributeModifiers());
+                float nearHit = near.getMaxHealth() - near.getHealth(), farHit = far.getMaxHealth() - far.getHealth(), mainHit = z.getMaxHealth() - z.getHealth();
+                boolean wave = mainHit > 0 && nearHit >= com.divinerpgextended.perk.AquatoothEffects.MAUL_DAMAGE * 0.7F && farHit == 0;
+                ok &= wave;
+                rep.append("; зубастый молот: цель ").append(f(mainHit)).append(", сосед ").append(f(nearHit)).append(", дальний ").append(f(farHit));
+            } finally {
+                com.divinerpgextended.perk.AquatoothEffects.testNoCooldown = true;
+                for (net.minecraft.entity.monster.EntityZombie zz : zs) zz.setDead();
+                hold(a, null);
+                for (TestPlayer tp : new TestPlayer[] { a, foe }) {
+                    server.getConfigurationManager().playerEntityList.remove(tp);
+                    w.removeEntity(tp);
+                }
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+        t("Лиоплевродон", "Призывные якоря", () -> {
+            WorldServer w = ow;
+            loadAround(w, sx + 250, sz, 1);
+            double px = sx + 250.5, pz = sz + 0.5;
+            TestPlayer ap = join(player(0, "TestAnchors", px, sy, pz), true);
+            ap.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w);
+            try {
+                // рецептов призывных якорей нет, гарпуны крафтятся; гарпуны моря - только акулий и китовый
+                boolean crabRecipe = false, lioRecipe = false, sharkRecipe = false;
+                for (Object ro : net.minecraft.item.crafting.CraftingManager.getInstance().getRecipeList()) {
+                    ItemStack out = ((net.minecraft.item.crafting.IRecipe) ro).getRecipeOutput();
+                    if (out == null) continue;
+                    crabRecipe |= out.getItem() == net.divinerpg.utils.items.VanillaItemsWeapons.crabAnchor;
+                    lioRecipe |= out.getItem() == net.divinerpg.utils.items.VanillaItemsWeapons.liopleurodonAnchor;
+                    sharkRecipe |= out.getItem() == net.divinerpg.utils.items.VanillaItemsWeapons.sharkAnchor;
+                }
+                boolean harpoons = com.divinerpgextended.world.twilight.SeaWeapons.anchor(net.divinerpg.utils.items.VanillaItemsWeapons.crabAnchor) == -1
+                    && com.divinerpgextended.world.twilight.SeaWeapons.anchor(net.divinerpg.utils.items.VanillaItemsWeapons.liopleurodonAnchor) == -1
+                    && com.divinerpgextended.world.twilight.SeaWeapons.anchor(net.divinerpg.utils.items.VanillaItemsWeapons.sharkAnchor) == 1;
+                ok &= !crabRecipe && !lioRecipe && sharkRecipe && harpoons;
+                rep.append("рецепты: крабовый ").append(crabRecipe).append(", лиоплевродона ").append(lioRecipe).append(", акулий гарпун ").append(sharkRecipe).append("; гарпуны моря ").append(harpoons);
+                // ПКМ крабовым якорем - краб, без броска; двойной пакет от одного клика - один краб
+                ArcanaHelper ah = ArcanaHelper.getProperties(ap);
+                ah.setBarValue(200);
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
+                hold(ap, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.crabAnchor));
+                net.minecraftforge.event.entity.player.PlayerInteractEvent use = new net.minecraftforge.event.entity.player.PlayerInteractEvent(ap,
+                    net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w);
+                MinecraftForge.EVENT_BUS.post(use);
+                boolean denied = use.useItem == cpw.mods.fml.common.eventhandler.Event.Result.DENY;
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(ap,
+                    net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w));
+                int one = com.divinerpgextended.magic.AnchorSummons.count(ap, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB);
+                for (int n = 0; n < 3; n++) com.divinerpgextended.magic.AnchorSummons.summon(ap, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB);
+                int capped = com.divinerpgextended.magic.AnchorSummons.count(ap, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB);
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
+                ok &= denied && one == 1 && capped == com.divinerpgextended.magic.AnchorSummons.Kind.CRAB.cap;
+                rep.append("; ПКМ: бросок отменён ").append(denied).append(", крабов ").append(one).append(", после трёх вызовов ").append(capped);
+                // краб и акула бьют цель хозяина арканным уроном и едят аркану; сами не ранятся
+                z.setLocationAndAngles(px + 3, sy, pz, 0, 0);
+                w.spawnEntityInWorld(z);
+                z.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(100000);
+                z.setHealth(z.getMaxHealth());
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(z, DamageSource.causePlayerDamage(ap), 1)); // пока призывов нет - не цель
+                for (com.divinerpgextended.magic.AnchorSummons.Kind kd : com.divinerpgextended.magic.AnchorSummons.Kind.values()) {
+                    net.minecraft.entity.EntityLiving s = com.divinerpgextended.magic.AnchorSummons.summon(ap, kd);
+                    com.divinerpgextended.magic.AnchorSummons.mark(ap, z);
+                    s.setPosition(z.posX + 1.2, z.posY, z.posZ);
+                    z.setHealth(z.getMaxHealth());
+                    float bar0 = ah.getBarValue();
+                    for (int n = 0; n < 20; n++) s.onUpdate();
+                    float dealt = z.getMaxHealth() - z.getHealth(), paid = bar0 - ah.getBarValue(), hit = kd.damage * com.divinerpgextended.magic.ArcanaRules.stage(ap);
+                    boolean hurtable = s.attackEntityFrom(DamageSource.causePlayerDamage(ap), 100);
+                    boolean good = !s.isDead && dealt >= hit - 0.01F && Math.abs(paid - kd.upkeep) < 0.01F && !hurtable;
+                    ok &= good;
+                    rep.append("; ").append(kd).append(": урон ").append(f(dealt)).append(" (удар ").append(f(hit)).append("), плата за секунду ").append(f(paid)).append(", ранится ").append(hurtable);
+                    com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
+                }
+            } finally {
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
+                z.setDead();
+                hold(ap, null);
+                server.getConfigurationManager().playerEntityList.remove(ap);
+                w.removeEntity(ap);
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+        t("Лиоплевродон", "Кость призрака у Мерика", () -> {
+            TestPlayer mp = join(player(0, "TestWraithbane", sx + 0.5, sy, sz + 0.5), true);
+            boolean before, after, chest;
+            try {
+                com.divinerpgextended.boss.BossProgress.grant(mp, com.divinerpgextended.boss.Boss.CADILLION_EDEN);
+                com.divinerpgextended.boss.BossProgress.revoke(mp, com.divinerpgextended.boss.Boss.CADILLION_SKYTHERN);
+                net.divinerpg.entities.arcana.EntityCaptianMerik merik = new net.divinerpg.entities.arcana.EntityCaptianMerik(ow);
+                MinecraftForge.EVENT_BUS.post(new EntityInteractEvent(mp, merik));
+                before = sellsItem(merik.getRecipes(mp), net.divinerpg.utils.items.ArcanaItems.wraithbane);
+                com.divinerpgextended.boss.BossProgress.grant(mp, com.divinerpgextended.boss.Boss.CADILLION_SKYTHERN);
+                MinecraftForge.EVENT_BUS.post(new EntityInteractEvent(mp, merik));
+                after = sellsItem(merik.getRecipes(mp), net.divinerpg.utils.items.ArcanaItems.wraithbane);
+                chest = java.util.Arrays.asList(com.divinerpgextended.world.ArcanaChests.weapons()).contains(net.divinerpg.utils.items.ArcanaItems.wraithbane);
+            } finally {
+                server.getConfigurationManager().playerEntityList.remove(mp);
+                ow.removeEntity(mp);
+            }
+            check(!before && after && !chest, "до Повелителя ветров продаёт " + before + ", после " + after + "; в древних сундуках Арканы " + chest);
+            return "кость призрака у Капитана Мерика только после Повелителя ветров (Небесный терн), в древних сундуках Арканы её нет";
+        });
+    }
+
+    private static boolean sellsItem(net.minecraft.village.MerchantRecipeList l, Item item) {
+        if (l == null) return false;
+        for (Object o : l) {
+            ItemStack out = ((net.minecraft.village.MerchantRecipe) o).getItemToSell();
+            if (out != null && out.getItem() == item) return true;
+        }
+        return false;
+    }
+
     private void tabTests() {
         t("Прохождение", "Вкладки творческого режима", () -> {
             Object[][] cases = { { "rod_hunger", com.divinerpgextended.DreTab.FISHING }, { "anglerHat", com.divinerpgextended.DreTab.FISHING },
@@ -5893,10 +6291,10 @@ public class SelfTest {
             Item knife = net.divinerpg.utils.items.VanillaItemsWeapons.oceanKnife, sameAsKnife = net.divinerpg.utils.items.VanillaItemsWeapons.sharkSword;
             Item rapier = net.divinerpg.utils.items.VanillaItemsWeapons.rupeeSword, sameAsRapier = net.divinerpg.utils.items.VanillaItemsWeapons.deathBringer;
             Item maul = net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothMaul, sword = net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothSword;
-            // по мобу: окна 6 / 8 / 10 / 20, урон x0.75, x0.9, x1, x2 (урон 14 и 14, 12 и 12, кувалда 18 против меча 15)
+            // по мобу: окна 6 / 8 / 10 / 20, урон x0.75, x0.9, x1, x2 (урон 14 и 14, 12 и 12, зубастые с 0.99.113: кувалда 25+1 против меча 35+1)
             float[] kn = strike.apply(z, knife), kb = strike.apply(z, sameAsKnife), r = strike.apply(z, rapier), rb = strike.apply(z, sameAsRapier), m = strike.apply(z, maul), s = strike.apply(z, sword);
             boolean mobs = kn[2] == 6 && r[2] == 8 && kb[2] == 10 && s[2] == 10 && m[2] == 20 && kn[1] == 16 && r[1] == 18 && s[1] == 20 && m[1] == 30
-                && Math.abs(kn[0] / kb[0] - 0.75F) < 0.01 && Math.abs(r[0] / rb[0] - 0.9F) < 0.01 && Math.abs(m[0] / s[0] - 2.4F) < 0.01;
+                && Math.abs(kn[0] / kb[0] - 0.75F) < 0.01 && Math.abs(r[0] / rb[0] - 0.9F) < 0.01 && Math.abs(m[0] / s[0] - 2F * (com.divinerpgextended.perk.AquatoothEffects.MAUL_DAMAGE + 1) / (com.divinerpgextended.perk.AquatoothEffects.SWORD_DAMAGE + 1)) < 0.01;
             ok &= mobs;
             rep.append("моб: нож ").append(f(kn[0])).append(" окно ").append((int) kn[2]).append(" (меч с тем же уроном ").append(f(kb[0])).append(", окно ").append((int) kb[2])
                 .append("); рапира ").append(f(r[0])).append(" окно ").append((int) r[2]).append(" (меч ").append(f(rb[0])).append("); кувалда ").append(f(m[0])).append(" окно ").append((int) m[2])
@@ -5923,7 +6321,7 @@ public class SelfTest {
             // по игроку: без настройки - обычно; с настройкой - свои числа; в привате без PvP - обычно
             armor(foe, null, null, null, null);
             float[] kOff = strike.apply(foe, knife), mOff = strike.apply(foe, maul);
-            boolean off = kOff[1] == 20 && kOff[2] == 10 && mOff[1] == 20 && mOff[2] == 10 && Math.abs(mOff[0] / kOff[0] - 18F / 14F) < 0.01;
+            boolean off = kOff[1] == 20 && kOff[2] == 10 && mOff[1] == 20 && mOff[2] == 10 && Math.abs(mOff[0] / kOff[0] - (com.divinerpgextended.perk.AquatoothEffects.MAUL_DAMAGE + 1) / 14F) < 0.01;
             com.divinerpgextended.Config.meleeRolesPvp = true;
             float[] kOn, mOn, kPriv;
             try {

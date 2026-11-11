@@ -89,6 +89,8 @@ public final class ModItems {
     public static Item worldKey, stormBow, tomahawk, cloudStaff, soulHarvest;
     /** Рыбалка миров: Солнечная блесна (приманка из искр Эдема) и блуждающая душа (улов Мортума, заряжает Жатву душ). */
     public static Item sunLure, wanderingSoul;
+    /** Лиоплевродон: лук Цунами (с босса) и Кровавая наживка (призыв). */
+    public static Item tsunami, bloodBait;
 
     private ModItems() {}
 
@@ -224,6 +226,13 @@ public final class ModItems {
                 net.divinerpg.utils.items.TwilightItemsOther.edenSparkles, net.minecraft.init.Items.gold_nugget);
         wanderingSoul = new com.divinerpgextended.fishing.ItemWanderingSoul();
         GameRegistry.registerItem(wanderingSoul, "wanderingSoul");
+        tsunami = new com.divinerpgextended.item.ItemTsunamiBow();
+        GameRegistry.registerItem(tsunami, "tsunami");
+        bloodBait = new ItemTrophy("dre.bloodBait", "divinerpgextended:blood_bait", "dre.tooltip.blood_bait", false);
+        GameRegistry.registerItem(bloodBait, "bloodBait");
+        if (net.divinerpg.utils.items.TwilightItemsOther.apalachiaChunk != null) // акулёнок, сырая говядина и кусок Апалачии
+            GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(bloodBait), new net.minecraft.item.ItemStack(fish, 1,
+                com.divinerpgextended.fishing.Fish.SHARK_PUP.ordinal()), net.minecraft.init.Items.beef, net.divinerpg.utils.items.TwilightItemsOther.apalachiaChunk);
         // железный свисток на шнурке, золотой мундштук
         GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(petWhistle), net.minecraft.init.Items.iron_ingot, net.minecraft.init.Items.gold_nugget,
             net.minecraft.init.Items.string);
@@ -272,6 +281,10 @@ public final class ModItems {
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.mini.EntityBlizzardSnowman.class, "BlizzardSnowman", 33, DivineRPGExtended.instance, 64, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.mini.EntitySnowClump.class, "SnowClump", 34, DivineRPGExtended.instance, 64, 10, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityTomahawk.class, "Tomahawk", 35, DivineRPGExtended.instance, 64, 1, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityLiopleurodonBoss.class, "LioBoss", 36, DivineRPGExtended.instance, 96, 2, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityWaterJet.class, "WaterJet", 37, DivineRPGExtended.instance, 64, 2, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntitySummonCrab.class, "SummonCrab", 38, DivineRPGExtended.instance, 64, 3, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntitySummonShark.class, "SummonShark", 39, DivineRPGExtended.instance, 64, 2, true);
         bossEgg = new com.divinerpgextended.item.ItemBossEgg();
         GameRegistry.registerItem(bossEgg, "bossEgg");
     }

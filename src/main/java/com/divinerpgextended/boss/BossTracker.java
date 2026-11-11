@@ -81,6 +81,7 @@ public class BossTracker {
             if (ids.contains(player.getUniqueID())) {
                 com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.forBoss(boss), event.entityLiving);
                 com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.extraForBoss(boss), event.entityLiving);
+                BossDrops.reward(player, boss, event.entityLiving); // лук Цунами, якоря-призывы
             }
             if (ids.contains(player.getUniqueID()) && BossProgress.grant(player, boss)) {
                 ProgressSync.send(player);

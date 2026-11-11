@@ -50,6 +50,8 @@ public class ClientProxy extends CommonProxy {
         com.divinerpgextended.client.EasterClient.init();
         com.divinerpgextended.client.RenderWandererAnvil.register();
         com.divinerpgextended.client.RenderLockedChest.register();
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.MaulSwingClient()); // перезарядка молотов
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.FinsClient()); // ласты
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.ModelWandererArmor.Events()); // облики брони Странника
         com.divinerpgextended.DreTab.sort(); // вкладки творческого режима - только на клиенте
         ClientCommandHandler.instance.registerCommand(new CommandFlySpeed());
@@ -136,6 +138,26 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityRockfall.class, new com.divinerpgextended.client.RenderBoulder(net.divinerpg.utils.blocks.TwilightBlocks.twilightStone));
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntitySkyCart.class, new com.divinerpgextended.client.RenderSkyCart());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityTomahawk.class, new com.divinerpgextended.client.RenderTomahawk());
+        // Лиоплевродон-босс: модель Divine крупнее, с короной; призывы якорей - модели краба и акулы Divine
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityLiopleurodonBoss.class,
+            new RenderScaledBoss(new net.divinerpg.client.render.entity.vanilla.model.ModelLiopleurodon(), 1.5F,
+                new net.minecraft.util.ResourceLocation("divinerpg", "textures/mobs/liopleurodon.png"), 0.85F, 0.95F, 1.0F)
+                    .crown(new com.divinerpgextended.client.BossCrown("head", 6F, 0F, 6.5F, 6F, 0x40C8FF)));
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWaterJet.class, new net.minecraft.client.renderer.entity.Render() {
+
+            @Override
+            public void doRender(net.minecraft.entity.Entity e, double x, double y, double z, float yaw, float pt) {} // видна брызгами
+
+            @Override
+            protected net.minecraft.util.ResourceLocation getEntityTexture(net.minecraft.entity.Entity e) {
+                return null;
+            }
+        });
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonCrab.class,
+            new RenderScaledBoss(new ModelCrab(), 0.8F, EntityResourceLocation.crab, 1.0F, 0.9F, 0.9F));
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonShark.class,
+            new RenderScaledBoss(new net.divinerpg.client.render.entity.vanilla.model.ModelShark(), 0.6F,
+                new net.minecraft.util.ResourceLocation("divinerpg", "textures/mobs/shark.png"), 0.8F, 0.9F, 1.0F));
         com.divinerpgextended.block.BlockSkyRail.renderId = RenderingRegistry.getNextAvailableRenderId();
         RenderingRegistry.registerBlockHandler(new com.divinerpgextended.client.RenderSkyRail());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.fishing.EntityDreHook.class,

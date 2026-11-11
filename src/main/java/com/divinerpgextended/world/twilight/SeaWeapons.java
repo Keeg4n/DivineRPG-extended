@@ -69,7 +69,8 @@ public class SeaWeapons {
 
     /** Номер якоря (-1 - не якорь). */
     public static int anchor(Item i) {
-        return i == null ? -1 : i == VanillaItemsWeapons.crabAnchor ? 0 : i == VanillaItemsWeapons.sharkAnchor ? 1 : i == VanillaItemsWeapons.bowheadAnchor ? 2 : i == VanillaItemsWeapons.liopleurodonAnchor ? 3 : -1;
+        // крабовый якорь и якорь лиоплевродона с 0.99.113 - призывы ({@link com.divinerpgextended.magic.AnchorSummons}), не гарпуны
+        return i == null ? -1 : i == VanillaItemsWeapons.sharkAnchor ? 1 : i == VanillaItemsWeapons.bowheadAnchor ? 2 : -1;
     }
 
     /** Дальность гарпуна этого якоря без поправки на воду (для подсказки). */
