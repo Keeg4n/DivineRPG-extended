@@ -40,12 +40,15 @@ final class NeiSort {
 
     /**
      * Броня - полными сетами: сначала весь первый сет (шлем, нагрудник, поножи, ботинки), потом следующий. У брони Странника сет -
-     * ступень и ядро (R1 с каждым ядром, потом R2-R7), у прочей - имя без названия части.
+     * ступень, ядро и Венец (R1 с каждым ядром, потом R2-R7, потом R8 с каждым Венцом), у прочей - имя без названия части.
      */
     static String armor(ItemStack s, String name) {
         int slot = ((net.minecraft.item.ItemArmor) s.getItem()).armorType;
-        if (s.getItem() instanceof com.divinerpgextended.item.ItemWandererArmor)
-            return String.format("wanderer#%02d#%02d#%d", com.divinerpgextended.item.ArmorData.tier(s), com.divinerpgextended.item.ArmorData.core(s).ordinal(), slot);
+        if (s.getItem() instanceof com.divinerpgextended.item.ItemWandererArmor) {
+            com.divinerpgextended.item.ArmorCrown crown = com.divinerpgextended.item.ArmorData.crown(s);
+            return String.format("wanderer#%02d#%02d#%d#%d", com.divinerpgextended.item.ArmorData.tier(s), com.divinerpgextended.item.ArmorData.core(s).ordinal(),
+                crown == null ? 0 : crown.ordinal() + 1, slot);
+        }
         return name.replaceAll("(Helmet|Hat|Chestplate|Chest|Vest|Body|Leggings|Legs|Pants|Boots)$", "") + "#" + slot;
     }
 
