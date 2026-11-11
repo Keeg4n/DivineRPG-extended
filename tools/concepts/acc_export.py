@@ -180,6 +180,9 @@ def main():
         lines.append('s %s %s %s' % (h, ','.join(pal), ''.join(idx)))
     os.makedirs(os.path.join(RES, 'wear'), exist_ok=True)
     open(os.path.join(RES, 'wear/accessories.txt'), 'w', encoding='utf-8').write('\n'.join(lines + body) + '\n')
+    sys.path.insert(0, os.path.join(HERE, '..'))
+    import relic_icons  # noqa: E402
+    relic_icons.append_halo(os.path.join(RES, 'wear/accessories.txt'))  # Солнечный нимб (реликварий Эдема): не из концептов, кольцо над головой
     print('спрайтов', len(SPRITES), 'строк', len(body))
     # алтари
     ad = os.path.join(RES, 'textures/blocks/altar')

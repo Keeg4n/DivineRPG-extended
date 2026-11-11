@@ -129,7 +129,7 @@ public final class ModBlocks {
         letheFluid = new net.minecraftforge.fluids.Fluid("dre_lethe").setLuminosity(4).setDensity(1100).setViscosity(1600);
         net.minecraftforge.fluids.FluidRegistry.registerFluid(letheFluid);
         letheFluid = net.minecraftforge.fluids.FluidRegistry.getFluid("dre_lethe");
-        lethe = new com.divinerpgextended.block.BlockLethe(letheFluid, false);
+        lethe = new com.divinerpgextended.block.BlockLethe(letheFluid, true); // с 0.99.111 река течёт, как Лета из ведра (оба блока остаются ради старых миров)
         GameRegistry.registerBlock(lethe, "lethe");
         if (letheFluid.getBlock() == null) letheFluid.setBlock(lethe);
         letheFlowing = new com.divinerpgextended.block.BlockLethe(letheFluid, true); // из ведра - течёт

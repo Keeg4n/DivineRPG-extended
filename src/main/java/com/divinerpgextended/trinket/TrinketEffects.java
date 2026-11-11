@@ -38,6 +38,10 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 /** Эффекты аксессуаров. Работают только надетые в слоты аксессуаров (в рюкзаке - нет). */
 public class TrinketEffects {
 
+    /** Солнечный нимб: сколько лечит и как часто (тики). */
+    public static final float SUN_HALO_HEAL = 1.0F;
+    public static final int SUN_HALO_TICKS = 40;
+
     private static final String DEAD_CD = "dreDeadAmuletCd", ANKH_CD = "dreAnkhCd";
     private static final UUID PAULDRON = UUID.fromString("9c1e5a2d-3f47-4b8e-a6d1-5e2c7f9b0a13");
 
@@ -200,6 +204,9 @@ public class TrinketEffects {
             p.extinguish();
         }
         if (wears(p, Trinket.PARASECTA_STING)) clear(p, Potion.poison);
+        // Солнечный нимб: днём (в Эдеме солнце не заходит) под открытым небом - пол-сердца раз в 2 с
+        if (p.ticksExisted % SUN_HALO_TICKS == 0 && p.getHealth() < p.getMaxHealth() && wears(p, Trinket.SUN_HALO)
+            && (p.dimension == ConfigurationHelper.eden || p.worldObj.isDaytime()) && com.divinerpgextended.world.twilight.WorldWeather.open(p)) p.heal(SUN_HALO_HEAL);
         if (p.ticksExisted % 600 == 0 && wears(p, Trinket.LICH_CROWN) && !p.isPotionActive(Potion.field_76444_x)) {
             p.addPotionEffect(new PotionEffect(Potion.field_76444_x.id, 600, 1, true)); // поглощение: щит на 4 сердца
             com.divinerpgextended.debug.Debug.note(p, "Корона лича: щит на 4 сердца");

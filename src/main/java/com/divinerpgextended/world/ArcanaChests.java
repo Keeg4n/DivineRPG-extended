@@ -1,9 +1,7 @@
 package com.divinerpgextended.world;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import net.divinerpg.utils.blocks.ArcanaBlocks;
@@ -12,11 +10,8 @@ import net.divinerpg.utils.items.ArcanaItems;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldSavedData;
 import net.minecraft.world.chunk.IChunkProvider;
 
 import com.divinerpgextended.Config;
@@ -40,7 +35,7 @@ import cpw.mods.fml.common.IWorldGenerator;
  * Гарантия: мир Арканы делится на участки {@link Config#arcanaChestRegion} x {@link Config#arcanaChestRegion} (по умолчанию
  * 2048 - в любом квадрате 10000 x 10000 их не меньше девяти целых). Если на участке ещё нет сундука какого-то вида, то
  * {@link Config#arcanaChestPity}-я подходящая каморка этого вида на участке получает сундук без броска. Учёт - в данных
- * мира Арканы ({@link Data}).
+ * мира Арканы ({@link RegionTally}, {@link #TALLY}).
  */
 public class ArcanaChests implements IWorldGenerator {
 
@@ -158,25 +153,22 @@ public class ArcanaChests implements IWorldGenerator {
 
     /** Участок по координате. */
     public static int region(int c) {
-        return Math.floorDiv(c, Math.max(256, Config.arcanaChestRegion));
+        return RegionTally.region(c, Config.arcanaChestRegion);
     }
+
+    /** Имя учёта участков в данных мира Арканы ({@link RegionTally}). */
+    public static final String TALLY = "divinerpgextended_arcana_chests";
 
     /** Комната: есть каморка - бросок шанса или гарантия участка; поставлен - true. */
     public static boolean room(World w, int x0, int y0, int z0) {
         int[] v = vault(w, x0, y0, z0);
         if (v == null) return false;
         Kind k = Kind.of(v[3]);
-        Data data = Data.get(w);
-        long key = Data.key(region(v[0]), region(v[2]), k);
-        Random r = new Random(hash(w, v[0], v[1], v[2]));
-        boolean lucky = r.nextInt(Math.max(1, Config.arcanaChestChance)) == 0;
-        boolean pity = !lucky && data.count(key) == 0 && data.miss(key) + 1 >= Math.max(1, Config.arcanaChestPity);
-        if (!lucky && !pity) {
-            data.missed(key);
-            return false;
-        }
+        long key = RegionTally.key(region(v[0]), region(v[2]), k.ordinal());
+        int how = RegionTally.get(w, TALLY).decide(key, new Random(hash(w, v[0], v[1], v[2])), Config.arcanaChestChance, Config.arcanaChestPity);
+        if (how == 0) return false;
+        boolean pity = how == 2;
         place(w, v[0], v[1], v[2], k, v[4]);
-        data.placed(key);
         placed++;
         recent.addLast(new int[] { v[0], v[1], v[2], k.ordinal() });
         if (recent.size() > 32) recent.removeFirst();
@@ -251,7 +243,8 @@ public class ArcanaChests implements IWorldGenerator {
                 out.add(st(ArcanaItems.arcanium, n(r, 4, 8)));
                 out.add(st(ArcanaItems.dungeonTokens, n(r, 5, 12)));
                 break;
-            default: // реликварии миров - со своими ключами и вещами (следующая часть)
+            default: // реликварии миров
+                out.addAll(com.divinerpgextended.world.twilight.Reliquaries.loot(k, r));
                 break;
         }
         for (java.util.Iterator<ItemStack> it = out.iterator(); it.hasNext();) if (it.next().getItem() == null) it.remove();
@@ -263,87 +256,5 @@ public class ArcanaChests implements IWorldGenerator {
         for (com.divinerpgextended.magic.ArcaneEffect e : com.divinerpgextended.magic.ArcaneEffect.values()) if (!e.removed()) ok.add(e);
         com.divinerpgextended.magic.ArcaneEffect e = ok.get(r.nextInt(ok.size()));
         return com.divinerpgextended.magic.ItemArcanePotion.of(e, e.leveled() && r.nextInt(10) < 3, false, false);
-    }
-
-    // ---------------- Учёт участков ----------------
-
-    /** Сколько сундуков каждого вида на участке и сколько подходящих каморок пропущено подряд. */
-    public static class Data extends WorldSavedData {
-
-        public static final String NAME = "divinerpgextended_arcana_chests";
-        private final Map<Long, int[]> regions = new HashMap<Long, int[]>();
-
-        public Data(String name) {
-            super(name);
-        }
-
-        public static Data get(World w) {
-            Data d = (Data) w.perWorldStorage.loadData(Data.class, NAME);
-            if (d == null) {
-                d = new Data(NAME);
-                w.perWorldStorage.setData(NAME, d);
-            }
-            return d;
-        }
-
-        public static long key(int rx, int rz, Kind k) {
-            return ((long) rx & 0xffffffL) << 36 | ((long) rz & 0xffffffL) << 12 | k.ordinal();
-        }
-
-        private int[] row(long key) {
-            int[] v = regions.get(key);
-            if (v == null) regions.put(key, v = new int[2]);
-            return v;
-        }
-
-        public int count(long key) {
-            int[] v = regions.get(key);
-            return v == null ? 0 : v[0];
-        }
-
-        public int miss(long key) {
-            int[] v = regions.get(key);
-            return v == null ? 0 : v[1];
-        }
-
-        void missed(long key) {
-            row(key)[1]++;
-            markDirty();
-        }
-
-        void placed(long key) {
-            int[] v = row(key);
-            v[0]++;
-            v[1] = 0;
-            markDirty();
-        }
-
-        /** Для самопроверки: забыть участок. */
-        public void forget(long key) {
-            if (regions.remove(key) != null) markDirty();
-        }
-
-        @Override
-        public void readFromNBT(NBTTagCompound tag) {
-            regions.clear();
-            NBTTagList l = tag.getTagList("R", 10);
-            for (int i = 0; i < l.tagCount(); i++) {
-                NBTTagCompound t = l.getCompoundTagAt(i);
-                regions.put(t.getLong("k"), new int[] { t.getInteger("n"), t.getInteger("m") });
-            }
-        }
-
-        @Override
-        public void writeToNBT(NBTTagCompound tag) {
-            NBTTagList l = new NBTTagList();
-            for (Map.Entry<Long, int[]> e : regions.entrySet()) {
-                NBTTagCompound t = new NBTTagCompound();
-                t.setLong("k", e.getKey());
-                t.setInteger("n", e.getValue()[0]);
-                t.setInteger("m", e.getValue()[1]);
-                l.appendTag(t);
-            }
-            tag.setTag("R", l);
-        }
     }
 }

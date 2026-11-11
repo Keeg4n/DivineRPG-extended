@@ -23,7 +23,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 /**
  * Солнце Эдема не заходит: подземные мобы горят на нём, и игрок тоже перегревается. Шкала 0-100 растёт под открытым небом за
  * {@link #FULL_SECONDS} секунд, спадает в тени и быстрее в воде. Пороги: 50 - слабость, 75 - ещё и тошнота, 100 - горишь, пока не
- * остынешь. Сет Frozen не греется вовсе; огненная броня, сет Эдема, броня Странника с Эдема и выше и перк холода - вдвое медленнее.
+ * остынешь. Сет Frozen и Солнечный нимб не греются вовсе; огненная броня, сет Эдема, броня Странника с Эдема и выше и перк холода - вдвое медленнее.
  */
 public class EdenSun {
 
@@ -47,7 +47,7 @@ public class EdenSun {
 
     /** Во сколько раз быстрее обычного греется этот игрок на солнце. */
     public static float rate(EntityPlayer p) {
-        if (PerkEffects.wears(p, FROZEN)) return 0F;
+        if (PerkEffects.wears(p, FROZEN) || com.divinerpgextended.accessory.Accessories.wears(p, com.divinerpgextended.trinket.Trinket.SUN_HALO)) return 0F;
         return PerkEffects.wearsFireArmor(p) || HomeArmor.wears(p, TwilightWorld.EDEN, false) || ArmorData.equippedTier(p) >= 2 || ArmorData.hasEquippedPerk(p, Perk.COLD_AURA) ? 0.5F : 1F;
     }
 

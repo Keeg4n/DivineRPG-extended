@@ -2450,9 +2450,9 @@ public class SelfTest {
             // гарантия: на участке без сундука этого вида N-я каморка получает его без броска
             com.divinerpgextended.block.BlockLockedChest.Kind sk = com.divinerpgextended.block.BlockLockedChest.Kind.SOUL;
             int[] sv = found.get(sk), sr = rooms.get(sk);
-            com.divinerpgextended.world.ArcanaChests.Data data = com.divinerpgextended.world.ArcanaChests.Data.get(aw);
-            long rkey = com.divinerpgextended.world.ArcanaChests.Data.key(com.divinerpgextended.world.ArcanaChests.region(sv[0]),
-                com.divinerpgextended.world.ArcanaChests.region(sv[2]), sk);
+            com.divinerpgextended.world.RegionTally data = com.divinerpgextended.world.RegionTally.get(aw, com.divinerpgextended.world.ArcanaChests.TALLY);
+            long rkey = com.divinerpgextended.world.RegionTally.key(com.divinerpgextended.world.ArcanaChests.region(sv[0]),
+                com.divinerpgextended.world.ArcanaChests.region(sv[2]), sk.ordinal());
             data.forget(rkey);
             net.minecraft.block.Block wasB = aw.getBlock(sv[0], sv[1], sv[2]);
             int savedChance = Config.arcanaChestChance, savedPity = Config.arcanaChestPity, forcedBefore = com.divinerpgextended.world.ArcanaChests.forced;
@@ -2585,6 +2585,294 @@ public class SelfTest {
             return "каморок в 80 чанках " + vaults + " всех 4 видов: руда за дверьми слизи, древнего кирпича и камня душ (у западного и северного края чанка - рядом), угол зала разрушенных дверей; проходы не рвутся; "
                 + "гарантия участка ставит сундук на 3-й каморке; чужой ключ не открывает, свой тратится, внутри " + stacks + " стопок с аксессуаром; взрыв не берёт; "
                 + "в 12 новых чанках с шансом 1 - " + made + " сундуков у своих дверей; текстуры 9 видов собираются";
+        });
+        t("Сумеречные миры", "Реликварии миров: ключ мира из ключа Арканы и 4 камней, реликварий в руинах, склепе и на корабле Терна, гарантия участка", () -> {
+            com.divinerpgextended.world.twilight.TwilightWorld[] worlds = com.divinerpgextended.world.twilight.TwilightWorld.values();
+            String recBad = "";
+            WorldServer ow = server.worldServerForDimension(0);
+            for (com.divinerpgextended.world.twilight.TwilightWorld tw : worlds) for (Item ak : new Item[] { net.divinerpg.utils.items.ArcanaItems.sludgeKey, net.divinerpg.utils.items.ArcanaItems.degradedKey }) {
+                net.minecraft.inventory.InventoryCrafting cg = grid();
+                for (int sl : new int[] { 1, 3, 5, 7 }) cg.setInventorySlotContents(sl, new ItemStack(tw.gem()));
+                cg.setInventorySlotContents(4, new ItemStack(ak));
+                ItemStack out = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, ow);
+                if (out == null || out.getItem() != ModItems.worldKey || out.getItemDamage() != tw.ordinal()) recBad += tw + " из " + ak.getUnlocalizedName() + " -> " + out + "; ";
+            }
+            check(recBad.isEmpty(), "рецепты ключей мира: " + recBad);
+            int savedChance = Config.reliquaryChance, savedPity = Config.reliquaryPity, savedShip = Config.reliquaryShipChance, savedRarity = Config.skythernShipRarity;
+            Config.reliquaryChance = 1;
+            Config.reliquaryShipChance = 1;
+            boolean ruinOk, wrongLocked, opened, halo = false, cryptOk, shipOk, gotPity;
+            int keyLeft, made;
+            String shipInfo;
+            try {
+                // руины Эдема с реликварием
+                WorldServer ew = server.worldServerForDimension(ConfigurationHelper.eden);
+                int x = 9000, y = 100, z = 9000;
+                loadAround(ew, x, z, 3);
+                for (int dx = -2; dx < 12; dx++) for (int dz = -2; dz < 12; dz++) {
+                    for (int h = y - 3; h < y; h++) ew.setBlock(x + dx, h, z + dz, net.divinerpg.utils.blocks.TwilightBlocks.twilightStone);
+                    ew.setBlock(x + dx, y, z + dz, net.divinerpg.utils.blocks.TwilightBlocks.edenGrass);
+                    for (int h = y + 1; h < 160; h++) ew.setBlockToAir(x + dx, h, z + dz);
+                }
+                boolean built = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.ruin(ew, new java.util.Random(5), com.divinerpgextended.world.twilight.TwilightWorld.EDEN, x, z);
+                for (Object o : ew.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 1, y, z - 1, x + 10, y + 4, z + 10)))
+                    ((net.minecraft.entity.Entity) o).setDead();
+                ruinOk = built && ew.getBlock(x + 4, y + 1, z + 6) == com.divinerpgextended.registry.ModBlocks.lockedChest
+                    && ew.getBlockMetadata(x + 4, y + 1, z + 6) == com.divinerpgextended.block.BlockLockedChest.Kind.EDEN.ordinal();
+                TestPlayer rp = join(player(ConfigurationHelper.eden, "TestRelic", x + 4.5, y + 1, z + 7.5), true);
+                rp.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+                com.divinerpgextended.block.TileLockedChest te = (com.divinerpgextended.block.TileLockedChest) ew.getTileEntity(x + 4, y + 1, z + 6);
+                try {
+                    hold(rp, new ItemStack(ModItems.worldKey, 1, com.divinerpgextended.world.twilight.TwilightWorld.MORTUM.ordinal()));
+                    rp.theItemInWorldManager.activateBlockOrUseItem(rp, ew, rp.getHeldItem(), x + 4, y + 1, z + 6, 1, 0.5F, 0.5F, 0.5F);
+                    wrongLocked = te != null && te.locked;
+                    hold(rp, new ItemStack(ModItems.worldKey, 2, com.divinerpgextended.world.twilight.TwilightWorld.EDEN.ordinal()));
+                    rp.theItemInWorldManager.activateBlockOrUseItem(rp, ew, rp.getHeldItem(), x + 4, y + 1, z + 6, 1, 0.5F, 0.5F, 0.5F);
+                    opened = te != null && !te.locked;
+                    keyLeft = rp.getHeldItem() == null ? 0 : rp.getHeldItem().stackSize;
+                    rp.closeScreen();
+                    if (te != null) for (int sl = 0; sl < te.getSizeInventory(); sl++) {
+                        ItemStack in = te.getStackInSlot(sl);
+                        if (in != null && in.getItem() == ModItems.trinket && in.getItemDamage() == Trinket.SUN_HALO.ordinal()) halo = true;
+                    }
+                } finally {
+                    server.getConfigurationManager().playerEntityList.remove(rp);
+                    ew.removeEntity(rp);
+                }
+                // склеп Мортума: реликварий у саркофага
+                WorldServer mw = server.worldServerForDimension(ConfigurationHelper.mortum);
+                loadAround(mw, 9000, 9000, 1);
+                mw.setBlockToAir(9005, 61, 9002);
+                cryptOk = com.divinerpgextended.world.twilight.Reliquaries.inCrypt(mw, 9000, 60, 9000) && mw.getBlock(9005, 61, 9002) == com.divinerpgextended.registry.ModBlocks.lockedChest
+                    && mw.getBlockMetadata(9005, 61, 9002) == com.divinerpgextended.block.BlockLockedChest.Kind.MORTUM.ordinal();
+                // терновый корабль: корпус, парус, каюта с сундуком и реликварием
+                WorldServer sw = server.worldServerForDimension(ConfigurationHelper.skythern);
+                int sx = 9000, sy = 150, sz = 9000;
+                loadAround(sw, sx, sz, 2);
+                for (int bx = sx - 1; bx <= sx + 21; bx++) for (int bz = sz - 1; bz <= sz + 7; bz++) for (int by = sy - 1; by <= sy + 16; by++) sw.setBlockToAir(bx, by, bz);
+                boolean free = com.divinerpgextended.world.twilight.Reliquaries.Ships.free(sw, sx, sy, sz);
+                int[] rel = com.divinerpgextended.world.twilight.Reliquaries.Ships.build(sw, new java.util.Random(3), sx, sy, sz);
+                boolean relic = sw.getBlock(rel[0], rel[1], rel[2]) == com.divinerpgextended.registry.ModBlocks.lockedChest
+                    && sw.getBlockMetadata(rel[0], rel[1], rel[2]) == com.divinerpgextended.block.BlockLockedChest.Kind.SKYTHERN.ordinal();
+                boolean chest = sw.getTileEntity(sx + 1, sy + 4, sz + 4) instanceof net.minecraft.tileentity.TileEntityChest;
+                boolean sail = sw.getBlock(sx + 12, sy + 10, sz + 3) == Blocks.wool, deck = sw.getBlock(sx + 8, sy + 3, sz + 3) == com.divinerpgextended.world.twilight.TwilightWorld.SKYTHERN.planks();
+                shipOk = free && relic && chest && sail && deck;
+                // раскладка корабля для картинки (logs/dre-ship.txt: x y z блок мета)
+                try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.File("logs/dre-ship.txt"), "UTF-8")) {
+                    for (int bx = sx - 1; bx <= sx + 21; bx++) for (int bz = sz - 1; bz <= sz + 7; bz++) for (int by = sy - 1; by <= sy + 16; by++)
+                        if (!sw.isAirBlock(bx, by, bz))
+                            pw.println((bx - sx) + " " + (by - sy) + " " + (bz - sz) + " " + net.minecraft.block.Block.blockRegistry.getNameForObject(sw.getBlock(bx, by, bz)) + " " + sw.getBlockMetadata(bx, by, bz));
+                } catch (java.io.IOException ignored) {}
+                shipInfo = "небо пусто " + free + ", реликварий " + relic + ", сундук " + chest + ", парус " + sail + ", палуба " + deck;
+                // корабли сами: в 40 чанках неба Терна с редкостью 1
+                Config.skythernShipRarity = 1;
+                int before = com.divinerpgextended.world.twilight.Reliquaries.Ships.built;
+                for (int cc = 0; cc < 40; cc++) {
+                    for (int ax = 0; ax <= 1; ax++) for (int az = 0; az <= 1; az++) sw.theChunkProviderServer.loadChunk(700 + cc + ax, 700 + az);
+                    new com.divinerpgextended.world.twilight.Reliquaries.Ships().generate(sw.rand, 700 + cc, 700, sw, null, null);
+                }
+                made = com.divinerpgextended.world.twilight.Reliquaries.Ships.built - before;
+                // гарантия участка: на участке без реликвария 3-е место получает его без броска
+                Config.reliquaryChance = 10000;
+                Config.reliquaryPity = 3;
+                int gx = 60000, gz = 60000;
+                loadAround(ew, gx, gz, 1);
+                com.divinerpgextended.world.RegionTally tally = com.divinerpgextended.world.RegionTally.get(ew, com.divinerpgextended.world.twilight.Reliquaries.TALLY);
+                tally.forget(com.divinerpgextended.world.RegionTally.key(com.divinerpgextended.world.twilight.Reliquaries.region(gx), com.divinerpgextended.world.twilight.Reliquaries.region(gz),
+                    com.divinerpgextended.block.BlockLockedChest.Kind.EDEN.ordinal()));
+                boolean[] got = new boolean[3];
+                for (int rr = 0; rr < 3; rr++) {
+                    ew.setBlockToAir(gx + rr * 2, 200, gz);
+                    got[rr] = com.divinerpgextended.world.twilight.Reliquaries.offer(ew, com.divinerpgextended.world.twilight.TwilightWorld.EDEN, gx + rr * 2, 200, gz, 3, Config.reliquaryChance,
+                        Config.reliquaryPity);
+                }
+                gotPity = !got[0] && !got[1] && got[2];
+            } finally {
+                Config.reliquaryChance = savedChance;
+                Config.reliquaryPity = savedPity;
+                Config.reliquaryShipChance = savedShip;
+                Config.skythernShipRarity = savedRarity;
+            }
+            check(ruinOk && wrongLocked && opened && keyLeft == 1 && halo && cryptOk && shipOk && made > 0 && gotPity,
+                "руины: реликварий Эдема " + ruinOk + "; ключ Мортума не открывает " + wrongLocked + ", ключ Эдема открыл " + opened + " (осталось " + keyLeft + " из 2), нимб внутри " + halo
+                    + "; склеп Мортума " + cryptOk + "; корабль: " + shipInfo + "; кораблей в 40 чанках неба " + made + "; гарантия на 3-м месте " + gotPity);
+            return "ключ мира = ключ Арканы + 4 камня мира (все 5 миров); реликварий Эдема в руинах открывается только ключом Эдема (тратится), внутри Солнечный нимб; "
+                + "реликварий Мортума у саркофага склепа; терновый корабль с парусом, сундуком и реликварием Терна, в небе Терна их " + made + " на 40 чанков; гарантия участка на 3-м месте";
+        });
+        t("Сумеречные миры", "Вещи реликвариев: нимб лечит и не греется в Эдеме, Грозовой лук бьёт молнией, томагавк бьёт троих и возвращается, посох облаков, Жатва душ", () -> {
+            // Солнечный нимб
+            WorldServer ew = server.worldServerForDimension(ConfigurationHelper.eden);
+            int hx = 9300, hy = 170, hz = 9300;
+            loadAround(ew, hx, hz, 1);
+            for (int dy = hy - 1; dy < 256; dy++) ew.setBlockToAir(hx, dy, hz);
+            TestPlayer hp = join(player(ConfigurationHelper.eden, "TestHalo", hx + 0.5, hy, hz + 0.5), true);
+            hp.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            float rateBefore, rateAfter, healed;
+            try {
+                rateBefore = com.divinerpgextended.world.twilight.EdenSun.rate(hp);
+                wearT(hp, Trinket.SUN_HALO);
+                rateAfter = com.divinerpgextended.world.twilight.EdenSun.rate(hp);
+                hp.setHealth(10F);
+                hp.ticksExisted = com.divinerpgextended.trinket.TrinketEffects.SUN_HALO_TICKS * 3;
+                new com.divinerpgextended.trinket.TrinketEffects().onTick(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, hp));
+                healed = hp.getHealth() - 10F;
+            } finally {
+                server.getConfigurationManager().playerEntityList.remove(hp);
+                ew.removeEntity(hp);
+            }
+            check(rateBefore > 0 && rateAfter == 0 && healed >= com.divinerpgextended.trinket.TrinketEffects.SUN_HALO_HEAL - 0.01F,
+                "нимб: перегрев без него x" + rateBefore + ", с ним x" + rateAfter + ", вылечил " + healed);
+            // Грозовой лук: каждая 5-я стрела грозовая (в ливень - все), попадание - молния и +25%
+            WorldServer ww = server.worldServerForDimension(ConfigurationHelper.wildwood);
+            int bx = 9300, by = 170, bz = 9300;
+            loadAround(ww, bx, bz, 1);
+            TestPlayer bp = join(player(ConfigurationHelper.wildwood, "TestStormBow", bx + 0.5, by, bz + 0.5), true);
+            bp.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            int tagged = 0, arrows = 0, ammoLeft;
+            float hurt;
+            int boltsBefore = com.divinerpgextended.perk.RelicEffects.bolts, boltsAfter;
+            boolean rain = com.divinerpgextended.item.ItemStormBow.storm(ww);
+            net.minecraft.util.AxisAlignedBB around = net.minecraft.util.AxisAlignedBB.getBoundingBox(bx - 8, by - 8, bz - 8, bx + 8, by + 8, bz + 8);
+            try {
+                ItemStack bow = new ItemStack(ModItems.stormBow);
+                hold(bp, bow);
+                bp.inventory.setInventorySlotContents(0, new ItemStack(com.divinerpgextended.item.ItemStormBow.ammo(), 64));
+                for (int shot = 0; shot < 5; shot++) ModItems.stormBow.onPlayerStoppedUsing(bow, ww, bp, bow.getMaxItemUseDuration() - 20);
+                ammoLeft = bp.inventory.getStackInSlot(0) == null ? 0 : bp.inventory.getStackInSlot(0).stackSize;
+                net.minecraft.entity.projectile.EntityArrow stormArrow = null;
+                for (Object o : ww.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, around)) {
+                    arrows++;
+                    net.minecraft.entity.projectile.EntityArrow ar = (net.minecraft.entity.projectile.EntityArrow) o;
+                    if (ar.getEntityData().getBoolean(com.divinerpgextended.item.ItemStormBow.TAG)) {
+                        tagged++;
+                        stormArrow = ar;
+                    }
+                }
+                net.minecraft.entity.monster.EntityZombie zb = new net.minecraft.entity.monster.EntityZombie(ww);
+                zb.setPosition(bx + 3.5, by, bz + 0.5);
+                net.minecraftforge.event.entity.living.LivingHurtEvent hev = new net.minecraftforge.event.entity.living.LivingHurtEvent(zb,
+                    DamageSource.causeArrowDamage(stormArrow, bp), 10F);
+                if (stormArrow != null) new com.divinerpgextended.perk.RelicEffects().onHurt(hev);
+                hurt = hev.ammount;
+                boltsAfter = com.divinerpgextended.perk.RelicEffects.bolts;
+            } finally {
+                for (Object o : ww.getEntitiesWithinAABB(net.minecraft.entity.Entity.class, around)) if (!(o instanceof EntityPlayer)) ((net.minecraft.entity.Entity) o).setDead();
+                ww.weatherEffects.clear();
+                server.getConfigurationManager().playerEntityList.remove(bp);
+                ww.removeEntity(bp);
+            }
+            check(arrows == 5 && ammoLeft == 59 && tagged == (rain ? 5 : 1) && Math.abs(hurt - 12.5F) < 0.01F && boltsAfter == boltsBefore + 1,
+                "лук: стрел " + arrows + ", осталось патронов " + ammoLeft + ", грозовых " + tagged + (rain ? " (дождь)" : "") + ", урон 10 -> " + hurt + ", молний " + (boltsAfter - boltsBefore));
+            // Томагавк: в небе обычного мира, три зомби впереди дальше 8 блоков
+            WorldServer tw0 = server.worldServerForDimension(0);
+            int tx = 9500, ty = 200, tz = 9500;
+            loadAround(tw0, tx + 8, tz, 2);
+            TestPlayer tp = join(player(0, "TestTomahawk", tx + 0.5, ty, tz + 0.5), true);
+            tp.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            tp.setLocationAndAngles(tx + 0.5, ty, tz + 0.5, -90F, 0F);
+            net.minecraft.entity.monster.EntityZombie[] zs = new net.minecraft.entity.monster.EntityZombie[3];
+            double[][] at = { { 12.5, 0.5 }, { 14.5, 2.5 }, { 15.5, -1.5 } };
+            com.divinerpgextended.entity.EntityTomahawk th = null;
+            boolean flagOut, flagBack, firstStunned;
+            int hitsDone, flewTicks = 0;
+            float[] lost = new float[3];
+            try {
+                for (int zi = 0; zi < 3; zi++) {
+                    zs[zi] = new net.minecraft.entity.monster.EntityZombie(tw0);
+                    zs[zi].getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(500);
+                    zs[zi].setHealth(500F);
+                    zs[zi].setPosition(tx + at[zi][0], ty, tz + at[zi][1]);
+                    tw0.spawnEntityInWorld(zs[zi]);
+                }
+                ItemStack axe = new ItemStack(ModItems.tomahawk);
+                hold(tp, axe);
+                ModItems.tomahawk.onItemRightClick(axe, tw0, tp);
+                flagOut = com.divinerpgextended.item.ItemTomahawk.out(axe, tw0.getTotalWorldTime());
+                for (Object o : tw0.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityTomahawk.class, tp.boundingBox.expand(3, 3, 3)))
+                    th = (com.divinerpgextended.entity.EntityTomahawk) o;
+                while (th != null && !th.isDead && flewTicks < 150) {
+                    th.onUpdate();
+                    flewTicks++;
+                }
+                hitsDone = th == null ? 0 : th.hits;
+                firstStunned = th != null && th.stunned && zs[0].isPotionActive(net.minecraft.potion.Potion.moveSlowdown);
+                flagBack = !axe.getTagCompound().hasKey(com.divinerpgextended.item.ItemTomahawk.OUT);
+                for (int zi = 0; zi < 3; zi++) lost[zi] = 500F - zs[zi].getHealth();
+            } finally {
+                for (net.minecraft.entity.monster.EntityZombie zz : zs) if (zz != null) zz.setDead();
+                if (th != null) th.setDead();
+                server.getConfigurationManager().playerEntityList.remove(tp);
+                tw0.removeEntity(tp);
+            }
+            float axeDmg = com.divinerpgextended.item.ItemTomahawk.throwDamage();
+            check(flagOut && th != null && hitsDone == 3 && firstStunned && flagBack && lost[0] >= axeDmg * 0.8F && lost[1] >= axeDmg * 0.8F && lost[2] >= axeDmg * 0.8F,
+                "томагавк: брошен " + flagOut + ", сущность " + (th != null) + ", целей " + hitsDone + ", первая оглушена " + firstStunned + ", вернулся " + flagBack + " за " + flewTicks
+                    + " тиков, урон " + f(lost[0]) + "/" + f(lost[1]) + "/" + f(lost[2]) + " (ждали " + f(axeDmg) + ")");
+            // Посох облаков: в воздухе - площадка 3 x 3 под ногами, через 30 с тает
+            int cx = 9500, cy = 210, cz = 9530;
+            loadAround(tw0, cx, cz, 1);
+            TestPlayer cp = join(player(0, "TestCloudStaff", cx + 0.5, cy, cz + 0.5), true);
+            int clouds = 0, melted = 0;
+            try {
+                for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) tw0.setBlockToAir(cx + dx, cy - 1, cz + dz);
+                clouds = com.divinerpgextended.item.ItemCloudStaff.platform(tw0, cp);
+                for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
+                    if (tw0.getBlock(cx + dx, cy - 1, cz + dz) != com.divinerpgextended.registry.ModBlocks.cloud
+                        || tw0.getBlockMetadata(cx + dx, cy - 1, cz + dz) != com.divinerpgextended.block.BlockCloud.TEMP) continue;
+                    com.divinerpgextended.registry.ModBlocks.cloud.updateTick(tw0, cx + dx, cy - 1, cz + dz, tw0.rand);
+                    if (tw0.isAirBlock(cx + dx, cy - 1, cz + dz)) melted++;
+                }
+            } finally {
+                server.getConfigurationManager().playerEntityList.remove(cp);
+                tw0.removeEntity(cp);
+            }
+            check(clouds == 9 && melted == 9, "посох облаков: поставлено " + clouds + ", растаяло " + melted);
+            // Жатва душ: души за убийства, +2% за душу, улетучивание, взрыв душ на полном запасе
+            TestPlayer sp = join(player(0, "TestSoulHarvest", tx + 0.5, ty + 20, tz + 0.5), true);
+            int soulsAfterKills, decayed;
+            float bonus5, full, splash;
+            int blastsBefore = com.divinerpgextended.perk.RelicEffects.blasts, blastsAfter, soulsAfterBlast;
+            net.minecraft.entity.monster.EntityZombie[] near = new net.minecraft.entity.monster.EntityZombie[3];
+            try {
+                ItemStack scythe = new ItemStack(ModItems.soulHarvest);
+                hold(sp, scythe);
+                long now = tw0.getTotalWorldTime();
+                com.divinerpgextended.perk.RelicEffects re = new com.divinerpgextended.perk.RelicEffects();
+                for (int kill = 0; kill < 12; kill++) {
+                    net.minecraft.entity.monster.EntityZombie victim = new net.minecraft.entity.monster.EntityZombie(tw0);
+                    re.onDeath(new net.minecraftforge.event.entity.living.LivingDeathEvent(victim, DamageSource.causePlayerDamage(sp)));
+                }
+                soulsAfterKills = com.divinerpgextended.item.ItemSoulHarvest.souls(scythe, now);
+                com.divinerpgextended.item.ItemSoulHarvest.setSouls(scythe, 10, now - com.divinerpgextended.item.ItemSoulHarvest.DECAY_TICKS * 2);
+                decayed = com.divinerpgextended.item.ItemSoulHarvest.souls(scythe, now);
+                for (int zi = 0; zi < 3; zi++) {
+                    near[zi] = new net.minecraft.entity.monster.EntityZombie(tw0);
+                    near[zi].getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(500);
+                    near[zi].setHealth(500F);
+                    near[zi].setPosition(tx + 3.5 + zi, ty + 20, tz + 0.5);
+                    tw0.spawnEntityInWorld(near[zi]);
+                }
+                com.divinerpgextended.item.ItemSoulHarvest.setSouls(scythe, 5, now);
+                net.minecraftforge.event.entity.living.LivingHurtEvent h5 = new net.minecraftforge.event.entity.living.LivingHurtEvent(near[0], DamageSource.causePlayerDamage(sp), 10F);
+                re.onHurt(h5);
+                bonus5 = h5.ammount;
+                com.divinerpgextended.item.ItemSoulHarvest.setSouls(scythe, 10, now);
+                net.minecraftforge.event.entity.living.LivingHurtEvent h10 = new net.minecraftforge.event.entity.living.LivingHurtEvent(near[0], DamageSource.causePlayerDamage(sp), 10F);
+                re.onHurt(h10);
+                full = h10.ammount;
+                splash = 500F - near[1].getHealth();
+                blastsAfter = com.divinerpgextended.perk.RelicEffects.blasts;
+                soulsAfterBlast = com.divinerpgextended.item.ItemSoulHarvest.souls(scythe, now);
+            } finally {
+                for (net.minecraft.entity.monster.EntityZombie zz : near) if (zz != null) zz.setDead();
+                server.getConfigurationManager().playerEntityList.remove(sp);
+                tw0.removeEntity(sp);
+            }
+            check(soulsAfterKills == 10 && decayed == 8 && Math.abs(bonus5 - 11F) < 0.01F && Math.abs(full - 12F) < 0.01F && splash >= 5.0F && blastsAfter == blastsBefore + 1 && soulsAfterBlast == 0,
+                "Жатва: душ после 12 убийств " + soulsAfterKills + ", через 20 с из 10 осталось " + decayed + ", урон 10 при 5 душах " + f(bonus5) + ", при 10 " + f(full) + ", взрыв по соседу "
+                    + f(splash) + ", взрывов " + (blastsAfter - blastsBefore) + ", душ после " + soulsAfterBlast);
+            return "нимб: в Эдеме не греется, под небом лечит " + f(healed) + "; лук: грозовая каждая 5-я стрела, молния и урон 10 -> " + f(hurt) + "; томагавк: 3 цели, первая оглушена, вернулся за "
+                + flewTicks + " тиков; посох: площадка 3x3, тает; Жатва: 10 душ, -1 за 10 с, +2% за душу, взрыв душ " + f(splash) + " по соседу";
         });
         t("Отладка", "Аудит: предметы Divine без применения (logs/dre-junk.txt)", () -> {
             // все предметы реестров Divine
@@ -2748,8 +3036,22 @@ public class SelfTest {
                     shipped.add(rc.out);
             }
             check(all.size() >= 30 && missing.isEmpty() && shipped.isEmpty(), "рецептов " + all.size() + ", нет исходника: " + missing + ", картинка всё ещё в jar: " + shipped);
+            // руда джунглей: зелёные вкрапления на сером камне в любой версии DivineRPG (на 1.4.1.5 при перекраске зелень размазывалась по камню)
+            java.awt.image.BufferedImage ore = com.divinerpgextended.registry.DerivedTextures.build(all.get("divinerpgextended:textures/blocks/jungleOre.png"));
+            String oreWay = com.divinerpgextended.registry.DerivedTextures.lastWay;
+            int green = 0, gray = 0, other = 0;
+            for (int oy = 0; oy < ore.getHeight(); oy++) for (int ox = 0; ox < ore.getWidth(); ox++) {
+                int c = ore.getRGB(ox, oy);
+                if (c >>> 24 == 0) continue;
+                int cr = c >> 16 & 255, cg = c >> 8 & 255, cb = c & 255;
+                if (!com.divinerpgextended.registry.DerivedTextures.colored(c)) gray++;
+                else if (cg > cr && cg > cb) green++;
+                else other++;
+            }
+            int opaque = green + gray + other;
+            check(green >= opaque * 0.05 && green <= opaque * 0.45 && other == 0, "руда джунглей (" + oreWay + "): зелёных " + green + ", серых " + gray + ", других " + other + " из " + opaque);
             return "текстур по таблицам " + all.size() + ": точно как задумано " + exact + (differ.isEmpty() ? "" : ", по палитре (другая версия DivineRPG) " + differ.size() + ": " + differ)
-                + "; в jar ни одной";
+                + "; в jar ни одной; руда джунглей (" + oreWay + "): зелёных вкраплений " + (100 * green / Math.max(1, opaque)) + "%, остальное серый камень";
         });
         t("Броня", "Коса Джека: страх, провокация с сетом скелета, подчинение с сетом жнеца", () -> {
             net.minecraft.world.World w = p.worldObj;
@@ -7755,7 +8057,7 @@ public class SelfTest {
                 "факел Дикого леса в обычном мире: циклоп " + res[0] + "; в Диком лесу: бегемот " + res[1] + "; скелетный в обычном мире: " + res[2] + "; адский в Аду: " + res[3] + "; рецепт " + recipe);
             return "факел Дикого леса гонит монстров только в Диком лесу, скелетный - всех монстров Divine в обычном мире, адский (из стержня ифрита) - в Аду";
         });
-        t("Прохождение", "Лета из ведра течёт и даёт бесконечный источник", () -> {
+        t("Прохождение", "Лета из ведра и река Леты текут одинаково, между двумя источниками - новый", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int x0 = 9660, y0 = 100, z0 = 9640;
             loadAround(w, x0, z0, 1);
@@ -7772,14 +8074,16 @@ public class SelfTest {
             w.setBlock(x0, y0, z0, lf, 1, 3);
             lf.updateTick(w, x0, y0, z0, w.rand);
             boolean source = com.divinerpgextended.block.BlockLethe.isSource(w, x0, y0, z0);
-            // река мира не течёт
+            // река мира течёт так же (с 0.99.111)
             for (int x = x0 - 3; x <= x0 + 3; x++) for (int z = z0 - 3; z <= z0 + 3; z++) w.setBlock(x, y0, z, Blocks.air);
-            w.setBlock(x0, y0, z0, com.divinerpgextended.registry.ModBlocks.lethe, 0, 3);
-            com.divinerpgextended.registry.ModBlocks.lethe.updateTick(w, x0, y0, z0, w.rand);
-            boolean still = w.isAirBlock(x0 + 1, y0, z0);
+            Block rv = com.divinerpgextended.registry.ModBlocks.lethe;
+            w.setBlock(x0, y0, z0, rv, 0, 3);
+            for (int pass = 0; pass < 6; pass++)
+                for (int x = x0 - 3; x <= x0 + 3; x++) for (int z = z0 - 3; z <= z0 + 3; z++) if (w.getBlock(x, y0, z) == rv) rv.updateTick(w, x, y0, z, w.rand);
+            boolean still = w.getBlock(x0 + 2, y0, z0) == rv && w.getBlockMetadata(x0 + 2, y0, z0) > 0;
             for (int x = x0 - 4; x <= x0 + 4; x++) for (int z = z0 - 4; z <= z0 + 4; z++) for (int y = y0 - 1; y <= y0 + 2; y++) w.setBlockToAir(x, y, z);
-            check(spread && source && still, "растеклась на 2 блока " + spread + ", между двумя источниками новый " + source + ", река мира стоит " + still);
-            return "Лета из ведра растекается, между двумя источниками рождается третий; река Мортума в русле не течёт";
+            check(spread && source && still, "из ведра растеклась на 2 блока " + spread + ", между двумя источниками новый " + source + ", река мира растеклась так же " + still);
+            return "Лета из ведра растекается, между двумя источниками рождается третий; река Мортума течёт так же";
         });
         t("Прохождение", "Фроссивенс: перезарядка и при ударах босса", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
@@ -12951,9 +13255,11 @@ public class SelfTest {
             w.setBlockToAir(x + 1, y - 2, z);
             w.setBlock(x - 1, y - 1, z, Blocks.stone);
             w.setBlockToAir(x - 1, y - 1, z);
-            for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) for (int dy = -2; dy <= 0; dy++)
-                if (w.getBlock(x + dx, y + dy, z + dz) == river) river.refill(w, x + dx, y + dy, z + dz);
-            boolean top = w.getBlock(x, y, z) == river, bottom = w.getBlock(x + 1, y - 2, z) == river, mid = w.getBlock(x - 1, y - 1, z) == river;
+            // течением: источники заливают пустоты, между двумя источниками рождается новый
+            for (int pass = 0; pass < 8; pass++) for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) for (int dy = -2; dy <= 0; dy++)
+                if (w.getBlock(x + dx, y + dy, z + dz) == river) river.updateTick(w, x + dx, y + dy, z + dz, w.rand);
+            boolean top = com.divinerpgextended.block.BlockLethe.isSource(w, x, y, z), bottom = com.divinerpgextended.block.BlockLethe.isSource(w, x + 1, y - 2, z),
+                mid = com.divinerpgextended.block.BlockLethe.isSource(w, x - 1, y - 1, z);
             // над рекой и за берегом пусто
             int over = 0;
             for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) if (w.getBlock(x + dx, y + 1, z + dz) == river) over++;

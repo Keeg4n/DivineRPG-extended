@@ -528,6 +528,7 @@ public class MortumWorld {
         w.setBlock(x + 2, base + 1, z + 2, Blocks.stone_slab, 5, 2);
         w.setBlock(x + 4, base + 1, z + 2, Blocks.stone_slab, 5, 2);
         WorldGenTwilightFeatures.chest(w, r, x + 3, base + 1, z + 2, TwilightLoot.dungeon(tw), 6 + r.nextInt(3));
+        Reliquaries.inCrypt(w, x, base, z); // реликварий Мортума у саркофага - с шансом и гарантией участка
         skull(w, r, x + 3, base + 2, z + 2);
         skull(w, r, x + 1, base + 1, z + 6);
         skull(w, r, x + 5, base + 1, z + 4);

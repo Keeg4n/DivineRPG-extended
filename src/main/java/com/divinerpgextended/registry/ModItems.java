@@ -85,6 +85,8 @@ public final class ModItems {
     public static Item arcanePotion;
     /** Манекен для битья. */
     public static Item trainingDummy, petWhistle;
+    /** Реликварии миров: ключи миров (мета - мир) и вещи из реликвариев. */
+    public static Item worldKey, stormBow, tomahawk, cloudStaff, soulHarvest;
 
     private ModItems() {}
 
@@ -202,6 +204,17 @@ public final class ModItems {
         GameRegistry.registerItem(trainingDummy, "trainingDummy");
         petWhistle = new com.divinerpgextended.item.ItemPetWhistle();
         GameRegistry.registerItem(petWhistle, "petWhistle");
+        worldKey = new com.divinerpgextended.item.ItemWorldKey();
+        GameRegistry.registerItem(worldKey, "worldKey");
+        com.divinerpgextended.item.ItemWorldKey.recipes(worldKey);
+        stormBow = new com.divinerpgextended.item.ItemStormBow();
+        GameRegistry.registerItem(stormBow, "stormBow");
+        tomahawk = new com.divinerpgextended.item.ItemTomahawk();
+        GameRegistry.registerItem(tomahawk, "tomahawk");
+        cloudStaff = new com.divinerpgextended.item.ItemCloudStaff();
+        GameRegistry.registerItem(cloudStaff, "cloudStaff");
+        soulHarvest = new com.divinerpgextended.item.ItemSoulHarvest();
+        GameRegistry.registerItem(soulHarvest, "soulHarvest");
         // железный свисток на шнурке, золотой мундштук
         GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(petWhistle), net.minecraft.init.Items.iron_ingot, net.minecraft.init.Items.gold_nugget,
             net.minecraft.init.Items.string);
@@ -249,6 +262,7 @@ public final class ModItems {
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.mini.EntityBlizzardSpruce.class, "BlizzardSpruce", 32, DivineRPGExtended.instance, 80, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.mini.EntityBlizzardSnowman.class, "BlizzardSnowman", 33, DivineRPGExtended.instance, 64, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.entity.mini.EntitySnowClump.class, "SnowClump", 34, DivineRPGExtended.instance, 64, 10, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.entity.EntityTomahawk.class, "Tomahawk", 35, DivineRPGExtended.instance, 64, 1, true);
         bossEgg = new com.divinerpgextended.item.ItemBossEgg();
         GameRegistry.registerItem(bossEgg, "bossEgg");
     }

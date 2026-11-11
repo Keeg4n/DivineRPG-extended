@@ -53,7 +53,9 @@ public enum Trinket {
     /** Арканный щит (у Ваттикуса): аркана берёт на себя 75% арканного урона по 1 аркане за единицу (без него 60% по 2). */
     ARCANE_WARD,
     /** Кристалл ясности (у Ваттикуса): задержка восстановления арканы 0.75 с вместо 2, восстановление +50%. */
-    CLARITY_CRYSTAL;
+    CLARITY_CRYSTAL,
+    /** Солнечный нимб (реликварий Эдема): днём под открытым небом лечит, перегрев Эдема не действует. */
+    SUN_HALO;
 
     /** Заказ у Джека: сколько голов [скелет, визер-скелет, зомби, крипер]; null - не заказ Джека. */
     public final int[] heads;
@@ -99,7 +101,7 @@ public enum Trinket {
         if (name().startsWith("HUNTER_")) return HEAD;
         switch (this) {
             case LICH_CROWN: case WATCHER_EYE: case DEEP_SHELL: case DUNGEON_LAMP: case JACK_AMULET: case DEAD_AMULET:
-            case WARM_SCARF: case CLARITY_CRYSTAL:
+            case WARM_SCARF: case CLARITY_CRYSTAL: case SUN_HALO:
                 return HEAD;
             case BLAST_BELT: case MASTER_SCABBARD: case ENDLESS_QUIVER: case DUST_POUCH: case SLICER_SLING: case TACKLE_BOX:
             case POCKET_MAGNET:

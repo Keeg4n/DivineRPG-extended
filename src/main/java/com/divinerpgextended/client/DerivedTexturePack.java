@@ -55,7 +55,8 @@ public class DerivedTexturePack implements IResourcePack {
         if (b != null) return b;
         DerivedTextures.Recipe r = DerivedTextures.recipes().get(k);
         com.divinerpgextended.block.BlockLockedChest.Kind chest = ChestTextures.kind(k);
-        BufferedImage img = chest != null ? ChestTextures.build(chest) : r == null ? null : DerivedTextures.build(r);
+        com.divinerpgextended.world.twilight.TwilightWorld keyWorld = ChestTextures.keyWorld(k);
+        BufferedImage img = chest != null ? ChestTextures.build(chest) : keyWorld != null ? ChestTextures.buildKey(keyWorld) : r == null ? null : DerivedTextures.build(r);
         if (img == null) throw new FileNotFoundException(k);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ImageIO.write(img, "png", out);
@@ -71,7 +72,7 @@ public class DerivedTexturePack implements IResourcePack {
 
     @Override
     public boolean resourceExists(ResourceLocation rl) {
-        if (!DerivedTextures.recipes().containsKey(key(rl)) && ChestTextures.kind(key(rl)) == null) return false;
+        if (!DerivedTextures.recipes().containsKey(key(rl)) && ChestTextures.kind(key(rl)) == null && ChestTextures.keyWorld(key(rl)) == null) return false;
         try {
             png(rl);
             return true;

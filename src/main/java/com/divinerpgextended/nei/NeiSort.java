@@ -34,7 +34,19 @@ final class NeiSort {
         DreTab tab = DreTab.of(name);
         int i = 0;
         while (i < ORDER.length && ORDER[i] != tab) i++;
+        if (s.getItem() instanceof net.minecraft.item.ItemArmor) name = armor(s, name);
         return i + ":" + name;
+    }
+
+    /**
+     * Броня - полными сетами: сначала весь первый сет (шлем, нагрудник, поножи, ботинки), потом следующий. У брони Странника сет -
+     * ступень и ядро (R1 с каждым ядром, потом R2-R7), у прочей - имя без названия части.
+     */
+    static String armor(ItemStack s, String name) {
+        int slot = ((net.minecraft.item.ItemArmor) s.getItem()).armorType;
+        if (s.getItem() instanceof com.divinerpgextended.item.ItemWandererArmor)
+            return String.format("wanderer#%02d#%02d#%d", com.divinerpgextended.item.ArmorData.tier(s), com.divinerpgextended.item.ArmorData.core(s).ordinal(), slot);
+        return name.replaceAll("(Helmet|Hat|Chestplate|Chest|Vest|Body|Leggings|Legs|Pants|Boots)$", "") + "#" + slot;
     }
 
     /** Предметы аддона между собой; с чужими - поровну (их уже развела ступень "по модам"). */

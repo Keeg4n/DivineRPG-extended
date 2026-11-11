@@ -163,6 +163,65 @@ public final class ChestTextures {
         return out;
     }
 
+    // ---------------- ключи миров ----------------
+
+    public static final String KEY_PREFIX = "textures/items/worldKey_";
+
+    /** Мир ключа по пути текстуры (домен:путь) или null. */
+    public static com.divinerpgextended.world.twilight.TwilightWorld keyWorld(String key) {
+        if (!key.startsWith(DOMAIN + ":" + KEY_PREFIX) || !key.endsWith(".png")) return null;
+        String name = key.substring((DOMAIN + ":" + KEY_PREFIX).length(), key.length() - 4);
+        for (com.divinerpgextended.world.twilight.TwilightWorld w : com.divinerpgextended.world.twilight.TwilightWorld.values()) if (w.key().equals(name)) return w;
+        return null;
+    }
+
+    /**
+     * Ключ мира: ключ разрушенного кирпича Divine (16 x 16 в обеих версиях), перекрашенный по яркости от тёмного дерева мира к
+     * его яркому цвету. Нет текстуры Divine - простой ключ своей рисовки.
+     */
+    public static BufferedImage buildKey(com.divinerpgextended.world.twilight.TwilightWorld w) throws IOException {
+        Kind k = Kind.of(w);
+        int dark = scale(0xff000000 | rgb(k.wood), 0.55), light = 0xff000000 | rgb(k.trim);
+        BufferedImage src = read("assets/divinerpg/textures/items/degradedKey.png");
+        int W = src != null ? src.getWidth() : 16, H = src != null ? src.getHeight() : 16;
+        int[] px = src != null ? src.getRGB(0, 0, W, H, null, 0, W) : ownKey();
+        double max = 1;
+        for (int c : px) if (c >>> 24 != 0) max = Math.max(max, lum(c));
+        int[] out = new int[px.length];
+        for (int i = 0; i < px.length; i++) {
+            int c = px[i];
+            if (c >>> 24 == 0) continue;
+            double t = Math.pow(lum(c) / max, 0.8);
+            out[i] = c & 0xff000000 | mix(dark, light, t) & 0xffffff;
+        }
+        BufferedImage img = new BufferedImage(W, H, BufferedImage.TYPE_INT_ARGB);
+        img.setRGB(0, 0, W, H, out, 0, W);
+        return img;
+    }
+
+    static double lum(int c) {
+        return 0.299 * (c >> 16 & 255) + 0.587 * (c >> 8 & 255) + 0.114 * (c & 255);
+    }
+
+    static int mix(int a, int b, double t) {
+        int r = (int) Math.round((a >> 16 & 255) * (1 - t) + (b >> 16 & 255) * t), g = (int) Math.round((a >> 8 & 255) * (1 - t) + (b >> 8 & 255) * t),
+            bl = (int) Math.round((a & 255) * (1 - t) + (b & 255) * t);
+        return 0xff000000 | r << 16 | g << 8 | bl;
+    }
+
+    /** Свой ключ 16 x 16 на случай, если в Divine нет текстуры: кольцо внизу слева, стержень по диагонали, бородка вверху. */
+    static int[] ownKey() {
+        String[] rows = { "................", "...........##...", "..........#OO#..", ".........#O##O#.", "........#O#..#O#", ".......#O#..#O#.",
+            "......#O#.##O#..", ".....#O#..#O#...", "....#O#...##....", "..##O#..........", ".#OO#...........", "#O##O#..........", "#O#.#O#.........",
+            "#O##O#..........", ".#OO#...........", "..##............" };
+        int[] out = new int[256];
+        for (int y = 0; y < 16; y++) for (int x = 0; x < 16; x++) {
+            char ch = rows[y].charAt(x);
+            out[y * 16 + x] = ch == '#' ? 0xff303030 : ch == 'O' ? 0xffd0d0d0 : 0;
+        }
+        return out;
+    }
+
     /** Запасной камень, если в Divine нет текстуры стены: шум вокруг цвета. */
     static int[] noise(int c) {
         int[] out = new int[256];

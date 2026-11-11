@@ -176,6 +176,7 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         w.setBlock(x + 4, base, z + 2, tw.lamp(), tw.lampMeta(), 2);
         chest(w, r, x + 4, base + 1, z + 4, TwilightLoot.ruins(tw), 5 + r.nextInt(3));
         if (tw == TwilightWorld.APALACHIA) sealIn(w, x + 4, base + 1, z + 4, tw); // острова Апалачии тонкие, подземелий мало - печать и в руинах
+        Reliquaries.inRuin(w, tw, x, base, z); // реликварий мира - с шансом и гарантией участка
         // стража
         int guards = 2 + r.nextInt(2);
         for (int i = 0; i < guards; i++) spawn(w, r, tw, x + 2 + r.nextInt(5), base + 1, z + 2 + r.nextInt(5));

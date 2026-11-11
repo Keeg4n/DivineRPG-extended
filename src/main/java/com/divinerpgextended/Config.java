@@ -140,6 +140,9 @@ public class Config {
     /** Запертые сундуки Арканы: шанс на каморку (1 из N), гарантия на участке (N-я каморка вида без сундука), размер участка. */
     public static boolean arcanaChests = true;
     public static int arcanaChestChance = 20, arcanaChestPity = 12, arcanaChestRegion = 2048;
+    /** Реликварии миров: шанс в руинах и склепах (1 из N) и гарантия (N-я постройка без реликвария на участке), то же на кораблях Терна, размер участка, редкость кораблей. */
+    public static boolean reliquaries = true;
+    public static int reliquaryChance = 12, reliquaryPity = 8, reliquaryShipChance = 3, reliquaryShipPity = 3, reliquaryRegion = 2048, skythernShipRarity = 200;
     /** Номера эффектов арканных зелий (пусто - свободные сами, от 127 вниз). */
     public static int[] arcanePotionIds = {};
     public static String[] divineSpawnWhitelist = {};
@@ -406,6 +409,16 @@ public class Config {
             "Гарантия: если на участке ещё нет сундука этого вида, столько-я подходящая каморка получает его без броска");
         arcanaChestRegion = cfg.getInt("arcanaChestRegion", "arcana", arcanaChestRegion, 256, 100000,
             "Размер участка гарантии, блоков (2048 - в любом квадрате 10000 x 10000 не меньше девяти целых участков)");
+        reliquaries = cfg.getBoolean("reliquaries", "worldgen", reliquaries,
+            "Реликварии сумеречных миров (под ключ мира: ключ Арканы + 4 камня мира): в руинах Эдема, Дикого леса и Апалачии, в склепах Мортума, на терновых кораблях Небесного терна");
+        reliquaryChance = cfg.getInt("reliquaryChance", "worldgen", reliquaryChance, 1, 10000, "Шанс реликвария в руинах и склепах: один из стольких");
+        reliquaryPity = cfg.getInt("reliquaryPity", "worldgen", reliquaryPity, 1, 10000,
+            "Гарантия: если на участке ещё нет реликвария, столько-е подходящее место (руины, склеп) получает его без броска");
+        reliquaryShipChance = cfg.getInt("reliquaryShipChance", "worldgen", reliquaryShipChance, 1, 10000, "Шанс реликвария на терновом корабле: один из стольких");
+        reliquaryShipPity = cfg.getInt("reliquaryShipPity", "worldgen", reliquaryShipPity, 1, 10000, "Гарантия на кораблях: столько-й корабль на участке без реликвария получает его");
+        reliquaryRegion = cfg.getInt("reliquaryRegion", "worldgen", reliquaryRegion, 256, 100000, "Размер участка гарантии реликвариев, блоков");
+        skythernShipRarity = cfg.getInt("skythernShipRarity", "worldgen", skythernShipRarity, 0, 100000,
+            "Терновые корабли в небе Небесного терна: в среднем попытка на столько чанков (корабль встаёт, если небо вокруг пустое); 0 - не строить");
         arcanePotionIds = cfg.get("arcana", "arcanePotionIds", arcanePotionIds,
             "Номера эффектов арканных зелий (1-127, по порядку: ясность, чародейство, собранность, оберег от чар, каменная кожа, отвод стрел, стойкость, "
                 + "колючая шкура, внутренний жар, боевой раж, твёрдая рука, жажда арканы, рыбацкий фарт). Пусто - берутся свободные от 127 вниз; "

@@ -22,6 +22,7 @@ public class RenderScaledBoss extends RenderLiving {
     private final float scale;
     private final float r, g, b;
     private final ResourceLocation texture;
+    private BossCrown crown;
 
     public RenderScaledBoss(ModelBase model, float scale, ResourceLocation texture, float r, float g, float b) {
         super(model, 0.5F * scale);
@@ -30,6 +31,18 @@ public class RenderScaledBoss extends RenderLiving {
         this.r = r;
         this.g = g;
         this.b = b;
+    }
+
+    /** Корона на модели (босс среди обычных мобов того же вида). */
+    public RenderScaledBoss crown(BossCrown c) {
+        crown = c;
+        return this;
+    }
+
+    @Override
+    protected void renderModel(EntityLivingBase e, float f, float f1, float f2, float f3, float f4, float scale) {
+        super.renderModel(e, f, f1, f2, f3, f4, scale);
+        if (crown != null && !e.isInvisible()) crown.render(mainModel, scale);
     }
 
     @Override

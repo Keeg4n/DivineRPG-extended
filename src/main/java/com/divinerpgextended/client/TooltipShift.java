@@ -67,10 +67,15 @@ public class TooltipShift {
             }
         }
         boolean hidden = false;
-        List<String> out = new ArrayList<String>();
+        List<String> out = new ArrayList<String>(), origin = new ArrayList<String>();
+        String vethean = StatCollector.translateToLocal("tooltip.vethean");
         for (int i = 0; i < e.toolTip.size(); i++) {
             String l = e.toolTip.get(i);
             Integer n = hide.get(l);
+            if (i > 0 && vethean.equals(EnumChatFormatting.getTextWithoutFormattingCodes(l).trim())) { // "Из Везеи" видна всегда - над "Shift - описание"
+                origin.add(l);
+                continue;
+            }
             if (i > 0 && n != null && n > 0 && !l.startsWith(KEEP) && !l.startsWith(MOD_NAME)) {
                 hide.put(l, n - 1);
                 if (EnumChatFormatting.getTextWithoutFormattingCodes(l).trim().length() > 0) hidden = true;
@@ -83,6 +88,7 @@ public class TooltipShift {
         int at = out.size(); // над именем мода, если оно в конце
         while (at > 1 && out.get(at - 1).startsWith(MOD_NAME)) at--;
         out.add(at, EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("dre.tooltip.shift"));
+        out.addAll(at, origin);
         e.toolTip.clear();
         e.toolTip.addAll(out);
     }

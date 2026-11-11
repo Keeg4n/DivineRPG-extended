@@ -12,9 +12,11 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 /**
  * Облако Скайтерна: площадки под ветряными тотемами. Мягкое и чуть прозрачное, по нему можно ходить; падение на облако
- * не ранит. Не выпадает при ломании.
+ * не ранит. Не выпадает при ломании. Мета {@link #TEMP} - облако Посоха облаков: тает через {@link #TEMP_TICKS} тиков.
  */
 public class BlockCloud extends Block {
+
+    public static final int TEMP = 1, TEMP_TICKS = 600;
 
     public BlockCloud() {
         super(Material.cloth);
@@ -51,5 +53,10 @@ public class BlockCloud extends Block {
     @Override
     public Item getItemDropped(int meta, Random r, int fortune) {
         return null;
+    }
+
+    @Override
+    public void updateTick(net.minecraft.world.World w, int x, int y, int z, Random r) {
+        if (w.getBlockMetadata(x, y, z) == TEMP) w.setBlockToAir(x, y, z);
     }
 }

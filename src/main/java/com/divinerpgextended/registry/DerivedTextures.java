@@ -132,16 +132,55 @@ public final class DerivedTextures {
         return recolor(main, r);
     }
 
-    /** Наша палитра на чужую версию текстуры: пиксели по яркости раскладываются по нашим цветам в тех же долях. */
+    /**
+     * Наша палитра на чужую версию текстуры: пиксели по яркости раскладываются по нашим цветам в тех же долях. Цветные и серые
+     * пиксели раскладываются раздельно (цветные - по цветным нашим, серые - по серым), если и там, и там их заметная доля: иначе
+     * у руды на камне вкрапления смешались бы с камнем (руда джунглей на Divine 1.4.1.5 теряла зелень).
+     */
     static BufferedImage recolor(BufferedImage s, Recipe r) {
         int w = s.getWidth(), h = s.getHeight();
         final int[] px = s.getRGB(0, 0, w, h, null, 0, w);
-        java.util.List<Integer> op = new java.util.ArrayList<Integer>();
+        java.util.List<Integer> op = new java.util.ArrayList<Integer>(), opC = new java.util.ArrayList<Integer>(), opG = new java.util.ArrayList<Integer>();
         for (int i = 0; i < px.length; i++) {
             if (px[i] >>> 24 == 0) px[i] = 0;
-            else op.add(i);
+            else {
+                op.add(i);
+                (colored(px[i]) ? opC : opG).add(i);
+            }
         }
         if (r.palette.length == 0 || op.isEmpty()) return image(px, w, h);
+        int[] out = new int[px.length];
+        java.util.List<Integer> palC = new java.util.ArrayList<Integer>(), palG = new java.util.ArrayList<Integer>();
+        long wC = 0, wAll = 0;
+        for (int i = 0; i < r.palette.length; i++) {
+            wAll += r.weight[i];
+            if (colored(r.palette[i])) {
+                palC.add(i);
+                wC += r.weight[i];
+            } else palG.add(i);
+        }
+        double share = 0.05;
+        boolean split = opC.size() >= share * op.size() && opG.size() >= share * op.size() && wC >= share * wAll && wAll - wC >= share * wAll;
+        if (split) {
+            rank(px, opC, r, palC, out);
+            rank(px, opG, r, palG, out);
+        } else {
+            java.util.List<Integer> all = new java.util.ArrayList<Integer>();
+            for (int i = 0; i < r.palette.length; i++) all.add(i);
+            rank(px, op, r, all, out);
+        }
+        return image(out, w, h);
+    }
+
+    /** Цветной пиксель: заметная насыщенность и не почти чёрный. */
+    public static boolean colored(int c) {
+        int rr = c >> 16 & 255, gg = c >> 8 & 255, bb = c & 255, mx = Math.max(rr, Math.max(gg, bb)), mn = Math.min(rr, Math.min(gg, bb));
+        return mx >= 40 && (mx - mn) / (double) mx >= 0.3;
+    }
+
+    /** Разложить пиксели op по яркости на цвета палитры pal (номера в рецепте) в долях их весов. */
+    private static void rank(final int[] px, java.util.List<Integer> op, Recipe r, java.util.List<Integer> pal, int[] out) {
+        if (op.isEmpty() || pal.isEmpty()) return;
         java.util.Collections.sort(op, new java.util.Comparator<Integer>() {
             @Override
             public int compare(Integer a, Integer b) {
@@ -149,14 +188,13 @@ public final class DerivedTextures {
             }
         });
         long total = 0;
-        for (int wgt : r.weight) total += wgt;
-        double[] cum = new double[r.palette.length];
+        for (int i : pal) total += r.weight[i];
+        double[] cum = new double[pal.size()];
         long acc = 0;
         for (int i = 0; i < cum.length; i++) {
-            acc += r.weight[i];
+            acc += r.weight[pal.get(i)];
             cum[i] = acc / (double) total;
         }
-        int[] out = new int[px.length];
         int n = op.size();
         for (int i = 0; i < n;) {
             int j = i;
@@ -167,11 +205,10 @@ public final class DerivedTextures {
             while (k < cum.length - 1 && cum[k] < p - 1e-9) k++;
             for (int t = i; t <= j; t++) {
                 int at = op.get(t);
-                out[at] = (px[at] & 0xff000000) | (r.palette[k] & 0xffffff);
+                out[at] = (px[at] & 0xff000000) | (r.palette[pal.get(k)] & 0xffffff);
             }
             i = j + 1;
         }
-        return image(out, w, h);
     }
 
     private static double lum(int c) {

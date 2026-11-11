@@ -54,15 +54,35 @@ public class BlockLockedChest extends BlockContainer {
             return v[meta >= 0 && meta < v.length ? meta : 0];
         }
 
-        /** Ключ, которым открывается (null - пока ничем, только в творческом). */
-        public Item lockKey() {
+        /** Мир реликвария (по порядку TwilightWorld, он же мета ключа мира) или -1 у сундуков Арканы. */
+        public int world() {
+            return arcana() ? -1 : ordinal() - EDEN.ordinal();
+        }
+
+        /** Вид реликвария мира. */
+        public static Kind of(com.divinerpgextended.world.twilight.TwilightWorld w) {
+            return values()[EDEN.ordinal() + w.ordinal()];
+        }
+
+        /** Ключ, которым открывается (null - нет предмета ключа). */
+        public ItemStack keyStack() {
             switch (this) {
-                case SLUDGE: return net.divinerpg.utils.items.ArcanaItems.sludgeKey;
-                case ANCIENT: return net.divinerpg.utils.items.ArcanaItems.ancientKey;
-                case SOUL: return net.divinerpg.utils.items.ArcanaItems.soulKey;
-                case DEGRADED: return net.divinerpg.utils.items.ArcanaItems.degradedKey;
-                default: return null;
+                case SLUDGE: return stack(net.divinerpg.utils.items.ArcanaItems.sludgeKey, 0);
+                case ANCIENT: return stack(net.divinerpg.utils.items.ArcanaItems.ancientKey, 0);
+                case SOUL: return stack(net.divinerpg.utils.items.ArcanaItems.soulKey, 0);
+                case DEGRADED: return stack(net.divinerpg.utils.items.ArcanaItems.degradedKey, 0);
+                default: return stack(com.divinerpgextended.registry.ModItems.worldKey, world());
             }
+        }
+
+        private static ItemStack stack(Item i, int meta) {
+            return i == null ? null : new ItemStack(i, 1, meta);
+        }
+
+        /** Подходит ли этот предмет как ключ. */
+        public boolean opens(ItemStack s) {
+            ItemStack k = keyStack();
+            return s != null && k != null && s.getItem() == k.getItem() && (arcana() || s.getItemDamage() == k.getItemDamage());
         }
     }
 
@@ -110,7 +130,7 @@ public class BlockLockedChest extends BlockContainer {
     @SideOnly(Side.CLIENT)
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void getSubBlocks(Item item, CreativeTabs tab, List list) {
-        for (Kind k : Kind.values()) if (k.arcana()) list.add(new ItemStack(item, 1, k.ordinal())); // реликварии - со своими ключами
+        for (Kind k : Kind.values()) list.add(new ItemStack(item, 1, k.ordinal()));
     }
 
     @Override
@@ -135,11 +155,11 @@ public class BlockLockedChest extends BlockContainer {
         TileLockedChest c = (TileLockedChest) te;
         if (c.locked) {
             Kind k = Kind.of(w.getBlockMetadata(x, y, z));
-            Item key = k.lockKey();
+            ItemStack key = k.keyStack();
             ItemStack held = p.getHeldItem();
             boolean creative = p.capabilities.isCreativeMode;
-            if (!creative && (key == null || held == null || held.getItem() != key)) {
-                say(p, EnumChatFormatting.GRAY, "dre.chest.locked", key == null ? new ChatComponentTranslation("dre.chest.no_key") : new ItemStack(key).func_151000_E());
+            if (!creative && !k.opens(held)) {
+                say(p, EnumChatFormatting.GRAY, "dre.chest.locked", key == null ? new ChatComponentTranslation("dre.chest.no_key") : key.func_151000_E());
                 return true;
             }
             if (!creative) {
@@ -183,8 +203,8 @@ public class BlockLockedChest extends BlockContainer {
         @SideOnly(Side.CLIENT)
         @SuppressWarnings({ "rawtypes", "unchecked" })
         public void addInformation(ItemStack s, EntityPlayer p, List l, boolean adv) {
-            Item key = Kind.of(s.getItemDamage()).lockKey();
-            String name = key != null ? new ItemStack(key).getDisplayName() : net.minecraft.util.StatCollector.translateToLocal("dre.chest.no_key");
+            ItemStack key = Kind.of(s.getItemDamage()).keyStack();
+            String name = key != null ? key.getDisplayName() : net.minecraft.util.StatCollector.translateToLocal("dre.chest.no_key");
             l.add(EnumChatFormatting.GRAY + net.minecraft.util.StatCollector.translateToLocalFormatted("dre.tooltip.locked_chest", name));
             l.add(EnumChatFormatting.DARK_GRAY + net.minecraft.util.StatCollector.translateToLocal("dre.tooltip.locked_chest_open"));
         }

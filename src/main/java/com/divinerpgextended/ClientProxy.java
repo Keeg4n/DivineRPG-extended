@@ -135,16 +135,19 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityBoulder.class, new com.divinerpgextended.client.RenderBoulder(net.divinerpg.utils.blocks.TwilightBlocks.wildwoodDirt));
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityRockfall.class, new com.divinerpgextended.client.RenderBoulder(net.divinerpg.utils.blocks.TwilightBlocks.twilightStone));
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntitySkyCart.class, new com.divinerpgextended.client.RenderSkyCart());
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityTomahawk.class, new com.divinerpgextended.client.RenderTomahawk());
         com.divinerpgextended.block.BlockSkyRail.renderId = RenderingRegistry.getNextAvailableRenderId();
         RenderingRegistry.registerBlockHandler(new com.divinerpgextended.client.RenderSkyRail());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.fishing.EntityDreHook.class,
             new com.divinerpgextended.client.RenderDreHook());
         // Карцинус - Король крабов, увеличенный в 4 раза
         RenderingRegistry.registerEntityRenderingHandler(EntityCarcinus.class,
-            new RenderScaledBoss(new ModelCrab(), 4.0F, EntityResourceLocation.crab, 1.0F, 0.85F, 0.8F)); // kingCrab.png 64x64 - не под модель краба (64x32), растягивалась
+            new RenderScaledBoss(new ModelCrab(), 4.0F, EntityResourceLocation.crab, 1.0F, 0.85F, 0.8F) // kingCrab.png 64x64 - не под модель краба (64x32), растягивалась
+                .crown(new com.divinerpgextended.client.BossCrown("RearEnd", 1F, -4F, 0F, 5F, 0x4AB0FF))); // корона на панцире: отличить от свиты
         // Снежный Глакон - Глакон, увеличенный и холодного оттенка
         RenderingRegistry.registerEntityRenderingHandler(EntitySnowGlacon.class,
-            new RenderScaledBoss(new ModelGlacon(), 2.2F, EntityResourceLocation.glacon, 0.8F, 0.9F, 1.0F));
+            new RenderScaledBoss(new ModelGlacon(), 2.2F, EntityResourceLocation.glacon, 0.8F, 0.9F, 1.0F)
+                .crown(new com.divinerpgextended.client.BossCrown("head", 0F, -4F, -0.5F, 5F, 0xA8E8FF))); // корона на голове
         RenderingRegistry.registerEntityRenderingHandler(EntityFrostCharge.class,
             new RenderSnowball(IceikaItems.snowflake));
         RenderingRegistry.registerEntityRenderingHandler(EntityFrostColossus.class, new RenderFrostColossus());

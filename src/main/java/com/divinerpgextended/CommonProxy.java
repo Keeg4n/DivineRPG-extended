@@ -252,6 +252,9 @@ public class CommonProxy {
             .register(new com.divinerpgextended.trinket.DoubleJump());
         com.divinerpgextended.trinket.TrinketEffects trinkets = new com.divinerpgextended.trinket.TrinketEffects();
         MinecraftForge.EVENT_BUS.register(trinkets);
+        com.divinerpgextended.perk.RelicEffects relics = new com.divinerpgextended.perk.RelicEffects(); // вещи из реликвариев миров
+        MinecraftForge.EVENT_BUS.register(relics);
+        FMLCommonHandler.instance().bus().register(relics);
         FMLCommonHandler.instance()
             .bus()
             .register(trinkets);
@@ -340,6 +343,7 @@ public class CommonProxy {
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenOuterLairs(), 99000); // логова Ада и Энда - после озёр и прочего других модов
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaDoors(), 70);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaChests(), 110); // после фонтанных залов: зал перестраивает комнату
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.Reliquaries.Ships(), 66); // терновые корабли с реликварием Терна
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenTomb(), 55);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.ClockGuard());
         FMLCommonHandler.instance()
