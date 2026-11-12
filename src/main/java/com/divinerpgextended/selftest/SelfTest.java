@@ -2465,7 +2465,7 @@ public class SelfTest {
         });
         t("Прохождение", "Миникарта Xaero: у каждого моба Divine и аддона есть описание иконки", () -> {
             int all = 0;
-            StringBuilder miss = new StringBuilder();
+            StringBuilder miss = new StringBuilder(), unlisted = new StringBuilder();
             for (Object o : net.minecraft.entity.EntityList.classToStringMapping.entrySet()) {
                 java.util.Map.Entry<?, ?> e = (java.util.Map.Entry<?, ?>) o;
                 Class<?> c = (Class<?>) e.getKey();
@@ -2473,9 +2473,12 @@ public class SelfTest {
                 if (!c.getName().startsWith("net.divinerpg.") && !c.getName().startsWith("com.divinerpgextended.")) continue;
                 all++;
                 if (SelfTest.class.getResource("/assets/xaerominimap/entity/icon/definition/" + e.getValue() + ".json") == null) miss.append(e.getValue()).append(' ');
+                // Xaero читает описания только для имён из глобального списка id (EntityList.func_151515_b), а ищет моба по getEntityString
+                if (!net.minecraft.entity.EntityList.func_151515_b().contains(e.getValue())) unlisted.append(e.getValue()).append(' ');
             }
+            com.divinerpgextended.DivineRPGExtended.LOG.info("Xaero: не в глобальном списке id: " + unlisted);
             boolean sprite = SelfTest.class.getResource("/assets/xaerominimap/entity/icon/sprite/divinerpgextended_training_dummy.png") != null;
-            check(miss.length() == 0 && sprite && all > 100, "мобов " + all + ", без описания: " + miss + "; значок манекена " + sprite);
+            check(miss.length() == 0 && unlisted.length() == 0 && sprite && all > 100, "мобов " + all + ", без описания: " + miss + "; Xaero не прочтёт (нет в списке id): " + unlisted + "; значок манекена " + sprite);
             return all + " мобов Divine и аддона: у всех описание (цветная точка вместо иконки, которую Xaero не может нарисовать), у манекена свой соломенный значок";
         });
     }

@@ -291,6 +291,7 @@ public final class ModItems {
         EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntitySummonShark.class, "SummonShark", 39, DivineRPGExtended.instance, 64, 2, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntitySummonSlime.class, "SummonSlime", 40, DivineRPGExtended.instance, 64, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntitySummonEye.class, "SummonEye", 41, DivineRPGExtended.instance, 64, 2, true);
+        listForMinimap();
         bossEgg = new com.divinerpgextended.item.ItemBossEgg();
         GameRegistry.registerItem(bossEgg, "bossEgg");
     }
@@ -299,5 +300,29 @@ public final class ModItems {
         String[] k = new String[v.length];
         for (int i = 0; i < v.length; i++) k[i] = v[i].name().toLowerCase();
         return k;
+    }
+
+    /** Значения в списке имён у мобов аддона: выше 255, чтобы не путать с настоящими глобальными id (их в 1.7.10 до 255). */
+    public static final int MINIMAP_ID_BASE = 1000;
+
+    /**
+     * Xaero's Minimap читает описания иконок только для имён из глобального списка id (EntityList.func_151515_b), а мобы
+     * аддона (registerModEntity) в нём не числятся - их описания не читались, и на миникарте был знак вопроса. Дописываем
+     * свои имена в этот список; кроме Xaero им пользуется только подсказка команды /summon.
+     */
+    @SuppressWarnings("unchecked")
+    static void listForMinimap() {
+        try {
+            java.util.Map<String, Integer> ids = cpw.mods.fml.relauncher.ReflectionHelper.getPrivateValue(net.minecraft.entity.EntityList.class, null, "stringToIDMapping",
+                "field_75622_f");
+            int n = 0;
+            for (Object o : net.minecraft.entity.EntityList.classToStringMapping.entrySet()) {
+                java.util.Map.Entry<Class<?>, String> e = (java.util.Map.Entry<Class<?>, String>) o;
+                if (!e.getKey().getName().startsWith("com.divinerpgextended.") || !net.minecraft.entity.EntityLiving.class.isAssignableFrom(e.getKey())) continue;
+                if (!ids.containsKey(e.getValue())) ids.put(e.getValue(), MINIMAP_ID_BASE + n++);
+            }
+        } catch (Throwable t) {
+            DivineRPGExtended.LOG.warn("Миникарта: мобы аддона не добавлены в список имён - " + t);
+        }
     }
 }
