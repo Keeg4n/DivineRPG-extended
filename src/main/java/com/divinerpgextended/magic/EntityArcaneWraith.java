@@ -16,7 +16,7 @@ import net.minecraft.world.World;
  */
 public class EntityArcaneWraith extends EntityWraith {
 
-    public static final float BASE_DAMAGE = 10F, UPKEEP = 8F; // восстановление арканы - 20 в секунду
+    public static final float BASE_DAMAGE = 10F, UPKEEP = AnchorSummons.UPKEEP; // как у всех призывов
     public static final int HIT_EVERY = 15, LEASH = 48;
     private static java.lang.reflect.Field age;
     private int cooldown, life;
@@ -62,7 +62,8 @@ public class EntityArcaneWraith extends EntityWraith {
             setDead();
             return;
         }
-        if (++life % 20 == 0 && !upkeep(o)) {
+        // платит первый призрак хозяина - за всех сразу, обычной тратой арканы (с паузой восстановления)
+        if (++life % 20 == 0 && ArcaneSummons.index(this) == 0 && !AnchorSummons.pay(o, ArcaneSummons.count(o))) {
             ArcaneSummons.dismissAll(o);
             return;
         }
@@ -102,14 +103,6 @@ public class EntityArcaneWraith extends EntityWraith {
         }
     }
 
-    /** Плата арканой за секунду жизни. */
-    boolean upkeep(EntityPlayer o) {
-        if (o.capabilities.isCreativeMode) return true;
-        ArcanaHelper h = ArcanaHelper.getProperties(o);
-        if (h == null || h.getBarValue() < UPKEEP) return false;
-        h.setBarValue(h.getBarValue() - UPKEEP);
-        return true;
-    }
 
     @Override
     public boolean attackEntityFrom(DamageSource s, float a) {

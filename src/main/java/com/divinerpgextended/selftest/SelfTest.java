@@ -3577,7 +3577,10 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(z, DamageSource.causePlayerDamage(p), 1)); // хозяин ударил - цель
             g.setPosition(bx + 0.5, by + 1, bz + 0.5);
             float hp0 = z.getHealth(), bar0 = a.getBarValue();
-            for (int i = 0; i < 60; i++) g.onUpdate();
+            // платит первый призрак хозяина за всех: обновляются все
+            java.util.List<com.divinerpgextended.magic.EntityArcaneWraith> allGhosts = new java.util.ArrayList<com.divinerpgextended.magic.EntityArcaneWraith>();
+            for (Object o : w.loadedEntityList) if (o instanceof com.divinerpgextended.magic.EntityArcaneWraith && !((net.minecraft.entity.Entity) o).isDead) allGhosts.add((com.divinerpgextended.magic.EntityArcaneWraith) o);
+            for (int i = 0; i < 60; i++) for (com.divinerpgextended.magic.EntityArcaneWraith gw : allGhosts) gw.onUpdate();
             boolean through = g.posX > bx + 4; // прошёл сквозь стену
             float dealt = hp0 - z.getHealth(), paid = bar0 - a.getBarValue();
             boolean hurtable = g.attackEntityFrom(DamageSource.causePlayerDamage(p), 100);
@@ -3585,8 +3588,8 @@ public class SelfTest {
             z.setDead();
             com.divinerpgextended.magic.ArcaneSummons.dismissAll(p);
             float hit = com.divinerpgextended.magic.EntityArcaneWraith.BASE_DAMAGE * com.divinerpgextended.magic.ArcanaRules.stage(p);
-            check(!spawnedDivine && afterDivine == 1 && capped == 2 && through && dealt >= hit - 0.01F && paid >= com.divinerpgextended.magic.EntityArcaneWraith.UPKEEP * 2 - 0.01F
-                && paid <= com.divinerpgextended.magic.EntityArcaneWraith.UPKEEP * 4 + 0.01F && !hurtable,
+            check(!spawnedDivine && afterDivine == 1 && capped == 2 && through && dealt >= hit - 0.01F && paid >= com.divinerpgextended.magic.EntityArcaneWraith.UPKEEP * capped * 2 - 0.01F
+                && paid <= com.divinerpgextended.magic.EntityArcaneWraith.UPKEEP * capped * 4 + 0.01F && !hurtable,
                 "призрак Divine заменён " + (!spawnedDivine && afterDivine == 1) + " (в мир " + spawnedDivine + ", призывов " + afterDivine + ": " + ghosts + "), после трёх вызовов призраков " + capped + "; сквозь стену " + through + " (x=" + f((float) g.posX)
                     + "), урон цели " + f(dealt) + " (удар " + f(hit) + "), плата за 3 с " + f(paid) + ", ранить призрака " + hurtable);
             return "призрак-призыв: летит к цели хозяина сквозь стены, бьёт на " + f(hit) + " арканного урона, не больше двух, " + (int) com.divinerpgextended.magic.EntityArcaneWraith.UPKEEP
@@ -4026,6 +4029,38 @@ public class SelfTest {
             }
             check(ok, rep.toString());
             return "призывы одного хозяина - одного вида (призрак прогнал крабов, слизень - призрака); с Кормой крабов 3; ПКМ хозяина по призыву убирает, чужого - нет; свисток зовёт призывы";
+        });
+        t("Лиоплевродон", "Призывы едят аркану с паузой восстановления: два без улучшений живут около 10 секунд", () -> {
+            WorldServer w = ow;
+            loadAround(w, sx + 340, sz, 1);
+            TestPlayer up = join(player(0, "TestSummonUpkeep", sx + 340.5, sy, sz + 0.5), true);
+            up.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            ArcanaHelper h = ArcanaHelper.getProperties(up);
+            int[] life = new int[2];
+            try {
+                for (int pass = 0; pass < 2; pass++) {
+                    // pass 0 - ничего; pass 1 - зелье арканы (Ясность: без паузы восстановления)
+                    com.divinerpgextended.magic.ArcaneEffects.clear(up);
+                    if (pass == 1) com.divinerpgextended.magic.ArcanaRules.buff(up, 2, 20 * 60);
+                    h.setBarValue(200);
+                    h.regenDelay = 0;
+                    net.minecraft.entity.EntityLiving a = com.divinerpgextended.magic.AnchorSummons.summon(up, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB),
+                        b = com.divinerpgextended.magic.AnchorSummons.summon(up, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB);
+                    int tk = 0;
+                    for (; tk < 20 * 40 && (!a.isDead || !b.isDead); tk++) {
+                        h.regen(1.0F); // восстановление Divine: +1 за тик, если нет паузы
+                        a.onUpdate();
+                        b.onUpdate();
+                    }
+                    life[pass] = tk;
+                    com.divinerpgextended.magic.AnchorSummons.dismissAll(up);
+                }
+            } finally {
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(up);
+                com.divinerpgextended.magic.ArcaneEffects.clear(up);
+            }
+            check(life[0] >= 180 && life[0] <= 240 && life[1] >= 20 * 40, "два краба на 200 арканы: " + f(life[0] / 20F) + " с (ждали около 10); с Ясностью: " + f(life[1] / 20F) + " с (ждали до конца проверки, 40 с)");
+            return "два призыва на 200 арканы без улучшений живут " + f(life[0] / 20F) + " с: плата каждую секунду ставит паузу восстановления; с Ясностью (без паузы) держатся всю проверку";
         });
         t("Аркана", "Манекен засчитывает арканный удар мечей Арканы, с Венцом арканы - вдвое", () -> {
             WorldServer w = ow;

@@ -76,7 +76,8 @@ public class EntitySummonShark extends EntityLiving implements AnchorSummons.Sum
             setDead();
             return;
         }
-        if (++life % 20 == 0 && !AnchorSummons.upkeep(o, kind().upkeep)) {
+        // платит первый в списке хозяина - за всех сразу
+        if (++life % 20 == 0 && AnchorSummons.index(this, o) == 0 && !AnchorSummons.pay(o, AnchorSummons.of(o).size())) {
             AnchorSummons.dismissAll(o);
             return;
         }

@@ -30,19 +30,27 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * <p>
  * С 0.99.120: призывы одного хозяина - только одного вида (позвал краба - остальные, и призраки тоже, уходят); ПКМ по своему
  * призыву или удар свистком - убрать; свисток зовёт их к хозяину; наземные (слизень, краб) толкаются друг с другом и при
- * переносе к хозяину встают кольцом. Цена в аркане поднята: восстановление арканы - 20 в секунду, 1-3 за призыв не чувствовались.
+ * переносе к хозяину встают кольцом.
+ * <p>
+ * С 0.99.121 плата одна на всех призывов хозяина раз в секунду ({@link #pay}): {@link #UPKEEP} за каждого, обычной тратой
+ * арканы - с паузой восстановления (пока призывы живы, аркана сама не восстанавливается), со скидкой Кормы и Собранности.
+ * Без улучшений два призыва на 200 арканы живут 10 секунд; дольше - Корма (дешевле, запас больше), кристалл ясности (пауза
+ * короче), задания Ваттикуса (запас больше), Венец арканы R8 (восстановление вдвое быстрее), зелья арканы (Ясность: без паузы).
  */
 public class AnchorSummons {
 
+    /** Цена призыва в аркане за секунду - у всех одна (и у призрака). */
+    public static final float UPKEEP = 10F;
+
     public enum Kind {
         /** Слизень слизневого меча: прыгает по земле, агр ближе всех. */
-        SLIME(3F, 2, 3F, 6),
+        SLIME(UPKEEP, 2, 3F, 6),
         /** Бегает по земле. */
-        CRAB(5F, 2, 4F, 8),
+        CRAB(UPKEEP, 2, 4F, 8),
         /** Око циклопического жезла: спутник над головой, бьёт слабее всех, но отбрасывает врага. */
-        EYE(3F, 2, 2F, 10),
+        EYE(UPKEEP, 2, 2F, 10),
         /** Летает, как призрак. */
-        SHARK(7F, 2, 8F, 12);
+        SHARK(UPKEEP, 2, 8F, 12);
 
         public final float upkeep, damage;
         public final int cap;
@@ -233,13 +241,15 @@ public class AnchorSummons {
         TARGET.put(p.getUniqueID(), new Object[] { t, p.worldObj.getTotalWorldTime() });
     }
 
-    /** Плата арканой за секунду жизни; не хватило - false. */
-    static boolean upkeep(EntityPlayer o, float cost) {
-        if (o.capabilities.isCreativeMode) return true;
+    /**
+     * Плата за секунду жизни всех призывов хозяина сразу ({@link #UPKEEP} за каждого) - обычной тратой арканы: включает паузу
+     * восстановления, со скидкой Кормы и Собранности. Одна трата на всех, иначе каждая заново сбрасывала бы паузу. Не хватило -
+     * false (ничего не тратится).
+     */
+    public static boolean pay(EntityPlayer o, int count) {
+        if (o.capabilities.isCreativeMode || count <= 0) return true;
         ArcanaHelper h = ArcanaHelper.getProperties(o);
-        if (h == null || h.getBarValue() < cost) return false;
-        h.setBarValue(h.getBarValue() - cost);
-        return true;
+        return h != null && ArcanaRules.useBar(h, UPKEEP * count, "Summon");
     }
 
     /** Удар призыва: урон вида, растёт со стадией (как у призрака). */
