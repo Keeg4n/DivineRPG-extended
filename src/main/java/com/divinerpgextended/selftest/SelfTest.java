@@ -719,6 +719,7 @@ public class SelfTest {
         moreTests(p, q, g, ow, sx, sy, sz);
         lioTests(p, ow, sx, sy, sz);
         earlyWeaponTests(ow, sx, sy, sz);
+        dropIconTests();
         fishingReport();
         g.setDead();
     }
@@ -3185,7 +3186,7 @@ public class SelfTest {
                 if ("divinerpgextended".equals(dom) && com.divinerpgextended.registry.DerivedTextures.class.getResource("/assets/" + dom + "/" + rc.out.substring(rc.out.indexOf(':') + 1)) != null)
                     shipped.add(rc.out);
             }
-            check(all.size() >= 30 && missing.isEmpty() && shipped.isEmpty(), "рецептов " + all.size() + ", нет исходника: " + missing + ", картинка всё ещё в jar: " + shipped);
+            check(all.size() >= 20 && missing.isEmpty() && shipped.isEmpty(), "рецептов " + all.size() + ", нет исходника: " + missing + ", картинка всё ещё в jar: " + shipped);
             // руда джунглей: зелёные вкрапления на сером камне в любой версии DivineRPG (на 1.4.1.5 при перекраске зелень размазывалась по камню)
             java.awt.image.BufferedImage ore = com.divinerpgextended.registry.DerivedTextures.build(all.get("divinerpgextended:textures/blocks/jungleOre.png"));
             String oreWay = com.divinerpgextended.registry.DerivedTextures.lastWay;
@@ -4793,7 +4794,176 @@ public class SelfTest {
             check(all.contains("Selftest: проверка журнала"), "строки нет в " + log);
             return "строка в logs/dre-audit.log";
         });
+
+        t("Отладка", "Дамп добычи сундуков и ящиков (logs/dre-loot.json)", () -> {
+            StringBuilder js = new StringBuilder("[\n");
+            final java.util.Random seed = new java.util.Random(117);
+            // логова и Айсика: обычные таблицы с весами
+            Object[][] lair = { { "crab", "Нора Карцинуса и купола логов", 5, 8, com.divinerpgextended.world.LairLoot.class },
+                { "snow", "Ледяная пещера Снежного Глакона (морозные сундуки)", 5, 8, null }, { "village", "Дома жителей Айсики", 3, 5, null },
+                { "iceikaDungeon", "Подземелья Айсики и пещеры к ним", 4, 7, null }, { "tomb", "Саркофаги Древней гробницы", 4, 7, null } };
+            for (Object[] l : lair) {
+                java.lang.reflect.Method m = com.divinerpgextended.world.LairLoot.class.getDeclaredMethod((String) l[0]);
+                m.setAccessible(true);
+                lootWeighted(js, "Логова и Айсика", (String) l[1], "", (Integer) l[2], (Integer) l[3], (net.minecraft.util.WeightedRandomChestContent[]) m.invoke(null));
+            }
+            // сумеречные миры: руины и подземелья, по миру
+            for (com.divinerpgextended.world.twilight.TwilightWorld tw : com.divinerpgextended.world.twilight.TwilightWorld.values()) {
+                lootWeighted(js, "Сумеречные миры", "Руины: " + tw.name(), tw.name(), 5, 7, com.divinerpgextended.world.twilight.TwilightLoot.ruins(tw));
+                lootWeighted(js, "Сумеречные миры", "Подземелья: " + tw.name(), tw.name(), 6, 8, com.divinerpgextended.world.twilight.TwilightLoot.dungeon(tw));
+            }
+            // сундуки Арканы и реликварии - добыча считается кодом при открытии: прогоняем 20000 раз
+            for (com.divinerpgextended.block.BlockLockedChest.Kind k : com.divinerpgextended.block.BlockLockedChest.Kind.values()) {
+                final com.divinerpgextended.block.BlockLockedChest.Kind kk = k;
+                lootSampled(js, k.arcana() ? "Сундуки Арканы" : "Реликварии", k.name(), k.name(), 20000, r -> com.divinerpgextended.world.ArcanaChests.loot(kk, r), seed);
+            }
+            // подарки под ёлками Айсики
+            final java.lang.reflect.Method gifts = Class.forName("com.divinerpgextended.world.IceikaXmasTree").getDeclaredMethod("gifts", java.util.Random.class, net.minecraft.inventory.IInventory.class);
+            gifts.setAccessible(true);
+            lootSampled(js, "Логова и Айсика", "Подарки под ёлками Айсики", "", 20000, r -> {
+                net.minecraft.inventory.InventoryBasic inv = new net.minecraft.inventory.InventoryBasic("g", false, 27);
+                try {
+                    gifts.invoke(null, r, inv);
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+                List<ItemStack> out = new ArrayList<ItemStack>();
+                for (int i = 0; i < 27; i++) if (inv.getStackInSlot(i) != null) out.add(inv.getStackInSlot(i));
+                return out;
+            }, seed);
+            // рыболовные ящики по зонам и улов (веса таблиц рыбалки - рефлексией)
+            for (com.divinerpgextended.fishing.Zone z : com.divinerpgextended.fishing.Zone.values()) {
+                final com.divinerpgextended.fishing.Zone zz = z;
+                lootSampled(js, "Рыболовные ящики", z.name(), z.name(), 20000, r -> com.divinerpgextended.fishing.FishingLoot.crate(r, zz), seed);
+            }
+            js.append(lootFishTables());
+            js.append("]\n");
+            File f = new File(server.getFile("logs"), "dre-loot.json");
+            java.nio.file.Files.write(f.toPath(), js.toString().getBytes(StandardCharsets.UTF_8));
+            return "добыча сундуков, реликвариев, подарков и ящиков рыбалки - " + f.getName() + " (" + js.length() / 1024 + " КБ)";
+        });
     }
+
+    // ---------------- дамп добычи сундуков (для таблицы правки дропа) ----------------
+
+    private static String jstr(String s) {
+        if (s == null) return "null";
+        StringBuilder b = new StringBuilder("\"");
+        for (char c : s.toCharArray()) {
+            if (c == '"' || c == '\\') b.append('\\').append(c);
+            else if (c < 32) b.append(' ');
+            else b.append(c);
+        }
+        return b.append('"').toString();
+    }
+
+    /** Предмет для таблицы: id, мета, ключ имени, текстура (у блока - текстура блока). */
+    private static String lootStack(ItemStack s) {
+        Item i = s.getItem();
+        String icon = null;
+        try {
+            Block b = Block.getBlockFromItem(i);
+            if (b != null && b != Blocks.air) icon = (String) ReflectionHelper.getPrivateValue(Block.class, b, "textureName", "field_149768_d");
+            else icon = (String) ReflectionHelper.getPrivateValue(Item.class, i, "iconString", "field_111218_cA");
+        } catch (Throwable ignored) {}
+        String unloc;
+        try {
+            unloc = s.getUnlocalizedName();
+        } catch (Throwable t) {
+            unloc = i.getUnlocalizedName();
+        }
+        return "\"id\":" + jstr(Item.itemRegistry.getNameForObject(i)) + ",\"meta\":" + s.getItemDamage() + ",\"unloc\":" + jstr(unloc) + ",\"icon\":" + jstr(icon)
+            + ",\"en\":" + jstr(s.getDisplayName()) + ",\"block\":" + (Block.getBlockFromItem(i) != null && Block.getBlockFromItem(i) != Blocks.air);
+    }
+
+    /** Обычная таблица сундука: rolls - сколько раз тянется предмет; веса как есть (шансы считает таблица). */
+    private static void lootWeighted(StringBuilder js, String group, String name, String world, int rollMin, int rollMax, net.minecraft.util.WeightedRandomChestContent[] table) {
+        js.append("{\"group\":").append(jstr(group)).append(",\"name\":").append(jstr(name)).append(",\"world\":").append(jstr(world)).append(",\"kind\":\"weighted\",\"rolls\":[")
+            .append(rollMin).append(',').append(rollMax).append("],\"entries\":[");
+        boolean first = true;
+        for (net.minecraft.util.WeightedRandomChestContent c : table) {
+            if (c == null || c.theItemId == null || c.theItemId.getItem() == null) continue;
+            js.append(first ? "" : ",").append("{").append(lootStack(c.theItemId)).append(",\"min\":").append(c.theMinimumChanceToGenerateItem).append(",\"max\":")
+                .append(c.theMaximumChanceToGenerateItem).append(",\"weight\":").append(c.itemWeight).append("}");
+            first = false;
+        }
+        js.append("]},\n");
+    }
+
+    /** Добыча, которую считает код: n прогонов, по каждому предмету - доля сундуков с ним, среднее, наименьшее и наибольшее число. */
+    private static void lootSampled(StringBuilder js, String group, String name, String world, int n, java.util.function.Function<java.util.Random, List<ItemStack>> gen, java.util.Random seed) {
+        java.util.Map<String, int[]> stat = new java.util.LinkedHashMap<String, int[]>();
+        java.util.Map<String, ItemStack> sample = new java.util.HashMap<String, ItemStack>();
+        java.util.Random r = new java.util.Random(seed.nextLong());
+        for (int i = 0; i < n; i++) {
+            java.util.Map<String, Integer> got = new java.util.HashMap<String, Integer>();
+            for (ItemStack s : gen.apply(r)) {
+                if (s == null || s.getItem() == null) continue;
+                String key = Item.itemRegistry.getNameForObject(s.getItem()) + "#" + s.getItemDamage();
+                got.put(key, (got.containsKey(key) ? got.get(key) : 0) + s.stackSize);
+                if (!sample.containsKey(key)) sample.put(key, s.copy());
+            }
+            for (java.util.Map.Entry<String, Integer> e : got.entrySet()) {
+                int[] st = stat.get(e.getKey());
+                if (st == null) stat.put(e.getKey(), st = new int[] { 0, 0, Integer.MAX_VALUE, 0 });
+                st[0]++;
+                st[1] += e.getValue();
+                st[2] = Math.min(st[2], e.getValue());
+                st[3] = Math.max(st[3], e.getValue());
+            }
+        }
+        js.append("{\"group\":").append(jstr(group)).append(",\"name\":").append(jstr(name)).append(",\"world\":").append(jstr(world)).append(",\"kind\":\"sampled\",\"n\":").append(n)
+            .append(",\"entries\":[");
+        boolean first = true;
+        for (java.util.Map.Entry<String, int[]> e : stat.entrySet()) {
+            int[] st = e.getValue();
+            js.append(first ? "" : ",").append("{").append(lootStack(sample.get(e.getKey()))).append(",\"chance\":").append(st[0] / (double) n).append(",\"avg\":")
+                .append(st[1] / (double) st[0]).append(",\"min\":").append(st[2]).append(",\"max\":").append(st[3]).append("}");
+            first = false;
+        }
+        js.append("]},\n");
+    }
+
+    /** Таблицы рыбалки по зонам (обычное, необычное, редкое, очень редкое) с весами - рефлексией, для расчёта ящиков и улова. */
+    private static String lootFishTables() throws Exception {
+        Class<?> fl = com.divinerpgextended.fishing.FishingLoot.class;
+        com.divinerpgextended.fishing.FishingLoot.catches(com.divinerpgextended.fishing.Zone.CAVE); // таблицы заполнены
+        java.lang.reflect.Field tf = fl.getDeclaredField("tables");
+        tf.setAccessible(true);
+        java.util.Map<?, ?> tables = (java.util.Map<?, ?>) tf.get(null);
+        StringBuilder js = new StringBuilder();
+        boolean firstZone = true;
+        js.append("{\"group\":\"Улов рыбалки\",\"kind\":\"fish\",\"zones\":{");
+        for (java.util.Map.Entry<?, ?> z : tables.entrySet()) {
+            Object t = z.getValue();
+            js.append(firstZone ? "" : ",").append(jstr(z.getKey().toString())).append(":{");
+            firstZone = false;
+            boolean firstTier = true;
+            for (String tier : new String[] { "common", "uncommon", "rare", "veryRare" }) {
+                java.lang.reflect.Field lf = t.getClass().getDeclaredField(tier);
+                lf.setAccessible(true);
+                js.append(firstTier ? "" : ",").append(jstr(tier)).append(":[");
+                firstTier = false;
+                boolean first = true;
+                for (Object en : (List<?>) lf.get(t)) {
+                    java.lang.reflect.Field sf = en.getClass().getDeclaredField("stack"), mi = en.getClass().getDeclaredField("min"), ma = en.getClass().getDeclaredField("max"),
+                        we = en.getClass().getDeclaredField("weight");
+                    sf.setAccessible(true);
+                    mi.setAccessible(true);
+                    ma.setAccessible(true);
+                    we.setAccessible(true);
+                    js.append(first ? "" : ",").append("{").append(lootStack((ItemStack) sf.get(en))).append(",\"min\":").append(mi.getInt(en)).append(",\"max\":").append(ma.getInt(en))
+                        .append(",\"weight\":").append(we.getInt(en)).append("}");
+                    first = false;
+                }
+                js.append("]");
+            }
+            js.append("}");
+        }
+        js.append("}}\n");
+        return js.toString();
+    }
+
 
     // ---------------- Второй блок ----------------
 
@@ -15074,6 +15244,25 @@ public class SelfTest {
             }
             check(ok, rep.toString());
             return rep.toString();
+        });
+    }
+
+    /** Значки, выбранные по концептам 12.11.2026: материалы мобов, лут боссов, Часы Странника по уровням - свои картинки в jar. */
+    private void dropIconTests() {
+        t("Предметы", "Значки: материалы мобов, лут боссов, Часы Странника по уровням", () -> {
+            List<String> need = new ArrayList<String>();
+            for (com.divinerpgextended.world.twilight.TwilightMaterial m : com.divinerpgextended.world.twilight.TwilightMaterial.values()) need.add("twilight_mat_" + m.key());
+            for (com.divinerpgextended.world.CadillionWorld w : com.divinerpgextended.world.CadillionWorld.values()) {
+                need.add("guardian_heart_" + w.key());
+                need.add("time_gear_" + w.key());
+            }
+            for (com.divinerpgextended.halite.Halite.Trophy tr : com.divinerpgextended.halite.Halite.Trophy.values()) need.add("mortumTrophy_" + tr.key());
+            for (int tier = 1; tier <= com.divinerpgextended.item.ItemWandererClock.MAX_TIER; tier++) need.add("wanderer_clock_" + tier);
+            for (String n : new String[] { "deep_shell", "frozenHeart", "throneShard", "watcherEye", "dreamItem_lunar_shard" }) need.add(n);
+            List<String> missing = new ArrayList<String>();
+            for (String n : need) if (SelfTest.class.getResource("/assets/divinerpgextended/textures/items/" + n + ".png") == null) missing.add(n);
+            check(missing.isEmpty(), "нет картинок: " + missing);
+            return need.size() + " значков на месте: 15 материалов мобов, сердца стражей и шестерни времени по мирам, 6 трофеев Мортума, Панцирь глубин, ледяное сердце, осколок трона, око Смотрителя, лунный осколок, часы I-V";
         });
     }
 

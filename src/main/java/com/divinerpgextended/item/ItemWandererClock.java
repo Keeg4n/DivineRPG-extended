@@ -27,8 +27,37 @@ public class ItemWandererClock extends Item {
     public ItemWandererClock() {
         setMaxStackSize(1);
         setUnlocalizedName("dre.wandererClock");
-        setTextureName("divinerpg:twilightClock");
+        setTextureName("divinerpgextended:wanderer_clock_1");
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
+    }
+
+    /** Значок по уровню: карманные часы, металл корпуса и камни миров меняются с уровнем. */
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    private net.minecraft.util.IIcon[] icons;
+
+    @Override
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    public void registerIcons(net.minecraft.client.renderer.texture.IIconRegister reg) {
+        icons = new net.minecraft.util.IIcon[MAX_TIER];
+        for (int t = 1; t <= MAX_TIER; t++) icons[t - 1] = reg.registerIcon("divinerpgextended:wanderer_clock_" + t);
+        itemIcon = icons[0];
+    }
+
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    private net.minecraft.util.IIcon iconFor(ItemStack s) {
+        return icons == null ? itemIcon : icons[Math.max(1, Math.min(MAX_TIER, tier(s))) - 1];
+    }
+
+    @Override
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    public net.minecraft.util.IIcon getIconIndex(ItemStack s) {
+        return iconFor(s);
+    }
+
+    @Override
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    public net.minecraft.util.IIcon getIcon(ItemStack s, int pass) {
+        return iconFor(s);
     }
 
     public static int tier(ItemStack stack) {

@@ -42,7 +42,7 @@ public class ItemTimeGear extends Item {
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister reg) {
         icons = new IIcon[CadillionWorld.values().length];
-        for (CadillionWorld w : CadillionWorld.values()) icons[w.ordinal()] = reg.registerIcon("divinerpg:" + w.key() + "Gem");
+        for (CadillionWorld w : CadillionWorld.values()) icons[w.ordinal()] = reg.registerIcon("divinerpgextended:time_gear_" + w.key());
     }
 
     @Override

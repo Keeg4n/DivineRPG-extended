@@ -17,7 +17,7 @@ public class ItemDeepShell extends Item {
 
     public ItemDeepShell() {
         setUnlocalizedName("dre.deepShell");
-        setTextureName("divinerpg:aquaticPellets");
+        setTextureName("divinerpgextended:deep_shell");
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
     }
 
