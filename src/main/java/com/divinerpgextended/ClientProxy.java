@@ -73,6 +73,8 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.SocketTooltip());
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.perk.Satiety.Client()); // бег голодным с перком Сытость
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.AmmoLoadKey());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.EarlyWeaponsTooltip());
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.ShadowBowMove());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.LunaWings());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.EdenWater());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcanaTooltips());
@@ -158,6 +160,11 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonShark.class,
             new RenderScaledBoss(new net.divinerpg.client.render.entity.vanilla.model.ModelShark(), 0.6F,
                 new net.minecraft.util.ResourceLocation("divinerpg", "textures/mobs/shark.png"), 0.8F, 0.9F, 1.0F));
+        // слизень слизневого меча - ванильный слизень; око циклопического жезла - маленький Смотритель Divine, жёлтый
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonSlime.class, new com.divinerpgextended.client.RenderSummonSlime());
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonEye.class,
+            new RenderScaledBoss(new net.divinerpg.client.render.entity.vanilla.model.ModelWatcher(), 0.7F,
+                new net.minecraft.util.ResourceLocation("divinerpg", "textures/mobs/watcher.png"), 1.0F, 0.95F, 0.6F));
         com.divinerpgextended.block.BlockSkyRail.renderId = RenderingRegistry.getNextAvailableRenderId();
         RenderingRegistry.registerBlockHandler(new com.divinerpgextended.client.RenderSkyRail());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.fishing.EntityDreHook.class,

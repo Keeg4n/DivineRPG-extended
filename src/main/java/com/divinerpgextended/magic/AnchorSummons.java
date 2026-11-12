@@ -21,29 +21,46 @@ import cpw.mods.fml.common.eventhandler.Event;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Призывные якоря: крабовый якорь (с Карцинуса) зовёт краба, якорь лиоплевродона (с Лиоплевродона) - акулу; ПКМ - только
- * призыв (броска у этих якорей нет). Как призрак кости призрака ({@link ArcaneSummons}): держатся, пока хозяин платит арканой
- * ({@link Kind#upkeep} в секунду за каждого), бьют то, что бьёт хозяин (или того, кто напал на хозяина), не ранятся и не
- * сохраняются; одновременно не больше {@link Kind#cap} каждого вида, лишний - самый старый. Лестница призывов: краб - акула -
- * призрак.
+ * Призывы на аркане: слизневый меч зовёт слизня, крабовый якорь (с Карцинуса) - краба, циклопический жезл - око, якорь
+ * лиоплевродона (с Лиоплевродона) - акулу; ПКМ - только призыв (броска у якорей и выстрела у жезла нет, меч бьёт как раньше).
+ * Как призрак кости призрака ({@link ArcaneSummons}): держатся, пока хозяин платит арканой ({@link Kind#upkeep} в секунду за
+ * каждого), бьют то, что бьёт хозяин (или того, кто напал на хозяина), а сами - ближайшего врага в своём радиусе агра
+ * ({@link Kind#aggro}); не ранятся и не сохраняются; одновременно не больше {@link Kind#cap} каждого вида, лишний - самый
+ * старый. Лестница призывов: слизень - краб - око - акула - призрак.
  */
 public class AnchorSummons {
 
     public enum Kind {
+        /** Слизень слизневого меча: прыгает по земле, агр ближе всех. */
+        SLIME(1F, 2, 3F, 6),
         /** Бегает по земле. */
-        CRAB(2F, 2, 4F),
+        CRAB(2F, 2, 4F, 8),
+        /** Око циклопического жезла: спутник над головой, бьёт слабее всех, но отбрасывает врага. */
+        EYE(1F, 2, 2F, 10),
         /** Летает, как призрак. */
-        SHARK(3F, 2, 8F);
+        SHARK(3F, 2, 8F, 12);
 
         public final float upkeep, damage;
         public final int cap;
+        /** Радиус агра (блоки от хозяина): сам бросается на врагов в нём; цель хозяина дальше - не преследует. */
+        public final double aggro;
 
-        Kind(float upkeep, int cap, float damage) {
+        Kind(float upkeep, int cap, float damage, double aggro) {
             this.upkeep = upkeep;
             this.cap = cap;
             this.damage = damage;
+            this.aggro = aggro;
         }
     }
+
+    /** Призыв на аркане хозяина: какой он вид. */
+    public interface Summon {
+
+        Kind kind();
+    }
+
+    /** Отброс удара ока (скорость, блоки за тик): боссам - {@link #EYE_PUSH_BOSS} от него. */
+    public static final double EYE_PUSH = 0.9, EYE_PUSH_BOSS = 0.25;
 
     public static final int MEMORY = 200, LEASH = 48;
     static final Map<UUID, List<EntityLiving>> LIVE = new HashMap<UUID, List<EntityLiving>>();
@@ -51,13 +68,15 @@ public class AnchorSummons {
 
     public static Kind kind(Item i) {
         if (i == null) return null;
+        if (i == net.divinerpg.utils.items.VanillaItemsWeapons.slimeSword) return Kind.SLIME;
+        if (i == net.divinerpg.utils.items.VanillaItemsWeapons.cyclopsianStaff) return Kind.EYE;
         if (i == net.divinerpg.utils.items.VanillaItemsWeapons.crabAnchor) return Kind.CRAB;
         if (i == net.divinerpg.utils.items.VanillaItemsWeapons.liopleurodonAnchor) return Kind.SHARK;
         return null;
     }
 
     static Kind kind(EntityLiving e) {
-        return e instanceof EntitySummonCrab ? Kind.CRAB : Kind.SHARK;
+        return e instanceof Summon ? ((Summon) e).kind() : Kind.SHARK;
     }
 
     static List<EntityLiving> of(EntityPlayer p) {
@@ -90,11 +109,27 @@ public class AnchorSummons {
             l.remove(e);
             break;
         }
-        EntityLiving e = k == Kind.CRAB ? new EntitySummonCrab(p.worldObj, p) : new EntitySummonShark(p.worldObj, p);
-        e.setLocationAndAngles(p.posX + p.worldObj.rand.nextGaussian(), p.posY + (k == Kind.SHARK ? 1.5 : 0.2), p.posZ + p.worldObj.rand.nextGaussian(), p.rotationYaw, 0);
+        EntityLiving e;
+        switch (k) {
+            case SLIME:
+                e = new EntitySummonSlime(p.worldObj, p);
+                break;
+            case CRAB:
+                e = new EntitySummonCrab(p.worldObj, p);
+                break;
+            case EYE:
+                e = new EntitySummonEye(p.worldObj, p);
+                break;
+            default:
+                e = new EntitySummonShark(p.worldObj, p);
+        }
+        boolean flies = k == Kind.SHARK || k == Kind.EYE;
+        e.setLocationAndAngles(p.posX + p.worldObj.rand.nextGaussian(), p.posY + (flies ? 1.5 : 0.2), p.posZ + p.worldObj.rand.nextGaussian(), p.rotationYaw, 0);
         p.worldObj.spawnEntityInWorld(e);
         l.add(e);
-        p.worldObj.playSoundAtEntity(e, k == Kind.CRAB ? "mob.silverfish.say" : "random.splash", 0.6F, k == Kind.CRAB ? 0.6F : 1.2F);
+        String[] snd = { "mob.slime.small", "mob.silverfish.say", "random.orb", "random.splash" };
+        float[] pitch = { 0.8F, 0.6F, 0.5F, 1.2F };
+        p.worldObj.playSoundAtEntity(e, snd[k.ordinal()], 0.6F, pitch[k.ordinal()]);
         return e;
     }
 
@@ -111,8 +146,52 @@ public class AnchorSummons {
         return e;
     }
 
+    /**
+     * Цель призыва: цель хозяина, если она в радиусе агра r от хозяина, иначе свой враг в этом радиусе (ищется раз в
+     * {@link Aim#SCAN} тиков). Держит один призыв - у каждого своя.
+     */
+    public static final class Aim {
+
+        public static final int SCAN = 10;
+        private EntityLivingBase auto;
+        private int wait;
+
+        public Entity pick(EntityPlayer o, Entity marked, double r) {
+            if (marked != null && marked.getDistanceSqToEntity(o) <= r * r) return marked;
+            if (auto != null && (!auto.isEntityAlive() || auto.worldObj != o.worldObj || auto.getDistanceSqToEntity(o) > r * r)) auto = null;
+            if (auto == null && --wait <= 0) {
+                wait = SCAN;
+                auto = foe(o, r);
+            }
+            return auto;
+        }
+    }
+
+    /**
+     * Ближайший к хозяину враг в радиусе r, которого хозяин видит: монстры, кроме призывов, приручённых, манекена и
+     * нейтральных, пока те не злы (свинозомби, эндермены - иначе призыв поднимал бы на хозяина всю стаю).
+     */
+    public static EntityLivingBase foe(EntityPlayer o, double r) {
+        EntityLivingBase best = null;
+        double bd = r * r;
+        for (Object x : o.worldObj.getEntitiesWithinAABB(EntityLiving.class, o.boundingBox.expand(r, r / 2 + 2, r))) {
+            EntityLiving m = (EntityLiving) x;
+            if (!m.isEntityAlive() || !(m instanceof net.minecraft.entity.monster.IMob) || m instanceof Summon || m instanceof EntityArcaneWraith
+                || m instanceof com.divinerpgextended.dummy.EntityTrainingDummy) continue;
+            if (m instanceof net.minecraft.entity.passive.EntityTameable && ((net.minecraft.entity.passive.EntityTameable) m).isTamed()) continue;
+            if (m instanceof net.minecraft.entity.monster.EntityPigZombie && ((net.minecraft.entity.monster.EntityPigZombie) m).getEntityToAttack() == null) continue;
+            if (m instanceof net.minecraft.entity.monster.EntityEnderman && !((net.minecraft.entity.monster.EntityEnderman) m).isScreaming()) continue;
+            double d = m.getDistanceSqToEntity(o);
+            if (d < bd && o.canEntityBeSeen(m)) {
+                bd = d;
+                best = m;
+            }
+        }
+        return best;
+    }
+
     public static void mark(EntityPlayer p, Entity t) {
-        if (t instanceof EntitySummonCrab || t instanceof EntitySummonShark || t == p) return;
+        if (t instanceof Summon || t == p) return;
         TARGET.put(p.getUniqueID(), new Object[] { t, p.worldObj.getTotalWorldTime() });
     }
 
@@ -137,9 +216,14 @@ public class AnchorSummons {
         if (k == null) return;
         e.toolTip.add(net.minecraft.util.EnumChatFormatting.LIGHT_PURPLE + net.minecraft.util.StatCollector.translateToLocalFormatted("dre.tooltip.summon_" + k.name().toLowerCase(),
             (int) k.upkeep, k.cap));
+        e.toolTip.add(net.minecraft.util.EnumChatFormatting.GRAY + net.minecraft.util.StatCollector.translateToLocalFormatted("dre.tooltip.summon_stats",
+            String.format("%.0f", damage(e.entityPlayer, k)), (int) k.aggro));
     }
 
-    /** ПКМ призывным якорем: призыв вместо броска. */
+    /**
+     * ПКМ призывным якорем: призыв вместо броска. Меч и жезл зовут только кликом в воздух (клик по блоку тоже приходит
+     * в воздух, если блок ничего не сделал): иначе сундук открывался бы вместе с призывом.
+     */
     @SubscribeEvent
     public void onInteract(PlayerInteractEvent e) {
         if (e.action == PlayerInteractEvent.Action.LEFT_CLICK_BLOCK) return;
@@ -147,12 +231,14 @@ public class AnchorSummons {
         ItemStack held = p.getHeldItem();
         Kind k = held == null ? null : kind(held.getItem());
         if (k == null) return;
+        if ((k == Kind.SLIME || k == Kind.EYE) && e.action != PlayerInteractEvent.Action.RIGHT_CLICK_AIR) return;
         e.useItem = Event.Result.DENY;
         if (p.worldObj.isRemote) return;
         long now = p.worldObj.getTotalWorldTime();
-        if (p.getEntityData().hasKey("dreAnchorSummon") && now - p.getEntityData().getLong("dreAnchorSummon") < 10 && now >= p.getEntityData().getLong("dreAnchorSummon"))
+        String key = "dreAnchorSummon" + (k == Kind.CRAB ? "" : k.name()); // у каждого вида свой: слизень и око подряд - оба
+        if (p.getEntityData().hasKey(key) && now - p.getEntityData().getLong(key) < 10 && now >= p.getEntityData().getLong(key))
             return; // двойной пакет от одного клика
-        p.getEntityData().setLong("dreAnchorSummon", now);
+        p.getEntityData().setLong(key, now);
         summon(p, k);
     }
 

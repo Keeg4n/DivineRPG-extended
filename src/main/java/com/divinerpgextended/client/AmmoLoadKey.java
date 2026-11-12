@@ -13,8 +13,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Присесть и ПКМ оружием - зарядить его из инвентаря. Только если есть чем и есть куда: иначе это обычный выстрел
- * (стрелять присев можно, когда оружие полное или патронов в инвентаре нет).
+ * Присесть и ПКМ оружием - зарядить его из инвентаря (метательное - собрать такие же в одну стопку). Только если есть чем
+ * и есть куда: иначе это обычный выстрел (стрелять присев можно, когда оружие полное или патронов в инвентаре нет).
  */
 @SideOnly(Side.CLIENT)
 public class AmmoLoadKey {
@@ -25,7 +25,7 @@ public class AmmoLoadKey {
     public void onInteract(PlayerInteractEvent e) {
         EntityPlayer p = e.entityPlayer;
         if (!p.worldObj.isRemote || e.action == PlayerInteractEvent.Action.LEFT_CLICK_BLOCK) return;
-        if (p != Minecraft.getMinecraft().thePlayer || !p.isSneaking() || Ammo.loadable(p) <= 0) return;
+        if (p != Minecraft.getMinecraft().thePlayer || !p.isSneaking() || Ammo.loadable(p) <= 0 && com.divinerpgextended.perk.ThrowStack.gatherable(p) <= 0) return;
         e.setCanceled(true);
         // клик по блоку даёт два события подряд (по блоку и в воздух) - просим один раз за тик
         long t = p.worldObj.getTotalWorldTime();

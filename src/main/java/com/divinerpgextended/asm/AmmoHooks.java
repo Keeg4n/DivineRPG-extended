@@ -13,15 +13,17 @@ public final class AmmoHooks {
 
     private AmmoHooks() {}
 
-    /** Вместо inventory.hasItem(патрон). */
+    /** Вместо inventory.hasItem(патрон). Бесконечность на оружии в руке - патрон есть всегда. */
     public static boolean has(InventoryPlayer inv, Item ammo) {
+        if (Ammo.infinity(inv.getCurrentItem())) return true;
         int need = Ammo.perShot(inv.getCurrentItem(), ammo);
         if (need > 1) return Ammo.stock(inv, inv.getCurrentItem(), ammo) >= need;
         return Ammo.has(inv.getCurrentItem(), ammo) || inv.hasItem(ammo);
     }
 
-    /** Вместо inventory.consumeInventoryItem(патрон). */
+    /** Вместо inventory.consumeInventoryItem(патрон). Бесконечность - ничего не тратится. */
     public static boolean consume(InventoryPlayer inv, Item ammo) {
+        if (Ammo.infinity(inv.getCurrentItem())) return true;
         int need = Ammo.perShot(inv.getCurrentItem(), ammo);
         if (need <= 1) return Ammo.take(inv.getCurrentItem(), ammo) || inv.consumeInventoryItem(ammo);
         if (Ammo.stock(inv, inv.getCurrentItem(), ammo) < need) return false; // не хватает на выстрел - ничего не трогаем

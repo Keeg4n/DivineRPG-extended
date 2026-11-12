@@ -29,10 +29,16 @@ public final class AmmoLoad {
         ColdHandler.NET.registerMessage(Handler.class, Load.class, 15, Side.SERVER);
     }
 
-    /** Зарядить оружие в руке. @return сколько вошло */
+    /** Зарядить оружие в руке (метательное - собрать в одну стопку). @return сколько вошло */
     public static int load(EntityPlayer p) {
         ItemStack w = p.getHeldItem();
-        if (p.isDead || Ammo.of(w) == null) return 0;
+        if (p.isDead) return 0;
+        if (ThrowStack.is(w)) {
+            int got = ThrowStack.gather(p);
+            if (got > 0) p.worldObj.playSoundAtEntity(p, "random.pop", 0.6F, 0.8F + p.getRNG().nextFloat() * 0.2F);
+            return got;
+        }
+        if (Ammo.of(w) == null) return 0;
         int n = Ammo.load(p);
         if (n > 0) p.worldObj.playSoundAtEntity(p, sound(w), 0.9F, 0.95F + p.getRNG().nextFloat() * 0.1F);
         return n;

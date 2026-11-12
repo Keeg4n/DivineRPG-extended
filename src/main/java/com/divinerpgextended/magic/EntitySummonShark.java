@@ -12,11 +12,12 @@ import net.minecraft.world.World;
  * Акула якоря лиоплевродона ({@link AnchorSummons}): летает за хозяином сквозь блоки, как призрак, кусает цель хозяина
  * арканным уроном, держится на аркане хозяина. Не ранится, не сохраняется.
  */
-public class EntitySummonShark extends EntityLiving {
+public class EntitySummonShark extends EntityLiving implements AnchorSummons.Summon {
 
     public static final int HIT_EVERY = 15;
     private EntityPlayer master;
     private int cooldown, life;
+    private final AnchorSummons.Aim aim = new AnchorSummons.Aim();
 
     public EntitySummonShark(World w) {
         super(w);
@@ -31,6 +32,25 @@ public class EntitySummonShark extends EntityLiving {
 
     public EntityPlayer owner() {
         return master != null && !master.isDead ? master : null;
+    }
+
+    @Override
+    public AnchorSummons.Kind kind() {
+        return AnchorSummons.Kind.SHARK;
+    }
+
+    /** Укус прошёл: звук своего вида (у ока - ещё и отброс). */
+    protected void onHit(EntityLivingBase t, EntityPlayer o) {
+        worldObj.playSoundAtEntity(this, "random.splash", 0.4F, 1.6F);
+    }
+
+    /** Круг без цели: радиус и высота над хозяином. */
+    protected double orbitRadius() {
+        return 1.8;
+    }
+
+    protected double orbitHeight() {
+        return 1.6;
     }
 
     /** Без тяжести и трения о землю: только своя скорость. */
@@ -56,11 +76,11 @@ public class EntitySummonShark extends EntityLiving {
             setDead();
             return;
         }
-        if (++life % 20 == 0 && !AnchorSummons.upkeep(o, AnchorSummons.Kind.SHARK.upkeep)) {
+        if (++life % 20 == 0 && !AnchorSummons.upkeep(o, kind().upkeep)) {
             AnchorSummons.dismissAll(o);
             return;
         }
-        Entity t = AnchorSummons.target(o);
+        Entity t = aim.pick(o, AnchorSummons.target(o), kind().aggro);
         double tx, ty, tz, speed;
         if (t != null) {
             tx = t.posX;
@@ -70,21 +90,20 @@ public class EntitySummonShark extends EntityLiving {
             if (--cooldown <= 0 && getDistanceSqToEntity(t) < 2.2 * 2.2 && t instanceof EntityLivingBase) {
                 cooldown = HIT_EVERY;
                 ((EntityLivingBase) t).hurtResistantTime = 0;
-                t.attackEntityFrom(ArcanaCombat.arcaneSource(o), AnchorSummons.damage(o, AnchorSummons.Kind.SHARK));
+                if (t.attackEntityFrom(ArcanaCombat.arcaneSource(o), AnchorSummons.damage(o, kind()))) onHit((EntityLivingBase) t, o);
                 swingItem();
-                worldObj.playSoundAtEntity(this, "random.splash", 0.4F, 1.6F);
             }
         } else {
             int n = AnchorSummons.index(this, o);
             double a = life * 0.07 + n * Math.PI;
-            tx = o.posX + Math.cos(a) * 1.8;
-            ty = o.posY + 1.6;
-            tz = o.posZ + Math.sin(a) * 1.8;
+            tx = o.posX + Math.cos(a) * orbitRadius();
+            ty = o.posY + orbitHeight();
+            tz = o.posZ + Math.sin(a) * orbitRadius();
             speed = 0.4;
         }
         double dx = tx - posX, dy = ty - posY, dz = tz - posZ, len = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (len > 24) {
-            setPosition(o.posX, o.posY + 1.6, o.posZ);
+            setPosition(o.posX, o.posY + orbitHeight(), o.posZ);
             return;
         }
         double v = Math.min(speed, len * 0.35);

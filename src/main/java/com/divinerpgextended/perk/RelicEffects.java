@@ -7,7 +7,6 @@ import java.util.List;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.effect.EntityLightningBolt;
 import net.minecraft.entity.passive.EntityTameable;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityArrow;
@@ -60,7 +59,7 @@ public class RelicEffects {
     }
 
     public static void bolt(World w, double x, double y, double z) {
-        w.addWeatherEffect(new EntityLightningBolt(w, x, y, z));
+        w.addWeatherEffect(new com.divinerpgextended.entity.EntitySafeLightning(w, x, y, z)); // не жжёт добычу и не поджигает
         bolts++;
     }
 

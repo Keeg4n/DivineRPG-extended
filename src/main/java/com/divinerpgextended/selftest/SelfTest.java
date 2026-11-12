@@ -165,6 +165,8 @@ public class SelfTest {
     public static class Protection {
 
         int dim, x0, x1, y0, y1, z0, z1;
+        /** Приват без PvP: игроки внутри не ранят друг друга (удар отменяется ещё до урона). */
+        boolean noPvp;
 
         boolean inside(net.minecraft.world.World w, int x, int y, int z) {
             return w.provider.dimensionId == dim && x >= x0 && x <= x1 && y >= y0 && y <= y1 && z >= z0 && z <= z1;
@@ -179,6 +181,19 @@ public class SelfTest {
         public void onInteract(net.minecraftforge.event.entity.player.PlayerInteractEvent e) {
             // клик в воздух приходит с координатами 0,0,0 - это не блок, приват его не трогает
             if (e.action != net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR && inside(e.world, e.x, e.y, e.z)) e.setCanceled(true);
+        }
+
+        @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.HIGHEST)
+        public void onSwing(net.minecraftforge.event.entity.player.AttackEntityEvent e) {
+            net.minecraft.entity.Entity t = e.target;
+            if (noPvp && t instanceof EntityPlayer && inside(t.worldObj, (int) Math.floor(t.posX), (int) Math.floor(t.posY), (int) Math.floor(t.posZ))) e.setCanceled(true);
+        }
+
+        @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.HIGHEST)
+        public void onHit(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
+            net.minecraft.entity.Entity t = e.entityLiving;
+            if (noPvp && t instanceof EntityPlayer && e.source.getEntity() instanceof EntityPlayer
+                && inside(t.worldObj, (int) Math.floor(t.posX), (int) Math.floor(t.posY), (int) Math.floor(t.posZ))) e.setCanceled(true);
         }
     }
 
@@ -703,6 +718,7 @@ public class SelfTest {
         auditTests(p);
         moreTests(p, q, g, ow, sx, sy, sz);
         lioTests(p, ow, sx, sy, sz);
+        earlyWeaponTests(ow, sx, sy, sz);
         fishingReport();
         g.setDead();
     }
@@ -7061,7 +7077,7 @@ public class SelfTest {
             check(open > 0 && roofed == 0F && set == 0F && far && made == 2 && rocks >= 2 && on && stone && near(maul, 15F) && near(sword, 10F), rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "Якоря: гарпун и влага морского оружия", () -> {
+        t("Прохождение", "Гарпуны и влага морского оружия", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x = sx + 224, z = sz;
             loadAround(w, x, z, 1);
@@ -7079,70 +7095,60 @@ public class SelfTest {
                 com.divinerpgextended.world.twilight.SeaWeapons.flushPulls();
                 return dmg;
             };
-            // крабовый: 6 блоков тянет к игроку, 10 нет
+            // с 0.99.113 гарпуны - Акулий и Китовый (по 12 блоков); крабовый якорь и якорь лиоплевродона - призывы, не тянут
             net.minecraft.entity.monster.EntityZombie zombNear = new net.minecraft.entity.monster.EntityZombie(w), zombFar = new net.minecraft.entity.monster.EntityZombie(w);
             zombNear.setPosition(a.posX + 6, a.posY, a.posZ);
-            zombFar.setPosition(a.posX + 10, a.posY, a.posZ);
-            shoot.apply(VanillaItemsWeapons.crabAnchor, zombNear);
+            zombFar.setPosition(a.posX + 14, a.posY, a.posZ);
+            shoot.apply(VanillaItemsWeapons.sharkAnchor, zombNear);
             boolean pulled = zombNear.motionX < -0.5 && zombNear.motionY > 0.3;
-            shoot.apply(VanillaItemsWeapons.crabAnchor, zombFar);
-            boolean tooFar = zombFar.motionX == 0;
             shoot.apply(VanillaItemsWeapons.sharkAnchor, zombFar);
-            boolean sharkReach = zombFar.motionX < -0.5;
+            boolean tooFar = zombFar.motionX == 0;
+            shoot.apply(VanillaItemsWeapons.crabAnchor, zombNear);
+            boolean summonsDont = zombNear.motionX == 0;
+            shoot.apply(VanillaItemsWeapons.liopleurodonAnchor, zombNear);
+            summonsDont &= zombNear.motionX == 0;
             // откат: второй подряд не тянет
+            shoot.apply(VanillaItemsWeapons.sharkAnchor, zombNear);
             zombNear.motionX = 0;
-            hold(a, new ItemStack(VanillaItemsWeapons.crabAnchor));
+            hold(a, new ItemStack(VanillaItemsWeapons.sharkAnchor));
             net.minecraft.entity.projectile.EntitySnowball again = new net.minecraft.entity.projectile.EntitySnowball(w, a);
             com.divinerpgextended.world.twilight.SeaWeapons.tagShot(again);
             hurtBy(zombNear, DamageSource.causeThrownDamage(again, a), 5F);
             com.divinerpgextended.world.twilight.SeaWeapons.flushPulls();
             boolean cooldown = zombNear.motionX == 0;
-            // удар якорем в руке сразу после гарпуна сильнее, один раз; другим предметом нет
+            // удар гарпуном в руке сразу после броска сильнее, один раз
             float first = hurtBy(zombNear, DamageSource.causePlayerDamage(a), 10F), second = hurtBy(zombNear, DamageSource.causePlayerDamage(a), 10F);
             // босс не двигается, тянет игрока
             net.divinerpg.entities.vanilla.EntityTheWatcher boss = new net.divinerpg.entities.vanilla.EntityTheWatcher(w);
             boss.setPosition(a.posX + 6, a.posY, a.posZ);
-            shoot.apply(VanillaItemsWeapons.crabAnchor, boss);
+            shoot.apply(VanillaItemsWeapons.sharkAnchor, boss);
             boolean bossStill = boss.motionX == 0 && a.motionX > 0.5;
             a.motionX = a.motionY = a.motionZ = 0;
-            // гренландский оглушает, лиоплевродоновый цепляет ещё двоих
+            // китовый оглушает
             shoot.apply(VanillaItemsWeapons.bowheadAnchor, zombNear);
             boolean stun = zombNear.isPotionActive(Potion.moveSlowdown);
             zombNear.clearActivePotions();
-            net.minecraft.entity.monster.EntityZombie[] swarm = new net.minecraft.entity.monster.EntityZombie[4];
-            for (int i = 0; i < swarm.length; i++) {
-                swarm[i] = new net.minecraft.entity.monster.EntityZombie(w);
-                swarm[i].setPosition(a.posX + 8 + i * 0.5, a.posY, a.posZ);
-                w.spawnEntityInWorld(swarm[i]);
-            }
-            for (net.minecraft.entity.monster.EntityZombie one : swarm) one.motionX = 0;
-            shoot.apply(VanillaItemsWeapons.liopleurodonAnchor, swarm[0]);
-            int hooked = 0;
-            for (net.minecraft.entity.monster.EntityZombie one : swarm) {
-                if (one.motionX < -0.3) hooked++;
-                one.setDead();
-            }
             // игрока не тянет, пока PvP подвидов выключено
             TestPlayer other = player(0, "TestHarpoon2", a.posX + 5, a.posY, a.posZ);
             boolean oldPvp = Config.meleeRolesPvp;
             Config.meleeRolesPvp = false;
-            shoot.apply(VanillaItemsWeapons.crabAnchor, other);
+            shoot.apply(VanillaItemsWeapons.sharkAnchor, other);
             boolean noPvp = other.motionX == 0;
             Config.meleeRolesPvp = oldPvp;
             // настоящий бросок: снаряд запоминает якорь, появляясь в мире
-            hold(a, new ItemStack(VanillaItemsWeapons.sharkAnchor));
+            hold(a, new ItemStack(VanillaItemsWeapons.bowheadAnchor));
             net.minecraft.entity.projectile.EntitySnowball real = new net.minecraft.entity.projectile.EntitySnowball(w, a);
             w.spawnEntityInWorld(real);
-            boolean remembers = real.getEntityData().getBoolean("dreSeaShot") && real.getEntityData().getInteger("dreAnchor") == 1;
+            boolean remembers = real.getEntityData().getBoolean("dreSeaShot") && real.getEntityData().getInteger("dreAnchor") == 2;
             real.setDead();
-            // настоящий якорь Divine: бросок правой кнопкой выпускает снаряд, он запоминает якорь и тянет цель
-            ItemStack thrown = new ItemStack(VanillaItemsWeapons.crabAnchor);
+            // настоящий гарпун Divine: бросок правой кнопкой выпускает снаряд, он запоминает гарпун и тянет цель
+            ItemStack thrown = new ItemStack(VanillaItemsWeapons.sharkAnchor);
             hold(a, thrown);
             java.util.Set<Object> beforeThrow = new java.util.HashSet<Object>(w.loadedEntityList);
             thrown.getItem().onItemRightClick(thrown, w, a);
             net.minecraft.entity.Entity bullet = null;
             for (Object o : new java.util.ArrayList<Object>(w.loadedEntityList)) if (!beforeThrow.contains(o) && o instanceof net.divinerpg.entities.vanilla.projectile.EntityShooterBullet) bullet = (net.minecraft.entity.Entity) o;
-            boolean divineShot = bullet != null && bullet.getEntityData().getInteger("dreAnchor") == 0 && bullet.getEntityData().getBoolean("dreSeaShot");
+            boolean divineShot = bullet != null && bullet.getEntityData().getInteger("dreAnchor") == 1 && bullet.getEntityData().getBoolean("dreSeaShot");
             if (bullet != null) {
                 a.getEntityData().removeTag(com.divinerpgextended.world.twilight.SeaWeapons.PULL_AT);
                 zombNear.motionX = 0;
@@ -7155,9 +7161,9 @@ public class SelfTest {
             // вне воды и дождя морское оружие без влаги
             hold(a, new ItemStack(VanillaItemsWeapons.aquaticDagger));
             float dry = hurtBy(zombNear, DamageSource.causePlayerDamage(a), 10F);
-            rep.append("тянет ").append(pulled).append(", дальше дальности нет ").append(tooFar).append(", акулий дальше ").append(sharkReach).append(", откат ").append(cooldown).append("; удар ").append(f(first)).append(" потом ").append(f(second)).append("; босс на месте, игрок летит ").append(bossStill)
-                .append("; оглушение ").append(stun).append(", зацепил ").append(hooked).append("; игрок без PvP не тянется ").append(noPvp).append("; снаряд помнит якорь ").append(remembers).append("; сухой кинжал ").append(f(dry));
-            check(pulled && tooFar && sharkReach && cooldown && near(first, 15F) && near(second, 10F) && bossStill && stun && hooked == 3 && noPvp && remembers && near(dry, 10F) && divineShot, rep.toString());
+            rep.append("тянет ").append(pulled).append(", дальше дальности нет ").append(tooFar).append(", призывные якоря не тянут ").append(summonsDont).append(", откат ").append(cooldown).append("; удар ").append(f(first)).append(" потом ").append(f(second)).append("; босс на месте, игрок летит ").append(bossStill)
+                .append("; оглушение ").append(stun).append("; игрок без PvP не тянется ").append(noPvp).append("; снаряд помнит гарпун ").append(remembers).append("; сухой кинжал ").append(f(dry));
+            check(pulled && tooFar && summonsDont && cooldown && near(first, 15F) && near(second, 10F) && bossStill && stun && noPvp && remembers && near(dry, 10F) && divineShot, rep.toString());
             return rep.toString();
         });
         t("Прохождение", "Мини-боссы: здоровье, добыча и появление", () -> {
@@ -14571,6 +14577,513 @@ public class SelfTest {
             inv.setInventorySlotContents(i, o == null ? null : o instanceof ItemStack ? (ItemStack) o : new ItemStack((Item) o));
         }
         return CraftingManager.getInstance().findMatchingRecipe(inv, w);
+    }
+
+    /** Оружие обычного мира (0.99.117): призывы слизня и ока, радиусы агра, стопки метательного, наковальня, пушка, ярость, мечи, луки, серенады, молнии. */
+    private void earlyWeaponTests(final WorldServer ow, final int sx, final int sy, final int sz) {
+        final net.minecraftforge.event.entity.player.PlayerInteractEvent.Action AIR = net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR;
+        t("Оружие обычного мира", "Призывы слизня и ока, радиусы агра", () -> {
+            WorldServer w = ow;
+            double px = sx + 300.5, py = 200, pz = sz + 0.5;
+            loadAround(w, (int) px, (int) pz, 2);
+            TestPlayer ap = join(player(0, "TestSummonAggro", px, py, pz), true);
+            ap.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            EntityZombie z = new EntityZombie(w);
+            try {
+                ArcanaHelper.getProperties(ap).setBarValue(200);
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
+                // ПКМ мечом и жезлом в воздух - призыв, клик по блоку - нет
+                com.divinerpgextended.magic.AnchorSummons.Kind[] kinds = { com.divinerpgextended.magic.AnchorSummons.Kind.SLIME, com.divinerpgextended.magic.AnchorSummons.Kind.EYE };
+                Item[] items = { VanillaItemsWeapons.slimeSword, VanillaItemsWeapons.cyclopsianStaff };
+                for (int n = 0; n < 2; n++) {
+                    hold(ap, new ItemStack(items[n]));
+                    MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(ap,
+                        net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, (int) px, (int) py - 1, (int) pz, 1, w));
+                    int byBlock = com.divinerpgextended.magic.AnchorSummons.count(ap, kinds[n]);
+                    net.minecraftforge.event.entity.player.PlayerInteractEvent air = new net.minecraftforge.event.entity.player.PlayerInteractEvent(ap, AIR, 0, 0, 0, -1, w);
+                    MinecraftForge.EVENT_BUS.post(air);
+                    boolean denied = air.useItem == cpw.mods.fml.common.eventhandler.Event.Result.DENY;
+                    int one = com.divinerpgextended.magic.AnchorSummons.count(ap, kinds[n]);
+                    ok &= byBlock == 0 && denied && one == 1;
+                    rep.append(n == 0 ? "" : "; ").append(kinds[n]).append(": по блоку ").append(byBlock).append(", в воздух ").append(one).append(" (выстрел отменён ").append(denied).append(")");
+                }
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
+                // лестница: радиус агра растёт слизень - краб - око - акула - призрак, око бьёт слабее всех
+                double[] r = { com.divinerpgextended.magic.AnchorSummons.Kind.SLIME.aggro, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB.aggro,
+                    com.divinerpgextended.magic.AnchorSummons.Kind.EYE.aggro, com.divinerpgextended.magic.AnchorSummons.Kind.SHARK.aggro, com.divinerpgextended.magic.ArcaneSummons.AGGRO };
+                boolean ladder = true;
+                for (int n = 1; n < r.length; n++) ladder &= r[n] > r[n - 1];
+                float eyeDmg = com.divinerpgextended.magic.AnchorSummons.Kind.EYE.damage;
+                for (com.divinerpgextended.magic.AnchorSummons.Kind k : com.divinerpgextended.magic.AnchorSummons.Kind.values()) if (k != com.divinerpgextended.magic.AnchorSummons.Kind.EYE) ladder &= k.damage > eyeDmg;
+                ok &= ladder;
+                rep.append("; радиусы ").append(java.util.Arrays.toString(r)).append(", око слабее всех ").append(ladder);
+                // свой враг в радиусе находится, за радиусом - нет
+                z.setLocationAndAngles(px + 3, py, pz, 0, 0);
+                w.spawnEntityInWorld(z);
+                z.getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(100000);
+                z.setHealth(z.getMaxHealth());
+                for (double rad : r) {
+                    z.setPosition(px + rad - 1.5, py, pz);
+                    boolean in = com.divinerpgextended.magic.AnchorSummons.foe(ap, rad) == z;
+                    z.setPosition(px + rad + 1.5, py, pz);
+                    boolean out = com.divinerpgextended.magic.AnchorSummons.foe(ap, rad) == null;
+                    ok &= in && out;
+                    if (!in || !out) rep.append("; радиус ").append(rad).append(": внутри ").append(in).append(", снаружи пусто ").append(out);
+                }
+                // цель хозяина дальше радиуса вида - не преследует: на 8 блоках слизень (6) нет, акула (12) да
+                z.setPosition(px + 8, py, pz);
+                boolean slimeIgnores = new com.divinerpgextended.magic.AnchorSummons.Aim().pick(ap, z, com.divinerpgextended.magic.AnchorSummons.Kind.SLIME.aggro) == null;
+                boolean sharkChases = new com.divinerpgextended.magic.AnchorSummons.Aim().pick(ap, z, com.divinerpgextended.magic.AnchorSummons.Kind.SHARK.aggro) == z;
+                ok &= slimeIgnores && sharkChases;
+                rep.append("; цель хозяина на 8 блоках: слизень не идёт ").append(slimeIgnores).append(", акула идёт ").append(sharkChases);
+                // око само бросается на врага рядом (без метки хозяина) и отбрасывает его от хозяина
+                z.setPosition(px + 3, py, pz);
+                z.motionX = z.motionY = z.motionZ = 0;
+                net.minecraft.entity.EntityLiving eye = com.divinerpgextended.magic.AnchorSummons.summon(ap, com.divinerpgextended.magic.AnchorSummons.Kind.EYE);
+                eye.setPosition(z.posX - 1, py + 0.5, pz);
+                for (int n = 0; n < 12; n++) eye.onUpdate();
+                float dealt = z.getMaxHealth() - z.getHealth();
+                boolean pushed = z.motionX > 0.5;
+                ok &= dealt >= eyeDmg - 0.01F && pushed;
+                rep.append("; око без метки: урон ").append(f(dealt)).append(", отброс ").append(f((float) z.motionX));
+            } finally {
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
+                z.setDead();
+                hold(ap, null);
+                server.getConfigurationManager().playerEntityList.remove(ap);
+                w.removeEntity(ap);
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+        t("Оружие обычного мира", "Стопки метательного до 256", () -> {
+            WorldServer w = ow;
+            TestPlayer tp = player(0, "TestThrowStack", sx + 0.5, sy + 1, sz + 0.5);
+            StringBuilder rep = new StringBuilder();
+            boolean ok;
+            try {
+                reset(tp);
+                for (int i = 0; i < 3; i++) tp.inventory.mainInventory[i] = new ItemStack(VanillaItemsWeapons.shuriken, 64);
+                tp.inventory.mainInventory[3] = new ItemStack(VanillaItemsWeapons.shuriken, 40);
+                tp.inventory.mainInventory[4] = new ItemStack(VanillaItemsWeapons.shuriken, 64);
+                hold(tp, new ItemStack(VanillaItemsWeapons.shuriken, 1));
+                int canGather = com.divinerpgextended.perk.ThrowStack.gatherable(tp);
+                int got = com.divinerpgextended.perk.AmmoLoad.load(tp); // присесть + ПКМ
+                ItemStack h = tp.getHeldItem();
+                int total = com.divinerpgextended.perk.ThrowStack.total(h), left = 0;
+                for (int i = 0; i < 8; i++) left += tp.inventory.mainInventory[i] == null ? 0 : tp.inventory.mainInventory[i].stackSize;
+                boolean full = total == com.divinerpgextended.perk.ThrowStack.MAX && got == 255 && canGather == 255 && left == 3 * 64 + 40 + 64 - 255;
+                int limit = h.getMaxStackSize();
+                String label = com.divinerpgextended.perk.Ammo.label(tp, h);
+                // бросок Divine тратит одну из числа
+                int bullets0 = countNear(w, net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, tp.posX, tp.posY, tp.posZ, 4);
+                h.getItem().onItemRightClick(h, w, tp);
+                int afterThrow = com.divinerpgextended.perk.ThrowStack.total(tp.getHeldItem());
+                int bullets = countNear(w, net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, tp.posX, tp.posY, tp.posZ, 4) - bullets0;
+                // до одной - снова обычный предмет
+                com.divinerpgextended.perk.ThrowStack.setTotal(h, 2);
+                h.getItem().onItemRightClick(h, w, tp);
+                boolean plain = h.stackSize == 1 && !h.hasTagCompound();
+                // подобранные докладываются в собранную стопку
+                com.divinerpgextended.perk.ThrowStack.setTotal(h, 100);
+                net.minecraft.entity.item.EntityItem drop = new net.minecraft.entity.item.EntityItem(w, tp.posX, tp.posY, tp.posZ, new ItemStack(VanillaItemsWeapons.shuriken, 10));
+                int absorbed = com.divinerpgextended.perk.ThrowStack.absorb(tp, drop);
+                boolean pick = absorbed == 10 && com.divinerpgextended.perk.ThrowStack.total(h) == 110 && drop.getEntityItem().stackSize == 0;
+                // Подлый ураган и слайсеры - тоже
+                reset(tp);
+                tp.inventory.mainInventory[0] = new ItemStack(VanillaItemsWeapons.vileStorm, 5);
+                hold(tp, new ItemStack(VanillaItemsWeapons.vileStorm, 2));
+                com.divinerpgextended.perk.ThrowStack.gather(tp);
+                ItemStack vs = tp.getHeldItem();
+                int vsTotal = com.divinerpgextended.perk.ThrowStack.total(vs);
+                vs.getItem().onItemRightClick(vs, w, tp);
+                int vsAfter = com.divinerpgextended.perk.ThrowStack.total(tp.getHeldItem());
+                boolean kinds = com.divinerpgextended.perk.ThrowStack.is(net.divinerpg.utils.items.TwilightItemsWeapons.edenSlicer)
+                    && com.divinerpgextended.perk.ThrowStack.is(IceikaItems.snowflakeShuriken) && !com.divinerpgextended.perk.ThrowStack.is(Items.snowball);
+                ok = full && limit == 1 && "256".equals(label) && afterThrow == 255 && bullets == 1 && plain && pick && vsTotal == 7 && vsAfter == 6 && kinds;
+                rep.append("собрано ").append(got).append(" (можно ").append(canGather).append(") - в руке ").append(total).append(", осталось в инвентаре ").append(left)
+                    .append("; предел стопки ").append(limit).append(", на значке ").append(label).append("; бросок: ").append(afterThrow).append(", снарядов ").append(bullets)
+                    .append("; из двух - обычный ").append(plain).append("; подбор ").append(absorbed).append(" -> ").append(com.divinerpgextended.perk.ThrowStack.total(h))
+                    .append("; ураган ").append(vsTotal).append(" -> ").append(vsAfter).append("; слайсеры и снежный сюрикен ").append(kinds);
+            } finally {
+                killNear(w, tp.posX, tp.posY, tp.posZ, 8);
+                reset(tp);
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+        t("Оружие обычного мира", "Бесконечность, Прочность и Восстановление на стрелковом Divine", () -> {
+            WorldServer w = ow;
+            TestPlayer tp = player(0, "TestRangedEnch", sx + 0.5, sy + 1, sz + 0.5);
+            StringBuilder rep = new StringBuilder();
+            boolean ok;
+            try {
+                reset(tp);
+                ItemStack inf = new ItemStack(Items.enchanted_book), unb = new ItemStack(Items.enchanted_book);
+                Items.enchanted_book.addEnchantment(inf, new EnchantmentData(Enchantment.infinity, 1));
+                Items.enchanted_book.addEnchantment(unb, new EnchantmentData(Enchantment.unbreaking, 3));
+                ItemStack fury = new ItemStack(VanillaItemsWeapons.goldenFury);
+                net.minecraftforge.event.AnvilUpdateEvent a1 = new net.minecraftforge.event.AnvilUpdateEvent(fury, inf, "", 0);
+                MinecraftForge.EVENT_BUS.post(a1);
+                boolean furyInf = a1.output != null && com.divinerpgextended.perk.Ammo.infinity(a1.output);
+                boolean nuggets = com.divinerpgextended.perk.Ammo.of(fury) == Items.gold_nugget;
+                // пушка ломается - Прочность кладёт сама наковальня (наше событие молчит), Бесконечность - мы
+                ItemStack cannon = new ItemStack(VanillaItemsWeapons.frostCannon);
+                net.minecraftforge.event.AnvilUpdateEvent a2 = new net.minecraftforge.event.AnvilUpdateEvent(cannon, unb, "", 0);
+                MinecraftForge.EVENT_BUS.post(a2);
+                boolean vanillaUnb = a2.output == null && Enchantment.unbreaking.canApply(cannon);
+                net.minecraftforge.event.AnvilUpdateEvent a3 = new net.minecraftforge.event.AnvilUpdateEvent(cannon, inf, "", 0);
+                MinecraftForge.EVENT_BUS.post(a3);
+                boolean cannonInf = a3.output != null && com.divinerpgextended.perk.Ammo.infinity(a3.output);
+                // лук Divine - Бесконечность кладёт сама наковальня
+                net.minecraftforge.event.AnvilUpdateEvent a4 = new net.minecraftforge.event.AnvilUpdateEvent(new ItemStack(VanillaItemsWeapons.hunterBow), inf, "", 0);
+                MinecraftForge.EVENT_BUS.post(a4);
+                boolean bowVanilla = a4.output == null;
+                // с Бесконечностью патрон есть всегда и не тратится; на значке - бесконечность
+                hold(tp, a3.output);
+                Item ammo = com.divinerpgextended.perk.Ammo.of(a3.output);
+                boolean has = com.divinerpgextended.asm.AmmoHooks.has(tp.inventory, ammo) && com.divinerpgextended.asm.AmmoHooks.consume(tp.inventory, ammo);
+                String label = com.divinerpgextended.perk.Ammo.label(tp, a3.output);
+                // жезл циклопа - уже не стрелок (призыв), чары стрелкового ему не нужны
+                boolean staff = com.divinerpgextended.perk.Ammo.of(new ItemStack(VanillaItemsWeapons.cyclopsianStaff)) == null
+                    && !com.divinerpgextended.perk.EarlyWeapons.divineRanged(new ItemStack(VanillaItemsWeapons.cyclopsianStaff));
+                Enchantment rep2 = com.divinerpgextended.perk.EarlyWeapons.tcRepair();
+                ok = furyInf && nuggets && vanillaUnb && cannonInf && bowVanilla && has && "∞".equals(label) && staff;
+                rep.append("Золотая ярость + Бесконечность ").append(furyInf).append(" (патрон - самородки ").append(nuggets).append("); пушка: Прочность наковальней ").append(vanillaUnb)
+                    .append(", Бесконечность нами ").append(cannonInf).append("; лук - наковальней ").append(bowVanilla).append("; без патронов стреляет ").append(has).append(", значок ").append(label)
+                    .append("; жезл циклопа не стрелок ").append(staff).append("; Восстановление Таумкрафта ").append(rep2 == null ? "нет мода" : "есть");
+            } finally {
+                reset(tp);
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+        t("Оружие обычного мира", "Пушка, Золотая ярость, мечи, луки, сюрикен, ураган", () -> {
+            WorldServer w = ow;
+            double bx = sx + 340.5, by = 200, bz = sz + 0.5;
+            loadAround(w, (int) bx, (int) bz, 3);
+            TestPlayer tp = join(player(0, "TestEarlyWeapons", bx, by, bz), true);
+            tp.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            EntityZombie z = new EntityZombie(w);
+            net.minecraft.entity.passive.EntityCow cow = new net.minecraft.entity.passive.EntityCow(w);
+            net.minecraft.entity.monster.EntityCreeper cr = new net.minecraft.entity.monster.EntityCreeper(w);
+            try {
+                // Повреждённая пушка: с 64 и выше x1, у бедрока x1.6, в Аду x1
+                tp.setPosition(bx, 64, bz);
+                float top = com.divinerpgextended.perk.EarlyWeapons.cannonDepth(tp);
+                tp.setPosition(bx, 5, bz);
+                float deep = com.divinerpgextended.perk.EarlyWeapons.cannonDepth(tp);
+                tp.setPosition(bx, 34.5, bz);
+                float mid = com.divinerpgextended.perk.EarlyWeapons.cannonDepth(tp);
+                tp.dimension = -1;
+                float nether = com.divinerpgextended.perk.EarlyWeapons.cannonDepth(tp);
+                tp.dimension = 0;
+                tp.setPosition(bx, by, bz);
+                boolean cannon = near(top, 1F) && near(deep, 1.6F) && near(mid, 1.3F) && near(nether, 1F);
+                ok &= cannon;
+                rep.append("пушка: y64 x").append(f(top)).append(", y34 x").append(f(mid)).append(", y5 x").append(f(deep)).append(", Ад x").append(f(nether));
+                // Золотая ярость: метка снаряда и добыча
+                hold(tp, new ItemStack(VanillaItemsWeapons.goldenFury));
+                net.divinerpg.entities.vanilla.projectile.EntityShooterBullet b = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, tp, 30F, Items.gold_nugget);
+                w.spawnEntityInWorld(b);
+                boolean tagged = "fury".equals(b.getEntityData().getString(com.divinerpgextended.perk.EarlyWeapons.TAG));
+                b.setDead();
+                z.setLocationAndAngles(bx + 3, by, bz, 0, 0);
+                w.spawnEntityInWorld(z);
+                z.getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(100000);
+                z.setHealth(z.getMaxHealth());
+                int n = 4000, nug = 0, coin = 0;
+                for (int i = 0; i < n; i++) {
+                    ArrayList<net.minecraft.entity.item.EntityItem> drops = new ArrayList<net.minecraft.entity.item.EntityItem>();
+                    MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(z, DamageSource.causeThrownDamage(b, tp), drops, 0, true, 0));
+                    for (net.minecraft.entity.item.EntityItem it : drops) {
+                        if (it.getEntityItem().getItem() == Items.gold_nugget) nug++;
+                        if (it.getEntityItem().getItem() == VanillaItemsOther.shadowCoins) coin++;
+                    }
+                }
+                boolean fury = tagged && Math.abs(nug / (float) n - 0.25F) < 0.03F && Math.abs(coin / (float) n - 0.10F) < 0.02F;
+                ok &= fury;
+                rep.append("; ярость: метка ").append(tagged).append(", самородки ").append(f(nug * 100F / n)).append("%, монеты ").append(f(coin * 100F / n)).append("%");
+                // Каменно-кровавый меч: 8%, ниже трети - 20%
+                hold(tp, new ItemStack(VanillaItemsWeapons.bloodgemSword));
+                tp.setHealth(10);
+                float hit = hurtBy(z, DamageSource.causePlayerDamage(tp), 10F), healed = tp.getHealth() - 10;
+                tp.setHealth(5);
+                float hit2 = hurtBy(z, DamageSource.causePlayerDamage(tp), 10F), healed2 = tp.getHealth() - 5;
+                boolean vamp = Math.abs(healed - hit * 0.08F) < 0.05F && Math.abs(healed2 - hit2 * 0.20F) < 0.05F && healed > 0;
+                ok &= vamp;
+                rep.append("; кровавый меч: +").append(f(healed)).append(" с ").append(f(hit)).append(", ниже трети +").append(f(healed2)).append(" с ").append(f(hit2));
+                // Ядовитая сабля: задетый не лечится, после срока - лечится
+                hold(tp, new ItemStack(VanillaItemsWeapons.poisonSaber));
+                hurtBy(z, DamageSource.causePlayerDamage(tp), 5F);
+                z.setHealth(50);
+                z.heal(10);
+                float blocked = z.getHealth();
+                z.getEntityData().setLong(com.divinerpgextended.perk.EarlyWeapons.NO_HEAL, w.getTotalWorldTime() - 1);
+                z.heal(10);
+                float after = z.getHealth();
+                boolean saber = near(blocked, 50) && near(after, 60);
+                ok &= saber;
+                rep.append("; сабля: лечение под ядом ").append(f(blocked - 50)).append(", после ").append(f(after - 50));
+                z.setHealth(z.getMaxHealth());
+                // Охотничий лук: издалека сильнее; Теневой лук: с разбега сильнее; сравниваем с той же стрелой без метки
+                EntityArrow plain = new EntityArrow(w, tp, 1F);
+                plain.getEntityData().setString(com.divinerpgextended.perk.EarlyWeapons.TAG, "none");
+                z.setPosition(bx + 30, by, bz);
+                hold(tp, new ItemStack(VanillaItemsWeapons.hunterBow));
+                EntityArrow snipe = new EntityArrow(w, tp, 1F);
+                w.spawnEntityInWorld(snipe);
+                float base = hurtBy(z, DamageSource.causeArrowDamage(plain, tp), 10F), far = hurtBy(z, DamageSource.causeArrowDamage(snipe, tp), 10F);
+                double dist = Math.sqrt(30 * 30 + Math.pow(z.posY + z.height / 2 - (by + tp.getEyeHeight()), 2));
+                boolean hunter = "snipe".equals(snipe.getEntityData().getString(com.divinerpgextended.perk.EarlyWeapons.TAG))
+                    && Math.abs(far / base - com.divinerpgextended.perk.EarlyWeapons.snipeMult(dist)) < 0.02F && near(com.divinerpgextended.perk.EarlyWeapons.snipeMult(10), 1F)
+                    && near(com.divinerpgextended.perk.EarlyWeapons.snipeMult(40), 1.5F);
+                ok &= hunter;
+                rep.append("; охотничий на 30 блоков x").append(f(far / base));
+                tp.getEntityData().setInteger(com.divinerpgextended.perk.EarlyWeapons.RUN, 0);
+                tp.setSprinting(true);
+                com.divinerpgextended.perk.EarlyWeapons ew = new com.divinerpgextended.perk.EarlyWeapons();
+                for (int i = 0; i < 30; i++) ew.onPlayerTick(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, tp));
+                float half = com.divinerpgextended.perk.EarlyWeapons.runMult(tp);
+                for (int i = 0; i < 60; i++) ew.onPlayerTick(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, tp));
+                tp.setSprinting(false);
+                hold(tp, new ItemStack(VanillaItemsWeapons.shadowBow));
+                EntityArrow run = new EntityArrow(w, tp, 1F);
+                w.spawnEntityInWorld(run);
+                float ranHit = hurtBy(z, DamageSource.causeArrowDamage(run, tp), 10F);
+                boolean shadow = near(half, 1.25F) && Math.abs(ranHit / base - 1.5F) < 0.02F && tp.getEntityData().getInteger(com.divinerpgextended.perk.EarlyWeapons.RUN) == 0;
+                ok &= shadow;
+                rep.append("; теневой: полсекунды бега x").append(f(half)).append(", полный разбег x").append(f(ranHit / base));
+                // сюрикен: серия +15% за попадание до +60%, перерыв больше 2 с - сначала
+                long t0 = w.getTotalWorldTime() + 1000;
+                tp.getEntityData().removeTag(com.divinerpgextended.perk.EarlyWeapons.SERIES_AT);
+                float[] s = new float[7];
+                for (int i = 0; i < 6; i++) s[i] = com.divinerpgextended.perk.EarlyWeapons.series(tp, t0 + i * 20);
+                s[6] = com.divinerpgextended.perk.EarlyWeapons.series(tp, t0 + 5 * 20 + 41);
+                boolean series = near(s[0], 1F) && near(s[1], 1.15F) && near(s[4], 1.6F) && near(s[5], 1.6F) && near(s[6], 1F);
+                ok &= series;
+                rep.append("; сюрикен ").append(f(s[0])).append("/").append(f(s[1])).append("/").append(f(s[2])).append("/").append(f(s[3])).append("/").append(f(s[4])).append("/").append(f(s[5])).append(", после перерыва ").append(f(s[6]));
+                // Подлый ураган: упал - облако; облако травит мобов (не зомби: нежить яду не поддаётся), не коров
+                cr.setLocationAndAngles(bx + 3, by, bz, 0, 0);
+                w.spawnEntityInWorld(cr);
+                cow.setLocationAndAngles(bx + 3.5, by, bz + 1, 0, 0);
+                w.spawnEntityInWorld(cow);
+                net.divinerpg.entities.vanilla.projectile.EntityVileStorm st = new net.divinerpg.entities.vanilla.projectile.EntityVileStorm(w, tp);
+                st.setPosition(bx + 6, by + 1, bz + 6);
+                w.spawnEntityInWorld(st);
+                st.ticksExisted = 2;
+                st.setDead();
+                ew.onWorldTick(new cpw.mods.fml.common.gameevent.TickEvent.WorldTickEvent(cpw.mods.fml.relauncher.Side.SERVER, cpw.mods.fml.common.gameevent.TickEvent.Phase.END, w));
+                boolean cloud = com.divinerpgextended.perk.EarlyWeapons.cloudAt(w, bx + 6, by + 1, bz + 6);
+                int poisoned = com.divinerpgextended.perk.EarlyWeapons.testCloud(w, bx + 3, by, bz);
+                boolean vile = cloud && poisoned == 1 && cr.isPotionActive(Potion.poison) && !cow.isPotionActive(Potion.poison);
+                ok &= vile;
+                rep.append("; ураган: облако на месте падения ").append(cloud).append(", отравлено ").append(poisoned).append(" (крипер ").append(cr.isPotionActive(Potion.poison)).append(", корова ").append(cow.isPotionActive(Potion.poison)).append(")");
+            } finally {
+                z.setDead();
+                cow.setDead();
+                cr.setDead();
+                killNear(w, bx, by, bz, 40);
+                hold(tp, null);
+                server.getConfigurationManager().playerEntityList.remove(tp);
+                w.removeEntity(tp);
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+        t("Оружие обычного мира", "Лечащие мечи в привате без PvP", () -> {
+            WorldServer w = ow;
+            double hx = sx + 380.5, hy = 200, hz = sz + 0.5;
+            loadAround(w, (int) hx, (int) hz, 2);
+            TestPlayer a = join(player(0, "TestHealerA", hx, hy, hz), true), bb = join(player(0, "TestHealerB", hx + 1.5, hy, hz), true);
+            a.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            bb.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            Protection pr = new Protection();
+            pr.dim = 0;
+            pr.x0 = (int) hx - 8;
+            pr.x1 = (int) hx + 8;
+            pr.y0 = 0;
+            pr.y1 = 255;
+            pr.z0 = (int) hz - 8;
+            pr.z1 = (int) hz + 8;
+            pr.noPvp = true;
+            MinecraftForge.EVENT_BUS.register(pr);
+            net.minecraft.entity.passive.EntityWolf wolf = new net.minecraft.entity.passive.EntityWolf(w);
+            EntityZombie z = new EntityZombie(w);
+            StringBuilder rep = new StringBuilder();
+            boolean ok;
+            try {
+                // приват без PvP: обычный меч игрока не ранит
+                hold(a, new ItemStack(Items.iron_sword));
+                bb.setHealth(10);
+                bb.hurtResistantTime = 0;
+                a.attackTargetEntityWithCurrentItem(bb);
+                float ironHit = 10 - bb.getHealth();
+                // Палавенс лечит игрока, второй удар сразу - без лечения (раз в полсекунды)
+                ItemStack pal = new ItemStack(VanillaItemsWeapons.palavence);
+                hold(a, pal);
+                a.attackTargetEntityWithCurrentItem(bb);
+                float healed = bb.getHealth() - 10;
+                a.attackTargetEntityWithCurrentItem(bb);
+                float again = bb.getHealth() - 10 - healed;
+                int wear = pal.getItemDamage();
+                // свой питомец лечится
+                wolf.setLocationAndAngles(hx - 1.5, hy, hz, 0, 0);
+                w.spawnEntityInWorld(wolf);
+                wolf.setTamed(true);
+                wolf.func_152115_b(a.getUniqueID().toString());
+                wolf.setHealth(4);
+                hold(a, new ItemStack(VanillaItemsWeapons.massivence));
+                a.attackTargetEntityWithCurrentItem(wolf);
+                float pet = wolf.getHealth() - 4;
+                // моба бьёт как обычно
+                z.setLocationAndAngles(hx, hy, hz + 1.5, 0, 0);
+                w.spawnEntityInWorld(z);
+                z.setHealth(z.getMaxHealth());
+                a.attackTargetEntityWithCurrentItem(z);
+                float mob = z.getMaxHealth() - z.getHealth();
+                ok = ironHit == 0 && near(healed, 2F) && again == 0 && wear == 1 && near(pet, 3F) && mob > 0;
+                rep.append("приват без PvP: железный меч ранил на ").append(f(ironHit)).append("; Палавенс вылечил игрока на ").append(f(healed)).append(", сразу снова ")
+                    .append(f(again)).append(", износ ").append(wear).append("; Массивенс - своего волка на ").append(f(pet)).append("; зомби ранен на ").append(f(mob));
+            } finally {
+                MinecraftForge.EVENT_BUS.unregister(pr);
+                wolf.setDead();
+                z.setDead();
+                for (TestPlayer x : new TestPlayer[] { a, bb }) {
+                    hold(x, null);
+                    server.getConfigurationManager().playerEntityList.remove(x);
+                    w.removeEntity(x);
+                }
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+        t("Оружие обычного мира", "Серенады смерти и наполнения", () -> {
+            WorldServer w = ow;
+            TestPlayer dp = player(0, "TestSerenades", sx + 0.5, sy + 1, sz + 0.5);
+            StringBuilder rep = new StringBuilder();
+            boolean ok;
+            try {
+                reset(dp);
+                // рецепт: Серенада здоровья (любой износ) и 4 камня Мортума крестом; рецепта Divine нет
+                InventoryCrafting gr = grid();
+                gr.setInventorySlotContents(4, new ItemStack(VanillaItemsWeapons.serenadeOfHealth, 1, 3));
+                for (int sl : new int[] { 1, 3, 5, 7 }) gr.setInventorySlotContents(sl, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.mortumGem));
+                ItemStack made = CraftingManager.getInstance().findMatchingRecipe(gr, w);
+                int recipes = 0;
+                for (Object ro : CraftingManager.getInstance().getRecipeList()) {
+                    ItemStack out = ((net.minecraft.item.crafting.IRecipe) ro).getRecipeOutput();
+                    if (out != null && out.getItem() == VanillaItemsWeapons.serenadeOfDeath) recipes++;
+                }
+                boolean recipe = made != null && made.getItem() == VanillaItemsWeapons.serenadeOfDeath && recipes == 1
+                    && VanillaItemsWeapons.serenadeOfDeath.getMaxDamage() == com.divinerpgextended.perk.EarlyWeapons.DEATH_USES;
+                // ПКМ - лечит до полного вместо снаряда
+                ItemStack sd = new ItemStack(VanillaItemsWeapons.serenadeOfDeath);
+                hold(dp, sd);
+                dp.setHealth(5);
+                net.minecraftforge.event.entity.player.PlayerInteractEvent use = new net.minecraftforge.event.entity.player.PlayerInteractEvent(dp, AIR, 0, 0, 0, -1, w);
+                MinecraftForge.EVENT_BUS.post(use);
+                boolean heal = use.useItem == cpw.mods.fml.common.eventhandler.Event.Result.DENY && near(dp.getHealth(), dp.getMaxHealth()) && sd.getItemDamage() == 1;
+                // в инвентаре спасает от смерти и ломается; второй раз - смерть
+                hold(dp, null);
+                dp.inventory.mainInventory[3] = new ItemStack(VanillaItemsWeapons.serenadeOfDeath);
+                dp.hurtResistantTime = 0;
+                dp.attackEntityFrom(DamageSource.generic, 1000F);
+                boolean saved = !dp.died && near(dp.getHealth(), dp.getMaxHealth()) && dp.inventory.mainInventory[3] == null && dp.isPotionActive(Potion.regeneration)
+                    && dp.heard("dre.chat.serenade_death");
+                dp.hurtResistantTime = 0;
+                dp.attackEntityFrom(DamageSource.generic, 1000F);
+                boolean diedAfter = dp.died;
+                // Серенада наполнения: +50 арканы и Ясность
+                reset(dp);
+                ArcanaHelper h = ArcanaHelper.getProperties(dp);
+                h.setBarValue(10);
+                hold(dp, new ItemStack(VanillaItemsWeapons.serenadeOfInfusion));
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(dp, AIR, 0, 0, 0, -1, w));
+                float bar = h.getBarValue();
+                boolean clarity = com.divinerpgextended.magic.ArcaneEffects.has(dp, com.divinerpgextended.magic.ArcaneEffect.CLARITY);
+                boolean infusion = near(bar, 60) && clarity;
+                ok = recipe && heal && saved && diedAfter && infusion;
+                rep.append("рецепт ").append(made == null ? "нет" : made.getDisplayName()).append(" (рецептов ").append(recipes).append(", применений ").append(VanillaItemsWeapons.serenadeOfDeath.getMaxDamage())
+                    .append("); ПКМ лечит ").append(heal).append("; спасла от смерти ").append(saved).append(", без неё - смерть ").append(diedAfter).append("; наполнение: аркана 10 -> ")
+                    .append(f(bar)).append(", Ясность ").append(clarity);
+            } finally {
+                reset(dp);
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+        t("Оружие обычного мира", "Молнии оружия не жгут добычу и не поджигают", () -> {
+            WorldServer w = ow;
+            int lx = sx + 420, lz = sz, ly = 200;
+            loadAround(w, lx, lz, 2);
+            for (int dx = -6; dx <= 6; dx++) for (int dz = -6; dz <= 8; dz++) w.setBlock(lx + dx, ly - 1, lz + dz, Blocks.stone); // площадка: огню есть на чём гореть
+            TestPlayer lp = join(player(0, "TestSafeBolt", lx + 0.5, ly, lz + 6.5), true);
+            net.minecraft.world.EnumDifficulty was = w.difficultySetting;
+            StringBuilder rep = new StringBuilder();
+            boolean ok;
+            EntityZombie z = new EntityZombie(w);
+            net.minecraft.entity.passive.EntityCow cow = new net.minecraft.entity.passive.EntityCow(w);
+            try {
+                w.difficultySetting = net.minecraft.world.EnumDifficulty.HARD; // огонь от молнии - только на нормальной и выше
+                int fire0 = fireAround(w, lx, ly, lz);
+                // кого бьёт: врагов - да; вещи, опыт, игроков, коров - нет
+                com.divinerpgextended.entity.EntitySafeLightning safe = new com.divinerpgextended.entity.EntitySafeLightning(w, lx + 0.5, ly, lz + 0.5);
+                net.minecraft.entity.item.EntityItem it = new net.minecraft.entity.item.EntityItem(w, lx + 0.5, ly + 0.5, lz + 0.5, new ItemStack(Items.diamond));
+                net.minecraft.entity.item.EntityXPOrb xp = new net.minecraft.entity.item.EntityXPOrb(w, lx + 0.5, ly + 0.5, lz + 0.5, 5);
+                boolean[] hit = new boolean[5];
+                net.minecraft.entity.Entity[] who = { z, it, xp, lp, cow };
+                for (int i = 0; i < who.length; i++) hit[i] = !MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.EntityStruckByLightningEvent(who[i], safe));
+                boolean vanillaHitsItem = !MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.EntityStruckByLightningEvent(it,
+                    new net.minecraft.entity.effect.EntityLightningBolt(w, lx + 40.5, ly + 300, lz + 0.5)));
+                boolean targets = hit[0] && !hit[1] && !hit[2] && !hit[3] && !hit[4] && vanillaHitsItem;
+                // огонь: обычная молния поджигает, своя - нет
+                for (int i = 0; i < 3; i++) safe.onUpdate();
+                int safeFire = fireAround(w, lx, ly, lz) - fire0;
+                new net.minecraft.entity.effect.EntityLightningBolt(w, lx + 0.5, ly, lz + 0.5);
+                int vanillaFire = fireAround(w, lx, ly, lz) - fire0;
+                clearFire(w, lx, ly, lz);
+                // Меч бури Divine зовёт свою молнию (кольцо вокруг хозяина)
+                Method sp = net.divinerpg.items.arcana.ItemStormSword.class.getDeclaredMethod("useSpecialEffect", net.minecraft.world.World.class, EntityPlayer.class);
+                sp.setAccessible(true);
+                sp.invoke(ArcanaItems.stormSword, w, lp);
+                int ours = countNear(w, com.divinerpgextended.entity.EntitySafeLightning.class, lp.posX, lp.posY, lp.posZ, 8), plainBolts = 0;
+                for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.effect.EntityLightningBolt.class, lp.boundingBox.expand(8, 8, 8)))
+                    if (o.getClass() == net.minecraft.entity.effect.EntityLightningBolt.class && !((net.minecraft.entity.Entity) o).isDead) plainBolts++;
+                for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.effect.EntityLightningBolt.class, lp.boundingBox.expand(8, 8, 8))) ((net.minecraft.entity.Entity) o).setDead();
+                clearFire(w, (int) lp.posX, (int) lp.posY, (int) lp.posZ);
+                ok = targets && safeFire == 0 && vanillaFire > 0 && ours > 0 && plainBolts == 0;
+                rep.append("бьёт: зомби ").append(hit[0]).append(", вещь ").append(hit[1]).append(", опыт ").append(hit[2]).append(", игрока ").append(hit[3]).append(", корову ").append(hit[4])
+                    .append(" (обычная бьёт вещь ").append(vanillaHitsItem).append("); огонь: своя ").append(safeFire).append(", обычная ").append(vanillaFire)
+                    .append("; Меч бури: своих молний ").append(ours).append(", обычных ").append(plainBolts);
+            } finally {
+                w.difficultySetting = was;
+                clearFire(w, lx, ly, lz);
+                for (int dx = -6; dx <= 6; dx++) for (int dz = -6; dz <= 8; dz++) w.setBlockToAir(lx + dx, ly - 1, lz + dz);
+                z.setDead();
+                cow.setDead();
+                server.getConfigurationManager().playerEntityList.remove(lp);
+                w.removeEntity(lp);
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+    }
+
+    /** Огня в кубе 5x5x5 у точки. */
+    private static int fireAround(net.minecraft.world.World w, int x, int y, int z) {
+        int n = 0;
+        for (int dx = -2; dx <= 2; dx++) for (int dy = -2; dy <= 2; dy++) for (int dz = -2; dz <= 2; dz++) if (w.getBlock(x + dx, y + dy, z + dz) == Blocks.fire) n++;
+        return n;
+    }
+
+    private static void clearFire(net.minecraft.world.World w, int x, int y, int z) {
+        for (int dx = -5; dx <= 5; dx++) for (int dy = -3; dy <= 3; dy++) for (int dz = -5; dz <= 5; dz++)
+            if (w.getBlock(x + dx, y + dy, z + dz) == Blocks.fire) w.setBlockToAir(x + dx, y + dy, z + dz);
     }
 
     private void fishingReport() {

@@ -132,6 +132,11 @@ public class TrinketEffects {
         }
     }
 
+    /** Спасёт ли Анх фараона от смерти прямо сейчас (надет и не на перезарядке). */
+    public static boolean ankhReady(EntityPlayer p) {
+        return wears(p, Trinket.PHARAOH_ANKH) && p.worldObj.getTotalWorldTime() >= p.getEntityData().getLong(ANKH_CD);
+    }
+
     /** Анх фараона: раз в 10 минут вместо смерти - половина здоровья. */
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onDeath(LivingDeathEvent e) {

@@ -13,11 +13,12 @@ import net.minecraft.world.World;
  * Краб крабового якоря ({@link AnchorSummons}): бегает по земле за хозяином (отстал на 16 блоков - появляется рядом), бьёт
  * клешнями цель хозяина арканным уроном, держится на аркане хозяина. Не ранится, не сохраняется.
  */
-public class EntitySummonCrab extends EntityCreature {
+public class EntitySummonCrab extends EntityCreature implements AnchorSummons.Summon {
 
     public static final int HIT_EVERY = 15;
     private EntityPlayer master;
     private int cooldown, life;
+    private final AnchorSummons.Aim aim = new AnchorSummons.Aim();
 
     public EntitySummonCrab(World w) {
         super(w);
@@ -31,6 +32,16 @@ public class EntitySummonCrab extends EntityCreature {
 
     public EntityPlayer owner() {
         return master != null && !master.isDead ? master : null;
+    }
+
+    @Override
+    public AnchorSummons.Kind kind() {
+        return AnchorSummons.Kind.CRAB;
+    }
+
+    /** Удар по цели (урон уже прошёл): звук своего вида. */
+    protected void onHit(EntityLivingBase t, EntityPlayer o) {
+        worldObj.playSoundAtEntity(this, "mob.silverfish.hit", 0.5F, 0.6F);
     }
 
     @Override
@@ -54,19 +65,18 @@ public class EntitySummonCrab extends EntityCreature {
             setDead();
             return;
         }
-        if (++life % 20 == 0 && !AnchorSummons.upkeep(o, AnchorSummons.Kind.CRAB.upkeep)) {
+        if (++life % 20 == 0 && !AnchorSummons.upkeep(o, kind().upkeep)) {
             AnchorSummons.dismissAll(o);
             return;
         }
-        Entity t = AnchorSummons.target(o);
+        Entity t = aim.pick(o, AnchorSummons.target(o), kind().aggro);
         if (t != null) {
             getNavigator().tryMoveToEntityLiving(t, 1.3D);
             if (--cooldown <= 0 && getDistanceSqToEntity(t) < 2.0 * 2.0 && t instanceof EntityLivingBase) {
                 cooldown = HIT_EVERY;
                 ((EntityLivingBase) t).hurtResistantTime = 0;
-                t.attackEntityFrom(ArcanaCombat.arcaneSource(o), AnchorSummons.damage(o, AnchorSummons.Kind.CRAB));
+                if (t.attackEntityFrom(ArcanaCombat.arcaneSource(o), AnchorSummons.damage(o, kind()))) onHit((EntityLivingBase) t, o);
                 swingItem();
-                worldObj.playSoundAtEntity(this, "mob.silverfish.hit", 0.5F, 0.6F);
             }
             faceEntity(t, 30F, 30F);
         } else if (getDistanceSqToEntity(o) > 16 * 16) {

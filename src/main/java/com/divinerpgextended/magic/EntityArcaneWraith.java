@@ -20,6 +20,7 @@ public class EntityArcaneWraith extends EntityWraith {
     public static final int HIT_EVERY = 15, LEASH = 48;
     private static java.lang.reflect.Field age;
     private int cooldown, life;
+    private final AnchorSummons.Aim aim = new AnchorSummons.Aim();
     /** Хозяин напрямую: у Divine он ищется по имени среди игроков мира, каждый тик. */
     private EntityPlayer master;
 
@@ -65,7 +66,7 @@ public class EntityArcaneWraith extends EntityWraith {
             ArcaneSummons.dismissAll(o);
             return;
         }
-        Entity t = ArcaneSummons.target(o);
+        Entity t = aim.pick(o, ArcaneSummons.target(o), ArcaneSummons.AGGRO);
         double tx, ty, tz, speed;
         if (t != null) {
             tx = t.posX;

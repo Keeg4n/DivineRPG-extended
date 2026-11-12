@@ -223,23 +223,7 @@ public class RangedRoles {
         ARMED.clear();
     }
 
-    /** Бесконечность на фазер и блиц - книгой на наковальне (столу зачарований её не даёт сама игра: она только для луков). */
-    @SubscribeEvent
-    public void onAnvil(net.minecraftforge.event.AnvilUpdateEvent e) {
-        if (e.left == null || e.right == null || e.right.getItem() != net.minecraft.init.Items.enchanted_book || DUST.get(e.left.getItem()) == null) return;
-        if (net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(INFINITY, e.left) > 0) return;
-        net.minecraft.nbt.NBTTagList l = net.minecraft.init.Items.enchanted_book.func_92110_g(e.right);
-        boolean inf = false;
-        for (int i = 0; l != null && i < l.tagCount(); i++) if (l.getCompoundTagAt(i).getShort("id") == INFINITY) inf = true;
-        if (!inf) return;
-        ItemStack out = e.left.copy();
-        out.addEnchantment(net.minecraft.enchantment.Enchantment.infinity, 1);
-        if (e.name != null && !e.name.isEmpty() && !e.name.equals(e.left.getDisplayName())) out.setStackDisplayName(e.name);
-        e.output = out;
-        e.cost = ANVIL_COST;
-        e.materialCost = 1;
-    }
-
+    /** Бесконечность на фазер и блиц книгой на наковальне - общим правилом стрелкового оружия: {@link EarlyWeapons#onAnvil}. */
     public static final int ANVIL_COST = 6;
 
     /**
@@ -520,9 +504,8 @@ public class RangedRoles {
         int k = kind(held);
         if (k == 0) return;
         if (k == SLICER && wears(pl, com.divinerpgextended.trinket.Trinket.SLICER_SLING) && !pl.capabilities.isCreativeMode) {
-            // перевязь: брошенный слайсер возвращается в руку
-            if (held.stackSize < held.getMaxStackSize()) held.stackSize++;
-            else pl.inventory.addItemStackToInventory(new ItemStack(held.getItem()));
+            // перевязь: брошенный слайсер возвращается в руку (в собранную стопку - тоже)
+            ThrowStack.giveBack(pl, held);
         }
         d.setInteger(KIND, k);
         if (k == SLICER) TOTEM_SHOTS.add(b);

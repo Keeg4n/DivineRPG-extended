@@ -83,6 +83,11 @@ public final class Ammo {
         }
     }
 
+    /** Бесконечность на оружии: патроны не нужны и не тратятся (луки, пушки, посохи, фазеры - любое стрелковое). */
+    public static boolean infinity(ItemStack w) {
+        return w != null && w.isItemEnchanted() && net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(net.minecraft.enchantment.Enchantment.infinity.effectId, w) > 0;
+    }
+
     public static int loaded(ItemStack w) {
         return w != null && w.hasTagCompound() ? Math.max(0, w.getTagCompound().getInteger(LOADED)) : 0;
     }
@@ -132,6 +137,7 @@ public final class Ammo {
     /** Бесконечные ли патроны у оружия w у этого игрока (на клиенте - по флагам от сервера). */
     public static boolean endless(EntityPlayer p, ItemStack w) {
         if (RangedRoles.dust(w.getItem()) != null) return RangedRoles.infiniteDust(p, w);
+        if (infinity(w)) return true; // Бесконечность на любом стрелковом оружии - без патронов
         return (w.getItem() instanceof ItemBow || w.getItem() instanceof net.divinerpg.items.base.ItemModBow) && RangedRoles.quiverOn(p); // колчан: лук без стрел
     }
 
@@ -140,6 +146,8 @@ public final class Ammo {
      * чем на выстрел - красным, тысячи сокращаются ("2k"). null - не стрелковое оружие или не из инвентаря этого игрока.
      */
     public static String label(EntityPlayer p, ItemStack w) {
+        String thrown = ThrowStack.label(w); // собранная стопка метательного - число всегда (это её размер)
+        if (thrown != null) return thrown;
         if (p == null || w == null || !com.divinerpgextended.Config.ammoCountOnIcon) return null;
         Item a = of(w);
         if (a == null) return null;

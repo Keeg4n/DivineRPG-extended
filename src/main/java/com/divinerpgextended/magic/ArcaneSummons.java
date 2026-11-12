@@ -25,6 +25,8 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 public class ArcaneSummons {
 
     public static final int CAP = 2, CAP_KORMA = 3, MEMORY = 200;
+    /** Радиус агра призрака - самый большой из призывов (слизень 6 - краб 8 - око 10 - акула 12). */
+    public static final double AGGRO = 16;
     static final Map<UUID, List<EntityArcaneWraith>> LIVE = new HashMap<UUID, List<EntityArcaneWraith>>();
     static final Map<UUID, Object[]> TARGET = new HashMap<UUID, Object[]>();
 
@@ -68,7 +70,7 @@ public class ArcaneSummons {
     }
 
     public static void mark(EntityPlayer p, Entity t) {
-        if (t instanceof EntityArcaneWraith || t == p) return;
+        if (t instanceof EntityArcaneWraith || t instanceof AnchorSummons.Summon || t == p) return;
         TARGET.put(p.getUniqueID(), new Object[] { t, p.worldObj.getTotalWorldTime() });
     }
 

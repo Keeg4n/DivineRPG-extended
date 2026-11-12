@@ -53,6 +53,8 @@ public class ArcanaTooltips {
         if (i == ArcanaItems.wraithbane) {
             e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocalFormatted("dre.tooltip.wraith", String.format("%.0f",
                 EntityArcaneWraith.BASE_DAMAGE * ArcanaRules.stage(e.entityPlayer)), ArcaneSummons.CAP, ArcaneSummons.CAP_KORMA, (int) EntityArcaneWraith.UPKEEP));
+            e.toolTip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("dre.tooltip.summon_stats", String.format("%.0f",
+                EntityArcaneWraith.BASE_DAMAGE * ArcanaRules.stage(e.entityPlayer)), (int) ArcaneSummons.AGGRO));
         }
     }
 
