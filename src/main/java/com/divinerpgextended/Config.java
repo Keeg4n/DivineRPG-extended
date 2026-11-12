@@ -467,6 +467,16 @@ public class Config {
             k.damage = cfg.getFloat("damage", c, k.damage, 0F, 100F, "Множитель урона в бою с мобами");
             k.windowPvp = cfg.getInt("windowTicksPvp", c, k.windowPvp, 0, 200, "То же окно в бою между игроками (если включён melee.pvp)");
             k.damagePvp = cfg.getFloat("damagePvp", c, k.damagePvp, 0F, 100F, "Множитель урона в бою между игроками (если включён melee.pvp)");
+            if (k == com.divinerpgextended.perk.MeleeRoles.Kind.MAUL) { // до 0.99.122 по умолчанию x2 и x1.5: старые значения - на новые
+                if (Math.abs(k.damage - 2F) < 1e-4F) {
+                    k.damage = 1.2F;
+                    cfg.getCategory(c).get("damage").set("1.2");
+                }
+                if (Math.abs(k.damagePvp - 1.5F) < 1e-4F) {
+                    k.damagePvp = 1.2F;
+                    cfg.getCategory(c).get("damagePvp").set("1.2");
+                }
+            }
         }
         if (cfg.hasChanged()) {
             cfg.save();

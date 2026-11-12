@@ -46,7 +46,8 @@ import io.netty.buffer.ByteBuf;
 public class MeleeRoles {
 
     public enum Kind {
-        KNIFE(6, 0.75F, 8, 1F), RAPIER(8, 0.9F, 9, 1F), SWORD(10, 1F, 10, 1F), MAUL(20, 2F, 20, 1.5F);
+        // молот: окно 1 с, урон x1.2 (до 0.99.122 было x2 и x1.5 по игрокам - с площадью выходило сильнее Маула Кароса)
+        KNIFE(6, 0.75F, 8, 1F), RAPIER(8, 0.9F, 9, 1F), SWORD(10, 1F, 10, 1F), MAUL(20, 1.2F, 20, 1.2F);
 
         /** Окно неуязвимости цели в тиках: по мобам и по игрокам. */
         public int window, windowPvp;

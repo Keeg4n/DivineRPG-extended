@@ -6880,10 +6880,10 @@ public class SelfTest {
             Item knife = net.divinerpg.utils.items.VanillaItemsWeapons.oceanKnife, sameAsKnife = net.divinerpg.utils.items.VanillaItemsWeapons.sharkSword;
             Item rapier = net.divinerpg.utils.items.VanillaItemsWeapons.rupeeSword, sameAsRapier = net.divinerpg.utils.items.VanillaItemsWeapons.deathBringer;
             Item maul = net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothMaul, sword = net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothSword;
-            // по мобу: окна 6 / 8 / 10 / 20, урон x0.75, x0.9, x1, x2 (урон 14 и 14, 12 и 12, зубастые с 0.99.113: кувалда 25+1 против меча 35+1)
+            // по мобу: окна 6 / 8 / 10 / 20, урон x0.75, x0.9, x1, x1.2 (урон 14 и 14, 12 и 12, зубастые: кувалда 25+1 против меча 30+1)
             float[] kn = strike.apply(z, knife), kb = strike.apply(z, sameAsKnife), r = strike.apply(z, rapier), rb = strike.apply(z, sameAsRapier), m = strike.apply(z, maul), s = strike.apply(z, sword);
             boolean mobs = kn[2] == 6 && r[2] == 8 && kb[2] == 10 && s[2] == 10 && m[2] == 20 && kn[1] == 16 && r[1] == 18 && s[1] == 20 && m[1] == 30
-                && Math.abs(kn[0] / kb[0] - 0.75F) < 0.01 && Math.abs(r[0] / rb[0] - 0.9F) < 0.01 && Math.abs(m[0] / s[0] - 2F * (com.divinerpgextended.perk.AquatoothEffects.MAUL_DAMAGE + 1) / (com.divinerpgextended.perk.AquatoothEffects.SWORD_DAMAGE + 1)) < 0.01;
+                && Math.abs(kn[0] / kb[0] - 0.75F) < 0.01 && Math.abs(r[0] / rb[0] - 0.9F) < 0.01 && Math.abs(m[0] / s[0] - com.divinerpgextended.perk.MeleeRoles.Kind.MAUL.damage * (com.divinerpgextended.perk.AquatoothEffects.MAUL_DAMAGE + 1) / (com.divinerpgextended.perk.AquatoothEffects.SWORD_DAMAGE + 1)) < 0.01;
             ok &= mobs;
             rep.append("моб: нож ").append(f(kn[0])).append(" окно ").append((int) kn[2]).append(" (меч с тем же уроном ").append(f(kb[0])).append(", окно ").append((int) kb[2])
                 .append("); рапира ").append(f(r[0])).append(" окно ").append((int) r[2]).append(" (меч ").append(f(rb[0])).append("); кувалда ").append(f(m[0])).append(" окно ").append((int) m[2])
@@ -6922,7 +6922,7 @@ public class SelfTest {
                 com.divinerpgextended.perk.Protection.testNoPvp = false;
                 com.divinerpgextended.Config.meleeRolesPvp = false;
             }
-            boolean on = kOn[1] == 18 && kOn[2] == 8 && Math.abs(kOn[0] / kOff[0] - 1F) < 0.01 && mOn[1] == 30 && mOn[2] == 20 && Math.abs(mOn[0] / mOff[0] - 1.5F) < 0.01 && kPriv[1] == 20 && kPriv[2] == 10;
+            boolean on = kOn[1] == 18 && kOn[2] == 8 && Math.abs(kOn[0] / kOff[0] - 1F) < 0.01 && mOn[1] == 30 && mOn[2] == 20 && Math.abs(mOn[0] / mOff[0] - com.divinerpgextended.perk.MeleeRoles.Kind.MAUL.damagePvp) < 0.01 && kPriv[1] == 20 && kPriv[2] == 10;
             ok &= off && on;
             rep.append("; игрок выкл: нож ").append(f(kOff[0])).append(" окно ").append((int) kOff[2]).append(", кувалда ").append(f(mOff[0])).append(" окно ").append((int) mOff[2]).append("; вкл: нож ")
                 .append(f(kOn[0])).append(" окно ").append((int) kOn[2]).append(", кувалда ").append(f(mOn[0])).append(" окно ").append((int) mOn[2]).append("; приват: окно ").append((int) kPriv[2]);
@@ -6945,7 +6945,7 @@ public class SelfTest {
             boolean toggles = kDis[1] == 20 && kDis[2] == 10 && Math.abs(kDis[0] / kb[0] - 1F) < 0.01 && kCfg[2] == 3;
             ok &= toggles;
             rep.append("; выключено: окно ").append((int) kDis[2]).append(", урон ").append(f(kDis[0])).append("; окно из настройки ").append((int) kCfg[2]);
-            // волна бедроковой булавы: сосед получает 40% удара x2, окно у него обычное (правило - только на цель)
+            // волна бедроковой булавы: сосед получает 40% удара x1.2, окно у него обычное (правило - только на цель)
             net.minecraft.entity.monster.EntityZombie near = new net.minecraft.entity.monster.EntityZombie(w);
             near.setLocationAndAngles(px + 2.5, sy, pz, 0, 0);
             w.spawnEntityInWorld(near);
@@ -6987,7 +6987,7 @@ public class SelfTest {
             float dummyHit = d.lastHit();
             int dummyWindow = d.hurtResistantTime;
             a.getAttributeMap().removeAttributeModifiers(dk.getAttributeModifiers());
-            // бедроковая булава по манекену: один удар x2, волна сам манекен не задевает
+            // бедроковая булава по манекену: один удар x1.2, волна сам манекен не задевает
             d.copy(a);
             ItemStack db = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.bedrockMaul);
             hold(a, db);
@@ -6996,7 +6996,7 @@ public class SelfTest {
             a.attackTargetEntityWithCurrentItem(d);
             a.getAttributeMap().removeAttributeModifiers(db.getAttributeModifiers());
             float dummyMaul = d.lastHit();
-            boolean dummy = dummyWindow == 16 && Math.abs(dummyHit - 14F * 0.75F) < 0.01 && d.hurtResistantTime == 30 && Math.abs(dummyMaul - 28F) < 0.01;
+            boolean dummy = dummyWindow == 16 && Math.abs(dummyHit - 14F * 0.75F) < 0.01 && d.hurtResistantTime == 30 && Math.abs(dummyMaul - 14F * com.divinerpgextended.perk.MeleeRoles.Kind.MAUL.damage) < 0.01;
             ok &= dummy;
             rep.append("; манекен: нож ").append(f(dummyHit)).append(" окно ").append(dummyWindow).append(", бедроковая булава ").append(f(dummyMaul)).append(" окно ").append(d.hurtResistantTime);
             d.setDead();
