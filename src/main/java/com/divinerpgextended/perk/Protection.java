@@ -22,6 +22,44 @@ public final class Protection {
 
     /** Для автотеста: true - считать, что цель в привате без PvP. */
     public static boolean testNoPvp;
+    /** Для автотеста: true - считать, что строить здесь нельзя (чужой приват). */
+    public static boolean testNoBuild;
+    private static boolean placeChecked;
+    private static java.lang.reflect.Constructor<?> placeEvent;
+    private static Method getBlockAt, getState, getRelative, itemInHand;
+    private static Object faceDown;
+
+    /**
+     * Можно ли игроку поставить блок в точке, если вещь ставит его сама, мимо обычной установки: спавн-защита и режим
+     * приключения ({@link EntityPlayer#canPlayerEdit}), а на гибридном сервере - пробное событие установки блока Bukkit, его
+     * отменяют плагины привата (WorldGuard, GriefPrevention...). Сам блок не ставится.
+     */
+    public static boolean canBuild(EntityPlayer p, int x, int y, int z) {
+        if (p == null || !p.canPlayerEdit(x, y, z, 1, p.getHeldItem())) return false;
+        if (testNoBuild) return false;
+        if (p.worldObj.isRemote || !bukkit()) return true;
+        try {
+            if (!placeChecked) {
+                placeChecked = true;
+                Class<?> bb = Class.forName("org.bukkit.block.Block"), face = Class.forName("org.bukkit.block.BlockFace");
+                getBlockAt = Class.forName("org.bukkit.World").getMethod("getBlockAt", int.class, int.class, int.class);
+                getState = bb.getMethod("getState");
+                getRelative = bb.getMethod("getRelative", face);
+                faceDown = face.getField("DOWN").get(null);
+                itemInHand = Class.forName("org.bukkit.entity.HumanEntity").getMethod("getItemInHand");
+                placeEvent = Class.forName("org.bukkit.event.block.BlockPlaceEvent").getConstructor(bb, Class.forName("org.bukkit.block.BlockState"), bb,
+                    Class.forName("org.bukkit.inventory.ItemStack"), Class.forName("org.bukkit.entity.Player"), boolean.class);
+            }
+            if (placeEvent == null) return true;
+            Object world = bukkitWorld.invoke(p.worldObj), block = getBlockAt.invoke(world, x, y, z), player = bukkitEntity.invoke(p);
+            Object ev = placeEvent.newInstance(block, getState.invoke(block), getRelative.invoke(block, faceDown), itemInHand.invoke(player), player, true);
+            callEvent.invoke(pluginManager, ev);
+            return !(Boolean) ev.getClass().getMethod("isCancelled").invoke(ev);
+        } catch (Throwable t) {
+            placeEvent = null;
+            return true;
+        }
+    }
 
     private static boolean bukkitChecked;
     private static Method bukkitWorld, bukkitEntity, callEvent, wgQuery, wgManager, wgRegions, wgAllows;

@@ -119,7 +119,8 @@ public class ArcanaMerchants {
         }
         if (!inArcana) FULL.remove(p.getUniqueID());
         if (inArcana && count == 0) {
-            if (p.inventory.addItemStackToInventory(new ItemStack(ModItems.memoryCrystal))) {
+            // в творческом addItemStackToInventory при полном инвентаре "кладёт" вещь в никуда и отвечает "да": сначала свободный слот
+            if (p.inventory.getFirstEmptyStack() >= 0 && p.inventory.addItemStackToInventory(new ItemStack(ModItems.memoryCrystal))) {
                 say(p, EnumChatFormatting.LIGHT_PURPLE, "dre.chat.crystal_given");
                 FULL.remove(p.getUniqueID());
             } else if (FULL.add(p.getUniqueID())) {

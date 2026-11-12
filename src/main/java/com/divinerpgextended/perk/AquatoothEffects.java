@@ -25,7 +25,8 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
 /**
  * Зубастое оружие и молоты (с 0.99.113, вместе с Лиоплевродоном - поздним боссом):
  * <ul>
- * <li>Зубастый меч - урон {@link #SWORD_DAMAGE} (уровень Терна) и кровотечение: задетый моб {@link #BLEED_SECONDS} с теряет
+ * <li>Зубастый меч - урон {@link #SWORD_DAMAGE} (между клинками Апалачии 29 и Небесного терна 31: Лиоплевродон - между этими
+ * мирами; до 0.99.120 было 35, почти как халит 36) и кровотечение: задетый моб {@link #BLEED_SECONDS} с теряет
  * {@link #BLEED_DAMAGE} в секунду сквозь броню (игроков не трогает).</li>
  * <li>Зубастый молот - урон {@link #MAUL_DAMAGE} и удар по площади: мобы того же рода в {@link #WAVE_R} блоках от цели
  * получают {@link #MAUL_DAMAGE} (как волна бедрокового молота, игроков и питомцев не задевает).</li>
@@ -36,7 +37,7 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
  */
 public class AquatoothEffects {
 
-    public static final float SWORD_DAMAGE = 35F, MAUL_DAMAGE = 25F, BLEED_DAMAGE = 4F;
+    public static final float SWORD_DAMAGE = 30F, MAUL_DAMAGE = 25F, BLEED_DAMAGE = 4F;
     public static final int BLEED_SECONDS = 5, MAUL_COOLDOWN = 20;
     public static final double WAVE_R = 3.5;
     private static final String BLEED = "dreBleed", BLEED_BY = "dreBleedBy";

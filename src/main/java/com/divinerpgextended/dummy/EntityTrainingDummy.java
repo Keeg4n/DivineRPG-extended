@@ -117,6 +117,7 @@ public class EntityTrainingDummy extends EntityLiving {
     private DummyGhost ghost() {
         if (ghost == null && worldObj instanceof WorldServer) {
             ghost = DummyGhost.build((WorldServer) worldObj, UUID.nameUUIDFromBytes(("dre_dummy" + getUniqueID()).getBytes()), snap, dimension, posX, posY, posZ);
+            if (ghost != null) ghost.owner = this;
         }
         if (ghost != null) {
             ghost.setPosition(posX, posY, posZ);
@@ -216,6 +217,7 @@ public class EntityTrainingDummy extends EntityLiving {
             pets.add(t.getEntityId());
         }
         com.divinerpgextended.magic.ArcaneSummons.mark(p, this); // призраки кости призрака (удар по манекену не проходит через событие атаки)
+        com.divinerpgextended.magic.AnchorSummons.mark(p, this); // слизни, крабы, око, акулы
     }
 
     /** Divine пишет в поле владельца имя игрока, ваниль - UUID. */

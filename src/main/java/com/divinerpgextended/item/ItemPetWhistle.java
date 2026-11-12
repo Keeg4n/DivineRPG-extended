@@ -27,7 +27,7 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Свисток питомцев (питомцы Divine, аддона и призраки кости призрака).
+ * Свисток питомцев (питомцы Divine, аддона, призраки кости призрака и призывы на аркане: слизень, краб, око, акула).
  * <ul>
  * <li>ПКМ - все твои питомцы в загруженной части мира (кроме сидящих) прыгают к тебе и бросают цель.</li>
  * <li>Удар свистком по своему питомцу - он уходит. Кто был из яйца (гризли, фиракрикс, сеймер, голем омоложения, паратику),
@@ -97,9 +97,9 @@ public class ItemPetWhistle extends Item {
         return out;
     }
 
-    /** Питомец Divine или аддона (приручённый) или призрак кости призрака. */
+    /** Питомец Divine или аддона (приручённый), призрак кости призрака или призыв на аркане. */
     public static boolean pet(Entity e) {
-        if (e instanceof com.divinerpgextended.magic.EntityArcaneWraith) return true;
+        if (e instanceof com.divinerpgextended.magic.EntityArcaneWraith || e instanceof com.divinerpgextended.magic.AnchorSummons.Summon) return true;
         if (!(e instanceof EntityTameable) || !((EntityTameable) e).isTamed()) return false;
         String cls = e.getClass().getName();
         return cls.startsWith("net.divinerpg.") || cls.startsWith("com.divinerpgextended.");
@@ -110,6 +110,7 @@ public class ItemPetWhistle extends Item {
      */
     public static EntityPlayer owner(Entity e) {
         if (e instanceof com.divinerpgextended.magic.EntityArcaneWraith) return ((com.divinerpgextended.magic.EntityArcaneWraith) e).owner();
+        if (e instanceof com.divinerpgextended.magic.AnchorSummons.Summon) return ((com.divinerpgextended.magic.AnchorSummons.Summon) e).owner();
         if (!(e instanceof EntityTameable)) return null;
         String s = ((EntityTameable) e).func_152113_b();
         if (s == null || s.isEmpty()) return null;

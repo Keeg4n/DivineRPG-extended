@@ -20,8 +20,9 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * Посох облаков (реликварий Небесного терна): ПКМ - облачная площадка 3 x 3 на {@link BlockCloud#TEMP_TICKS} тиков (30 с) под
  * ногами (в воздухе - ловит падение), а если под ногами твёрдо - на {@link #AHEAD} блока вперёд на уровне пола (мост через
- * пропасть). Облака ставятся только в пустоту; падение на облако не ранит. Перезарядка {@link #COOLDOWN} тиков (полоска на
- * предмете).
+ * пропасть). Облака ставятся только в пустоту и только там, где игроку можно строить (чужой приват - нет,
+ * {@link com.divinerpgextended.perk.Protection#canBuild}); падение на облако не ранит. Перезарядка {@link #COOLDOWN} тиков
+ * (полоска на предмете).
  */
 public class ItemCloudStaff extends Item {
 
@@ -59,18 +60,18 @@ public class ItemCloudStaff extends Item {
     /** Поставить площадку; сколько облаков поставлено. */
     public static int platform(World w, EntityPlayer p) {
         int x = MathHelper.floor_double(p.posX), y = MathHelper.floor_double(p.boundingBox.minY) - 1, z = MathHelper.floor_double(p.posZ);
-        int n = fill(w, x, y, z);
+        int n = fill(w, p, x, y, z);
         if (n > 0) return n;
         int dir = MathHelper.floor_double(p.rotationYaw * 4.0F / 360.0F + 0.5D) & 3;
         int[][] step = { { 0, 1 }, { -1, 0 }, { 0, -1 }, { 1, 0 } };
-        return fill(w, x + step[dir][0] * AHEAD, y, z + step[dir][1] * AHEAD);
+        return fill(w, p, x + step[dir][0] * AHEAD, y, z + step[dir][1] * AHEAD);
     }
 
-    private static int fill(World w, int cx, int y, int cz) {
+    private static int fill(World w, EntityPlayer p, int cx, int y, int cz) {
         int n = 0;
         for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
             int x = cx + dx, z = cz + dz;
-            if (y < 1 || y > 254 || !w.isAirBlock(x, y, z)) continue;
+            if (y < 1 || y > 254 || !w.isAirBlock(x, y, z) || !com.divinerpgextended.perk.Protection.canBuild(p, x, y, z)) continue;
             w.setBlock(x, y, z, ModBlocks.cloud, BlockCloud.TEMP, 3);
             w.scheduleBlockUpdate(x, y, z, ModBlocks.cloud, BlockCloud.TEMP_TICKS);
             n++;

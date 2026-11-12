@@ -23,6 +23,9 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
  */
 public class DummyGhost extends FakePlayer {
 
+    /** Манекен этой копии: отложенные удары по копии (арканный удар мечей Арканы) идут в него, иначе он их не увидит. */
+    public EntityTrainingDummy owner;
+
     /** Запас здоровья копии: чтобы любой удар измерялся целиком. */
     static final float HEALTH = 100000F;
     private static Method damageEntity;

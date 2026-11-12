@@ -1662,6 +1662,7 @@ item.dre.tomahawk.name=Tomahawk
 dre.tooltip.tomahawk=Right-click to throw: up to %s targets in a row, up to %s blocks, returns to your hand
 dre.tooltip.tomahawk_stun=Thrown from beyond %s blocks, it stuns the first target
 item.dre.cloudStaff.name=Cloud Staff
+tile.dre.cloud.name=Skythern Cloud
 dre.tooltip.cloud_staff=Right-click: a 3x3 cloud platform for %s s under your feet (ahead of you if you stand on ground); landing on a cloud deals no fall damage. Recharge %s s
 item.dre.soulHarvest.name=Soul Harvest
 dre.tooltip.soul_harvest=Each kill grants a soul: +%s%% damage per soul, up to +%s%%; without kills souls fade one per %s s

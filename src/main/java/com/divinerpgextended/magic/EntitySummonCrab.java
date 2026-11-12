@@ -80,7 +80,8 @@ public class EntitySummonCrab extends EntityCreature implements AnchorSummons.Su
             }
             faceEntity(t, 30F, 30F);
         } else if (getDistanceSqToEntity(o) > 16 * 16) {
-            setPosition(o.posX, o.posY, o.posZ);
+            double[] at = AnchorSummons.near(o, AnchorSummons.index(this, o)); // кольцом вокруг хозяина, а не друг в друге
+            setPosition(at[0], at[1], at[2]);
         } else if (getDistanceSqToEntity(o) > 3 * 3) {
             getNavigator().tryMoveToEntityLiving(o, 1.1D);
         }
@@ -105,11 +106,21 @@ public class EntitySummonCrab extends EntityCreature implements AnchorSummons.Su
         return false;
     }
 
+    /** Толкается только с другими призывами: не стоит в них и не толкает хозяина. */
     @Override
-    protected void collideWithEntity(Entity e) {}
+    protected void collideWithEntity(Entity e) {
+        if (e instanceof AnchorSummons.Summon) super.collideWithEntity(e);
+    }
 
     @Override
     public boolean canBePushed() {
-        return false;
+        return true;
+    }
+
+    /** ПКМ хозяина - убрать; клик не уходит в предмет в руке (якорь не зовёт нового). */
+    @Override
+    public boolean interact(EntityPlayer p) {
+        if (!worldObj.isRemote && owner() == p) AnchorSummons.dismiss(this);
+        return true;
     }
 }

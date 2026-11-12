@@ -15,7 +15,10 @@ import com.divinerpgextended.DreTab;
  * добавления в аддон, поэтому новые вещи оказывались вперемешку. Здесь своя ступень сортировки сразу за "по модам":
  * предметы аддона идут по вкладкам творческого режима (основное, снаряжение, аксессуары, рыбалка, аркана, боссы), внутри
  * вкладки - по имени, так что родственные вещи стоят рядом. Номера предметов не меняются, поэтому это работает и в уже
- * созданных мирах. Ступень видна в настройках сортировки NEI, её можно передвинуть.
+ * созданных мирах. Ступень видна в настройках сортировки NEI.
+ * <p>
+ * NEI (и классический, и GTNH) ставит новую ступень в самый конец - после сортировки по номеру и повреждению, где она уже
+ * ничего не решает. Поэтому при каждой загрузке списка она переставляется сразу за "по модам".
  */
 final class NeiSort {
 
@@ -67,8 +70,16 @@ final class NeiSort {
     /** Поставить ступень сразу за сортировкой по модам (NEI перечитывает список из своих настроек). */
     static void place() {
         ItemSorter.SortEntry e = ItemSorter.find(NAME);
-        if (e == null || ItemSorter.list.contains(e)) return;
-        int at = ItemSorter.list.indexOf(ItemSorter.find("nei.itemsort.mod"));
-        ItemSorter.list.add(at < 0 ? 0 : at + 1, e);
+        if (e == null) return;
+        java.util.ArrayList<ItemSorter.SortEntry> l = new java.util.ArrayList<ItemSorter.SortEntry>(ItemSorter.list);
+        l.remove(e);
+        int at = l.indexOf(ItemSorter.find("nei.itemsort.mod"));
+        l.add(at < 0 ? 0 : at + 1, e);
+        ItemSorter.list = l;
+    }
+
+    /** Место ступени в списке сортировки NEI (для самопроверки): номер и номер ступени "по модам". */
+    static int[] position() {
+        return new int[] { ItemSorter.list.indexOf(ItemSorter.find(NAME)), ItemSorter.list.indexOf(ItemSorter.find("nei.itemsort.mod")) };
     }
 }

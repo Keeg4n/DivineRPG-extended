@@ -3980,6 +3980,218 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
+        t("Лиоплевродон", "Призывы: один вид за раз, Корма и Венец арканы +1, ПКМ хозяина убирает, свисток зовёт", () -> {
+            WorldServer w = ow;
+            loadAround(w, sx + 280, sz, 1);
+            TestPlayer sp = join(player(0, "TestSummonKinds", sx + 280.5, sy, sz + 0.5), true);
+            sp.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            TestPlayer other = join(player(0, "TestSummonStranger", sx + 282.5, sy, sz + 0.5), true);
+            StringBuilder rep = new StringBuilder();
+            boolean ok;
+            try {
+                ArcanaHelper.getProperties(sp).setBarValue(200);
+                com.divinerpgextended.magic.AnchorSummons.summon(sp, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB);
+                com.divinerpgextended.magic.AnchorSummons.summon(sp, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB);
+                com.divinerpgextended.magic.ArcaneSummons.summon(sp, sp.posX, sp.posY, sp.posZ);
+                int crabsAfterGhost = com.divinerpgextended.magic.AnchorSummons.count(sp, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB), ghosts = com.divinerpgextended.magic.ArcaneSummons.count(sp);
+                com.divinerpgextended.magic.AnchorSummons.summon(sp, com.divinerpgextended.magic.AnchorSummons.Kind.SLIME);
+                int crabsAfterSlime = com.divinerpgextended.magic.AnchorSummons.count(sp, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB), slimes = com.divinerpgextended.magic.AnchorSummons.count(sp, com.divinerpgextended.magic.AnchorSummons.Kind.SLIME), ghostsAfter = com.divinerpgextended.magic.ArcaneSummons.count(sp);
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(sp);
+                // полный сет Кормы - третий краб
+                armor(sp, net.divinerpg.utils.items.ArcanaItems.kormaHelmet, net.divinerpg.utils.items.ArcanaItems.kormaBody, net.divinerpg.utils.items.ArcanaItems.kormaLegs,
+                    net.divinerpg.utils.items.ArcanaItems.kormaBoots);
+                for (int n = 0; n < 4; n++) com.divinerpgextended.magic.AnchorSummons.summon(sp, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB);
+                int kormaCap = com.divinerpgextended.magic.AnchorSummons.count(sp, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB);
+                armor(sp, null, null, null, null);
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(sp);
+                // ПКМ: чужой не убирает, хозяин убирает
+                net.minecraft.entity.EntityLiving c = com.divinerpgextended.magic.AnchorSummons.summon(sp, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB);
+                boolean strangerKept = ((com.divinerpgextended.magic.EntitySummonCrab) c).interact(other) && !c.isDead;
+                boolean ownerDismissed = ((com.divinerpgextended.magic.EntitySummonCrab) c).interact(sp) && c.isDead;
+                // свисток: призыв - питомец хозяина, свисток переносит его к хозяину
+                net.minecraft.entity.EntityLiving c2 = com.divinerpgextended.magic.AnchorSummons.summon(sp, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB);
+                boolean pet = com.divinerpgextended.item.ItemPetWhistle.pet(c2) && com.divinerpgextended.item.ItemPetWhistle.owner(c2) == sp;
+                c2.setPosition(sp.posX + 10, sp.posY, sp.posZ);
+                int called = com.divinerpgextended.item.ItemPetWhistle.call(sp);
+                boolean near = c2.getDistanceToEntity(sp) < 3;
+                ok = crabsAfterGhost == 0 && ghosts == 1 && crabsAfterSlime == 0 && slimes == 1 && ghostsAfter == 0 && kormaCap == 3 && strangerKept && ownerDismissed && pet
+                    && called >= 1 && near;
+                rep.append("2 краба, потом призрак: крабов ").append(crabsAfterGhost).append(", призраков ").append(ghosts).append("; потом слизень: крабов ").append(crabsAfterSlime)
+                    .append(", слизней ").append(slimes).append(", призраков ").append(ghostsAfter).append("; с Кормой крабов до ").append(kormaCap).append("; ПКМ чужого ").append(strangerKept)
+                    .append(", хозяина ").append(ownerDismissed).append("; свисток: питомец ").append(pet).append(", позвал ").append(called).append(", рядом ").append(near);
+            } finally {
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(sp);
+                com.divinerpgextended.magic.ArcaneSummons.dismissAll(sp);
+                armor(sp, null, null, null, null);
+            }
+            check(ok, rep.toString());
+            return "призывы одного хозяина - одного вида (призрак прогнал крабов, слизень - призрака); с Кормой крабов 3; ПКМ хозяина по призыву убирает, чужого - нет; свисток зовёт призывы";
+        });
+        t("Аркана", "Манекен засчитывает арканный удар мечей Арканы, с Венцом арканы - вдвое", () -> {
+            WorldServer w = ow;
+            loadAround(w, sx + 310, sz, 1);
+            TestPlayer dp = join(player(0, "TestDummyEdge", sx + 310.5, sy, sz + 0.5), true);
+            dp.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            ArcanaHelper.getProperties(dp).setBarValue(0); // у копии в манекене арканы нет - щит арканы не съест удар
+            com.divinerpgextended.dummy.EntityTrainingDummy d = new com.divinerpgextended.dummy.EntityTrainingDummy(w);
+            d.setPosition(dp.posX + 2, dp.posY, dp.posZ);
+            d.copy(dp);
+            d.setPlacer(dp);
+            w.spawnEntityInWorld(d);
+            float[] main = new float[2], edge = new float[2];
+            try {
+                hold(dp, new ItemStack(net.divinerpg.utils.items.ArcanaItems.liviciaSword));
+                for (int pass = 0; pass < 2; pass++) {
+                    if (pass == 1) wearCrown(dp, com.divinerpgextended.item.ArmorCrown.ARCANA);
+                    ArcanaHelper.getProperties(dp).setBarValue(200);
+                    d.hurtResistantTime = 0;
+                    d.attackEntityFrom(DamageSource.causePlayerDamage(dp), 10F);
+                    main[pass] = d.lastHit();
+                    com.divinerpgextended.magic.ArcanaCombat.flushEdges();
+                    edge[pass] = d.lastHit();
+                }
+            } finally {
+                d.setDead();
+                hold(dp, null);
+                armor(dp, null, null, null, null);
+            }
+            float bonus = com.divinerpgextended.magic.ArcanaCombat.SWORD_BONUS * com.divinerpgextended.magic.ArcanaRules.stage(dp);
+            check(near(edge[0], bonus) && near(edge[1], bonus * com.divinerpgextended.Config.crownArcanaDamage),
+                "удар " + f(main[0]) + ", арканный удар " + f(edge[0]) + " (ждали " + f(bonus) + "); с Венцом арканы: удар " + f(main[1]) + ", арканный " + f(edge[1]));
+            return "меч Ливиции по манекену: обычный удар и отдельно арканный " + f(edge[0]) + "; с Венцом арканы арканный " + f(edge[1]) + " (раньше манекен арканный удар не видел вовсе)";
+        });
+        t("Аркана", "Кристалл памяти: в творческом с полным инвентарём не пишет в чат каждую секунду", () -> {
+            TestPlayer mp = join(player(ConfigurationHelper.arcana, "TestCrystalFull", 120.5, 60, 120.5), true);
+            com.divinerpgextended.arcana.ArcanaMerchants am = new com.divinerpgextended.arcana.ArcanaMerchants();
+            int given, given2;
+            boolean has;
+            try {
+                mp.capabilities.isCreativeMode = true;
+                for (int i = 0; i < mp.inventory.mainInventory.length; i++) mp.inventory.mainInventory[i] = new ItemStack(Blocks.stone);
+                mp.chat.clear();
+                for (int s = 1; s <= 5; s++) {
+                    mp.ticksExisted = 20 * s;
+                    am.onPlayerTick(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, mp));
+                }
+                given = 0;
+                for (String c : mp.chat) if (c.startsWith("dre.chat.crystal_given")) given++;
+                mp.inventory.mainInventory[0] = null;
+                mp.chat.clear();
+                for (int s = 6; s <= 8; s++) {
+                    mp.ticksExisted = 20 * s;
+                    am.onPlayerTick(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, mp));
+                }
+                given2 = 0;
+                for (String c : mp.chat) if (c.startsWith("dre.chat.crystal_given")) given2++;
+                has = mp.inventory.hasItem(ModItems.memoryCrystal);
+            } finally {
+                reset(mp);
+            }
+            check(given == 0 && given2 == 1 && has, "полный инвентарь, 5 секунд: \"кристалл выдан\" " + given + " раз; освободился слот: " + given2 + " раз, кристалл есть " + has);
+            return "в творческом с полным инвентарём кристалл не \"выдаётся\" в никуда каждую секунду; освободился слот - выдан один раз";
+        });
+        t("Сумеречные миры", "Посох облаков не ставит облака в чужом привате", () -> {
+            WorldServer w = server.worldServers[0];
+            loadAround(w, 9660, 9660, 0);
+            TestPlayer cp = join(player(0, "TestCloudStaff", 9660.5, 200, 9660.5), true);
+            int denied, placed;
+            try {
+                com.divinerpgextended.perk.Protection.testNoBuild = true;
+                try {
+                    denied = com.divinerpgextended.item.ItemCloudStaff.platform(w, cp);
+                } finally {
+                    com.divinerpgextended.perk.Protection.testNoBuild = false;
+                }
+                placed = com.divinerpgextended.item.ItemCloudStaff.platform(w, cp);
+            } finally {
+                for (int x = 9655; x <= 9665; x++) for (int z = 9655; z <= 9665; z++) w.setBlockToAir(x, 199, z);
+            }
+            check(denied == 0 && placed == 9, "в привате облаков " + denied + ", без привата " + placed);
+            return "в чужом привате посох облаков не ставит ни одного облака, без привата - площадку 3x3";
+        });
+        t("Прохождение", "Вагонетка Апалачии: стоит, пока не нажмёшь вперёд; взгляд поворачивается вместе с ней", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
+            loadAround(w, 9555, 9420, 1);
+            int x0 = 9550, y0 = 100, z0 = 9420;
+            for (int x = x0 - 1; x <= x0 + 11; x++) for (int y = y0 - 1; y <= y0 + 3; y++) for (int z = z0 - 1; z <= z0 + 1; z++)
+                w.setBlock(x, y, z, y == y0 - 1 ? Blocks.stone : Blocks.air);
+            for (int x = x0; x <= x0 + 10; x++) w.setBlock(x, y0, z0, com.divinerpgextended.registry.ModBlocks.skyRail, 0, 3);
+            TestPlayer rp = join(player(ConfigurationHelper.apalachia, "TestRailStill", x0 + 0.5, y0, z0 + 0.5), true);
+            com.divinerpgextended.entity.EntitySkyCart cart = new com.divinerpgextended.entity.EntitySkyCart(w, x0 + 2, y0, z0, -90);
+            w.spawnEntityInWorld(cart);
+            boolean still, goes;
+            int[] start;
+            try {
+                rp.mountEntity(cart);
+                rp.rotationYaw = -90;
+                rp.rotationPitch = 0;
+                rp.moveForward = 0;
+                start = cart.railPos().clone();
+                for (int i = 0; i < 40; i++) cart.onUpdate();
+                still = java.util.Arrays.equals(start, cart.railPos()) && cart.momentum() < 0.01;
+                rp.moveForward = 1;
+                for (int i = 0; i < 8; i++) cart.onUpdate();
+                goes = cart.railPos()[0] > start[0];
+            } finally {
+                rp.moveForward = 0;
+                rp.mountEntity(null);
+                cart.setDead();
+            }
+            // с пола на стену (вагонетка едет на восток и поднимается по стене): смотрел вперёд - смотрит вверх вдоль стены
+            double[] up = com.divinerpgextended.entity.SkyCartView.follow(com.divinerpgextended.entity.SkyCartView.look(-90, 0), new double[] { 0, 1, 0 },
+                new double[] { -1, 0, 0 });
+            float[] yp = com.divinerpgextended.entity.SkyCartView.angles(up, -90);
+            // взгляд вдоль оси поворота (вбок) не меняется
+            double[] side = com.divinerpgextended.entity.SkyCartView.follow(com.divinerpgextended.entity.SkyCartView.look(0, 0), new double[] { 0, 1, 0 },
+                new double[] { -1, 0, 0 });
+            float[] ys = com.divinerpgextended.entity.SkyCartView.angles(side, 0);
+            boolean look = yp[1] < -89F && Math.abs(ys[0]) < 0.5F && Math.abs(ys[1]) < 0.5F;
+            check(still && goes && look, "сел - стоит " + still + " (рельс " + java.util.Arrays.toString(cart.railPos()) + "), вперёд - едет " + goes + "; взгляд вперёд на стене - наклон "
+                + f(yp[1]) + ", вбок - " + f(ys[0]) + "/" + f(ys[1]));
+            return "севший в вагонетку стоит 2 секунды без газа (раньше трогалась сама), по \"вперёд\" едет; с пола на стену взгляд вперёд становится взглядом вверх вдоль стены";
+        });
+        t("Аркана", "Лабиринт: ни одного проёма в стену, открыта примерно половина стыков, без отрезанных комнат", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.arcana);
+            int c0 = 700, n = 10;
+            loadAround(w, c0 * 16 + n * 8, c0 * 16 + n * 8, n / 2 + 1);
+            int open = 0, total = 0, blind = 0, lonely = 0, rooms = 0;
+            StringBuilder where = new StringBuilder();
+            for (int y0 : new int[] { 8, 16, 24, 32 }) for (int cx = c0 + 1; cx < c0 + n - 1; cx++) for (int cz = c0 + 1; cz < c0 + n - 1; cz++) {
+                int x0 = cx * 16, z0 = cz * 16;
+                boolean e = com.divinerpgextended.world.ArcanaDoors.open(w, x0 + 15, y0, z0 + 7, 1, 0), s = com.divinerpgextended.world.ArcanaDoors.open(w, x0 + 7, y0, z0 + 15, 0, 1);
+                boolean wv = com.divinerpgextended.world.ArcanaDoors.open(w, x0 - 1, y0, z0 + 7, 1, 0), nv = com.divinerpgextended.world.ArcanaDoors.open(w, x0 + 7, y0, z0 - 1, 0, 1);
+                for (int[] j : new int[][] { { x0 + 15, z0 + 7, 1, 0 }, { x0 + 7, z0 + 15, 0, 1 } }) {
+                    if (!com.divinerpgextended.world.ArcanaDoors.blind(w, j[0], y0, j[1], j[2], j[3])) continue;
+                    blind++;
+                    if (where.length() > 900) continue;
+                    // какая сторона открыта, что вокруг проёма на открытой стороне и на закрытой
+                    boolean aFree = !w.getBlock(j[0], y0 + 1, j[1]).getMaterial().blocksMovement();
+                    int fx = aFree ? j[0] : j[0] + j[2], fz = aFree ? j[1] : j[1] + j[3], px = j[3], pz = j[2];
+                    where.append(" [").append(j[0]).append(' ').append(y0).append(' ').append(j[1]).append(j[2] == 1 ? " В" : " Ю").append(aFree ? " своя" : " соседа")
+                        .append(" рядом ").append(w.getBlock(fx - px, y0 + 1, fz - pz).getUnlocalizedName()).append('/').append(w.getBlock(fx + 2 * px, y0 + 1, fz + 2 * pz).getUnlocalizedName())
+                        .append(" напротив ").append(w.getBlock(aFree ? j[0] + j[2] : j[0], y0 + 1, aFree ? j[1] + j[3] : j[1]).getUnlocalizedName()).append(']');
+                }
+                open += (e ? 1 : 0) + (s ? 1 : 0);
+                total += 2;
+                rooms++;
+                if (!e && !s && !wv && !nv) lonely++;
+            }
+            float frac = open / (float) total;
+            // диагностика: повторный проход по тем же чанкам - сколько проёмов в стену остаётся
+            int again = 0;
+            if (blind > 0) {
+                com.divinerpgextended.world.ArcanaDoors ad = new com.divinerpgextended.world.ArcanaDoors();
+                for (int cx = c0 + 1; cx < c0 + n - 1; cx++) for (int cz = c0 + 1; cz < c0 + n - 1; cz++) ad.generate(new java.util.Random(), cx, cz, w, null, null);
+                for (int y0 : new int[] { 8, 16, 24, 32 }) for (int cx = c0 + 1; cx < c0 + n - 1; cx++) for (int cz = c0 + 1; cz < c0 + n - 1; cz++) {
+                    if (com.divinerpgextended.world.ArcanaDoors.blind(w, cx * 16 + 15, y0, cz * 16 + 7, 1, 0)) again++;
+                    if (com.divinerpgextended.world.ArcanaDoors.blind(w, cx * 16 + 7, y0, cz * 16 + 15, 0, 1)) again++;
+                }
+                where.append(" повторный проход: проёмов в стену ").append(again);
+            }
+            check(blind == 0 && frac > 0.4F && frac < 0.72F && lonely * 20 <= rooms,
+                "проёмов в стену " + blind + ", открыто стыков " + open + " из " + total + " (" + Math.round(frac * 100) + "%), комнат без выхода по этажу " + lonely + " из " + rooms + ";" + where);
+            return "проёмов в стену нет, открыто " + Math.round(frac * 100) + "% стыков (было ~80%), комнат без выхода по этажу " + lonely + " из " + rooms;
+        });
         t("Рыбалка", "Пещерный удильщик на Глазок циклопа", () -> {
             java.util.Random r = new java.util.Random(42);
             int n = 5000, angler = 0, other = 0, outside = 0;

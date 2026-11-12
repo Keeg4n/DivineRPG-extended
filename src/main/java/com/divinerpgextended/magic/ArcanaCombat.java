@@ -314,8 +314,13 @@ public class ArcanaCombat {
         return h != null && ArcanaRules.useBar(h, 12F, "ItemShadowSword");
     }
 
-    /** Арканный удар меча Арканы по цели - отдельным ударом следующим тиком. */
+    /**
+     * Арканный удар меча Арканы по цели - отдельным ударом следующим тиком. Манекен меряет удар на своей скрытой копии игрока:
+     * арканный удар - по самому манекену (до 0.99.120 он уходил в копию, и манекен показывал один обычный удар).
+     */
     static void queueEdge(EntityLivingBase target, EntityPlayer p) {
+        if (target instanceof com.divinerpgextended.dummy.DummyGhost && ((com.divinerpgextended.dummy.DummyGhost) target).owner != null)
+            target = ((com.divinerpgextended.dummy.DummyGhost) target).owner;
         PENDING.add(new Object[] { target, p, SWORD_BONUS * ArcanaRules.stage(p) * crown(p) });
     }
 
@@ -342,7 +347,12 @@ public class ArcanaCombat {
     /** Отложенные арканные удары мечей. */
     @SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent e) {
-        if (e.phase != TickEvent.Phase.END || PENDING.isEmpty()) return;
+        if (e.phase == TickEvent.Phase.END) flushEdges();
+    }
+
+    /** Нанести отложенные арканные удары (конец тика сервера; самопроверка зовёт сама). */
+    public static void flushEdges() {
+        if (PENDING.isEmpty()) return;
         java.util.List<Object[]> now = new java.util.ArrayList<Object[]>(PENDING);
         PENDING.clear();
         for (Object[] h : now) {

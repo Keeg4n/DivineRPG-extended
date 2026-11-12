@@ -1997,6 +1997,7 @@ item.dre.tomahawk.name=Томагавк
 dre.tooltip.tomahawk=ПКМ - бросок: до %s целей подряд, до %s блоков, возвращается в руку
 dre.tooltip.tomahawk_stun=Брошенный дальше %s блоков оглушает первую цель
 item.dre.cloudStaff.name=Посох облаков
+tile.dre.cloud.name=Облако Терна
 dre.tooltip.cloud_staff=ПКМ - облачная площадка 3x3 на %s с под ногами (стоишь на земле - впереди); падение на облако не ранит. Перезарядка %s с
 item.dre.soulHarvest.name=Жатва душ
 dre.tooltip.soul_harvest=Убийство даёт душу: +%s%% урона за каждую, до +%s%%; без убийств души улетучиваются по одной за %s с

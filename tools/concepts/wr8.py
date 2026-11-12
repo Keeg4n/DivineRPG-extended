@@ -84,9 +84,10 @@ def r8a():
     return bs
 
 
-# ---- Б. Лунная: серебро и сирень, полумесяц над шлемом, большой полумесяц за спиной
+# ---- Б. Лунная: тёмная вороненая сталь с серебряной окантовкой и сиреневым свечением; полумесяц - знаком на груди и наплечниках
+# (12.11: объёмные полумесяцы над шлемом, за спиной и гребни на плечах убраны - "перебор", латы тёмные вместо серебра)
 
-MN, MN_M, MN_D, MN_K, LI, LI_G = '#dfe4ee', '#a9b2c6', '#5a6278', '#1a1c34', '#b89ae8', '#dcc4ff'
+MN, MN_M, MN_D, MN_K, LI, LI_G = '#3a3f52', '#9aa3bb', '#1e2230', '#0b0c16', '#4e3c7a', '#d6bfff'
 
 
 def crescent(faces, cu, cv, r, color, glow=False):
@@ -116,23 +117,17 @@ def arc(bone, cx, cy, z, r, a0, a1, n, t0, t1, paint, depth=0.8):
     return out
 
 
-@slim('r8b', 8, 'Лунная: серебряные латы с сиреневым, полумесяц на груди, гладкий шлем с сиреневым забралом и рогами полумесяца, за спиной большой серп луны')
+@slim('r8b', 8, 'Лунная: тёмные латы с серебряной окантовкой и сиреневым свечением, полумесяц знаком на груди и наплечниках, гладкий шлем с сиреневым забралом')
 def r8b():
-    suit = P(MN_K, trim(0.25, '#0a0a18'))
+    suit = P(MN_K, trim(0.25, '#05050c'))
     silver = P(MN, trim(0.3, MN_M))
     chest = P(MN, trim(0.3, MN_M), crescent(('north',), 4.6, 2.8, 2.0, LI_G, glow=True), stripe(('north',), 0.0, 4.6, 0.25, MN_M))
     bs = under(suit, suit) + breastplate(chest) + waist(P(LI, trim(0.3, MN_D))) + belt(P(MN_M, trim(0.2, MN_D), disc(('north',), 4.5, 0.9, 0.7, LI_G, glow=True)), h=1.6)
-    bs += shoulder(P(MN, trim(0.3, MN_M), rect(SIDES, -1, 99, 2.0, 2.5, LI)), top=-2.4, h=3.4, out=1.0) + bracer(P(MN, trim(0.3, MN_M), rect(SIDES, -1, 99, 2.3, 2.8, LI)))
+    bs += shoulder(P(MN, trim(0.3, MN_M), rect(SIDES, -1, 99, 2.0, 2.5, LI), crescent(('west',), 2.6, 1.0, 0.95, LI_G, glow=True)), top=-2.4, h=3.4, out=1.0)
+    bs += bracer(P(MN, trim(0.3, MN_M), rect(SIDES, -1, 99, 2.3, 2.8, LI)))
     bs += thigh(P(LI, trim(0.3, MN_D))) + knee(silver) + boot(P(MN, trim(0.3, MN_M), rect(SIDES, -1, 99, 3.0, 99, LI_G, glow=True)), toe=1.2)
-    # наплечники: серп-гребень вверх
-    bs += sym(*chain('rightArm', (-3.9, -2.4, 0.0), ((1.6, 0, 20), (1.6, 0, 40), (1.4, 0, 62)), 0.8, P(MN, trim(0.2, MN_M)), taper=0.7))
-    # шлем: гладкий, сиреневое забрало, рога полумесяца от висков вверх и внутрь
+    # шлем: гладкий, сиреневое забрало
     bs += [helm(P(MN, trim(0.3, MN_M), rect(('north',), 1.2, 7.9, 3.8, 5.6, MN_K), rect(('north',), 1.7, 7.4, 4.3, 5.1, LI_G, glow=True), rect(('north',), 4.1, 5.0, 0.4, 3.6, MN_M)))]
-    # над шлемом - полумесяц рожками вверх, светящаяся кромка
-    bs += arc('head', 0.0, -12.9, -0.5, 3.8, 12, 168, 11, 0.4, 1.9, P(MN, trim(0.2, LI_G, glow=True)), depth=1.0)
-    bs += [box('head', -0.8, -9.3, -4.95, 1.6, 1.6, 0.4, P(LI_G, glow=True))]
-    # большой серп за спиной: светлый, толстый в середине, концы тонкие
-    bs += arc('body', -0.6, 4.0, 4.0, 5.4, 75, 285, 14, 0.4, 2.6, P(MN, trim(0.2, LI, glow=True), mottle(MN_M, 1.4, 0.85)))
     return bs
 
 

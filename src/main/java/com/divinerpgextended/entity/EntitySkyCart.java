@@ -199,6 +199,10 @@ public class EntitySkyCart extends Entity {
             return;
         }
         if (lastRider != null && riddenByEntity != lastRider) safeDismount(lastRider);
+        if (riddenByEntity instanceof EntityPlayer && riddenByEntity != lastRider) { // сел - стоит, пока не нажмёт "вперёд"
+            momentum = 0;
+            moving = false;
+        }
         lastRider = riddenByEntity;
         EntityPlayer pilot = riddenByEntity instanceof EntityPlayer ? (EntityPlayer) riddenByEntity : null;
         // игрок газует кнопкой "вперёд", по взгляду: стоит - трогается туда, едет против взгляда - разворот
@@ -212,7 +216,8 @@ public class EntitySkyCart extends Entity {
             }
             push(look.xCoord, look.yCoord, look.zCoord);
             if (nx == cx && ny == cy && nz == cz) driven = false; // туда, куда смотрит, пути нет
-        } else if (!driven && pilot != null && momentum < 0.01 && speed > 0.01) momentum = speed; // отпустил газ на ходу - по инерции
+        } else if (!driven && pilot != null && moving && momentum < 0.01 && speed > 0.01) momentum = speed; // отпустил газ на ходу - по инерции
+        // (только на ходу: у стоящей вагонетки speed с прошлой поездки или начальный - раньше она трогалась сама, едва сядешь)
         if (pilot != null && !driven) speed = Math.max(0, Math.min(speed, momentum));
         if (riddenByEntity != null) riddenByEntity.fallDistance = 0;
         moving = driven || momentum > 0.01;

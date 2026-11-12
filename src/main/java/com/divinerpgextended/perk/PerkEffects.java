@@ -144,7 +144,9 @@ public class PerkEffects {
         if (attacker instanceof EntityPlayer && !attacker.worldObj.isRemote && attacker != event.entityLiving) {
             EntityPlayer a = (EntityPlayer) attacker;
             ArmorCore c = core(a);
-            if (c == ArmorCore.DIVINE && event.source.getSourceOfDamage() == a && !event.source.isProjectile() && !event.source.isMagicDamage()) event.ammount += divineMelee(event.entityLiving);
+            // арканный удар мечей Арканы и удары призывов идут "от игрока", но это не его ближний бой: без прибавки ядра (до 0.99.120 +6 шло и им)
+            if (c == ArmorCore.DIVINE && event.source.getSourceOfDamage() == a && !event.source.isProjectile() && !event.source.isMagicDamage()
+                && !com.divinerpgextended.magic.ArcanaCombat.ARCANE.equals(event.source.damageType)) event.ammount += divineMelee(event.entityLiving);
             if (event.source.isProjectile()) {
                 if (c == ArmorCore.CORRUPTED) event.ammount *= CORE_CORRUPTED_RANGED;
                 if (ArmorData.hasEquippedPerk(a, Perk.MARKSMAN)) event.ammount *= MARKSMAN;

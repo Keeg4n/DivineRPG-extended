@@ -47,7 +47,7 @@ public class ArcaneSummons {
     }
 
     public static void dismissAll(EntityPlayer p) {
-        for (EntityArcaneWraith w : new ArrayList<EntityArcaneWraith>(of(p))) w.setDead();
+        for (EntityArcaneWraith w : new ArrayList<EntityArcaneWraith>(of(p))) AnchorSummons.dismiss(w);
         LIVE.remove(p.getUniqueID());
     }
 
@@ -101,7 +101,8 @@ public class ArcaneSummons {
 
     public static EntityArcaneWraith summon(EntityPlayer p, double x, double y, double z) {
         List<EntityArcaneWraith> l = of(p);
-        int cap = ArcanaRules.korma(p) ? CAP_KORMA : CAP;
+        AnchorSummons.dismissAll(p); // призывы одного хозяина - одного вида
+        int cap = AnchorSummons.summoner(p) ? CAP_KORMA : CAP; // Корма или Венец арканы R8
         while (l.size() >= cap) l.remove(0).setDead(); // лишний - самый старый
         EntityArcaneWraith w = new EntityArcaneWraith(p.worldObj, p);
         w.setLocationAndAngles(x, y + 1, z, p.rotationYaw, 0);

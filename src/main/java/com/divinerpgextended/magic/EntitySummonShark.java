@@ -103,7 +103,8 @@ public class EntitySummonShark extends EntityLiving implements AnchorSummons.Sum
         }
         double dx = tx - posX, dy = ty - posY, dz = tz - posZ, len = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (len > 24) {
-            setPosition(o.posX, o.posY + orbitHeight(), o.posZ);
+            double[] at = AnchorSummons.near(o, AnchorSummons.index(this, o));
+            setPosition(at[0], at[1] + orbitHeight(), at[2]);
             return;
         }
         double v = Math.min(speed, len * 0.35);
@@ -149,4 +150,11 @@ public class EntitySummonShark extends EntityLiving implements AnchorSummons.Sum
 
     @Override
     protected void fall(float d) {}
+
+    /** ПКМ хозяина - убрать; клик не уходит в предмет в руке (якорь не зовёт нового). */
+    @Override
+    public boolean interact(EntityPlayer p) {
+        if (!worldObj.isRemote && owner() == p) AnchorSummons.dismiss(this);
+        return true;
+    }
 }

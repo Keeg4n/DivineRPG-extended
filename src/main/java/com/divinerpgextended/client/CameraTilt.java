@@ -52,6 +52,26 @@ public class CameraTilt {
         if (Math.abs(last) > 0.01) GL11.glRotated(last, 0, 0, 1);
     }
 
+    /** Вагонетка сменила плоскость (пол - стена - потолок): взгляд седока поворачивается вместе с ней. */
+    public static class Follow {
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onTick(cpw.mods.fml.common.gameevent.TickEvent.ClientTickEvent e) {
+            if (e.phase != cpw.mods.fml.common.gameevent.TickEvent.Phase.END) return;
+            Minecraft mc = Minecraft.getMinecraft();
+            if (mc.thePlayer == null || mc.isGamePaused()) return;
+            EntitySkyCart c = cart(mc.thePlayer);
+            if (c == null) return;
+            float[] a = c.prevNormal, b = c.normal();
+            double[] look = SkyCartView.follow(SkyCartView.look(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch), new double[] { a[0], a[1], a[2] },
+                new double[] { b[0], b[1], b[2] });
+            if (look == null) return;
+            float[] yp = SkyCartView.angles(look, mc.thePlayer.rotationYaw);
+            mc.thePlayer.rotationYaw = yp[0];
+            mc.thePlayer.rotationPitch = yp[1];
+        }
+    }
+
     /** Вместо Entity.setAngles в EntityRenderer.updateCameraAndRender: сдвиг мыши - в осях наклонённого экрана. */
     public static void angles(Entity e, float dx, float dy) {
         if (Math.abs(last) > 0.01 && (cart(e) != null || last == 180)) {

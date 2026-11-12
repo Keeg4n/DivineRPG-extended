@@ -16,7 +16,7 @@ import net.minecraft.world.World;
  */
 public class EntityArcaneWraith extends EntityWraith {
 
-    public static final float BASE_DAMAGE = 10F, UPKEEP = 3F;
+    public static final float BASE_DAMAGE = 10F, UPKEEP = 8F; // восстановление арканы - 20 в секунду
     public static final int HIT_EVERY = 15, LEASH = 48;
     private static java.lang.reflect.Field age;
     private int cooldown, life;
@@ -89,7 +89,8 @@ public class EntityArcaneWraith extends EntityWraith {
         }
         double dx = tx - posX, dy = ty - posY, dz = tz - posZ, len = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (len > 24) { // отстал - рядом с хозяином
-            setPosition(o.posX, o.posY + 1.8, o.posZ);
+            double[] at = AnchorSummons.near(o, ArcaneSummons.index(this));
+            setPosition(at[0], at[1] + 1.8, at[2]);
             return;
         }
         double v = Math.min(speed, len * 0.35);
@@ -122,6 +123,13 @@ public class EntityArcaneWraith extends EntityWraith {
     @Override
     public boolean isEntityInsideOpaqueBlock() {
         return false;
+    }
+
+    /** ПКМ хозяина по призраку - убрать (клик не уходит в предмет в руке: призыв той же костью не повторяется). */
+    @Override
+    public boolean interact(EntityPlayer p) {
+        if (!worldObj.isRemote && owner() == p) AnchorSummons.dismiss(this);
+        return true;
     }
 
     @Override

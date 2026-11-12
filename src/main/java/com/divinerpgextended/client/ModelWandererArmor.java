@@ -136,11 +136,68 @@ public class ModelWandererArmor extends ModelBiped {
     /** На игроке: поза и текстура - как у костюма H.E.V. (номер прохода в событии задом наперёд, часть - по вещи). */
     public static class Events {
 
+        /** Пустой скин: тело не рисуется, а всё, что держится на его костях (вещь в руке, аксессуары), остаётся на месте. */
+        private static final ResourceLocation CLEAR = new ResourceLocation(D, "textures/entity/clear_skin.png");
+        private static java.lang.reflect.Field skin;
+        private net.minecraft.client.entity.AbstractClientPlayer hidden;
+        private ResourceLocation saved;
+
+        /** Полный сет Призрака (Венец полёта R8). */
+        static boolean ghost(net.minecraft.entity.player.EntityPlayer p) {
+            for (int i = 0; i < 4; i++) {
+                net.minecraft.item.ItemStack s = p.getCurrentArmor(i);
+                if (s == null || !(s.getItem() instanceof ItemWandererArmor) || !ItemWandererArmor.translucent(ItemWandererArmor.look(s))) return false;
+            }
+            return true;
+        }
+
+        /**
+         * Призрак полупрозрачный: сквозь латы должен быть виден мир, а не скин игрока. На время отрисовки игрока в полном сете его
+         * скин - пустая текстура (тело - ничего, вместо скрытия частей модели: на их костях держатся вещь в руке и аксессуары).
+         */
+        @SubscribeEvent
+        public void onPre(RenderPlayerEvent.Pre e) {
+            if (!(e.entityPlayer instanceof net.minecraft.client.entity.AbstractClientPlayer) || !ghost(e.entityPlayer)) return;
+            try {
+                if (skin == null) skin = cpw.mods.fml.relauncher.ReflectionHelper.findField(net.minecraft.client.entity.AbstractClientPlayer.class, "locationSkin", "field_110312_d");
+                hidden = (net.minecraft.client.entity.AbstractClientPlayer) e.entityPlayer;
+                saved = (ResourceLocation) skin.get(hidden);
+                skin.set(hidden, CLEAR);
+            } catch (Throwable t) {
+                hidden = null;
+            }
+        }
+
+        @SubscribeEvent(receiveCanceled = true)
+        public void onPost(RenderPlayerEvent.Post e) {
+            if (hidden == null || e.entityPlayer != hidden) return;
+            try {
+                skin.set(hidden, saved);
+            } catch (Throwable ignored) {}
+            hidden = null;
+            saved = null;
+        }
+
+        /**
+         * Стойка для брони BiblioCraft рисует броню со своей моделью через фальшивого игрока, а его яркость всегда полная (днём и
+         * ночью, на свету и в темноте) - броня выходила пересвеченной. Ставим свет по месту самой стойки: фальшивый игрок стоит
+         * в координатах отрисовки (мир минус камера).
+         */
+        static void standLight(net.minecraft.entity.player.EntityPlayer steve) {
+            if (steve.worldObj == null) return;
+            int x = net.minecraft.util.MathHelper.floor_double(steve.posX + net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher.staticPlayerX);
+            int y = net.minecraft.util.MathHelper.floor_double(steve.posY + net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher.staticPlayerY);
+            int z = net.minecraft.util.MathHelper.floor_double(steve.posZ + net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher.staticPlayerZ);
+            int b = Math.max(steve.worldObj.getLightBrightnessForSkyBlocks(x, y, z, 0), steve.worldObj.getLightBrightnessForSkyBlocks(x, y + 1, z, 0));
+            net.minecraft.client.renderer.OpenGlHelper.setLightmapTextureCoords(net.minecraft.client.renderer.OpenGlHelper.lightmapTexUnit, b % 65536, b / 65536);
+        }
+
         @SubscribeEvent
         public void onArmor(RenderPlayerEvent.SetArmorModel e) {
             if (e.stack == null || !(e.stack.getItem() instanceof ItemWandererArmor)) return;
             if (!ItemWandererArmor.hasLook(ArmorData.tier(e.stack))) return;
             int look = ItemWandererArmor.look(e.stack);
+            if ("jds.bibliocraft.AbstractSteve".equals(e.entityPlayer.getClass().getName())) standLight(e.entityPlayer);
             ModelWandererArmor m = select(look, ((ItemArmor) e.stack.getItem()).armorType, ArmorData.color(e.stack));
             ModelBiped main = e.renderer.modelBipedMain;
             m.onGround = main.onGround;

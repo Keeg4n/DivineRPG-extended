@@ -50,7 +50,12 @@ public class ClientProxy extends CommonProxy {
         com.divinerpgextended.client.EasterClient.init();
         com.divinerpgextended.client.RenderWandererAnvil.register();
         com.divinerpgextended.client.RenderLockedChest.register();
-        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.MaulSwingClient()); // перезарядка молотов
+        com.divinerpgextended.client.MaulSwingClient maulSwing = new com.divinerpgextended.client.MaulSwingClient(); // перезарядка молотов
+        MinecraftForge.EVENT_BUS.register(maulSwing); // мышь
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(maulSwing); // клавиатура
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.CameraTilt.Follow()); // взгляд за вагонеткой Апалачии
+        net.minecraftforge.client.MinecraftForgeClient.registerItemRenderer(com.divinerpgextended.registry.ModItems.tsunami, new com.divinerpgextended.client.BowRender());
+        net.minecraftforge.client.MinecraftForgeClient.registerItemRenderer(com.divinerpgextended.registry.ModItems.stormBow, new com.divinerpgextended.client.BowRender());
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.FinsClient()); // ласты
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.ModelWandererArmor.Events()); // облики брони Странника
         com.divinerpgextended.DreTab.sort(); // вкладки творческого режима - только на клиенте

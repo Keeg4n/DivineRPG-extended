@@ -25,20 +25,24 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * лиоплевродона (с Лиоплевродона) - акулу; ПКМ - только призыв (броска у якорей и выстрела у жезла нет, меч бьёт как раньше).
  * Как призрак кости призрака ({@link ArcaneSummons}): держатся, пока хозяин платит арканой ({@link Kind#upkeep} в секунду за
  * каждого), бьют то, что бьёт хозяин (или того, кто напал на хозяина), а сами - ближайшего врага в своём радиусе агра
- * ({@link Kind#aggro}); не ранятся и не сохраняются; одновременно не больше {@link Kind#cap} каждого вида, лишний - самый
- * старый. Лестница призывов: слизень - краб - око - акула - призрак.
+ * ({@link Kind#aggro}); не ранятся и не сохраняются; одновременно не больше {@link #cap} каждого вида (полный сет Кормы или
+ * Венец арканы R8 - на одного больше), лишний - самый старый. Лестница призывов: слизень - краб - око - акула - призрак.
+ * <p>
+ * С 0.99.120: призывы одного хозяина - только одного вида (позвал краба - остальные, и призраки тоже, уходят); ПКМ по своему
+ * призыву или удар свистком - убрать; свисток зовёт их к хозяину; наземные (слизень, краб) толкаются друг с другом и при
+ * переносе к хозяину встают кольцом. Цена в аркане поднята: восстановление арканы - 20 в секунду, 1-3 за призыв не чувствовались.
  */
 public class AnchorSummons {
 
     public enum Kind {
         /** Слизень слизневого меча: прыгает по земле, агр ближе всех. */
-        SLIME(1F, 2, 3F, 6),
+        SLIME(3F, 2, 3F, 6),
         /** Бегает по земле. */
-        CRAB(2F, 2, 4F, 8),
+        CRAB(5F, 2, 4F, 8),
         /** Око циклопического жезла: спутник над головой, бьёт слабее всех, но отбрасывает врага. */
-        EYE(1F, 2, 2F, 10),
+        EYE(3F, 2, 2F, 10),
         /** Летает, как призрак. */
-        SHARK(3F, 2, 8F, 12);
+        SHARK(7F, 2, 8F, 12);
 
         public final float upkeep, damage;
         public final int cap;
@@ -57,6 +61,33 @@ public class AnchorSummons {
     public interface Summon {
 
         Kind kind();
+
+        /** Хозяин или null (на клиенте - всегда null). */
+        EntityPlayer owner();
+    }
+
+    /** Призыватель: полный сет Кормы или Венец арканы R8 - каждого призыва на одного больше. */
+    public static boolean summoner(EntityPlayer p) {
+        return p != null && (ArcanaRules.korma(p) || com.divinerpgextended.item.ArmorData.equippedCrown(p) == com.divinerpgextended.item.ArmorCrown.ARCANA);
+    }
+
+    /** Сколько призывов вида держит игрок. */
+    public static int cap(EntityPlayer p, Kind k) {
+        return k.cap + (summoner(p) ? 1 : 0);
+    }
+
+    /** Убрать призыв (ПКМ хозяина, свисток): искры и звук. */
+    public static void dismiss(Entity e) {
+        if (e.worldObj instanceof net.minecraft.world.WorldServer)
+            ((net.minecraft.world.WorldServer) e.worldObj).func_147487_a("witchMagic", e.posX, e.posY + e.height / 2, e.posZ, 16, e.width * 0.4, e.height * 0.4, e.width * 0.4, 0.05);
+        e.worldObj.playSoundAtEntity(e, "random.pop", 0.5F, 0.6F);
+        e.setDead();
+    }
+
+    /** Куда встать призыву при переносе к хозяину: кольцом, чтобы не стоять друг в друге. */
+    static double[] near(EntityPlayer o, int index) {
+        double a = index * 2.4 + 0.6;
+        return new double[] { o.posX + Math.cos(a) * 1.3, o.posY, o.posZ + Math.sin(a) * 1.3 };
     }
 
     /** Отброс удара ока (скорость, блоки за тик): боссам - {@link #EYE_PUSH_BOSS} от него. */
@@ -97,14 +128,21 @@ public class AnchorSummons {
     }
 
     public static void dismissAll(EntityPlayer p) {
-        for (EntityLiving e : new ArrayList<EntityLiving>(of(p))) e.setDead();
+        for (EntityLiving e : new ArrayList<EntityLiving>(of(p))) dismiss(e);
         LIVE.remove(p.getUniqueID());
     }
 
     /** Призвать у хозяина. */
     public static EntityLiving summon(EntityPlayer p, Kind k) {
         List<EntityLiving> l = of(p);
-        while (count(p, k) >= k.cap) for (EntityLiving e : l) if (kind(e) == k) {
+        // призывы одного хозяина - одного вида: другие виды и призраки уходят
+        for (EntityLiving o : new ArrayList<EntityLiving>(l)) if (kind(o) != k) {
+            dismiss(o);
+            l.remove(o);
+        }
+        ArcaneSummons.dismissAll(p);
+        int cap = cap(p, k);
+        while (count(p, k) >= cap) for (EntityLiving e : l) if (kind(e) == k) {
             e.setDead();
             l.remove(e);
             break;
@@ -215,7 +253,7 @@ public class AnchorSummons {
         Kind k = e.itemStack == null ? null : kind(e.itemStack.getItem());
         if (k == null) return;
         e.toolTip.add(net.minecraft.util.EnumChatFormatting.LIGHT_PURPLE + net.minecraft.util.StatCollector.translateToLocalFormatted("dre.tooltip.summon_" + k.name().toLowerCase(),
-            (int) k.upkeep, k.cap));
+            (int) k.upkeep, cap(e.entityPlayer, k)));
         e.toolTip.add(net.minecraft.util.EnumChatFormatting.GRAY + net.minecraft.util.StatCollector.translateToLocalFormatted("dre.tooltip.summon_stats",
             String.format("%.0f", damage(e.entityPlayer, k)), (int) k.aggro));
     }
