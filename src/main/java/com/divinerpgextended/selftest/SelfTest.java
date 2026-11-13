@@ -717,6 +717,17 @@ public class SelfTest {
         serverTests(p, q);
         auditTests(p);
         moreTests(p, q, g, ow, sx, sy, sz);
+        if (VetheaCoverage.enabled(ONLY)) { // полное покрытие Ветеи - только по фильтру, в обычный прогон не входит
+            t("Ветея - покрытие", "Чужие вещи сборки до и после прохождения", () -> {
+                VetheaCoverage vc = new VetheaCoverage();
+                String r = vc.run();
+                java.nio.file.Files.write(new File(server.getFile("logs"), "dre-vethea-leaks.txt").toPath(),
+                    String.join(System.lineSeparator(), vc.leaks).getBytes(StandardCharsets.UTF_8));
+                check(vc.leaks.isEmpty(), r + "; первые утечки: " + vc.leaks.subList(0, Math.min(12, vc.leaks.size())) + " (все - logs/dre-vethea-leaks.txt)");
+                return r;
+            });
+            return;
+        }
         lioTests(p, ow, sx, sy, sz);
         earlyWeaponTests(ow, sx, sy, sz);
         dropIconTests();
@@ -2297,11 +2308,14 @@ public class SelfTest {
                 hold(p, held);
                 p.getAttributeMap().applyAttributeModifiers(held.getAttributeModifiers()); // как на тике игрока
                 p.attackTargetEntityWithCurrentItem(d);
+                float hit = d.lastHit(); // сам удар; арканный удар мечей Арканы идёт отдельно следующим тиком и тоже попадает в манекен
                 p.getAttributeMap().removeAttributeModifiers(held.getAttributeModifiers());
+                d.copy(p);
                 new com.divinerpgextended.magic.ArcanaCombat().onServerTick(new cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent(
                     cpw.mods.fml.common.gameevent.TickEvent.Phase.END));
-                ok &= d.lastHit() > 4;
-                sb.append(it.getItemStackDisplayName(held)).append(' ').append(f(d.lastHit())).append(", ");
+                float arcane = d.lastHit();
+                ok &= hit > 4;
+                sb.append(it.getItemStackDisplayName(held)).append(' ').append(f(hit)).append(arcane > 0 ? " + аркана " + f(arcane) : "").append(", ");
             }
             // снаряды Divine: выстрел, попадание в манекен (звезда и метеор - взрывом, у взрыва нет атакующего)
             Item[] ranged = { net.divinerpg.utils.items.VanillaItemsWeapons.shuriken, net.divinerpg.utils.items.VanillaItemsWeapons.vileStorm,
@@ -3087,6 +3101,20 @@ public class SelfTest {
             // своё применение: броня, оружие, инструмент, еда, блок, или класс сам переопределяет действие
             String[] acts = { "onItemRightClick", "func_77659_a", "onItemUse", "func_77648_a", "hitEntity", "func_77644_a", "onEaten", "func_77654_b", "onUpdate", "func_77663_a",
                 "itemInteractionForEntity", "func_111207_a", "onItemUseFirst", "onLeftClickEntity" };
+            // патроны оружия (луки, стрелки, пушки) и травы арканных зелий - применение без рецепта и сделки
+            java.util.Set<net.minecraft.item.Item> ammo = new java.util.HashSet<net.minecraft.item.Item>();
+            for (Object io : net.minecraft.item.Item.itemRegistry) {
+                net.minecraft.item.Item w = (net.minecraft.item.Item) io;
+                net.minecraft.item.Item am = w == null ? null : com.divinerpgextended.perk.Ammo.of(new net.minecraft.item.ItemStack(w));
+                if (am != null) ammo.add(am);
+            }
+            java.util.Set<net.minecraft.item.Item> herbs = new java.util.HashSet<net.minecraft.item.Item>();
+            for (com.divinerpgextended.magic.ArcaneEffect ae : com.divinerpgextended.magic.ArcaneEffect.values()) if (!ae.removed() && ae.ingredient() != null) herbs.add(ae.ingredient());
+            java.lang.reflect.Field heal = null;
+            try {
+                heal = net.divinerpg.items.base.ItemMod.class.getDeclaredField("healAmount");
+                heal.setAccessible(true);
+            } catch (Throwable ignored) {}
             StringBuilder out = new StringBuilder("# предмет Divine | в рецептах | в сделках | своё применение\n");
             int junk = 0;
             for (java.util.Map.Entry<net.minecraft.item.Item, String> en : items.entrySet()) {
@@ -3104,6 +3132,11 @@ public class SelfTest {
                                 own = "действие " + c.getSimpleName() + "." + mt.getName();
                                 break;
                             }
+                if (own.isEmpty() && heal != null && it instanceof net.divinerpg.items.base.ItemMod && heal.getInt(it) > 0) own = "ПКМ лечит на " + heal.getInt(it) + " (ItemMod)";
+                if (own.isEmpty() && ammo.contains(it)) own = "патрон оружия";
+                if (own.isEmpty() && com.divinerpgextended.fishing.Bait.of(it) != null) own = "приманка рыбалки";
+                if (own.isEmpty() && herbs.contains(it)) own = "трава арканного зелья";
+                if (own.isEmpty() && com.divinerpgextended.accessory.Accessories.divineAccessory(new net.minecraft.item.ItemStack(it))) own = "аксессуар (встраивается в броню)";
                 int ni = ingr.getOrDefault(it, 0), nt = trade.getOrDefault(it, 0);
                 boolean noUse = ni == 0 && nt == 0 && own.isEmpty();
                 if (noUse) junk++;
@@ -8201,6 +8234,73 @@ public class SelfTest {
             }
             check(plainGone && kept == guarded.length, "кирка Blood Magic: камень сломан " + plainGone + ", защищённых цело " + kept + " из " + guarded.length);
             return "блоки с правилами для всех неломаемые, игрок ломает нужным инструментом; связанная кирка Blood Magic сломала камень рядом, а кирпич Арканы, руду Эдема, руду джунглей и сумеречный камень не тронула";
+        });
+        t("Прохождение", "Площадные инструменты чужих модов не ломают в привате", () -> {
+            // поправки встали на те моды, что есть в сборке; полное покрытие с Ветеей - фильтром "Ветея - покрытие"
+            StringBuilder miss = new StringBuilder();
+            String[] want = { "WayofTime.alchemicalWizardry.common.items.BoundPickaxe", "WayofTime.alchemicalWizardry.common.items.BoundAxe",
+                "WayofTime.alchemicalWizardry.common.items.BoundShovel", "vazkii.botania.common.item.equipment.tool.ToolCommons", "thaumcraft.common.lib.utils.BlockUtils",
+                "bspkrs.treecapitator.Treecapitator" };
+            for (String c : want) {
+                try {
+                    Class.forName(c); // поправка встаёт при загрузке класса; нет мода - нет и класса
+                } catch (Throwable t) {
+                    continue;
+                }
+                if (!com.divinerpgextended.asm.AreaBreakTransformer.patched.contains(c)) miss.append(c).append(' ');
+            }
+            boolean baubles;
+            try {
+                Class.forName("baubles.api.BaublesApi");
+                Class.forName("baubles.common.event.EventHandlerEntity");
+                baubles = true;
+            } catch (Throwable t) {
+                baubles = false;
+            }
+            if (baubles && com.divinerpgextended.asm.BaublesTransformer.patched < 2) miss.append("Baubles ");
+            if (!com.divinerpgextended.asm.ArmorTickTransformer.patched) miss.append("InventoryPlayer ");
+            check(miss.length() == 0, "без поправки: " + miss);
+            if (!cpw.mods.fml.common.Loader.isModLoaded("AWWayofTime")) return "поправки на месте; Blood Magic нет - связанными инструментами не проверялось";
+            int x = 21600, y = 150, z = 21500;
+            Protection prot = new Protection();
+            prot.dim = 0;
+            prot.x0 = x - 8;
+            prot.x1 = x + 8;
+            prot.y0 = y - 8;
+            prot.y1 = y + 8;
+            prot.z0 = z - 8;
+            prot.z1 = z + 8;
+            MinecraftForge.EVENT_BUS.register(prot);
+            net.minecraft.entity.player.EntityPlayerMP real = new net.minecraft.entity.player.EntityPlayerMP(server, ow,
+                new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "TestBoundPrivate"), new net.minecraft.server.management.ItemInWorldManager(ow));
+            real.setLocationAndAngles(x + 0.5, y, z + 0.5, 0F, 0F);
+            Class.forName("WayofTime.alchemicalWizardry.api.soulNetwork.SoulNetworkHandler").getMethod("addCurrentEssenceToMaximum", String.class, int.class, int.class).invoke(null, "TestBoundPrivate", 100000, 100000);
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            try {
+                for (String f : new String[] { "boundPickaxe", "boundAxe", "boundShovel" }) {
+                    net.minecraft.item.Item tool = (net.minecraft.item.Item) Class.forName("WayofTime.alchemicalWizardry.ModItems").getField(f).get(null);
+                    ItemStack st = new ItemStack(tool);
+                    st.setTagCompound(new NBTTagCompound());
+                    tool.getClass().getMethod("setActivated", ItemStack.class, boolean.class).invoke(tool, st, true);
+                    ow.setBlock(x - 2, y, z, Blocks.stone);
+                    ow.setBlock(x + 2, y, z, Blocks.log);
+                    ow.setBlock(x, y, z + 2, Blocks.dirt);
+                    tool.onItemRightClick(st, ow, real);
+                    int kept = (ow.getBlock(x - 2, y, z) == Blocks.stone ? 1 : 0) + (ow.getBlock(x + 2, y, z) == Blocks.log ? 1 : 0) + (ow.getBlock(x, y, z + 2) == Blocks.dirt ? 1 : 0);
+                    ok &= kept == 3;
+                    rep.append(f).append(": цело ").append(kept).append(" из 3; ");
+                }
+            } finally {
+                MinecraftForge.EVENT_BUS.unregister(prot);
+                ow.setBlockToAir(x - 2, y, z);
+                ow.setBlockToAir(x + 2, y, z);
+                ow.setBlockToAir(x, y, z + 2);
+                for (Object o : ow.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class,
+                    net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 8, y - 8, z - 8, x + 8, y + 8, z + 8))) ((net.minecraft.entity.Entity) o).setDead();
+            }
+            check(ok, rep.toString());
+            return "поправки на месте; в привате связанные кирка, топор и лопата Blood Magic ничего не сломали (" + rep.toString().trim() + ")";
         });
         t("Прохождение", "Факел зова не зовёт мобов выше ранга игроков рядом", () -> {
             WorldServer zw = server.worldServerForDimension(0);

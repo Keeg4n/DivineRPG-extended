@@ -58,8 +58,11 @@ import cpw.mods.fml.common.registry.GameData;
  * <li>чужое оружие лечит цель вместо урона (по игрокам - просто не бьёт);</li>
  * <li>чужая броня не защищает, а усиливает входящий урон настолько, насколько защищала бы (80% -> x1.8);</li>
  * <li>чужая еда отнимает сытость, чужие зелья дают обратный эффект;</li>
- * <li>чужие инструменты копают в 5 раз медленнее.</li>
+ * <li>чужие инструменты копают в 5 раз медленнее и только блок под рукой;</li>
+ * <li>ПКМ чужой вещью не срабатывает, кроме строительства, еды, зелий и луков ({@link NightmareHands});</li>
+ * <li>чужие аксессуары Baubles молчат ({@link NightmareBaubles}).</li>
  * </ul>
+ * Всё это - до победы над всеми боссами Ветеи.
  * Своими считаются предметы и блоки Ветеи из Divine, ветейское от аддона и белый список из конфига.
  */
 public class Nightmare {
@@ -127,6 +130,27 @@ public class Nightmare {
         return vethean().contains(i);
     }
 
+    /**
+     * Ставит блок и только: двери, кровати, таблички, редстоун, повторители, горшки, головы, семена, картины. Во сне ими
+     * можно строить, как обычными блоками.
+     */
+    public static boolean placer(Item i) {
+        return i instanceof net.minecraft.item.ItemBlock || i instanceof net.minecraft.item.ItemReed || i instanceof net.minecraft.item.ItemDoor
+            || i instanceof net.minecraft.item.ItemBed || i instanceof net.minecraft.item.ItemSign || i instanceof net.minecraft.item.ItemRedstone
+            || i instanceof net.minecraft.item.ItemSkull || i instanceof net.minecraft.item.ItemSeeds || i instanceof net.minecraft.item.ItemHangingEntity;
+    }
+
+    /**
+     * ПКМ чужой вещью во сне до прохождения работает: строительство ({@link #placer}), еда и зелья (их кошмар
+     * переворачивает), луки (их стрелы лечат мобов сна). Остальное чужое (жезлы, фокусы, сигилы, призывы, телепорты,
+     * площадные инструменты, блок мечом) не срабатывает.
+     */
+    public static boolean usable(ItemStack s) {
+        if (s == null || vethean(s)) return true;
+        Item i = s.getItem();
+        return placer(i) || i instanceof ItemFood || i instanceof ItemPotion || i instanceof ItemBow;
+    }
+
     /** Tinkers' Construct, Tainted Magic (катана, разборщик), Blood Magic (связанный мульти-инструмент). */
     private static final Set<String> FOREIGN_WEAPONS = new HashSet<String>(java.util.Arrays.asList(
         "tconstruct.library.tools.ToolCore",
@@ -145,7 +169,7 @@ public class Nightmare {
         return foreignWeapons = s;
     }
 
-    private static boolean weapon(ItemStack s) {
+    static boolean weapon(ItemStack s) {
         Item i = s.getItem();
         if (i instanceof ItemSword || i instanceof ItemTool || i instanceof ItemBow) return true;
         // оружие других модов без ванильной основы и атрибута урона (урон считают сами) - узнаём по классу
@@ -222,17 +246,9 @@ public class Nightmare {
             EntityPlayer p = (EntityPlayer) src;
             ItemStack held = p.getHeldItem();
             boolean ranged = e.source.getSourceOfDamage() != src;
-            // только против мобов самой Ветеи (и игроков); ванильных и чужих мобов чужое оружие бьёт как обычно
-            boolean native_ = e.entityLiving instanceof EntityPlayer || e.entityLiving.getClass().getName().startsWith("net.divinerpg.entities.vethea.");
-            if (native_ && held != null && !vethean(held) && (ranged || weapon(held))) {
+            if (nativeTarget(e.entityLiving) && held != null && !vethean(held) && (ranged || weapon(held))) {
                 e.setCanceled(true);
-                if (!(e.entityLiving instanceof EntityPlayer)) {
-                    e.entityLiving.heal(e.ammount);
-                    ((net.minecraft.world.WorldServer) p.worldObj).func_147487_a("heart", e.entityLiving.posX,
-                        e.entityLiving.posY + e.entityLiving.height, e.entityLiving.posZ, 2, 0.3, 0.2, 0.3, 0);
-                }
-                com.divinerpgextended.debug.Debug.note(p, "Кошмар: чужое оружие лечит вместо урона (" + e.ammount + ")");
-                hint(p, "weapon");
+                soothe(p, e.entityLiving, e.ammount);
                 return;
             }
         }
@@ -258,6 +274,52 @@ public class Nightmare {
             p.attackEntityFrom(again, (float) (e.ammount * (1 + Math.min(guard, 1.0))));
             hint(p, "armor");
         }
+    }
+
+    /**
+     * Взрыв снаряда чужой вещи (ракеты, гранаты, огненные шары из чужого оружия) во сне до прохождения: мобов сна не
+     * ранит, а лечит, блоки сна не ломает.
+     */
+    @SubscribeEvent
+    public void onDetonate(net.minecraftforge.event.world.ExplosionEvent.Detonate e) {
+        if (e.world.isRemote || !inVetheaWorld(e.world) || !Config.vetheaNightmare) return;
+        EntityPlayer p = owner(e.explosion);
+        if (p == null || !active(p) || vethean(p.getHeldItem())) return;
+        e.getAffectedBlocks().clear();
+        @SuppressWarnings("unchecked")
+        List<Entity> list = e.getAffectedEntities();
+        for (java.util.Iterator<Entity> it = list.iterator(); it.hasNext();) {
+            Entity t = it.next();
+            if (t instanceof EntityPlayer || !nativeTarget(t) || !(t instanceof EntityLivingBase)) continue;
+            it.remove();
+            soothe(p, (EntityLivingBase) t, e.explosion.explosionSize * 2);
+        }
+    }
+
+    /** Чей взрыв: метатель снаряда, стрелок, поджигатель. */
+    static EntityPlayer owner(net.minecraft.world.Explosion x) {
+        Entity ex = x.exploder, o = null;
+        if (ex instanceof net.minecraft.entity.projectile.EntityThrowable) o = ((net.minecraft.entity.projectile.EntityThrowable) ex).getThrower();
+        else if (ex instanceof net.minecraft.entity.projectile.EntityArrow) o = ((net.minecraft.entity.projectile.EntityArrow) ex).shootingEntity;
+        else if (ex instanceof net.minecraft.entity.projectile.EntityFireball) o = ((net.minecraft.entity.projectile.EntityFireball) ex).shootingEntity;
+        else if (ex instanceof EntityPlayer) o = ex;
+        if (o == null) o = x.getExplosivePlacedBy();
+        return o instanceof EntityPlayer ? (EntityPlayer) o : null;
+    }
+
+    /** Своя для сна цель: мобы самой Ветеи и игроки. Ванильных и чужих мобов чужое оружие бьёт как обычно. */
+    static boolean nativeTarget(Entity t) {
+        return t instanceof EntityPlayer || t != null && t.getClass().getName().startsWith("net.divinerpg.entities.vethea.");
+    }
+
+    /** Чужое оружие во сне: вместо урона - лечение (игроков - просто не бьёт). */
+    static void soothe(EntityPlayer p, EntityLivingBase t, float amount) {
+        if (!(t instanceof EntityPlayer)) {
+            t.heal(amount);
+            ((net.minecraft.world.WorldServer) p.worldObj).func_147487_a("heart", t.posX, t.posY + t.height, t.posZ, 2, 0.3, 0.2, 0.3, 0);
+        }
+        com.divinerpgextended.debug.Debug.note(p, "Кошмар: чужое оружие лечит вместо урона (" + amount + ")");
+        hint(p, "weapon");
     }
 
     /** Наяву до победы над всеми боссами Ветеи: оружие сна не ранит, броня сна не защищает. */
@@ -357,6 +419,17 @@ public class Nightmare {
         if (p == Potion.resistance || p == Potion.field_76434_w || p == Potion.field_76444_x) return Potion.wither;
         if (p == Potion.field_76443_y) return Potion.hunger;
         return null;
+    }
+
+    // ---------------- Тик брони ----------------
+
+    /**
+     * Вызов из InventoryPlayer.decrementAnimations вместо Item.onArmorTick ({@link com.divinerpgextended.asm.ArmorTickTransformer}):
+     * во сне до прохождения чужая броня не тикает - её зелья, скорость, полёт и прочее не идут.
+     */
+    public static void armorTick(Item i, net.minecraft.world.World w, EntityPlayer p, ItemStack s) {
+        if (active(p) && !vethean(s)) return;
+        i.onArmorTick(w, p, s);
     }
 
     // ---------------- Инструменты ----------------

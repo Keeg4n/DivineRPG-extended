@@ -56,14 +56,14 @@ public class CorruptedGear {
 
     /** Глаза Груи: во тьме - ночное зрение (без значка частиц), пока продолжаешь. */
     public static boolean sight(EntityPlayer p) {
-        if (p.worldObj.isRemote || light(p) > DARK_MAX) return false;
+        if (p.worldObj.isRemote || light(p) > DARK_MAX || com.divinerpgextended.vethea.Nightmare.active(p)) return false; // во сне до прохождения порча молчит
         p.addPotionEffect(new PotionEffect(Potion.nightVision.id, SIGHT_TICKS, 0, true));
         return true;
     }
 
     @SubscribeEvent
     public void onSpeed(PlayerEvent.BreakSpeed e) {
-        if (e.entityPlayer == null || !tool(held(e.entityPlayer)) || e.newSpeed <= 0) return;
+        if (e.entityPlayer == null || !tool(held(e.entityPlayer)) || e.newSpeed <= 0 || com.divinerpgextended.vethea.Nightmare.active(e.entityPlayer)) return;
         e.newSpeed *= speed(light(e.entityPlayer));
     }
 

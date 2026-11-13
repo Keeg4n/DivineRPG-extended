@@ -467,6 +467,11 @@ public class EarlyWeapons {
         boolean foe = t instanceof EntityLiving && (t instanceof IMob || t instanceof net.minecraft.entity.boss.IBossDisplayData)
             && !(t instanceof EntityTameable && ((EntityTameable) t).isTamed()) && !(t instanceof com.divinerpgextended.magic.AnchorSummons.Summon);
         if (!foe) e.setCanceled(true);
+        // во сне: оружие с молниями не ветейское - до прохождения ближайшего игрока молния мобов сна не бьёт
+        else if (com.divinerpgextended.vethea.Nightmare.inVetheaWorld(t.worldObj) && t.getClass().getName().startsWith("net.divinerpg.entities.vethea.")) {
+            net.minecraft.entity.player.EntityPlayer near = t.worldObj.getClosestPlayer(e.lightning.posX, e.lightning.posY, e.lightning.posZ, 64);
+            if (near != null && com.divinerpgextended.vethea.Nightmare.active(near)) e.setCanceled(true);
+        }
     }
 
     // ---------------- стопки метательного ----------------

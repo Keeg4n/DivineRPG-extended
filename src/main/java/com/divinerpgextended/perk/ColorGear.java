@@ -94,6 +94,8 @@ public class ColorGear {
 
     /** Сколько надетых частей этого цвета. */
     public static int pieces(EntityLivingBase e, Hue h) {
+        // во сне до прохождения броня яви молчит (ветейской среди цветной нет)
+        if (e instanceof EntityPlayer && com.divinerpgextended.vethea.Nightmare.active((EntityPlayer) e)) return 0;
         int n = 0;
         for (int i = 1; i <= 4; i++) if (hue(e.getEquipmentInSlot(i)) == h) n++;
         return n;

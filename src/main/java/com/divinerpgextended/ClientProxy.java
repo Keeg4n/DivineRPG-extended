@@ -39,6 +39,11 @@ public class ClientProxy extends CommonProxy {
     }
 
     @Override
+    public net.minecraft.entity.player.EntityPlayer clientPlayer() {
+        return net.minecraft.client.Minecraft.getMinecraft().thePlayer;
+    }
+
+    @Override
     public void postInit(cpw.mods.fml.common.event.FMLPostInitializationEvent event) {
         super.postInit(event);
         com.divinerpgextended.client.EasterClient.postInit(); // после Divine: обёртки его рендеров

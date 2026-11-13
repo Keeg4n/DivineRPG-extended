@@ -303,6 +303,14 @@ public class CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(nightmare);
+        com.divinerpgextended.vethea.NightmareHands hands = new com.divinerpgextended.vethea.NightmareHands(); // чужое по ПКМ и площадь во сне
+        MinecraftForge.EVENT_BUS.register(hands);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(hands);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(new com.divinerpgextended.vethea.NightmareBaubles()); // чужие аксессуары во сне
         com.divinerpgextended.vethea.VetheaFloors floors = new com.divinerpgextended.vethea.VetheaFloors();
         MinecraftForge.EVENT_BUS.register(floors);
         FMLCommonHandler.instance()
@@ -443,6 +451,11 @@ public class CommonProxy {
     private static void rodRecipe(com.divinerpgextended.fishing.Rod r, Item material, Item handle) {
         GameRegistry.addRecipe(new ItemStack(rodOf(r)), "  M", " MS", "H S", 'M', material, 'S', Items.string, 'H',
             handle);
+    }
+
+    /** Игрок этого клиента (на сервере - null). */
+    public net.minecraft.entity.player.EntityPlayer clientPlayer() {
+        return null;
     }
 
     public void postInit(FMLPostInitializationEvent event) {

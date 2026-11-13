@@ -249,7 +249,13 @@ public class VetheaFloors {
 
     /** Ветея пройдена: Леди Луна побеждена (её подарок получен). */
     public static boolean dreamDone(EntityPlayer p) {
-        return (persisted(p).getInteger(GIFT_DONE) & 1 << Gift.LADY_LUNA.ordinal()) != 0;
+        return (dreamMask(p) & 1 << Gift.LADY_LUNA.ordinal()) != 0;
+    }
+
+    /** Дары сна игрока (по биту на босса): на сервере - из данных игрока, на клиенте - присланные сервером. */
+    public static int dreamMask(EntityPlayer p) {
+        if (p.worldObj != null && p.worldObj.isRemote) return com.divinerpgextended.boss.ProgressSync.dream(p);
+        return persisted(p).getInteger(GIFT_DONE);
     }
 
     /** Боссы Ветеи (дары за них). */
@@ -257,7 +263,7 @@ public class VetheaFloors {
 
     /** Сон покорён: побеждены все боссы Ветеи - вещи сна работают наяву, а вещи яви - во сне. */
     public static boolean allBosses(EntityPlayer p) {
-        int done = persisted(p).getInteger(GIFT_DONE);
+        int done = dreamMask(p);
         for (Gift g : BOSSES) if ((done & 1 << g.ordinal()) == 0) return false;
         return true;
     }

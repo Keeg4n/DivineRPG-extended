@@ -280,6 +280,7 @@ public class AnchorSummons {
         Kind k = held == null ? null : kind(held.getItem());
         if (k == null) return;
         if ((k == Kind.SLIME || k == Kind.EYE) && e.action != PlayerInteractEvent.Action.RIGHT_CLICK_AIR) return;
+        if (e.useItem == Event.Result.DENY) return; // вещь уже запрещена раньше (кошмар Ветеи, приваты)
         e.useItem = Event.Result.DENY;
         if (p.worldObj.isRemote) return;
         long now = p.worldObj.getTotalWorldTime();

@@ -22,7 +22,15 @@ import cpw.mods.fml.relauncher.Side;
  */
 public class ProgressSync {
 
-    private static int clientMask;
+    private static int clientMask, clientDream;
+
+    /**
+     * Дары сна (боссы Ветеи) игрока - на клиенте из присланного; для чужих игроков клиент не знает и считает сон
+     * покорённым (кошмар у них не мешает ничему на этом клиенте).
+     */
+    public static int dream(EntityPlayer p) {
+        return p == com.divinerpgextended.DivineRPGExtended.proxy.clientPlayer() ? clientDream : -1;
+    }
 
     public static void register() {
         ColdHandler.NET.registerMessage(Handler.class, Mask.class, 5, Side.CLIENT);
@@ -35,7 +43,7 @@ public class ProgressSync {
     }
 
     public static void send(EntityPlayer p) {
-        if (p instanceof EntityPlayerMP) ColdHandler.NET.sendTo(new Mask(BossProgress.mask(p)), (EntityPlayerMP) p);
+        if (p instanceof EntityPlayerMP) ColdHandler.NET.sendTo(new Mask(BossProgress.mask(p), com.divinerpgextended.vethea.VetheaFloors.dreamMask(p)), (EntityPlayerMP) p);
     }
 
     @SubscribeEvent
@@ -50,22 +58,25 @@ public class ProgressSync {
 
     public static class Mask implements IMessage {
 
-        int mask;
+        int mask, dream;
 
         public Mask() {}
 
-        Mask(int mask) {
+        Mask(int mask, int dream) {
             this.mask = mask;
+            this.dream = dream;
         }
 
         @Override
         public void fromBytes(ByteBuf buf) {
             mask = buf.readInt();
+            dream = buf.isReadable(4) ? buf.readInt() : 0;
         }
 
         @Override
         public void toBytes(ByteBuf buf) {
             buf.writeInt(mask);
+            buf.writeInt(dream);
         }
     }
 
@@ -74,6 +85,7 @@ public class ProgressSync {
         @Override
         public IMessage onMessage(Mask msg, MessageContext ctx) {
             clientMask = msg.mask;
+            clientDream = msg.dream;
             return null;
         }
     }
