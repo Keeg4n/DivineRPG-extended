@@ -40,6 +40,8 @@ public class Config {
     public static int skelemanArmor = 35, jackOManArmor = 50, witherReaperArmor = 60;
     /** Острова слизи Tinkers' Construct не появляются в мирах Divine. */
     public static boolean noTinkersIslandsInDivine = true;
+    /** Обморожение ледяным оружием: замедление, сильнее, на третий удар моб вмерзает в лёд. */
+    public static boolean iceFreeze = true;
     /** Порыв от удара моба Небесного терна: толчок вбок, как у Повелителя ветров. */
     public static double skythernGust = 1.6;
     /** Посмертие Мортума: шанс, что убитый моб оставит душу. */
@@ -210,6 +212,8 @@ public class Config {
             "Защита полного сета Увядшего жнеца (после Короля-лича), в процентах. 0 - как у Divine (без защиты). Нужен перезапуск");
         noTinkersIslandsInDivine = cfg.getBoolean("noTinkersIslandsInDivine", bal, noTinkersIslandsInDivine,
             "Острова слизи Tinkers' Construct не появляются в мирах Divine (в новых чанках; уже появившиеся остаются). Нужен перезапуск");
+        iceFreeze = cfg.getBoolean("iceFreeze", bal, iceFreeze,
+            "Обморожение ледяным оружием (мечи и молот Айсики, Фроссивенс, Морозный меч, ледяные луки, пушки, снежный сюрикен): удар по мобу замедляет, второй - сильнее, третий - моб вмерзает в лёд на 2.5 с (боссов только замедляет)");
         netherSmeltChance = cfg.get(bal, "netherSmeltChance", netherSmeltChance, "Полный сет Inferno или Netherite: шанс, что добытая руда упадёт сразу переплавленной (0 - выключено, 1 - всегда). С Шёлковым касанием не работает").getDouble();
         skythernGust = cfg.get(bal, "skythernGust", skythernGust, "Небесный терн: на сколько удар моба толкает игрока вбок (1.6 - как порыв Повелителя ветров, 0 - без толчка вбок). Один моб толкает не чаще раза в 4 секунды").getDouble();
         mortumSoulChance = cfg.get(bal, "mortumSoulChance", mortumSoulChance, "Мортум: шанс, что убитый игроком моб оставит душу на 3 секунды; не рассеял - моб встанет снова, без добычи (0 - выключено)").getDouble();

@@ -15393,6 +15393,75 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
+        t("Оружие обычного мира", "Ледяное оружие: обморожение, на третий удар моб вмерзает в лёд", () -> {
+            WorldServer w = ow;
+            double bx = sx + 360.5, by = 200, bz = sz + 0.5;
+            loadAround(w, (int) bx, (int) bz, 2);
+            for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) w.setBlock((int) bx + dx, (int) by - 1, (int) bz + dz, Blocks.stone);
+            TestPlayer tp = join(player(0, "TestFrostBite", bx, by, bz), true);
+            net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w), plain = new net.minecraft.entity.monster.EntityZombie(w);
+            StringBuilder bad = new StringBuilder();
+            try {
+                for (net.minecraft.entity.monster.EntityZombie m : new net.minecraft.entity.monster.EntityZombie[] { z, plain }) {
+                    m.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(500);
+                    m.setHealth(500);
+                    m.setPosition(bx + 2, by, bz);
+                    w.spawnEntityInWorld(m);
+                }
+                // удар ледяным мечом через событие - первая ступень, слабое замедление
+                hold(tp, new ItemStack(IceikaItems.glacierSword));
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(z, DamageSource.causePlayerDamage(tp), 6));
+                net.minecraft.potion.PotionEffect s1 = z.getActivePotionEffect(net.minecraft.potion.Potion.moveSlowdown);
+                if (s1 == null || s1.getAmplifier() != 0) bad.append("1-й удар: замедление ").append(s1 == null ? "нет" : "уровня " + (s1.getAmplifier() + 1)).append("; ");
+                // обычный меч не морозит
+                hold(tp, new ItemStack(Items.diamond_sword));
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(plain, DamageSource.causePlayerDamage(tp), 6));
+                if (plain.getActivePotionEffect(net.minecraft.potion.Potion.moveSlowdown) != null) bad.append("алмазный меч замедлил; ");
+                // ступени по времени (весь прогон - один тик, время задаём сами)
+                long t0 = w.getTotalWorldTime();
+                int st2 = com.divinerpgextended.perk.FrostBite.hit(z, t0 + 10);
+                net.minecraft.potion.PotionEffect s2 = z.getActivePotionEffect(net.minecraft.potion.Potion.moveSlowdown);
+                int st3 = com.divinerpgextended.perk.FrostBite.hit(z, t0 + 20);
+                double speed = z.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.movementSpeed).getAttributeValue();
+                boolean frozen = com.divinerpgextended.perk.FrostBite.frozen(z) || z.getEntityData().getLong("dreFrozenUntil") > t0 + 20;
+                // вмороженный не бьёт: его удар по игроку отменяется
+                net.minecraftforge.event.entity.living.LivingAttackEvent atk = new net.minecraftforge.event.entity.living.LivingAttackEvent(tp, DamageSource.causeMobDamage(z), 4);
+                MinecraftForge.EVENT_BUS.post(atk);
+                if (st2 != 2 || s2 == null || s2.getAmplifier() != 2) bad.append("2-й удар: ступень ").append(st2).append(", замедление ").append(s2 == null ? "нет" : "уровня " + (s2.getAmplifier() + 1)).append("; ");
+                if (st3 != 3 || !frozen || speed > 1e-6) bad.append("3-й удар: ступень ").append(st3).append(", вморожен ").append(frozen).append(", скорость ").append(f((float) speed)).append("; ");
+                if (!atk.isCanceled()) bad.append("вмороженный зомби ударил; ");
+                // оттаял - скорость вернулась; сразу снова не вмерзает (только сильное замедление), после иммунитета - вмерзает
+                long thaw = t0 + 20 + com.divinerpgextended.perk.FrostBite.FREEZE;
+                com.divinerpgextended.perk.FrostBite.tick(z, thaw);
+                double back = z.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.movementSpeed).getAttributeValue();
+                int i1 = com.divinerpgextended.perk.FrostBite.hit(z, thaw + 10), i2 = com.divinerpgextended.perk.FrostBite.hit(z, thaw + 20), i3 = com.divinerpgextended.perk.FrostBite.hit(z, thaw + 30);
+                long after = thaw + com.divinerpgextended.perk.FrostBite.IMMUNE + 10;
+                int a1 = com.divinerpgextended.perk.FrostBite.hit(z, after), a2 = com.divinerpgextended.perk.FrostBite.hit(z, after + 10), a3 = com.divinerpgextended.perk.FrostBite.hit(z, after + 20);
+                if (back < 0.1) bad.append("после оттаивания скорость ").append(f((float) back)).append("; ");
+                if (i3 == 3) bad.append("вмёрз снова сразу после оттаивания (").append(i1).append(i2).append(i3).append("); ");
+                if (a3 != 3) bad.append("после иммунитета не вмёрз (").append(a1).append(a2).append(a3).append("); ");
+                // слишком частые попадания не копятся; босса только замедляет
+                net.minecraft.entity.monster.EntityZombie fast = new net.minecraft.entity.monster.EntityZombie(w);
+                int f1 = com.divinerpgextended.perk.FrostBite.hit(fast, t0), f2 = com.divinerpgextended.perk.FrostBite.hit(fast, t0 + 2), f3 = com.divinerpgextended.perk.FrostBite.hit(fast, t0 + 4);
+                if (f3 == 3 || f2 != 1) bad.append("скорострельное: ступени ").append(f1).append(f2).append(f3).append("; ");
+                net.minecraft.entity.boss.EntityWither boss = new net.minecraft.entity.boss.EntityWither(w);
+                int b3 = 0;
+                for (int k = 0; k < 5; k++) b3 = com.divinerpgextended.perk.FrostBite.hit(boss, t0 + 10L * k);
+                if (b3 == 3) bad.append("босс вмёрз; ");
+                boolean tip = !net.minecraft.util.StatCollector.translateToLocal("dre.tooltip.frost").equals("dre.tooltip.frost")
+                    && com.divinerpgextended.perk.FrostBite.iceWeapon(IceikaItems.frozenMaul) && com.divinerpgextended.perk.FrostBite.iceWeapon(IceikaItems.icicleBow)
+                    && !com.divinerpgextended.perk.FrostBite.iceWeapon(Items.diamond_sword);
+                if (!tip) bad.append("подсказка или список ледяного оружия; ");
+            } finally {
+                z.setDead();
+                plain.setDead();
+                reset(tp);
+            }
+            check(bad.length() == 0, bad.toString());
+            return "ледяной меч: 1-й удар - замедление I, 2-й - III, 3-й - зомби вмёрз (скорость 0, его удар отменён) на "
+                + com.divinerpgextended.perk.FrostBite.FREEZE / 20F + " с; оттаял - скорость вернулась, " + com.divinerpgextended.perk.FrostBite.IMMUNE / 20
+                + " с снова не вмерзает; частые попадания не копятся; босса только замедляет; алмазный меч не морозит";
+        });
         t("Оружие обычного мира", "Пушка, Золотая ярость, мечи, луки, сюрикен, ураган", () -> {
             WorldServer w = ow;
             double bx = sx + 340.5, by = 200, bz = sz + 0.5;

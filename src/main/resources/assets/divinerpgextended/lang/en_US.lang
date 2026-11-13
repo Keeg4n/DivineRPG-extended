@@ -355,6 +355,7 @@ dre.tooltip.bait.lamona=+15 power at night and in caves
 dre.tooltip.bait.aquamarine=+15 power in the ocean
 dre.tooltip.bait.firestock=Lets you fish in lava (used first in lava)
 dre.tooltip.crate=Right-click to open
+dre.tooltip.frost=Frostbite: a hit slows the mob, the second slows more, the third freezes it in ice for %.1f s (bosses are only slowed)
 dre.tooltip.crate.mine=Ore blocks: %s
 dre.tooltip.crate.tier.0=upper caves (height 33-47)
 dre.tooltip.crate.tier.1=middle caves (height 17-32)

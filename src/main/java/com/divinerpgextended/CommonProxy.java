@@ -59,6 +59,7 @@ public class CommonProxy {
         com.divinerpgextended.perk.MeleeRoles.registerMessages();
         com.divinerpgextended.perk.AmmoLoad.register();
         com.divinerpgextended.debug.Debug.register();
+        com.divinerpgextended.perk.FrostBite.register(); // ледяная глыба вмороженного моба - клиентам
     }
 
     public void init(FMLInitializationEvent event) {
@@ -75,6 +76,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcaneSummons());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.AnchorSummons()); // призывные якоря: краб и акула
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.AquatoothEffects()); // зубастое оружие, перезарядка молотов
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.FrostBite()); // обморожение ледяным оружием
         com.divinerpgextended.perk.EarlyWeapons early = new com.divinerpgextended.perk.EarlyWeapons(); // оружие обычного мира: роли, серенады, наковальня
         MinecraftForge.EVENT_BUS.register(early);
         FMLCommonHandler.instance().bus().register(early);

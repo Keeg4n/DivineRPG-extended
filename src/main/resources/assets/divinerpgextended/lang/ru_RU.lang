@@ -355,6 +355,7 @@ dre.tooltip.bait.lamona=Ночью и в пещерах сила +15
 dre.tooltip.bait.aquamarine=В море сила +15
 dre.tooltip.bait.firestock=Позволяет рыбачить в лаве (берётся первым в лаве)
 dre.tooltip.crate=ПКМ - открыть
+dre.tooltip.frost=Обморожение: удар по мобу замедляет, второй - сильнее, третий вмораживает в лёд на %.1f с (боссов только замедляет)
 dre.tooltip.crate.mine=Руда блоками: %s
 dre.tooltip.crate.tier.0=верхние пещеры (высота 33-47)
 dre.tooltip.crate.tier.1=средние пещеры (высота 17-32)
