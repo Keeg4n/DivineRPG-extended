@@ -379,7 +379,7 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
                     caught.append(caught.length() == 0 ? "" : ", ").append("утопленник");
                     continue;
                 }
-                if (loot == null) loot = FishingLoot.roll(rand, zone, power, bait != null, crate, rareMult);
+                if (loot == null) loot = FishingLoot.roll(rand, zone, power, bait != null, crate, rareMult, FishingLoot.caveTier(posY, power)); // ярус пещер - по высоте поплавка
                 FishingLoot.gild(rand, zone, bait, loot); // золотой улов Эдема
                 caught.append(caught.length() == 0 ? "" : ", ").append(loot == null ? "ничего" : loot.getDisplayName()
                     + (loot.stackSize > 1 ? " x" + loot.stackSize : ""));
@@ -388,6 +388,7 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
             }
             ItemStack relic = bait == null ? null : FishingLoot.relic(rand, zone, power);
             com.divinerpgextended.debug.Debug.note(p, "Рыбалка: улов " + caught + (relic != null ? " + РЕЛИКВИЯ " + relic.getDisplayName() : "") + " | зона " + zone
+                + (zone == Zone.CAVE ? " (ярус " + FishingLoot.caveTier(posY, power) + ", высота " + MathHelper.floor_double(posY) + ")" : "")
                 + ", удочка " + rod + ", приманка " + (bait == null ? "нет" : bait) + ", сила " + power + ", бонус ящика " + crate
                 + (count > 1 ? ", двойной улов" : ""));
             if (relic != null) {

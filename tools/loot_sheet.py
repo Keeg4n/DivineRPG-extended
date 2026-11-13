@@ -23,6 +23,7 @@ OURS = os.path.join(REPO, 'src/main/resources/assets/divinerpgextended')
 MC = zipfile.ZipFile(HOME + '/.gradle/caches/minecraft/net/minecraft/minecraft/1.7.10/minecraft-1.7.10.jar')
 DV = zipfile.ZipFile(HOME + '/mc/server-pack/mods/DivineRPG-1.4.1.5.jar')
 TC = zipfile.ZipFile(HOME + '/mc/server-pack/mods/Thaumcraft-1.7.10-4.2.3.5.jar')
+TK = zipfile.ZipFile(HOME + '/mc/server-pack/mods/TConstruct-1.7.10-1.8.8.jar')
 e = html.escape
 
 # ------------------------------------------------------------------ названия
@@ -38,6 +39,8 @@ def load_lang(text):
 
 load_lang(open(os.path.join(OURS, 'lang/ru_RU.lang'), encoding='utf-8').read())
 load_lang(DV.read('assets/divinerpg/lang/ru_RU.lang').decode('utf-8', 'replace'))
+load_lang(TC.read('assets/thaumcraft/lang/ru_RU.lang').decode('utf-8', 'replace'))  # руды Таумкрафта
+load_lang(TK.read('assets/tinker/lang/ru_RU.lang').decode('utf-8', 'replace'))  # руды Tinkers
 idx = json.load(open(HOME + '/.gradle/caches/minecraft/assets/indexes/1.7.10.json'))
 h = idx['objects']['minecraft/lang/ru_RU.lang']['hash']
 load_lang(open(HOME + '/.gradle/caches/minecraft/assets/objects/%s/%s' % (h[:2], h), encoding='utf-8').read())
@@ -70,6 +73,8 @@ def tex(domain, path):
             return Image.open(io.BytesIO(DV.read('assets/divinerpg/textures/' + path))).convert('RGBA')
         if domain == 'thaumcraft':
             return Image.open(io.BytesIO(TC.read('assets/thaumcraft/textures/' + path))).convert('RGBA')
+        if domain == 'tinker':
+            return Image.open(io.BytesIO(TK.read('assets/tinker/textures/' + path))).convert('RGBA')
         p = os.path.join(OURS, 'textures', path)
         return Image.open(p).convert('RGBA') if os.path.exists(p) else derived(path)
     except KeyError:
@@ -111,6 +116,17 @@ def icon_of(it):
         base = first('minecraft', ['potion_bottle_drinkable'], False)
         base.alpha_composite(over)
         return base
+    if i == 'Thaumcraft:blockCustomOre':  # руды Таумкрафта: 0 киноварь, 1-6 камни с аспектами, 7 янтарь
+        if m == 0:
+            return first('thaumcraft', ['cinnibar'], True)
+        if m == 7:
+            return first('thaumcraft', ['amberore'], True)
+        aspect = [(255, 255, 126), (255, 90, 1), (60, 212, 252), (86, 192, 0), (213, 212, 236), (64, 64, 64)][(m - 1) % 6]
+        base, over = first('thaumcraft', ['infusedorestone'], True), first('thaumcraft', ['infusedore'], True)
+        base.alpha_composite(tint(over, aspect))
+        return base
+    if i == 'TConstruct:SearedBrick':  # руды Tinkers: 3 медь, 4 олово, 5 алюминий
+        return first('tinker', [{3: 'ore_copper', 4: 'ore_tin', 5: 'ore_aluminum'}.get(m, 'ore_copper')], True)
     key = it['unloc'].split('.')[-1]
     if i == 'divinerpgextended:fish':
         return first('ours', ['fish_' + key], False)
@@ -218,6 +234,8 @@ def fish_tier(zone, it):
                 return TIER_RU[tier], str(x['weight'])
     if it['id'].startswith('divinerpgextended:') and 'bait' in it['unloc'].lower():
         return 'приманка', '-'
+    if it.get('block') and zone in ('CAVE', 'HELL'):  # шахтёрские ящики: руда блоками
+        return 'руда', '-'
     return 'снаряжение/приманка', '-'
 
 
@@ -242,7 +260,7 @@ td.ics img { width: 5mm; height: 5mm; image-rendering: pixelated; display: inlin
 td.n, th.n { text-align: right; white-space: nowrap; width: 15mm; }
 td.n b { font-weight: 600; }
 .chip { display: inline-block; font-size: 2.5mm; color: #fff; border-radius: .8mm; padding: .1mm 1.2mm; }
-.t-common { background: #8a8f99; } .t-uncommon { background: #3d8b4a; } .t-rare { background: #2f68c8; } .t-veryrare { background: #9a3fc8; } .t-other { background: #b07a1a; }
+.t-common { background: #8a8f99; } .t-uncommon { background: #3d8b4a; } .t-rare { background: #2f68c8; } .t-veryrare { background: #9a3fc8; } .t-other { background: #b07a1a; } .t-ore { background: #6b5a4a; }
 .box { background: #f4f1f7; border-radius: 1.6mm; padding: 2.4mm 3mm; margin: 0 0 2.4mm; }
 .box b { font-weight: 600; }
 .cols2 { columns: 2; column-gap: 6mm; }
@@ -269,7 +287,7 @@ def section_sampled(t, title, note='', zone=None):
         extra = ''
         if zone is not None:
             tier, w = fish_tier(zone, x)
-            cls = {'обычное': 't-common', 'необычное': 't-uncommon', 'редкое': 't-rare', 'очень редкое': 't-veryrare'}.get(tier, 't-other')
+            cls = {'обычное': 't-common', 'необычное': 't-uncommon', 'редкое': 't-rare', 'очень редкое': 't-veryrare', 'руда': 't-ore'}.get(tier, 't-other')
             extra = '<td><span class="chip %s">%s</span></td><td class="n">%s</td>' % (cls, tier, w)
         body += ('<tr><td class="ic"><img src="%s"></td><td>%s</td><td class="n">%s</td><td class="n">%.1f</td>%s<td class="n"><b>%s</b></td></tr>'
                  % (icon_file(x), e(name_of(x)), qty(x['min'], x['max']), x['avg'], extra, pct(x['chance'])))
@@ -344,11 +362,15 @@ for t in TABLES:
 
 # ящики рыбалки
 parts.append('<h2>Ящики рыбалки</h2><p class="note">Ящик даёт 4-7 вещей из необычного (3 из 4) и редкого (1 из 4) улова своей зоны, в 1 ящике из 8 - ещё одну очень редкую, всегда одну обычную рыбу, '
-             'в половине ящиков - 2-4 приманки Арканы; в сумеречных мирах ещё 2% оружие или инструмент мира и 0.5% часть брони. Вес - внутри своей группы улова (общие таблицы улова и ящика).</p>')
+             'в половине ящиков - 2-4 приманки Арканы; в сумеречных мирах ещё 2% оружие или инструмент мира и 0.5% часть брони. Вес - внутри своей группы улова (общие таблицы улова и ящика). '
+             'Шахтёрские ящики (пещеры по ярусам высоты поплавка и лава) - 5-8 стопок руды блоками своего яруса, в пещерах в 1 из 8 ещё алмаз, изумруд или рупий.</p>')
 for t in TABLES:
     if t['group'] == 'Рыболовные ящики':
         z = t['name']
-        parts.append(section_sampled(t, 'Ящик: ' + LANG.get('dre.zone.%s' % z.lower(), z).replace('Вайлдвуд', 'Дикий лес'), zone=z))
+        if z.startswith('CAVE_'):  # шахтёрские ящики пещер по ярусам
+            parts.append(section_sampled(t, LANG.get('item.dre.crate.mine_%s.name' % z[5:].lower(), z), zone='CAVE'))
+        else:
+            parts.append(section_sampled(t, 'Ящик: ' + LANG.get('dre.zone.%s' % z.lower(), z).replace('Вайлдвуд', 'Дикий лес'), zone=z))
 
 # ------------------------------------------------------------------ предложение: шахтёрская рыбалка
 def ore(domain, tex, name):
@@ -369,17 +391,18 @@ LAYERS = [
     ('Средние пещеры', 'высота 17-32', [('iron', 8, '1-3'), ('coal', 5, '2-3'), ('gold', 5, '1-2'), ('lapis', 5, '1-3'), ('redstone', 4, '1-3'), ('realmite', 4, '1-2'), ('cinnabar', 2, '1'), ('infused', 3, '1-2')]),
     ('Глубины', 'высота 16 и ниже; полный набор - с силой рыбалки 40+, слабее - как средние', [('redstone', 6, '1-3'), ('gold', 5, '1-2'), ('realmite', 6, '1-3'), ('lapis', 3, '1-2'), ('arlemite', 3, '1'),
                                                                                         ('rupee', 3, '1'), ('diamond', 2, '1'), ('emerald', 1, '1')]),
-    ('Лава в Аду', 'рыбалка в лаве (огненная приманка или удочка Мортума)', [('quartz', 10, '2-4'), ('netherite', 4, '1-2'), ('bloodgem', 3, '1')]),
+    ('Лава', 'рыбалка в лаве (огненная приманка или удочка Мортума), ящик "Лава и Незер"', [('quartz', 10, '2-4'), ('netherite', 4, '1-2'), ('bloodgem', 3, '1')]),
 ]
 
 
 def proposal():
-    out = ('<h2>Предложение: шахтёрская рыбалка (ещё не в игре)</h2>'
-           '<div class="box"><p><b>Сейчас</b> зона "Пещеры" - любая вода ниже высоты 48 без неба над головой, и от глубины ничего не зависит: '
-           'улов и ящик дают уголь, красную пыль и слитки (железо, золото, рупий, арлемит), редко алмаз и изумруд (таблица "Ящик: Пещеры" выше).</p>'
-           '<p><b>Предлагаю</b> делить пещеры на ярусы по высоте поплавка и давать <b>руду блоками</b> (переплавка и удвоение машинами работают как с добытой). '
-           'Ящик пещер становится шахтёрским: 5-8 стопок руды своего яруса, в 1 из 8 - ещё одна редкая (алмаз, изумруд, рупий); необычный улов - 1-2 руды яруса. '
-           'Руды модов сборки берутся по рудному словарю сами (у RedServer Magic это Таумкрафт).</p>'
+    out = ('<h2>Шахтёрская рыбалка (в игре с 0.99.124, веса - ниже и в таблицах шахтёрских ящиков)</h2>'
+           '<div class="box"><p><b>Было:</b> зона "Пещеры" - любая вода ниже высоты 48 без неба над головой, и от глубины ничего не зависело: '
+           'улов и ящик давали уголь, красную пыль и слитки (железо, золото, рупий, арлемит), редко алмаз и изумруд.</p>'
+           '<p><b>Стало:</b> пещеры делятся на ярусы по высоте поплавка и дают <b>руду блоками</b> (переплавка и удвоение машинами работают как с добытой). '
+           'Ящик пещер - шахтёрский своего яруса: 5-8 стопок руды, в 1 из 8 - ещё одна редкая (алмаз, изумруд, рупий); необычный улов - 1-2 руды яруса. '
+           'Ящик лавы - тоже шахтёрский, с рудой Ада. Руды модов сборки берутся по рудному словарю сами (у RedServer Magic это Таумкрафт; '
+           'медь, олово, серебро и свинец - если они есть в сборке).</p>'
            '<p><b>Темп:</b> с хорошей снастью поклёвка раз в 10-15 с, ящик примерно каждая 10-я - выходит 4-6 руды в минуту, как неспешная шахта. '
            'Приманка тратится на каждую поклёвку, так что бесплатной фермы нет.</p></div>')
     for title, where, rows in LAYERS:

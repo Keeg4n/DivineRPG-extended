@@ -31,17 +31,24 @@ public final class FishingLoot {
     static final class Entry {
 
         final ItemStack stack;
+        /** Виды одной строки (камни с аспектами Таумкрафта): выпадает один наугад; stack - первый, для показа. */
+        final ItemStack[] alts;
         final int min, max, weight;
 
         Entry(Item item, int meta, int min, int max, int weight) {
-            this.stack = new ItemStack(item, 1, meta);
+            this(new ItemStack[] { new ItemStack(item, 1, meta) }, min, max, weight);
+        }
+
+        Entry(ItemStack[] alts, int min, int max, int weight) {
+            this.alts = alts;
+            this.stack = alts[0];
             this.min = min;
             this.max = max;
             this.weight = weight;
         }
 
         ItemStack make(Random r) {
-            ItemStack s = stack.copy();
+            ItemStack s = (alts.length == 1 ? stack : alts[r.nextInt(alts.length)]).copy();
             s.stackSize = min + (max > min ? r.nextInt(max - min + 1) : 0);
             return s;
         }
@@ -125,7 +132,7 @@ public final class FishingLoot {
 
         t = tables.get(Zone.CAVE);
         add(t.common, fish(Fish.CAVEFISH, 35), e(Items.fish, 0, 1, 1, 15));
-        add(t.uncommon, e(Items.coal, 1, 3, 10), e(Items.redstone, 2, 4, 8), e(Items.iron_ingot, 1, 1, 8));
+        // необычный улов пещер - руда своего яруса (initMine), отдельной таблицы нет
         add(t.rare, e(Items.gold_ingot, 1, 2, 6), e(VanillaItemsOther.rupeeIngot, 1, 1, 4), e(VanillaItemsOther.arlemiteIngot, 1, 1, 4));
         add(t.veryRare, e(Items.diamond, 1, 2, 4), e(Items.emerald, 1, 1, 3));
 
@@ -171,6 +178,110 @@ public final class FishingLoot {
         add(t.uncommon, e(VetheaItems.dirtyPearls, 1, 3, 10), e(VetheaItems.teakerLump, 1, 1, 6));
         add(t.rare, e(VetheaItems.cleanPearls, 1, 2, 8), e(VetheaItems.amthirmisLump, 1, 1, 5));
         add(t.veryRare, e(VetheaItems.polishedPearls, 1, 1, 4), e(VetheaItems.darvenLump, 1, 1, 3));
+        initMine();
+    }
+
+    // ------------------------------------------------------------------ шахтёрская рыбалка
+
+    /** Ярусы пещер по высоте поплавка (зона {@link Zone#CAVE}). */
+    public static final int UPPER = 0, MIDDLE = 1, DEEP = 2, TIERS = 3;
+    /** Верхние пещеры - с этой высоты (и до 47), средние - с {@link #MIDDLE_FROM}, ниже - глубины. */
+    public static final int UPPER_FROM = 33, MIDDLE_FROM = 17;
+    /** Глубины целиком - с этой силы рыбалки; слабее там ловится как в средних пещерах. */
+    public static final int DEEP_POWER = 40;
+    /** Мета шахтёрского ящика: CRATE_MINE + ярус (у остальных ящиков мета - номер зоны). */
+    public static final int CRATE_MINE = 32;
+
+    /** Руда ярусов пещер, руда лавы, редкая добавка шахтёрского ящика. */
+    private static List<Entry>[] mine;
+    private static List<Entry> lava, mineRare;
+
+    /** Ярус по высоте поплавка и силе рыбалки. */
+    public static int caveTier(double y, int power) {
+        int by = net.minecraft.util.MathHelper.floor_double(y);
+        if (by >= UPPER_FROM) return UPPER;
+        if (by >= MIDDLE_FROM) return MIDDLE;
+        return power >= DEEP_POWER ? DEEP : MIDDLE;
+    }
+
+    private static int tier(int t) {
+        return t >= 0 && t < TIERS ? t : MIDDLE;
+    }
+
+    /** Ярус шахтёрского ящика по мете; старый ящик пещер - средние; не шахтёрский - -1. */
+    public static int crateTier(int meta) {
+        if (meta >= CRATE_MINE && meta < CRATE_MINE + TIERS) return meta - CRATE_MINE;
+        return meta == Zone.CAVE.ordinal() ? MIDDLE : -1;
+    }
+
+    /** Ящик зоны (в пещерах - шахтёрский своего яруса). */
+    public static ItemStack crateItem(Zone zone, int tier) {
+        return new ItemStack(ModItems.crate, 1, zone == Zone.CAVE ? CRATE_MINE + tier(tier) : zone.ordinal());
+    }
+
+    /** Все ящики для показа: по одному на зону, вместо ящика пещер - три шахтёрских. */
+    public static List<ItemStack> crateKinds() {
+        List<ItemStack> l = new ArrayList<ItemStack>();
+        for (Zone z : Zone.values()) {
+            if (z != Zone.CAVE) l.add(new ItemStack(ModItems.crate, 1, z.ordinal()));
+            else for (int t = 0; t < TIERS; t++) l.add(new ItemStack(ModItems.crate, 1, CRATE_MINE + t));
+        }
+        return l;
+    }
+
+    /** Руда модов сборки по рудному словарю: по одному блоку на имя; нет такой руды в сборке - null. */
+    private static Entry dict(int min, int max, int w, String... names) {
+        List<ItemStack> l = new ArrayList<ItemStack>();
+        for (String n : names) {
+            for (ItemStack s : net.minecraftforge.oredict.OreDictionary.getOres(n)) {
+                if (s == null || !(s.getItem() instanceof net.minecraft.item.ItemBlock)) continue;
+                ItemStack c = s.copy();
+                c.stackSize = 1;
+                if (c.getItemDamage() == net.minecraftforge.oredict.OreDictionary.WILDCARD_VALUE) c.setItemDamage(0);
+                l.add(c);
+                break;
+            }
+        }
+        return l.isEmpty() ? null : new Entry(l.toArray(new ItemStack[l.size()]), min, max, w);
+    }
+
+    private static void addOres(List<Entry> l, Entry... es) {
+        for (Entry x : es) if (x != null) l.add(x);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void initMine() {
+        Block realmite = net.divinerpg.utils.blocks.VanillaBlocks.realmiteOre, arlemite = net.divinerpg.utils.blocks.VanillaBlocks.arlemiteOre,
+            rupee = net.divinerpg.utils.blocks.VanillaBlocks.rupeeOre, netherite = net.divinerpg.utils.blocks.VanillaBlocks.netheriteOre,
+            bloodgem = net.divinerpg.utils.blocks.VanillaBlocks.bloodgemOre;
+        // Таумкрафт: камни с аспектами - одна строка на шесть видов
+        Entry infused = dict(1, 2, 3, "oreInfusedAir", "oreInfusedFire", "oreInfusedWater", "oreInfusedEarth", "oreInfusedOrder", "oreInfusedEntropy");
+        mine = new List[TIERS];
+        for (int i = 0; i < TIERS; i++) mine[i] = new ArrayList<Entry>();
+        // веса - по предложению из листа добычи (12.11.2026); медь, олово, алюминий (в RedServer Magic - Tinkers), серебро, свинец - если
+        // они есть в сборке, с небольшим весом, чтобы не забивали ящик
+        Entry aluminum = dict(1, 2, 2, "oreAluminum");
+        if (aluminum == null) aluminum = dict(1, 2, 2, "oreAluminium");
+        addOres(mine[UPPER], e(Blocks.coal_ore, 2, 4, 10), e(Blocks.iron_ore, 1, 3, 8), dict(1, 2, 3, "oreAmber"), infused, e(Blocks.redstone_ore, 1, 2, 2),
+            dict(1, 3, 3, "oreCopper"), dict(1, 3, 3, "oreTin"), aluminum);
+        addOres(mine[MIDDLE], e(Blocks.iron_ore, 1, 3, 8), e(Blocks.coal_ore, 2, 3, 5), e(Blocks.gold_ore, 1, 2, 5), e(Blocks.lapis_ore, 1, 3, 5),
+            e(Blocks.redstone_ore, 1, 3, 4), e(realmite, 1, 2, 4), dict(1, 1, 2, "oreCinnabar"), infused, dict(1, 2, 2, "oreCopper"), dict(1, 2, 2, "oreTin"),
+            dict(1, 2, 2, "oreSilver"), dict(1, 2, 2, "oreLead"));
+        addOres(mine[DEEP], e(Blocks.redstone_ore, 1, 3, 6), e(Blocks.gold_ore, 1, 2, 5), e(realmite, 1, 3, 6), e(Blocks.lapis_ore, 1, 2, 3),
+            e(arlemite, 1, 1, 3), e(rupee, 1, 1, 3), e(Blocks.diamond_ore, 1, 1, 2), e(Blocks.emerald_ore, 1, 1, 1), dict(1, 2, 2, "oreSilver"),
+            dict(1, 2, 2, "oreLead"));
+        lava = new ArrayList<Entry>();
+        addOres(lava, e(Blocks.quartz_ore, 2, 4, 10), e(netherite, 1, 2, 4), e(bloodgem, 1, 1, 3));
+        mineRare = new ArrayList<Entry>();
+        addOres(mineRare, e(Blocks.diamond_ore, 1, 1, 2), e(rupee, 1, 1, 2), e(Blocks.emerald_ore, 1, 1, 1));
+    }
+
+    /** Руда яруса для показа (NEI, автотесты). */
+    public static List<ItemStack> ores(int tier) {
+        init();
+        List<ItemStack> l = new ArrayList<ItemStack>();
+        for (Entry x : tier < 0 ? lava : mine[tier(tier)]) for (ItemStack a : x.alts) l.add(a.copy());
+        return l;
     }
 
     private static void twilight(Zone z, Fish f, Item fragments, Item soul, Item gem, Item chunk) {
@@ -197,6 +308,11 @@ public final class FishingLoot {
      * Улов. power - сила рыбалки, baited - была ли приманка, crateBonus и rareMult - от удочки и приманки.
      */
     public static ItemStack roll(Random r, Zone zone, int power, boolean baited, float crateBonus, float rareMult) {
+        return roll(r, zone, power, baited, crateBonus, rareMult, MIDDLE);
+    }
+
+    /** Улов; tier - ярус пещер ({@link #caveTier}), вне пещер не важен. */
+    public static ItemStack roll(Random r, Zone zone, int power, boolean baited, float crateBonus, float rareMult, int tier) {
         init();
         Table t = tables.get(zone);
         if (!baited) {
@@ -204,25 +320,52 @@ public final class FishingLoot {
             return pick(t.common, r);
         }
         if (zone != Zone.HELL && r.nextFloat() < Math.max(0.02F, 0.12F - power / 800F)) return pick(junk, r);
-        if (r.nextFloat() < 0.06F + power / 1200F + crateBonus) return new ItemStack(ModItems.crate, 1, zone.ordinal());
+        if (r.nextFloat() < 0.06F + power / 1200F + crateBonus) return crateItem(zone, tier);
         float x = r.nextFloat();
         if (x < power / 2500F * rareMult && !t.veryRare.isEmpty()) return pick(t.veryRare, r);
         if (x < power / 600F * rareMult && !t.rare.isEmpty()) return pick(t.rare, r);
-        if (x < 0.15F + power / 500F && !t.uncommon.isEmpty()) return pick(t.uncommon, r);
+        if (x < 0.15F + power / 500F) {
+            if (zone == Zone.CAVE) { // в пещерах необычный улов - 1-2 руды своего яруса
+                ItemStack o = pick(mine[tier(tier)], r);
+                if (o != null) o.stackSize = 1 + r.nextInt(2);
+                return o;
+            }
+            if (!t.uncommon.isEmpty()) return pick(t.uncommon, r);
+        }
         return pick(t.common, r);
     }
 
-    /** Содержимое ящика зоны: 4-7 предметов из необычного и редкого, плюс рыба зоны и иногда приманки. */
     public static List<ItemStack> crate(Random r, Zone zone) {
+        return crate(r, zone, MIDDLE);
+    }
+
+    /**
+     * Содержимое ящика зоны: 4-7 предметов из необычного и редкого, плюс рыба зоны и иногда приманки. Шахтёрские ящики
+     * (пещеры по ярусам и лава): 5-8 стопок руды блоками, в пещерах в 1 из 8 - ещё алмаз, изумруд или рупий.
+     */
+    public static List<ItemStack> crate(Random r, Zone zone, int tier) {
         init();
         Table t = tables.get(zone);
         List<ItemStack> out = new ArrayList<ItemStack>();
-        int n = 4 + r.nextInt(4);
-        for (int i = 0; i < n; i++) {
-            ItemStack s = r.nextInt(4) == 0 && !t.rare.isEmpty() ? pick(t.rare, r) : pick(t.uncommon, r);
-            if (s != null) out.add(s);
+        if (zone == Zone.CAVE || zone == Zone.HELL) {
+            List<Entry> ores = zone == Zone.HELL ? lava : mine[tier(tier)];
+            int n = 5 + r.nextInt(4);
+            for (int i = 0; i < n; i++) {
+                ItemStack s = pick(ores, r);
+                if (s != null) out.add(s);
+            }
+            if (r.nextInt(8) == 0) {
+                ItemStack s = pick(zone == Zone.HELL ? t.veryRare : mineRare, r);
+                if (s != null) out.add(s);
+            }
+        } else {
+            int n = 4 + r.nextInt(4);
+            for (int i = 0; i < n; i++) {
+                ItemStack s = r.nextInt(4) == 0 && !t.rare.isEmpty() ? pick(t.rare, r) : pick(t.uncommon, r);
+                if (s != null) out.add(s);
+            }
+            if (r.nextInt(8) == 0 && !t.veryRare.isEmpty()) out.add(pick(t.veryRare, r));
         }
-        if (r.nextInt(8) == 0 && !t.veryRare.isEmpty()) out.add(pick(t.veryRare, r));
         ItemStack f = pick(t.common, r);
         if (f != null) out.add(f);
         if (r.nextInt(2) == 0) {
@@ -339,6 +482,16 @@ public final class FishingLoot {
         List<View> out = new ArrayList<View>();
         view(out, t.common, View.COMMON);
         view(out, t.uncommon, View.UNCOMMON);
+        if (zone == Zone.CAVE) { // руда всех ярусов, 1-2 штуки
+            List<ItemStack> seen = new ArrayList<ItemStack>();
+            for (List<Entry> l : mine) for (Entry x : l) for (ItemStack a : x.alts) {
+                boolean dup = false;
+                for (ItemStack s : seen) dup |= s.isItemEqual(a);
+                if (dup) continue;
+                seen.add(a);
+                out.add(new View(a.copy(), View.UNCOMMON, 1, 2));
+            }
+        }
         view(out, t.rare, View.RARE);
         view(out, t.veryRare, View.VERY_RARE);
         if (zone == Zone.WILDWOOD) out.add(new View(new ItemStack(ModItems.fish, 1, Fish.STORM_CATFISH.ordinal()), View.RARE, 1, 1)); // только в ливень
@@ -346,7 +499,8 @@ public final class FishingLoot {
         if (zone == Zone.CAVE) out.add(new View(new ItemStack(ModItems.fish, 1, Fish.CAVE_ANGLER.ordinal()), View.RARE, 1, 1)); // только на Глазок циклопа
         ItemStack relic = relicOf(zone);
         if (relic != null && com.divinerpgextended.Config.fishingRelics) out.add(new View(relic, View.RELIC, 1, 1));
-        out.add(new View(new ItemStack(ModItems.crate, 1, zone.ordinal()), View.CRATE, 1, 1));
+        if (zone == Zone.CAVE) for (int k = 0; k < TIERS; k++) out.add(new View(crateItem(zone, k), View.CRATE, 1, 1));
+        else out.add(new View(crateItem(zone, MIDDLE), View.CRATE, 1, 1));
         return out;
     }
 
@@ -372,11 +526,22 @@ public final class FishingLoot {
         return out;
     }
 
-    /** Что может лежать в ящике зоны. */
     public static List<View> crateContents(Zone zone) {
+        return crateContents(zone, MIDDLE);
+    }
+
+    /** Что может лежать в ящике зоны (в пещерах - в шахтёрском ящике этого яруса). */
+    public static List<View> crateContents(Zone zone, int tier) {
         init();
         Table t = tables.get(zone);
         List<View> out = new ArrayList<View>();
+        if (zone == Zone.CAVE || zone == Zone.HELL) {
+            for (Entry x : zone == Zone.HELL ? lava : mine[tier(tier)]) for (ItemStack a : x.alts) out.add(new View(a.copy(), View.UNCOMMON, x.min, x.max));
+            view(out, zone == Zone.HELL ? t.veryRare : mineRare, View.VERY_RARE);
+            view(out, t.common, View.COMMON);
+            for (Bait b : Bait.values()) if (b.arcana) out.add(new View(new ItemStack(b.item()), View.BAIT, 2, 4));
+            return out;
+        }
         view(out, t.uncommon, View.UNCOMMON);
         view(out, t.rare, View.RARE);
         view(out, t.veryRare, View.VERY_RARE);

@@ -686,6 +686,11 @@ public class SelfTest {
         return String.format("%.2f", v);
     }
 
+    /** Ключ вещи для сравнения: имя в реестре и мета. */
+    private static String key(ItemStack s) {
+        return Item.itemRegistry.getNameForObject(s.getItem()) + "#" + s.getItemDamage();
+    }
+
     // ---------------- Сценарии ----------------
 
     private void runAll() throws Exception {
@@ -4286,6 +4291,106 @@ public class SelfTest {
                     + ", рецепт " + (made == null ? "нет" : made.getDisplayName() + " x" + made.stackSize) + ", задание Леорны " + quest + ", в NEI " + nei + ", значки " + icons);
             return "Глазок циклопа (осколок глаза циклопа - 2 шт.): в пещере клюёт быстрее, Пещерный удильщик в " + f(share * 100) + "% поклёвок, только там и только на эту приманку; рыба для заданий Леорны";
         });
+        t("Рыбалка", "Шахтёрская рыбалка: руда блоками по ярусам высоты", () -> {
+            StringBuilder bad = new StringBuilder();
+            // ярусы: 33-47 верхние, 17-32 средние, 16 и ниже - глубины только с силой 40+
+            int[][] cases = { { 47, 0, FishingLoot.UPPER }, { 33, 0, FishingLoot.UPPER }, { 32, 0, FishingLoot.MIDDLE }, { 17, 0, FishingLoot.MIDDLE },
+                { 16, 40, FishingLoot.DEEP }, { 16, 39, FishingLoot.MIDDLE }, { 5, 130, FishingLoot.DEEP } };
+            for (int[] c : cases) if (FishingLoot.caveTier(c[0] + 0.4, c[1]) != c[2]) bad.append("ярус на высоте ").append(c[0]).append(" при силе ").append(c[1]).append("; ");
+            java.util.Set<String> rare = new java.util.HashSet<String>(java.util.Arrays.asList(key(new ItemStack(Blocks.diamond_ore)), key(new ItemStack(Blocks.emerald_ore)),
+                key(new ItemStack(net.divinerpg.utils.blocks.VanillaBlocks.rupeeOre))));
+            java.util.Random r = new java.util.Random(7);
+            StringBuilder rep = new StringBuilder();
+            for (int tier = 0; tier < FishingLoot.TIERS; tier++) {
+                java.util.Set<String> ores = new java.util.HashSet<String>();
+                for (ItemStack s : FishingLoot.ores(tier)) ores.add(key(s));
+                // улов: ящики - шахтёрские своего яруса, руда - своего яруса по 1-2
+                int crates = 0, oreCatch = 0;
+                for (int i = 0; i < 20000; i++) {
+                    ItemStack s = FishingLoot.roll(r, Zone.CAVE, 60, true, 0F, 1F, tier);
+                    if (s == null) continue;
+                    if (s.getItem() == ModItems.crate) {
+                        crates++;
+                        if (s.getItemDamage() != FishingLoot.CRATE_MINE + tier) bad.append("ящик яруса ").append(tier).append(" с метой ").append(s.getItemDamage()).append("; ");
+                    } else if (s.getItem() instanceof net.minecraft.item.ItemBlock && s.getItem() != Item.getItemFromBlock(Blocks.tripwire_hook)) { // крюк - мусор
+                        oreCatch++;
+                        if (!ores.contains(key(s)) || s.stackSize < 1 || s.stackSize > 2) bad.append("улов яруса ").append(tier).append(": ").append(s.getDisplayName()).append(" x").append(s.stackSize).append("; ");
+                    }
+                }
+                // ящик: 5-8 стопок руды яруса, в ~1 из 8 - алмаз, изумруд или рупий
+                int extra = 0, n = 4000;
+                for (int i = 0; i < n; i++) {
+                    int oreStacks = 0;
+                    boolean ex = false;
+                    for (ItemStack s : FishingLoot.crate(r, Zone.CAVE, tier)) {
+                        if (!(s.getItem() instanceof net.minecraft.item.ItemBlock)) continue;
+                        if (ores.contains(key(s))) oreStacks++;
+                        else if (rare.contains(key(s))) ex = true;
+                        else bad.append("в ящике яруса ").append(tier).append(" чужое: ").append(s.getDisplayName()).append("; ");
+                    }
+                    if (ex) extra++;
+                    if (oreStacks < 4) bad.append("в ящике яруса ").append(tier).append(" руды ").append(oreStacks).append(" стопок; ");
+                    if (bad.length() > 600) break;
+                }
+                float share = extra / (float) n;
+                // у глубин алмаз, изумруд и рупий - и в руде яруса, добавку не отличить
+                boolean overlap = ores.containsAll(rare);
+                if (!overlap && (share < 0.07F || share > 0.2F)) bad.append("редкая добавка яруса ").append(tier).append(": ").append(f(share * 100)).append("%; ");
+                rep.append(new String[] { "верхние", "средние", "глубины" }[tier]).append(": руд ").append(ores.size()).append(", ящиков ").append(crates).append(", руды в улове ")
+                    .append(oreCatch).append(", редкая добавка ").append(f(share * 100)).append("%; ");
+            }
+            // глубины без силы - как средние; алмаз в руде только у глубин
+            boolean deepDiamond = false, upperDiamond = false;
+            for (ItemStack s : FishingLoot.ores(FishingLoot.DEEP)) deepDiamond |= s.getItem() == Item.getItemFromBlock(Blocks.diamond_ore);
+            for (ItemStack s : FishingLoot.ores(FishingLoot.UPPER)) upperDiamond |= s.getItem() == Item.getItemFromBlock(Blocks.diamond_ore);
+            if (!deepDiamond || upperDiamond) bad.append("алмазная руда: в глубинах ").append(deepDiamond).append(", в верхних ").append(upperDiamond).append("; ");
+            // лава: кварц, незерит, кровавый камень
+            java.util.Set<String> lava = new java.util.HashSet<String>();
+            for (ItemStack s : FishingLoot.ores(-1)) lava.add(key(s));
+            int lavaOre = 0;
+            for (int i = 0; i < 500; i++) for (ItemStack s : FishingLoot.crate(r, Zone.HELL, 0))
+                if (s.getItem() instanceof net.minecraft.item.ItemBlock) {
+                    if (lava.contains(key(s))) lavaOre++;
+                    else bad.append("в ящике лавы: ").append(s.getDisplayName()).append("; ");
+                }
+            if (lavaOre < 500 * 5) bad.append("в ящиках лавы руды ").append(lavaOre).append("; ");
+            // Таумкрафт по рудному словарю: янтарь наверху, киноварь в средних, камни с аспектами - одной строкой
+            boolean tc = !net.minecraftforge.oredict.OreDictionary.getOres("oreAmber").isEmpty();
+            if (tc) {
+                java.util.Set<String> up = new java.util.HashSet<String>(), mid = new java.util.HashSet<String>();
+                for (ItemStack s : FishingLoot.ores(FishingLoot.UPPER)) up.add(key(s));
+                for (ItemStack s : FishingLoot.ores(FishingLoot.MIDDLE)) mid.add(key(s));
+                if (!up.contains(key(net.minecraftforge.oredict.OreDictionary.getOres("oreAmber").get(0)))) bad.append("нет янтаря в верхних; ");
+                if (!mid.contains(key(net.minecraftforge.oredict.OreDictionary.getOres("oreCinnabar").get(0)))) bad.append("нет киновари в средних; ");
+                if (up.size() < 10) bad.append("в верхних видов руды ").append(up.size()).append(" (камней с аспектами должно быть 6); ");
+            }
+            // старый ящик пещер открывается как средний ярус; ящик открывает настоящий игрок
+            if (FishingLoot.crateTier(Zone.CAVE.ordinal()) != FishingLoot.MIDDLE || FishingLoot.crateTier(Zone.OCEAN.ordinal()) != -1) bad.append("ярус по мете ящика; ");
+            TestPlayer cp = join(player(0, "TestMineCrate", sx + 0.5, sy, sz + 0.5), true);
+            int got = 0;
+            try {
+                for (int i = 0; i < cp.inventory.mainInventory.length; i++) cp.inventory.mainInventory[i] = null;
+                ItemStack c = new ItemStack(ModItems.crate, 1, FishingLoot.CRATE_MINE + FishingLoot.DEEP);
+                c.getItem().onItemRightClick(c, cp.worldObj, cp);
+                java.util.Set<String> deep = new java.util.HashSet<String>(rare);
+                for (ItemStack s : FishingLoot.ores(FishingLoot.DEEP)) deep.add(key(s));
+                for (ItemStack s : cp.inventory.mainInventory) if (s != null && deep.contains(key(s))) got++;
+            } finally {
+                server.getConfigurationManager().playerEntityList.remove(cp);
+                cp.worldObj.removeEntity(cp);
+            }
+            if (got < 3) bad.append("открытый ящик глубин дал стопок руды ").append(got).append("; ");
+            String[] names = new String[FishingLoot.TIERS];
+            for (int k = 0; k < FishingLoot.TIERS; k++) names[k] = new ItemStack(ModItems.crate, 1, FishingLoot.CRATE_MINE + k).getDisplayName();
+            for (int k = 0; k < FishingLoot.TIERS; k++) {
+                if (names[k].startsWith("item.")) bad.append("нет названия ").append(names[k]).append("; ");
+                if (SelfTest.class.getResource("/assets/divinerpgextended/textures/items/crate_mine_" + new String[] { "upper", "middle", "deep" }[k] + ".png") == null)
+                    bad.append("нет значка яруса ").append(k).append("; ");
+            }
+            check(bad.length() == 0, bad.toString());
+            return rep + "лава: руда Ада " + lavaOre + " стопок на 500 ящиков; Таумкрафт " + (tc ? "в таблицах" : "нет в сборке") + "; открытый ящик глубин - " + got
+                + " стопок руды; " + String.join(", ", names);
+        });
         t("Лиоплевродон", "Кость призрака у Мерика", () -> {
             TestPlayer mp = join(player(0, "TestWraithbane", sx + 0.5, sy, sz + 0.5), true);
             boolean before, after, chest;
@@ -5114,6 +5219,14 @@ public class SelfTest {
             // рыболовные ящики по зонам и улов (веса таблиц рыбалки - рефлексией)
             for (com.divinerpgextended.fishing.Zone z : com.divinerpgextended.fishing.Zone.values()) {
                 final com.divinerpgextended.fishing.Zone zz = z;
+                if (z == com.divinerpgextended.fishing.Zone.CAVE) { // шахтёрские ящики - по ярусам
+                    String[] tiers = { "CAVE_UPPER", "CAVE_MIDDLE", "CAVE_DEEP" };
+                    for (int k = 0; k < tiers.length; k++) {
+                        final int kk = k;
+                        lootSampled(js, "Рыболовные ящики", tiers[k], tiers[k], 20000, r -> com.divinerpgextended.fishing.FishingLoot.crate(r, zz, kk), seed);
+                    }
+                    continue;
+                }
                 lootSampled(js, "Рыболовные ящики", z.name(), z.name(), 20000, r -> com.divinerpgextended.fishing.FishingLoot.crate(r, zz), seed);
             }
             js.append(lootFishTables());

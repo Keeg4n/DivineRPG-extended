@@ -23,11 +23,17 @@ public class CrateHandler extends DreHandler {
         return ID;
     }
 
-    private Page page(Zone z) {
-        ItemStack crate = new ItemStack(ModItems.crate, 1, z.ordinal());
+    /** Зона ящика по мете (шахтёрские - пещеры). */
+    private static Zone zone(int m) {
+        if (FishingLoot.crateTier(m) >= 0) return Zone.CAVE;
+        return Zone.values()[m >= 0 && m < Zone.values().length ? m : 0];
+    }
+
+    private Page page(ItemStack crate) {
+        int m = crate.getItemDamage();
         Page p = new Page(crate.getDisplayName());
         p.add(crate, gx(0), gy(0), tierColor(View.CRATE), null, true);
-        p.grid(FishingLoot.crateContents(z), false, 1);
+        p.grid(FishingLoot.crateContents(zone(m), FishingLoot.crateTier(m)), false, 1);
         p.notes.add(StatCollector.translateToLocal("dre.nei.hint.crate"));
         return p;
     }
@@ -35,7 +41,7 @@ public class CrateHandler extends DreHandler {
     @Override
     public void loadCraftingRecipes(String id, Object... results) {
         if (ID.equals(id) || "all".equals(id)) {
-            for (Zone z : Zone.values()) arecipes.add(page(z));
+            for (ItemStack c : FishingLoot.crateKinds()) arecipes.add(page(c));
         } else {
             super.loadCraftingRecipes(id, results);
         }
@@ -44,8 +50,8 @@ public class CrateHandler extends DreHandler {
     @Override
     public void loadCraftingRecipes(ItemStack result) {
         if (result.getItem() == ModItems.crate) return;
-        for (Zone z : Zone.values()) {
-            Page p = page(z);
+        for (ItemStack c : FishingLoot.crateKinds()) {
+            Page p = page(c);
             if (p.has(result)) arecipes.add(p);
         }
     }
@@ -54,12 +60,13 @@ public class CrateHandler extends DreHandler {
     public void loadUsageRecipes(ItemStack s) {
         if (s.getItem() != ModItems.crate) return;
         int m = s.getItemDamage();
-        if (m >= 0 && m < Zone.values().length) arecipes.add(page(Zone.values()[m]));
+        if (m >= 0 && m < Zone.values().length || FishingLoot.crateTier(m) >= 0) arecipes.add(page(s.copy()));
     }
 
     public static int maxHeight() {
         int n = 0;
-        for (Zone z : Zone.values()) n = Math.max(n, FishingLoot.crateContents(z).size() + 1);
+        for (ItemStack c : FishingLoot.crateKinds())
+            n = Math.max(n, FishingLoot.crateContents(zone(c.getItemDamage()), FishingLoot.crateTier(c.getItemDamage())).size() + 1);
         return height(n, 1);
     }
 }
