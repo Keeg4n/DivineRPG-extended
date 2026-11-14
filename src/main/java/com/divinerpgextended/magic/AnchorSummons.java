@@ -25,7 +25,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * лиоплевродона (с Лиоплевродона) - акулу; ПКМ - только призыв (броска у якорей и выстрела у жезла нет, меч бьёт как раньше).
  * Как призрак кости призрака ({@link ArcaneSummons}): держатся, пока хозяин платит арканой ({@link Kind#upkeep} в секунду за
  * каждого), бьют то, что бьёт хозяин (или того, кто напал на хозяина), а сами - ближайшего врага в своём радиусе агра
- * ({@link Kind#aggro}); не ранятся и не сохраняются; одновременно не больше {@link #cap} каждого вида (полный сет Кормы или
+ * ({@link Kind#aggro}); ранят их только чужие игроки там, где можно PvP; не сохраняются; одновременно не больше {@link #cap} каждого вида (полный сет Кормы или
  * Венец арканы R8 - на одного больше), лишний - самый старый. Лестница призывов: слизень - краб - око - акула - призрак.
  * <p>
  * С 0.99.120: призывы одного хозяина - только одного вида (позвал краба - остальные, и призраки тоже, уходят); ПКМ по своему
@@ -185,11 +185,26 @@ public class AnchorSummons {
         if (t == null) return null;
         Entity e = (Entity) t[0];
         if (e.isDead || !(e instanceof EntityLivingBase) || ((EntityLivingBase) e).getHealth() <= 0 || e.worldObj != p.worldObj
-            || p.worldObj.getTotalWorldTime() - (Long) t[1] > MEMORY || e.getDistanceSqToEntity(p) > 24 * 24) {
+            || p.worldObj.getTotalWorldTime() - (Long) t[1] > MEMORY || e.getDistanceSqToEntity(p) > 24 * 24
+            || e instanceof EntityPlayer && com.divinerpgextended.perk.Protection.spare(p, e)) { // игрок ушёл в приват без PvP
             TARGET.remove(p.getUniqueID());
             return null;
         }
         return e;
+    }
+
+    /** Призыв или призрак этого хозяина. */
+    public static boolean own(EntityPlayer p, Entity t) {
+        return t instanceof Summon && ((Summon) t).owner() == p || t instanceof EntityArcaneWraith && ((EntityArcaneWraith) t).owner() == p;
+    }
+
+    /**
+     * Удар по призыву, который проходит: от чужого игрока (или его призывов), где можно PvP. Остальное призыв не ранит -
+     * мобы, огонь, падение и сам хозяин.
+     */
+    public static boolean rivalHit(EntityPlayer owner, net.minecraft.util.DamageSource s) {
+        Entity by = s.getEntity();
+        return by instanceof EntityPlayer && owner != null && by != owner && !com.divinerpgextended.perk.Protection.spare(by, owner);
     }
 
     /**
@@ -237,7 +252,7 @@ public class AnchorSummons {
     }
 
     public static void mark(EntityPlayer p, Entity t) {
-        if (t instanceof Summon || t == p) return;
+        if (t == p || own(p, t)) return; // чужие призывы - можно (PvP)
         TARGET.put(p.getUniqueID(), new Object[] { t, p.worldObj.getTotalWorldTime() });
     }
 
@@ -296,7 +311,8 @@ public class AnchorSummons {
     public void onAttack(LivingAttackEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
         Entity a = e.source.getEntity();
-        if (a instanceof EntityPlayer && !(e.entityLiving instanceof EntityPlayer) && LIVE.containsKey(a.getUniqueID())) mark((EntityPlayer) a, e.entityLiving);
+        if (a instanceof EntityPlayer && LIVE.containsKey(a.getUniqueID())
+            && (!(e.entityLiving instanceof EntityPlayer) || !com.divinerpgextended.perk.Protection.spare(a, e.entityLiving))) mark((EntityPlayer) a, e.entityLiving); // игрока - где можно PvP
     }
 
     /** На хозяина нацелились - призывы на этого врага (если хозяин сам никого не бьёт). */

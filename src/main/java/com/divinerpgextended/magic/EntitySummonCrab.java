@@ -76,7 +76,7 @@ public class EntitySummonCrab extends EntityCreature implements AnchorSummons.Su
             if (--cooldown <= 0 && getDistanceSqToEntity(t) < 2.0 * 2.0 && t instanceof EntityLivingBase) {
                 cooldown = HIT_EVERY;
                 ((EntityLivingBase) t).hurtResistantTime = 0;
-                if (t.attackEntityFrom(ArcanaCombat.arcaneSource(o), AnchorSummons.damage(o, kind()))) onHit((EntityLivingBase) t, o);
+                if (t.attackEntityFrom(ArcanaCombat.arcaneSource(o, t), AnchorSummons.damage(o, kind()))) onHit((EntityLivingBase) t, o);
                 swingItem();
             }
             faceEntity(t, 30F, 30F);
@@ -94,6 +94,7 @@ public class EntitySummonCrab extends EntityCreature implements AnchorSummons.Su
             setDead();
             return true;
         }
+        if (AnchorSummons.rivalHit(owner(), s)) return super.attackEntityFrom(s, a); // чужой игрок, где можно PvP
         return false;
     }
 

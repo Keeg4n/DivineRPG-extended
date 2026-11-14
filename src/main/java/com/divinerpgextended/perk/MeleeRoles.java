@@ -47,7 +47,9 @@ public class MeleeRoles {
 
     public enum Kind {
         // молот: окно 1 с, урон x1.2 (до 0.99.122 было x2 и x1.5 по игрокам - с площадью выходило сильнее Маула Кароса)
-        KNIFE(6, 0.75F, 8, 1F), RAPIER(8, 0.9F, 9, 1F), SWORD(10, 1F, 10, 1F), MAUL(20, 1.2F, 20, 1.2F);
+        KNIFE(6, 0.75F, 8, 1F), RAPIER(8, 0.9F, 9, 1F), SWORD(10, 1F, 10, 1F), MAUL(20, 1.2F, 20, 1.2F),
+        // Ветея: когти быстрее мечей, мечи как обычно, молоты медленнее, но x1.3
+        CLAW(7, 1F, 7, 1F), HAMMER(14, 1.3F, 14, 1.3F);
 
         /** Окно неуязвимости цели в тиках: по мобам и по игрокам. */
         public int window, windowPvp;
@@ -97,11 +99,15 @@ public class MeleeRoles {
         }
     }
 
-    /** Подвид оружия; остальные мечи обычного мира и Ада - меч; null - оружие других миров и всё прочее. */
+    /** Подвид оружия; остальные мечи обычного мира и Ада - меч; когти, мечи и молоты Ветеи; null - оружие других миров и всё прочее. */
     public static Kind kind(ItemStack s) {
         if (s == null) return null;
         Kind k = KINDS.get(s.getItem());
         if (k != null) return k;
+        com.divinerpgextended.vethea.WeaponKind v = com.divinerpgextended.vethea.WeaponKind.ofItem(s);
+        if (v == com.divinerpgextended.vethea.WeaponKind.CLAW) return Kind.CLAW;
+        if (v == com.divinerpgextended.vethea.WeaponKind.HAMMER) return Kind.HAMMER;
+        if (v == com.divinerpgextended.vethea.WeaponKind.SWORD) return Kind.SWORD;
         WeaponOrigin o = WeaponOrigin.of(s);
         return o == WeaponOrigin.OVERWORLD || o == WeaponOrigin.NETHER ? Kind.SWORD : null;
     }

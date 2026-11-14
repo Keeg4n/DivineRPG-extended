@@ -112,6 +112,19 @@ public class FrostBite {
         return stacks;
     }
 
+    /** Вморозить сразу (Серенада льда): боссов и только что оттаявших - сильное замедление. */
+    public static void freezeNow(EntityLivingBase t, long now) {
+        NBTTagCompound d = t.getEntityData();
+        if (now < d.getLong(UNTIL)) return;
+        if (t instanceof IBossDisplayData || now < d.getLong(IMMUNE_UNTIL)) {
+            t.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, SLOW_TICKS, 2));
+            puff(t, 8);
+            return;
+        }
+        freeze(t, now);
+        d.setInteger(STACKS, 0);
+    }
+
     private static void freeze(EntityLivingBase t, long now) {
         NBTTagCompound d = t.getEntityData();
         d.setLong(UNTIL, now + FREEZE);

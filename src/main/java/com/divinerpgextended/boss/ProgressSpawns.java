@@ -345,6 +345,13 @@ public class ProgressSpawns {
             .getBoolean(NO_DROPS)) {
             event.drops.clear();
             com.divinerpgextended.debug.Debug.note(event.source.getEntity(), "Убит не на своём этапе: дроп и опыт не выпали");
+            return;
+        }
+        // эндер-смотритель у Divine в половине случаев не роняет ничего, а его глаз нужен на призыв Смотрителя - хоть один набор
+        if (event.entityLiving instanceof EntityEnderWatcher && event.recentlyHit && event.drops.isEmpty() && !event.entityLiving.worldObj.isRemote) {
+            EntityLivingBase w = event.entityLiving;
+            event.drops.add(new net.minecraft.entity.item.EntityItem(w.worldObj, w.posX, w.posY, w.posZ, new net.minecraft.item.ItemStack(net.divinerpg.utils.items.VanillaItemsOther.enderShards, 2)));
+            event.drops.add(new net.minecraft.entity.item.EntityItem(w.worldObj, w.posX, w.posY, w.posZ, new net.minecraft.item.ItemStack(net.divinerpg.utils.items.VanillaItemsOther.watchingEye, 1)));
         }
     }
 }

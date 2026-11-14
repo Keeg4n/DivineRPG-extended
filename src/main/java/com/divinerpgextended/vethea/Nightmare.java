@@ -366,7 +366,8 @@ public class Nightmare {
         Item i = e.item.getItem();
         if (i instanceof ItemFood) {
             ItemFood f = (ItemFood) i;
-            int heal = f.func_150905_g(e.item);
+            int heal = Math.max(1, f.func_150905_g(e.item));
+            p.removePotionEffect(23); // Насыщение: им кормит Печенье маны Ботании (своей сытости у него почти нет)
             // сытость уже прибавилась - отнимаем вдвое: итог как будто еда отняла столько же
             NBTTagCompound t = new NBTTagCompound();
             p.getFoodStats().writeNBT(t);

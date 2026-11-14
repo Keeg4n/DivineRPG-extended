@@ -36,6 +36,9 @@ public final class HalfLifeMount {
         ev("hev.pain", seq("hl1/player/pl_pain%d", 2, 4, 5, 6, 7));
         ev("hev.fallpain", seq("hl1/player/pl_fallpain%d", 1, 2, 3));
         ev("hev.flatline", one("hl1/fvox/flatline"));
+        // смерть как в Half-Life 2 (Player.Death: pl_pain5-7), без HL2 - писк монитора из первой части
+        ev("hev.death", new String[][] { { "hl2/player/pl_pain5", "hl1/fvox/flatline" }, { "hl2/player/pl_pain6", "hl1/fvox/flatline" },
+            { "hl2/player/pl_pain7", "hl1/fvox/flatline" } });
         ev("hev.logon", one("hl1/fvox/hev_logon"));
         ev("hev.morphine", one("hl1/fvox/morphine_shot"));
         ev("hev.major_fracture", one("hl1/fvox/major_fracture"));

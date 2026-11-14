@@ -348,6 +348,7 @@ public class SelfTest {
     }
 
     private static void reset(TestPlayer p) {
+        p.getEntityData().removeTag("dreEdgeAt"); // арканный удар мечей - раз в 0.5 с, тесты идут в один тик
         for (int i = 0; i < 4; i++) p.inventory.armorInventory[i] = null;
         for (int i = 0; i < p.inventory.mainInventory.length; i++) p.inventory.mainInventory[i] = null;
         Accessories a = Accessories.of(p);
@@ -2965,7 +2966,7 @@ public class SelfTest {
                 }
                 hitsDone = th == null ? 0 : th.hits;
                 firstStunned = th != null && th.stunned && zs[0].isPotionActive(net.minecraft.potion.Potion.moveSlowdown);
-                flagBack = !axe.getTagCompound().hasKey(com.divinerpgextended.item.ItemTomahawk.OUT);
+                flagBack = !axe.hasTagCompound() || !axe.getTagCompound().hasKey(com.divinerpgextended.item.ItemTomahawk.OUT); // пустые данные снимаются
                 for (int zi = 0; zi < 3; zi++) lost[zi] = 500F - zs[zi].getHealth();
             } finally {
                 for (net.minecraft.entity.monster.EntityZombie zz : zs) if (zz != null) zz.setDead();
@@ -4116,6 +4117,7 @@ public class SelfTest {
                 hold(dp, new ItemStack(net.divinerpg.utils.items.ArcanaItems.liviciaSword));
                 for (int pass = 0; pass < 2; pass++) {
                     if (pass == 1) wearCrown(dp, com.divinerpgextended.item.ArmorCrown.ARCANA);
+                    dp.getEntityData().removeTag("dreEdgeAt"); // арканный удар не чаще раза в полсекунды - второй проход в тот же тик
                     ArcanaHelper.getProperties(dp).setBarValue(200);
                     d.hurtResistantTime = 0;
                     d.attackEntityFrom(DamageSource.causePlayerDamage(dp), 10F);
@@ -7694,13 +7696,15 @@ public class SelfTest {
             shoot.apply(VanillaItemsWeapons.bowheadAnchor, zombNear);
             boolean stun = zombNear.isPotionActive(Potion.moveSlowdown);
             zombNear.clearActivePotions();
-            // игрока не тянет, пока PvP подвидов выключено
+            // игрока не тянет там, где PvP нельзя (с 0.99.126 - по привату, а не по настройке подвидов)
             TestPlayer other = player(0, "TestHarpoon2", a.posX + 5, a.posY, a.posZ);
-            boolean oldPvp = Config.meleeRolesPvp;
-            Config.meleeRolesPvp = false;
-            shoot.apply(VanillaItemsWeapons.sharkAnchor, other);
+            com.divinerpgextended.perk.Protection.testNoPvp = true;
+            try {
+                shoot.apply(VanillaItemsWeapons.sharkAnchor, other);
+            } finally {
+                com.divinerpgextended.perk.Protection.testNoPvp = false;
+            }
             boolean noPvp = other.motionX == 0;
-            Config.meleeRolesPvp = oldPvp;
             // настоящий бросок: снаряд запоминает якорь, появляясь в мире
             hold(a, new ItemStack(VanillaItemsWeapons.bowheadAnchor));
             net.minecraft.entity.projectile.EntitySnowball real = new net.minecraft.entity.projectile.EntitySnowball(w, a);

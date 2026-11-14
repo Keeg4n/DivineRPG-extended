@@ -9,7 +9,9 @@ import net.minecraftforge.common.config.Property;
 public class Config {
 
     /** Защита полного сета по ступеням R0-R7, в процентах (индекс = ступень). */
-    public static int[] tierFullReduction = { 50, 65, 72, 74, 76, 78, 80, 83, 85 };
+    // до 0.99.126: { 50, 65, 72, 74, 76, 78, 80, 83, 85 } - R7 и R8 защищали хуже Терра-брони и Ихора
+    public static int[] tierFullReduction = { 50, 65, 72, 75, 78, 81, 84, 88, 91 };
+    private static final int[] OLD_TIER_REDUCTION = { 50, 65, 72, 74, 76, 78, 80, 83, 85 };
     /** Малых слотов под перки по ступеням R0-R7. */
     public static int[] tierSmallSlots = { 0, 2, 2, 3, 3, 3, 4, 4, 4 };
     /** Закалка R7 -> R8: сколько Духов вселенной. */
@@ -180,8 +182,13 @@ public class Config {
     public static void load(File file) {
         Configuration cfg = new Configuration(file);
         String bal = "balance";
+        int[] newReduction = tierFullReduction.clone();
         tierFullReduction = intList(cfg, bal, "tierFullReduction", tierFullReduction,
             "Защита полного сета по ступеням R0, R1, ... R8 в процентах");
+        if (java.util.Arrays.equals(tierFullReduction, OLD_TIER_REDUCTION)) { // старые числа по умолчанию - на новые
+            tierFullReduction = newReduction;
+            cfg.get(bal, "tierFullReduction", newReduction).set(newReduction);
+        }
         tierSmallSlots = intList(cfg, bal, "tierSmallSlots", tierSmallSlots,
             "Число малых слотов под перки по ступеням R0, R1, ... R8");
         upgradeR8Spirits = cfg.getInt("upgradeR8Spirits", bal, upgradeR8Spirits, 0, 16,
@@ -298,7 +305,7 @@ public class Config {
         carcinusNonCrabDamageFactor = cfg.get(b, "carcinusNonCrabDamageFactor", carcinusNonCrabDamageFactor,
             "Какую долю урона Карцинус получает от не-крабового оружия").getDouble();
         carcinusWaterArmorFactor = cfg.get(b, "carcinusWaterArmorFactor", carcinusWaterArmorFactor,
-            "Какую долю урона Карцинус наносит игроку в водной броне (сет Kraken, Aquastrive или Странник с водным перком)").getDouble();
+            "Какую долю урона Карцинус наносит игроку в водной броне (сет Кракена, Водяной или Странник с водным перком)").getDouble();
         carcinusVortexDamage = cfg.get(b, "carcinusVortexDamage", carcinusVortexDamage,
             "Урон песчаного вихря Карцинуса (сквозь любую броню, в полусердцах; от вихря можно отбежать)").getDouble();
         carcinusSummonClaws = cfg.getInt("carcinusSummonClaws", b, carcinusSummonClaws, 0, 64,

@@ -29,7 +29,7 @@ import net.minecraft.world.WorldServer;
  */
 public class EntityTrainingDummy extends EntityLiving {
 
-    private static final int DW_NAME = 20, DW_LAST = 21, DW_DPS = 22, DW_UUID = 23;
+    private static final int DW_NAME = 20, DW_LAST = 21, DW_DPS = 22, DW_UUID = 23, DW_ARC = 24, DW_ARC_SPENT = 25;
     /** Урон от окружения и эффектов: манекен его не показывает. */
     private static final java.util.Set<String> ENVIRONMENT = new java.util.HashSet<String>(java.util.Arrays.asList("inFire", "onFire", "lava", "cactus",
         "fall", "drown", "inWall", "starve", "wither", "magic", "anvil", "fallingBlock"));
@@ -59,6 +59,17 @@ public class EntityTrainingDummy extends EntityLiving {
         dataWatcher.addObject(DW_LAST, Float.valueOf(0));
         dataWatcher.addObject(DW_DPS, Float.valueOf(0));
         dataWatcher.addObject(DW_UUID, "");
+        dataWatcher.addObject(DW_ARC, Float.valueOf(0));
+        dataWatcher.addObject(DW_ARC_SPENT, Float.valueOf(0));
+    }
+
+    /** Аркана копии (как у игрока при копии) и сколько её снял щит арканы последним ударом. */
+    public float arcana() {
+        return dataWatcher.getWatchableObjectFloat(DW_ARC);
+    }
+
+    public float arcanaSpent() {
+        return dataWatcher.getWatchableObjectFloat(DW_ARC_SPENT);
     }
 
     /** UUID того, чья это копия (для скина и модели как у живого игрока); пусто у манекенов до 0.99.30. */
@@ -189,6 +200,8 @@ public class EntityTrainingDummy extends EntityLiving {
             if (guard != null) guard.restore();
         }
         record(dealt);
+        dataWatcher.updateObject(DW_ARC, Float.valueOf(g.arcanaBefore));
+        dataWatcher.updateObject(DW_ARC_SPENT, Float.valueOf(g.arcanaSpent));
         if (attacker instanceof EntityPlayer) callPets((EntityPlayer) attacker);
         worldObj.setEntityState(this, (byte) 2); // вздрогнуть
         playSound("dig.cloth", 0.8F, 1.0F);

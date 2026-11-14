@@ -235,13 +235,13 @@ public class BlockBossAltar extends Block {
             // алтарь стоит на помосте у трона (север), Колосс поднимается в центре арены
             boss.setLocationAndAngles(x + 0.5, y - com.divinerpgextended.world.WorldGenThrone.ALTAR_DY,
                 z + 0.5 - com.divinerpgextended.world.WorldGenThrone.ALTAR_DZ, 180, 0);
-            // арена - купол до кольца пилонов (на них прыгает Король-лич, он арену унаследует)
+            // арена - весь купол до стены (Король-лич её унаследует); до 0.99.126 - только до пилонов, и игрока отталкивало посреди зала
             com.divinerpgextended.boss.BossArena.set(boss, x, y - com.divinerpgextended.world.WorldGenThrone.ALTAR_DY,
-                z - com.divinerpgextended.world.WorldGenThrone.ALTAR_DZ, 80);
+                z - com.divinerpgextended.world.WorldGenThrone.ALTAR_DZ, com.divinerpgextended.world.WorldGenThrone.R - 3);
         } else {
             boss.setLocationAndAngles(x + 0.5, y + 1, z + 0.5, world.rand.nextFloat() * 360, 0);
-            // Глакон встаёт на алтарь в центре гнезда: арена - гнездо и замёрзшее озеро вокруг
-            if (type == SNOW_GLACON) com.divinerpgextended.boss.BossArena.set(boss, x, y - 3, z, com.divinerpgextended.world.LairDomes.G_LAKE + 2);
+            // Глакон встаёт на алтарь в центре гнезда: арена - весь купол пещеры до стены (раньше - только озеро, отталкивало раньше стены)
+            if (type == SNOW_GLACON) com.divinerpgextended.boss.BossArena.set(boss, x, y - 3, z, com.divinerpgextended.world.LairDomes.G_R - 3);
         }
         if (!com.divinerpgextended.boss.BossArena.roomFor(boss)) { // место появления застроили
             player.addChatMessage(new ChatComponentTranslation("dre.chat.summon_blocked"));

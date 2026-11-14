@@ -140,6 +140,9 @@ public class RenderTrainingDummy extends RenderBiped {
             func_147906_a(e, EnumChatFormatting.GRAY + StatCollector.translateToLocal("dre.dummy.idle"), x, y, z, 16);
             return;
         }
+        if (d.arcana() > 0) // щит арканы: сколько арканы у копии и сколько снял последний удар
+            func_147906_a(e, EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocalFormatted("dre.dummy.arcana", String.format("%.0f", d.arcana()),
+                String.format("%.1f", d.arcanaSpent())), x, y + 0.54, z, 32);
         func_147906_a(e, EnumChatFormatting.YELLOW + StatCollector.translateToLocalFormatted("dre.dummy.dps", String.format("%.1f", d.dps())), x, y + 0.27, z, 32);
         func_147906_a(e, EnumChatFormatting.RED + StatCollector.translateToLocalFormatted("dre.dummy.hit", String.format("%.2f", d.lastHit())), x, y, z, 32);
     }

@@ -34,6 +34,8 @@ public enum WeaponKind {
             return k != null && k.group() == 0 ? k : null;
         }
         if (direct == null) return null;
+        if (direct instanceof com.divinerpgextended.entity.EntityTomahawk) return ((com.divinerpgextended.entity.EntityTomahawk) direct).disk()
+            && ofItem(((com.divinerpgextended.entity.EntityTomahawk) direct).item()) == DISK ? DISK : null;
         for (Class<?> c = direct.getClass(); c != null && c != Entity.class; c = c.getSuperclass()) {
             String n = c.getSimpleName();
             if (n.equals("EntityDisk")) return DISK;

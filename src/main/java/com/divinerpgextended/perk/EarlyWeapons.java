@@ -175,6 +175,18 @@ public class EarlyWeapons {
         }
     }
 
+    /** Теневой лук стреляет сам, пока зажат: на каждом полном натяге (у него вдвое быстрее обычного). */
+    public static final int SHADOW_AUTO = 10;
+
+    @SubscribeEvent
+    public void onBowTick(net.minecraftforge.event.entity.player.PlayerUseItemEvent.Tick e) {
+        if (e.entityPlayer.worldObj.isRemote || e.item == null || e.item.getItem() != VanillaItemsWeapons.shadowBow) return;
+        int max = e.item.getMaxItemUseDuration();
+        if (max - e.duration < SHADOW_AUTO) return;
+        e.item.getItem().onPlayerStoppedUsing(e.item, e.entityPlayer.worldObj, e.entityPlayer, e.duration);
+        e.duration = max; // и сразу натянуть снова
+    }
+
     /** Множитель выстрела Теневого лука по набранному бегу. */
     public static float runMult(EntityPlayer p) {
         return 1F + (RUN_MAX - 1F) * Math.min(1F, p.getEntityData().getInteger(RUN) / (float) RUN_FULL);
@@ -464,6 +476,11 @@ public class EarlyWeapons {
     public void onStruck(EntityStruckByLightningEvent e) {
         if (!(e.lightning instanceof com.divinerpgextended.entity.EntitySafeLightning)) return;
         Entity t = e.entity;
+        if (t instanceof net.minecraft.entity.player.EntityPlayer) { // чужих игроков - где можно PvP, себя - никогда
+            net.minecraft.entity.player.EntityPlayer by = ((com.divinerpgextended.entity.EntitySafeLightning) e.lightning).caster;
+            if (by == null || by == t || Protection.spare(by, t)) e.setCanceled(true);
+            return;
+        }
         boolean foe = t instanceof EntityLiving && (t instanceof IMob || t instanceof net.minecraft.entity.boss.IBossDisplayData)
             && !(t instanceof EntityTameable && ((EntityTameable) t).isTamed()) && !(t instanceof com.divinerpgextended.magic.AnchorSummons.Summon);
         if (!foe) e.setCanceled(true);

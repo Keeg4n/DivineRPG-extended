@@ -512,7 +512,8 @@ public class DoubleJump {
         /** Полоска запаса ковра или крыльев под прицелом, пока он тратится. */
         @SubscribeEvent
         public void onOverlay(RenderGameOverlayEvent.Post e) {
-            if (e.type != RenderGameOverlayEvent.ElementType.CROSSHAIRS || !airborne) return;
+            // после всего интерфейса, а не после прицела: от второго и третьего лица после прицела рисовалась одна серая подложка
+            if (e.type != RenderGameOverlayEvent.ElementType.ALL || !airborne) return;
             boolean wings = clientWing > 0;
             int max = wings ? clientWing : clientCarpet, left = wings ? wingLeft : carpetLeft;
             if (max <= 0 || left >= max) return;

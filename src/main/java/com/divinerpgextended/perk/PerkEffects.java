@@ -170,11 +170,11 @@ public class PerkEffects {
         }
         if (attacker instanceof EntityPlayer && isAquatic(event.entityLiving) && wears((EntityPlayer) attacker, KRAKEN)) {
             event.ammount *= 1.5F;
-            com.divinerpgextended.debug.Debug.note(attacker, "Сет Kraken: по водным x1.5");
+            com.divinerpgextended.debug.Debug.note(attacker, "Сет Кракена: по водным x1.5");
         } else if (event.entityLiving instanceof EntityPlayer && isAquatic(attacker)
             && wears((EntityPlayer) event.entityLiving, KRAKEN)) {
                 event.ammount *= 0.7F;
-                com.divinerpgextended.debug.Debug.note(event.entityLiving, "Сет Kraken: от водных x0.7");
+                com.divinerpgextended.debug.Debug.note(event.entityLiving, "Сет Кракена: от водных x0.7");
             }
     }
 

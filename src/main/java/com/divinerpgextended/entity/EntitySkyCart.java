@@ -26,6 +26,8 @@ public class EntitySkyCart extends Entity {
     public static final double SPEED = 0.35;
     /** Рельсы арканы разгоняют до MAX_SPEED на BOOST за тик; без них скорость спадает к обычной на DRAG за тик. */
     public static final double MAX_SPEED = 0.9, BOOST = 0.06, DRAG = 0.005;
+    /** Торможение кнопкой "назад" за тик. */
+    public static final double BRAKE = 0.03;
     private double speed = SPEED;
     /** Разгон от толчка (без игрока внутри): катится по инерции и тормозит, как ванильная вагонетка. */
     private double momentum;
@@ -218,6 +220,8 @@ public class EntitySkyCart extends Entity {
             if (nx == cx && ny == cy && nz == cz) driven = false; // туда, куда смотрит, пути нет
         } else if (!driven && pilot != null && moving && momentum < 0.01 && speed > 0.01) momentum = speed; // отпустил газ на ходу - по инерции
         // (только на ходу: у стоящей вагонетки speed с прошлой поездки или начальный - раньше она трогалась сама, едва сядешь)
+        // тормоз: "назад" на ходу гасит инерцию, вагонетка встаёт и стоит, пока её снова не толкнут
+        if (pilot != null && !driven && pilot.moveForward < 0 && moving) momentum = momentum > BRAKE ? momentum - BRAKE : 0;
         if (pilot != null && !driven) speed = Math.max(0, Math.min(speed, momentum));
         if (riddenByEntity != null) riddenByEntity.fallDistance = 0;
         moving = driven || momentum > 0.01;

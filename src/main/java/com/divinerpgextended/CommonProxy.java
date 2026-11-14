@@ -71,6 +71,7 @@ public class CommonProxy {
         com.divinerpgextended.magic.ArcanaCombat arcanaCombat = new com.divinerpgextended.magic.ArcanaCombat();
         MinecraftForge.EVENT_BUS.register(arcanaCombat);
         FMLCommonHandler.instance().bus().register(arcanaCombat);
+        FMLCommonHandler.instance().bus().register(new com.divinerpgextended.magic.ArcaneHoming());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcanaPrices());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcanePhases());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcaneSummons());

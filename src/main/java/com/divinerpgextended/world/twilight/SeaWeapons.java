@@ -121,7 +121,7 @@ public class SeaWeapons {
     }
 
     private static boolean pullable(EntityPlayer p, EntityLivingBase t) {
-        if (t instanceof EntityPlayer && (!Config.meleeRolesPvp || Protection.spare(p, t))) return false;
+        if (t instanceof EntityPlayer && Protection.spare(p, t)) return false; // игрока - только где можно PvP
         return t.getEntityAttribute(SharedMonsterAttributes.knockbackResistance).getAttributeValue() < 1.0;
     }
 
@@ -149,6 +149,21 @@ public class SeaWeapons {
         p.getEntityData().setLong(PULL_AT, now);
         p.getEntityData().setLong(HIT_UNTIL, now + HARPOON_WINDOW);
         p.worldObj.playSoundAtEntity(p, "random.bowhit", 1.0F, 0.6F);
+    }
+
+    /**
+     * Аттрактор Divine ({@link com.divinerpgextended.asm.AttractorTransformer}): тянет к бросившему как в Divine, но игрока - только где
+     * можно PvP, и толчок игроку доходит до клиента (у Divine игроков не тянуло).
+     */
+    public static void attract(Entity t, double x, double y, double z, net.minecraft.entity.projectile.EntityThrowable a) {
+        if (t instanceof EntityPlayer) {
+            EntityLivingBase by = a.getThrower();
+            if (by == null || by == t || Protection.spare(by, t)) return;
+            t.addVelocity(x, y, z);
+            t.velocityChanged = true;
+            return;
+        }
+        t.addVelocity(x, y, z);
     }
 
     /** Дёрнуть всех, кого зацепили: скорость рассчитана на остановку рядом с тем, к кому тянет. */

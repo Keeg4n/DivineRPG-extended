@@ -5,6 +5,7 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.Render;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.entity.Entity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.ResourceLocation;
 
@@ -22,7 +23,8 @@ public class RenderTomahawk extends Render {
 
     @Override
     public void doRender(Entity e, double x, double y, double z, float yaw, float pt) {
-        IIcon icon = ModItems.tomahawk.getIconFromDamage(0);
+        ItemStack thrown = e instanceof com.divinerpgextended.entity.EntityTomahawk ? ((com.divinerpgextended.entity.EntityTomahawk) e).item() : null;
+        IIcon icon = thrown != null ? thrown.getIconIndex() : ModItems.tomahawk.getIconFromDamage(0);
         if (icon == null) return;
         bindEntityTexture(e);
         GL11.glPushMatrix();

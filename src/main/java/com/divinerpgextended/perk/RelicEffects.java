@@ -59,7 +59,11 @@ public class RelicEffects {
     }
 
     public static void bolt(World w, double x, double y, double z) {
-        w.addWeatherEffect(new com.divinerpgextended.entity.EntitySafeLightning(w, x, y, z)); // не жжёт добычу и не поджигает
+        bolt(w, x, y, z, null);
+    }
+
+    public static void bolt(World w, double x, double y, double z, Entity by) {
+        w.addWeatherEffect(new com.divinerpgextended.entity.EntitySafeLightning(w, x, y, z, by instanceof net.minecraft.entity.player.EntityPlayer ? (net.minecraft.entity.player.EntityPlayer) by : null)); // не жжёт добычу и не поджигает
         bolts++;
     }
 
@@ -75,7 +79,7 @@ public class RelicEffects {
         if (storm(src)) {
             src.getEntityData().setBoolean(ItemStormBow.TAG, false);
             e.ammount *= 1F + ItemStormBow.BONUS;
-            bolt(v.worldObj, v.posX, v.posY, v.posZ);
+            bolt(v.worldObj, v.posX, v.posY, v.posZ, e.source.getEntity());
         }
         Entity by = e.source.getEntity();
         if (!(by instanceof EntityPlayer) || e.source.isProjectile() || e.source == DamageSource.magic) return;
@@ -127,7 +131,7 @@ public class RelicEffects {
             if (a.worldObj != e.world) continue;
             if (stuck(a) || a.ticksExisted > 400) {
                 a.getEntityData().setBoolean(ItemStormBow.TAG, false);
-                if (stuck(a)) bolt(a.worldObj, a.posX, a.posY, a.posZ);
+                if (stuck(a)) bolt(a.worldObj, a.posX, a.posY, a.posZ, a.shootingEntity);
                 it.remove();
             }
         }

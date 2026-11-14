@@ -85,11 +85,10 @@ public abstract class EntityMiniBoss extends EntityMob {
     @Override
     protected void fall(float distance) {}
 
-    /** На сервере - просто имя (для сообщений о смерти), на клиенте над головой ещё и здоровье. */
+    /** Имя над головой - без здоровья: его показывают моды индикаторов здоровья. */
     @Override
     public String getCommandSenderName() {
-        String name = StatCollector.translateToLocal("dre.entity.mini." + key());
-        return worldObj != null && worldObj.isRemote ? name + " " + (int) Math.ceil(getHealth()) + "/" + (int) getMaxHealth() : name;
+        return StatCollector.translateToLocal("dre.entity.mini." + key());
     }
 
     @Override

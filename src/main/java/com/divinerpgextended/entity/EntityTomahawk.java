@@ -27,6 +27,8 @@ import com.divinerpgextended.registry.ModItems;
  * возвращается к бросившему сквозь стены. Первая цель дальше {@link #STUN_RANGE} блоков от бросившего оглушается на
  * {@link #STUN_TICKS} тиков (замедление X и слабость). Игроков бьёт только при включённом PvP, питомцев бросившего не бьёт.
  * Не сохраняется: после перезагрузки мира исчезает, а метка броска на предмете снимается по времени.
+ * <p>
+ * Так же летают диски Ветеи ({@link com.divinerpgextended.vethea.DiskThrow}): предмет и урон броска - свои, рисуется диск.
  */
 public class EntityTomahawk extends Entity {
 
@@ -34,6 +36,10 @@ public class EntityTomahawk extends Entity {
     public static final int TARGETS = 3, STUN_TICKS = 50, LIFE = 200;
 
     private EntityPlayer owner;
+    /** Урон броска по цели. */
+    private float damage;
+    /** Что брошено (рисуется оно же; клиент узнаёт через DataWatcher). */
+    static final int ITEM = 10;
     private final Set<Integer> hit = new HashSet<Integer>();
     private boolean back;
     private double flown;
@@ -47,8 +53,17 @@ public class EntityTomahawk extends Entity {
     }
 
     public EntityTomahawk(World w, EntityPlayer p) {
+        this(w, p, new ItemStack(ModItems.tomahawk), ItemTomahawk.throwDamage());
+    }
+
+    public EntityTomahawk(World w, EntityPlayer p, ItemStack thrown, float damage) {
         this(w);
         owner = p;
+        this.damage = damage;
+        ItemStack one = thrown.copy();
+        one.stackSize = 1;
+        one.setTagCompound(null);
+        dataWatcher.updateObject(ITEM, one);
         Vec3 look = p.getLookVec();
         setPosition(p.posX + look.xCoord * 0.8, p.posY + p.getEyeHeight() - 0.2 + look.yCoord * 0.8, p.posZ + look.zCoord * 0.8);
         motionX = look.xCoord * SPEED;
@@ -60,8 +75,21 @@ public class EntityTomahawk extends Entity {
         return owner;
     }
 
+    /** Брошенный предмет (томагавк или диск). */
+    public ItemStack item() {
+        ItemStack s = dataWatcher.getWatchableObjectItemStack(ITEM);
+        return s != null ? s : new ItemStack(ModItems.tomahawk);
+    }
+
+    /** Брошен диск Ветеи. */
+    public boolean disk() {
+        return item().getItem() != ModItems.tomahawk;
+    }
+
     @Override
-    protected void entityInit() {}
+    protected void entityInit() {
+        dataWatcher.addObjectByDataType(ITEM, 5);
+    }
 
     @Override
     public void onUpdate() {
@@ -114,11 +142,11 @@ public class EntityTomahawk extends Entity {
         if (flown >= RANGE) back = true;
     }
 
-    /** Цель годится: живая, не бросивший, ещё не задета, не его питомец, игрок - только при PvP. */
+    /** Цель годится: живая, не бросивший, ещё не задета, не его питомец или призыв, игрок - только где можно PvP. */
     private boolean valid(EntityLivingBase e) {
         if (e == owner || e.isDead || e.getHealth() <= 0 || hit.contains(e.getEntityId())) return false;
-        if (e instanceof EntityTameable && ((EntityTameable) e).getOwner() == owner) return false;
-        if (e instanceof EntityPlayer) return net.minecraft.server.MinecraftServer.getServer() != null && net.minecraft.server.MinecraftServer.getServer().isPVPEnabled();
+        if (e instanceof EntityTameable && ((EntityTameable) e).getOwner() == owner || com.divinerpgextended.magic.AnchorSummons.own(owner, e)) return false;
+        if (e instanceof EntityPlayer) return !com.divinerpgextended.perk.Protection.spare(owner, e);
         return true;
     }
 
@@ -126,7 +154,7 @@ public class EntityTomahawk extends Entity {
         boolean first = hits == 0;
         boolean far = first && owner.getDistanceToEntity(t) > STUN_RANGE;
         t.hurtResistantTime = 0;
-        t.attackEntityFrom(DamageSource.causeThrownDamage(this, owner), ItemTomahawk.throwDamage());
+        t.attackEntityFrom(DamageSource.causeThrownDamage(this, owner), damage);
         hit.add(t.getEntityId());
         hits++;
         if (far) {
@@ -164,12 +192,16 @@ public class EntityTomahawk extends Entity {
         flown = 0;
     }
 
-    /** Вернулся (или пропал): снять метку броска с томагавка у бросившего. */
+    /** Вернулся (или пропал): снять метку броска с брошенного предмета у бросившего. */
     private void finish() {
         setDead();
         if (owner == null) return;
-        for (ItemStack s : owner.inventory.mainInventory)
-            if (s != null && s.getItem() == ModItems.tomahawk && s.hasTagCompound() && s.getTagCompound().hasKey(ItemTomahawk.OUT)) ItemTomahawk.setOut(s, 0);
+        net.minecraft.item.Item it = item().getItem();
+        for (ItemStack s : owner.inventory.mainInventory) {
+            if (s == null || s.getItem() != it || !s.hasTagCompound() || !s.getTagCompound().hasKey(ItemTomahawk.OUT)) continue;
+            ItemTomahawk.setOut(s, 0);
+            if (s.getTagCompound().hasNoTags()) s.setTagCompound(null); // диск снова складывается с такими же
+        }
     }
 
     @Override

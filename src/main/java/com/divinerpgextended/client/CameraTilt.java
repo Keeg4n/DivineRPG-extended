@@ -42,6 +42,14 @@ public class CameraTilt {
                 double pitch = Math.toRadians(v.prevRotationPitch + (v.rotationPitch - v.prevRotationPitch) * pt), s = DreamWaterView.HEAD_DROP;
                 int front = Minecraft.getMinecraft().gameSettings.thirdPersonView == 2 ? -1 : 1;
                 GL11.glTranslated(0, s * Math.cos(pitch), front * s * Math.sin(pitch));
+                // от третьего лица игра отодвинула камеру от точки в пятках до первой стены; опущенная к голове, она
+                // уходила под пол (вид сквозь землю на пещеры) - подвигаем ближе, как если бы стену искали от головы
+                if (Minecraft.getMinecraft().gameSettings.thirdPersonView > 0) {
+                    double x = v.prevPosX + (v.posX - v.prevPosX) * pt, z = v.prevPosZ + (v.posZ - v.prevPosZ) * pt;
+                    double y = v.prevPosY + (v.posY - v.prevPosY) * pt - (v.yOffset - 1.62F);
+                    double closer = clip(v, x, y, z) - clip(v, x, y - s, z);
+                    if (closer > 0) GL11.glTranslated(0, 0, closer);
+                }
             }
             return;
         }
@@ -50,6 +58,26 @@ public class CameraTilt {
         double r = SkyCartView.roll(yaw, pitch, RenderSkyCart.up(c, pt));
         if (!Double.isNaN(r)) last = r;
         if (Math.abs(last) > 0.01) GL11.glRotated(last, 0, 0, 1);
+    }
+
+    /** Как далеко игра отодвинет камеру третьего лица от точки (x, y, z), пока не упрётся в блок (как EntityRenderer.orientCamera). */
+    static double clip(Entity v, double x, double y, double z) {
+        double d = 4.0D;
+        float yaw = v.rotationYaw, pitch = v.rotationPitch;
+        if (Minecraft.getMinecraft().gameSettings.thirdPersonView == 2) pitch += 180F;
+        double dx = -Math.sin(yaw / 180F * Math.PI) * Math.cos(pitch / 180F * Math.PI) * d;
+        double dz = Math.cos(yaw / 180F * Math.PI) * Math.cos(pitch / 180F * Math.PI) * d;
+        double dy = -Math.sin(pitch / 180F * Math.PI) * d;
+        for (int k = 0; k < 8; k++) {
+            float a = ((k & 1) * 2 - 1) * 0.1F, b = ((k >> 1 & 1) * 2 - 1) * 0.1F, c = ((k >> 2 & 1) * 2 - 1) * 0.1F;
+            net.minecraft.util.MovingObjectPosition hit = v.worldObj.rayTraceBlocks(net.minecraft.util.Vec3.createVectorHelper(x + a, y + b, z + c),
+                net.minecraft.util.Vec3.createVectorHelper(x - dx + a + c, y - dy + b, z - dz + c));
+            if (hit != null) {
+                double h = hit.hitVec.distanceTo(net.minecraft.util.Vec3.createVectorHelper(x, y, z));
+                if (h < d) d = h;
+            }
+        }
+        return d;
     }
 
     /** Вагонетка сменила плоскость (пол - стена - потолок): взгляд седока поворачивается вместе с ней. */

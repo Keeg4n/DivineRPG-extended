@@ -94,15 +94,31 @@ public class DreamWaterView {
      * середину хитбокса. Такой поворот зеркалит повороты головы (повернул голову влево - модель вправо), поэтому на время
      * рисования поворот головы относительно тела и наклон берутся с обратным знаком: голова смотрит туда же, куда игрок.
      */
+    /** Доля тика текущего кадра: поворот тела между тиками сглаживается, как у самой модели (иначе ось переворота шла рывками). */
+    private static float frame;
+
+    @SubscribeEvent
+    public void onRenderTick(TickEvent.RenderTickEvent e) {
+        if (e.phase == TickEvent.Phase.START) frame = e.renderTickTime;
+    }
+
+    /** Ось переворота существа на этот кадр: {x, середина по высоте, z, поворот тела в радианах}. */
+    private final java.util.Map<EntityLivingBase, double[]> axis = new java.util.HashMap<EntityLivingBase, double[]>();
+
+    private static void flip(double[] a) {
+        GL11.glPushMatrix();
+        GL11.glTranslated(a[0], a[1], a[2]);
+        GL11.glRotated(180, -Math.sin(a[3]), 0, Math.cos(a[3]));
+        GL11.glTranslated(-a[0], -a[1], -a[2]);
+    }
+
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onPre(RenderLivingEvent.Pre e) {
         EntityLivingBase m = e.entity;
         if (!BlockDreamWater.inverted(m)) return;
-        double yaw = Math.toRadians(m.renderYawOffset), cy = e.y + m.height / 2;
-        GL11.glPushMatrix();
-        GL11.glTranslated(e.x, cy, e.z);
-        GL11.glRotated(180, -Math.sin(yaw), 0, Math.cos(yaw));
-        GL11.glTranslated(-e.x, -cy, -e.z);
+        double[] a = { e.x, e.y + m.height / 2, e.z, Math.toRadians(m.prevRenderYawOffset + (m.renderYawOffset - m.prevRenderYawOffset) * frame) };
+        flip(a);
+        axis.put(m, a);
         flipped.add(m);
         head.put(m, new float[] { m.rotationYawHead, m.prevRotationYawHead, m.rotationPitch, m.prevRotationPitch });
         m.rotationYawHead = 2 * m.renderYawOffset - m.rotationYawHead;
@@ -111,10 +127,26 @@ public class DreamWaterView {
         m.prevRotationPitch = -m.prevRotationPitch;
     }
 
+    /** Ник над головой рисуется без переворота: иначе он висел зеркально и не поворачивался к камере. */
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onNamePre(RenderLivingEvent.Specials.Pre e) {
+        if (flipped.contains(e.entity) && axis.containsKey(e.entity) && unflipped.add(e.entity)) GL11.glPopMatrix();
+    }
+
+    /** Ник рисуется: переворот снят и ещё не возвращён. */
+    private final Set<EntityLivingBase> unflipped = new HashSet<EntityLivingBase>();
+
+    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
+    public void onNamePost(RenderLivingEvent.Specials.Post e) {
+        double[] a = unflipped.remove(e.entity) ? axis.get(e.entity) : null;
+        if (a != null) flip(a); // снова, чтобы onPost снял ровно один уровень
+    }
+
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public void onPost(RenderLivingEvent.Post e) {
         if (!flipped.remove(e.entity)) return;
-        GL11.glPopMatrix();
+        axis.remove(e.entity);
+        if (!unflipped.remove(e.entity)) GL11.glPopMatrix(); // ник отменили после снятия переворота - снимать уже нечего
         float[] h = head.remove(e.entity);
         if (h == null) return;
         e.entity.rotationYawHead = h[0];

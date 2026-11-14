@@ -56,6 +56,8 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
  * сообщению в чате.</li>
  * <li>Монтировка: каждый взмах - по мобу, по блоку или по воздуху, как в Half-Life. РПГ-7: выстрел.</li>
  * </ul>
+ * Шаги, боль и смерть других игроков в костюме тоже заменяются, рывок и взмахи монтировкой других игроков слышны рядом с ними.
+ * Но файлы - только из своих игр: у кого Half-Life не установлена, тот слышит обычные звуки.
  */
 public final class HevSounds {
 
@@ -69,7 +71,7 @@ public final class HevSounds {
         PLAYER.put("game.player.hurt", "hev.pain");
         PLAYER.put("game.player.hurt.fall.big", "hev.fallpain");
         PLAYER.put("game.player.hurt.fall.small", "hev.fallpain");
-        PLAYER.put("game.player.die", "hev.flatline");
+        PLAYER.put("game.player.die", "hev.death");
         PLAYER.put("game.player.swim", "hev.step.wade");
         PLAYER.put("game.player.swim.splash", "hev.step.slosh");
         PLAYER.put("step.stone", "hev.step.concrete");
@@ -258,6 +260,8 @@ public final class HevSounds {
 
         boolean sprinting, swinging;
         int lastSwing;
+        /** Другие игроки рядом: {бежал, махал, прошлый шаг взмаха}. */
+        final Map<Integer, int[]> others = new HashMap<Integer, int[]>();
 
         @SubscribeEvent
         public void onSound(PlaySoundEvent17 e) {
@@ -285,12 +289,33 @@ public final class HevSounds {
             if (to != null && p != null) playSelf(to, 1.0F);
         }
 
+        /** Другие игроки в 32 блоках: рывок в костюме и взмахи монтировкой - звук у них. */
+        void others(Minecraft mc, EntityPlayer self) {
+            java.util.Set<Integer> seen = new HashSet<Integer>();
+            for (Object o : mc.theWorld.playerEntities) {
+                EntityPlayer q = (EntityPlayer) o;
+                if (q == self || q.getDistanceSqToEntity(self) > 32 * 32) continue;
+                seen.add(q.getEntityId());
+                int[] s = others.get(q.getEntityId());
+                if (s == null) others.put(q.getEntityId(), s = new int[] { q.isSprinting() ? 1 : 0, q.isSwingInProgress ? 1 : 0, q.swingProgressInt });
+                boolean run = q.isSprinting();
+                if (run && s[0] == 0 && Easter.fullHev(q)) play("hev.sprint", q.posX, q.posY, q.posZ, 0.7F);
+                s[0] = run ? 1 : 0;
+                boolean swing = q.isSwingInProgress, fresh = swing && (s[1] == 0 || q.swingProgressInt < s[2]);
+                s[1] = swing ? 1 : 0;
+                s[2] = q.swingProgressInt;
+                if (fresh && Easter.crowbar(q.getHeldItem())) play("hev.cbar_miss", q.posX, q.posY + 1.2, q.posZ, 0.8F);
+            }
+            others.keySet().retainAll(seen);
+        }
+
         /** Свой игрок: рывок в костюме и взмахи монтировкой. */
         @SubscribeEvent
         public void onTick(TickEvent.ClientTickEvent e) {
             Minecraft mc = Minecraft.getMinecraft();
             EntityPlayer p = mc.thePlayer;
             if (e.phase != TickEvent.Phase.END || p == null || mc.isGamePaused()) return;
+            others(mc, p);
             boolean run = p.isSprinting();
             if (run && !sprinting && Easter.fullHev(p)) playSelf("hev.sprint", 0.7F);
             sprinting = run;

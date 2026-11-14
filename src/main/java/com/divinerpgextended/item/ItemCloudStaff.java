@@ -72,6 +72,8 @@ public class ItemCloudStaff extends Item {
         for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
             int x = cx + dx, z = cz + dz;
             if (y < 1 || y > 254 || !w.isAirBlock(x, y, z) || !com.divinerpgextended.perk.Protection.canBuild(p, x, y, z)) continue;
+            // не в существо: облако в голове другого игрока или моба душит его, как блок
+            if (!w.getEntitiesWithinAABB(net.minecraft.entity.EntityLivingBase.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(x, y, z, x + 1, y + 1, z + 1)).isEmpty()) continue;
             w.setBlock(x, y, z, ModBlocks.cloud, BlockCloud.TEMP, 3);
             w.scheduleBlockUpdate(x, y, z, ModBlocks.cloud, BlockCloud.TEMP_TICKS);
             n++;

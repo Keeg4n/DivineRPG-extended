@@ -77,7 +77,7 @@ public class EntityArcaneWraith extends EntityWraith {
             if (--cooldown <= 0 && getDistanceSqToEntity(t) < 2.2 * 2.2 && t instanceof EntityLivingBase) {
                 cooldown = HIT_EVERY;
                 ((EntityLivingBase) t).hurtResistantTime = 0;
-                t.attackEntityFrom(ArcanaCombat.arcaneSource(o), BASE_DAMAGE * ArcanaRules.stage(o));
+                t.attackEntityFrom(ArcanaCombat.arcaneSource(o, t), BASE_DAMAGE * ArcanaRules.stage(o));
                 swingItem();
             }
         } else {
@@ -110,6 +110,7 @@ public class EntityArcaneWraith extends EntityWraith {
             setDead();
             return true;
         }
+        if (AnchorSummons.rivalHit(owner(), s)) return super.attackEntityFrom(s, a); // чужой игрок, где можно PvP
         return false; // призрак: не ранить
     }
 

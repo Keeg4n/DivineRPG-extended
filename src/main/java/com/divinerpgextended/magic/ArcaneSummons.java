@@ -57,7 +57,8 @@ public class ArcaneSummons {
         if (t == null) return null;
         Entity e = (Entity) t[0];
         if (e.isDead || !(e instanceof EntityLivingBase) || ((EntityLivingBase) e).getHealth() <= 0 || e.worldObj != p.worldObj
-            || p.worldObj.getTotalWorldTime() - (Long) t[1] > MEMORY || e.getDistanceSqToEntity(p) > 24 * 24) {
+            || p.worldObj.getTotalWorldTime() - (Long) t[1] > MEMORY || e.getDistanceSqToEntity(p) > 24 * 24
+            || e instanceof EntityPlayer && com.divinerpgextended.perk.Protection.spare(p, e)) {
             TARGET.remove(p.getUniqueID());
             return null;
         }
@@ -70,7 +71,7 @@ public class ArcaneSummons {
     }
 
     public static void mark(EntityPlayer p, Entity t) {
-        if (t instanceof EntityArcaneWraith || t instanceof AnchorSummons.Summon || t == p) return;
+        if (t == p || AnchorSummons.own(p, t)) return;
         TARGET.put(p.getUniqueID(), new Object[] { t, p.worldObj.getTotalWorldTime() });
     }
 
@@ -117,7 +118,8 @@ public class ArcaneSummons {
     public void onAttack(LivingAttackEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
         Entity a = e.source.getEntity();
-        if (a instanceof EntityPlayer && !(e.entityLiving instanceof EntityPlayer) && LIVE.containsKey(a.getUniqueID())) mark((EntityPlayer) a, e.entityLiving);
+        if (a instanceof EntityPlayer && LIVE.containsKey(a.getUniqueID())
+            && (!(e.entityLiving instanceof EntityPlayer) || !com.divinerpgextended.perk.Protection.spare(a, e.entityLiving))) mark((EntityPlayer) a, e.entityLiving); // игрока - где можно PvP
     }
 
     /** На хозяина нацелились - призраки на этого врага (если хозяин сам никого не бьёт). */

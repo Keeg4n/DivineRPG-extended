@@ -91,7 +91,7 @@ public class EntitySummonShark extends EntityLiving implements AnchorSummons.Sum
             if (--cooldown <= 0 && getDistanceSqToEntity(t) < 2.2 * 2.2 && t instanceof EntityLivingBase) {
                 cooldown = HIT_EVERY;
                 ((EntityLivingBase) t).hurtResistantTime = 0;
-                if (t.attackEntityFrom(ArcanaCombat.arcaneSource(o), AnchorSummons.damage(o, kind()))) onHit((EntityLivingBase) t, o);
+                if (t.attackEntityFrom(ArcanaCombat.arcaneSource(o, t), AnchorSummons.damage(o, kind()))) onHit((EntityLivingBase) t, o);
                 swingItem();
             }
         } else {
@@ -123,6 +123,7 @@ public class EntitySummonShark extends EntityLiving implements AnchorSummons.Sum
             setDead();
             return true;
         }
+        if (AnchorSummons.rivalHit(owner(), s)) return super.attackEntityFrom(s, a); // чужой игрок, где можно PvP
         return false;
     }
 

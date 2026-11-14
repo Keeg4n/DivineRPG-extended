@@ -92,6 +92,7 @@ public final class Protection {
 
     /** Флаг pvp WorldGuard в точке существа: deny. */
     private static boolean noPvpAt(Entity e) throws Exception {
+        if (!wgChecked) worldGuard();
         if (pvpFlag == null) return false;
         Object world = bukkitWorld.invoke(e.worldObj);
         Object loc = locationClass.getConstructor(Class.forName("org.bukkit.World"), double.class, double.class, double.class)
@@ -113,6 +114,44 @@ public final class Protection {
         return (Boolean) ev.getClass().getMethod("isCancelled").invoke(ev);
     }
 
+    private static boolean wgChecked;
+
+    /** Флаг pvp WorldGuard: классы плагина берём его загрузчиком. */
+    private static synchronized void worldGuard() {
+        if (wgChecked) return;
+        try {
+            // классы плагина видит только его загрузчик: Class.forName из мода их не находит
+            Object plugin = pluginManager.getClass().getMethod("getPlugin", String.class).invoke(pluginManager, "WorldGuard");
+            if (plugin == null) { // без WorldGuard - только пробные события Bukkit; на старте сервера плагин мог ещё не загрузиться
+                MinecraftServer srv = MinecraftServer.getServer();
+                if (srv == null || srv.getTickCounter() > 600) wgChecked = true;
+                return;
+            }
+            wgChecked = true;
+            ClassLoader cl = plugin.getClass().getClassLoader();
+            Class<?> wg = Class.forName("com.sk89q.worldguard.bukkit.WGBukkit", true, cl);
+            pvpFlag = Class.forName("com.sk89q.worldguard.protection.flags.DefaultFlag", true, cl).getField("PVP").get(null);
+            Class<?> sf = Class.forName("com.sk89q.worldguard.protection.flags.StateFlag", true, cl);
+            try {
+                Object container = plugin.getClass().getMethod("getRegionContainer").invoke(plugin);
+                wgQuerySource = container.getClass().getMethod("createQuery").invoke(container);
+                wgQuery = wgQuerySource.getClass().getMethod("queryState", locationClass,
+                    Class.forName("com.sk89q.worldguard.protection.association.RegionAssociable", true, cl), java.lang.reflect.Array.newInstance(sf, 0).getClass());
+                deny = Class.forName("com.sk89q.worldguard.protection.flags.StateFlag$State", true, cl).getField("DENY").get(null);
+            } catch (Throwable old) {
+                wgQuery = null;
+                wgManager = wg.getMethod("getRegionManager", Class.forName("org.bukkit.World"));
+                wgRegions = wgManager.getReturnType().getMethod("getApplicableRegions", locationClass);
+                wgAllows = wgRegions.getReturnType().getMethod("allows", sf);
+            }
+            com.divinerpgextended.DivineRPGExtended.LOG.info("Приваты: эффекты оружия сверяются с флагом pvp WorldGuard");
+        } catch (Throwable t) {
+            wgChecked = true;
+            pvpFlag = null;
+            com.divinerpgextended.DivineRPGExtended.LOG.warn("Приваты: флаг pvp WorldGuard не прочитать, остаются пробные события Bukkit", t);
+        }
+    }
+
     private static synchronized boolean bukkit() {
         if (bukkitChecked) return pluginManager != null;
         bukkitChecked = true;
@@ -131,27 +170,6 @@ public final class Protection {
         } catch (Throwable t) {
             pluginManager = null;
             return false;
-        }
-        try {
-            Class<?> wg = Class.forName("com.sk89q.worldguard.bukkit.WGBukkit");
-            pvpFlag = Class.forName("com.sk89q.worldguard.protection.flags.DefaultFlag").getField("PVP").get(null);
-            Class<?> sf = Class.forName("com.sk89q.worldguard.protection.flags.StateFlag");
-            try {
-                Object plugin = wg.getMethod("getPlugin").invoke(null);
-                Object container = plugin.getClass().getMethod("getRegionContainer").invoke(plugin);
-                wgQuerySource = container.getClass().getMethod("createQuery").invoke(container);
-                wgQuery = wgQuerySource.getClass().getMethod("queryState", locationClass,
-                    Class.forName("com.sk89q.worldguard.protection.association.RegionAssociable"), java.lang.reflect.Array.newInstance(sf, 0).getClass());
-                deny = Class.forName("com.sk89q.worldguard.protection.flags.StateFlag$State").getField("DENY").get(null);
-            } catch (Throwable old) {
-                wgQuery = null;
-                wgManager = wg.getMethod("getRegionManager", Class.forName("org.bukkit.World"));
-                wgRegions = wgManager.getReturnType().getMethod("getApplicableRegions", locationClass);
-                wgAllows = wgRegions.getReturnType().getMethod("allows", sf);
-            }
-            com.divinerpgextended.DivineRPGExtended.LOG.info("Приваты: эффекты оружия сверяются с флагом pvp WorldGuard");
-        } catch (Throwable t) {
-            pvpFlag = null;
         }
         return true;
     }

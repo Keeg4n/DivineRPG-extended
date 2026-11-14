@@ -48,6 +48,20 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  */
 public class ArcanaCombat {
 
+    /**
+     * Магическое оружие обычного мира, Ада и Заснежья (Водоворот, Повреждённая пушка, Пушка Гаста, Звуки музыки и Каролса):
+     * урон свой, как в Divine, но арканный - мобов бьёт сквозь броню, у игрока его первой принимает аркана.
+     */
+    static final java.util.Set<Item> OWN_DAMAGE = new java.util.HashSet<Item>();
+    /** Свой урон снаряда, но арканный: метка снаряда. */
+    static final String PIERCE = "dreArcPierce";
+
+    /** Всенощный: 115 урона у Divine - вдвое меньше, через броню. */
+    static final String EVERNIGHT = "dreEvernight";
+    public static final float EVERNIGHT_K = 0.5F;
+
+    /** Пуля залпа Арканового взрывателя: как дробь блица, бьёт и игрока каждой пулей. */
+    static final String VOLLEY = "dreArcVolley";
     public static final String DMG = "dreArcDmg", MOB = "dreArcMob", NEXT_SHOT = "dreNextShot", SAVED = "dreArcSaved";
     /** Базовый арканный урон снаряда по оружию в руке (на входе в Аркану). */
     static final Map<Item, Float> BASE = new HashMap<Item, Float>();
@@ -75,6 +89,11 @@ public class ArcanaCombat {
         BASE.put(ArcanaItems.meriksMissile, 35F);
         BASE.put(ArcanaItems.arcaniteBlaster, 3F);
         BASE.put(ArcanaItems.generalsStaff, 16F);
+        OWN_DAMAGE.add(net.divinerpg.utils.items.VanillaItemsWeapons.maelstrom);
+        OWN_DAMAGE.add(net.divinerpg.utils.items.VanillaItemsWeapons.corruptedCannon);
+        OWN_DAMAGE.add(net.divinerpg.utils.items.VanillaItemsWeapons.ghastCannon);
+        OWN_DAMAGE.add(net.divinerpg.utils.items.IceikaItems.soundOfMusic);
+        OWN_DAMAGE.add(net.divinerpg.utils.items.IceikaItems.soundOfCarols);
     }
 
     public static boolean isMage(Entity e) {
@@ -132,16 +151,32 @@ public class ArcanaCombat {
             if (owner != null) {
                 d.setFloat(DMG, damage(owner, owner.getHeldItem()));
                 t.setPosition(t.posX, t.posY - DROP_LOWER, t.posZ);
+                if ("EntityStar".equals(cls)) ArcaneHoming.star(t, owner);
             }
             return;
         }
-        if (thrower instanceof EntityPlayer && "EntityMerikMissile".equals(cls)) aimAtArcanaBoss(t);
+        if (thrower instanceof EntityPlayer && ("EntityMerikMissile".equals(cls) || "EntityFirefly".equals(cls)))
+            ArcaneHoming.seeker(t, (EntityPlayer) thrower, "EntityMerikMissile".equals(cls) ? aimAtArcanaBoss(t) : null);
+        if (thrower instanceof EntityPlayer && "EntitySerenadeOfIce".equals(cls)) ArcaneHoming.ice(t, (EntityPlayer) thrower);
+        if (thrower instanceof EntityPlayer && "EntityGrenade".equals(cls) && thrower.getHeldItem() != null
+            && thrower.getHeldItem().getItem() == ArcanaItems.laVekor) ArcaneHoming.grenade(t, (EntityPlayer) thrower);
         if (thrower instanceof EntityPlayer && "EntityShooterBullet".equals(cls) && thrower.getHeldItem() != null
-            && thrower.getHeldItem().getItem() == ArcanaItems.arcaniteBlaster) converge(t, (EntityPlayer) thrower);
+            && thrower.getHeldItem().getItem() == ArcanaItems.arcaniteBlaster) {
+            converge(t, (EntityPlayer) thrower);
+            d.setBoolean(VOLLEY, true);
+        }
+        if ("EntityEvernightProjectile".equals(cls)) {
+            d.setBoolean(MOB, true);
+            d.setBoolean(EVERNIGHT, true);
+            return;
+        }
         if (thrower instanceof EntityPlayer) {
             float dmg = damage((EntityPlayer) thrower, thrower.getHeldItem());
             if (dmg > 0) d.setFloat(DMG, dmg);
-            else if (VETHEA_ARCANE.contains(t.getClass().getName())) d.setBoolean(MOB, true); // посохи Ветеи: свой урон, но арканный
+            else if (VETHEA_ARCANE.contains(t.getClass().getName()) || thrower.getHeldItem() != null && OWN_DAMAGE.contains(thrower.getHeldItem().getItem())) {
+                d.setBoolean(MOB, true); // посохи Ветеи и магия обычного мира: свой урон, но арканный
+                d.setBoolean(PIERCE, true);
+            }
             return;
         }
         if (VETHEA_ARCANE.contains(t.getClass().getName())) {
@@ -254,7 +289,7 @@ public class ArcanaCombat {
     public void onAttack(LivingAttackEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
         NBTTagCompound t = tagOf(e.source);
-        if (t != null && t.hasKey(DMG) && !(e.entityLiving instanceof EntityPlayer)) e.entityLiving.hurtResistantTime = 0;
+        if (t != null && t.hasKey(DMG) && (!(e.entityLiving instanceof EntityPlayer) || t.getBoolean(VOLLEY))) e.entityLiving.hurtResistantTime = 0;
     }
 
     private static java.lang.reflect.Field unblockable;
@@ -279,8 +314,10 @@ public class ArcanaCombat {
             com.divinerpgextended.debug.Debug.note(e.source.getEntity(), "Арканный урон: " + e.ammount + (mage ? " (маг держит x0.5)" : ""));
             return;
         }
-        if (t != null && t.getBoolean(MOB) && mage) {
-            e.ammount *= MAGE_RESIST;
+        if (t != null && t.getBoolean(EVERNIGHT)) e.ammount *= EVERNIGHT_K;
+        if (t != null && t.getBoolean(MOB)) {
+            if (t.getBoolean(PIERCE) && !(e.entityLiving instanceof EntityPlayer)) pierce(e.source);
+            if (mage) e.ammount *= MAGE_RESIST;
             return;
         }
         if (ARCANE.equals(e.source.damageType)) { // арканный удар мечом
@@ -291,7 +328,7 @@ public class ArcanaCombat {
         if (a instanceof EntityPlayer && e.source.getSourceOfDamage() == a && "player".equals(e.source.damageType)) {
             EntityPlayer p = (EntityPlayer) a;
             ItemStack h = p.getHeldItem();
-            if (h != null && arcanaSword(h.getItem()) && edgePaid(p, h.getItem())) {
+            if (h != null && arcanaSword(h.getItem()) && !edgeQueued(e.entityLiving) && edgeReady(p) && edgePaid(p, h.getItem())) {
                 // отдельным ударом следующим тиком: в этот тик цель уже неуязвима, а прибавка к обычному удару резалась бы бронёй
                 queueEdge(e.entityLiving, p);
             }
@@ -333,6 +370,25 @@ public class ArcanaCombat {
     }
 
     /**
+     * Арканный удар по этой цели: по мобам - сквозь броню, по игроку - через броню (сквозь броню арканный удар бил игрока в
+     * Терра-броне в 2-3 раза сильнее обычного; щит арканы всё равно принимает свою долю первым).
+     */
+    public static DamageSource arcaneSource(EntityPlayer p, Entity victim) {
+        return victim instanceof EntityPlayer ? new net.minecraft.util.EntityDamageSource(ARCANE, p) : arcaneSource(p);
+    }
+
+    /** Арканный удар меча - не чаще раза в {@link #EDGE_EVERY} тиков (на каждый клик он снимал с цели неуязвимость и бил снова). */
+    public static final int EDGE_EVERY = 10;
+    static final String EDGE_AT = "dreEdgeAt";
+
+    static boolean edgeReady(EntityPlayer p) {
+        long now = p.worldObj.getTotalWorldTime(), last = p.getEntityData().getLong(EDGE_AT);
+        if (now >= last && now - last < EDGE_EVERY) return false;
+        p.getEntityData().setLong(EDGE_AT, now);
+        return true;
+    }
+
+    /**
      * Оплачен ли арканный удар: сабля и клинок Арканы списывают аркану сами до удара (иначе удара нет), теневой меч - после
      * (нужно, чтобы её хватало), Storm Sword и меч Ливиции - 6 арканы на сам арканный удар.
      */
@@ -360,7 +416,7 @@ public class ArcanaCombat {
             EntityPlayer p = (EntityPlayer) h[1];
             if (t.isDead || t.getHealth() <= 0) continue;
             t.hurtResistantTime = 0;
-            t.attackEntityFrom(arcaneSource(p), (Float) h[2]);
+            t.attackEntityFrom(arcaneSource(p, t), (Float) h[2]);
             if (t.worldObj instanceof net.minecraft.world.WorldServer) ((net.minecraft.world.WorldServer) t.worldObj).func_147487_a("witchMagic", t.posX,
                 t.posY + t.height * 0.6, t.posZ, 12, t.width * 0.4, t.height * 0.3, t.width * 0.4, 0.05);
         }

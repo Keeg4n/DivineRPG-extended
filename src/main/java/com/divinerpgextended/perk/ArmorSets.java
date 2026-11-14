@@ -89,7 +89,7 @@ public class ArmorSets {
             || set(a, VanillaItemsArmor.krakenBoots, VanillaItemsArmor.krakenLegs, VanillaItemsArmor.krakenBody, VanillaItemsArmor.krakenHelmet))
             && s == DamageSource.drown) {
             e.setCanceled(true);
-            note(p, "Сет Kraken/Aquastrive: не тонешь");
+            note(p, "Сет Кракена или Водяной: не тонешь");
         }
         else if (set(a, TwilightItemsArmor.apalachiaBoots, TwilightItemsArmor.apalachiaLeggings, TwilightItemsArmor.apalachiaChestplate,
             TwilightItemsArmor.apalachiaHelmet)

@@ -1,22 +1,40 @@
 package com.divinerpgextended.entity;
 
 import net.minecraft.entity.effect.EntityLightningBolt;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 
 /**
- * Молния оружия (Ударная серенада, Меч бури, Грозовой лук): бьёт только врагов ({@link com.divinerpgextended.perk.EarlyWeapons#onStruck}),
+ * Молния оружия (Ударная серенада, Меч бури, Грозовой лук): бьёт врагов и чужих игроков, где можно PvP, но не того, кто её вызвал
+ * ({@link com.divinerpgextended.perk.EarlyWeapons#onStruck}),
  * не жжёт добычу и опыт на земле и не поджигает блоки. Огонь молния Minecraft ставит в конструкторе и при каждой вспышке
  * - смотрим, где огня не было до неё, и гасим новый там же.
  */
 public class EntitySafeLightning extends EntityLightningBolt {
 
     private static final ThreadLocal<boolean[]> BEFORE = new ThreadLocal<boolean[]>();
+    /** Кто сейчас бьёт молниями: оружие Divine перед своими молниями записывает игрока ({@link com.divinerpgextended.asm.LightningTransformer}). */
+    private static final ThreadLocal<EntityPlayer> CASTER = new ThreadLocal<EntityPlayer>();
+
+    /** Игрок, вызвавший молнию (null - неизвестно): его она не бьёт, других игроков - только где можно PvP. */
+    public EntityPlayer caster;
 
     public EntitySafeLightning(World w, double x, double y, double z) {
         super(snapshot(w, x, y, z), x, y, z);
         unfire(w, x, y, z, BEFORE.get());
         BEFORE.remove();
+        caster = CASTER.get();
+    }
+
+    public EntitySafeLightning(World w, double x, double y, double z, EntityPlayer by) {
+        this(w, x, y, z);
+        caster = by;
+    }
+
+    /** Вызов из оружия Divine в начале метода с молниями. */
+    public static void cast(EntityPlayer p) {
+        CASTER.set(p);
     }
 
     @Override

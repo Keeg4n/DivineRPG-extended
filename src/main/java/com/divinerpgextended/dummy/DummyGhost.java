@@ -100,6 +100,9 @@ public class DummyGhost extends FakePlayer {
         return g;
     }
 
+    /** Аркана копии до последнего удара и сколько её снял щит арканы. */
+    float arcanaBefore, arcanaSpent;
+
     /** Сколько урона дошло бы до игрока от этого удара (0 - уклонился или удар отменён). */
     float measure(DamageSource s, float amount, NBTTagCompound snap) {
         net.minecraft.entity.ai.attributes.IAttributeInstance hp = getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth);
@@ -109,11 +112,14 @@ public class DummyGhost extends FakePlayer {
         hurtResistantTime = 0;
         net.divinerpg.utils.events.ArcanaHelper h = net.divinerpg.utils.events.ArcanaHelper.getProperties(this);
         if (h != null) setBar(h, snap.getFloat("Arcana")); // каждый удар - с той аркановой защитой, что была у игрока
+        arcanaBefore = h != null ? h.getBarValue() : 0;
+        arcanaSpent = 0;
         try {
             if (net.minecraftforge.common.ForgeHooks.onLivingAttack(this, s, amount)) return 0;
             if (damageEntity == null) damageEntity = ReflectionHelper.findMethod(net.minecraft.entity.EntityLivingBase.class, this,
                 new String[] { "damageEntity", "func_70665_d" }, DamageSource.class, float.class);
             damageEntity.invoke(this, s, amount);
+            if (h != null) arcanaSpent = Math.max(0, arcanaBefore - h.getBarValue());
         } catch (Throwable t) {
             com.divinerpgextended.DivineRPGExtended.LOG.warn("Манекен: удар не посчитан как по игроку, показан как есть: " + t);
             return amount;

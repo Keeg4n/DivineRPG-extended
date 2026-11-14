@@ -66,6 +66,16 @@ public class ItemDreFish extends ItemFood {
         return fish(s).saturation;
     }
 
+    /** Золотую рыбку можно съесть и сытым - ради сердца. */
+    @Override
+    public ItemStack onItemRightClick(ItemStack s, World w, EntityPlayer p) {
+        if (fish(s) == Fish.GOLDEN_FISH) {
+            p.setItemInUse(s, getMaxItemUseDuration(s));
+            return s;
+        }
+        return super.onItemRightClick(s, w, p);
+    }
+
     @Override
     protected void onFoodEaten(ItemStack s, World w, EntityPlayer p) {
         Fish f = fish(s);
