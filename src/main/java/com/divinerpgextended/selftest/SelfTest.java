@@ -10421,6 +10421,64 @@ public class SelfTest {
                     + " " + unloadOk + "; сломался - высыпалось " + spill + "; пушка " + cannonOk);
             return "присесть + ПКМ заряжает всё из инвентаря (до 4 стопок, особые не берёт); стреляет сначала заряд, рюкзак не трогается; разрядка на наковальне - сколько влезет; сломалось оружие - заряд высыпается";
         });
+        t("Прохождение", "Самострел быстрых луков, шанс Бесконечного колчана, ранги", () -> {
+            // луки с ускоренным натяжением - кто и через сколько тиков стреляет сам
+            StringBuilder fast = new StringBuilder();
+            int nFast = 0;
+            boolean vanillaSlow = com.divinerpgextended.perk.EarlyWeapons.autoDraw(new ItemStack(Items.bow)) == 0;
+            for (Object o : Item.itemRegistry) {
+                if (!(o instanceof net.minecraft.item.ItemBow)) continue;
+                int full = com.divinerpgextended.perk.EarlyWeapons.autoDraw(new ItemStack((Item) o));
+                if (full <= 0) continue;
+                nFast++;
+                fast.append(Item.itemRegistry.getNameForObject(o)).append('=').append(full).append(' ');
+            }
+            boolean shadow = com.divinerpgextended.perk.EarlyWeapons.autoDraw(new ItemStack(VanillaItemsWeapons.shadowBow)) == com.divinerpgextended.perk.EarlyWeapons.SHADOW_AUTO;
+            // Теневой на сервере: зажат - на полном натяге выстрел и новый натяг
+            WorldServer w = server.worldServerForDimension(0);
+            loadAround(w, 9700, 9840, 1);
+            TestPlayer bp = join(player(0, "TestAutoBow", 9700.5, 120, 9840.5), true);
+            bp.inventory.clearInventory(null, -1);
+            ItemStack fastBow = null;
+            for (Object o : Item.itemRegistry) {
+                if (o instanceof net.minecraft.item.ItemBow && o != VanillaItemsWeapons.shadowBow && com.divinerpgextended.perk.EarlyWeapons.autoDraw(new ItemStack((Item) o)) > 0) {
+                    fastBow = new ItemStack((Item) o);
+                    break;
+                }
+            }
+            boolean autoFired = true;
+            String fastName = "нет";
+            if (fastBow != null) {
+                fastName = String.valueOf(Item.itemRegistry.getNameForObject(fastBow.getItem()));
+                bp.inventory.currentItem = 0;
+                bp.inventory.mainInventory[0] = fastBow;
+                bp.inventory.mainInventory[1] = new ItemStack(Items.arrow, 64);
+                com.divinerpgextended.perk.Ammo.setLoaded(fastBow, 0);
+                int full = com.divinerpgextended.perk.EarlyWeapons.autoDraw(fastBow);
+                int max = fastBow.getMaxItemUseDuration();
+                int before = w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, bp.boundingBox.expand(8, 8, 8)).size();
+                net.minecraftforge.event.entity.player.PlayerUseItemEvent.Tick tick = new net.minecraftforge.event.entity.player.PlayerUseItemEvent.Tick(bp, fastBow, max - full);
+                MinecraftForge.EVENT_BUS.post(tick);
+                java.util.List<?> fl = w.getEntitiesWithinAABB(net.minecraft.entity.Entity.class, bp.boundingBox.expand(8, 8, 8));
+                int after = 0;
+                for (Object o : fl) if (o instanceof net.minecraft.entity.projectile.EntityArrow || o instanceof net.minecraft.entity.projectile.EntityThrowable) after++;
+                for (Object o : fl) if (o != bp) ((net.minecraft.entity.Entity) o).setDead();
+                autoFired = after > before && tick.duration == max;
+            }
+            // колчан: 0,4% + 0,2% за Добычу, не больше 1%; подсумок как был
+            float q0 = com.divinerpgextended.perk.RangedRoles.dropChance(com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER, 0);
+            float q3 = com.divinerpgextended.perk.RangedRoles.dropChance(com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER, 3);
+            float q5 = com.divinerpgextended.perk.RangedRoles.dropChance(com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER, 5);
+            float pouch = com.divinerpgextended.perk.RangedRoles.dropChance(com.divinerpgextended.trinket.Trinket.DUST_POUCH, 0);
+            boolean quiverOk = Math.abs(q0 - 0.004F) < 1e-6 && Math.abs(q3 - 0.01F) < 1e-6 && Math.abs(q5 - 0.01F) < 1e-6 && Math.abs(pouch - 0.10F) < 1e-6;
+            // ранги: следующий босс по рангу
+            boolean rankOk = com.divinerpgextended.boss.CommandDreRank.next(0) == Boss.CARCINUS && com.divinerpgextended.boss.CommandDreRank.next(2) == Boss.ANCIENT_ENTITY
+                && com.divinerpgextended.boss.CommandDreRank.next(3) == null && net.minecraft.util.StatCollector.canTranslate("dre.chat.rank_up");
+            bp.inventory.clearInventory(null, -1);
+            check(vanillaSlow && shadow && nFast > 0 && autoFired && quiverOk && rankOk, "быстрых луков " + nFast + " (" + fast + "), обычный медленный " + vanillaSlow
+                + ", Теневой " + shadow + ", сам выстрелил " + fastName + " " + autoFired + "; колчан " + q0 + "/" + q3 + "/" + q5 + ", подсумок " + pouch + "; ранги " + rankOk);
+            return "быстрых луков " + nFast + ": " + fast.toString().trim() + "; колчан 0,4% (+0,2% за Добычу, до 1%); /drerank";
+        });
         t("Прохождение", "Вагонетка Апалачии: рельсы арканы и обычные", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9600, 9900, 1);

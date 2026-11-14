@@ -83,8 +83,15 @@ public class BossTracker {
                 com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.extraForBoss(boss), event.entityLiving);
                 BossDrops.reward(player, boss, event.entityLiving); // лук Цунами, якоря-призывы
             }
+            int rankWas = ProgressSpawns.rank(player);
             if (ids.contains(player.getUniqueID()) && BossProgress.grant(player, boss)) {
                 ProgressSync.send(player);
+                int rankNow = ProgressSpawns.rank(player);
+                if (rankNow > rankWas) {
+                    ChatComponentTranslation up = new ChatComponentTranslation("dre.chat.rank_up", rankNow);
+                    up.getChatStyle().setColor(EnumChatFormatting.GOLD);
+                    player.addChatMessage(up);
+                }
                 com.divinerpgextended.DreAchievements.give(player, com.divinerpgextended.DreAchievements.forBoss(boss));
                 ChatComponentTranslation msg = new ChatComponentTranslation(
                     "dre.chat.boss_unlocked",

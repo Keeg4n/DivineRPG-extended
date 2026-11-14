@@ -274,6 +274,14 @@ public class RangedRoles {
     }
 
     public static final float DROP_CHANCE = 0.10F, DROP_LOOTING = 0.02F;
+    /** Бесконечный колчан со стрелков: 0,4% и +0,2% за уровень Добычи, не больше 1% (с Вечного лучника - всегда). */
+    public static final float QUIVER_CHANCE = 0.004F, QUIVER_LOOTING = 0.002F, QUIVER_MAX = 0.01F;
+
+    /** Шанс выпадения колчана этого вида с обычного стрелка при такой Добыче. */
+    public static float dropChance(com.divinerpgextended.trinket.Trinket t, int looting) {
+        if (t == com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER) return Math.min(QUIVER_MAX, QUIVER_CHANCE + QUIVER_LOOTING * looting);
+        return DROP_CHANCE + DROP_LOOTING * looting;
+    }
 
     /** Какой колчан падает с этого моба (null - никакой). */
     public static com.divinerpgextended.trinket.Trinket quiverOf(Entity e) {
@@ -293,7 +301,7 @@ public class RangedRoles {
         com.divinerpgextended.trinket.Trinket t = quiverOf(e.entityLiving);
         // с Вечного лучника (босс) - всегда, с остальных стрелков - по шансу
         boolean boss = e.entityLiving instanceof net.divinerpg.entities.twilight.EntityEternalArcher;
-        if (t == null || !boss && e.entityLiving.worldObj.rand.nextFloat() >= DROP_CHANCE + DROP_LOOTING * e.lootingLevel) return;
+        if (t == null || !boss && e.entityLiving.worldObj.rand.nextFloat() >= dropChance(t, e.lootingLevel)) return;
         e.drops.add(new net.minecraft.entity.item.EntityItem(e.entityLiving.worldObj, e.entityLiving.posX, e.entityLiving.posY + 0.5, e.entityLiving.posZ,
             new ItemStack(com.divinerpgextended.registry.ModItems.trinket, 1, t.ordinal())));
     }

@@ -178,11 +178,26 @@ public class EarlyWeapons {
     /** Теневой лук стреляет сам, пока зажат: на каждом полном натяге (у него вдвое быстрее обычного). */
     public static final int SHADOW_AUTO = 10;
 
+    /**
+     * Лук с ускоренным натяжением: через сколько тиков он натянут до упора (0 - натягивается обычно). У Divine натяжение -
+     * тики, умноженные на 72000 / срок использования (целое), полный натяг - 20, поэтому быстрее обычного всё, что короче 36001.
+     */
+    public static int autoDraw(net.minecraft.item.ItemStack s) {
+        if (s == null || !(s.getItem() instanceof net.minecraft.item.ItemBow)) return 0;
+        int max = s.getMaxItemUseDuration();
+        if (max <= 0 || max >= 72000) return 0;
+        int k = 72000 / max;
+        return k < 2 ? 0 : (20 + k - 1) / k;
+    }
+
+    /** Луки с ускоренным натяжением (и Теневой) стреляют сами, пока зажата ПКМ: на каждом полном натяге - выстрел и сразу новый натяг. */
     @SubscribeEvent
     public void onBowTick(net.minecraftforge.event.entity.player.PlayerUseItemEvent.Tick e) {
-        if (e.entityPlayer.worldObj.isRemote || e.item == null || e.item.getItem() != VanillaItemsWeapons.shadowBow) return;
+        if (e.entityPlayer.worldObj.isRemote || e.item == null) return;
+        int full = e.item.getItem() == VanillaItemsWeapons.shadowBow ? SHADOW_AUTO : autoDraw(e.item);
+        if (full <= 0) return;
         int max = e.item.getMaxItemUseDuration();
-        if (max - e.duration < SHADOW_AUTO) return;
+        if (max - e.duration < full) return;
         e.item.getItem().onPlayerStoppedUsing(e.item, e.entityPlayer.worldObj, e.entityPlayer, e.duration);
         e.duration = max; // и сразу натянуть снова
     }

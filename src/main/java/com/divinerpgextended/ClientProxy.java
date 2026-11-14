@@ -59,6 +59,7 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(maulSwing); // мышь
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(maulSwing); // клавиатура
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.GhostFlight()); // полёт Призрака
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.HevHop()); // банихоп в H.E.V.
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.CameraTilt.Follow()); // взгляд за вагонеткой Апалачии
         net.minecraftforge.client.MinecraftForgeClient.registerItemRenderer(com.divinerpgextended.registry.ModItems.tsunami, new com.divinerpgextended.client.BowRender());
         net.minecraftforge.client.MinecraftForgeClient.registerItemRenderer(com.divinerpgextended.registry.ModItems.stormBow, new com.divinerpgextended.client.BowRender());
