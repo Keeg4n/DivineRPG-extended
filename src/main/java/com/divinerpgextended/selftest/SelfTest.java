@@ -10355,6 +10355,13 @@ public class SelfTest {
             boolean loadOk = canLoad == 5 && loaded == 5 && com.divinerpgextended.perk.Ammo.loaded(bow) == 5 && av.inventory.mainInventory[5] == null
                 && av.inventory.mainInventory[6] == named && named.stackSize == 3;
             av.inventory.mainInventory[6] = null;
+            // пустой тег (так оставляют Crucible и некоторые моды) - обычная стрела, заряжается
+            ItemStack bare = new ItemStack(Items.arrow, 4);
+            bare.setTagCompound(new net.minecraft.nbt.NBTTagCompound());
+            av.inventory.mainInventory[7] = bare;
+            int bareLoaded = com.divinerpgextended.perk.AmmoLoad.load(av);
+            boolean bareOk = bareLoaded == 4 && av.inventory.mainInventory[7] == null && com.divinerpgextended.perk.Ammo.loaded(bow) == 9;
+            com.divinerpgextended.perk.Ammo.setLoaded(bow, 5);
             // натянуть и выстрелить: в инвентаре стрел нет - стреляет зарядом (лук сам спрашивает - перехват AmmoHooks)
             bow.getItem().onItemRightClick(bow, w, av);
             boolean drawn = av.isUsingItem();
@@ -10408,8 +10415,8 @@ public class SelfTest {
             for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.Entity.class, av.boundingBox.expand(6, 6, 6))) if (o != av) ((net.minecraft.entity.Entity) o).setDead();
             boolean cannonOk = com.divinerpgextended.perk.Ammo.loaded(cn) == 3 && count(av, bullet) == 0;
             av.inventory.clearInventory(null, -1);
-            check(loadOk && drawn && fired && afterShot == 4 && firstLoaded && capOk && unloadOk && spill && cannonOk,
-                "зарядка " + canLoad + "/" + loaded + " (особые стрелы не взяты " + (named.stackSize == 3) + "); лук натянут " + drawn + ", выстрел " + fired + ", заряд " + afterShot
+            check(loadOk && bareOk && drawn && fired && afterShot == 4 && firstLoaded && capOk && unloadOk && spill && cannonOk,
+                "зарядка " + canLoad + "/" + loaded + " (особые стрелы не взяты " + (named.stackSize == 3) + ", с пустым тегом взяты " + bareLoaded + ") ; лук натянут " + drawn + ", выстрел " + fired + ", заряд " + afterShot
                     + " из 5; заряд раньше инвентаря и при забитом рюкзаке " + firstLoaded + "; вместимость " + cap + " " + capOk + "; разрядка " + un.status + " " + un.param
                     + " " + unloadOk + "; сломался - высыпалось " + spill + "; пушка " + cannonOk);
             return "присесть + ПКМ заряжает всё из инвентаря (до 4 стопок, особые не берёт); стреляет сначала заряд, рюкзак не трогается; разрядка на наковальне - сколько влезет; сломалось оружие - заряд высыпается";

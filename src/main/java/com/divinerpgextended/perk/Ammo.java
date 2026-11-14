@@ -160,9 +160,28 @@ public final class Ammo {
         return n < 1000 ? String.valueOf(n) : (n / 1000) + "k";
     }
 
-    /** Годится в заряд: тот же предмет без своих данных и подвида (иначе пропали бы при превращении в число). */
+    /**
+     * Годится в заряд: тот же предмет без своих данных и подвида (иначе пропали бы при превращении в число). Пустой тег -
+     * не данные: его оставляют серверы с Bukkit (Crucible) и некоторые моды, а стрела от этого не особая.
+     */
     static boolean plain(ItemStack s, Item a) {
-        return s != null && s.getItem() == a && s.stackSize > 0 && s.getItemDamage() == 0 && !s.hasTagCompound();
+        return s != null && s.getItem() == a && s.stackSize > 0 && s.getItemDamage() == 0 && (!s.hasTagCompound() || s.getTagCompound().hasNoTags());
+    }
+
+    /** Строка для журнала: что в руке, чем заряжается, сколько в оружии и в инвентаре (годных и отброшенных - с данными или подвидом). */
+    public static String describe(EntityPlayer p) {
+        ItemStack w = p.getHeldItem();
+        Item a = of(w);
+        if (a == null) return "в руке " + (w == null ? "пусто" : Item.itemRegistry.getNameForObject(w.getItem())) + " - не стрелковое";
+        int good = 0, bad = 0;
+        ItemStack[] inv = p.inventory.mainInventory;
+        for (int i = 0; i < inv.length; i++) {
+            if (i == p.inventory.currentItem || inv[i] == null || inv[i].getItem() != a) continue;
+            if (plain(inv[i], a)) good += inv[i].stackSize;
+            else bad += inv[i].stackSize;
+        }
+        return Item.itemRegistry.getNameForObject(w.getItem()) + ", патрон " + Item.itemRegistry.getNameForObject(a) + ", в оружии " + loaded(w) + "/"
+            + capacity(w) + ", в инвентаре годных " + good + ", с данными или подвидом " + bad;
     }
 
     /** Сколько патронов из инвентаря можно зарядить в оружие в руке (0 - нечего или некуда). */

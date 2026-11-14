@@ -25,12 +25,27 @@ public class AmmoLoadKey {
     public void onInteract(PlayerInteractEvent e) {
         EntityPlayer p = e.entityPlayer;
         if (!p.worldObj.isRemote || e.action == PlayerInteractEvent.Action.LEFT_CLICK_BLOCK) return;
-        if (p != Minecraft.getMinecraft().thePlayer || !p.isSneaking() || Ammo.loadable(p) <= 0 && com.divinerpgextended.perk.ThrowStack.gatherable(p) <= 0) return;
+        if (p != Minecraft.getMinecraft().thePlayer || !p.isSneaking()) return;
+        if (Ammo.loadable(p) <= 0 && com.divinerpgextended.perk.ThrowStack.gatherable(p) <= 0) {
+            if (Ammo.of(p.getHeldItem()) != null) note(p, "заряжать нечем или некуда - обычный выстрел");
+            return;
+        }
         e.setCanceled(true);
         // клик по блоку даёт два события подряд (по блоку и в воздух) - просим один раз за тик
         long t = p.worldObj.getTotalWorldTime();
         if (t == sent) return;
         sent = t;
+        note(p, "просим сервер зарядить");
         ColdHandler.NET.sendToServer(new AmmoLoad.Load());
+    }
+
+    private long noted = -1;
+
+    /** Одна строка в журнал игры на клик (клик по блоку даёт два события). */
+    private void note(EntityPlayer p, String what) {
+        long t = p.worldObj.getTotalWorldTime();
+        if (t == noted) return;
+        noted = t;
+        AmmoLoad.LOG.info("Зарядка (клиент): " + Ammo.describe(p) + " - " + what);
     }
 }

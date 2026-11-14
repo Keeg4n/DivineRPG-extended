@@ -23,6 +23,8 @@ public final class AmmoLoad {
     public static final String ARROWS = "divinerpgextended:reload_arrows", DUST = "divinerpgextended:reload_dust",
         GUN = "divinerpgextended:reload_gun";
 
+    public static final org.apache.logging.log4j.Logger LOG = org.apache.logging.log4j.LogManager.getLogger("DRE-Ammo");
+
     private AmmoLoad() {}
 
     public static void register() {
@@ -65,7 +67,9 @@ public final class AmmoLoad {
         @Override
         public IMessage onMessage(Load msg, MessageContext ctx) {
             EntityPlayerMP p = ctx.getServerHandler().playerEntity;
-            load(p);
+            String before = Ammo.describe(p);
+            int n = load(p);
+            LOG.info("Зарядка (сервер, " + p.getCommandSenderName() + "): " + before + " - вошло " + n);
             return null;
         }
     }
