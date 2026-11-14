@@ -12,6 +12,10 @@ public final class TeleportHooks {
     /** true - телепорт предметом запрещён (приват): предмет не срабатывает. Точка - куда предмет перенёс бы. */
     public static boolean deny(EntityPlayer p, Object item) {
         if (p == null || p.worldObj.isRemote) return false;
+        if (com.divinerpgextended.perk.EnderGear.pinned(p)) { // прибит эндер-оружием
+            p.addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.teleport_pinned"));
+            return true;
+        }
         double[] to = target(p, item);
         return to != null && !com.divinerpgextended.portal.TeleportGuard.check(p, to[0], to[1], to[2]);
     }

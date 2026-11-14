@@ -27,7 +27,7 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
  * <ul>
  * <li>Зубастый меч - урон {@link #SWORD_DAMAGE} (между клинками Апалачии 29 и Небесного терна 31: Лиоплевродон - между этими
  * мирами; до 0.99.120 было 35, почти как халит 36) и кровотечение: задетый моб {@link #BLEED_SECONDS} с теряет
- * {@link #BLEED_DAMAGE} в секунду сквозь броню (игроков не трогает).</li>
+ * {@link #BLEED_DAMAGE} в секунду сквозь броню (игрока - там, где можно PvP).</li>
  * <li>Зубастый молот - урон {@link #MAUL_DAMAGE} и удар по площади: мобы того же рода в {@link #WAVE_R} блоках от цели
  * получают {@link #MAUL_DAMAGE} (как волна бедрокового молота, игроков и питомцев не задевает).</li>
  * <li>Все молоты - настоящая перезарядка {@link #MAUL_COOLDOWN} тиков: удары чаще не проходят (клиент не даёт и замахнуться,
@@ -105,7 +105,7 @@ public class AquatoothEffects {
         EntityPlayer p = (EntityPlayer) a;
         ItemStack held = p.getHeldItem();
         if (held == null || Protection.spare(p, v)) return;
-        if (held.getItem() == VanillaItemsWeapons.aquatoothSword && !(v instanceof EntityPlayer)) {
+        if (held.getItem() == VanillaItemsWeapons.aquatoothSword) { // и игрока - Protection.spare выше уже проверил PvP
             v.getEntityData().setLong(BLEED, v.worldObj.getTotalWorldTime() + BLEED_SECONDS * 20);
             v.getEntityData().setString(BLEED_BY, p.getUniqueID().toString());
         }
@@ -143,7 +143,7 @@ public class AquatoothEffects {
         if (v.worldObj.isRemote || v.ticksExisted % 20 != 0) return;
         long until = v.getEntityData().getLong(BLEED);
         if (until == 0) return;
-        if (v.worldObj.getTotalWorldTime() > until || v instanceof EntityPlayer) {
+        if (v.worldObj.getTotalWorldTime() > until || v instanceof EntityPlayer && !bleedPvp((EntityPlayer) v)) {
             v.getEntityData().removeTag(BLEED);
             return;
         }
@@ -151,6 +151,16 @@ public class AquatoothEffects {
         v.attackEntityFrom(BLEEDING, BLEED_DAMAGE);
         if (v.worldObj instanceof WorldServer)
             ((WorldServer) v.worldObj).func_147487_a("reddust", v.posX, v.posY + v.height * 0.6, v.posZ, 8, v.width * 0.4, v.height * 0.3, v.width * 0.4, 0);
+    }
+
+    /** Игрок кровоточит, пока ранивший рядом в мире и PvP между ними можно (ушёл в приват - кровь останавливается). */
+    private static boolean bleedPvp(EntityPlayer v) {
+        String by = v.getEntityData().getString(BLEED_BY);
+        EntityPlayer p = null;
+        try {
+            p = by.isEmpty() ? null : v.worldObj.func_152378_a(java.util.UUID.fromString(by));
+        } catch (IllegalArgumentException ignored) {}
+        return p != null && !Protection.spare(p, v);
     }
 
     /** Кровоточит ли (для самопроверки). */

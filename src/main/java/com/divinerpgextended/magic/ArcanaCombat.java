@@ -431,11 +431,20 @@ public class ArcanaCombat {
         return a != null && a == s.getSourceOfDamage() && "mob".equals(s.damageType) && a.getClass().getName().startsWith("net.divinerpg.entities.arcana.");
     }
 
+    /** Арканный урон снарядов и посохов игрока по другому игроку: x{@link #PVP_K} (броня и щит арканы его сильно режут). */
+    public static final float PVP_K = 1.5F;
+
     /** Защита: арканный урон сначала принимает на себя аркана игрока. */
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onHurtTaken(LivingHurtEvent e) {
         if (!(e.entityLiving instanceof EntityPlayer) || e.entityLiving.worldObj.isRemote || !incoming(e.source)) return;
         EntityPlayer p = (EntityPlayer) e.entityLiving;
+        NBTTagCompound tag = tagOf(e.source);
+        if (tag != null && e.source.getEntity() instanceof EntityPlayer && e.source.getEntity() != p && (tag.hasKey(DMG) || tag.getBoolean(PIERCE)))
+            e.ammount *= PVP_K;
+        // арканный удар виден: фиолетовые искры, как у мечей Арканы
+        if (p.worldObj instanceof net.minecraft.world.WorldServer) ((net.minecraft.world.WorldServer) p.worldObj).func_147487_a("witchMagic", p.posX,
+            p.posY + p.height * 0.6, p.posZ, 12, p.width * 0.4, p.height * 0.3, p.width * 0.4, 0.05);
         float before = e.ammount;
         e.ammount = ArcanaRules.absorb(p, e.ammount);
         if (e.ammount < before) com.divinerpgextended.debug.Debug.note(p, String.format("Аркана приняла %.1f из %.1f арканного урона", before - e.ammount, before));

@@ -3889,7 +3889,7 @@ public class SelfTest {
                     mw = com.divinerpgextended.perk.AquatoothEffects.damage(net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothMaul);
                 ok &= sw == com.divinerpgextended.perk.AquatoothEffects.SWORD_DAMAGE && mw == com.divinerpgextended.perk.AquatoothEffects.MAUL_DAMAGE;
                 rep.append("урон: меч ").append(f(sw)).append(", молот ").append(f(mw));
-                // меч: кровотечение у моба, не у игрока
+                // меч: кровотечение у моба; у игрока - только где можно PvP (с 0.99.127)
                 ItemStack swd = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothSword);
                 hold(a, swd);
                 a.getAttributeMap().applyAttributeModifiers(swd.getAttributeModifiers());
@@ -3900,10 +3900,26 @@ public class SelfTest {
                 z.ticksExisted = 20;
                 MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(z));
                 float bled = hpB - z.getHealth();
-                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(foe, DamageSource.causePlayerDamage(a), 5F));
-                boolean playerBleeds = com.divinerpgextended.perk.AquatoothEffects.bleeding(foe);
-                ok &= bleeds && Math.abs(bled - com.divinerpgextended.perk.AquatoothEffects.BLEED_DAMAGE) < 0.01 && !playerBleeds;
-                rep.append("; кровотечение ").append(bleeds).append(" (").append(f(bled)).append(" за секунду), у игрока ").append(playerBleeds);
+                boolean pvpWas = server.isPVPEnabled();
+                server.setAllowPvp(true);
+                boolean playerBleeds, privateBleeds;
+                try {
+                    MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(foe, DamageSource.causePlayerDamage(a), 5F));
+                    playerBleeds = com.divinerpgextended.perk.AquatoothEffects.bleeding(foe);
+                    foe.getEntityData().removeTag("dreBleed");
+                    com.divinerpgextended.perk.Protection.testNoPvp = true;
+                    try {
+                        MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(foe, DamageSource.causePlayerDamage(a), 5F));
+                    } finally {
+                        com.divinerpgextended.perk.Protection.testNoPvp = false;
+                    }
+                    privateBleeds = com.divinerpgextended.perk.AquatoothEffects.bleeding(foe);
+                } finally {
+                    server.setAllowPvp(pvpWas);
+                }
+                ok &= bleeds && Math.abs(bled - com.divinerpgextended.perk.AquatoothEffects.BLEED_DAMAGE) < 0.01 && playerBleeds && !privateBleeds;
+                rep.append("; кровотечение ").append(bleeds).append(" (").append(f(bled)).append(" за секунду), у игрока ").append(playerBleeds)
+                    .append(", у игрока в привате без PvP ").append(privateBleeds);
                 // молот: два удара за тик - второй не проходит; после перезарядки - проходит
                 ItemStack bm = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.bedrockMaul);
                 hold(a, bm);
@@ -9808,6 +9824,38 @@ public class SelfTest {
                     + ", поношенный починен " + repaired + "; выстрелы: " + shots[0] + ", сразу " + shots[1] + ", после перезарядки " + shots[2] + "; сброс после круга счётчика "
                     + wrapFixed + "; халит не ломается " + tools + ", подсказка " + tip + " / " + iceTip + "; подсказок кирок " + pickTips + ", сбой " + pickFail + ", халит: " + haliteTip + "; рельсы " + rails);
             return "фазеры и блицы (и халитовые) не ломаются; блиц стреляет раз в " + com.divinerpgextended.perk.RangedRoles.BLITZ_COOLDOWN + " тиков (5 дробин), второй выстрел сразу - нет; халитовые инструменты не изнашиваются, подсказка с эффективностью как у Divine; рельсы Divine в инвентаре стали рельсами аддона";
+        });
+        t("Прохождение", "Эндер-меч прибивает и игрока: без телепортов, в привате без PvP - нет", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            TestPlayer a = join(player(0, "TestPinA", 40.5, 120, 40.5), true), v = join(player(0, "TestPinV", 42.5, 120, 40.5), true);
+            hold(a, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.enderSword));
+            v.getEntityData().removeTag(com.divinerpgextended.perk.EnderGear.PIN);
+            boolean pvpOn = server.isPVPEnabled();
+            server.setAllowPvp(true);
+            boolean pinned, blocked, sparePinned;
+            try {
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(v, DamageSource.causePlayerDamage(a), 2));
+                pinned = com.divinerpgextended.perk.EnderGear.pinned(v);
+                blocked = com.divinerpgextended.asm.TeleportHooks.deny(v, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.enderSword).getItem());
+                v.getEntityData().removeTag(com.divinerpgextended.perk.EnderGear.PIN);
+                com.divinerpgextended.perk.Protection.testNoPvp = true;
+                try {
+                    MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(v, DamageSource.causePlayerDamage(a), 2));
+                } finally {
+                    com.divinerpgextended.perk.Protection.testNoPvp = false;
+                }
+                sparePinned = com.divinerpgextended.perk.EnderGear.pinned(v);
+            } finally {
+                server.setAllowPvp(pvpOn);
+                hold(a, null);
+                v.getEntityData().removeTag(com.divinerpgextended.perk.EnderGear.PIN);
+                server.getConfigurationManager().playerEntityList.remove(a);
+                server.getConfigurationManager().playerEntityList.remove(v);
+                w.removeEntity(a);
+                w.removeEntity(v);
+            }
+            check(pinned && blocked && !sparePinned, "прибит " + pinned + ", телепорт предметом запрещён " + blocked + ", в привате без PvP прибит " + sparePinned);
+            return "удар эндер-мечом по игроку - " + com.divinerpgextended.perk.EnderGear.PIN_TICKS / 20 + " с без телепортов; в привате без PvP - нет";
         });
         t("Прохождение", "Эндер-лук и эндер-меч против эндер-мобов", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);

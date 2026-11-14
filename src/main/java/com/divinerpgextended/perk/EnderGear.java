@@ -28,7 +28,9 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * <ul>
  * <li>эндер-лук - единственный, чья стрела по ним попадает: пока стрела долетает, телепорт отменяется и урон стрелы
  * (как считает Divine) проходит напрямую;</li>
- * <li>эндер-мечи (все цвета) и стрела эндер-лука - после удара цель {@link #PIN_TICKS} тиков не может телепортироваться.</li>
+ * <li>эндер-мечи (все цвета) и стрела эндер-лука - после удара цель {@link #PIN_TICKS} тиков не может телепортироваться.
+ * Игрок тоже (там, где можно PvP): ни жемчуг Края, ни пустотный шаг, ни скипетр и кристалл Divine. Спасение брони Края из
+ * пустоты не запрещается - иначе удар у края острова убивал бы.</li>
  * </ul>
  */
 public class EnderGear {
@@ -67,10 +69,27 @@ public class EnderGear {
     /** Удар эндер-мечом прибивает эндер-моба к месту. */
     @SubscribeEvent
     public void onHurt(LivingHurtEvent e) {
-        if (e.entityLiving.worldObj.isRemote || !(e.entityLiving instanceof EntityEnderman)) return;
+        if (e.entityLiving.worldObj.isRemote) return;
+        if (e.entityLiving instanceof EntityPlayer) {
+            pinPlayer((EntityPlayer) e.entityLiving, e.source);
+            return;
+        }
+        if (!(e.entityLiving instanceof EntityEnderman)) return;
         if (e.source.getSourceOfDamage() != e.source.getEntity() || !(e.source.getEntity() instanceof EntityPlayer)) return;
         if (!enderSword(((EntityPlayer) e.source.getEntity()).getHeldItem())) return;
         e.entityLiving.getEntityData().setLong(PIN, e.entityLiving.worldObj.getTotalWorldTime() + PIN_TICKS);
+    }
+
+    /** Игрока бьёт эндер-меч или стрела эндер-лука другого игрока (где можно PvP) - прибит, как эндермен. */
+    static void pinPlayer(EntityPlayer v, net.minecraft.util.DamageSource s) {
+        Entity by = s.getEntity(), direct = s.getSourceOfDamage();
+        if (!(by instanceof EntityPlayer) || by == v || com.divinerpgextended.perk.Protection.spare(by, v)) return;
+        boolean sword = direct == by && enderSword(((EntityPlayer) by).getHeldItem());
+        boolean arrow = direct instanceof EntityArrow && direct.getEntityData().getBoolean(ARROW);
+        if (!sword && !arrow) return;
+        boolean was = pinned(v);
+        v.getEntityData().setLong(PIN, v.worldObj.getTotalWorldTime() + PIN_TICKS);
+        if (!was) v.addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.ender_pinned", PIN_TICKS / 20));
     }
 
     /** Ванильный эндермен, которому некуда прыгнуть, принимает любой снаряд - эндер-мобов ранят только стрелы эндер-лука. */
@@ -86,6 +105,11 @@ public class EnderGear {
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onTeleport(EnderTeleportEvent e) {
         EntityLivingBase v = e.entityLiving;
+        if (!v.worldObj.isRemote && v instanceof EntityPlayer && pinned(v)) { // жемчуг Края прибитого игрока
+            e.setCanceled(true);
+            ((EntityPlayer) v).addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.teleport_pinned"));
+            return;
+        }
         if (v.worldObj.isRemote || !(v instanceof EntityEnderman)) return;
         EntityArrow a = incoming(v);
         if (a != null) {

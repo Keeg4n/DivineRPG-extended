@@ -128,6 +128,7 @@ public class EnderGear {
             double dx = p.posX - prey.posX, dz = p.posZ - prey.posZ, len = Math.max(0.1, Math.sqrt(dx * dx + dz * dz));
             double gx = prey.posX + dx / len * (prey.width / 2 + 1.2), gz = prey.posZ + dz / len * (prey.width / 2 + 1.2), gy = prey.posY;
             if (fits(w, gx, gy, gz) && clear(p, gx, gy, gz)) {
+                if (com.divinerpgextended.perk.EnderGear.pinned(p)) return "dre.blink.pinned";
                 if (!com.divinerpgextended.portal.TeleportGuard.allowed(p, gx, gy, gz)) return "dre.blink.private";
                 ArcanaHelper h = ArcanaHelper.getProperties(p);
                 if (h == null) return "dre.blink.arcana";
@@ -163,6 +164,7 @@ public class EnderGear {
         if ((tx - x) * (tx - x) + (ty - y) * (ty - y) + (tz - z) * (tz - z) < 2 * 2) return "dre.blink.wall";
         if (!clear(p, tx, ty, tz)) return "dre.blink.wall"; // не в блоки
         if (!groundBelow(w, tx, ty, tz)) return "dre.blink.void"; // в бездну не шагнуть
+        if (com.divinerpgextended.perk.EnderGear.pinned(p)) return "dre.blink.pinned";
         if (!com.divinerpgextended.portal.TeleportGuard.allowed(p, tx, ty, tz)) return "dre.blink.private"; // приват с запретом телепортов
         ArcanaHelper h = ArcanaHelper.getProperties(p);
         if (h == null) return "dre.blink.arcana";
