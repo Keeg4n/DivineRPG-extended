@@ -61,6 +61,36 @@ public final class HalfLifeMount {
         ev("hev.cbar_hitbod", seq("hl1/weapons/cbar_hitbod%d", 1, 2, 3));
         ev("hev.cbar_miss", one("hl1/weapons/cbar_miss1"));
         ev("hev.rocketfire", one("hl1/weapons/rocketfire1"));
+        ownFallbacks();
+    }
+
+    /**
+     * Свои звуки аддона ({@code own/...} - assets/divinerpgextended/hevown, синтез и голос Windows с обработкой) - последним
+     * кандидатом: у кого игр Valve нет, играют они. Боль и падение - без замены (обычные звуки Minecraft).
+     */
+    private static void ownFallbacks() {
+        for (Map.Entry<String, String[][]> e : EVENTS.entrySet()) {
+            String k = e.getKey();
+            String[][] v = e.getValue();
+            for (int i = 0; i < v.length; i++) {
+                String own = own(k, i);
+                if (own == null) continue;
+                String[] c = java.util.Arrays.copyOf(v[i], v[i].length + 1);
+                c[c.length - 1] = own;
+                v[i] = c;
+            }
+        }
+    }
+
+    private static String own(String event, int i) {
+        String e = event.substring(4); // без "hev."
+        if (e.startsWith("step.")) return "own/step_" + e.substring(5) + (i % 4 + 1);
+        if (e.equals("flatline") || e.equals("death")) return "own/flatline";
+        if (e.equals("sprint") || e.equals("rocketfire") || e.equals("cbar_miss")) return "own/" + e;
+        if (e.equals("cbar_hit")) return "own/cbar_hit" + (i % 2 + 1);
+        if (e.equals("cbar_hitbod")) return "own/cbar_hitbod" + (i % 3 + 1);
+        if (e.equals("logon") || e.equals("morphine") || e.endsWith("_fracture") || e.equals("health_critical")) return "own/voice_" + e;
+        return null;
     }
 
     private static void ev(String name, String[][] variants) {
@@ -86,6 +116,8 @@ public final class HalfLifeMount {
 
     // ------------------------------------------------------------------ поиск игр
 
+    /** Свои звуки в jar. */
+    static final String OWN = "/assets/divinerpgextended/hevown/";
     static File hl1, hl2vpk;
     static Vpk vpk;
     static boolean searched;
@@ -193,6 +225,7 @@ public final class HalfLifeMount {
         search();
         if (name.startsWith("hl1/")) return hl1 != null && new File(hl1, name.substring(4) + ".wav").isFile();
         if (name.startsWith("hl2/")) return vpk != null && vpk.has("sound/" + name.substring(4) + ".wav");
+        if (name.startsWith("own/")) return HalfLifeMount.class.getResource(OWN + name.substring(4) + ".wav") != null;
         return false;
     }
 
@@ -213,6 +246,9 @@ public final class HalfLifeMount {
                 if (f.isFile()) raw = readAll(new FileInputStream(f));
             } else if (name.startsWith("hl2/") && vpk != null) {
                 raw = vpk.read("sound/" + name.substring(4) + ".wav");
+            } else if (name.startsWith("own/")) {
+                InputStream in = HalfLifeMount.class.getResourceAsStream(OWN + name.substring(4) + ".wav");
+                if (in != null) raw = readAll(in);
             }
             if (raw != null) out = normalize(raw);
         } catch (IOException ignored) {}
