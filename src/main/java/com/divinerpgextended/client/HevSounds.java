@@ -291,6 +291,10 @@ public final class HevSounds {
 
         /** Другие игроки в 32 блоках: рывок в костюме и взмахи монтировкой - звук у них. */
         void others(Minecraft mc, EntityPlayer self) {
+            if (mc.theWorld == null) { // вход в мир и выход: игрок уже есть, мира ещё (или уже) нет
+                others.clear();
+                return;
+            }
             java.util.Set<Integer> seen = new HashSet<Integer>();
             for (Object o : mc.theWorld.playerEntities) {
                 EntityPlayer q = (EntityPlayer) o;
