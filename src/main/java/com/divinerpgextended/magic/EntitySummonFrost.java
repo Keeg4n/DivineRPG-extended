@@ -50,7 +50,7 @@ public class EntitySummonFrost extends EntitySummonShark {
         if (--shot > 0 || !canEntityBeSeen(t)) return;
         shot = SHOT_EVERY;
         double sx = posX, sy = posY + height / 2, sz = posZ;
-        EntityFrostShard s = new EntityFrostShard(worldObj, o, sx, sy, sz, AnchorSummons.damage(o, kind()));
+        EntityFrostShard s = new EntityFrostShard(worldObj, o, t, sx, sy, sz, AnchorSummons.damage(o, kind()));
         s.setThrowableHeading(t.posX - sx, t.posY + t.height * 0.5 - sy, t.posZ - sz, SHOT_SPEED, 0F);
         worldObj.spawnEntityInWorld(s);
         worldObj.playSoundAtEntity(this, "dig.glass", 0.35F, 1.8F);

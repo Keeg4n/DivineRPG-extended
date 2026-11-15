@@ -15727,6 +15727,25 @@ public class SelfTest {
                 ok &= dealt >= hit * 2 - 0.01F && slowed && ownerSafe && far < 4;
                 rep.append("; in 45 ticks: damage ").append(f(dealt)).append(" (shot ").append(f(hit)).append("), zombie slowed ").append(slowed)
                     .append(", owner unhurt ").append(ownerSafe).append(", Frost stayed within ").append(f((float) far)).append(" blocks of the owner");
+                // claims: in a no-PvP region a cow hit by the owner does not become a target, a shard flies through a cow and a stranger
+                net.minecraft.entity.passive.EntityCow cow = new net.minecraft.entity.passive.EntityCow(w);
+                cow.setLocationAndAngles(px + 3, py, pz, 0, 0);
+                w.spawnEntityInWorld(cow);
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
+                com.divinerpgextended.magic.AnchorSummons.summon(ap, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB);
+                boolean claimSafe, strayPasses;
+                try {
+                    com.divinerpgextended.perk.Protection.testNoPvp = true;
+                    MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingAttackEvent(cow, DamageSource.causePlayerDamage(ap), 1));
+                } finally {
+                    com.divinerpgextended.perk.Protection.testNoPvp = false;
+                }
+                claimSafe = com.divinerpgextended.magic.AnchorSummons.foeOf(ap) != cow; // checked outside the claim: the mark itself was refused
+                com.divinerpgextended.magic.EntityFrostShard stray = new com.divinerpgextended.magic.EntityFrostShard(w, ap, z, px, py, pz, 4F);
+                strayPasses = stray.passes(cow) && !stray.passes(z) && cow.getHealth() >= cow.getMaxHealth();
+                cow.setDead();
+                ok &= claimSafe && strayPasses;
+                rep.append("; claim: owner's hit on a cow does not set a target ").append(claimSafe).append(", a shard flies through a cow, not through its zombie ").append(strayPasses);
             } finally {
                 com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
                 z.setDead();

@@ -13,12 +13,14 @@ import net.minecraft.world.WorldServer;
 
 /**
  * Ice shard of Frost ({@link EntitySummonFrost}): flies straight, arcane damage and slowness ({@link #SLOW} ticks) on hit; no explosion, does
- * not break blocks. Flies through the owner, the owner's summons and players spared from PvP. Lives {@link #LIFE} ticks, is not saved.
+ * not break blocks. Hurts only its target and hostile mobs in its way; flies through everything else (the owner, summons, other players,
+ * animals, villagers, pets) and through anything a claim protects from the owner. Lives {@link #LIFE} ticks, is not saved.
  */
 public class EntityFrostShard extends EntityThrowable {
 
     public static final int SLOW = 40, LIFE = 40;
     private EntityPlayer owner;
+    private Entity target;
     private float damage;
 
     public EntityFrostShard(World w) {
@@ -26,10 +28,11 @@ public class EntityFrostShard extends EntityThrowable {
         setSize(0.25F, 0.25F);
     }
 
-    public EntityFrostShard(World w, EntityPlayer owner, double x, double y, double z, float damage) {
+    public EntityFrostShard(World w, EntityPlayer owner, Entity target, double x, double y, double z, float damage) {
         super(w, x, y, z);
         setSize(0.25F, 0.25F);
         this.owner = owner;
+        this.target = target;
         this.damage = damage;
     }
 
@@ -44,10 +47,11 @@ public class EntityFrostShard extends EntityThrowable {
         if (!worldObj.isRemote && ticksExisted > LIFE) setDead();
     }
 
-    /** Whether the shard flies through: the owner, the owner's summons, other summons and players where PvP is not allowed. */
-    boolean passes(Entity e) {
+    /** Whether the shard flies through: everything except its target and hostile mobs, and anything a claim protects from the owner. */
+    public boolean passes(Entity e) {
         if (owner == null || e == owner || e instanceof AnchorSummons.Summon || e instanceof EntityArcaneWraith) return true;
-        return e instanceof EntityPlayer && com.divinerpgextended.perk.Protection.spare(owner, e);
+        if (e != target && !(e instanceof net.minecraft.entity.monster.IMob)) return true;
+        return com.divinerpgextended.perk.Protection.spare(owner, e);
     }
 
     @Override

@@ -206,11 +206,16 @@ public class AnchorSummons {
         Entity e = (Entity) t[0];
         if (e.isDead || !(e instanceof EntityLivingBase) || ((EntityLivingBase) e).getHealth() <= 0 || e.worldObj != p.worldObj
             || p.worldObj.getTotalWorldTime() - (Long) t[1] > MEMORY || e.getDistanceSqToEntity(p) > 24 * 24
-            || e instanceof EntityPlayer && com.divinerpgextended.perk.Protection.spare(p, e)) { // the player went into a no-PvP claim
+            || com.divinerpgextended.perk.Protection.spare(p, e)) { // a player or a peaceful creature in a no-PvP claim // the player went into a no-PvP claim
             TARGET.remove(p.getUniqueID());
             return null;
         }
         return e;
+    }
+
+    /** The owner's current target for the summons (selftest). */
+    public static Entity foeOf(EntityPlayer p) {
+        return target(p);
     }
 
     /** A summon or ghost of this owner. */
@@ -272,7 +277,7 @@ public class AnchorSummons {
     }
 
     public static void mark(EntityPlayer p, Entity t) {
-        if (t == p || own(p, t)) return; // other people's summons - allowed (PvP)
+        if (t == p || own(p, t) || com.divinerpgextended.perk.Protection.spare(p, t)) return; // other people's summons - allowed (PvP); claims protect players and peaceful creatures
         TARGET.put(p.getUniqueID(), new Object[] { t, p.worldObj.getTotalWorldTime() });
     }
 

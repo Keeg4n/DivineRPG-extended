@@ -58,7 +58,7 @@ public class ArcaneSummons {
         Entity e = (Entity) t[0];
         if (e.isDead || !(e instanceof EntityLivingBase) || ((EntityLivingBase) e).getHealth() <= 0 || e.worldObj != p.worldObj
             || p.worldObj.getTotalWorldTime() - (Long) t[1] > MEMORY || e.getDistanceSqToEntity(p) > 24 * 24
-            || e instanceof EntityPlayer && com.divinerpgextended.perk.Protection.spare(p, e)) {
+            || com.divinerpgextended.perk.Protection.spare(p, e)) { // a player or a peaceful creature in a no-PvP claim
             TARGET.remove(p.getUniqueID());
             return null;
         }
@@ -71,7 +71,7 @@ public class ArcaneSummons {
     }
 
     public static void mark(EntityPlayer p, Entity t) {
-        if (t == p || AnchorSummons.own(p, t)) return;
+        if (t == p || AnchorSummons.own(p, t) || com.divinerpgextended.perk.Protection.spare(p, t)) return; // claims protect players and peaceful creatures
         TARGET.put(p.getUniqueID(), new Object[] { t, p.worldObj.getTotalWorldTime() });
     }
 
