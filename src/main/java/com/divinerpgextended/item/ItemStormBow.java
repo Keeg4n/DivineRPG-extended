@@ -64,7 +64,7 @@ public class ItemStormBow extends ItemBow {
         ArrowNockEvent ev = new ArrowNockEvent(p, s);
         MinecraftForge.EVENT_BUS.post(ev);
         if (ev.isCanceled()) return ev.result;
-        if (p.capabilities.isCreativeMode || p.inventory.hasItem(ammo()) || EnchantmentHelper.getEnchantmentLevel(Enchantment.infinity.effectId, s) > 0)
+        if (p.capabilities.isCreativeMode || com.divinerpgextended.asm.AmmoHooks.has(p.inventory, ammo()) || EnchantmentHelper.getEnchantmentLevel(Enchantment.infinity.effectId, s) > 0)
             p.setItemInUse(s, getMaxItemUseDuration(s));
         return s;
     }
@@ -77,7 +77,7 @@ public class ItemStormBow extends ItemBow {
         if (ev.isCanceled()) return;
         charge = ev.charge;
         boolean infinite = p.capabilities.isCreativeMode || EnchantmentHelper.getEnchantmentLevel(Enchantment.infinity.effectId, s) > 0;
-        if (!infinite && !p.inventory.hasItem(ammo())) return;
+        if (!infinite && !com.divinerpgextended.asm.AmmoHooks.has(p.inventory, ammo())) return;
         float f = charge / 20.0F;
         f = (f * f + f * 2.0F) / 3.0F;
         if (f < 0.1F) return;
@@ -90,7 +90,7 @@ public class ItemStormBow extends ItemBow {
         if (punch > 0) arrow.setKnockbackStrength(punch);
         if (EnchantmentHelper.getEnchantmentLevel(Enchantment.flame.effectId, s) > 0) arrow.setFire(100);
         if (infinite) arrow.canBePickedUp = 2;
-        else p.inventory.consumeInventoryItem(ammo());
+        else com.divinerpgextended.asm.AmmoHooks.consume(p.inventory, ammo()); // сначала заряд лука, потом инвентарь
         if (!s.hasTagCompound()) s.setTagCompound(new NBTTagCompound());
         int shots = s.getTagCompound().getInteger(SHOTS) + 1;
         s.getTagCompound().setInteger(SHOTS, shots % 1000);

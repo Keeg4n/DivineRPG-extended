@@ -240,7 +240,8 @@ public class ContainerWandererAnvil extends Container {
         if (AnvilLogic.execute(work, p, mode)) {
             if (before == AnvilLogic.Status.READY_UNLOAD) {
                 ItemStack w = work.getStackInSlot(AnvilLogic.FUEL);
-                p.worldObj.playSoundEffect(x, y, z, w != null ? com.divinerpgextended.perk.AmmoLoad.sound(w) : "random.click", 0.9F, 0.8F);
+                String snd = w != null ? com.divinerpgextended.perk.AmmoLoad.sound(w) : null;
+                p.worldObj.playSoundEffect(x, y, z, snd != null ? snd : "random.click", 0.9F, 0.8F);
             } else {
                 p.worldObj.playSoundEffect(x, y, z, "random.anvil_use", 1.0F, before == AnvilLogic.Status.READY_SOCKET ? 1.4F : 1.0F);
                 p.addChatMessage(new ChatComponentTranslation(before == AnvilLogic.Status.READY_SOCKET ? "dre.chat.socketed" : "dre.chat.upgraded"));

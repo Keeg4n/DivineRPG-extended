@@ -39,6 +39,7 @@ public final class Ammo {
         Item i = held.getItem();
         Item dust = RangedRoles.dust(i);
         if (dust != null) return dust; // фазер и блиц - пыль своего мира
+        if (i instanceof com.divinerpgextended.item.ItemStormBow) return com.divinerpgextended.item.ItemStormBow.ammo(); // стрелы Дикого леса
         if (i instanceof net.divinerpg.items.base.ItemModBow) return value(bowArrow(), i);
         if (i instanceof ItemBow) return Items.arrow;
         if (i instanceof net.divinerpg.items.base.ItemProjectileShooter) return value(shooterAmmo(), i);
@@ -99,6 +100,7 @@ public final class Ammo {
             w.getTagCompound().setInteger(LOADED, n);
         } else if (w.hasTagCompound()) {
             w.getTagCompound().removeTag(LOADED);
+            w.getTagCompound().removeTag(STORM_AMMO);
             if (w.getTagCompound().hasNoTags()) w.setTagCompound(null);
         }
     }
@@ -213,7 +215,10 @@ public final class Ammo {
             setLoaded(w, loaded(w) + n); // потом плюс в оружии
             got += n;
         }
-        if (got > 0) p.inventory.markDirty();
+        if (got > 0) {
+            if (w.getItem() instanceof com.divinerpgextended.item.ItemStormBow) w.getTagCompound().setBoolean(STORM_AMMO, true);
+            p.inventory.markDirty();
+        }
         return got;
     }
 
@@ -290,8 +295,27 @@ public final class Ammo {
         else if (!p.inventory.addItemStackToInventory(orig) || orig.stackSize > 0) p.entityDropItem(orig, 0.5F);
     }
 
+    /** Метка заряда Грозового лука стрелами Дикого леса (до 0.99.133 в него заряжались обычные стрелы). */
+    public static final String STORM_AMMO = "dreStormAmmo";
+
+    /**
+     * Грозовой лук, заряженный до 0.99.133: внутри обычные стрелы - вернуть их игроку (в инвентарь, что не влезло - под ноги),
+     * чтобы они не превратились в стрелы Дикого леса. Только сервер.
+     */
+    static void refundOldStorm(EntityPlayer p, ItemStack w) {
+        if (w == null || !(w.getItem() instanceof com.divinerpgextended.item.ItemStormBow) || loaded(w) <= 0 || w.getTagCompound().getBoolean(STORM_AMMO)) return;
+        int n = loaded(w);
+        setLoaded(w, 0);
+        Item a = Items.arrow;
+        int in = Math.min(n, room(p, a));
+        if (in > 0) put(p, a, in);
+        int max = new ItemStack(a).getMaxStackSize();
+        for (int rest = n - in; rest > 0; rest -= max) p.dropPlayerItemWithRandomChoice(new ItemStack(a, Math.min(rest, max)), false);
+    }
+
     /** Конец тика: патрону, одолженному на выстрел до 0.99.67 и оставшемуся после сбоя, - снять метку; старый тайник 0.86 - вернуть. */
     public static void settle(EntityPlayer p) {
+        if (!p.worldObj.isRemote) for (ItemStack s : p.inventory.mainInventory) refundOldStorm(p, s);
         for (ItemStack s : p.inventory.mainInventory) {
             if (s == null || !s.hasTagCompound() || !s.getTagCompound().getBoolean(TAG)) continue;
             s.getTagCompound().removeTag(TAG);

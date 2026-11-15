@@ -10421,6 +10421,35 @@ public class SelfTest {
                     + " " + unloadOk + "; сломался - высыпалось " + spill + "; пушка " + cannonOk);
             return "присесть + ПКМ заряжает всё из инвентаря (до 4 стопок, особые не берёт); стреляет сначала заряд, рюкзак не трогается; разрядка на наковальне - сколько влезет; сломалось оружие - заряд высыпается";
         });
+        t("Прохождение", "Грозовой лук заряжается стрелами Дикого леса", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            loadAround(w, 9720, 9840, 1);
+            TestPlayer sp = join(player(0, "TestStormAmmo", 9720.5, 120, 9840.5), true);
+            sp.inventory.clearInventory(null, -1);
+            Item wild = com.divinerpgextended.item.ItemStormBow.ammo();
+            ItemStack bow = new ItemStack(ModItems.stormBow);
+            sp.inventory.currentItem = 0;
+            sp.inventory.mainInventory[0] = bow;
+            sp.inventory.mainInventory[1] = new ItemStack(Items.arrow, 10);
+            sp.inventory.mainInventory[2] = new ItemStack(wild, 6);
+            int got = com.divinerpgextended.perk.AmmoLoad.load(sp);
+            boolean loadOk = com.divinerpgextended.perk.Ammo.of(bow) == wild && got == 6 && com.divinerpgextended.perk.Ammo.loaded(bow) == 6
+                && sp.inventory.mainInventory[1] != null && sp.inventory.mainInventory[1].stackSize == 10 && sp.inventory.mainInventory[2] == null;
+            // выстрел из заряда: стрел Дикого леса в инвентаре нет
+            ModItems.stormBow.onPlayerStoppedUsing(bow, w, sp, bow.getMaxItemUseDuration() - 20);
+            for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.Entity.class, sp.boundingBox.expand(8, 8, 8))) if (o != sp) ((net.minecraft.entity.Entity) o).setDead();
+            boolean shotOk = com.divinerpgextended.perk.Ammo.loaded(bow) == 5 && count(sp, Items.arrow) == 10;
+            // заряжен до 0.99.133 обычными стрелами (без метки) - стрелы возвращаются игроку
+            ItemStack old = new ItemStack(ModItems.stormBow);
+            com.divinerpgextended.perk.Ammo.setLoaded(old, 7);
+            sp.inventory.mainInventory[5] = old;
+            com.divinerpgextended.perk.Ammo.settle(sp);
+            boolean refundOk = com.divinerpgextended.perk.Ammo.loaded(old) == 0 && count(sp, Items.arrow) == 17 && com.divinerpgextended.perk.Ammo.loaded(bow) == 5;
+            sp.inventory.clearInventory(null, -1);
+            check(loadOk && shotOk && refundOk, "зарядка " + got + " (" + Item.itemRegistry.getNameForObject(wild) + ") " + loadOk + ", выстрел из заряда " + shotOk
+                + ", старый заряд обычными стрелами вернулся " + refundOk);
+            return "Грозовой лук: заряд - стрелы Дикого леса, обычные не берёт; стреляет сначала зарядом; старый заряд обычными стрелами возвращается игроку";
+        });
         t("Прохождение", "Самострел быстрых луков, шанс Бесконечного колчана, ранги", () -> {
             // луки с ускоренным натяжением - кто и через сколько тиков стреляет сам
             StringBuilder fast = new StringBuilder();

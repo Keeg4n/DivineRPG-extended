@@ -7,12 +7,6 @@
       "blitz_shot3"
     ]
   },
-  "reload_arrows": {
-    "category": "player",
-    "sounds": [
-      "reload_arrows"
-    ]
-  },
   "reload_dust": {
     "category": "player",
     "sounds": [
