@@ -1795,3 +1795,5 @@ dre.tooltip.summon_scorcher=Right-click: summon a small scorcher that runs along
 dre.tooltip.summon_ayeraco=Right-click: summon a small Ayeraco that shifts colors and teleports to your target or to whoever attacks you; %s Arcana per second, at most %s
 entity.divinerpgextended.SummonScorcher.name=Small Scorcher
 entity.divinerpgextended.SummonAyeraco.name=Small Ayeraco
+dre.tooltip.summon_frost=Right-click: summon Frost, a flying snowflake that hovers alongside and shoots ice shards at your target, slowing it; %s Arcana per second, at most %s
+entity.divinerpgextended.SummonFrost.name=Frost

@@ -2126,3 +2126,5 @@ dre.tooltip.summon_scorcher=ПКМ - призвать маленького ск�
 dre.tooltip.summon_ayeraco=ПКМ - призвать маленького Айрако: переливается цветами и телепортируется к твоей цели или к тому, кто напал на тебя; %s арканы в секунду, не больше %s
 entity.divinerpgextended.SummonScorcher.name=Маленький скорчер
 entity.divinerpgextended.SummonAyeraco.name=Маленький Айрако
+dre.tooltip.summon_frost=ПКМ - призвать Фроста: летучая снежинка парит рядом и стреляет в твою цель ледяными осколками, замедляя её; %s арканы в секунду, не больше %s
+entity.divinerpgextended.SummonFrost.name=Фрост

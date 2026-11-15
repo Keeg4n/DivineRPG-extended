@@ -1,4 +1,4 @@
-"""Textures for the summons: the Cyclops Wand eye (64x32 entity texture for ModelSummonEye) and flat 16x16 icons of the
+"""Textures for the summons: the Cyclops Wand eye (64x32 entity texture for ModelSummonEye) and the Frost flying snowflake (32x32 for ModelSummonFrost) and flat 16x16 icons of the
 Scorcher Brand, the Ayeraco Prism and the Ayeraco Scale. Run from the repo root: python3 tools/summon_textures.py"""
 import math, os, random
 from PIL import Image
@@ -145,8 +145,33 @@ SCALE = icon([
 ], {"d": rgb("#2a1a40"), "m": rgb("#5a3a8a"), "l": rgb("#8a5ac8"), "h": rgb("#d0b0ff")})
 
 
+# ------------------------------------------------------------------ Frost (flying snowflake) entity texture
+def frost_texture():
+    img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    px = img.load()
+    rnd = random.Random(9)
+    core, eye, ice, tip = rgb("#a8dcff"), rgb("#1a3a6a"), rgb("#cfefff"), rgb("#ffffff")
+    for name, (x0, y0, w, h) in box_faces(0, 0, 3, 3, 2).items():
+        for a in range(w):
+            for b in range(h):
+                c = shade(core, 0.92 + rnd.random() * 0.16)
+                if name == "front" and b == 1 and a in (0, 2):
+                    c = eye
+                px[x0 + a, y0 + b] = c
+    for name, (x0, y0, w, h) in box_faces(0, 6, 1, 12, 1).items():
+        for a in range(w):
+            for b in range(h):
+                px[x0 + a, y0 + b] = tip if name in ("right", "front", "left", "back") and b in (0, h - 1) else shade(ice, 0.9 + rnd.random() * 0.12)
+    for name, (x0, y0, w, h) in box_faces(12, 0, 3, 1, 1).items():
+        for a in range(w):
+            for b in range(h):
+                px[x0 + a, y0 + b] = shade(ice, 0.95 + rnd.random() * 0.08)
+    return img
+
+
 if __name__ == "__main__":
     eye_texture().save(os.path.join(ROOT, "entity", "summon_eye.png"))
+    frost_texture().save(os.path.join(ROOT, "entity", "summon_frost.png"))
     BRAND.save(os.path.join(ROOT, "items", "scorcherBrand.png"))
     PRISM.save(os.path.join(ROOT, "items", "ayeracoPrism.png"))
     SCALE.save(os.path.join(ROOT, "items", "ayeracoScale.png"))

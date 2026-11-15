@@ -180,6 +180,10 @@ public class ClientProxy extends CommonProxy {
                 new net.minecraft.util.ResourceLocation("divinerpgextended", "textures/entity/summon_eye.png"), 1.0F, 1.0F, 1.0F));
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonScorcher.class,
             new RenderScaledBoss(new net.divinerpg.client.render.entity.vanilla.model.ModelScorcher(), 0.6F, EntityResourceLocation.scorcher, 1.0F, 1.0F, 1.0F));
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonFrost.class,
+            new RenderScaledBoss(new com.divinerpgextended.client.ModelSummonFrost(), 0.8F,
+                new net.minecraft.util.ResourceLocation("divinerpgextended", "textures/entity/summon_frost.png"), 1.0F, 1.0F, 1.0F));
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntityFrostShard.class, new RenderSnowball(IceikaItems.iceShards));
         // the small Ayeraco goes through the five horde colors
         final net.minecraft.util.ResourceLocation[] ayeraco = { EntityResourceLocation.ayeraco_Purple, EntityResourceLocation.ayeraco_Blue,
             EntityResourceLocation.ayeraco_Green, EntityResourceLocation.ayeraco_Yellow, EntityResourceLocation.ayeraco_Red };

@@ -23,7 +23,8 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 /**
  * Summons on arcana: the Slime Sword calls a slime, the Crab Anchor (from Carcinus) - a crab, the Cyclops Wand - an eye, the Liopleurodon
  * Anchor (from the Liopleurodon) - a shark, the Scorcher Brand (from Fury Fire) - a small scorcher that sets targets on fire, the Ayeraco Prism
- * (from the six Ender swords and an Ayeraco Scale) - a small Ayeraco that teleports to its target; right click - summon only (the anchors have no throw and the wand has no shot, the sword hits as before).
+ * (from the six Ender swords and an Ayeraco Scale) - a small Ayeraco that teleports to its target, the Sound of Carols (Iceika) - Frost, a flying
+ * snowflake, the only ranged summon; right click - summon only (the anchors have no throw and the wand has no shot, the sword hits as before).
  * Like the ghost from the ghost bone ({@link ArcaneSummons}): they stay while the owner pays in arcana ({@link Kind#upkeep} per second for
  * each), hit what the owner hits (or whoever attacked the owner), and on their own - the nearest enemy within their aggro radius
  * ({@link Kind#aggro}); only other players hurt them, where PvP is allowed; they are not saved; no more than {@link #cap} of each kind at once (a full Korma set or
@@ -55,7 +56,9 @@ public class AnchorSummons {
         /** Small scorcher of the Scorcher Brand: runs on the ground, melee only, sets the target on fire. */
         SCORCHER(UPKEEP, 2, 6F, 8),
         /** Small Ayeraco of the Ayeraco Prism: flies, changes colors, teleports to a target that is far away. */
-        AYERACO(UPKEEP, 2, 7F, 14);
+        AYERACO(UPKEEP, 2, 7F, 14),
+        /** Frost of the Sound of Carols: a flying snowflake that stays by the owner and shoots slowing ice shards - the only ranged summon. */
+        FROST(UPKEEP, 2, 4F, 12);
 
         public final float upkeep, damage;
         public final int cap;
@@ -118,6 +121,7 @@ public class AnchorSummons {
         if (i == net.divinerpg.utils.items.VanillaItemsWeapons.liopleurodonAnchor) return Kind.SHARK;
         if (i == com.divinerpgextended.registry.ModItems.scorcherBrand) return Kind.SCORCHER;
         if (i == com.divinerpgextended.registry.ModItems.ayeracoPrism) return Kind.AYERACO;
+        if (i == net.divinerpg.utils.items.IceikaItems.soundOfCarols) return Kind.FROST;
         return null;
     }
 
@@ -179,15 +183,18 @@ public class AnchorSummons {
             case AYERACO:
                 e = new EntitySummonAyeraco(p.worldObj, p);
                 break;
+            case FROST:
+                e = new EntitySummonFrost(p.worldObj, p);
+                break;
             default:
                 e = new EntitySummonShark(p.worldObj, p);
         }
-        boolean flies = k == Kind.SHARK || k == Kind.EYE || k == Kind.AYERACO;
+        boolean flies = k == Kind.SHARK || k == Kind.EYE || k == Kind.AYERACO || k == Kind.FROST;
         e.setLocationAndAngles(p.posX + p.worldObj.rand.nextGaussian(), p.posY + (flies ? 1.5 : 0.2), p.posZ + p.worldObj.rand.nextGaussian(), p.rotationYaw, 0);
         p.worldObj.spawnEntityInWorld(e);
         l.add(e);
-        String[] snd = { "mob.slime.small", "mob.silverfish.say", "random.orb", "random.splash", "mob.blaze.breathe", "mob.endermen.portal" };
-        float[] pitch = { 0.8F, 0.6F, 0.5F, 1.2F, 1.4F, 1.4F };
+        String[] snd = { "mob.slime.small", "mob.silverfish.say", "random.orb", "random.splash", "mob.blaze.breathe", "mob.endermen.portal", "dig.glass" };
+        float[] pitch = { 0.8F, 0.6F, 0.5F, 1.2F, 1.4F, 1.4F, 1.6F };
         p.worldObj.playSoundAtEntity(e, snd[k.ordinal()], 0.6F, pitch[k.ordinal()]);
         return e;
     }
@@ -290,6 +297,7 @@ public class AnchorSummons {
     public void onTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent e) {
         Kind k = e.itemStack == null ? null : kind(e.itemStack.getItem());
         if (k == null) return;
+        if (k == Kind.FROST) while (e.toolTip.size() > 1) e.toolTip.remove(1); // the Sound of Carols no longer shoots notes: Divine's damage lines would lie
         e.toolTip.add(net.minecraft.util.EnumChatFormatting.LIGHT_PURPLE + net.minecraft.util.StatCollector.translateToLocalFormatted("dre.tooltip.summon_" + k.name().toLowerCase(),
             (int) k.upkeep, cap(e.entityPlayer, k)));
         e.toolTip.add(net.minecraft.util.EnumChatFormatting.GRAY + net.minecraft.util.StatCollector.translateToLocalFormatted("dre.tooltip.summon_stats",

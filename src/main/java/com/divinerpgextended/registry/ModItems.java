@@ -302,6 +302,8 @@ public final class ModItems {
         EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntitySummonEye.class, "SummonEye", 41, DivineRPGExtended.instance, 64, 2, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntitySummonScorcher.class, "SummonScorcher", 42, DivineRPGExtended.instance, 64, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntitySummonAyeraco.class, "SummonAyeraco", 43, DivineRPGExtended.instance, 64, 2, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntitySummonFrost.class, "SummonFrost", 44, DivineRPGExtended.instance, 64, 2, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntityFrostShard.class, "FrostShard", 45, DivineRPGExtended.instance, 64, 10, true);
         listForMinimap();
         bossEgg = new com.divinerpgextended.item.ItemBossEgg();
         GameRegistry.registerItem(bossEgg, "bossEgg");

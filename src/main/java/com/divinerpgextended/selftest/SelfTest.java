@@ -4092,7 +4092,10 @@ public class SelfTest {
                     s.setPosition(z.posX + 1.2, z.posY, z.posZ);
                     z.setHealth(z.getMaxHealth());
                     float bar0 = ah.getBarValue();
-                    for (int n = 0; n < 20; n++) s.onUpdate();
+                    for (int n = 0; n < 20; n++) {
+                        s.onUpdate();
+                        for (Object sh : w.getEntitiesWithinAABB(com.divinerpgextended.magic.EntityFrostShard.class, z.boundingBox.expand(16, 16, 16))) ((net.minecraft.entity.Entity) sh).onUpdate(); // Frost's shards
+                    }
                     float dealt = z.getMaxHealth() - z.getHealth(), paid = bar0 - ah.getBarValue(), hit = kd.damage * com.divinerpgextended.magic.ArcanaRules.stage(ap);
                     boolean hurtable = s.attackEntityFrom(DamageSource.causePlayerDamage(ap), 100);
                     boolean good = !s.isDead && dealt >= hit - 0.01F && Math.abs(paid - kd.upkeep) < 0.01F && !hurtable;
@@ -15674,6 +15677,56 @@ public class SelfTest {
                 }
                 ok &= got[0] == 1 && got[1] == 0;
                 rep.append("; scales from an Ayeraco: by a player ").append(got[0]).append(", without ").append(got[1]);
+            } finally {
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
+                z.setDead();
+                hold(ap, null);
+                server.getConfigurationManager().playerEntityList.remove(ap);
+                w.removeEntity(ap);
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+        t("Liopleurodon", "Sound of Carols summons Frost: stays by the owner, shoots slowing shards, the owner is not hit", () -> {
+            WorldServer w = ow;
+            double px = sx + 360.5, py = 200, pz = sz + 0.5;
+            loadAround(w, (int) px, (int) pz, 2);
+            TestPlayer ap = join(player(0, "TestSummonFrost", px, py, pz), true);
+            ap.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            EntityZombie z = new EntityZombie(w);
+            try {
+                ArcanaHelper.getProperties(ap).setBarValue(200);
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
+                hold(ap, new ItemStack(net.divinerpg.utils.items.IceikaItems.soundOfCarols));
+                net.minecraftforge.event.entity.player.PlayerInteractEvent use = new net.minecraftforge.event.entity.player.PlayerInteractEvent(ap,
+                    net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w);
+                MinecraftForge.EVENT_BUS.post(use);
+                boolean noNotes = use.useItem == cpw.mods.fml.common.eventhandler.Event.Result.DENY;
+                int frosts = com.divinerpgextended.magic.AnchorSummons.count(ap, com.divinerpgextended.magic.AnchorSummons.Kind.FROST);
+                ok &= noNotes && frosts == 1;
+                rep.append("carols click: Frost ").append(frosts).append(", notes cancelled ").append(noNotes);
+                // the owner stands between Frost and the zombie: shards fly through the owner
+                net.minecraft.entity.EntityLiving fr = (net.minecraft.entity.EntityLiving) w.getEntitiesWithinAABB(com.divinerpgextended.magic.EntitySummonFrost.class, ap.boundingBox.expand(4, 4, 4)).get(0);
+                z.setLocationAndAngles(px + 7, py, pz, 0, 0);
+                w.spawnEntityInWorld(z);
+                z.getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(100000);
+                z.setHealth(z.getMaxHealth());
+                com.divinerpgextended.magic.AnchorSummons.mark(ap, z);
+                fr.setPosition(px - 1.5, py + 1.0, pz);
+                float hp0 = ap.getHealth();
+                double far = 0;
+                for (int n = 0; n < 45; n++) {
+                    fr.onUpdate();
+                    for (Object sh : w.getEntitiesWithinAABB(com.divinerpgextended.magic.EntityFrostShard.class, ap.boundingBox.expand(16, 16, 16))) ((net.minecraft.entity.Entity) sh).onUpdate();
+                    far = Math.max(far, fr.getDistanceToEntity(ap));
+                }
+                float dealt = z.getMaxHealth() - z.getHealth(), hit = com.divinerpgextended.magic.AnchorSummons.Kind.FROST.damage * com.divinerpgextended.magic.ArcanaRules.stage(ap);
+                boolean slowed = z.isPotionActive(net.minecraft.potion.Potion.moveSlowdown), ownerSafe = ap.getHealth() >= hp0;
+                ok &= dealt >= hit * 2 - 0.01F && slowed && ownerSafe && far < 4;
+                rep.append("; in 45 ticks: damage ").append(f(dealt)).append(" (shot ").append(f(hit)).append("), zombie slowed ").append(slowed)
+                    .append(", owner unhurt ").append(ownerSafe).append(", Frost stayed within ").append(f((float) far)).append(" blocks of the owner");
             } finally {
                 com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
                 z.setDead();
