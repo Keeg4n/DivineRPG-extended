@@ -130,7 +130,7 @@ public class SelfTest {
             List<Runnable> l = later.remove(ticks);
             if (l != null) for (Runnable r : l) r.run();
         } catch (Throwable t) {
-            results.add(new String[] { "-", "-", "СБОЙ", "самопроверка упала: " + t });
+            results.add(new String[] { "-", "-", "FAIL", "self-check failed: " + t });
         }
         if (ticks >= 40 && later.isEmpty()) {
             done = true;
@@ -234,12 +234,12 @@ public class SelfTest {
         }
         try {
             String detail = b.run();
-            results.add(new String[] { sheet, row, "работает", detail });
+            results.add(new String[] { sheet, row, "works", detail });
         } catch (Fail f) {
-            results.add(new String[] { sheet, row, "баг", f.getMessage() });
+            results.add(new String[] { sheet, row, "bug", f.getMessage() });
         } catch (Throwable x) {
             StackTraceElement[] st = x.getStackTrace();
-            results.add(new String[] { sheet, row, "сбой теста", x + (st.length > 0 ? " @ " + st[0] : "") });
+            results.add(new String[] { sheet, row, "test crash", x + (st.length > 0 ? " @ " + st[0] : "") });
         }
     }
 
@@ -470,7 +470,7 @@ public class SelfTest {
             com.divinerpgextended.accessory.Sockets.insert(worn, acc);
             return;
         }
-        throw new IllegalStateException("некуда встроить " + acc.getDisplayName());
+        throw new IllegalStateException("nowhere to build in " + acc.getDisplayName());
     }
 
     /** Take everything out of the worn armor. */
@@ -514,8 +514,8 @@ public class SelfTest {
                 lamp = new int[] { x + dx, y + dy, z + dz };
             }
         }
-        return "вокруг " + names + (lamp == null ? ", ламп нет" : ", лампа в " + best + " (свет " + w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Block, lamp[0], lamp[1], lamp[2])
-            + ", чанки вокруг " + w.doChunksNearChunkExist(lamp[0], lamp[1], lamp[2], 17) + ")") + ", в очереди " + com.divinerpgextended.world.WorldGenThrone.pending(w);
+        return "around " + names + (lamp == null ? ", no lamps" : ", lamp at " + best + " (light " + w.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Block, lamp[0], lamp[1], lamp[2])
+            + ", chunks around " + w.doChunksNearChunkExist(lamp[0], lamp[1], lamp[2], 17) + ")") + ", in queue " + com.divinerpgextended.world.WorldGenThrone.pending(w);
     }
 
     /** An empty 3 x 3 crafting grid for checking recipes. */
@@ -724,12 +724,12 @@ public class SelfTest {
         auditTests(p);
         moreTests(p, q, g, ow, sx, sy, sz);
         if (VetheaCoverage.enabled(ONLY)) { // full Vethea coverage - only by filter, not part of the normal run
-            t("Ветея - покрытие", "Чужие вещи сборки до и после прохождения", () -> {
+            t("Vethea - coverage", "Foreign items of the pack before and after progression", () -> {
                 VetheaCoverage vc = new VetheaCoverage();
                 String r = vc.run();
                 java.nio.file.Files.write(new File(server.getFile("logs"), "dre-vethea-leaks.txt").toPath(),
                     String.join(System.lineSeparator(), vc.leaks).getBytes(StandardCharsets.UTF_8));
-                check(vc.leaks.isEmpty(), r + "; первые утечки: " + vc.leaks.subList(0, Math.min(12, vc.leaks.size())) + " (все - logs/dre-vethea-leaks.txt)");
+                check(vc.leaks.isEmpty(), r + "; first leaks: " + vc.leaks.subList(0, Math.min(12, vc.leaks.size())) + " (all - logs/dre-vethea-leaks.txt)");
                 return r;
             });
             return;
@@ -742,7 +742,7 @@ public class SelfTest {
     }
 
     private void armorTests(final TestPlayer p, final EntityIronGolem g, final WorldServer ow, final int sx, final int sy, final int sz) {
-        t("Броня", "Бонус урона сета", () -> {
+        t("Armor", "Set damage bonus", () -> {
             reset(p);
             float none = golemHit(g, p, 1);
             armor(p, VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots);
@@ -750,10 +750,10 @@ public class SelfTest {
             armor(p, TwilightItemsArmor.haliteHelmet, TwilightItemsArmor.haliteChestplate, TwilightItemsArmor.haliteLeggings, TwilightItemsArmor.haliteBoots);
             float halite = golemHit(g, p, 1);
             // the golem is neutral: the divine set's bonus applies only to enemies, a separate test checks that
-            check(near(none, 1) && near(divine, 1) && near(halite, 17), "кулак: без сета " + f(none) + ", Divine " + f(divine) + ", Halite " + f(halite) + " (ждали 1/1/17)");
-            return "кулак по голему 1 > Divine 1, Halite 17";
+            check(near(none, 1) && near(divine, 1) && near(halite, 17), "fist: no set " + f(none) + ", Divine " + f(divine) + ", Halite " + f(halite) + " (expected 1/1/17)");
+            return "fist on golem 1 > Divine 1, Halite 17";
         });
-        t("Броня", "Santa в Айсике", () -> {
+        t("Armor", "Santa in Iceika", () -> {
             reset(p);
             armor(p, IceikaItems.santaCap, IceikaItems.santaTunic, IceikaItems.santaPants, IceikaItems.santaBoots);
             float over = golemHit(g, p, 1);
@@ -768,11 +768,11 @@ public class SelfTest {
             EntityZombie zo = new EntityZombie(ow);
             float takenOver = hit(p, DamageSource.causeMobDamage(zo), 10);
             gi.setDead();
-            check(near(over, 1) && near(iced, 7), "удар: вне Айсики " + f(over) + ", в Айсике " + f(iced) + " (ждали 1 и 7)");
-            check(takenIce < takenOver * 0.2F, "входящий урон в Айсике " + f(takenIce) + " не меньше x0.2 от " + f(takenOver));
-            return "+6 к удару только в Айсике; входящий урон " + f(takenOver) + " > " + f(takenIce) + " (x" + f(takenIce / takenOver) + ")";
+            check(near(over, 1) && near(iced, 7), "hit: outside Iceika " + f(over) + ", in Iceika " + f(iced) + " (expected 1 and 7)");
+            check(takenIce < takenOver * 0.2F, "incoming damage in Iceika " + f(takenIce) + " is not less than x0.2 of " + f(takenOver));
+            return "+6 to hit only in Iceika; incoming damage " + f(takenOver) + " > " + f(takenIce) + " (x" + f(takenIce / takenOver) + ")";
         });
-        t("Броня", "Защита сетов", () -> {
+        t("Armor", "Set protection", () -> {
             reset(p);
             DamageSource boom = new DamageSource("explosion").setExplosion();
             boolean watcher = com.divinerpgextended.boss.BossProgress.has(p, com.divinerpgextended.boss.Boss.WATCHER);
@@ -792,11 +792,11 @@ public class SelfTest {
             p.removePotionEffect(net.minecraft.potion.Potion.poison.id);
             armor(p, TwilightItemsArmor.apalachiaHelmet, TwilightItemsArmor.apalachiaChestplate, TwilightItemsArmor.apalachiaLeggings, TwilightItemsArmor.apalachiaBoots);
             float cactus = hit(p, DamageSource.cactus, 4);
-            check(ender == 0 && bedrock == 0 && wither == 0 && drown == 0 && poison == 0 && cactus == 0, "урон: Ender " + f(ender) + ", Bedrock " + f(bedrock)
+            check(ender == 0 && bedrock == 0 && wither == 0 && drown == 0 && poison == 0 && cactus == 0, "damage: Ender " + f(ender) + ", Bedrock " + f(bedrock)
                 + ", Wither Reaper " + f(wither) + ", Kraken " + f(drown) + ", Jungle " + f(poison) + ", Apalachia " + f(cactus));
-            return "взрыв (Ender, Bedrock - после Смотрителя), иссушение, утопление, яд, кактус - урон 0";
+            return "explosion (Ender, Bedrock - after the Watcher), wither, drowning, poison, cactus - damage 0";
         });
-        t("Броня", "Arlemite и Rupee", () -> {
+        t("Armor", "Arlemite and Rupee", () -> {
             reset(p);
             EntityZombie z = new EntityZombie(ow);
             EntityArrow arrow = new EntityArrow(ow, z, 1.0F);
@@ -810,21 +810,21 @@ public class SelfTest {
             p.setHealth(p.getMaxHealth());
             float rMelee = hit(p, DamageSource.causeMobDamage(z), 10);
             p.setHealth(p.getMaxHealth());
-            check(Math.abs(aArrow / aMelee - 0.3F) < 0.05F, "Arlemite: стрела " + f(aArrow) + " / удар " + f(aMelee) + " (ждали x0.3)");
-            check(Math.abs(rMelee / rArrow - 0.3F) < 0.05F, "Rupee: удар " + f(rMelee) + " / стрела " + f(rArrow) + " (ждали x0.3)");
-            return "Arlemite: стрела x" + f(aArrow / aMelee) + " к удару; Rupee: удар моба x" + f(rMelee / rArrow) + " к стреле";
+            check(Math.abs(aArrow / aMelee - 0.3F) < 0.05F, "Arlemite: arrow " + f(aArrow) + " / hit " + f(aMelee) + " (expected x0.3)");
+            check(Math.abs(rMelee / rArrow - 0.3F) < 0.05F, "Rupee: hit " + f(rMelee) + " / arrow " + f(rArrow) + " (expected x0.3)");
+            return "Arlemite: arrow x" + f(aArrow / aMelee) + " of hit; Rupee: mob hit x" + f(rMelee / rArrow) + " of arrow";
         });
-        t("Броня", "Сет из разных цветов", () -> {
+        t("Armor", "Set of mixed colors", () -> {
             reset(p);
             armor(p, VanillaItemsArmor.redEnderHelmet, VanillaItemsArmor.blueEnderBody, VanillaItemsArmor.yellowEnderLegs, VanillaItemsArmor.enderBoots);
             boolean watcher = com.divinerpgextended.boss.BossProgress.has(p, com.divinerpgextended.boss.Boss.WATCHER);
             com.divinerpgextended.boss.BossProgress.grant(p, com.divinerpgextended.boss.Boss.WATCHER);
             float d = hit(p, new DamageSource("explosion").setExplosion(), 10);
             if (!watcher) com.divinerpgextended.boss.BossProgress.revoke(p, com.divinerpgextended.boss.Boss.WATCHER);
-            check(d == 0, "смешанный Ender: урон от взрыва " + f(d));
-            return "Ender четырёх цветов: взрыв 0";
+            check(d == 0, "mixed Ender: explosion damage " + f(d));
+            return "Ender of four colors: explosion 0";
         });
-        t("Броня", "Порча - вещи тьмы: скорость от света, глаза Груи", () -> {
+        t("Armor", "Corruption - dark items: speed from light, Grue eyes", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x0 = 30900, y0 = 140, z0 = 30900;
             loadAround(w, x0, z0, 1);
@@ -863,21 +863,21 @@ public class SelfTest {
                 && Math.abs(com.divinerpgextended.perk.CorruptedGear.speed(15) - 0.8F) < 0.01;
             check(curve && openOk && lightDark <= com.divinerpgextended.perk.CorruptedGear.DARK_MAX && Math.abs(dark.newSpeed - 10F * com.divinerpgextended.perk.CorruptedGear.speed(lightDark)) < 0.01
                 && dark.newSpeed >= 20F && digSight && !plainSight && hitSight,
-                "кривая " + curve + "; на открытом месте свет " + lightOpen + ", скорость " + open.newSpeed + "; в клетке свет " + lightDark + ", скорость " + dark.newSpeed
-                    + "; копаешь во тьме - ночное зрение " + digSight + "; удар во тьме: железным мечом " + plainSight + ", мечом порчи " + hitSight);
-            return "кирка порчи: свет " + lightOpen + " - x" + com.divinerpgextended.perk.CorruptedGear.speed(lightOpen) + ", тьма " + lightDark + " - x" + com.divinerpgextended.perk.CorruptedGear.speed(lightDark)
-                + "; копаешь или бьёшь мечом порчи во тьме - ночное зрение";
+                "curve " + curve + "; in the open light " + lightOpen + ", speed " + open.newSpeed + "; in a cell light " + lightDark + ", speed " + dark.newSpeed
+                    + "; digging in the dark - night vision " + digSight + "; hit in the dark: iron sword " + plainSight + ", corruption sword " + hitSight);
+            return "corruption pickaxe: light " + lightOpen + " - x" + com.divinerpgextended.perk.CorruptedGear.speed(lightOpen) + ", darkness " + lightDark + " - x" + com.divinerpgextended.perk.CorruptedGear.speed(lightDark)
+                + "; digging or hitting with the corruption sword in the dark - night vision";
         });
-        t("Броня", "Сет без одной вещи", () -> {
+        t("Armor", "Set missing one piece", () -> {
             reset(p);
             armor(p, null, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots);
             float d = golemHit(g, p, 1);
             armor(p, null, VanillaItemsArmor.bedrockBody, VanillaItemsArmor.bedrockLegs, VanillaItemsArmor.bedrockBoots);
             float b = hit(p, new DamageSource("explosion").setExplosion(), 10);
-            check(near(d, 1) && b > 0, "Divine без шлема: удар " + f(d) + " (ждали 1); Bedrock без шлема: взрыв " + f(b) + " (ждали > 0)");
-            return "без шлема: бонуса и защиты нет";
+            check(near(d, 1) && b > 0, "Divine without helmet: hit " + f(d) + " (expected 1); Bedrock without helmet: explosion " + f(b) + " (expected > 0)");
+            return "without helmet: no bonus and no protection";
         });
-        t("Броня", "Vemos лечит выше 10 сердец", () -> {
+        t("Armor", "Vemos heals above 10 hearts", () -> {
             reset(p);
             UUID id = UUID.fromString("0d0d0d0d-0000-4000-8000-000000000001");
             p.getEntityAttribute(SharedMonsterAttributes.maxHealth).applyModifier(new AttributeModifier(id, "selftest", 8, 0));
@@ -886,13 +886,13 @@ public class SelfTest {
                 p.setHealth(21);
                 tick(p, 20);
                 float h = p.getHealth();
-                check(h > 22.5F, "за 20 тиков здоровье 21 > " + f(h) + " (ждали около 23)");
-                return "28 макс: 21 > " + f(h) + " за секунду";
+                check(h > 22.5F, "over 20 ticks health 21 > " + f(h) + " (expected about 23)");
+                return "28 max: 21 > " + f(h) + " per second";
             } finally {
                 p.getEntityAttribute(SharedMonsterAttributes.maxHealth).removeModifier(p.getEntityAttribute(SharedMonsterAttributes.maxHealth).getModifier(id));
             }
         });
-        t("Броня", "Wildwood в воде выше 10 сердец", () -> {
+        t("Armor", "Wildwood in water above 10 hearts", () -> {
             reset(p);
             UUID id = UUID.fromString("0d0d0d0d-0000-4000-8000-000000000002");
             p.getEntityAttribute(SharedMonsterAttributes.maxHealth).applyModifier(new AttributeModifier(id, "selftest", 8, 0));
@@ -905,8 +905,8 @@ public class SelfTest {
                 p.setHealth(21);
                 tick(p, 8);
                 float h = p.getHealth();
-                check(h > 22.5F, "в воде за 8 тиков 21 > " + f(h));
-                return "в воде 21 > " + f(h) + " за 8 тиков";
+                check(h > 22.5F, "in water over 8 ticks 21 > " + f(h));
+                return "in water 21 > " + f(h) + " over 8 ticks";
             } finally {
                 ow.setBlock(x, y, z, b0);
                 ow.setBlock(x, y + 1, z, b1);
@@ -916,7 +916,7 @@ public class SelfTest {
     }
 
     private void accessoryTests(final TestPlayer p, final TestPlayer q, final EntityIronGolem g, final WorldServer ow) {
-        t("Аксессуары", "Гнёзда: Странник, Divine, ванильная", () -> {
+        t("Accessories", "Sockets: Wanderer, Divine, vanilla", () -> {
             reset(p);
             Item[] rm = { VanillaItemsArmor.realmiteHelmet, VanillaItemsArmor.realmiteBody, VanillaItemsArmor.realmiteLegs, VanillaItemsArmor.realmiteBoots };
             int closed = Config.requireBossUnlocks ? 1 : 2;
@@ -928,14 +928,14 @@ public class SelfTest {
                 BossProgress.grant(p, Sockets.SECOND[type]);
                 int after = Sockets.capacity(w, p), other = Sockets.capacity(new ItemStack(ModItems.wanderer[(type + 1) % 4]), p);
                 ok &= before == closed && after == 2 && other == closed && Sockets.capacity(d, p) == 1;
-                b.append(Sockets.SECOND[type]).append(": ").append(before).append(">").append(after).append(" (соседняя часть ").append(other).append("); ");
+                b.append(Sockets.SECOND[type]).append(": ").append(before).append(">").append(after).append(" (adjacent part ").append(other).append("); ");
                 BossProgress.revoke(p, Sockets.SECOND[type]);
             }
             boolean vanilla = !Sockets.socketable(new ItemStack(Items.iron_chestplate)) && !Sockets.socketable(new ItemStack(Items.diamond_sword));
-            check(ok && vanilla, b + "ванильная без гнёзд " + vanilla);
-            return "Странник: гнездо в каждой части, второе - за босса части (шлем - Карот, нагрудник - Лич, поножи - Смотритель, ботинки - Демон сумерек); Divine - одно; ванильная - без гнёзд";
+            check(ok && vanilla, b + "vanilla without sockets " + vanilla);
+            return "Wanderer: a socket in every part, the second one for the part's boss (helmet - Karot, chestplate - Lich, leggings - Watcher, boots - Twilight Demon); Divine - one; vanilla - no sockets";
         });
-        t("Аксессуары", "Только встроенный в надетую броню", () -> {
+        t("Accessories", "Only the one built into worn armor", () -> {
             reset(p);
             p.inventory.mainInventory[5] = trinket(Trinket.BLUE_FLAME);
             boolean inBag = Accessories.wears(p, Trinket.BLUE_FLAME);
@@ -946,10 +946,10 @@ public class SelfTest {
             p.inventory.mainInventory[6] = null;
             p.inventory.armorInventory[0] = boots;
             boolean worn = Accessories.wears(p, Trinket.BLUE_FLAME);
-            check(!inBag && !armorInBag && worn, "в рюкзаке " + inBag + ", в броне в рюкзаке " + armorInBag + ", в надетой броне " + worn);
-            return "в рюкзаке и в ненадетой броне не работает, в надетой - работает";
+            check(!inBag && !armorInBag && worn, "in backpack " + inBag + ", in armor in backpack " + armorInBag + ", in worn armor " + worn);
+            return "in a backpack and in unworn armor it does not work, in worn armor - it works";
         });
-        t("Аксессуары", "Один эффект в части - один раз", () -> {
+        t("Accessories", "One effect per part - once", () -> {
             reset(p);
             BossProgress.grant(p, Boss.KAROT);
             BossProgress.grant(p, Boss.LICH_KING);
@@ -965,18 +965,18 @@ public class SelfTest {
             float one = golemHit(g, p, 1);
             time(ow, 6000);
             check(same == Sockets.Fit.SAME && part == Sockets.Fit.SAME && wrong == Sockets.Fit.PART && free == Sockets.Fit.OK && near(one, 1.15F),
-                "второй амулет в шлем: " + same + ", брошь к Сердцу зимы: " + part + ", ковёр в нагрудник: " + wrong + ", медаль во второе гнездо: " + free + "; ночью x" + f(one));
-            return "одинаковый эффект в одну часть не встаёт (и часть объединённого), чужая часть - тоже; амулет Джека ночью x1.15";
+                "second amulet into helmet: " + same + ", brooch next to Heart of Winter: " + part + ", carpet into chestplate: " + wrong + ", medal into second socket: " + free + "; at night x" + f(one));
+            return "the same effect does not go into one part twice (nor a part of a merged one), a foreign part either; Jack's amulet at night x1.15";
         });
-        t("Аксессуары", "Объединённый и его часть", () -> {
+        t("Accessories", "Merged one and its part", () -> {
             reset(p);
             wearT(p, Trinket.STEADFAST_BELT);
             wearT(p, Trinket.BLAST_BELT);
             float d = hit(p, new DamageSource("explosion").setExplosion(), 8);
-            check(near(d, 1.76F), "взрыв 8 > " + f(d) + " (ждали 1.76: пояс x0.25 один раз и наплечник x0.88)");
-            return "взрыв 8 > 1.76: пояс x0.25 не удваивается (+ наплечник из Несокрушимого пояса x0.88)";
+            check(near(d, 1.76F), "explosion 8 > " + f(d) + " (expected 1.76: belt x0.25 once and pauldron x0.88)");
+            return "explosion 8 > 1.76: belt x0.25 is not doubled (+ pauldron from the Steadfast Belt x0.88)";
         });
-        t("Аксессуары", "Наковальня: встроить за уровни и вынуть", () -> {
+        t("Accessories", "Anvil: build in for levels and take out", () -> {
             reset(p);
             com.divinerpgextended.station.AnvilWork an = new com.divinerpgextended.station.AnvilWork();
             ItemStack chest = new ItemStack(VanillaItemsArmor.realmiteBody);
@@ -1014,12 +1014,12 @@ public class SelfTest {
             check(poor == AnvilLogic.Status.NEED_LEVELS && ready.status == AnvilLogic.Status.READY_SOCKET && ready.param == 15 && done && lvl == 15 && in
                 && part == AnvilLogic.Status.SOCKET_PART && full == AnvilLogic.Status.SOCKET_FULL && blocked && out && bossOk && open == AnvilLogic.Status.READY_SOCKET
                 && same == AnvilLogic.Status.SOCKET_SAME,
-                "без уровней " + poor + "; готово " + ready.status + " за " + ready.param + "; встроен " + done + "/" + in + ", уровней осталось " + lvl + " из 30; ковёр в нагрудник " + part
-                    + "; второй в нагрудник Divine " + full + "; вынуть без места " + !blocked + ", вынут " + out + "; второе гнездо Странника до Лича " + boss.status
-                    + ", после " + open + "; тот же эффект " + same);
-            return "панцирь в нагрудник Divine за 15 ур.; без уровней, в чужую часть и сверх гнёзд - нет; вынимается бесплатно в свободного донора; второе гнездо Странника - после босса части";
+                "without levels " + poor + "; ready " + ready.status + " for " + ready.param + "; built in " + done + "/" + in + ", levels left " + lvl + " of 30; carpet into chestplate " + part
+                    + "; second into Divine chestplate " + full + "; take out without room " + !blocked + ", taken out " + out + "; second Wanderer socket before Lich " + boss.status
+                    + ", after " + open + "; same effect " + same);
+            return "shell into Divine chestplate for 15 lvl.; without levels, into a foreign part and beyond the sockets - no; taken out for free into a free donor; second Wanderer socket - after the part's boss";
         });
-        t("Аксессуары", "Наковальня: улучшение не съедает аксессуары", () -> {
+        t("Accessories", "Anvil: upgrade does not eat accessories", () -> {
             reset(p);
             com.divinerpgextended.station.AnvilWork an = new com.divinerpgextended.station.AnvilWork();
             Item[] rm = { VanillaItemsArmor.realmiteHelmet, VanillaItemsArmor.realmiteBody, VanillaItemsArmor.realmiteLegs, VanillaItemsArmor.realmiteBoots };
@@ -1055,13 +1055,13 @@ public class SelfTest {
             check(realmite == AnvilLogic.Status.BAD_ARMOR && blocked.status == AnvilLogic.Status.DONOR_SOCKETS && blocked.param == 1 && back.size() == 1
                 && extra == AnvilLogic.Status.DONOR_UNNEEDED && ready.status == AnvilLogic.Status.READY_UPGRADE && ready.param == 1 && up && carried && paid
                 && looks,
-                "реалмит " + realmite + "; донор с медалью " + blocked.status + " (слот " + blocked.param + "); лишний донор " + extra
-                    + "; без донора и Древней сущности " + ready.status + "/" + ready.param + "; божественная > R1 " + up
-                    + ", ковёр перешёл в ботинки Странника " + carried + ", топливо списано " + paid + "; скин " + skin);
-            return "R1 - из божественной брони, без донора и без босса; реалмит не принимается; донорская броня с аксессуарами не принимается; "
-                + "аксессуары божественных частей переходят в части Странника; скин - облик R1";
+                "realmite " + realmite + "; donor with medal " + blocked.status + " (slot " + blocked.param + "); extra donor " + extra
+                    + "; without donor and Ancient Entity " + ready.status + "/" + ready.param + "; divine > R1 " + up
+                    + ", carpet moved to Wanderer boots " + carried + ", fuel spent " + paid + "; skin " + skin);
+            return "R1 - from divine armor, without donor and without boss; realmite is not accepted; donor armor with accessories is not accepted; "
+                + "accessories of the divine parts move to the Wanderer parts; skin - R1 look";
         });
-        t("Броня", "Странник: облики ступеней", () -> {
+        t("Armor", "Wanderer: tier looks", () -> {
             // each tier has a mesh with all four pieces, an atlas and piece icons; the item skin is the atlas of its own tier
             StringBuilder bad = new StringBuilder();
             String root = "/assets/divinerpgextended/";
@@ -1072,7 +1072,7 @@ public class SelfTest {
                 java.util.Map<String, Integer> quads = new java.util.HashMap<String, Integer>();
                 java.io.InputStream mesh = SelfTest.class.getResourceAsStream(root + "models/wanderer/" + name + ".mesh");
                 if (mesh == null) {
-                    bad.append(' ').append(name).append(": нет меша;");
+                    bad.append(' ').append(name).append(": no mesh;");
                     continue;
                 }
                 java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(mesh, "UTF-8"));
@@ -1083,23 +1083,23 @@ public class SelfTest {
                 }
                 br.close();
                 for (int a = 0; a < 4; a++) {
-                    if (!quads.containsKey(parts[a]) || quads.get(parts[a]) < 6) bad.append(' ').append(name).append(": мало граней ").append(parts[a]).append(';');
+                    if (!quads.containsKey(parts[a]) || quads.get(parts[a]) < 6) bad.append(' ').append(name).append(": too few faces ").append(parts[a]).append(';');
                     if (SelfTest.class.getResource(root + "textures/items/wanderer/" + name + "_" + parts[a] + ".png") == null)
-                        bad.append(' ').append(name).append(": нет значка ").append(parts[a]).append(';');
+                        bad.append(' ').append(name).append(": no icon ").append(parts[a]).append(';');
                     ItemStack piece = new ItemStack(ModItems.wanderer[a]);
                     int crownBase = com.divinerpgextended.item.ItemWandererArmor.CROWN_BASE;
                     com.divinerpgextended.item.ArmorData.setTier(piece, t <= looks ? t : t >= crownBase ? 8 : 1);
                     if (t > looks && t < crownBase) com.divinerpgextended.item.ArmorData.setCore(piece, com.divinerpgextended.item.ArmorCore.values()[t - looks]);
                     if (t >= crownBase) com.divinerpgextended.item.ArmorData.setCrown(piece, com.divinerpgextended.item.ArmorCrown.values()[t - crownBase]);
                     String skin = piece.getItem().getArmorTexture(piece, p, a, null);
-                    if (!com.divinerpgextended.item.ItemWandererArmor.lookTexture(t).equals(skin)) bad.append(' ').append(name).append(": скин ").append(skin).append(';');
+                    if (!com.divinerpgextended.item.ItemWandererArmor.lookTexture(t).equals(skin)) bad.append(' ').append(name).append(": skin ").append(skin).append(';');
                 }
-                if (SelfTest.class.getResource(root + "textures/models/wanderer/" + name + ".png") == null) bad.append(' ').append(name).append(": нет атласа;");
+                if (SelfTest.class.getResource(root + "textures/models/wanderer/" + name + ".png") == null) bad.append(' ').append(name).append(": no atlas;");
             }
             check(bad.length() == 0, bad.toString());
-            return "R1-R" + looks + ", R1 по ядрам и R8 по Венцу: меш с шлемом, нагрудником, поножами и ботинками, атлас, значки частей, свой скин";
+            return "R1-R" + looks + ", R1 by cores and R8 by Crown: mesh with helmet, chestplate, leggings and boots, atlas, part icons, own skin";
         });
-        t("Броня", "R8: Венец за Леди Луну, смена Венца, свойства только Венцом, облики", () -> {
+        t("Armor", "R8: Crown for Lady Luna, Crown swap, properties only by Crown, looks", () -> {
             reset(p);
             com.divinerpgextended.station.AnvilWork an = new com.divinerpgextended.station.AnvilWork();
             Item[][] sets = { { VanillaItemsArmor.angelicHelmet, VanillaItemsArmor.angelicBody, VanillaItemsArmor.angelicLegs, VanillaItemsArmor.angelicBoots },
@@ -1137,8 +1137,8 @@ public class SelfTest {
                     && wrongSpirit == AnvilLogic.Status.NEED_FUEL && ready.status == AnvilLogic.Status.READY_R8 && ready.param == com.divinerpgextended.item.ArmorCrown.FLIGHT.ordinal()
                     && oldPerks.equals(java.util.Arrays.asList(Perk.WATER_BREATHING));
                 ok &= r8 && flow;
-                rep.append("R7 -> R8: без Луны ").append(noBoss.status).append(", без топлива ").append(noFuel.status).append(", не тот дух ").append(wrongSpirit).append(", готово ")
-                    .append(ready.status).append("; закалено ").append(r8).append("; старый полёт в слотах не считается ").append(oldPerks);
+                rep.append("R7 -> R8: without Luna ").append(noBoss.status).append(", without fuel ").append(noFuel.status).append(", wrong spirit ").append(wrongSpirit).append(", ready ")
+                    .append(ready.status).append("; tempered ").append(r8).append("; old flight in slots does not count ").append(oldPerks);
                 // Crown swap: Vemos set + arlemite; the same Crown - no
                 for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.DONOR + i, new ItemStack(sets[1][i]));
                 an.setInventorySlotContents(AnvilLogic.FUEL, null);
@@ -1150,7 +1150,7 @@ public class SelfTest {
                 for (int i = 0; i < 4; i++) an.setInventorySlotContents(AnvilLogic.DONOR + i, new ItemStack(sets[1][i]));
                 AnvilLogic.Status same = AnvilLogic.evaluate(an, p).status;
                 ok &= swapNoFuel == AnvilLogic.Status.NEED_FUEL && swap.status == AnvilLogic.Status.READY_CROWN && swapped && same == AnvilLogic.Status.CROWN_SAME;
-                rep.append("; смена Венца: без арлемита ").append(swapNoFuel).append(", готово ").append(swap.status).append(", сменён ").append(swapped).append(", тот же ").append(same);
+                rep.append("; Crown swap: without arlemite ").append(swapNoFuel).append(", ready ").append(swap.status).append(", swapped ").append(swapped).append(", same ").append(same);
                 // below R7 a set with a Crown property is refused, it is not set as a minor perk
                 for (int i = 0; i < 4; i++) {
                     ItemStack st = new ItemStack(ModItems.wanderer[i]);
@@ -1161,7 +1161,7 @@ public class SelfTest {
                 }
                 AnvilLogic.Status low = AnvilLogic.evaluate(an, p).status;
                 ok &= low == AnvilLogic.Status.CROWN_R8_ONLY;
-                rep.append("; R5 с Кормой ").append(low);
+                rep.append("; R5 with Korma ").append(low);
                 // effect: the property only on its own Crown, tier 8 for bosses, R8 protection
                 StringBuilder act = new StringBuilder();
                 for (com.divinerpgextended.item.ArmorCrown c : com.divinerpgextended.item.ArmorCrown.values()) {
@@ -1174,7 +1174,7 @@ public class SelfTest {
                     boolean lk = com.divinerpgextended.item.ItemWandererArmor.lookName(look).equals("r8_" + c.key())
                         && com.divinerpgextended.item.ItemWandererArmor.translucent(look) == (c == com.divinerpgextended.item.ArmorCrown.FLIGHT);
                     ok &= mine && !other && rank == 8 && lk;
-                    act.append(c).append(": своё ").append(mine).append(", чужое ").append(other).append(", для боссов R").append(rank).append(", облик ").append(lk).append("; ");
+                    act.append(c).append(": own ").append(mine).append(", foreign ").append(other).append(", for bosses R").append(rank).append(", look ").append(lk).append("; ");
                 }
                 // the old flight perk on R7 no longer works
                 wearCore(p, null, Perk.ANGEL_FLIGHT);
@@ -1182,7 +1182,7 @@ public class SelfTest {
                 for (int i = 0; i < 4; i++) com.divinerpgextended.item.ArmorData.bind(p.inventory.armorInventory[i], p);
                 boolean oldFlight = com.divinerpgextended.item.ArmorData.hasEquippedPerk(p, Perk.ANGEL_FLIGHT);
                 ok &= !oldFlight && com.divinerpgextended.Config.fullReduction(8) > com.divinerpgextended.Config.fullReduction(7) && com.divinerpgextended.Config.smallSlots(8) >= 4;
-                rep.append("; ").append(act).append("R7 со старым полётом летает ").append(oldFlight).append("; защита R8 ").append(com.divinerpgextended.Config.fullReduction(8)).append('%');
+                rep.append("; ").append(act).append("R7 with old flight flies ").append(oldFlight).append("; R8 protection ").append(com.divinerpgextended.Config.fullReduction(8)).append('%');
                 // Arcana Crown: staff arcane damage x2
                 ItemStack staff = new ItemStack(ModItems.mageStaff, 1, 3);
                 reset(p);
@@ -1194,7 +1194,7 @@ public class SelfTest {
                 for (int i = 0; i < 4; i++) com.divinerpgextended.item.ArmorData.bind(p.inventory.armorInventory[i], p);
                 float flight = com.divinerpgextended.magic.ArcanaCombat.damage(p, staff);
                 ok &= plain > 0 && Math.abs(crowned - plain * com.divinerpgextended.Config.crownArcanaDamage) < 0.01F && Math.abs(flight - plain) < 0.01F;
-                rep.append("; посох колдуна: ").append(f(plain)).append(", с Венцом арканы ").append(f(crowned)).append(", с Венцом полёта ").append(f(flight));
+                rep.append("; sorcerer staff: ").append(f(plain)).append(", with Arcana Crown ").append(f(crowned)).append(", with Flight Crown ").append(f(flight));
                 // the Wraith atlas is semi-transparent, the darkness under the hood is not
                 java.awt.image.BufferedImage atlas = javax.imageio.ImageIO.read(SelfTest.class.getResourceAsStream("/assets/divinerpgextended/textures/models/wanderer/r8_flight.png"));
                 int half = 0, full = 0;
@@ -1210,7 +1210,7 @@ public class SelfTest {
                     if (al > 0 && al < 255) moonHalf++;
                 }
                 ok &= half > 1000 && full > 50 && moonHalf == 0;
-                rep.append("; атлас Призрака: полупрозрачных ").append(half).append(", непрозрачных ").append(full).append(", у Лунной полупрозрачных ").append(moonHalf);
+                rep.append("; Wraith atlas: translucent ").append(half).append(", opaque ").append(full).append(", Lunar translucent ").append(moonHalf);
             } finally {
                 if (!hadLuna) BossProgress.revoke(p, Boss.LADY_LUNA);
                 reset(p);
@@ -1218,7 +1218,7 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Броня", "Вилка R1: ковка из финальных сетов, плата божественными камнями, смена ядра (и донором R1 Странника)", () -> {
+        t("Armor", "R1 fork: forging from final sets, payment in divine stones, core swap (and by R1 Wanderer donor)", () -> {
             reset(p);
             com.divinerpgextended.station.AnvilWork an = new com.divinerpgextended.station.AnvilWork();
             Item stone = VanillaItemsOther.divineStone;
@@ -1254,8 +1254,8 @@ public class SelfTest {
                 boolean one = none.status == AnvilLogic.Status.NEED_FUEL && none.param == need && none.fuel == stone && wrong == AnvilLogic.Status.NEED_FUEL && few == AnvilLogic.Status.NEED_FUEL
                     && ready.status == AnvilLogic.Status.READY_UPGRADE && ready.param == 1 && up && made && left != null && left.stackSize == 3 && rank == 1;
                 ok &= one;
-                rep.append(cores[c]).append(": плата ").append(need).append(", без топлива ").append(none.status).append(", реалмит ").append(wrong).append(", мало ").append(few).append(", готово ").append(ready.status)
-                    .append(", сковано ").append(made).append(", осталось камней ").append(left == null ? 0 : left.stackSize).append(", для боссов R").append(rank).append("; ");
+                rep.append(cores[c]).append(": payment ").append(need).append(", without fuel ").append(none.status).append(", realmite ").append(wrong).append(", too few ").append(few).append(", ready ").append(ready.status)
+                    .append(", forged ").append(made).append(", stones left ").append(left == null ? 0 : left.stackSize).append(", for bosses R").append(rank).append("; ");
             }
             // non-final sets and a mix of different ones - no; Terran for bosses is R0, the fee is configurable
             armor(p, VanillaItemsArmor.terranHelmet, VanillaItemsArmor.terranBody, VanillaItemsArmor.terranLegs, VanillaItemsArmor.terranBoots);
@@ -1267,7 +1267,7 @@ public class SelfTest {
             an.setInventorySlotContents(AnvilLogic.FUEL, new ItemStack(stone, 64));
             AnvilLogic.Status mix = AnvilLogic.evaluate(an, p, AnvilLogic.UPGRADE).status;
             ok &= terranRank == 0 && mix == AnvilLogic.Status.BAD_ARMOR;
-            rep.append("Terran для боссов R").append(terranRank).append(", смесь сетов ").append(mix).append("; ");
+            rep.append("Terran for bosses R").append(terranRank).append(", set mix ").append(mix).append("; ");
             // tempering does not touch the core; R2 - a shared look
             for (int i = 0; i < AnvilLogic.SIZE; i++) an.setInventorySlotContents(i, null);
             ItemStack[] w = new ItemStack[4];
@@ -1347,25 +1347,25 @@ public class SelfTest {
                 && rockEmpty.status == AnvilLogic.Status.CORE_FUEL && rockEmpty.param == 12 && rockEmpty.fuel == stone
                 && shadowSame == AnvilLogic.Status.CORE_SAME;
             ok &= viaR1;
-            rep.append("; донор R1 Тени ").append(byR1.status).append(", сменено без платы ").append(r1Done).append(", то же ядро ").append(r1Same).append(", донор R3 ").append(r3Donor).append(", чужой R1 ").append(foreignDonor.status)
-                .append(", бедрок без топлива ").append(rockEmpty.status).append(' ').append(rockEmpty.param).append(", сет Тени на ядре Тени ").append(shadowSame).append("; ");
+            rep.append("; R1 Shadow donor ").append(byR1.status).append(", swapped without payment ").append(r1Done).append(", same core ").append(r1Same).append(", R3 donor ").append(r3Donor).append(", foreign R1 ").append(foreignDonor.status)
+                .append(", bedrock without fuel ").append(rockEmpty.status).append(' ').append(rockEmpty.param).append(", Shadow set on Shadow core ").append(shadowSame).append("; ");
             ok &= perkWay.status == AnvilLogic.Status.READY_PERK && perkWay.param == Perk.FIRE_PROTECTION.ordinal() && fewStones.status == AnvilLogic.Status.CORE_FUEL && fewStones.param == 12
                 && coreWay.status == AnvilLogic.Status.READY_CORE && coreWay.param == com.divinerpgextended.item.ArmorCore.BEDROCK.ordinal() && swapDone
                 && backNoFuel.status == AnvilLogic.Status.NEED_FUEL && backNoFuel.fuel == VanillaItemsOther.realmiteIngot && differ == AnvilLogic.Status.BAD_ARMOR;
-            rep.append("закалка сохранила ядро ").append(kept).append("; бедрок с арлемитом ").append(perkWay.status).append(", 11 камней ").append(fewStones.status).append(", 12 камней ").append(coreWay.status).append(", сменено ").append(swapDone)
-                .append("; божественный без топлива ").append(backNoFuel.status).append("; разное ядро в частях ").append(differ);
+            rep.append("tempering kept the core ").append(kept).append("; bedrock with arlemite ").append(perkWay.status).append(", 11 stones ").append(fewStones.status).append(", 12 stones ").append(coreWay.status).append(", swapped ").append(swapDone)
+                .append("; divine without fuel ").append(backNoFuel.status).append("; different core in parts ").append(differ);
             // new perks by set
             Item[] rupeeRed = { VanillaItemsArmor.redRupeeHelmet, VanillaItemsArmor.redRupeeBody, VanillaItemsArmor.redRupeeLegs, VanillaItemsArmor.redRupeeBoots };
             Item[] terran = { VanillaItemsArmor.terranHelmet, VanillaItemsArmor.terranBody, VanillaItemsArmor.terranLegs, VanillaItemsArmor.terranBoots };
             Item[] arl = { VanillaItemsArmor.arlemiteHelmet, VanillaItemsArmor.arlemiteBody, VanillaItemsArmor.arlemiteLegs, VanillaItemsArmor.arlemiteBoots };
             boolean donors = Perk.byDonor(sets[0]) == Perk.SWIFTNESS && Perk.byDonor(sets[3]) == Perk.MARKSMAN && Perk.byDonor(terran) == Perk.MINING_HASTE && Perk.byDonor(arl) == Perk.ARROW_GUARD && Perk.byDonor(rupeeRed) == Perk.BLOW_GUARD;
             ok &= donors;
-            rep.append("; доноры новых перков ").append(donors);
+            rep.append("; donors of new perks ").append(donors);
             reset(p);
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Броня", "Вилка R1: свойства ядер и новых перков", () -> {
+        t("Armor", "R1 fork: properties of cores and new perks", () -> {
             reset(p);
             WorldServer w = (WorldServer) p.worldObj;
             net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w);
@@ -1378,7 +1378,7 @@ public class SelfTest {
             wearCore(p, com.divinerpgextended.item.ArmorCore.CORRUPTED);
             float rotHit = hurtBy(z, DamageSource.causePlayerDamage(p), 10F), rotShot = hurtBy(z, DamageSource.causeArrowDamage(myArrow, p), 10F);
             boolean damage = near(divine, 20F) && near(divineShot, 10F) && near(rotHit, 10F) && near(rotShot, 12F);
-            rep.append("божественное: рукой ").append(f(divine)).append(", выстрел ").append(f(divineShot)).append("; порча: рукой ").append(f(rotHit)).append(", выстрел ").append(f(rotShot));
+            rep.append("divine: by hand ").append(f(divine)).append(", shot ").append(f(divineShot)).append("; corruption: by hand ").append(f(rotHit)).append(", shot ").append(f(rotShot));
             // fire and explosions: bedrock - fire always, explosions after the Watcher; Ender - only explosions; Shadow - nothing
             DamageSource boom = DamageSource.setExplosionSource(null);
             wearCore(p, com.divinerpgextended.item.ArmorCore.BEDROCK);
@@ -1392,7 +1392,7 @@ public class SelfTest {
             wearCore(p, com.divinerpgextended.item.ArmorCore.SHADOW);
             boolean shadowBoom = blocked(p, boom), shadowFire = blocked(p, DamageSource.inFire);
             boolean shields = rockFire && !rockEarly && !enderEarly && !enderFire && enderStep && enderLate && rockLate && !rockStep && !shadowBoom && !shadowFire;
-            rep.append("; бедрок: огонь ").append(rockFire).append(", взрыв до Смотрителя ").append(rockEarly).append(", после ").append(rockLate).append("; Энд: огонь ").append(enderFire).append(", взрыв до ").append(enderEarly).append(", после ").append(enderLate).append(", шаг ").append(enderStep);
+            rep.append("; bedrock: fire ").append(rockFire).append(", explosion before the Watcher ").append(rockEarly).append(", after ").append(rockLate).append("; End: fire ").append(enderFire).append(", explosion before ").append(enderEarly).append(", after ").append(enderLate).append(", step ").append(enderStep);
             // speed: through the real bus, right after Divine's write; taken off - normal
             FMLCommonHandler.instance().bus().post(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, p));
             float fast = p.capabilities.getWalkSpeed();
@@ -1406,7 +1406,7 @@ public class SelfTest {
             FMLCommonHandler.instance().bus().post(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, p));
             float plain = p.capabilities.getWalkSpeed(), stepOff = p.stepHeight;
             boolean speed = Math.abs(fast - 0.3F) < 0.001 && Math.abs(swift - 0.125F) < 0.001 && Math.abs(both - 0.3F) < 0.001 && Math.abs(plain - 0.1F) < 0.001 && stepOn == 1F && stepOff == 0.5F;
-            rep.append("; скорость: ядро Тени ").append(f(fast)).append(", перк ").append(swift).append(", вместе ").append(f(both)).append(", снято ").append(f(plain)).append("; шаг: с перком ").append(stepOn).append(", снято ").append(stepOff);
+            rep.append("; speed: Shadow core ").append(f(fast)).append(", perk ").append(swift).append(", together ").append(f(both)).append(", removed ").append(f(plain)).append("; step: with perk ").append(stepOn).append(", removed ").append(stepOff);
             // perks: projectiles and hits against a player, player projectiles, digging
             wearCore(p, com.divinerpgextended.item.ArmorCore.SHADOW, Perk.ARROW_GUARD, Perk.BLOW_GUARD, Perk.MARKSMAN, Perk.MINING_HASTE);
             float inArrow = hurtBy(p, DamageSource.causeArrowDamage(itsArrow, z), 10F), inBlow = hurtBy(p, DamageSource.causeMobDamage(z), 10F), outArrow = hurtBy(z, DamageSource.causeArrowDamage(myArrow, p), 10F);
@@ -1414,14 +1414,14 @@ public class SelfTest {
             perkFx.onPlayerTick(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, p));
             boolean haste = p.isPotionActive(Potion.digSpeed) && p.getActivePotionEffect(Potion.digSpeed).getAmplifier() == 1;
             boolean perks = near(inArrow, 7.5F) && near(inBlow, 7.5F) && near(outArrow, 11F) && haste;
-            rep.append("; перки: стрела ").append(f(inArrow)).append(", удар ").append(f(inBlow)).append(", свой выстрел ").append(f(outArrow)).append(", спешка ").append(haste);
+            rep.append("; perks: arrow ").append(f(inArrow)).append(", hit ").append(f(inBlow)).append(", own shot ").append(f(outArrow)).append(", haste ").append(haste);
             armor(p, null, null, null, null);
             FMLCommonHandler.instance().bus().post(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, p));
             reset(p);
             check(damage && shields && speed && perks, rep.toString());
             return rep.toString();
         });
-        t("Аксессуары", "Наковальня: вкладки", () -> {
+        t("Accessories", "Anvil: tabs", () -> {
             reset(p);
             TileWandererAnvil tile = new TileWandererAnvil();
             p.getEntityData().setInteger(com.divinerpgextended.station.ContainerWandererAnvil.LAST_TAB, AnvilLogic.SOCKETS);
@@ -1486,14 +1486,14 @@ public class SelfTest {
             boolean legacy = count(p, VanillaItemsOther.realmiteIngot) == 7 && !saved.hasKey("Items");
             reset(p);
             check(remembered && socketSlots && shift && target && returned && unloadSlots && upgradeSlots && stuck && closed && legacy,
-                "вкладка запомнена " + remembered + "; слоты гнёзд " + socketSlots + "; shift-клик " + shift + "; цель " + r.status + "/" + r.targets
-                    + "; на разрядку " + toUnload + ", вещи вернулись " + returned + "; слоты разрядки " + unloadSlots + "; слоты улучшения " + upgradeSlots
-                    + "; без места не переключается " + stuck + "; закрыли окно - вещи на земле " + closed +"; старые вещи из блока отданы один раз " + legacy);
-            return "вкладка запоминается; в каждой свои слоты (броня по частям, аксессуары внизу, оружие - только в разрядке); shift-клик раскладывает сам; "
-                + "подсвечено гнездо цели; при смене вкладки лишнее - в инвентарь, без места вкладка не меняется; закрыл окно - всё упало на землю, как из верстака, "
-                + "в блоке ничего не хранится; старые вещи из блока - тому, кто открыл";
+                "tab remembered " + remembered + "; socket slots " + socketSlots + "; shift-click " + shift + "; target " + r.status + "/" + r.targets
+                    + "; to unload " + toUnload + ", items returned " + returned + "; unload slots " + unloadSlots + "; upgrade slots " + upgradeSlots
+                    + "; does not switch without room " + stuck + "; window closed - items on the ground " + closed +"; old items from the block given out once " + legacy);
+            return "the tab is remembered; each has its own slots (armor by parts, accessories at the bottom, weapons - only in unload); shift-click sorts by itself; "
+                + "the target socket is highlighted; on tab change the extra goes to the inventory, without room the tab does not change; closing the window - everything fell to the ground, like from a workbench, "
+                + "the block stores nothing; old items from the block - to whoever opened it";
         });
-        t("Аксессуары", "Смерть: аксессуары остаются в броне", () -> {
+        t("Accessories", "Death: accessories stay in armor", () -> {
             reset(p);
             wearT(p, Trinket.VALOR_MEDAL);
             ItemStack chest = p.inventory.armorInventory[2];
@@ -1502,10 +1502,10 @@ public class SelfTest {
             clone.clonePlayer(p, false);
             boolean keep = ow.getGameRules().getGameRuleBooleanValue("keepInventory");
             boolean cloneWears = Accessories.wears(clone, Trinket.VALOR_MEDAL);
-            check(Sockets.count(chest) == 1 && cloneWears == keep, "в нагруднике " + Sockets.count(chest) + ", после возрождения работает " + cloneWears + " (keepInventory " + keep + ")");
-            return "аксессуар внутри брони и уходит вместе с ней: без keepInventory - с выпавшей бронёй, в данные игрока не переезжает";
+            check(Sockets.count(chest) == 1 && cloneWears == keep, "in chestplate " + Sockets.count(chest) + ", after respawn works " + cloneWears + " (keepInventory " + keep + ")");
+            return "the accessory is inside the armor and leaves with it: without keepInventory - with the dropped armor, does not move into player data";
         });
-        t("Аксессуары", "Крафт и ванильная наковальня возвращают аксессуары", () -> {
+        t("Accessories", "Crafting and vanilla anvil return accessories", () -> {
             reset(p);
             ItemStack armor = new ItemStack(VanillaItemsArmor.realmiteBody);
             Sockets.insert(armor, trinket(Trinket.VALOR_MEDAL));
@@ -1529,21 +1529,21 @@ public class SelfTest {
             grid.setInventorySlotContents(0, kept);
             FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.PlayerEvent.ItemCraftedEvent(p, kept.copy(), grid));
             int copied = countTrinket(p, Trinket.WITHER_RING);
-            check(afterCraft == 1 && Sockets.count(armor) == 0 && afterAnvil == 1 && copied == 0, "крафт вернул " + afterCraft + ", наковальня вернула " + afterAnvil
-                + ", результат с гнёздами - вернул " + copied);
-            return "броня с аксессуарами ушла в крафт или на ванильную наковальню - аксессуары вернулись игроку; если гнёзда унёс результат - не возвращаются";
+            check(afterCraft == 1 && Sockets.count(armor) == 0 && afterAnvil == 1 && copied == 0, "craft returned " + afterCraft + ", anvil returned " + afterAnvil
+                + ", result with sockets - returned " + copied);
+            return "armor with accessories went into crafting or a vanilla anvil - accessories returned to the player; if the result carried the sockets away - not returned";
         });
-        t("Аксессуары", "Анх фараона", () -> {
+        t("Accessories", "Pharaoh's Ankh", () -> {
             reset(p);
             wearT(p, Trinket.PHARAOH_ANKH);
             p.getEntityData().removeTag("dreAnkhCd");
             p.setHealth(2);
             p.attackEntityFrom(DamageSource.magic, 50);
             float after = p.getHealth();
-            check(!p.died && near(after, p.getMaxHealth() / 2), "после смертельного удара: умер " + p.died + ", здоровье " + f(after));
-            return "смертельный удар > половина здоровья";
+            check(!p.died && near(after, p.getMaxHealth() / 2), "after a lethal hit: died " + p.died + ", health " + f(after));
+            return "lethal hit > half health";
         });
-        t("Аксессуары", "Анх два раза подряд", () -> {
+        t("Accessories", "Ankh twice in a row", () -> {
             reset(p);
             wearT(p, Trinket.PHARAOH_ANKH);
             p.getEntityData().removeTag("dreAnkhCd");
@@ -1551,10 +1551,10 @@ public class SelfTest {
             p.attackEntityFrom(DamageSource.magic, 50);
             p.hurtResistantTime = 0;
             p.attackEntityFrom(DamageSource.magic, 50);
-            check(p.died, "второй смертельный удар подряд не убил (Анх сработал дважды)");
-            return "второй раз Анх не спасает";
+            check(p.died, "the second lethal hit in a row did not kill (Ankh triggered twice)");
+            return "the Ankh does not save a second time";
         });
-        t("Аксессуары", "С боссов", () -> {
+        t("Accessories", "From bosses", () -> {
             reset(p);
             persisted(p).removeTag("dre_acc_got");
             // the accessory drops at the boss's body, tagged by the player, does not go to the inventory
@@ -1573,10 +1573,10 @@ public class SelfTest {
                     ri.setDead();
                 }
             }
-            check(first == 1 && atBoss && got > 140 && got < 270, "первая победа: " + first + ", у тела босса с владельцем " + atBoss + ", повторные: " + got + " из 2000 (ждали около 200)");
-            return "первая победа наверняка, аксессуар падает у тела босса с именем игрока (не в инвентарь); повторные " + got + " из 2000 (" + (got / 20.0) + "%)";
+            check(first == 1 && atBoss && got > 140 && got < 270, "first victory: " + first + ", at the boss body with owner " + atBoss + ", repeats: " + got + " of 2000 (expected about 200)");
+            return "first victory is guaranteed, the accessory drops at the boss body with the player's name (not into inventory); repeats " + got + " of 2000 (" + (got / 20.0) + "%)";
         });
-        t("Аксессуары", "Объединение", () -> {
+        t("Accessories", "Merging", () -> {
             reset(p);
             hold(p, trinket(Trinket.BLAST_BELT));
             p.inventory.mainInventory[3] = trinket(Trinket.COLOSSUS_PAULDRON);
@@ -1586,16 +1586,16 @@ public class SelfTest {
             call(as, "combine", new Class<?>[] { EntityPlayer.class }, p);
             check(countTrinket(p, Trinket.STEADFAST_BELT) == 1 && countTrinket(p, Trinket.BLAST_BELT) == 0
                 && countTrinket(p, Trinket.COLOSSUS_PAULDRON) == 0 && count(p, IceikaItems.snowflake) == 0,
-                "пояс " + countTrinket(p, Trinket.STEADFAST_BELT) + ", части " + countTrinket(p, Trinket.BLAST_BELT) + "/"
-                    + countTrinket(p, Trinket.COLOSSUS_PAULDRON) + ", снежинок " + count(p, IceikaItems.snowflake));
-            return "Пояс + Наплечник + 16 снежинок = Несокрушимый пояс";
+                "belt " + countTrinket(p, Trinket.STEADFAST_BELT) + ", parts " + countTrinket(p, Trinket.BLAST_BELT) + "/"
+                    + countTrinket(p, Trinket.COLOSSUS_PAULDRON) + ", snowflakes " + count(p, IceikaItems.snowflake));
+            return "Belt + Pauldron + 16 snowflakes = Steadfast Belt";
         });
-        t("Аксессуары", "Двойной прыжок", () -> {
+        t("Accessories", "Double jump", () -> {
             reset(p);
             wearT(p, Trinket.AYERACO_WING);
             int a = DoubleJump.allowed(p);
-            check(a == 1, "прыжков в воздухе в обычном мире: " + a);
-            return "только серверная часть: в обычном мире 1 прыжок в воздухе (сам прыжок - на клиенте)";
+            check(a == 1, "air jumps in the overworld: " + a);
+            return "server side only: 1 air jump in the overworld (the jump itself is on the client)";
         });
     }
 
@@ -1618,7 +1618,7 @@ public class SelfTest {
     }
 
     private void altarTests(final TestPlayer p, final WorldServer ow, final int sx, final int sy, final int sz) {
-        t("Алтарь порчи", "Цена по выпавшим чарам, лучшие чары не гарантированы, книга под одну вещь", () -> {
+        t("Corrupt Altar", "Price by rolled enchants, best enchants not guaranteed, book for one item", () -> {
             // book 30 + 60/20/11 per enchant (no more than 150), item 84/29/14 (no more than 120)
             int[] want = { 90, 110, 150, 34, 113, 84, 15, 120 };
             int[] got = { AltarLogic.price(ench(Enchantment.fortune, 3), true),
@@ -1627,7 +1627,7 @@ public class SelfTest {
                 AltarLogic.price(ench(Enchantment.smite, 2), true), AltarLogic.price(ench(Enchantment.sharpness, 5, Enchantment.unbreaking, 3), false),
                 AltarLogic.price(ench(Enchantment.protection, 4), false), AltarLogic.price(ench(Enchantment.smite, 3, Enchantment.knockback, 1), false),
                 AltarLogic.price(ench(Enchantment.fortune, 3, Enchantment.efficiency, 5), false) };
-            check(java.util.Arrays.equals(want, got), "цены " + java.util.Arrays.toString(got) + " вместо " + java.util.Arrays.toString(want));
+            check(java.util.Arrays.equals(want, got), "prices " + java.util.Arrays.toString(got) + " instead of " + java.util.Arrays.toString(want));
             ItemStack sword = new ItemStack(Items.diamond_sword), chest = new ItemStack(Items.diamond_chestplate), book = new ItemStack(Items.book);
             Random r = new Random(1);
             StringBuilder bad = new StringBuilder();
@@ -1637,8 +1637,8 @@ public class SelfTest {
                 List<List<EnchantmentData>> s = AltarLogic.rollAll(r, sword), b = AltarLogic.rollAll(r, book);
                 for (int slot = 0; slot < AltarLogic.SLOTS; slot++) {
                     int ps = AltarLogic.price(s.get(slot), false, slot), pb = AltarLogic.price(b.get(slot), true, slot);
-                    if (ps < 1 || ps > AltarLogic.cap(false, slot)) bad.append(" цена меча ").append(ps).append(" в слоте ").append(slot).append(';');
-                    if (pb < Config.altarBookBase || pb > AltarLogic.cap(true, slot)) bad.append(" цена книги ").append(pb).append(" в слоте ").append(slot).append(';');
+                    if (ps < 1 || ps > AltarLogic.cap(false, slot)) bad.append(" sword price ").append(ps).append(" in slot ").append(slot).append(';');
+                    if (pb < Config.altarBookBase || pb > AltarLogic.cap(true, slot)) bad.append(" book price ").append(pb).append(" in slot ").append(slot).append(';');
                     swordSum[slot] += ps;
                     bookSum[slot] += pb;
                     // book: all enchants go onto one item
@@ -1648,7 +1648,7 @@ public class SelfTest {
                         for (EnchantmentData d : b.get(slot)) all &= d.enchantmentobj.canApplyAtEnchantingTable(new ItemStack(target));
                         one |= all;
                     }
-                    if (!one) bad.append(" книга вразнобой: ").append(names(b.get(slot))).append(';');
+                    if (!one) bad.append(" book mismatched: ").append(names(b.get(slot))).append(';');
                 }
                 if (has(s.get(2), Enchantment.sharpness, 5)) sharp5++;
                 if (has(AltarLogic.roll(r, chest, 2), Enchantment.protection, 4)) prot4++;
@@ -1656,14 +1656,14 @@ public class SelfTest {
             }
             check(bad.length() == 0, bad.substring(0, Math.min(bad.length(), 400)));
             check(swordSum[0] < swordSum[1] && swordSum[1] < swordSum[2] && bookSum[0] < bookSum[1] && bookSum[1] < bookSum[2],
-                "средние цены не растут от слота к слоту: меч " + java.util.Arrays.toString(swordSum) + ", книга " + java.util.Arrays.toString(bookSum));
-            check(sharp5 > n / 10 && sharp5 < n * 8 / 10, "Острота V в последнем слоте меча: " + sharp5 + " из " + n);
-            check(prot4 > n / 10 && prot4 < n * 8 / 10, "Защита IV в последнем слоте кирасы: " + prot4 + " из " + n);
-            return "цены как в обсуждении (Удача III на книге 90, +Прочность III 110, три чара 150, меч Острота V + Прочность III 113); средние цены меча "
-                + swordSum[0] / n + " / " + swordSum[1] / n + " / " + swordSum[2] / n + ", книги " + bookSum[0] / n + " / " + bookSum[1] / n + " / " + bookSum[2] / n
-                + "; в последнем слоте Острота V " + sharp5 * 100 / n + "%, Защита IV " + prot4 * 100 / n + "%, книга с Удачей III " + fort3 * 100 / n + "%";
+                "average prices do not grow from slot to slot: sword " + java.util.Arrays.toString(swordSum) + ", book " + java.util.Arrays.toString(bookSum));
+            check(sharp5 > n / 10 && sharp5 < n * 8 / 10, "Sharpness V in the last sword slot: " + sharp5 + " of " + n);
+            check(prot4 > n / 10 && prot4 < n * 8 / 10, "Protection IV in the last chestplate slot: " + prot4 + " of " + n);
+            return "prices as in the discussion (Fortune III on a book 90, +Unbreaking III 110, three enchants 150, sword Sharpness V + Unbreaking III 113); average sword prices "
+                + swordSum[0] / n + " / " + swordSum[1] / n + " / " + swordSum[2] / n + ", books " + bookSum[0] / n + " / " + bookSum[1] / n + " / " + bookSum[2] / n
+                + "; in the last slot Sharpness V " + sharp5 * 100 / n + "%, Protection IV " + prot4 * 100 / n + "%, Fortune III book " + fort3 * 100 / n + "%";
         });
-        t("Алтарь порчи", "Окно: оплата по виду вещи, переброс при перекладывании, цена уровнями, вещи вернулись", () -> {
+        t("Corrupt Altar", "Window: payment by item kind, reroll on rearranging, price in levels, items returned", () -> {
             reset(p);
             ContainerCorruptAltar c = new ContainerCorruptAltar(p.inventory, ow, sx, sy, sz);
             com.divinerpgextended.station.AnvilWork w = c.work();
@@ -1741,14 +1741,14 @@ public class SelfTest {
             c.onContainerClosed(p);
             check(kinds && noPay && wrongKind && shardsForLast && first && second && last && reroll && poor && levels && exact && once && bookReveal && bookOk && back
                 && free && shift,
-                "виды оплаты " + kinds + ", без оплаты " + noPay + ", чужие осколки " + wrongKind + ", осколки за последний " + shardsForLast
-                    + ", первый " + first + ", второй " + second + ", последний " + last + ", переброс " + reroll + ", мало уровней " + poor + ", сняты уровни " + levels
-                    + " (цена " + cost + ")" + ", ровно брошенное " + exact + " (" + names(now) + " / " + got + "), повтор " + once
-                    + ", рупии за книгу " + bookReveal + ", книга " + bookOk + " (" + bookCost + "), возврат " + back + ", творческий " + free + ", shift " + shift);
-            return "мечу - осколки и камень Molten, книге - рупиевые слитки 1 / 3 / 5; переложил - новый бросок; меч получил ровно брошенное (" + names(now) + ") за " + cost
-                + " ур., с 200-го снято ровно столько уровней; книга за " + bookCost + " ур. со всеми чарами броска; закрытие вернуло вещь и оплату";
+                "payment kinds " + kinds + ", no payment " + noPay + ", foreign shards " + wrongKind + ", shards for the last " + shardsForLast
+                    + ", first " + first + ", second " + second + ", last " + last + ", reroll " + reroll + ", too few levels " + poor + ", levels taken " + levels
+                    + " (price " + cost + ")" + ", exactly the rolled " + exact + " (" + names(now) + " / " + got + "), repeat " + once
+                    + ", rupees for the book " + bookReveal + ", book " + bookOk + " (" + bookCost + "), return " + back + ", creative " + free + ", shift " + shift);
+            return "for the sword - shards and a Molten stone, for the book - rupee ingots 1 / 3 / 5; rearranged - new roll; the sword got exactly the rolled (" + names(now) + ") for " + cost
+                + " lvl., from the 200th exactly that many levels were taken; book for " + bookCost + " lvl. with all enchants of the roll; closing returned the item and the payment";
         });
-        t("Алтарь порчи", "Правый клик открывает окно аддона, присев с блоком - ставит блок", () -> {
+        t("Corrupt Altar", "Right click opens the addon window, sneaking with a block places the block", () -> {
             reset(p);
             int x = sx + 3, y = sy + 3, z = sz + 3;
             Block was = ow.getBlock(x, y, z);
@@ -1774,8 +1774,8 @@ public class SelfTest {
                 p.setPosition(x + 12.5, y + 1, z + 0.5);
                 boolean far = gui instanceof ContainerCorruptAltar && !((ContainerCorruptAltar) gui).canInteractWith(p);
                 check(open && place && off && near && far && none == null,
-                    "клик " + open + ", присев с блоком " + place + ", выключено " + off + ", окно " + gui + ", рядом " + near + ", далеко " + far + ", не алтарь " + none);
-                return "клик по алтарю отменён и открывает окно аддона, старое зерно 0.99.70 стёрто; присев с блоком - обычная установка блока; corruptAltar=false - алтарь Divine; дальше 8 блоков окно закрывается";
+                    "click " + open + ", sneaking with a block " + place + ", disabled " + off + ", window " + gui + ", nearby " + near + ", far " + far + ", not an altar " + none);
+                return "click on the altar is cancelled and opens the addon window, the old 0.99.70 seed is wiped; sneaking with a block - normal block placement; corruptAltar=false - Divine altar; beyond 8 blocks the window closes";
             } finally {
                 Config.corruptAltar = true;
                 p.setSneaking(false);
@@ -1783,11 +1783,11 @@ public class SelfTest {
                 ow.setBlock(x, y, z, was, wasMeta, 3);
             }
         });
-        t("Автоплавка", "Удача не умножает рупий и арлемит при автоплавке (Лава Tinkers' Construct)", () -> {
+        t("Auto-smelt", "Fortune does not multiply rupee and arlemite on auto-smelt (Tinkers' Construct Lava)", () -> {
             reset(p);
             Block rupeeOre = net.divinerpg.utils.blocks.VanillaBlocks.rupeeOre, arlemiteOre = net.divinerpg.utils.blocks.VanillaBlocks.arlemiteOre;
             check(com.divinerpgextended.perk.SmeltNoFortune.ores().contains(rupeeOre) && com.divinerpgextended.perk.SmeltNoFortune.ores().contains(arlemiteOre),
-                "руды из конфига: " + com.divinerpgextended.perk.SmeltNoFortune.ores());
+                "ores from config: " + com.divinerpgextended.perk.SmeltNoFortune.ores());
             int x = sx + 5, y = sy + 3, z = sz + 5;
             Block was = ow.getBlock(x, y, z);
             int wasMeta = ow.getBlockMetadata(x, y, z);
@@ -1796,14 +1796,14 @@ public class SelfTest {
                 int rupeeSim = smeltDrop(p, ow, x, y, z, rupeeOre, true), arlemiteSim = smeltDrop(p, ow, x, y, z, arlemiteOre, true);
                 int ironSim = smeltDrop(p, ow, x, y, z, Blocks.iron_ore, true), noBreak = smeltDrop(p, ow, x, y, z, rupeeOre, false);
                 check(rupeeSim == 1 && arlemiteSim == 1 && ironSim == 4 && noBreak == 4,
-                    "из 4 слитков: рупий " + rupeeSim + ", арлемит " + arlemiteSim + ", железо " + ironSim + ", рупий без ломания " + noBreak);
-                if (!cpw.mods.fml.common.Loader.isModLoaded("TConstruct")) return "имитация: 4 слитка в центре сломанной руды рупия и арлемита -> 1, железо и без ломания не тронуты; Tinkers' Construct нет - копания им нет";
+                    "from 4 ingots: rupee " + rupeeSim + ", arlemite " + arlemiteSim + ", iron " + ironSim + ", rupee without breaking " + noBreak);
+                if (!cpw.mods.fml.common.Loader.isModLoaded("TConstruct")) return "simulation: 4 ingots in the center of a broken rupee and arlemite ore -> 1, iron and non-breaking untouched; no Tinkers' Construct - no digging with it";
                 // a real TiC pickaxe made of manyullyn with Lava and Fortune III, Lava's Fortune enabled
                 Class<?> tools = Class.forName("tconstruct.tools.TinkerTools"), tb = Class.forName("tconstruct.library.crafting.ToolBuilder");
                 Item head = (Item) tools.getField("pickaxeHead").get(null), rod = (Item) tools.getField("toolRod").get(null), bind = (Item) tools.getField("binding").get(null);
                 ItemStack pick = (ItemStack) tb.getMethod("buildTool", ItemStack.class, ItemStack.class, ItemStack.class, String.class).invoke(tb.getField("instance").get(null),
                     new ItemStack(head, 1, 12), new ItemStack(rod, 1, 12), new ItemStack(bind, 1, 12), "dre-test");
-                check(pick != null, "кирка TiC не собралась");
+                check(pick != null, "TiC pickaxe was not assembled");
                 pick.getTagCompound().getCompoundTag("InfiTool").setBoolean("Lava", true);
                 pick.addEnchantment(Enchantment.fortune, 3);
                 java.lang.reflect.Field lf = Class.forName("tconstruct.util.config.PHConstruct").getField("lavaFortuneInteraction");
@@ -1820,10 +1820,10 @@ public class SelfTest {
                 } finally {
                     lf.setBoolean(null, lfWas);
                 }
-                check(iron[0] > 0 && iron[1] > 1, "Лава с Удачей III на железе: переплавлено " + iron[0] + " раз, максимум " + iron[1] + " слитков - удача TiC не сработала, проверять нечего");
+                check(iron[0] > 0 && iron[1] > 1, "Lava with Fortune III on iron: smelted " + iron[0] + " times, maximum " + iron[1] + " ingots - TiC fortune did not trigger, nothing to check");
                 check(rupee[0] > 0 && rupee[1] == 1 && arlemite[0] > 0 && arlemite[1] == 1,
-                    "Лава с Удачей III: рупий переплавлен " + rupee[0] + " раз, максимум " + rupee[1] + " слитков; арлемит " + arlemite[0] + " раз, максимум " + arlemite[1]);
-                return "имитация: 4 слитка в центре сломанной руды -> 1, железо и без ломания не тронуты; кирка TiC с Лавой и Удачей III, 12 раз: рупий и арлемит - всегда 1 слиток, железо - до "
+                    "Lava with Fortune III: rupee smelted " + rupee[0] + " times, maximum " + rupee[1] + " ingots; arlemite " + arlemite[0] + " times, maximum " + arlemite[1]);
+                return "simulation: 4 ingots in the center of a broken ore -> 1, iron and non-breaking untouched; TiC pickaxe with Lava and Fortune III, 12 times: rupee and arlemite - always 1 ingot, iron - up to "
                     + iron[1];
             } finally {
                 ow.setBlock(x, y, z, was, wasMeta, 3);
@@ -1868,7 +1868,7 @@ public class SelfTest {
     }
 
     private void progressTests(final TestPlayer p, final WorldServer ow, final int sx, final int sy, final int sz) {
-        t("Прохождение", "Ранги мобов", () -> {
+        t("Progression", "Mob ranks", () -> {
             reset(p);
             int[] r = new int[4];
             r[0] = ProgressSpawns.rank(p);
@@ -1883,15 +1883,15 @@ public class SelfTest {
             for (Boss b : Boss.values()) BossProgress.revoke(p, b);
             p.setHealth(p.getMaxHealth());
             float low = hit(p, DamageSource.causeMobDamage(spider), 4);
-            check(r[0] == 0 && r[1] == 1 && r[2] == 2 && r[3] == 3, "ранги " + r[0] + r[1] + r[2] + r[3]);
-            check(low == 0 && high > 0, "эндер-паук (ранг 3): по рангу 0 урон " + f(low) + ", по рангу 3 урон " + f(high));
-            return "ранги 0-1-2-3; эндер-паук не бьёт ранг 0, бьёт ранг 3";
+            check(r[0] == 0 && r[1] == 1 && r[2] == 2 && r[3] == 3, "ranks " + r[0] + r[1] + r[2] + r[3]);
+            check(low == 0 && high > 0, "ender spider (rank 3): vs rank 0 damage " + f(low) + ", vs rank 3 damage " + f(high));
+            return "ranks 0-1-2-3; the ender spider does not hit rank 0, hits rank 3";
         });
     }
 
     private void tradeTests(final TestPlayer p, final WorldServer ow, final int sx, final int sy, final int sz) {
         final Class<?> jack = com.divinerpgextended.trinket.JackOMan.class;
-        t("Торговля", "Этапы", () -> {
+        t("Trading", "Stages", () -> {
             reset(p);
             int[] r = new int[4];
             r[0] = (Integer) call(jack, "tier", new Class<?>[] { EntityPlayer.class }, p);
@@ -1901,18 +1901,18 @@ public class SelfTest {
             r[2] = (Integer) call(jack, "tier", new Class<?>[] { EntityPlayer.class }, p);
             BossProgress.grant(p, Boss.ANCIENT_ENTITY);
             r[3] = (Integer) call(jack, "tier", new Class<?>[] { EntityPlayer.class }, p);
-            check(r[0] == 0 && r[1] == 1 && r[2] == 2 && r[3] == 3, "этапы " + r[0] + r[1] + r[2] + r[3]);
-            return "этап Джека 0 > 1 (Карцинус) > 2 (Лич) > 3 (Древняя сущность)";
+            check(r[0] == 0 && r[1] == 1 && r[2] == 2 && r[3] == 3, "stages " + r[0] + r[1] + r[2] + r[3]);
+            return "Jack's stage 0 > 1 (Carcinus) > 2 (Lich) > 3 (Ancient Entity)";
         });
-        t("Торговля", "Скупка хлама", () -> {
+        t("Trading", "Junk buyback", () -> {
             int bone = (Integer) call(jack, "junkRate", new Class<?>[] { Item.class }, Items.bone);
             int string = (Integer) call(jack, "junkRate", new Class<?>[] { Item.class }, Items.string);
             int gun = (Integer) call(jack, "junkRate", new Class<?>[] { Item.class }, Items.gunpowder);
             int eye = (Integer) call(jack, "junkRate", new Class<?>[] { Item.class }, Items.spider_eye);
-            check(bone == 32 && string == 24 && gun == 16 && eye == 12, "курс " + bone + "/" + string + "/" + gun + "/" + eye);
-            return "32 кости / 24 нити / 16 пороха / 12 глаз за монету";
+            check(bone == 32 && string == 24 && gun == 16 && eye == 12, "rate " + bone + "/" + string + "/" + gun + "/" + eye);
+            return "32 bones / 24 strings / 16 gunpowder / 12 eyes per coin";
         });
-        t("Торговля", "Ровно 6 монет", () -> {
+        t("Trading", "Exactly 6 coins", () -> {
             reset(p);
             time(ow, 18000);
             p.getEntityData().removeTag("dreJackNight");
@@ -1925,10 +1925,10 @@ public class SelfTest {
             }
             int coins = count(p, VanillaItemsOther.shadowCoins);
             time(ow, 6000);
-            check(coins == 6 && stacks[3] == 64, "монет " + coins + ", четвёртая пачка осталась " + stacks[3] + " (ждали 6 и 64)");
-            return "3 пачки по 64 кости = 6 монет, четвёртую Джек не берёт";
+            check(coins == 6 && stacks[3] == 64, "coins " + coins + ", fourth stack left " + stacks[3] + " (expected 6 and 64)");
+            return "3 stacks of 64 bones = 6 coins, Jack does not take the fourth";
         });
-        t("Торговля", "Только ночью", () -> {
+        t("Trading", "Night only", () -> {
             reset(p);
             EntityJackOMan j = new EntityJackOMan(ow);
             j.setPosition(p.posX + 1, p.posY, p.posZ);
@@ -1939,17 +1939,17 @@ public class SelfTest {
             EntityInteractEvent night = new EntityInteractEvent(p, j);
             boolean nightCancel = MinecraftForge.EVENT_BUS.post(night);
             time(ow, 6000);
-            check(dayCancel && !nightCancel, "днём отменено " + dayCancel + ", ночью отменено " + nightCancel);
-            return "днём не торгует, ночью окно открывается";
+            check(dayCancel && !nightCancel, "cancelled by day " + dayCancel + ", cancelled at night " + nightCancel);
+            return "does not trade by day, the window opens at night";
         });
     }
 
     private void arcanaTests(final TestPlayer p) {
-        t("Аркана", "Аркана после смены мира", () -> {
+        t("Arcana", "Arcana after changing world", () -> {
             reset(p);
             persisted(p).setInteger(ArcanaHooks.TASKS, 5);
             ArcanaHelper a = ArcanaHelper.getProperties(p);
-            check(a != null, "у тестового игрока нет арканы Divine");
+            check(a != null, "the test player has no Divine arcana");
             try {
                 a.setBarValue(100);
             } catch (Throwable ignored) {}
@@ -1958,10 +1958,10 @@ public class SelfTest {
             } catch (Throwable ignored) {}
             float v = a.getBarValue();
             persisted(p).removeTag(ArcanaHooks.TASKS);
-            check(near(v, 325), "после смены мира аркана " + f(v) + " (ждали 325 = максимум с 5 исследованиями)");
-            return "максимум 325, после смены мира полная 325 (Divine ставил 200)";
+            check(near(v, 325), "after changing world arcana " + f(v) + " (expected 325 = maximum with 5 researches)");
+            return "maximum 325, after changing world full 325 (Divine set 200)";
         });
-        t("Аркана", "Цены, откат и задержка по правилам аддона", () -> {
+        t("Arcana", "Prices, cooldown and delay by addon rules", () -> {
             reset(p);
             ArcanaHelper a = ArcanaHelper.getProperties(p);
             com.divinerpgextended.magic.ArcanaRules.resetCooldowns();
@@ -1986,11 +1986,11 @@ public class SelfTest {
             for (net.minecraft.entity.Entity en : new java.util.ArrayList<net.minecraft.entity.Entity>(nearbyFireflies(p))) en.setDead();
             check(near(200 - afterOne, 4) && near(afterTwo, afterOne) && delay == com.divinerpgextended.magic.ArcanaRules.DELAY && staff && near(staffCost, 15)
                 && near(angelic, 0.15F) && !poor && poorDelay == 0,
-                "светлячок: потрачено " + f(200 - afterOne) + ", повтор сразу " + f(afterOne - afterTwo) + ", задержка " + delay + "; посох звёзд " + f(staffCost)
-                    + "; полёт ангела за вызов " + f(angelic) + "; без арканы потрачено " + poor + ", задержка " + poorDelay);
-            return "светлячок 4 арканы с откатом 0.3 с, посох звёздного света 15, ангельский полёт 0.15 за вызов (6/с вместо 20), задержка 2 с; не хватило - ни траты, ни сброса задержки";
+                "firefly: spent " + f(200 - afterOne) + ", immediate repeat " + f(afterOne - afterTwo) + ", delay " + delay + "; Starlight Staff " + f(staffCost)
+                    + "; Angelic Flight per call " + f(angelic) + "; without arcana spent " + poor + ", delay " + poorDelay);
+            return "firefly 4 arcana with 0.3 s cooldown, Starlight Staff 15, Angelic Flight 0.15 per call (6/s instead of 20), delay 2 s; not enough - no spending and no delay reset";
         });
-        t("Аркана", "Арканный урон сквозь броню, залп без неуязвимости, маги держат вдвое", () -> {
+        t("Arcana", "Arcane damage through armor, volley without invulnerability, mages hold twice as much", () -> {
             reset(p);
             net.minecraft.world.World w = p.worldObj;
             hold(p, new ItemStack(net.divinerpg.utils.items.ArcanaItems.captainsSparkler));
@@ -2012,11 +2012,11 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(hm);
             sp.setDead();
             check(near(tag, expect) && iframes == 0 && near(he.ammount, expect) && ds.isUnblockable() && near(hm.ammount, expect / 2),
-                "метка " + f(tag) + " (ждали " + f(expect) + "), неуязвимость после попадания " + iframes + ", урон " + f(he.ammount) + ", сквозь броню " + ds.isUnblockable()
-                    + ", по магу " + f(hm.ammount));
-            return "искра капитана: " + f(expect) + " арканного урона сквозь броню, залп не упирается в неуязвимость, маг получает " + f(hm.ammount);
+                "mark " + f(tag) + " (expected " + f(expect) + "), invulnerability after hit " + iframes + ", damage " + f(he.ammount) + ", through armor " + ds.isUnblockable()
+                    + ", on mage " + f(hm.ammount));
+            return "captain's spark: " + f(expect) + " of arcane damage through armor, the volley does not run into invulnerability, the mage takes " + f(hm.ammount);
         });
-        t("Аркана", "Защита арканой и маги стреляют реже", () -> {
+        t("Arcana", "Arcana protection and mages shoot less often", () -> {
             reset(p);
             net.minecraft.world.World w = p.worldObj;
             ArcanaHelper a = ArcanaHelper.getProperties(p);
@@ -2040,11 +2040,11 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(hp3);
             s1.setDead();
             check(first && !second && near(hp1.ammount, 4) && near(bar, 88) && near(hp2.ammount, 10) && near(hp3.ammount, 8),
-                "маг: первый выстрел " + first + ", второй сразу " + second + "; выстрел 10 при 100 арканы - в здоровье " + f(hp1.ammount) + ", арканы осталось " + f(bar)
-                    + "; без арканы " + f(hp2.ammount) + "; удар бродяги 20 - в здоровье " + f(hp3.ammount));
-            return "маг не стреляет чаще раза в 1-1.5 с; арканный удар 10: в здоровье 4, аркана -12 (60% по 2 за единицу); без арканы - целиком; мобы Арканы бьют арканным";
+                "mage: first shot " + first + ", second immediately " + second + "; shot 10 at 100 arcana - into health " + f(hp1.ammount) + ", arcana left " + f(bar)
+                    + "; without arcana " + f(hp2.ammount) + "; vagrant hit 20 - into health " + f(hp3.ammount));
+            return "the mage does not shoot more often than once per 1-1.5 s; arcane hit 10: 4 into health, arcana -12 (60% at 2 per point); without arcana - in full; Arcana mobs hit with arcane damage";
         });
-        t("Аркана", "Зелья арканы - эффект восстановления, перезаход не обнуляет шкалу", () -> {
+        t("Arcana", "Arcana potions - regeneration effect, relogging does not reset the bar", () -> {
             reset(p);
             ArcanaHelper a = ArcanaHelper.getProperties(p);
             a.setBarValue(50);
@@ -2066,10 +2066,10 @@ public class SelfTest {
             FMLCommonHandler.instance().bus().post(new cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent(cpw.mods.fml.common.gameevent.TickEvent.Phase.END, p));
             float restored = a.getBarValue();
             check(near(instant, 50) && mult == 2 && delay == 0 && regen > 0.5F && near(restored, 77),
-                "после зелья сразу " + f(instant) + " (было 50), эффект x" + mult + ", задержка " + delay + ", за тик +" + f(regen) + "; после перезахода " + f(restored));
-            return "зелье арканы даёт не мгновенную аркану, а эффект: без задержки, восстановление x2; шкала переживает перезаход";
+                "right after the potion " + f(instant) + " (was 50), effect x" + mult + ", delay " + delay + ", per tick +" + f(regen) + "; after relogging " + f(restored));
+            return "the arcana potion gives not instant arcana but an effect: no delay, regeneration x2; the bar survives relogging";
         });
-        t("Аркана", "Ваттикус и цены, посох мага", () -> {
+        t("Arcana", "Vatticus and prices, mage staff", () -> {
             reset(p);
             net.minecraft.world.World w = p.worldObj;
             net.divinerpg.entities.arcana.EntityVatticus vat = new net.divinerpg.entities.arcana.EntityVatticus(w);
@@ -2107,20 +2107,20 @@ public class SelfTest {
             }
             float expect = 14F * com.divinerpgextended.magic.ArcanaRules.stage(p);
             check(!potions && ward && clarity && starPrice.startsWith("15 ") && near(200 - a.getBarValue(), 8) && near(shotDmg, expect) && w.loadedEntityList.size() >= before,
-                "у Ваттикуса зелья " + potions + ", щит " + ward + ", кристалл " + clarity + "; посох звёзд у Мерика за " + starPrice + "; посох колдуна: аркана "
-                    + f(200 - a.getBarValue()) + ", урон заряда " + f(shotDmg) + " (ждали " + f(expect) + ")");
-            return "Ваттикус продаёт Арканный щит и Кристалл ясности вместо зелий; посох звёздного света - 15 жетонов; посох колдуна Мортума: 8 арканы, " + f(expect) + " арканного урона";
+                "Vatticus potions " + potions + ", ward " + ward + ", crystal " + clarity + "; Starlight Staff at Merik for " + starPrice + "; sorcerer staff: arcana "
+                    + f(200 - a.getBarValue()) + ", charge damage " + f(shotDmg) + " (expected " + f(expect) + ")");
+            return "Vatticus sells Arcane Ward and Crystal of Clarity instead of potions; Starlight Staff - 15 tokens; Mortum Sorcerer Staff: 8 arcana, " + f(expect) + " of arcane damage";
         });
     }
 
     private void brewingTests(final TestPlayer p) {
-        t("Аркана", "Арканная стойка: варка, усиление, продажа у Ваттикуса", () -> {
+        t("Arcana", "Arcane Brewing Stand: brewing, upgrading, selling at Vatticus", () -> {
             reset(p);
             net.minecraft.world.World w = p.worldObj;
             int bx = net.minecraft.util.MathHelper.floor_double(p.posX) + 3, by = net.minecraft.util.MathHelper.floor_double(p.posY), bz = net.minecraft.util.MathHelper.floor_double(p.posZ);
             w.setBlock(bx, by, bz, com.divinerpgextended.registry.ModBlocks.arcaneBrewer);
             com.divinerpgextended.magic.TileArcaneBrewer te = (com.divinerpgextended.magic.TileArcaneBrewer) w.getTileEntity(bx, by, bz);
-            check(te != null, "у арканной стойки нет своего хранилища");
+            check(te != null, "the arcane stand has no storage of its own");
             for (int i = 0; i < 3; i++) te.setInventorySlotContents(i, new ItemStack(Items.potionitem, 1, 0));
             te.setInventorySlotContents(3, new ItemStack(net.divinerpg.utils.items.ArcanaItems.lamona, 2));
             te.setInventorySlotContents(4, new ItemStack(net.divinerpg.utils.items.ArcanaItems.arcanium, 1));
@@ -2160,11 +2160,11 @@ public class SelfTest {
                 && com.divinerpgextended.magic.TileArcaneBrewer.result(water, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.apalachiaSoul)) == null
                 && com.divinerpgextended.magic.TileArcaneBrewer.result(water, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.edenSoul)) == null;
             check(brewed && charges == 3 && lamona == 1 && strong && noFuel && sold && live == 13 && ings.size() == 13 && !ings.contains(null) && goneBrews,
-                "отвар чародея сварен " + brewed + " (зарядов " + charges + ", ламоны " + lamona + "), сильное " + strong + ", без арканиума не варится " + noFuel
-                    + ", Ваттикус продаёт стойку " + sold + ", зелий " + live + ", разных ингредиентов " + ings.size() + ", убранные не варятся " + goneBrews);
-            return "склянки воды + ламона = отвар чародея (арканиум - 4 варки), + светопыль - сильное; без арканиума не варится; стойку продаёт Ваттикус; 13 зелий - 13 ингредиентов, путь домой, зов битвы и затишье не варятся";
+                "sorcerer's brew brewed " + brewed + " (charges " + charges + ", lamons " + lamona + "), strong " + strong + ", does not brew without arcanium " + noFuel
+                    + ", Vatticus sells the stand " + sold + ", potions " + live + ", distinct ingredients " + ings.size() + ", removed ones do not brew " + goneBrews);
+            return "water bottles + lamon = sorcerer's brew (arcanium - 4 brews), + lightdust - strong; does not brew without arcanium; the stand is sold by Vatticus; 13 potions - 13 ingredients, way home, call of battle and stillness do not brew";
         });
-        t("Аркана", "Эффекты арканных зелий", () -> {
+        t("Arcana", "Effects of arcane potions", () -> {
             reset(p);
             com.divinerpgextended.magic.ArcaneEffects.clear(p);
             net.minecraft.world.World w = p.worldObj;
@@ -2221,17 +2221,17 @@ public class SelfTest {
             float expectHurt = 20F * 0.85F * 0.85F;
             check(near(hz.ammount, expectHurt) && near(hd.ammount, 11.5F) && fervorLeft > 9000 && near(shot, 3) && clarity == 3 && real && ids.size() == 13 && stillGone
                 && !warm && warmNow && bite == 1F && near(biteNow, 0.6F) && milked && format,
-                "удар 20 под каменной кожей и сильной стойкостью " + f(hz.ammount) + " (ждали " + f(expectHurt) + "), свой удар 10 под ражем " + f(hd.ammount)
-                    + ", долгий раж " + fervorLeft + " тиков; выстрел светлячка " + f(shot) + "; ясность x" + clarity + "; эффекты Minecraft " + real + " (номера " + ids
-                    + "); затишье пустое " + stillGone + "; жар " + warm + " -> " + warmNow + "; поклёвка x" + bite + " -> x" + biteNow + "; молоко сняло " + milked
-                    + "; описание " + format + " (" + pname + " / " + tip + ")");
-            return "каменная кожа и стойкость режут удар (20 -> " + f(expectHurt) + "), раж +15%, собранность -25% цены, ясность x3, жар, рыбацкий фарт; эффекты - настоящие (номера "
-                + ids + "), снимаются молоком; затишье убрано";
+                "hit 20 under Stone Skin and strong Fortitude " + f(hz.ammount) + " (expected " + f(expectHurt) + "), own hit 10 under Fervor " + f(hd.ammount)
+                    + ", long Fervor " + fervorLeft + " ticks; firefly shot " + f(shot) + "; Clarity x" + clarity + "; Minecraft effects " + real + " (ids " + ids
+                    + "); Stillness empty " + stillGone + "; Heat " + warm + " -> " + warmNow + "; bite x" + bite + " -> x" + biteNow + "; milk removed " + milked
+                    + "; description " + format + " (" + pname + " / " + tip + ")");
+            return "Stone Skin and Fortitude cut the hit (20 -> " + f(expectHurt) + "), Fervor +15%, Composure -25% price, Clarity x3, Heat, Fisher's Fortune; effects are real (ids "
+                + ids + "), removed by milk; Stillness removed";
         });
     }
 
     private void dummyTests(final TestPlayer p) {
-        t("Прохождение", "Манекен для битья: урон как по игроку, без дюпов и выгоды", () -> {
+        t("Progression", "Training Dummy: damage like to a player, no dupes and no gain", () -> {
             reset(p);
             net.minecraft.world.World w = p.worldObj;
             Item[] dia = { Items.diamond_boots, Items.diamond_leggings, Items.diamond_chestplate, Items.diamond_helmet };
@@ -2287,12 +2287,12 @@ public class SelfTest {
             w.removeEntity(a);
             check(armorCopy && hit && near(shown, real) && real > 0 && real < 10 && near(attackerHp, 10) && alive && stays && petStays && d.isDead && got == 1 && d2.isDead
                 && items1 == items0,
-                "броня скопирована отдельно " + armorCopy + "; удар 10 по игроку в алмазе " + f(real) + ", манекен показал " + f(shown) + "; здоровье бьющего " + f(attackerHp)
-                    + " (было 10), манекен цел " + alive + "; чужой не убрал " + stays + ", урон не рукой при присевшем хозяине не убрал " + petStays + ", хозяин убрал " + d.isDead + " и получил " + got + "; /kill: убит " + d2.isDead
-                    + ", вещей рядом " + items0 + " -> " + items1);
-            return "удар 10 по копии в алмазе: " + f(shown) + " - как по самому игроку; колючки не ранят бьющего; убрать может только хозяин и получает 1 манекен; /kill - без добычи";
+                "armor copied separately " + armorCopy + "; hit 10 on a player in diamond " + f(real) + ", dummy showed " + f(shown) + "; attacker's health " + f(attackerHp)
+                    + " (was 10), dummy intact " + alive + "; a stranger did not remove " + stays + ", non-hand damage with a sneaking owner did not remove " + petStays + ", owner removed " + d.isDead + " and got " + got + "; /kill: killed " + d2.isDead
+                    + ", items nearby " + items0 + " -> " + items1);
+            return "hit 10 on a copy in diamond: " + f(shown) + " - same as on the player; thorns do not hurt the attacker; only the owner can remove it and gets 1 dummy; /kill - no loot";
         });
-        t("Прохождение", "Манекен: аркана кончается и восстанавливается, чужая броня Странника защищает", () -> {
+        t("Progression", "Dummy: arcana runs out and recovers, foreign Wanderer armor protects", () -> {
             reset(p);
             net.minecraft.world.World w = p.worldObj;
             TestPlayer a = join(player(p.dimension, "TestDummyArc", p.posX + 3, p.posY, p.posZ), true);
@@ -2335,11 +2335,11 @@ public class SelfTest {
             boolean foreignOk = taken[0] > 0 && taken[0] < 10 && near(taken[0], taken[1]);
             server.getConfigurationManager().playerEntityList.remove(a);
             w.removeEntity(a);
-            check(drains && regens && foreignOk, "аркана манекена по ударам " + f(arc[0]) + " " + f(arc[1]) + " " + f(arc[2]) + " " + f(arc[3]) + " (было 30), через "
-                + (com.divinerpgextended.magic.ArcanaRules.DELAY + 20) + " тиков " + f(regen) + "; удар 10 в своей броне Странника " + f(taken[0]) + ", в чужой " + f(taken[1]));
-            return "аркана манекена тратится щитом и восстанавливается после паузы; броня Странника на манекене защищает, чья бы ни была";
+            check(drains && regens && foreignOk, "dummy arcana per hits " + f(arc[0]) + " " + f(arc[1]) + " " + f(arc[2]) + " " + f(arc[3]) + " (was 30), after "
+                + (com.divinerpgextended.magic.ArcanaRules.DELAY + 20) + " ticks " + f(regen) + "; hit 10 in own Wanderer armor " + f(taken[0]) + ", in foreign " + f(taken[1]));
+            return "dummy arcana is spent by the ward and recovers after a pause; Wanderer armor on the dummy protects, whoever it belongs to";
         });
-        t("Прохождение", "Манекен: урон оружия Divine (мечи, снаряды, взрывы), несколько манекенов в мире", () -> {
+        t("Progression", "Dummy: Divine weapon damage (swords, projectiles, explosions), several dummies in the world", () -> {
             reset(p);
             net.minecraft.world.World w = p.worldObj;
             ArcanaHelper.getProperties(p).setBarValue(200);
@@ -2368,7 +2368,7 @@ public class SelfTest {
                     cpw.mods.fml.common.gameevent.TickEvent.Phase.END));
                 float arcane = d.lastHit();
                 ok &= hit > 4;
-                sb.append(it.getItemStackDisplayName(held)).append(' ').append(f(hit)).append(arcane > 0 ? " + аркана " + f(arcane) : "").append(", ");
+                sb.append(it.getItemStackDisplayName(held)).append(' ').append(f(hit)).append(arcane > 0 ? " + arcana " + f(arcane) : "").append(", ");
             }
             // Divine projectiles: shot, hit on the dummy (star and meteor - by explosion, an explosion has no attacker)
             Item[] ranged = { net.divinerpg.utils.items.VanillaItemsWeapons.shuriken, net.divinerpg.utils.items.VanillaItemsWeapons.vileStorm,
@@ -2410,7 +2410,7 @@ public class SelfTest {
             boolean lava = d.attackEntityFrom(DamageSource.lava, 10F);
             d.setDead();
             ok &= boom > 0 && !lava;
-            sb.append("взрыв ").append(f(boom)).append(", лава ").append(lava ? "засчитана" : "нет").append("; ");
+            sb.append("explosion ").append(f(boom)).append(", lava ").append(lava ? "counted" : "no").append("; ");
             // several dummies by item: in the Overworld and in Eden; no more than 3 on the server - the fourth is not placed
             java.util.Set<java.util.UUID> wasListed = com.divinerpgextended.dummy.DummyLimit.get().clear();
             for (int dim : new int[] { 0, ConfigurationHelper.eden }) {
@@ -2436,14 +2436,14 @@ public class SelfTest {
                 }
                 int after = com.divinerpgextended.dummy.DummyLimit.get().count();
                 ok &= n == 3 && st.stackSize == 1 && !fourth && listed == 3 && after == 0;
-                sb.append("мир ").append(dim).append(": манекенов ").append(n).append(" из 4 (лимит 3, в списке ").append(listed).append(", после уборки ")
+                sb.append("world ").append(dim).append(": dummies ").append(n).append(" of 4 (limit 3, in list ").append(listed).append(", after cleanup ")
                     .append(after).append("); ");
             }
             for (java.util.UUID id : wasListed) com.divinerpgextended.dummy.DummyLimit.get().add(id);
             check(ok, sb.toString());
             return sb.toString();
         });
-        t("Прохождение", "Манекен: неуязвимость после удара как у игрока, питомцы бьют вместе с хозяином", () -> {
+        t("Progression", "Dummy: invulnerability after a hit like a player, pets hit together with the owner", () -> {
             reset(p);
             net.minecraft.world.World w = p.worldObj;
             com.divinerpgextended.dummy.EntityTrainingDummy d = new com.divinerpgextended.dummy.EntityTrainingDummy(w);
@@ -2485,11 +2485,11 @@ public class SelfTest {
             griz.setDead();
             sitter.setDead();
             check(first && h1 > 0 && !weak && near(h2, h1) && strong && near(h3, h1 / 2) && later && near(h4, h1 * 5 / 8) && wolfGo && grizGo && sits && released,
-                "удары 8 / сразу 5 / сразу 12 / после 5: " + first + " " + f(h1) + ", " + weak + " " + f(h2) + ", " + strong + " " + f(h3) + ", " + later + " " + f(h4)
-                    + "; волк " + wolfGo + ", гризли " + grizGo + ", сидящий не пошёл " + sits + ", после уборки отстали " + released);
-            return "удар 8, сразу 5 - не в счёт, сразу 12 - в счёт 4, через полсекунды 5 - целиком; волк и гризли Divine идут бить манекен за хозяином, сидящий - нет";
+                "hits 8 / immediately 5 / immediately 12 / after 5: " + first + " " + f(h1) + ", " + weak + " " + f(h2) + ", " + strong + " " + f(h3) + ", " + later + " " + f(h4)
+                    + "; wolf " + wolfGo + ", grizzle " + grizGo + ", sitting one did not go " + sits + ", after cleanup they fell behind " + released);
+            return "hit 8, immediately 5 - does not count, immediately 12 - counts 4, half a second later 5 - in full; Divine wolf and grizzle go to hit the dummy after the owner, a sitting one does not";
         });
-        t("Прохождение", "Манекен не реагирует на воду: не всплывает, не скачет после воды, не тонет", () -> {
+        t("Progression", "Dummy does not react to water: does not float, does not bounce after water, does not sink", () -> {
             reset(p);
             net.minecraft.world.World w = p.worldObj;
             int x = net.minecraft.util.MathHelper.floor_double(p.posX) + 4, y = net.minecraft.util.MathHelper.floor_double(p.posY),
@@ -2524,14 +2524,14 @@ public class SelfTest {
                     dry = Math.max(dry, d.posY);
                 }
                 check(wet && top <= y0 + 0.01 && dry <= y0 + 0.01 && air == 300,
-                    "в воде " + wet + ": стоял на " + f((float) y0) + ", поднимался до " + f((float) top) + ", воздух " + air + "; воду убрали - поднимался до " + f((float) dry));
-                return "4 секунды в воде: не всплыл и не тратит воздух; воду убрали - стоит на месте, не скачет";
+                    "in water " + wet + ": stood at " + f((float) y0) + ", rose up to " + f((float) top) + ", air " + air + "; water removed - rose up to " + f((float) dry));
+                return "4 seconds in water: did not float up and does not use air; water removed - stands still, does not bounce";
             } finally {
                 d.setDead();
                 for (int i = 0; i < 4; i++) w.setBlock(x, y - 1 + i, z, was[i], wasMeta[i], 3);
             }
         });
-        t("Прохождение", "Миникарта Xaero: у каждого моба Divine и аддона есть описание иконки", () -> {
+        t("Progression", "Xaero minimap: every Divine and addon mob has an icon description", () -> {
             int all = 0;
             StringBuilder miss = new StringBuilder(), unlisted = new StringBuilder();
             for (Object o : net.minecraft.entity.EntityList.classToStringMapping.entrySet()) {
@@ -2544,15 +2544,15 @@ public class SelfTest {
                 // Xaero reads descriptions only for names from the global id list (EntityList.func_151515_b), and looks up the mob by getEntityString
                 if (!net.minecraft.entity.EntityList.func_151515_b().contains(e.getValue())) unlisted.append(e.getValue()).append(' ');
             }
-            com.divinerpgextended.DivineRPGExtended.LOG.info("Xaero: не в глобальном списке id: " + unlisted);
+            com.divinerpgextended.DivineRPGExtended.LOG.info("Xaero: not in the global id list: " + unlisted);
             boolean sprite = SelfTest.class.getResource("/assets/xaerominimap/entity/icon/sprite/divinerpgextended_training_dummy.png") != null;
-            check(miss.length() == 0 && unlisted.length() == 0 && sprite && all > 100, "мобов " + all + ", без описания: " + miss + "; Xaero не прочтёт (нет в списке id): " + unlisted + "; значок манекена " + sprite);
-            return all + " мобов Divine и аддона: у всех описание (цветная точка вместо иконки, которую Xaero не может нарисовать), у манекена свой соломенный значок";
+            check(miss.length() == 0 && unlisted.length() == 0 && sprite && all > 100, "mobs " + all + ", without description: " + miss + "; Xaero will not read (not in the id list): " + unlisted + "; dummy icon " + sprite);
+            return all + " Divine and addon mobs: all have a description (a colored dot instead of an icon that Xaero cannot draw), the dummy has its own straw icon";
         });
     }
 
     private void arcanePhaseTests(final TestPlayer p) {
-        t("Аркана", "Меч Арканы бьёт арканным уроном отдельным ударом", () -> {
+        t("Arcana", "Arcana sword hits with arcane damage as a separate hit", () -> {
             reset(p);
             net.minecraft.world.World w = p.worldObj;
             hold(p, new ItemStack(net.divinerpg.utils.items.ArcanaItems.arcaniumSaber));
@@ -2570,10 +2570,10 @@ public class SelfTest {
             float edge = before - z.getHealth();
             float expect = com.divinerpgextended.magic.ArcanaCombat.SWORD_BONUS * com.divinerpgextended.magic.ArcanaRules.stage(p);
             z.setDead();
-            check(near(edge, expect), "арканный удар сабли по зомби в алмазном нагруднике " + f(edge) + " (ждали " + f(expect) + " сквозь броню)");
-            return "после удара саблей Арканы - отдельный арканный удар " + f(expect) + " сквозь броню, с фиолетовыми искрами";
+            check(near(edge, expect), "arcane hit of the saber on a zombie in a diamond chestplate " + f(edge) + " (expected " + f(expect) + " through armor)");
+            return "after a hit with the Arcana saber - a separate arcane hit " + f(expect) + " through armor, with purple sparks";
         });
-        t("Аркана", "Подземельный конструктор: Заряженный коллектор на алтаре Драмикса призывает его, с него падает ключ (через раз)", () -> {
+        t("Arcana", "Dungeon Constructor: a Charged Collector on the Dramix altar summons it, a key drops from it (every other time)", () -> {
             int dim = net.divinerpg.utils.config.ConfigurationHelper.arcana;
             WorldServer aw = server.worldServerForDimension(dim);
             int ax = 3200, ay = 120, az = 3200;
@@ -2597,7 +2597,7 @@ public class SelfTest {
                     && keys == 0 && kills < 16;) {
                     boolean hit = c.attackEntityFrom(DamageSource.causePlayerDamage(kp), 5000F);
                     kills++;
-                    state = "убито " + kills + ", удар прошёл " + hit + ", мёртв " + c.isDead + ", здоровье " + f(c.getHealth()) + "; ";
+                    state = "killed " + kills + ", hit landed " + hit + ", dead " + c.isDead + ", health " + f(c.getHealth()) + "; ";
                     for (Object o : aw.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, box)) {
                         net.minecraft.entity.item.EntityItem en = (net.minecraft.entity.item.EntityItem) o;
                         Item it = en.getEntityItem().getItem();
@@ -2620,12 +2620,12 @@ public class SelfTest {
                 aw.removeEntity(kp);
                 aw.setBlockToAir(ax, ay, az);
             }
-            check(used && cons.size() == 1 && left == 1 && keys == 1, "коллектор сработал " + used + ", конструкторов над алтарём " + cons.size() + ", коллекторов осталось " + left
-                + " из 2, ключей " + keys + " " + keyNames + "; " + state + "упало: " + drops);
-            return "Заряженный коллектор на алтаре Драмикса призывает Подземельного конструктора (коллектор тратится), с убитого игроком через раз падает ключ: "
-                + keyNames.trim() + " (с " + kills + "-го)";
+            check(used && cons.size() == 1 && left == 1 && keys == 1, "collector worked " + used + ", constructors above the altar " + cons.size() + ", collectors left " + left
+                + " of 2, keys " + keys + " " + keyNames + "; " + state + "dropped: " + drops);
+            return "A Charged Collector on the Dramix altar summons the Dungeon Constructor (the collector is spent), a key drops every other time from the one killed by a player: "
+                + keyNames.trim() + " (from " + kills + "th)";
         });
-        t("Аркана", "Запертые сундуки: в каморках за дверьми под ключ, проходы не перекрыты, гарантия участка, свой ключ открывает, нерушимы", () -> {
+        t("Arcana", "Locked chests: in vaults behind locked doors, passages not blocked, area guarantee, own key opens, unbreakable", () -> {
             int dim = ConfigurationHelper.arcana;
             WorldServer aw = server.worldServerForDimension(dim);
             java.util.Map<com.divinerpgextended.block.BlockLockedChest.Kind, int[]> found = new java.util.EnumMap<com.divinerpgextended.block.BlockLockedChest.Kind, int[]>(
@@ -2650,10 +2650,10 @@ public class SelfTest {
                         boolean ore = aw.getBlock(v[0], v[1], v[2]) == oreB || aw.isAirBlock(v[0], v[1], v[2]) && (aw.getBlock(v[0] + 1, v[1], v[2]) == oreB
                             || aw.getBlock(v[0] - 1, v[1], v[2]) == oreB || aw.getBlock(v[0], v[1], v[2] + 1) == oreB || aw.getBlock(v[0], v[1], v[2] - 1) == oreB);
                         if (v[0] - cx * 16 < com.divinerpgextended.world.ArcanaChests.EDGE || v[2] - cz * 16 < com.divinerpgextended.world.ArcanaChests.EDGE)
-                            bad += kd + " у западного или северного края чанка " + (v[0] - cx * 16) + "," + (v[2] - cz * 16) + "; ";
+                            bad += kd + " at the west or north edge of the chunk " + (v[0] - cx * 16) + "," + (v[2] - cz * 16) + "; ";
                         int before = chestParts(aw, cx * 16, v[1], cz * 16, Integer.MIN_VALUE, 0), after = chestParts(aw, cx * 16, v[1], cz * 16, v[0], v[2]);
                         if (ore == (kd == com.divinerpgextended.block.BlockLockedChest.Kind.DEGRADED) || before != after)
-                            bad += kd + " " + v[0] + "," + v[1] + "," + v[2] + " на руде или рядом " + ore + ", частей прохода " + before + " -> " + after + "; ";
+                            bad += kd + " " + v[0] + "," + v[1] + "," + v[2] + " on or next to ore " + ore + ", path parts " + before + " -> " + after + "; ";
                         if (!found.containsKey(kd)) {
                             found.put(kd, v);
                             rooms.put(kd, new int[] { cx * 16, y0, cz * 16 });
@@ -2663,7 +2663,7 @@ public class SelfTest {
             } finally {
                 Config.arcanaChests = wasOn;
             }
-            check(found.size() == 4 && bad.isEmpty(), "виды каморок в 80 чанках: " + found.keySet() + " (всего " + vaults + "); не так: " + bad);
+            check(found.size() == 4 && bad.isEmpty(), "vault kinds in 80 chunks: " + found.keySet() + " (total " + vaults + "); wrong: " + bad);
             // guarantee: on a plot without a chest of this kind the Nth closet gets it without a roll
             com.divinerpgextended.block.BlockLockedChest.Kind sk = com.divinerpgextended.block.BlockLockedChest.Kind.SOUL;
             int[] sv = found.get(sk), sr = rooms.get(sk);
@@ -2684,7 +2684,7 @@ public class SelfTest {
             }
             boolean chestThere = aw.getBlock(sv[0], sv[1], sv[2]) == com.divinerpgextended.registry.ModBlocks.lockedChest && aw.getBlockMetadata(sv[0], sv[1], sv[2]) == sk.ordinal();
             check(!got[0] && !got[1] && got[2] && chestThere && data.count(rkey) == 1 && com.divinerpgextended.world.ArcanaChests.forced == forcedBefore + 1,
-                "гарантия на 3-й каморке: " + got[0] + " " + got[1] + " " + got[2] + ", сундук на месте руды " + chestThere + ", на участке " + data.count(rkey));
+                "guarantee on the 3rd vault: " + got[0] + " " + got[1] + " " + got[2] + ", chest at the ore spot " + chestThere + ", in the area " + data.count(rkey));
             // open: someone else's key does not fit, your own is spent, inside is loot of the kind
             int[][] side = { {}, {}, { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } };
             int[] off = side[sv[4]];
@@ -2722,8 +2722,8 @@ public class SelfTest {
                 aw.removeEntity(cp);
             }
             check(wrongLocked && wrongLeft == 1 && opened && keyLeft == 1 && gui && trinket && survivesBoom && unbreakable && guarded,
-                "чужой ключ: заперт " + wrongLocked + ", ключ цел " + wrongLeft + "; свой: открыт " + opened + ", ключей осталось " + keyLeft + " из 2, окно " + gui
-                    + ", стопок " + stacks + ", аксессуар " + trinket + "; после взрыва на месте " + survivesBoom + ", неломаемый " + unbreakable + ", особой киркой не унести " + guarded);
+                "wrong key: locked " + wrongLocked + ", key intact " + wrongLeft + "; own: opened " + opened + ", keys left " + keyLeft + " of 2, window " + gui
+                    + ", stacks " + stacks + ", accessory " + trinket + "; after explosion in place " + survivesBoom + ", unbreakable " + unbreakable + ", cannot be carried off with a special pickaxe " + guarded);
             // loot by kind
             Random lr = new Random(7);
             String lootBad = "";
@@ -2736,7 +2736,7 @@ public class SelfTest {
                 for (ItemStack s : com.divinerpgextended.world.ArcanaChests.loot(sk, lr)) acc |= s.getItem() == ModItems.trinket;
                 for (ItemStack s : com.divinerpgextended.world.ArcanaChests.loot(com.divinerpgextended.block.BlockLockedChest.Kind.DEGRADED, lr))
                     charged |= s.getItem() == net.divinerpg.utils.items.ArcanaItems.chargedCollector;
-                if (!col || !wpn || !acc || !charged) lootBad += "бросок " + roll + ": коллектор " + col + ", оружие " + wpn + ", аксессуар " + acc + ", заряженный " + charged + "; ";
+                if (!col || !wpn || !acc || !charged) lootBad += "roll " + roll + ": collector " + col + ", weapon " + wpn + ", accessory " + acc + ", charged " + charged + "; ";
             }
             check(lootBad.isEmpty(), lootBad);
             // in new chunks with chance 1 a chest is placed in every closet, the kind - by the door
@@ -2780,11 +2780,11 @@ public class SelfTest {
                 int[] pl = it.next();
                 if (made != chests) lost += "[" + pl[0] + "," + pl[1] + "," + pl[2] + "] ";
                 if (aw.getBlock(pl[0], pl[1], pl[2]) != com.divinerpgextended.registry.ModBlocks.lockedChest)
-                    lost += com.divinerpgextended.block.BlockLockedChest.Kind.of(pl[3]) + " " + pl[0] + "," + pl[1] + "," + pl[2] + " теперь " + aw.getBlock(pl[0], pl[1], pl[2]).getUnlocalizedName()
-                        + " (чанк " + (pl[0] >> 4) + "," + (pl[2] >> 4) + "); ";
+                    lost += com.divinerpgextended.block.BlockLockedChest.Kind.of(pl[3]) + " " + pl[0] + "," + pl[1] + "," + pl[2] + " now " + aw.getBlock(pl[0], pl[1], pl[2]).getUnlocalizedName()
+                        + " (chunk " + (pl[0] >> 4) + "," + (pl[2] >> 4) + "); ";
             }
-            check(made > 0 && chests == made && recount == made && wrongKind == 0, "в 12 новых чанках поставлено " + made + ", найдено сундуков " + chests + " (пересчёт в конце " + recount
-                + "), без своей двери рядом " + wrongKind + "; по чанкам поставлено/найдено(+после): " + perChunk + "; места: " + lost);
+            check(made > 0 && chests == made && recount == made && wrongKind == 0, "in 12 new chunks placed " + made + ", chests found " + chests + " (recount at the end " + recount
+                + "), without own door nearby " + wrongKind + "; by chunks placed/found(+after): " + perChunk + "; spots: " + lost);
             // textures: the Arcana wall stone on the faces, the lock is the muted key color (on the server - on a gray stub chest)
             java.awt.image.BufferedImage gray = new java.awt.image.BufferedImage(64, 64, java.awt.image.BufferedImage.TYPE_INT_ARGB);
             for (int px = 0; px < 64; px++) for (int py = 0; py < 64; py++) gray.setRGB(px, py, 0xff808080);
@@ -2792,18 +2792,18 @@ public class SelfTest {
             for (com.divinerpgextended.block.BlockLockedChest.Kind kd : com.divinerpgextended.block.BlockLockedChest.Kind.values()) {
                 java.awt.image.BufferedImage img = com.divinerpgextended.client.ChestTextures.build(kd, gray);
                 if (img == null) {
-                    texBad += kd + " не собрана; ";
+                    texBad += kd + " not assembled; ";
                     continue;
                 }
                 int latch = img.getRGB(2, 4) & 0xffffff, face = img.getRGB(20, 22) & 0xffffff; // the lock at the front and the middle of the front face of the box
-                if (face == 0x808080 || latch == 0x808080) texBad += kd + " грань " + Integer.toHexString(face) + " замок " + Integer.toHexString(latch) + "; ";
+                if (face == 0x808080 || latch == 0x808080) texBad += kd + " face " + Integer.toHexString(face) + " lock " + Integer.toHexString(latch) + "; ";
             }
             check(texBad.isEmpty(), texBad);
-            return "каморок в 80 чанках " + vaults + " всех 4 видов: руда за дверьми слизи, древнего кирпича и камня душ (у западного и северного края чанка - рядом), угол зала разрушенных дверей; проходы не рвутся; "
-                + "гарантия участка ставит сундук на 3-й каморке; чужой ключ не открывает, свой тратится, внутри " + stacks + " стопок с аксессуаром; взрыв не берёт; "
-                + "в 12 новых чанках с шансом 1 - " + made + " сундуков у своих дверей; текстуры 9 видов собираются";
+            return "vaults in 80 chunks " + vaults + " of all 4 kinds: ore behind slime doors, ancient brick and soul stone (at the west and north edge of the chunk - nearby), corner of the ruined doors hall; passages not broken; "
+                + "the area guarantee places a chest in the 3rd vault; a wrong key does not open, the own one is spent, inside " + stacks + " stacks with an accessory; an explosion does not take it; "
+                + "in 12 new chunks with chance 1 - " + made + " chests at their own doors; textures of 9 kinds assemble";
         });
-        t("Сумеречные миры", "Реликварии миров: ключ мира из ключа Арканы и 4 камней, реликварий в руинах, склепе и на корабле Терна, гарантия участка", () -> {
+        t("Twilight dimensions", "World reliquaries: world key from an Arcana key and 4 stones, reliquary in ruins, crypt and on the Skythern ship, area guarantee", () -> {
             com.divinerpgextended.world.twilight.TwilightWorld[] worlds = com.divinerpgextended.world.twilight.TwilightWorld.values();
             String recBad = "";
             WorldServer ow = server.worldServerForDimension(0);
@@ -2812,9 +2812,9 @@ public class SelfTest {
                 for (int sl : new int[] { 1, 3, 5, 7 }) cg.setInventorySlotContents(sl, new ItemStack(tw.gem()));
                 cg.setInventorySlotContents(4, new ItemStack(ak));
                 ItemStack out = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, ow);
-                if (out == null || out.getItem() != ModItems.worldKey || out.getItemDamage() != tw.ordinal()) recBad += tw + " из " + ak.getUnlocalizedName() + " -> " + out + "; ";
+                if (out == null || out.getItem() != ModItems.worldKey || out.getItemDamage() != tw.ordinal()) recBad += tw + " from " + ak.getUnlocalizedName() + " -> " + out + "; ";
             }
-            check(recBad.isEmpty(), "рецепты ключей мира: " + recBad);
+            check(recBad.isEmpty(), "world key recipes: " + recBad);
             int savedChance = Config.reliquaryChance, savedPity = Config.reliquaryPity, savedShip = Config.reliquaryShipChance, savedRarity = Config.skythernShipRarity;
             Config.reliquaryChance = 1;
             Config.reliquaryShipChance = 1;
@@ -2880,7 +2880,7 @@ public class SelfTest {
                         if (!sw.isAirBlock(bx, by, bz))
                             pw.println((bx - sx) + " " + (by - sy) + " " + (bz - sz) + " " + net.minecraft.block.Block.blockRegistry.getNameForObject(sw.getBlock(bx, by, bz)) + " " + sw.getBlockMetadata(bx, by, bz));
                 } catch (java.io.IOException ignored) {}
-                shipInfo = "небо пусто " + free + ", реликварий " + relic + ", сундук " + chest + ", парус " + sail + ", палуба " + deck;
+                shipInfo = "sky empty " + free + ", reliquary " + relic + ", chest " + chest + ", sail " + sail + ", deck " + deck;
                 // ships by themselves: in 40 chunks of the Skythern sky with rarity 1
                 Config.skythernShipRarity = 1;
                 int before = com.divinerpgextended.world.twilight.Reliquaries.Ships.built;
@@ -2911,12 +2911,12 @@ public class SelfTest {
                 Config.skythernShipRarity = savedRarity;
             }
             check(ruinOk && wrongLocked && opened && keyLeft == 1 && halo && cryptOk && shipOk && made > 0 && gotPity,
-                "руины: реликварий Эдема " + ruinOk + "; ключ Мортума не открывает " + wrongLocked + ", ключ Эдема открыл " + opened + " (осталось " + keyLeft + " из 2), нимб внутри " + halo
-                    + "; склеп Мортума " + cryptOk + "; корабль: " + shipInfo + "; кораблей в 40 чанках неба " + made + "; гарантия на 3-м месте " + gotPity);
-            return "ключ мира = ключ Арканы + 4 камня мира (все 5 миров); реликварий Эдема в руинах открывается только ключом Эдема (тратится), внутри Солнечный нимб; "
-                + "реликварий Мортума у саркофага склепа; терновый корабль с парусом, сундуком и реликварием Терна, в небе Терна их " + made + " на 40 чанков; гарантия участка на 3-м месте";
+                "ruins: Eden reliquary " + ruinOk + "; Mortum key does not open " + wrongLocked + ", Eden key opened " + opened + " (left " + keyLeft + " of 2), halo inside " + halo
+                    + "; Mortum crypt " + cryptOk + "; ship: " + shipInfo + "; ships in 40 sky chunks " + made + "; guarantee on the 3rd spot " + gotPity);
+            return "world key = Arcana key + 4 world stones (all 5 worlds); the Eden reliquary in the ruins opens only with the Eden key (spent), inside is the Sun Halo; "
+                + "Mortum reliquary by the crypt sarcophagus; thorn ship with a sail, a chest and a Skythern reliquary, in the Skythern sky there are " + made + " per 40 chunks; area guarantee on the 3rd spot";
         });
-        t("Сумеречные миры", "Вещи реликвариев: нимб лечит и не греется в Эдеме, Грозовой лук бьёт молнией, томагавк бьёт троих и возвращается, посох облаков, Жатва душ", () -> {
+        t("Twilight dimensions", "Reliquary items: halo heals and does not overheat in Eden, Storm Bow strikes with lightning, tomahawk hits three and returns, Cloud Staff, Soul Harvest", () -> {
             // Sun Halo
             WorldServer ew = server.worldServerForDimension(ConfigurationHelper.eden);
             int hx = 9300, hy = 170, hz = 9300;
@@ -2938,7 +2938,7 @@ public class SelfTest {
                 ew.removeEntity(hp);
             }
             check(rateBefore > 0 && rateAfter == 0 && healed >= com.divinerpgextended.trinket.TrinketEffects.SUN_HALO_HEAL - 0.01F,
-                "нимб: перегрев без него x" + rateBefore + ", с ним x" + rateAfter + ", вылечил " + healed);
+                "halo: overheat without it x" + rateBefore + ", with it x" + rateAfter + ", healed " + healed);
             // Storm Bow: every 5th arrow is a storm arrow (in a downpour - all), a hit is lightning and +25%
             WorldServer ww = server.worldServerForDimension(ConfigurationHelper.wildwood);
             int bx = 9300, by = 170, bz = 9300;
@@ -2979,7 +2979,7 @@ public class SelfTest {
                 ww.removeEntity(bp);
             }
             check(arrows == 5 && ammoLeft == 59 && tagged == (rain ? 5 : 1) && Math.abs(hurt - 12.5F) < 0.01F && boltsAfter == boltsBefore + 1,
-                "лук: стрел " + arrows + ", осталось патронов " + ammoLeft + ", грозовых " + tagged + (rain ? " (дождь)" : "") + ", урон 10 -> " + hurt + ", молний " + (boltsAfter - boltsBefore));
+                "bow: arrows " + arrows + ", ammo left " + ammoLeft + ", stormy " + tagged + (rain ? " (rain)" : "") + ", damage 10 -> " + hurt + ", lightning " + (boltsAfter - boltsBefore));
             // Tomahawk: in the Overworld sky, three zombies ahead farther than 8 blocks
             WorldServer tw0 = server.worldServerForDimension(0);
             int tx = 9500, ty = 200, tz = 9500;
@@ -3023,8 +3023,8 @@ public class SelfTest {
             }
             float axeDmg = com.divinerpgextended.item.ItemTomahawk.throwDamage();
             check(flagOut && th != null && hitsDone == 3 && firstStunned && flagBack && lost[0] >= axeDmg * 0.8F && lost[1] >= axeDmg * 0.8F && lost[2] >= axeDmg * 0.8F,
-                "томагавк: брошен " + flagOut + ", сущность " + (th != null) + ", целей " + hitsDone + ", первая оглушена " + firstStunned + ", вернулся " + flagBack + " за " + flewTicks
-                    + " тиков, урон " + f(lost[0]) + "/" + f(lost[1]) + "/" + f(lost[2]) + " (ждали " + f(axeDmg) + ")");
+                "tomahawk: thrown " + flagOut + ", entity " + (th != null) + ", targets " + hitsDone + ", first stunned " + firstStunned + ", returned " + flagBack + " in " + flewTicks
+                    + " ticks, damage " + f(lost[0]) + "/" + f(lost[1]) + "/" + f(lost[2]) + " (expected " + f(axeDmg) + ")");
             // Cloud Staff: in the air - a 3 x 3 platform under the feet, melts after 30 s
             int cx = 9500, cy = 210, cz = 9530;
             loadAround(tw0, cx, cz, 1);
@@ -3043,7 +3043,7 @@ public class SelfTest {
                 server.getConfigurationManager().playerEntityList.remove(cp);
                 tw0.removeEntity(cp);
             }
-            check(clouds == 9 && melted == 9, "посох облаков: поставлено " + clouds + ", растаяло " + melted);
+            check(clouds == 9 && melted == 9, "Cloud Staff: placed " + clouds + ", melted " + melted);
             // Soul Harvest: souls for kills, +2% per soul, dissipation, a soul explosion at full supply
             TestPlayer sp = join(player(0, "TestSoulHarvest", tx + 0.5, ty + 20, tz + 0.5), true);
             int soulsAfterKills, decayed;
@@ -3086,12 +3086,12 @@ public class SelfTest {
                 tw0.removeEntity(sp);
             }
             check(soulsAfterKills == 10 && decayed == 8 && Math.abs(bonus5 - 11F) < 0.01F && Math.abs(full - 12F) < 0.01F && splash >= 5.0F && blastsAfter == blastsBefore + 1 && soulsAfterBlast == 0,
-                "Жатва: душ после 12 убийств " + soulsAfterKills + ", через 20 с из 10 осталось " + decayed + ", урон 10 при 5 душах " + f(bonus5) + ", при 10 " + f(full) + ", взрыв по соседу "
-                    + f(splash) + ", взрывов " + (blastsAfter - blastsBefore) + ", душ после " + soulsAfterBlast);
-            return "нимб: в Эдеме не греется, под небом лечит " + f(healed) + "; лук: грозовая каждая 5-я стрела, молния и урон 10 -> " + f(hurt) + "; томагавк: 3 цели, первая оглушена, вернулся за "
-                + flewTicks + " тиков; посох: площадка 3x3, тает; Жатва: 10 душ, -1 за 10 с, +2% за душу, взрыв душ " + f(splash) + " по соседу";
+                "Harvest: souls after 12 kills " + soulsAfterKills + ", after 20 s of 10 left " + decayed + ", hit 10 with 5 souls " + f(bonus5) + ", with 10 " + f(full) + ", blast on neighbor "
+                    + f(splash) + ", blasts " + (blastsAfter - blastsBefore) + ", souls after " + soulsAfterBlast);
+            return "halo: does not overheat in Eden, heals under the sky " + f(healed) + "; bow: every 5th arrow is stormy, lightning and damage 10 -> " + f(hurt) + "; tomahawk: 3 targets, first stunned, returned in "
+                + flewTicks + " ticks; staff: 3x3 platform, melts; Harvest: 10 souls, -1 per 10 s, +2% per soul, soul blast " + f(splash) + " on neighbor";
         });
-        t("Отладка", "Аудит: предметы Divine без применения (logs/dre-junk.txt)", () -> {
+        t("Debug", "Audit: Divine items without use (logs/dre-junk.txt)", () -> {
             // all items of the Divine registries
             java.util.Map<net.minecraft.item.Item, String> items = new java.util.LinkedHashMap<net.minecraft.item.Item, String>();
             for (String cn : new String[] { "ArcanaItems", "IceikaItems", "ItemsFood", "TwilightItemsArmor", "TwilightItemsCrops", "TwilightItemsOther", "TwilightItemsTools",
@@ -3168,63 +3168,63 @@ public class SelfTest {
                 heal = net.divinerpg.items.base.ItemMod.class.getDeclaredField("healAmount");
                 heal.setAccessible(true);
             } catch (Throwable ignored) {}
-            StringBuilder out = new StringBuilder("# предмет Divine | в рецептах | в сделках | своё применение\n");
+            StringBuilder out = new StringBuilder("# Divine item | in recipes | in trades | own use\n");
             int junk = 0;
             for (java.util.Map.Entry<net.minecraft.item.Item, String> en : items.entrySet()) {
                 net.minecraft.item.Item it = en.getKey();
                 String own = "";
-                if (it instanceof net.minecraft.item.ItemArmor) own = "броня";
-                else if (it instanceof net.minecraft.item.ItemSword || it instanceof net.minecraft.item.ItemTool || it instanceof net.minecraft.item.ItemBow || it instanceof net.minecraft.item.ItemHoe) own = "оружие/инструмент";
-                else if (it instanceof net.minecraft.item.ItemFood) own = "еда";
-                else if (it instanceof net.minecraft.item.ItemBlock || it instanceof net.minecraft.item.ItemSeeds || it instanceof net.minecraft.item.ItemReed) own = "ставится";
+                if (it instanceof net.minecraft.item.ItemArmor) own = "armor";
+                else if (it instanceof net.minecraft.item.ItemSword || it instanceof net.minecraft.item.ItemTool || it instanceof net.minecraft.item.ItemBow || it instanceof net.minecraft.item.ItemHoe) own = "weapon/tool";
+                else if (it instanceof net.minecraft.item.ItemFood) own = "food";
+                else if (it instanceof net.minecraft.item.ItemBlock || it instanceof net.minecraft.item.ItemSeeds || it instanceof net.minecraft.item.ItemReed) own = "placeable";
                 else
                     for (Class<?> c = it.getClass(); c != null && c != net.minecraft.item.Item.class && own.isEmpty(); c = c.getSuperclass())
                         if (!"ItemMod".equals(c.getSimpleName())) // Divine's base class catches right-click on all its items itself - that is not a use
                         for (java.lang.reflect.Method mt : c.getDeclaredMethods())
                             if (java.util.Arrays.asList(acts).contains(mt.getName())) {
-                                own = "действие " + c.getSimpleName() + "." + mt.getName();
+                                own = "action " + c.getSimpleName() + "." + mt.getName();
                                 break;
                             }
-                if (own.isEmpty() && heal != null && it instanceof net.divinerpg.items.base.ItemMod && heal.getInt(it) > 0) own = "ПКМ лечит на " + heal.getInt(it) + " (ItemMod)";
-                if (own.isEmpty() && ammo.contains(it)) own = "патрон оружия";
-                if (own.isEmpty() && com.divinerpgextended.fishing.Bait.of(it) != null) own = "приманка рыбалки";
-                if (own.isEmpty() && herbs.contains(it)) own = "трава арканного зелья";
-                if (own.isEmpty() && com.divinerpgextended.accessory.Accessories.divineAccessory(new net.minecraft.item.ItemStack(it))) own = "аксессуар (встраивается в броню)";
+                if (own.isEmpty() && heal != null && it instanceof net.divinerpg.items.base.ItemMod && heal.getInt(it) > 0) own = "right click heals " + heal.getInt(it) + " (ItemMod)";
+                if (own.isEmpty() && ammo.contains(it)) own = "weapon ammo";
+                if (own.isEmpty() && com.divinerpgextended.fishing.Bait.of(it) != null) own = "fishing bait";
+                if (own.isEmpty() && herbs.contains(it)) own = "arcane potion herb";
+                if (own.isEmpty() && com.divinerpgextended.accessory.Accessories.divineAccessory(new net.minecraft.item.ItemStack(it))) own = "accessory (built into armor)";
                 int ni = ingr.getOrDefault(it, 0), nt = trade.getOrDefault(it, 0);
                 boolean noUse = ni == 0 && nt == 0 && own.isEmpty();
                 if (noUse) junk++;
-                out.append(noUse ? "БЕЗ ПРИМЕНЕНИЯ " : "").append(en.getValue()).append(" (").append(new net.minecraft.item.ItemStack(it).getDisplayName()).append(") | ").append(ni)
+                out.append(noUse ? "NO USE " : "").append(en.getValue()).append(" (").append(new net.minecraft.item.ItemStack(it).getDisplayName()).append(") | ").append(ni)
                     .append(" | ").append(nt).append(" | ").append(own).append('\n');
             }
             java.io.File f = new java.io.File(server.getFile("logs"), "dre-junk.txt");
             java.nio.file.Files.write(f.toPath(), out.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            return "предметов Divine " + items.size() + ", торговцев " + merchants + "; без рецептов, сделок и своего действия: " + junk + " (список - logs/dre-junk.txt)";
+            return "Divine items " + items.size() + ", merchants " + merchants + "; without recipes, trades and own action: " + junk + " (list - logs/dre-junk.txt)";
         });
-        t("Аксессуары", "Аксессуары видны на теле: посадка на всех профилях брони, значки и грани алтарей на месте", () -> {
+        t("Accessories", "Accessories are visible on the body: fit on all armor profiles, icons and altar faces in place", () -> {
             java.util.Map<String, java.util.Map<String, java.util.Map<String, com.divinerpgextended.accessory.WearData.Mesh>>> all = com.divinerpgextended.accessory.WearData.all();
             String[] profiles = { "bare", "divine", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r1_shadow", "r1_bedrock", "r1_ender", "r1_corrupted", "r8_flight", "r8_regen",
                 "r8_arcana" };
             StringBuilder bad = new StringBuilder();
             int quads = 0;
             for (com.divinerpgextended.trinket.Trinket tr : com.divinerpgextended.trinket.Trinket.values()) {
-                if (SelfTest.class.getResource("/assets/divinerpgextended/textures/items/trinket_" + tr.key() + ".png") == null) bad.append(" нет значка ").append(tr.key()).append(';');
+                if (SelfTest.class.getResource("/assets/divinerpgextended/textures/items/trinket_" + tr.key() + ".png") == null) bad.append(" no icon ").append(tr.key()).append(';');
                 if (tr == com.divinerpgextended.trinket.Trinket.MAGIC_CARPET) continue; // the carpet is not drawn on the body (left as is)
                 java.util.Map<String, java.util.Map<String, com.divinerpgextended.accessory.WearData.Mesh>> a = all.get(tr.key());
                 if (a == null) {
-                    bad.append(" нет посадки ").append(tr.key()).append(';');
+                    bad.append(" no fit ").append(tr.key()).append(';');
                     continue;
                 }
                 for (String pr : profiles) {
                     java.util.Map<String, com.divinerpgextended.accessory.WearData.Mesh> m = a.get(pr);
                     int n = 0;
                     if (m != null) for (com.divinerpgextended.accessory.WearData.Mesh mesh : m.values()) n += mesh.quads.size();
-                    if (n == 0) bad.append(' ').append(tr.key()).append('/').append(pr).append(" пусто;");
+                    if (n == 0) bad.append(' ').append(tr.key()).append('/').append(pr).append(" empty;");
                     quads += n;
                 }
             }
             for (String al : new String[] { "carcinus", "glacon", "throne", "tomb", "nest", "jungle", "arena" })
                 for (String part : new String[] { "side", "top" })
-                    if (SelfTest.class.getResource("/assets/divinerpgextended/textures/blocks/altar/" + al + "_" + part + ".png") == null) bad.append(" нет грани алтаря ").append(al).append('_').append(part).append(';');
+                    if (SelfTest.class.getResource("/assets/divinerpgextended/textures/blocks/altar/" + al + "_" + part + ".png") == null) bad.append(" no altar face ").append(al).append('_').append(part).append(';');
             // geometry check: the Bone Archer Ring on a hand with no armor - at the right hand's wrist
             com.divinerpgextended.accessory.WearData.Mesh ring = com.divinerpgextended.accessory.WearData.mesh("bone_ring", "bare", "rightArm");
             float minY = 99, maxY = -99;
@@ -3236,7 +3236,7 @@ public class SelfTest {
             int sumsOk = 0;
             java.util.List<String> sumsBad = new java.util.ArrayList<String>();
             java.io.InputStream sin = SelfTest.class.getResourceAsStream("/assets/divinerpgextended/wear/accessories_check.txt");
-            if (sin == null) sumsBad.add("нет файла контрольных сумм");
+            if (sin == null) sumsBad.add("no checksum file");
             else {
                 java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(sin, "UTF-8"));
                 for (String ln; (ln = br.readLine()) != null;) {
@@ -3250,16 +3250,16 @@ public class SelfTest {
                     double tol = 0.01 * cnt * 4 + 0.05, dev = 0;
                     for (int ax = 0; ax < 3; ax++) dev = Math.max(dev, Math.abs(sum[ax] - Double.parseDouble(fs[4 + ax])));
                     if (mesh != null && mesh.quads.size() == cnt && dev <= tol) sumsOk++;
-                    else if (sumsBad.size() < 6) sumsBad.add(fs[0] + "/" + fs[1] + "/" + fs[2] + " граней " + (mesh == null ? 0 : mesh.quads.size()) + " из " + cnt + ", расхождение " + f((float) dev));
+                    else if (sumsBad.size() < 6) sumsBad.add(fs[0] + "/" + fs[1] + "/" + fs[2] + " faces " + (mesh == null ? 0 : mesh.quads.size()) + " of " + cnt + ", mismatch " + f((float) dev));
                 }
                 br.close();
             }
-            check(bad.length() == 0 && ring != null && minY > 6 && maxY < 11 && sumsBad.isEmpty() && sumsOk > 600, "аксессуары:" + bad + " кольцо на руке по высоте " + f(minY) + ".." + f(maxY)
-                + "; сверка с концептами: совпало " + sumsOk + ", не так " + sumsBad);
-            return "у всех " + (com.divinerpgextended.trinket.Trinket.values().length - 1) + " аксессуаров (кроме ковра) посадка на " + profiles.length + " профилях брони, граней " + quads
-                + ", геометрия совпала с концептами по " + sumsOk + " костям; значки и грани 7 алтарей на месте";
+            check(bad.length() == 0 && ring != null && minY > 6 && maxY < 11 && sumsBad.isEmpty() && sumsOk > 600, "accessories:" + bad + " ring on the hand by height " + f(minY) + ".." + f(maxY)
+                + "; check against concepts: matched " + sumsOk + ", wrong " + sumsBad);
+            return "all " + (com.divinerpgextended.trinket.Trinket.values().length - 1) + " accessories (except the carpet) fit on " + profiles.length + " armor profiles, faces " + quads
+                + ", geometry matched the concepts for " + sumsOk + " bones; icons and faces of 7 altars in place";
         });
-        t("Совместимость", "Текстуры из текстур DivineRPG собираются по таблицам, в jar их нет", () -> {
+        t("Compatibility", "Textures built from DivineRPG textures by tables, none in the jar", () -> {
             java.util.Map<String, com.divinerpgextended.registry.DerivedTextures.Recipe> all = com.divinerpgextended.registry.DerivedTextures.recipes();
             int exact = 0;
             java.util.List<String> missing = new java.util.ArrayList<String>(), differ = new java.util.ArrayList<String>(), shipped = new java.util.ArrayList<String>();
@@ -3272,7 +3272,7 @@ public class SelfTest {
                 if ("divinerpgextended".equals(dom) && com.divinerpgextended.registry.DerivedTextures.class.getResource("/assets/" + dom + "/" + rc.out.substring(rc.out.indexOf(':') + 1)) != null)
                     shipped.add(rc.out);
             }
-            check(all.size() >= 20 && missing.isEmpty() && shipped.isEmpty(), "рецептов " + all.size() + ", нет исходника: " + missing + ", картинка всё ещё в jar: " + shipped);
+            check(all.size() >= 20 && missing.isEmpty() && shipped.isEmpty(), "recipes " + all.size() + ", no source: " + missing + ", picture still in the jar: " + shipped);
             // jungle ore: green specks on gray stone in any DivineRPG version (on 1.4.1.5 the green smeared across the stone when recolored)
             java.awt.image.BufferedImage ore = com.divinerpgextended.registry.DerivedTextures.build(all.get("divinerpgextended:textures/blocks/jungleOre.png"));
             String oreWay = com.divinerpgextended.registry.DerivedTextures.lastWay;
@@ -3286,11 +3286,11 @@ public class SelfTest {
                 else other++;
             }
             int opaque = green + gray + other;
-            check(green >= opaque * 0.05 && green <= opaque * 0.45 && other == 0, "руда джунглей (" + oreWay + "): зелёных " + green + ", серых " + gray + ", других " + other + " из " + opaque);
-            return "текстур по таблицам " + all.size() + ": точно как задумано " + exact + (differ.isEmpty() ? "" : ", по палитре (другая версия DivineRPG) " + differ.size() + ": " + differ)
-                + "; в jar ни одной; руда джунглей (" + oreWay + "): зелёных вкраплений " + (100 * green / Math.max(1, opaque)) + "%, остальное серый камень";
+            check(green >= opaque * 0.05 && green <= opaque * 0.45 && other == 0, "jungle ore (" + oreWay + "): green " + green + ", gray " + gray + ", other " + other + " of " + opaque);
+            return "textures by tables " + all.size() + ": exactly as intended " + exact + (differ.isEmpty() ? "" : ", by palette (other DivineRPG version) " + differ.size() + ": " + differ)
+                + "; none in the jar; jungle ore (" + oreWay + "): green specks " + (100 * green / Math.max(1, opaque)) + "%, the rest gray stone";
         });
-        t("Броня", "Коса Джека: страх, провокация с сетом скелета, подчинение с сетом жнеца", () -> {
+        t("Armor", "Jack's Scythe: fear, provocation with the skeleton set, subjugation with the reaper set", () -> {
             net.minecraft.world.World w = p.worldObj;
             com.divinerpgextended.perk.Scythe.testRoll = 0F; // all chances fire
             java.util.List<net.minecraft.entity.Entity> spawned = new java.util.ArrayList<net.minecraft.entity.Entity>();
@@ -3317,8 +3317,8 @@ public class SelfTest {
                 boolean noTarget = z.getAttackTarget() == null, again = com.divinerpgextended.perk.Scythe.fear(z, p);
                 boolean bossFear = com.divinerpgextended.perk.Scythe.fear(new net.divinerpg.entities.arcana.EntityDramix(w), p);
                 check(near(chanceBare, 0.2F) && near(chanceJack, 0.5F) && afraid && calm && bite.isCanceled() && noTarget && !again && !bossFear,
-                    "страх: шанс без сета " + f(chanceBare) + ", с сетом Джек-О-Мена " + f(chanceJack) + "; напуган " + afraid + ", цель сброшена " + calm
-                        + ", укус отменён " + bite.isCanceled() + ", новую цель не берёт " + noTarget + ", напуган повторно " + again + ", Драмикс напуган " + bossFear);
+                    "fear: chance without set " + f(chanceBare) + ", with the Jack O Man set " + f(chanceJack) + "; frightened " + afraid + ", target dropped " + calm
+                        + ", bite cancelled " + bite.isCanceled() + ", does not take a new target " + noTarget + ", frightened again " + again + ", Dramix frightened " + bossFear);
                 z.setDead();
                 // provocation: skeleton set - mobs around hit whoever the scythe hit
                 reset(p);
@@ -3340,8 +3340,8 @@ public class SelfTest {
                 float hp = hitZ.getHealth();
                 com.divinerpgextended.perk.Scythe.tick(z2); // point blank: a hit on behalf of the zombie (its own hit takes only players and villagers)
                 float bitten = hp - hitZ.getHealth();
-                check(provoked && cowCalm && bitten > 0.5F, "провокация: зомби рядом взял целью задетого " + provoked + ", корова не тронута " + cowCalm
-                    + ", укус по задетому " + f(bitten));
+                check(provoked && cowCalm && bitten > 0.5F, "provocation: a zombie nearby targeted the one hit " + provoked + ", cow untouched " + cowCalm
+                    + ", bite on the one hit " + f(bitten));
                 // subjugation: reaper set - the mob fights for the player, does not touch players
                 reset(p);
                 p.inventory.armorInventory[0] = new ItemStack(net.divinerpg.utils.items.VanillaItemsArmor.witherReaperBoots);
@@ -3365,18 +3365,18 @@ public class SelfTest {
                 com.divinerpgextended.perk.Scythe.tick(zc);
                 float dealt = zhp - zt.getHealth();
                 boolean again2 = com.divinerpgextended.perk.Scythe.charm(zc, p);
-                check(charmed && charmNoFear && onPlayer.isCanceled() && redirected && dealt > 0.5F && !again2, "подчинение: подчинён " + charmed + " (без страха " + charmNoFear
-                    + "), удар по игроку отменён " + onPlayer.isCanceled() + ", цель-игрок заменена врагом " + redirected + ", удар по зомби " + f(dealt)
-                    + ", подчинён повторно " + again2);
+                check(charmed && charmNoFear && onPlayer.isCanceled() && redirected && dealt > 0.5F && !again2, "subjugation: subjugated " + charmed + " (without fear " + charmNoFear
+                    + "), hit on player cancelled " + onPlayer.isCanceled() + ", player target replaced by an enemy " + redirected + ", hit on zombie " + f(dealt)
+                    + ", subjugated again " + again2);
             } finally {
                 com.divinerpgextended.perk.Scythe.testRoll = null;
                 for (net.minecraft.entity.Entity o : spawned) o.setDead();
                 reset(p);
             }
-            return "коса: страх 20% (с сетом Джек-О-Мена 50%) - убегает, не бьёт, повторно не боится, боссы не боятся; сет скелета - мобы рядом бьют задетого; "
-                + "сет жнеца - моб бьёт врагов, а не игроков";
+            return "scythe: fear 20%, with the Jack O Man set 50% - runs away, does not hit, does not fear twice, bosses do not fear; skeleton set - mobs nearby hit the one hit; "
+                + "reaper set - the mob hits enemies, not players";
         });
-        t("Броня", "Сытость: голод вдвое медленнее, от голода не умираешь", () -> {
+        t("Armor", "Satiety: hunger twice as slow, you cannot die of hunger", () -> {
             reset(p);
             wearCore(p, null, Perk.SATIETY);
             com.divinerpgextended.perk.Satiety.setExhaustion(p, 0F);
@@ -3393,11 +3393,11 @@ public class SelfTest {
             net.minecraftforge.event.entity.living.LivingAttackEvent starveBare = new net.minecraftforge.event.entity.living.LivingAttackEvent(p, DamageSource.starve, 1);
             MinecraftForge.EVENT_BUS.post(starveBare);
             com.divinerpgextended.perk.Satiety.setExhaustion(p, 0F);
-            check(near(slowed, 1.0F) && near(plain, 2.0F) && starve.isCanceled() && !starveBare.isCanceled(), "усталость от 2.0: с перком " + f(slowed) + ", без " + f(plain)
-                + "; голод ранит: с перком " + !starve.isCanceled() + ", без " + !starveBare.isCanceled());
-            return "перк Сытость: усталость копится вдвое медленнее, урона от голода нет (бег голодным решает клиент - не проверяется здесь)";
+            check(near(slowed, 1.0F) && near(plain, 2.0F) && starve.isCanceled() && !starveBare.isCanceled(), "exhaustion from 2.0: with perk " + f(slowed) + ", without " + f(plain)
+                + "; hunger hurts: with perk " + !starve.isCanceled() + ", without " + !starveBare.isCanceled());
+            return "Satiety perk: exhaustion builds up twice as slowly, no hunger damage (sprinting while hungry is decided by the client - not checked here)";
         });
-        t("Броня", "Сеты Джека: защита по этапам", () -> {
+        t("Armor", "Jack sets: protection by stage", () -> {
             Item[][] sets = { { net.divinerpg.utils.items.VanillaItemsArmor.skelemanHelmet, net.divinerpg.utils.items.VanillaItemsArmor.skelemanBody,
                 net.divinerpg.utils.items.VanillaItemsArmor.skelemanLegs, net.divinerpg.utils.items.VanillaItemsArmor.skelemanBoots },
                 { net.divinerpg.utils.items.VanillaItemsArmor.jackOManHelmet, net.divinerpg.utils.items.VanillaItemsArmor.jackOManBody,
@@ -3416,12 +3416,12 @@ public class SelfTest {
                 int f0 = full.getInt(sets[si][0]);
                 for (Item it : sets[si]) sum += part.getDouble(it);
                 ok &= f0 == want[si] && near((float) sum, want[si] / 100F);
-                sb.append(si == 0 ? "скелет " : si == 1 ? ", Джек-О-Мен " : ", Увядший жнец ").append(f0).append("% (части в сумме ").append(f((float) sum * 100)).append("%)");
+                sb.append(si == 0 ? "skeleton " : si == 1 ? ", Jack O Man " : ", Wither Reaper ").append(f0).append("% (parts total ").append(f((float) sum * 100)).append("%)");
             }
-            check(ok, "защита сетов Джека: " + sb + "; ждали " + want[0] + "/" + want[1] + "/" + want[2]);
-            return "сеты Джека с защитой по этапу: " + sb;
+            check(ok, "Jack set protection: " + sb + "; expected " + want[0] + "/" + want[1] + "/" + want[2]);
+            return "Jack sets with protection by stage: " + sb;
         });
-        t("Аркана", "Корма и Поток арканы: удары мечей Арканы не останавливают восстановление", () -> {
+        t("Arcana", "Korma and Arcana Flow: Arcana sword hits do not stop regeneration", () -> {
             reset(p);
             ArcanaHelper h = ArcanaHelper.getProperties(p);
             int[] d = new int[6];
@@ -3451,11 +3451,11 @@ public class SelfTest {
             d[5] = h.regenDelay;
             reset(p);
             int D = com.divinerpgextended.magic.ArcanaRules.DELAY;
-            check(d[0] == D && d[1] == 0 && d[2] == 0 && d[3] == D && d[4] == 0 && d[5] == 7, "пауза после траты: без сета " + d[0] + ", Корма: арканный удар "
-                + d[1] + ", сабля " + d[2] + ", молнии Storm Sword " + d[3] + " (ждали " + D + "); Венец арканы: теневой меч " + d[4] + ", удар при паузе 7 - " + d[5]);
-            return "с полным сетом Кормы или Венцом арканы R8 удары мечей Арканы не включают паузу восстановления (молнии Storm Sword и стрельба - включают)";
+            check(d[0] == D && d[1] == 0 && d[2] == 0 && d[3] == D && d[4] == 0 && d[5] == 7, "pause after spending: without set " + d[0] + ", Korma: arcane hit "
+                + d[1] + ", saber " + d[2] + ", Storm Sword lightning " + d[3] + " (expected " + D + "); Arcana Crown: shadow sword " + d[4] + ", hit at pause 7 - " + d[5]);
+            return "with the full Korma set or an R8 Arcana Crown, Arcana sword hits do not start the regeneration pause (Storm Sword lightning and shooting do)";
         });
-        t("Аркана", "Фазы боссов под аркану: Драмикс, Парасекта, души Пожирателя", () -> {
+        t("Arcana", "Boss phases for arcana: Dramix, Parasecta, Soul Fiend souls", () -> {
             net.minecraft.world.World w = p.worldObj;
             DamageSource plain = DamageSource.causePlayerDamage(p), arc = com.divinerpgextended.magic.ArcanaCombat.arcaneSource(p);
             DamageSource boom = new DamageSource("explosion.player").setExplosion();
@@ -3517,15 +3517,15 @@ public class SelfTest {
             check(near(drPlain, 0) && near(drArc, 15) && near(drBoomHidden, 2) && near(drSeen, 0) && near(drSeenArc, 10) && near(drBoom, 10) && hit.isCanceled() && !hitArc.isCanceled() && swing.isCanceled() && edgeDone > 5 && spamFrames < 0.01F && near(spamTick, edgeDone)
                 && shadowEdge > 5 && near(shadowPaid, 12)
                 && shell && near(paPlain, 0) && near(paBoomShell, 10) && cracked && near(paExposed, 15) && near(paExposedPlain, 0) && near(soulArc, 30) && near(soulPlain, 5),
-                "Драмикс невидим: обычный " + f(drPlain) + ", арканный " + f(drArc) + ", взрыв " + f(drBoomHidden) + "; видим: обычный " + f(drSeen) + ", арканный " + f(drSeenArc) + ", взрыв " + f(drBoom)
-                    + "; обычный удар отменён на атаке " + hit.isCanceled() + ", арканный нет " + !hitArc.isCanceled() + "; меч Ливиции: обычная часть отменена " + swing.isCanceled()
-                    + ", арканный удар " + f(edgeDone) + ", клик в неуязвимость " + f(spamFrames) + ", два клика за тик " + f(spamTick)
-                    + ", теневой меч " + f(shadowEdge) + " за " + f(shadowPaid) + " арканы; Парасекта: кокон " + shell + ", обычный 100 -> " + f(paPlain) + ", взрыв 100 -> " + f(paBoomShell)
-                    + ", аркана раскалывает " + cracked + " (" + f(paCrack) + "), открыта: взрыв 10 -> " + f(paExposed) + ", обычный -> " + f(paExposedPlain)
-                    + "; душа: аркана 10 -> " + f(soulArc) + ", обычный 10 -> " + f(soulPlain));
-            return "боссов Арканы ранят только аркана и взрывы (обычный удар отменяется ещё на атаке, у мечей Арканы проходит арканный удар); Драмикс в невидимости: аркана x1.5, взрыв x0.2; Парасекта в коконе: взрыв x0.1, аркана раскалывает и открывает (x1.5); души Пожирателя: аркана x3, обычный x0.5";
+                "Dramix invisible: normal " + f(drPlain) + ", arcane " + f(drArc) + ", explosion " + f(drBoomHidden) + "; visible: normal " + f(drSeen) + ", arcane " + f(drSeenArc) + ", explosion " + f(drBoom)
+                    + "; normal hit canceled on attack " + hit.isCanceled() + ", arcane not " + !hitArc.isCanceled() + "; Livicia sword: normal part canceled " + swing.isCanceled()
+                    + ", arcane hit " + f(edgeDone) + ", click into invulnerability " + f(spamFrames) + ", two clicks per tick " + f(spamTick)
+                    + ", shadow sword " + f(shadowEdge) + " for " + f(shadowPaid) + " arcana; Parasecta: cocoon " + shell + ", normal 100 -> " + f(paPlain) + ", explosion 100 -> " + f(paBoomShell)
+                    + ", arcana splits " + cracked + " (" + f(paCrack) + "), exposed: explosion 10 -> " + f(paExposed) + ", normal -> " + f(paExposedPlain)
+                    + "; soul: arcana 10 -> " + f(soulArc) + ", normal 10 -> " + f(soulPlain));
+            return "Arcana bosses are hurt only by arcana and explosions (a normal hit is canceled already on attack, Arcana swords let the arcane hit through); Dramix invisible: arcana x1.5, explosion x0.2; Parasecta in cocoon: explosion x0.1, arcana splits it and exposes it (x1.5); Soul Fiend souls: arcana x3, normal x0.5";
         });
-        t("Аркана", "Ракета Мерика находит босса Арканы, взрыватель бьёт всеми пулями", () -> {
+        t("Arcana", "Merik's rocket finds the Arcana boss, the detonator hits with all bullets", () -> {
             reset(p);
             net.minecraft.world.World w = p.worldObj;
             ArcanaHelper ah = ArcanaHelper.getProperties(p);
@@ -3572,7 +3572,7 @@ public class SelfTest {
             float hp0 = tz.getHealth();
             int wounded = 0, ground = 0; // the bullet hurt / died without hurting
             StringBuilder missWhere = new StringBuilder();
-            String startAt = String.format("игрок %.1f %.1f %.1f, цель %.1f %.1f %.1f; ", p.posX, p.posY, p.posZ, tz.posX - p.posX, tz.posY - p.posY, tz.posZ - p.posZ);
+            String startAt = String.format("player %.1f %.1f %.1f, target %.1f %.1f %.1f; ", p.posX, p.posY, p.posZ, tz.posX - p.posX, tz.posY - p.posY, tz.posZ - p.posZ);
             AttackCounter ac = new AttackCounter(tz, net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class);
             AttackCounter any = new AttackCounter(null, net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class); // test players of other checks stand nearby
             MinecraftForge.EVENT_BUS.register(ac);
@@ -3587,7 +3587,7 @@ public class SelfTest {
                         ground++;
                         if (ground <= 4) {
                             int gx = net.minecraft.util.MathHelper.floor_double(sh.posX), gy = net.minecraft.util.MathHelper.floor_double(sh.posY), gz = net.minecraft.util.MathHelper.floor_double(sh.posZ);
-                            missWhere.append(String.format("(%.1f %.1f %.1f %s тик %d) ", sh.posX - p.posX, sh.posY - p.posY, sh.posZ - p.posZ, w.getBlock(gx, gy, gz).getUnlocalizedName(), tk));
+                            missWhere.append(String.format("(%.1f %.1f %.1f %s tick %d) ", sh.posX - p.posX, sh.posY - p.posY, sh.posZ - p.posZ, w.getBlock(gx, gy, gz).getUnlocalizedName(), tk));
                         }
                     }
                 }
@@ -3608,15 +3608,15 @@ public class SelfTest {
             hold(p, null);
             p.setPosition(ox, oy, oz);
             check(aim == dr && shots.size() == 30 && wounded == touched && wounded >= 28 && hitAny >= 28,
-                "ракета Мерика целится в " + (aim == dr ? "Драмикса" : String.valueOf(aim)) + "; взрыватель: пуль " + shots.size() + ", попало во что-то " + hitAny + ", до цели долетело " + touched + ", из них ранило " + wounded
-                    + ", погибло, не ранив цель, " + ground + ", ещё летят " + flying + " [" + startAt + missWhere + "]; урон " + f(lost) + " (по " + f(per) + " за пулю, попаданий " + hits + ")");
-            return "ракета Мерика рядом с боссом Арканы берёт целью его, даже невидимого и даже если ближе стоит другой моб; взрыватель Арканы: пули сходятся в точку прицела, во что-то попало "
-                + hitAny + " из 30 (в цель " + wounded + "), каждое попадание ранит";
+                "Merik's rocket aims at " + (aim == dr ? "Dramix" : String.valueOf(aim)) + "; detonator: bullets " + shots.size() + ", hit something " + hitAny + ", reached the target " + touched + ", of them wounded " + wounded
+                    + ", died without wounding the target, " + ground + ", still flying " + flying + " [" + startAt + missWhere + "]; damage " + f(lost) + " (by " + f(per) + " per bullet, hits " + hits + ")");
+            return "Merik's rocket next to an Arcana boss targets it, even invisible and even if another mob stands closer; Arcana detonator: bullets converge on the aim point, hit something "
+                + hitAny + " of 30 (on target " + wounded + "), every hit wounds";
         });
     }
 
     private void summonTests(final TestPlayer p) {
-        t("Аркана", "Кость призрака: призрак-призыв летает сквозь стены и бьёт цель хозяина", () -> {
+        t("Arcana", "Ghost Bone: the summoned ghost flies through walls and hits the owner's target", () -> {
             reset(p);
             net.minecraft.world.World w = p.worldObj;
             int bx = net.minecraft.util.MathHelper.floor_double(p.posX), by = net.minecraft.util.MathHelper.floor_double(p.posY),
@@ -3644,15 +3644,15 @@ public class SelfTest {
             StringBuilder ghosts = new StringBuilder();
             for (Object o : w.loadedEntityList) if (o instanceof net.divinerpg.entities.arcana.EntityWraith) {
                 net.divinerpg.entities.arcana.EntityWraith gw = (net.divinerpg.entities.arcana.EntityWraith) o;
-                ghosts.append(gw.getClass().getSimpleName()).append(gw.isDead ? "(мёртв)" : "").append(" владелец ").append(gw.func_152113_b()).append("; ");
+                ghosts.append(gw.getClass().getSimpleName()).append(gw.isDead ? "(dead)" : "").append(" owner ").append(gw.func_152113_b()).append("; ");
             }
-            ghosts.append("игрок ").append(p.getCommandSenderName()).append('/').append(p.getDisplayName());
+            ghosts.append("player ").append(p.getCommandSenderName()).append('/').append(p.getDisplayName());
             com.divinerpgextended.magic.ArcaneSummons.summon(p, p.posX, p.posY, p.posZ);
             com.divinerpgextended.magic.ArcaneSummons.summon(p, p.posX, p.posY, p.posZ);
             int capped = com.divinerpgextended.magic.ArcaneSummons.count(p);
             com.divinerpgextended.magic.EntityArcaneWraith g = null;
             for (Object o : w.loadedEntityList) if (o instanceof com.divinerpgextended.magic.EntityArcaneWraith && !((net.minecraft.entity.Entity) o).isDead) g = (com.divinerpgextended.magic.EntityArcaneWraith) o;
-            check(g != null, "призрака нет в мире");
+            check(g != null, "no ghost in the world");
             // target behind a stone wall
             for (int yy = by; yy <= by + 3; yy++) for (int zz = bz - 2; zz <= bz + 2; zz++) w.setBlock(bx + 3, yy, zz, net.minecraft.init.Blocks.stone);
             net.minecraft.entity.monster.EntityZombie z = new net.minecraft.entity.monster.EntityZombie(w);
@@ -3676,10 +3676,10 @@ public class SelfTest {
             float hit = com.divinerpgextended.magic.EntityArcaneWraith.BASE_DAMAGE * com.divinerpgextended.magic.ArcanaRules.stage(p);
             check(!spawnedDivine && afterDivine == 1 && capped == 2 && through && dealt >= hit - 0.01F && paid >= com.divinerpgextended.magic.EntityArcaneWraith.UPKEEP * capped * 2 - 0.01F
                 && paid <= com.divinerpgextended.magic.EntityArcaneWraith.UPKEEP * capped * 4 + 0.01F && !hurtable,
-                "призрак Divine заменён " + (!spawnedDivine && afterDivine == 1) + " (в мир " + spawnedDivine + ", призывов " + afterDivine + ": " + ghosts + "), после трёх вызовов призраков " + capped + "; сквозь стену " + through + " (x=" + f((float) g.posX)
-                    + "), урон цели " + f(dealt) + " (удар " + f(hit) + "), плата за 3 с " + f(paid) + ", ранить призрака " + hurtable);
-            return "призрак-призыв: летит к цели хозяина сквозь стены, бьёт на " + f(hit) + " арканного урона, не больше двух, " + (int) com.divinerpgextended.magic.EntityArcaneWraith.UPKEEP
-                + " арканы в секунду, неуязвим";
+                "Divine ghost replaced " + (!spawnedDivine && afterDivine == 1) + " (into the world " + spawnedDivine + ", summons " + afterDivine + ": " + ghosts + "), ghosts after three calls " + capped + "; through the wall " + through + " (x=" + f((float) g.posX)
+                    + "), damage to target " + f(dealt) + " (hit " + f(hit) + "), cost per 3 s " + f(paid) + ", wounding the ghost " + hurtable);
+            return "summoned ghost: flies to the owner's target through walls, hits for " + f(hit) + " arcane damage, at most two, " + (int) com.divinerpgextended.magic.EntityArcaneWraith.UPKEEP
+                + " arcana per second, invulnerable";
         });
     }
 
@@ -3727,7 +3727,7 @@ public class SelfTest {
                 break;
             }
         }
-        check(lioOcean != null, "не нашли океан в обычном мире");
+        check(lioOcean != null, "no ocean found in the normal world");
         return lioOcean;
     }
 
@@ -3745,7 +3745,7 @@ public class SelfTest {
 
     /** Liopleurodon (0.99.113): a late fish boss, its loot, aquatooth weapons, mauls, summon anchors. */
     private void lioTests(final TestPlayer p, final WorldServer ow, final int sx, final int sy, final int sz) {
-        t("Лиоплевродон", "Кровавая наживка в океане", () -> {
+        t("Liopleurodon", "Bloody Bait in the ocean", () -> {
             int[] o = lioOcean(ow, sx, sz);
             int ox = o[0], wy = o[1], oz = o[2];
             TestPlayer lp = join(player(0, "TestLioBait", ox + 0.5, wy + 1, oz + 0.5), true);
@@ -3773,11 +3773,11 @@ public class SelfTest {
                 ow.removeEntity(lp);
             }
             check(first && bosses == 1 && !again && baitLeft == 1 && !inland && baitInland == 1 && natural && com.divinerpgextended.fishing.EntityDreHook.lioSummoned == total0 + 1,
-                "океан " + ox + "," + wy + "," + oz + ": призван " + first + " (боссов " + bosses + "), второй при живом " + again + ", наживки осталось " + baitLeft
-                    + "; на суше " + inland + " (наживки " + baitInland + "); Divine-лиоплевродон запрещён " + natural);
-            return "подсечка с Кровавой наживкой в открытом океане - вместо улова Лиоплевродон (наживка тратится, второй при живом не зовётся); на суше не зовётся; свой лиоплевродон Divine больше не появляется";
+                "ocean " + ox + "," + wy + "," + oz + ": summoned " + first + " (bosses " + bosses + "), second while alive " + again + ", bait left " + baitLeft
+                    + "; on land " + inland + " (bait " + baitInland + "); Divine Liopleurodon forbidden " + natural);
+            return "hooking with Bloody Bait in the open ocean - Liopleurodon instead of a catch (bait is spent, a second one is not summoned while alive); not summoned on land; Divine's own Liopleurodon no longer appears";
         });
-        t("Лиоплевродон", "Только из океана", () -> {
+        t("Liopleurodon", "Ocean only", () -> {
             int[] o = lioOcean(ow, sx, sz);
             int ox = o[0], wy = o[1], oz = o[2];
             TestPlayer lp = join(player(0, "TestLioShore", ox + 4.5, wy + 1, oz + 0.5), true);
@@ -3810,11 +3810,11 @@ public class SelfTest {
                 ow.removeEntity(lp);
             }
             check(!shore && hpShore == hp0 && blocked == 1 && sea && hpSea < hp0 && calm && rage && hp0 == com.divinerpgextended.Config.liopleurodonHealth,
-                "здоровье " + f(hp0) + "; с берега прошло " + shore + " (" + f(hp0 - hpShore) + ", отбито " + blocked + "), над водой " + sea + " (" + f(hpShore - hpSea)
-                    + "); в океане спокоен " + calm + ", на суше злится " + rage);
-            return "Лиоплевродон (" + (int) hp0 + " здоровья) с берега не ранится, над водой - да; вне океана злится";
+                "health " + f(hp0) + "; from the shore passed " + shore + " (" + f(hp0 - hpShore) + ", blocked " + blocked + "), above water " + sea + " (" + f(hpShore - hpSea)
+                    + "); calm in the ocean " + calm + ", angry on land " + rage);
+            return "Liopleurodon (" + (int) hp0 + " health) cannot be hurt from the shore, above water it can; outside the ocean it gets angry";
         });
-        t("Лиоплевродон", "Добыча", () -> {
+        t("Liopleurodon", "Loot", () -> {
             int[] o = lioOcean(ow, sx, sz);
             int ox = o[0], wy = o[1], oz = o[2];
             TestPlayer lp = join(player(0, "TestLioLoot", ox + 0.5, wy + 3, oz + 0.5), true);
@@ -3840,7 +3840,7 @@ public class SelfTest {
                     if (st.getItem() == ModItems.crate && st.getItemDamage() == com.divinerpgextended.fishing.Zone.OCEAN.ordinal()) crate = true;
                 }
                 ok &= skull && teeth >= 4 && teeth <= 8 && crate;
-                rep.append("с тела: череп ").append(skull).append(", зубов ").append(teeth).append(", ящик ").append(crate);
+                rep.append("from the body: skull ").append(skull).append(", teeth ").append(teeth).append(", crate ").append(crate);
                 // personal loot: the first win - the Tsunami for sure, then by chance; the anchor - only by chance
                 int[] got = new int[3];
                 for (int round = 0; round < 3; round++) {
@@ -3862,7 +3862,7 @@ public class SelfTest {
                 }
                 boolean personal = got[0] == 10 && got[1] == 0 && got[2] == 11;
                 ok &= personal;
-                rep.append("; первая победа ").append(got[0]).append(", вторая без удачи ").append(got[1]).append(", с удачей ").append(got[2]).append(" (десятки - Цунами, единицы - якорь)");
+                rep.append("; first victory ").append(got[0]).append(", second without luck ").append(got[1]).append(", with luck ").append(got[2]).append(" (tens - Tsunami, units - anchor)");
                 // Carcinus - a crab anchor for the first win
                 com.divinerpgextended.boss.BossDrops.testRoll = 0.99F;
                 killNear(ow, ox, wy + 2, oz, 6);
@@ -3873,7 +3873,7 @@ public class SelfTest {
                 boolean fins = com.divinerpgextended.trinket.AccessorySources.forBoss(com.divinerpgextended.boss.Boss.LIOPLEURODON) == com.divinerpgextended.trinket.Trinket.LIO_FINS
                     && com.divinerpgextended.boss.ProgressSpawns.bossWorld(com.divinerpgextended.boss.Boss.LIOPLEURODON) == com.divinerpgextended.bestiary.Bestiary.Chapter.SKYTHERN;
                 ok &= crab == 1 && fins;
-                rep.append("; Карцинус: крабовых якорей ").append(crab).append("; ласты и глава Небесного терна ").append(fins);
+                rep.append("; Carcinus: crab anchors ").append(crab).append("; flippers and Skythern Cori head ").append(fins);
             } finally {
                 com.divinerpgextended.boss.BossDrops.testRoll = -1F;
                 killNear(ow, ox, wy + 2, oz, 8);
@@ -3881,9 +3881,9 @@ public class SelfTest {
                 ow.removeEntity(lp);
             }
             check(ok, rep.toString());
-            return "с тела - череп, 4-8 зубов, океанский ящик; каждому бившему: Цунами за первую победу наверняка (дальше 30%), якорь лиоплевродона 30%, ласты; с Карцинуса - крабовый якорь";
+            return "from the body - skull, 4-8 teeth, ocean crate; for each attacker: Tsunami guaranteed for the first victory (then 30 percent), Liopleurodon anchor 30 percent, flippers; from Carcinus - crab anchor";
         });
-        t("Лиоплевродон", "Цунами: пять стрел за одну", () -> {
+        t("Liopleurodon", "Tsunami: five arrows for one", () -> {
             int[] o = lioOcean(ow, sx, sz);
             int ox = o[0], wy = o[1] + 8, oz = o[2];
             TestPlayer bp = join(player(0, "TestTsunami", ox + 0.5, wy, oz + 0.5), true);
@@ -3909,10 +3909,10 @@ public class SelfTest {
                 ow.removeEntity(bp);
             }
             check(arrows == com.divinerpgextended.item.ItemTsunamiBow.ARROWS && ammoLeft == 63 && pickable == 1 && divine == arrows && yaws.size() == arrows,
-                "стрел " + arrows + " (Divine " + divine + ", направлений " + yaws.size() + "), осталось патронов " + ammoLeft + ", подбираемых " + pickable);
-            return "выстрел полным натяжением: 5 стрел веером в разные стороны за одну обычную, подобрать можно только среднюю";
+                "arrows " + arrows + " (Divine " + divine + ", directions " + yaws.size() + "), ammo left " + ammoLeft + ", pickable " + pickable);
+            return "a full-draw shot: 5 arrows in a fan in different directions for one normal arrow, only the middle one can be picked up";
         });
-        t("Лиоплевродон", "Зубастое оружие и перезарядка молотов", () -> {
+        t("Liopleurodon", "Toothed weapons and maul reload", () -> {
             WorldServer w = ow;
             loadAround(w, sx + 236, sz, 1);
             double px = sx + 236.5, pz = sz + 0.5;
@@ -3935,7 +3935,7 @@ public class SelfTest {
                 float sw = com.divinerpgextended.perk.AquatoothEffects.damage(net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothSword),
                     mw = com.divinerpgextended.perk.AquatoothEffects.damage(net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothMaul);
                 ok &= sw == com.divinerpgextended.perk.AquatoothEffects.SWORD_DAMAGE && mw == com.divinerpgextended.perk.AquatoothEffects.MAUL_DAMAGE;
-                rep.append("урон: меч ").append(f(sw)).append(", молот ").append(f(mw));
+                rep.append("damage: sword ").append(f(sw)).append(", maul ").append(f(mw));
                 // sword: bleeding on a mob; on a player - only where PvP is allowed (since 0.99.127)
                 ItemStack swd = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothSword);
                 hold(a, swd);
@@ -3965,8 +3965,8 @@ public class SelfTest {
                     server.setAllowPvp(pvpWas);
                 }
                 ok &= bleeds && Math.abs(bled - com.divinerpgextended.perk.AquatoothEffects.BLEED_DAMAGE) < 0.01 && playerBleeds && !privateBleeds;
-                rep.append("; кровотечение ").append(bleeds).append(" (").append(f(bled)).append(" за секунду), у игрока ").append(playerBleeds)
-                    .append(", у игрока в привате без PvP ").append(privateBleeds);
+                rep.append("; bleeding ").append(bleeds).append(" (").append(f(bled)).append(" per second), to a player ").append(playerBleeds)
+                    .append(", to a player in a no-PvP private area ").append(privateBleeds);
                 // maul: two hits per tick - the second does not pass; after the cooldown - it passes
                 ItemStack bm = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.bedrockMaul);
                 hold(a, bm);
@@ -3986,7 +3986,7 @@ public class SelfTest {
                 a.getAttributeMap().removeAttributeModifiers(bm.getAttributeModifiers());
                 boolean cd = h1 < h0 && h2 == h1 && h3 < h2;
                 ok &= cd;
-                rep.append("; бедроковый молот: удар ").append(f(h0 - h1)).append(", сразу ещё ").append(f(h1 - h2)).append(", через секунду ").append(f(h2 - h3));
+                rep.append("; Bedrock maul: hit ").append(f(h0 - h1)).append(", another right away ").append(f(h1 - h2)).append(", after a second ").append(f(h2 - h3));
                 // Aquatooth Maul: a wave on mobs nearby, does not affect distant ones
                 ItemStack am = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.aquatoothMaul);
                 hold(a, am);
@@ -4001,7 +4001,7 @@ public class SelfTest {
                 float nearHit = near.getMaxHealth() - near.getHealth(), farHit = far.getMaxHealth() - far.getHealth(), mainHit = z.getMaxHealth() - z.getHealth();
                 boolean wave = mainHit > 0 && nearHit >= com.divinerpgextended.perk.AquatoothEffects.MAUL_DAMAGE * 0.7F && farHit == 0;
                 ok &= wave;
-                rep.append("; зубастый молот: цель ").append(f(mainHit)).append(", сосед ").append(f(nearHit)).append(", дальний ").append(f(farHit));
+                rep.append("; toothed maul: target ").append(f(mainHit)).append(", neighbor ").append(f(nearHit)).append(", far one ").append(f(farHit));
             } finally {
                 com.divinerpgextended.perk.AquatoothEffects.testNoCooldown = true;
                 for (net.minecraft.entity.monster.EntityZombie zz : zs) zz.setDead();
@@ -4014,7 +4014,7 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Лиоплевродон", "Призывные якоря", () -> {
+        t("Liopleurodon", "Summoning anchors", () -> {
             WorldServer w = ow;
             loadAround(w, sx + 250, sz, 1);
             double px = sx + 250.5, pz = sz + 0.5;
@@ -4037,7 +4037,7 @@ public class SelfTest {
                     && com.divinerpgextended.world.twilight.SeaWeapons.anchor(net.divinerpg.utils.items.VanillaItemsWeapons.liopleurodonAnchor) == -1
                     && com.divinerpgextended.world.twilight.SeaWeapons.anchor(net.divinerpg.utils.items.VanillaItemsWeapons.sharkAnchor) == 1;
                 ok &= !crabRecipe && !lioRecipe && sharkRecipe && harpoons;
-                rep.append("рецепты: крабовый ").append(crabRecipe).append(", лиоплевродона ").append(lioRecipe).append(", акулий гарпун ").append(sharkRecipe).append("; гарпуны моря ").append(harpoons);
+                rep.append("recipes: crab ").append(crabRecipe).append(", Liopleurodon ").append(lioRecipe).append(", shark harpoon ").append(sharkRecipe).append("; sea harpoons ").append(harpoons);
                 // right-click with the crab anchor - a crab, no throw; a double packet from one click - one crab
                 ArcanaHelper ah = ArcanaHelper.getProperties(ap);
                 ah.setBarValue(200);
@@ -4054,7 +4054,7 @@ public class SelfTest {
                 int capped = com.divinerpgextended.magic.AnchorSummons.count(ap, com.divinerpgextended.magic.AnchorSummons.Kind.CRAB);
                 com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
                 ok &= denied && one == 1 && capped == com.divinerpgextended.magic.AnchorSummons.Kind.CRAB.cap;
-                rep.append("; ПКМ: бросок отменён ").append(denied).append(", крабов ").append(one).append(", после трёх вызовов ").append(capped);
+                rep.append("; right click: throw canceled ").append(denied).append(", crabs ").append(one).append(", after three calls ").append(capped);
                 // the crab and shark hit the owner's target with arcane damage and eat arcana; they are not hurt themselves
                 z.setLocationAndAngles(px + 3, sy, pz, 0, 0);
                 w.spawnEntityInWorld(z);
@@ -4072,7 +4072,7 @@ public class SelfTest {
                     boolean hurtable = s.attackEntityFrom(DamageSource.causePlayerDamage(ap), 100);
                     boolean good = !s.isDead && dealt >= hit - 0.01F && Math.abs(paid - kd.upkeep) < 0.01F && !hurtable;
                     ok &= good;
-                    rep.append("; ").append(kd).append(": урон ").append(f(dealt)).append(" (удар ").append(f(hit)).append("), плата за секунду ").append(f(paid)).append(", ранится ").append(hurtable);
+                    rep.append("; ").append(kd).append(": damage ").append(f(dealt)).append(" (hit ").append(f(hit)).append("), cost per second ").append(f(paid)).append(", is wounded ").append(hurtable);
                     com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
                 }
             } finally {
@@ -4085,7 +4085,7 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Лиоплевродон", "Призывы: один вид за раз, Корма и Венец арканы +1, ПКМ хозяина убирает, свисток зовёт", () -> {
+        t("Liopleurodon", "Summons: one kind at a time, Korma and Arcana Crown +1, owner right click removes, whistle calls", () -> {
             WorldServer w = ow;
             loadAround(w, sx + 280, sz, 1);
             TestPlayer sp = join(player(0, "TestSummonKinds", sx + 280.5, sy, sz + 0.5), true);
@@ -4121,18 +4121,18 @@ public class SelfTest {
                 boolean near = c2.getDistanceToEntity(sp) < 3;
                 ok = crabsAfterGhost == 0 && ghosts == 1 && crabsAfterSlime == 0 && slimes == 1 && ghostsAfter == 0 && kormaCap == 3 && strangerKept && ownerDismissed && pet
                     && called >= 1 && near;
-                rep.append("2 краба, потом призрак: крабов ").append(crabsAfterGhost).append(", призраков ").append(ghosts).append("; потом слизень: крабов ").append(crabsAfterSlime)
-                    .append(", слизней ").append(slimes).append(", призраков ").append(ghostsAfter).append("; с Кормой крабов до ").append(kormaCap).append("; ПКМ чужого ").append(strangerKept)
-                    .append(", хозяина ").append(ownerDismissed).append("; свисток: питомец ").append(pet).append(", позвал ").append(called).append(", рядом ").append(near);
+                rep.append("2 crabs, then a ghost: crabs ").append(crabsAfterGhost).append(", ghosts ").append(ghosts).append("; then a slime: crabs ").append(crabsAfterSlime)
+                    .append(", slimes ").append(slimes).append(", ghosts ").append(ghostsAfter).append("; with Korma crabs up to ").append(kormaCap).append("; right click by a stranger ").append(strangerKept)
+                    .append(", owner ").append(ownerDismissed).append("; whistle: pet ").append(pet).append(", called ").append(called).append(", nearby ").append(near);
             } finally {
                 com.divinerpgextended.magic.AnchorSummons.dismissAll(sp);
                 com.divinerpgextended.magic.ArcaneSummons.dismissAll(sp);
                 armor(sp, null, null, null, null);
             }
             check(ok, rep.toString());
-            return "призывы одного хозяина - одного вида (призрак прогнал крабов, слизень - призрака); с Кормой крабов 3; ПКМ хозяина по призыву убирает, чужого - нет; свисток зовёт призывы";
+            return "one owner's summons are of one kind (a ghost drove the crabs away, a slime drove the ghost away); with Korma 3 crabs; owner right click on a summon removes it, a stranger's does not; the whistle calls summons";
         });
-        t("Лиоплевродон", "Призывы едят аркану с паузой восстановления: два без улучшений живут около 10 секунд", () -> {
+        t("Liopleurodon", "Summons eat arcana with a regeneration pause: two without upgrades live about 10 seconds", () -> {
             WorldServer w = ow;
             loadAround(w, sx + 340, sz, 1);
             TestPlayer up = join(player(0, "TestSummonUpkeep", sx + 340.5, sy, sz + 0.5), true);
@@ -4161,10 +4161,10 @@ public class SelfTest {
                 com.divinerpgextended.magic.AnchorSummons.dismissAll(up);
                 com.divinerpgextended.magic.ArcaneEffects.clear(up);
             }
-            check(life[0] >= 180 && life[0] <= 240 && life[1] >= 20 * 40, "два краба на 200 арканы: " + f(life[0] / 20F) + " с (ждали около 10); с Ясностью: " + f(life[1] / 20F) + " с (ждали до конца проверки, 40 с)");
-            return "два призыва на 200 арканы без улучшений живут " + f(life[0] / 20F) + " с: плата каждую секунду ставит паузу восстановления; с Ясностью (без паузы) держатся всю проверку";
+            check(life[0] >= 180 && life[0] <= 240 && life[1] >= 20 * 40, "two crabs on 200 arcana: " + f(life[0] / 20F) + " s (expected about 10); with Clarity: " + f(life[1] / 20F) + " s (expected until the end of the check, 40 s)");
+            return "two summons on 200 arcana without upgrades live " + f(life[0] / 20F) + " s: the payment every second sets the regeneration pause; with Clarity (no pause) they last the whole check";
         });
-        t("Аркана", "Манекен засчитывает арканный удар мечей Арканы, с Венцом арканы - вдвое", () -> {
+        t("Arcana", "The dummy counts the arcane hit of Arcana swords, twice as much with an Arcana Crown", () -> {
             WorldServer w = ow;
             loadAround(w, sx + 310, sz, 1);
             TestPlayer dp = join(player(0, "TestDummyEdge", sx + 310.5, sy, sz + 0.5), true);
@@ -4195,10 +4195,10 @@ public class SelfTest {
             }
             float bonus = com.divinerpgextended.magic.ArcanaCombat.SWORD_BONUS * com.divinerpgextended.magic.ArcanaRules.stage(dp);
             check(near(edge[0], bonus) && near(edge[1], bonus * com.divinerpgextended.Config.crownArcanaDamage),
-                "удар " + f(main[0]) + ", арканный удар " + f(edge[0]) + " (ждали " + f(bonus) + "); с Венцом арканы: удар " + f(main[1]) + ", арканный " + f(edge[1]));
-            return "меч Ливиции по манекену: обычный удар и отдельно арканный " + f(edge[0]) + "; с Венцом арканы арканный " + f(edge[1]) + " (раньше манекен арканный удар не видел вовсе)";
+                "hit " + f(main[0]) + ", arcane hit " + f(edge[0]) + " (expected " + f(bonus) + "); with Arcana Crown: hit " + f(main[1]) + ", arcane " + f(edge[1]));
+            return "Livicia sword on the dummy: normal hit and separately arcane " + f(edge[0]) + "; with Arcana Crown arcane " + f(edge[1]) + " (before, the dummy did not see the arcane hit at all)";
         });
-        t("Аркана", "Кристалл памяти: в творческом с полным инвентарём не пишет в чат каждую секунду", () -> {
+        t("Arcana", "Memory Crystal: in creative with a full inventory does not write to chat every second", () -> {
             TestPlayer mp = join(player(ConfigurationHelper.arcana, "TestCrystalFull", 120.5, 60, 120.5), true);
             com.divinerpgextended.arcana.ArcanaMerchants am = new com.divinerpgextended.arcana.ArcanaMerchants();
             int given, given2;
@@ -4225,10 +4225,10 @@ public class SelfTest {
             } finally {
                 reset(mp);
             }
-            check(given == 0 && given2 == 1 && has, "полный инвентарь, 5 секунд: \"кристалл выдан\" " + given + " раз; освободился слот: " + given2 + " раз, кристалл есть " + has);
-            return "в творческом с полным инвентарём кристалл не \"выдаётся\" в никуда каждую секунду; освободился слот - выдан один раз";
+            check(given == 0 && given2 == 1 && has, "full inventory, 5 seconds: \"crystal given\" " + given + " times; a slot freed up: " + given2 + " times, crystal present " + has);
+            return "in creative with a full inventory the crystal is not \"given\" into nothing every second; a slot freed up - given once";
         });
-        t("Сумеречные миры", "Посох облаков не ставит облака в чужом привате", () -> {
+        t("Twilight dimensions", "Cloud Staff does not place clouds in someone else's private area", () -> {
             WorldServer w = server.worldServers[0];
             loadAround(w, 9660, 9660, 0);
             TestPlayer cp = join(player(0, "TestCloudStaff", 9660.5, 200, 9660.5), true);
@@ -4244,10 +4244,10 @@ public class SelfTest {
             } finally {
                 for (int x = 9655; x <= 9665; x++) for (int z = 9655; z <= 9665; z++) w.setBlockToAir(x, 199, z);
             }
-            check(denied == 0 && placed == 9, "в привате облаков " + denied + ", без привата " + placed);
-            return "в чужом привате посох облаков не ставит ни одного облака, без привата - площадку 3x3";
+            check(denied == 0 && placed == 9, "clouds in private area " + denied + ", without private area " + placed);
+            return "in someone else's private area the Cloud Staff places no clouds, without a private area - a 3x3 platform";
         });
-        t("Прохождение", "Вагонетка Апалачии: стоит, пока не нажмёшь вперёд; взгляд поворачивается вместе с ней", () -> {
+        t("Progression", "Apalachia Cart: stands still until you press forward; the view turns along with it", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9555, 9420, 1);
             int x0 = 9550, y0 = 100, z0 = 9420;
@@ -4284,11 +4284,11 @@ public class SelfTest {
                 new double[] { -1, 0, 0 });
             float[] ys = com.divinerpgextended.entity.SkyCartView.angles(side, 0);
             boolean look = yp[1] < -89F && Math.abs(ys[0]) < 0.5F && Math.abs(ys[1]) < 0.5F;
-            check(still && goes && look, "сел - стоит " + still + " (рельс " + java.util.Arrays.toString(cart.railPos()) + "), вперёд - едет " + goes + "; взгляд вперёд на стене - наклон "
-                + f(yp[1]) + ", вбок - " + f(ys[0]) + "/" + f(ys[1]));
-            return "севший в вагонетку стоит 2 секунды без газа (раньше трогалась сама), по \"вперёд\" едет; с пола на стену взгляд вперёд становится взглядом вверх вдоль стены";
+            check(still && goes && look, "sat down - stands " + still + " (rail " + java.util.Arrays.toString(cart.railPos()) + "), forward - moves " + goes + "; view forward on a wall - tilt "
+                + f(yp[1]) + ", sideways - " + f(ys[0]) + "/" + f(ys[1]));
+            return "someone who sat in the cart stands for 2 seconds without gas (it used to start by itself), moves on \"forward\"; from the floor to the wall the forward view becomes a view up along the wall";
         });
-        t("Аркана", "Лабиринт: ни одного проёма в стену, открыта примерно половина стыков, без отрезанных комнат", () -> {
+        t("Arcana", "Maze: no openings into walls, about half of the joints open, no cut-off rooms", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.arcana);
             int c0 = 700, n = 10;
             loadAround(w, c0 * 16 + n * 8, c0 * 16 + n * 8, n / 2 + 1);
@@ -4305,9 +4305,9 @@ public class SelfTest {
                     // which side is open, what is around the opening on the open side and on the closed one
                     boolean aFree = !w.getBlock(j[0], y0 + 1, j[1]).getMaterial().blocksMovement();
                     int fx = aFree ? j[0] : j[0] + j[2], fz = aFree ? j[1] : j[1] + j[3], px = j[3], pz = j[2];
-                    where.append(" [").append(j[0]).append(' ').append(y0).append(' ').append(j[1]).append(j[2] == 1 ? " В" : " Ю").append(aFree ? " своя" : " соседа")
-                        .append(" рядом ").append(w.getBlock(fx - px, y0 + 1, fz - pz).getUnlocalizedName()).append('/').append(w.getBlock(fx + 2 * px, y0 + 1, fz + 2 * pz).getUnlocalizedName())
-                        .append(" напротив ").append(w.getBlock(aFree ? j[0] + j[2] : j[0], y0 + 1, aFree ? j[1] + j[3] : j[1]).getUnlocalizedName()).append(']');
+                    where.append(" [").append(j[0]).append(' ').append(y0).append(' ').append(j[1]).append(j[2] == 1 ? " E" : " S").append(aFree ? " own" : " neighbor's")
+                        .append(" next to ").append(w.getBlock(fx - px, y0 + 1, fz - pz).getUnlocalizedName()).append('/').append(w.getBlock(fx + 2 * px, y0 + 1, fz + 2 * pz).getUnlocalizedName())
+                        .append(" opposite ").append(w.getBlock(aFree ? j[0] + j[2] : j[0], y0 + 1, aFree ? j[1] + j[3] : j[1]).getUnlocalizedName()).append(']');
                 }
                 open += (e ? 1 : 0) + (s ? 1 : 0);
                 total += 2;
@@ -4324,13 +4324,13 @@ public class SelfTest {
                     if (com.divinerpgextended.world.ArcanaDoors.blind(w, cx * 16 + 15, y0, cz * 16 + 7, 1, 0)) again++;
                     if (com.divinerpgextended.world.ArcanaDoors.blind(w, cx * 16 + 7, y0, cz * 16 + 15, 0, 1)) again++;
                 }
-                where.append(" повторный проход: проёмов в стену ").append(again);
+                where.append(" repeat pass: openings into walls ").append(again);
             }
             check(blind == 0 && frac > 0.4F && frac < 0.72F && lonely * 20 <= rooms,
-                "проёмов в стену " + blind + ", открыто стыков " + open + " из " + total + " (" + Math.round(frac * 100) + "%), комнат без выхода по этажу " + lonely + " из " + rooms + ";" + where);
-            return "проёмов в стену нет, открыто " + Math.round(frac * 100) + "% стыков (было ~80%), комнат без выхода по этажу " + lonely + " из " + rooms;
+                "openings into walls " + blind + ", joints open " + open + " of " + total + " (" + Math.round(frac * 100) + "%), rooms without exit per floor " + lonely + " of " + rooms + ";" + where);
+            return "no openings into walls, open " + Math.round(frac * 100) + "% of joints (was ~80%), rooms without exit per floor " + lonely + " of " + rooms;
         });
-        t("Рыбалка", "Пещерный удильщик на Глазок циклопа", () -> {
+        t("Fishing", "Cave Angler on Cyclops Eye Bait", () -> {
             java.util.Random r = new java.util.Random(42);
             int n = 5000, angler = 0, other = 0, outside = 0;
             for (int i = 0; i < n; i++) {
@@ -4352,16 +4352,16 @@ public class SelfTest {
             boolean icons = SelfTest.class.getResource("/assets/divinerpgextended/textures/items/cyclops_bait.png") != null
                 && SelfTest.class.getResource("/assets/divinerpgextended/textures/items/fish_cave_angler.png") != null;
             check(Math.abs(share - FishingLoot.ANGLER_CHANCE) < 0.02F && other == 0 && outside == 0 && bait && recipe && quest && nei && icons,
-                "на " + n + " поклёвок в пещере: удильщиков " + angler + " (" + f(share * 100) + "%), на другую приманку " + other + ", вне пещеры " + outside + "; приманка " + bait
-                    + ", рецепт " + (made == null ? "нет" : made.getDisplayName() + " x" + made.stackSize) + ", задание Леорны " + quest + ", в NEI " + nei + ", значки " + icons);
-            return "Глазок циклопа (осколок глаза циклопа - 2 шт.): в пещере клюёт быстрее, Пещерный удильщик в " + f(share * 100) + "% поклёвок, только там и только на эту приманку; рыба для заданий Леорны";
+                "on " + n + " bites in the cave: anglers " + angler + " (" + f(share * 100) + "%), on another bait " + other + ", outside the cave " + outside + "; bait " + bait
+                    + ", recipe " + (made == null ? "none" : made.getDisplayName() + " x" + made.stackSize) + ", Leorna quest " + quest + ", in NEI " + nei + ", icons " + icons);
+            return "Cyclops Eye Bait (cyclops eye shard - 2 pcs.): bites faster in the cave, Cave Angler in " + f(share * 100) + "% of bites, only there and only on this bait; fish for Leorna's quests";
         });
-        t("Рыбалка", "Шахтёрская рыбалка: руда блоками по ярусам высоты", () -> {
+        t("Fishing", "Miner's fishing: ore in blocks by height tiers", () -> {
             StringBuilder bad = new StringBuilder();
             // tiers: 33-47 upper, 17-32 middle, 16 and below - depths only with strength 40+
             int[][] cases = { { 47, 0, FishingLoot.UPPER }, { 33, 0, FishingLoot.UPPER }, { 32, 0, FishingLoot.MIDDLE }, { 17, 0, FishingLoot.MIDDLE },
                 { 16, 40, FishingLoot.DEEP }, { 16, 39, FishingLoot.MIDDLE }, { 5, 130, FishingLoot.DEEP } };
-            for (int[] c : cases) if (FishingLoot.caveTier(c[0] + 0.4, c[1]) != c[2]) bad.append("ярус на высоте ").append(c[0]).append(" при силе ").append(c[1]).append("; ");
+            for (int[] c : cases) if (FishingLoot.caveTier(c[0] + 0.4, c[1]) != c[2]) bad.append("tier at height ").append(c[0]).append(" with power ").append(c[1]).append("; ");
             java.util.Set<String> rare = new java.util.HashSet<String>(java.util.Arrays.asList(key(new ItemStack(Blocks.diamond_ore)), key(new ItemStack(Blocks.emerald_ore)),
                 key(new ItemStack(net.divinerpg.utils.blocks.VanillaBlocks.rupeeOre))));
             java.util.Random r = new java.util.Random(7);
@@ -4376,10 +4376,10 @@ public class SelfTest {
                     if (s == null) continue;
                     if (s.getItem() == ModItems.crate) {
                         crates++;
-                        if (s.getItemDamage() != FishingLoot.CRATE_MINE + tier) bad.append("ящик яруса ").append(tier).append(" с метой ").append(s.getItemDamage()).append("; ");
+                        if (s.getItemDamage() != FishingLoot.CRATE_MINE + tier) bad.append("tier crate ").append(tier).append(" with mark ").append(s.getItemDamage()).append("; ");
                     } else if (s.getItem() instanceof net.minecraft.item.ItemBlock && s.getItem() != Item.getItemFromBlock(Blocks.tripwire_hook)) { // hook - junk
                         oreCatch++;
-                        if (!ores.contains(key(s)) || s.stackSize < 1 || s.stackSize > 2) bad.append("улов яруса ").append(tier).append(": ").append(s.getDisplayName()).append(" x").append(s.stackSize).append("; ");
+                        if (!ores.contains(key(s)) || s.stackSize < 1 || s.stackSize > 2) bad.append("tier catch ").append(tier).append(": ").append(s.getDisplayName()).append(" x").append(s.stackSize).append("; ");
                     }
                 }
                 // crate: 5-8 stacks of the tier's ore, in ~1 of 8 - diamond, emerald or rupee
@@ -4391,24 +4391,24 @@ public class SelfTest {
                         if (!(s.getItem() instanceof net.minecraft.item.ItemBlock)) continue;
                         if (ores.contains(key(s))) oreStacks++;
                         else if (rare.contains(key(s))) ex = true;
-                        else bad.append("в ящике яруса ").append(tier).append(" чужое: ").append(s.getDisplayName()).append("; ");
+                        else bad.append("in tier crate ").append(tier).append(" foreign item: ").append(s.getDisplayName()).append("; ");
                     }
                     if (ex) extra++;
-                    if (oreStacks < 4) bad.append("в ящике яруса ").append(tier).append(" руды ").append(oreStacks).append(" стопок; ");
+                    if (oreStacks < 4) bad.append("in tier crate ").append(tier).append(" ore ").append(oreStacks).append(" stacks; ");
                     if (bad.length() > 600) break;
                 }
                 float share = extra / (float) n;
                 // the depths have diamond, emerald and rupee - in the tier's ore too, the extra cannot be told apart
                 boolean overlap = ores.containsAll(rare);
-                if (!overlap && (share < 0.07F || share > 0.2F)) bad.append("редкая добавка яруса ").append(tier).append(": ").append(f(share * 100)).append("%; ");
-                rep.append(new String[] { "верхние", "средние", "глубины" }[tier]).append(": руд ").append(ores.size()).append(", ящиков ").append(crates).append(", руды в улове ")
-                    .append(oreCatch).append(", редкая добавка ").append(f(share * 100)).append("%; ");
+                if (!overlap && (share < 0.07F || share > 0.2F)) bad.append("rare extra of tier ").append(tier).append(": ").append(f(share * 100)).append("%; ");
+                rep.append(new String[] { "upper", "middle", "depths" }[tier]).append(": ores ").append(ores.size()).append(", crates ").append(crates).append(", ore in catch ")
+                    .append(oreCatch).append(", rare extra ").append(f(share * 100)).append("%; ");
             }
             // depths without strength - like the middle ones; diamond in ore only for the depths
             boolean deepDiamond = false, upperDiamond = false;
             for (ItemStack s : FishingLoot.ores(FishingLoot.DEEP)) deepDiamond |= s.getItem() == Item.getItemFromBlock(Blocks.diamond_ore);
             for (ItemStack s : FishingLoot.ores(FishingLoot.UPPER)) upperDiamond |= s.getItem() == Item.getItemFromBlock(Blocks.diamond_ore);
-            if (!deepDiamond || upperDiamond) bad.append("алмазная руда: в глубинах ").append(deepDiamond).append(", в верхних ").append(upperDiamond).append("; ");
+            if (!deepDiamond || upperDiamond) bad.append("diamond ore: in the depths ").append(deepDiamond).append(", in the upper ").append(upperDiamond).append("; ");
             // lava: quartz, netherite, bloodstone
             java.util.Set<String> lava = new java.util.HashSet<String>();
             for (ItemStack s : FishingLoot.ores(-1)) lava.add(key(s));
@@ -4416,21 +4416,21 @@ public class SelfTest {
             for (int i = 0; i < 500; i++) for (ItemStack s : FishingLoot.crate(r, Zone.HELL, 0))
                 if (s.getItem() instanceof net.minecraft.item.ItemBlock) {
                     if (lava.contains(key(s))) lavaOre++;
-                    else bad.append("в ящике лавы: ").append(s.getDisplayName()).append("; ");
+                    else bad.append("in the lava crate: ").append(s.getDisplayName()).append("; ");
                 }
-            if (lavaOre < 500 * 5) bad.append("в ящиках лавы руды ").append(lavaOre).append("; ");
+            if (lavaOre < 500 * 5) bad.append("in lava crates ore ").append(lavaOre).append("; ");
             // Thaumcraft via the ore dictionary: amber on top, cinnabar in the middle, stones with aspects - on one line
             boolean tc = !net.minecraftforge.oredict.OreDictionary.getOres("oreAmber").isEmpty();
             if (tc) {
                 java.util.Set<String> up = new java.util.HashSet<String>(), mid = new java.util.HashSet<String>();
                 for (ItemStack s : FishingLoot.ores(FishingLoot.UPPER)) up.add(key(s));
                 for (ItemStack s : FishingLoot.ores(FishingLoot.MIDDLE)) mid.add(key(s));
-                if (!up.contains(key(net.minecraftforge.oredict.OreDictionary.getOres("oreAmber").get(0)))) bad.append("нет янтаря в верхних; ");
-                if (!mid.contains(key(net.minecraftforge.oredict.OreDictionary.getOres("oreCinnabar").get(0)))) bad.append("нет киновари в средних; ");
-                if (up.size() < 10) bad.append("в верхних видов руды ").append(up.size()).append(" (камней с аспектами должно быть 6); ");
+                if (!up.contains(key(net.minecraftforge.oredict.OreDictionary.getOres("oreAmber").get(0)))) bad.append("no amber in the upper; ");
+                if (!mid.contains(key(net.minecraftforge.oredict.OreDictionary.getOres("oreCinnabar").get(0)))) bad.append("no cinnabar in the middle; ");
+                if (up.size() < 10) bad.append("ore kinds in the upper ").append(up.size()).append(" (there should be 6 aspect stones); ");
             }
             // the old caves crate opens as the middle tier; the crate is opened by a real player
-            if (FishingLoot.crateTier(Zone.CAVE.ordinal()) != FishingLoot.MIDDLE || FishingLoot.crateTier(Zone.OCEAN.ordinal()) != -1) bad.append("ярус по мете ящика; ");
+            if (FishingLoot.crateTier(Zone.CAVE.ordinal()) != FishingLoot.MIDDLE || FishingLoot.crateTier(Zone.OCEAN.ordinal()) != -1) bad.append("tier by crate mark; ");
             TestPlayer cp = join(player(0, "TestMineCrate", sx + 0.5, sy, sz + 0.5), true);
             int got = 0;
             try {
@@ -4444,19 +4444,19 @@ public class SelfTest {
                 server.getConfigurationManager().playerEntityList.remove(cp);
                 cp.worldObj.removeEntity(cp);
             }
-            if (got < 3) bad.append("открытый ящик глубин дал стопок руды ").append(got).append("; ");
+            if (got < 3) bad.append("an opened depths crate gave ore stacks ").append(got).append("; ");
             String[] names = new String[FishingLoot.TIERS];
             for (int k = 0; k < FishingLoot.TIERS; k++) names[k] = new ItemStack(ModItems.crate, 1, FishingLoot.CRATE_MINE + k).getDisplayName();
             for (int k = 0; k < FishingLoot.TIERS; k++) {
-                if (names[k].startsWith("item.")) bad.append("нет названия ").append(names[k]).append("; ");
+                if (names[k].startsWith("item.")) bad.append("no name ").append(names[k]).append("; ");
                 if (SelfTest.class.getResource("/assets/divinerpgextended/textures/items/crate_mine_" + new String[] { "upper", "middle", "deep" }[k] + ".png") == null)
-                    bad.append("нет значка яруса ").append(k).append("; ");
+                    bad.append("no tier icon ").append(k).append("; ");
             }
             check(bad.length() == 0, bad.toString());
-            return rep + "лава: руда Ада " + lavaOre + " стопок на 500 ящиков; Таумкрафт " + (tc ? "в таблицах" : "нет в сборке") + "; открытый ящик глубин - " + got
-                + " стопок руды; " + String.join(", ", names);
+            return rep + "lava: Nether ore " + lavaOre + " stacks per 500 crates; Thaumcraft " + (tc ? "in the tables" : "not in the pack") + "; opened depths crate - " + got
+                + " ore stacks; " + String.join(", ", names);
         });
-        t("Лиоплевродон", "Кость призрака у Мерика", () -> {
+        t("Liopleurodon", "Ghost Bone at Merik", () -> {
             TestPlayer mp = join(player(0, "TestWraithbane", sx + 0.5, sy, sz + 0.5), true);
             boolean before, after, chest;
             try {
@@ -4473,8 +4473,8 @@ public class SelfTest {
                 server.getConfigurationManager().playerEntityList.remove(mp);
                 ow.removeEntity(mp);
             }
-            check(!before && after && !chest, "до Повелителя ветров продаёт " + before + ", после " + after + "; в древних сундуках Арканы " + chest);
-            return "кость призрака у Капитана Мерика только после Повелителя ветров (Небесный терн), в древних сундуках Арканы её нет";
+            check(!before && after && !chest, "before the Wind Lord sells " + before + ", after " + after + "; in Arcana's ancient chests " + chest);
+            return "the Ghost Bone is sold by Captain Merik only after the Wind Lord (Skythern), it is not in Arcana's ancient chests";
         });
     }
 
@@ -4488,7 +4488,7 @@ public class SelfTest {
     }
 
     private void tabTests() {
-        t("Прохождение", "Вкладки творческого режима", () -> {
+        t("Progression", "Creative mode tabs", () -> {
             Object[][] cases = { { "rod_hunger", com.divinerpgextended.DreTab.FISHING }, { "anglerHat", com.divinerpgextended.DreTab.FISHING },
                 { "arcanePotion", com.divinerpgextended.DreTab.MAGIC }, { "arcaneBrewer", com.divinerpgextended.DreTab.MAGIC },
                 { "trinket", com.divinerpgextended.DreTab.TRINKETS }, { "wandererHelmet", com.divinerpgextended.DreTab.GEAR },
@@ -4497,8 +4497,8 @@ public class SelfTest {
                 { "trainingDummy", com.divinerpgextended.DreTab.TAB }, { "worldTorch_eden", com.divinerpgextended.DreTab.TAB } };
             StringBuilder bad = new StringBuilder();
             for (Object[] c : cases) if (com.divinerpgextended.DreTab.of((String) c[0]) != c[1]) bad.append(c[0]).append(' ');
-            check(bad.length() == 0, "не в своей вкладке: " + bad);
-            return "основное, снаряжение, аксессуары, рыбалка, аркана и зелья, боссы и прогресс: удочки и одежда рыбака - в рыбалке, зелья и стойка - в аркане, яйца боссов и карты - в боссах";
+            check(bad.length() == 0, "not in its own tab: " + bad);
+            return "main, gear, accessories, fishing, arcana and potions, bosses and progress: fishing rods and angler clothes - in fishing, potions and the stand - in arcana, boss eggs and maps - in bosses";
         });
     }
 
@@ -4529,7 +4529,7 @@ public class SelfTest {
     }
 
     private void twilightTests() {
-        t("Сумеречные миры", "Запас растёт", () -> {
+        t("Twilight dimensions", "Reserve grows", () -> {
             int[] dims = { ConfigurationHelper.eden, ConfigurationHelper.wildwood, ConfigurationHelper.apalachia, ConfigurationHelper.skythern,
                 ConfigurationHelper.mortum };
             int[] v = new int[6];
@@ -4553,10 +4553,10 @@ public class SelfTest {
             wearT(vv, Trinket.MAGIC_CARPET);
             int dream = DoubleJump.carpetTicks(vv);
             check(v[0] == 200 && v[1] == 200 && v[2] == 160 && v[3] == 100 && v[4] == 60 && v[5] == -1 && over == 60 && overDemon == 200 && dream == 0,
-                "тиков: " + v[0] + "/" + v[1] + "/" + v[2] + "/" + v[3] + "/" + v[4] + ", с демоном " + v[5] + "; обычный мир " + over + ", с демоном " + overDemon + ", Ветея " + dream);
-            return "по миру: Эдем 10 с, Вайлдвуд 10, Апалачия 8, Скайтерн 5, Мортум 3; после демона - без предела; обычный мир 3 с (после демона 10), в Ветее нет";
+                "ticks: " + v[0] + "/" + v[1] + "/" + v[2] + "/" + v[3] + "/" + v[4] + ", with the demon " + v[5] + "; normal world " + over + ", with the demon " + overDemon + ", Vethea " + dream);
+            return "by world: Eden 10 s, Wildwood 10, Apalachia 8, Skythern 5, Mortum 3; after the demon - unlimited; normal world 3 s (after the demon 10), none in Vethea";
         });
-        t("Сумеречные миры", "Отозвать Сумеречного демона", () -> {
+        t("Twilight dimensions", "Revoke the Twilight Demon", () -> {
             TestPlayer e = player(ConfigurationHelper.eden, "TestEden", 0, 100, 0);
             wearT(e, Trinket.MAGIC_CARPET);
             BossProgress.grant(e, Boss.CADILLION_SKYTHERN);
@@ -4564,22 +4564,22 @@ public class SelfTest {
             int a = DoubleJump.carpetTicks(e);
             BossProgress.revoke(e, Boss.TWILIGHT_DEMON);
             int b = DoubleJump.carpetTicks(e);
-            check(a == -1 && b == 200, "с демоном " + a + ", после revoke " + b);
-            return "без предела > 10 с";
+            check(a == -1 && b == 200, "with the demon " + a + ", after revoke " + b);
+            return "unlimited > 10 s";
         });
-        t("Сумеречные миры", "Вне Сумеречных слабый", () -> {
+        t("Twilight dimensions", "Weak outside the Twilight dimensions", () -> {
             TestPlayer o = player(0, "TestOver", 0, 100, 0);
             wearT(o, Trinket.MAGIC_CARPET);
             int c = DoubleJump.carpetTicks(o);
-            check(c == DoubleJump.OUTSIDE, "в обычном мире запас ковра " + c);
-            return "в обычном мире ковёр держит только 3 с";
+            check(c == DoubleJump.OUTSIDE, "in the normal world the carpet reserve " + c);
+            return "in the normal world the carpet lasts only 3 s";
         });
-        t("Сумеречные миры", "Сумеречные миры", () -> {
+        t("Twilight dimensions", "Twilight dimensions", () -> {
             TestPlayer e = player(ConfigurationHelper.eden, "TestEden", 0, 100, 0);
             wearT(e, Trinket.AYERACO_WING);
             int a = DoubleJump.allowed(e);
-            check(a == 2, "прыжков в воздухе в Эдеме " + a);
-            return "в Эдеме 2 прыжка в воздухе (серверная часть)";
+            check(a == 2, "air jumps in Eden " + a);
+            return "in Eden 2 air jumps (server side)";
         });
     }
 
@@ -4592,21 +4592,21 @@ public class SelfTest {
         z.setPosition(9, 17, 9);
         vw.spawnEntityInWorld(z);
         final DamageSource mob = DamageSource.causeMobDamage(z);
-        t("Ветея - кошмар", "Вещи не забираются", () -> {
-            check(!com.divinerpgextended.vethea.VetheaStash.divineSwap(), "отдельный инвентарь Divine включён");
-            return "отдельный инвентарь Divine выключен аддоном";
+        t("Vethea - Nightmare", "Items are not taken", () -> {
+            check(!com.divinerpgextended.vethea.VetheaStash.divineSwap(), "Divine separate inventory is on");
+            return "Divine separate inventory is turned off by the addon";
         });
-        t("Ветея - кошмар", "Обмен инвентаря без настройки", () -> {
+        t("Vethea - Nightmare", "Inventory swap without config", () -> {
             // Divine class bytes as in the jar: the patch must find the swap in both 1.4.2.3 and 1.4.1.5 (there is no setting there)
             for (String c : new String[] { "BlockNightmareBed", "BlockVetheaPortal" }) {
                 String res = "/net/divinerpg/blocks/vethea/" + c + ".class";
                 java.io.InputStream in = net.divinerpg.utils.config.ConfigurationHelper.class.getResourceAsStream(res);
-                check(in != null, "нет " + res);
+                check(in != null, "no " + res);
                 byte[] raw = org.apache.commons.io.IOUtils.toByteArray(in);
                 in.close();
                 byte[] out = new com.divinerpgextended.asm.VetheaSwapTransformer().transform(c,
                     "net.divinerpg.blocks.vethea." + c, raw);
-                check(out != raw, c + ": обмен инвентаря не найден");
+                check(out != raw, c + ": inventory swap not found");
             }
             // blocked swap: the inventory is not saved into the copy, not cleared and not replaced
             TestPlayer w = player(0, "TestSwap", 40, 70, 40);
@@ -4621,11 +4621,11 @@ public class SelfTest {
             com.divinerpgextended.asm.VetheaSwapHooks.read(w.inventory, other);
             ItemStack left = w.inventory.getStackInSlot(3);
             check(com.divinerpgextended.asm.VetheaSwapHooks.blocked && copy.tagCount() == 0 && cleared == 0 && left != null
-                && left.getItem() == Items.diamond && left.stackSize == 5, "копия " + copy.tagCount() + ", очищено " + cleared
-                    + ", в слоте " + left);
-            return "патч нашёл обмен инвентаря в кровати и портале, заблокированный обмен ничего не трогает";
+                && left.getItem() == Items.diamond && left.stackSize == 5, "copy " + copy.tagCount() + ", cleared " + cleared
+                    + ", in slot " + left);
+            return "the patch found the inventory swap in the bed and the portal, a blocked swap touches nothing";
         });
-        t("Ветея - кошмар", "Чужое оружие лечит", () -> {
+        t("Vethea - Nightmare", "Foreign weapon heals", () -> {
             reset(v);
             hold(v, new ItemStack(Items.diamond_sword));
             z.setHealth(10);
@@ -4633,43 +4633,43 @@ public class SelfTest {
             EntityZombie vz = new EntityZombie(vw); // a vanilla mob in Vethea - is hit as usual
             vz.setHealth(10);
             float dz = hit(vz, DamageSource.causePlayerDamage(v), 7);
-            check(d < 0 && dz > 0, "алмазный меч: здоровье моба Ветеи изменилось на " + f(-d) + ", зомби - урон " + f(dz));
-            return "алмазный меч лечит моба Ветеи на " + f(-d) + ", зомби в Ветее получает урон " + f(dz);
+            check(d < 0 && dz > 0, "diamond sword: Vethea mob health changed by " + f(-d) + ", zombie - damage " + f(dz));
+            return "diamond sword heals a Vethea mob by " + f(-d) + ", a zombie in Vethea takes damage " + f(dz);
         });
-        t("Ветея - кошмар", "Ветейское оружие бьёт", () -> {
+        t("Vethea - Nightmare", "Vethea weapon hits", () -> {
             reset(v);
             hold(v, new ItemStack(VetheaItems.teakerSword));
             z.setHealth(20);
             float d = hit(z, DamageSource.causePlayerDamage(v), 7);
-            check(d > 0, "Teaker Backsword: урон " + f(d));
-            return "Teaker Backsword бьёт на " + f(d);
+            check(d > 0, "Teaker Backsword: damage " + f(d));
+            return "Teaker Backsword hits for " + f(d);
         });
-        t("Ветея - кошмар", "Кулак и блок в руке", () -> {
+        t("Vethea - Nightmare", "Fist and block in hand", () -> {
             reset(v);
             z.setHealth(20);
             float fist = hit(z, DamageSource.causePlayerDamage(v), 1);
             hold(v, new ItemStack(Blocks.dirt, 10));
             float block = hit(z, DamageSource.causePlayerDamage(v), 1);
-            check(fist > 0 && block > 0, "кулак " + f(fist) + ", блок " + f(block));
-            return "кулак и блок бьют обычно";
+            check(fist > 0 && block > 0, "fist " + f(fist) + ", block " + f(block));
+            return "fist and block hit normally";
         });
-        t("Ветея - кошмар", "Чужой лук и посохи", () -> {
+        t("Vethea - Nightmare", "Foreign bow and staffs", () -> {
             reset(v);
             hold(v, new ItemStack(Items.bow));
             z.setHealth(10);
             float d = hit(z, DamageSource.causeArrowDamage(new EntityArrow(vw, v, 1.0F), v), 5);
-            check(d < 0, "стрела из обычного лука: изменение " + f(-d));
-            return "стрела из обычного лука лечит";
+            check(d < 0, "arrow from a normal bow: change " + f(-d));
+            return "an arrow from a normal bow heals";
         });
-        t("Ветея - кошмар", "Подмена в руке", () -> {
+        t("Vethea - Nightmare", "Swap in hand", () -> {
             reset(v);
             hold(v, new ItemStack(Items.diamond_sword));
             z.setHealth(10);
             float d = hit(z, DamageSource.causeArrowDamage(new EntityArrow(vw, v, 1.0F), v), 5);
-            check(d < 0, "стрела, в руке алмазный меч: изменение " + f(-d));
-            return "считается по вещи в руке в момент попадания - лечит";
+            check(d < 0, "arrow, diamond sword in hand: change " + f(-d));
+            return "counted by the item in hand at the moment of the hit - heals";
         });
-        t("Ветея - кошмар", "Чужая броня ранит", () -> {
+        t("Vethea - Nightmare", "Foreign armor hurts", () -> {
             reset(v);
             float naked = hit(v, mob, 10);
             v.setHealth(v.getMaxHealth());
@@ -4679,114 +4679,114 @@ public class SelfTest {
             armor(v, Items.diamond_helmet, Items.diamond_chestplate, Items.diamond_leggings, Items.diamond_boots);
             float diamond = hit(v, mob, 10);
             v.setHealth(v.getMaxHealth());
-            check(near(naked, 10) && near(leather, 12.8F) && near(diamond, 18), "урон 10: голый " + f(naked) + ", кожа " + f(leather) + ", алмаз " + f(diamond)
-                + " (ждали 10 / 12.8 / 18)");
-            return "удар 10: голый 10, кожа 12.8, алмаз 18";
+            check(near(naked, 10) && near(leather, 12.8F) && near(diamond, 18), "damage 10: bare " + f(naked) + ", leather " + f(leather) + ", diamond " + f(diamond)
+                + " (expected 10 / 12.8 / 18)");
+            return "hit 10: bare 10, leather 12.8, diamond 18";
         });
-        t("Ветея - кошмар", "Ветейская броня защищает", () -> {
+        t("Vethea - Nightmare", "Vethea armor protects", () -> {
             reset(v);
             armor(v, VetheaItems.degradedHelmet, VetheaItems.degradedBody, VetheaItems.degradedLegs, VetheaItems.degradedBoots);
             float d = hit(v, mob, 10);
-            check(d < 10, "Degraded: урон " + f(d));
-            return "Degraded: удар 10 > " + f(d);
+            check(d < 10, "Degraded: damage " + f(d));
+            return "Degraded: hit 10 > " + f(d);
         });
-        t("Ветея - кошмар", "Смешанная броня", () -> {
+        t("Vethea - Nightmare", "Mixed armor", () -> {
             reset(v);
             armor(v, VetheaItems.degradedHelmet, Items.diamond_chestplate, Items.diamond_leggings, VetheaItems.degradedBoots);
             float d = hit(v, mob, 10);
-            check(near(d, 15.6F), "2 ветейские + алмазные нагрудник и поножи: урон " + f(d) + " (ждали 15.6 = x1.56, бонуса сета нет)");
-            return "усиливают только чужие вещи: x1.56";
+            check(near(d, 15.6F), "2 Vethea + diamond chestplate and leggings: damage " + f(d) + " (expected 15.6 = x1.56, no set bonus)");
+            return "amplify only foreign items: x1.56";
         });
-        t("Ветея - кошмар", "Чужая еда", () -> {
+        t("Vethea - Nightmare", "Foreign food", () -> {
             reset(v);
             food(v, 10, 5);
             eat(v, new ItemStack(Items.bread));
             int food = v.getFoodStats().getFoodLevel();
-            check(food == 5 && v.isPotionActive(Potion.hunger), "голод 10 + хлеб > " + food + " (ждали 5), эффект голода " + v.isPotionActive(Potion.hunger));
-            return "голод 10 > хлеб > 5 и эффект голода";
+            check(food == 5 && v.isPotionActive(Potion.hunger), "hunger 10 + bread > " + food + " (expected 5), hunger effect " + v.isPotionActive(Potion.hunger));
+            return "hunger 10 > bread > 5 and the hunger effect";
         });
-        t("Ветея - кошмар", "Своя еда", () -> {
+        t("Vethea - Nightmare", "Own food", () -> {
             reset(v);
             food(v, 10, 5);
             eat(v, new ItemStack(VetheaItems.dreamCarrot));
             int food = v.getFoodStats().getFoodLevel();
-            check(food == 13, "голод 10 + Dream Carrot > " + food + " (ждали 13)");
-            return "Dream Carrot кормит: 10 > 13";
+            check(food == 13, "hunger 10 + Dream Carrot > " + food + " (expected 13)");
+            return "Dream Carrot feeds: 10 > 13";
         });
-        t("Ветея - кошмар", "Еда на пустой голод", () -> {
+        t("Vethea - Nightmare", "Food on empty hunger", () -> {
             reset(v);
             food(v, 1, 0);
             eat(v, new ItemStack(Items.bread));
             int food = v.getFoodStats().getFoodLevel();
-            check(food == 0, "голод 1 + хлеб > " + food);
-            return "голод не уходит в минус: 0";
+            check(food == 0, "hunger 1 + bread > " + food);
+            return "hunger does not go negative: 0";
         });
-        t("Ветея - кошмар", "Золотое яблоко", () -> {
+        t("Vethea - Nightmare", "Golden apple", () -> {
             reset(v);
             food(v, 10, 5);
             eat(v, new ItemStack(Items.golden_apple));
             int food = v.getFoodStats().getFoodLevel();
-            check(food < 10 && v.isPotionActive(Potion.regeneration), "голод " + food + ", регенерация " + v.isPotionActive(Potion.regeneration));
-            return "сытость падает (" + food + "), регенерация остаётся";
+            check(food < 10 && v.isPotionActive(Potion.regeneration), "hunger " + food + ", regeneration " + v.isPotionActive(Potion.regeneration));
+            return "saturation drops (" + food + "), regeneration stays";
         });
-        t("Ветея - кошмар", "Чужие зелья", () -> {
+        t("Vethea - Nightmare", "Foreign potions", () -> {
             reset(v);
             v.setHealth(20);
             eat(v, new ItemStack(Items.potionitem, 1, 8197));
             float afterHeal = v.getHealth();
             eat(v, new ItemStack(Items.potionitem, 1, 8194));
             boolean slow = v.isPotionActive(Potion.moveSlowdown), fast = v.isPotionActive(Potion.moveSpeed);
-            check(afterHeal < 20 && slow && !fast, "лечение: здоровье 20 > " + f(afterHeal) + "; скорость: замедление " + slow + ", скорость " + fast);
-            return "лечение ранит (20 > " + f(afterHeal) + "), скорость > замедление";
+            check(afterHeal < 20 && slow && !fast, "healing: health 20 > " + f(afterHeal) + "; speed: slowness " + slow + ", speed " + fast);
+            return "healing hurts (20 > " + f(afterHeal) + "), speed > slowness";
         });
-        t("Ветея - кошмар", "Зелье лечения при малом здоровье", () -> {
+        t("Vethea - Nightmare", "Healing potion at low health", () -> {
             reset(v);
             v.setHealth(6);
             v.hurtResistantTime = 0;
             eat(v, new ItemStack(Items.potionitem, 1, 8229));
             check(true, "");
-            return "3 сердца + лечение II: " + (v.died ? "смерть" : "здоровье " + f(v.getHealth())) + " (решение за тобой)";
+            return "3 hearts + healing II: " + (v.died ? "death" : "health " + f(v.getHealth())) + " (up to you)";
         });
-        t("Ветея - кошмар", "Чужие инструменты", () -> {
+        t("Vethea - Nightmare", "Foreign tools", () -> {
             reset(v);
             hold(v, new ItemStack(Items.diamond_pickaxe));
             BreakSpeed bs = new BreakSpeed(v, VetheaBlocks.dreamStone, 0, 8.0F, 0, 10, 0);
             MinecraftForge.EVENT_BUS.post(bs);
-            check(near(bs.newSpeed, 1.6F), "скорость алмазной кирки 8 > " + f(bs.newSpeed));
-            return "алмазная кирка: скорость 8 > 1.6 (x0.2)";
+            check(near(bs.newSpeed, 1.6F), "diamond pickaxe speed 8 > " + f(bs.newSpeed));
+            return "diamond pickaxe: speed 8 > 1.6 (x0.2)";
         });
-        t("Ветея - кошмар", "Аксессуары молчат", () -> {
+        t("Vethea - Nightmare", "Accessories are silent", () -> {
             reset(v);
             wearT(v, Trinket.AYERACO_WING);
             boolean dream = Accessories.wears(v, Trinket.AYERACO_WING);
             wearT(v, Trinket.DREAM_WINGS_1);
             boolean wings = Accessories.wears(v, Trinket.DREAM_WINGS_1);
-            check(!dream && wings, "Крыло Айрако в Ветее " + dream + ", Крылья сна " + wings);
-            return "Крыло Айрако молчит, Крылья сна работают";
+            check(!dream && wings, "Ayeraco Wing in Vethea " + dream + ", Dreamer's Wings " + wings);
+            return "Ayeraco Wing is silent, Dreamer's Wings work";
         });
-        t("Ветея - кошмар", "По игроку чужим мечом", () -> {
+        t("Vethea - Nightmare", "Player vs player with a foreign sword", () -> {
             reset(v);
             reset(v2);
             hold(v2, new ItemStack(Items.diamond_sword));
             v.setHealth(10);
             float d = hit(v, DamageSource.causePlayerDamage(v2), 7);
-            check(d == 0, "игрок по игроку алмазным мечом: изменение " + f(d));
-            return "ни урона, ни лечения";
+            check(d == 0, "player hits player with a diamond sword: change " + f(d));
+            return "no damage and no healing";
         });
-        t("Ветея - кошмар", "Выключатель", () -> {
+        t("Vethea - Nightmare", "Switch", () -> {
             reset(v);
             hold(v, new ItemStack(Items.diamond_sword));
             Config.vetheaNightmare = false;
             try {
                 z.setHealth(20);
                 float d = hit(z, DamageSource.causePlayerDamage(v), 7);
-                check(d > 0, "с выключенным кошмаром меч: изменение " + f(-d));
-                return "vetheaNightmare=false: алмазный меч бьёт";
+                check(d > 0, "with nightmare off the sword: change " + f(-d));
+                return "vetheaNightmare=false: the diamond sword hits";
             } finally {
                 Config.vetheaNightmare = true;
             }
         });
-        t("Ветея - кошмар", "Возврат запертых вещей", () -> {
+        t("Vethea - Nightmare", "Return of locked items", () -> {
             TestPlayer o = player(0, "TestStash", p.posX, p.posY, p.posZ);
             NBTTagCompound ps = persisted(o);
             NBTTagList vinv = new NBTTagList(), oinv = new NBTTagList();
@@ -4804,26 +4804,26 @@ public class SelfTest {
             call(st, "migrate", new Class<?>[] { EntityPlayer.class }, o);
             int pearls = count(o, VetheaItems.dirtyPearls), dia = count(o, Items.diamond);
             check(pearls == 7 && dia == 0 && !ps.hasKey("VetheaInv") && !ps.hasKey("OverworldInv") && !ps.hasKey("dre_stash"),
-                "жемчуг " + pearls + " (ждали 7), алмазов " + dia + " (ждали 0 - устаревшая копия), копии Divine убраны " + !ps.hasKey("VetheaInv"));
-            return "вне Ветеи вернулся ветейский склад (7 жемчуга), устаревшая копия не выдана";
+                "pearls " + pearls + " (expected 7), diamonds " + dia + " (expected 0 - outdated copy), Divine copies removed " + !ps.hasKey("VetheaInv"));
+            return "outside Vethea the Vethea storage came back (7 pearls), the outdated copy was not given";
         });
 
         // floors
-        t("Ветея - этажи", "Низ плиты не ломается", () -> {
+        t("Vethea - Floors", "Slab bottom does not break", () -> {
             reset(v);
             boolean[] s = { VetheaFloors.protectedSlab(50), VetheaFloors.protectedSlab(60), VetheaFloors.protectedSlab(61), VetheaFloors.protectedSlab(64),
                 VetheaFloors.protectedSlab(16) };
             v.setPosition(8, 40, 8);
             BlockEvent.BreakEvent be = new BlockEvent.BreakEvent(8, 55, 8, vw, VetheaBlocks.dreamStone, 0, v);
             boolean cancelled = MinecraftForge.EVENT_BUS.post(be);
-            check(s[0] && s[1] && !s[2] && !s[3] && !s[4] && cancelled, "защищено y50/60/61/64/16: " + s[0] + s[1] + s[2] + s[3] + s[4] + ", ломание отменено " + cancelled);
-            return "y 49-60 не ломается, 61-64 ломается";
+            check(s[0] && s[1] && !s[2] && !s[3] && !s[4] && cancelled, "protected y50/60/61/64/16: " + s[0] + s[1] + s[2] + s[3] + s[4] + ", breaking canceled " + cancelled);
+            return "y 49-60 does not break, 61-64 breaks";
         });
-        t("Ветея - этажи", "Разломы прорубаются", () -> {
+        t("Vethea - Floors", "Rifts can be cut through", () -> {
             int[] c = VetheaFloors.rift(vw, 0, 0, 2);
             // load the neighbors so the rift chunk goes through Divine population (as in normal play)
             for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) vw.getChunkFromChunkCoords((c[0] >> 4) + dx, (c[1] >> 4) + dz);
-            check(vw.getChunkFromChunkCoords(c[0] >> 4, c[1] >> 4).isTerrainPopulated, "чанк разлома не населился");
+            check(vw.getChunkFromChunkCoords(c[0] >> 4, c[1] >> 4).isTerrainPopulated, "rift chunk was not populated");
             // where there was a solid block along the edge (floors sometimes have natural cavities of Divine's crystal caves)
             List<int[]> solid = new ArrayList<int[]>();
             for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) {
@@ -4840,34 +4840,34 @@ public class SelfTest {
             int rim = 0;
             for (int[] s : solid) if (vw.getBlock(s[0], s[1], s[2]) == VetheaBlocks.fireCrystal) rim++;
             int at = VetheaFloors.riftAt(vw, c[0] + 0.5, 55, c[1] + 0.5, 6.25, 8, 1);
-            check(air && rim == solid.size() && at == 2, "дыра сквозная " + air + ", кристаллов " + rim + " из " + solid.size() + " твёрдых мест края, riftAt " + at);
-            return "шахта 49-64 пустая; край: кристаллы на всех " + solid.size() + " твёрдых местах" + (solid.size() < 32 ? " (часть края - природная полость)" : "");
+            check(air && rim == solid.size() && at == 2, "hole goes through " + air + ", crystals " + rim + " of " + solid.size() + " solid spots of the edge, riftAt " + at);
+            return "shaft 49-64 empty; edge: crystals on all " + solid.size() + " solid spots" + (solid.size() < 32 ? " (part of the edge is a natural cavity)" : "");
         });
-        t("Ветея - этажи", "Отрицательные координаты", () -> {
+        t("Vethea - Floors", "Negative coordinates", () -> {
             int[] c = VetheaFloors.rift(vw, -1, -1, 2);
-            check(c[0] < 0 && c[0] >= -96 && c[1] < 0 && c[1] >= -96, "центр разлома региона (-1,-1): " + c[0] + " " + c[1]);
-            return "регион (-1,-1): центр " + c[0] + " " + c[1];
+            check(c[0] < 0 && c[0] >= -96 && c[1] < 0 && c[1] >= -96, "center of the region rift (-1,-1): " + c[0] + " " + c[1]);
+            return "region (-1,-1): center " + c[0] + " " + c[1];
         });
-        t("Ветея - этажи", "В шахте не построить", () -> {
+        t("Vethea - Floors", "Cannot build in the shaft", () -> {
             reset(v);
             int[] c = VetheaFloors.rift(vw, 0, 0, 2);
             BlockEvent.PlaceEvent pe = new BlockEvent.PlaceEvent(new BlockSnapshot(vw, c[0], 55, c[1], Blocks.dirt, 0), Blocks.dirt, v);
             boolean in = MinecraftForge.EVENT_BUS.post(pe);
             BlockEvent.PlaceEvent out = new BlockEvent.PlaceEvent(new BlockSnapshot(vw, c[0] + 6, 65, c[1], Blocks.dirt, 0), Blocks.dirt, v);
             boolean outside = MinecraftForge.EVENT_BUS.post(out);
-            check(in && !outside, "в шахте отменено " + in + ", снаружи отменено " + outside);
-            return "в шахте нельзя, рядом можно";
+            check(in && !outside, "in the shaft canceled " + in + ", outside canceled " + outside);
+            return "not allowed in the shaft, allowed next to it";
         });
-        t("Ветея - этажи", "Страж этажей", () -> {
+        t("Vethea - Floors", "Floor guard", () -> {
             reset(v);
             persisted(v).removeTag("dre_wing_tier");
             v.setPosition(30, 70, 30);
             tick(v, 31);
             int fl = VetheaFloors.floorOf(v.posY);
-            check(fl == 1, "без крыльев на 2 этаже через 31 тик: этаж " + fl + " (y " + f((float) v.posY) + ")");
-            return "сброшен на 1 этаж, y " + (int) v.posY;
+            check(fl == 1, "without wings on floor 2 after 31 ticks: floor " + fl + " (y " + f((float) v.posY) + ")");
+            return "reset to floor 1, y " + (int) v.posY;
         });
-        t("Ветея - этажи", "Этаж запоминается", () -> {
+        t("Vethea - Floors", "Floor is remembered", () -> {
             reset(v);
             persisted(v).removeTag("dre_wing_tier");
             wearT(v, Trinket.DREAM_WINGS_1);
@@ -4877,28 +4877,28 @@ public class SelfTest {
             v.setPosition(30, 70, 30);
             tick(v, 31);
             int fl = VetheaFloors.floorOf(v.posY);
-            check(fl == 2 && VetheaFloors.allowedFloor(v) == 2, "после снятых крыльев: этаж " + fl + ", дозволено " + VetheaFloors.allowedFloor(v));
-            return "крылья надевал - 2 этаж разрешён и без них";
+            check(fl == 2 && VetheaFloors.allowedFloor(v) == 2, "after wings removed: floor " + fl + ", allowed " + VetheaFloors.allowedFloor(v));
+            return "put the wings on - floor 2 is allowed even without them";
         });
-        t("Ветея - этажи", "Полёт выключен", () -> {
+        t("Vethea - Floors", "Flight turned off", () -> {
             reset(v);
             v.capabilities.allowFlying = true;
             v.capabilities.isFlying = true;
             tick(v, 1);
-            check(!v.capabilities.allowFlying && !v.capabilities.isFlying, "полёт остался: " + v.capabilities.allowFlying);
-            return "полёт снимается за тик";
+            check(!v.capabilities.allowFlying && !v.capabilities.isFlying, "flight remained: " + v.capabilities.allowFlying);
+            return "flight is removed within a tick";
         });
-        t("Ветея - этажи", "Поток без крыльев", () -> {
+        t("Vethea - Floors", "Updraft without wings", () -> {
             reset(v);
             persisted(v).removeTag("dre_wing_tier");
             int[] c = VetheaFloors.rift(vw, 0, 0, 2);
             v.setPosition(c[0] + 0.5, 55, c[1] + 0.5);
             v.motionY = 0.5;
             tick(v, 1);
-            check(v.motionY < -0.5, "в шахте без крыльев motionY " + f((float) v.motionY));
-            return "в шахте без крыльев тянет вниз";
+            check(v.motionY < -0.5, "in the shaft without wings motionY " + f((float) v.motionY));
+            return "in the shaft without wings it pulls down";
         });
-        t("Ветея - этажи", "Падение не ранит", () -> {
+        t("Vethea - Floors", "Fall does not hurt", () -> {
             reset(v);
             wearT(v, Trinket.DREAM_WINGS_1);
             v.setPosition(30, 20, 30);
@@ -4908,10 +4908,10 @@ public class SelfTest {
             v.ticksExisted += 200; // has not been in the rift for a long time
             LivingFallEvent fe2 = new LivingFallEvent(v, 30);
             boolean none = MinecraftForge.EVENT_BUS.post(fe2);
-            check(wings && !none, "в крыльях падение отменено " + wings + ", без крыльев отменено " + none);
-            return "в крыльях падение не ранит, без них ранит";
+            check(wings && !none, "with wings fall canceled " + wings + ", without wings canceled " + none);
+            return "with wings the fall does not hurt, without them it does";
         });
-        t("Ветея - этажи", "Взрыв у плиты", () -> {
+        t("Vethea - Floors", "Explosion near the slab", () -> {
             Explosion ex = new Explosion(vw, null, 8, 47, 8, 4);
             ex.affectedBlockPositions.add(new net.minecraft.world.ChunkPosition(8, 50, 8));
             ex.affectedBlockPositions.add(new net.minecraft.world.ChunkPosition(8, 47, 8));
@@ -4923,20 +4923,20 @@ public class SelfTest {
                 if (cp.chunkPosY == 50) slab = true;
                 if (cp.chunkPosY == 47) air = true;
             }
-            check(!slab && air, "блок плиты в списке взрыва " + slab + ", блок под плитой " + air);
-            return "плита убрана из взрыва, остальное нет";
+            check(!slab && air, "slab block in the explosion list " + slab + ", block under the slab " + air);
+            return "the slab is removed from the explosion, the rest is not";
         });
-        t("Ветея - этажи", "Крафт Крыльев сновидца", () -> {
+        t("Vethea - Floors", "Dreamer's Wings crafting", () -> {
             // on a real Divine altar (fixed by the addon): more boulders than needed - exactly as many as required are consumed
             ItemStack[] r1 = infuse(v, new ItemStack(VetheaItems.amthirmisLump, 20), com.divinerpgextended.vethea.DreamItem.stack(com.divinerpgextended.vethea.DreamItem.WINGS_TEMPLATE));
             boolean bench = craft(vw, new Object[] { VetheaItems.dirtyPearls, null, VetheaItems.dirtyPearls, VetheaItems.dirtyPearls, VetheaItems.teakerLump,
                 VetheaItems.dirtyPearls, VetheaItems.dirtyPearls, VetheaItems.amthirmisLump, VetheaItems.dirtyPearls }) != null;
             check(r1[2] != null && r1[2].getItem() == ModItems.trinket && r1[2].getItemDamage() == Trinket.DREAM_WINGS_1.ordinal() && r1[0] != null
-                && r1[0].stackSize == 12 && r1[1] == null && !bench, "алтарь дал " + r1[2] + ", глыб осталось " + (r1[0] == null ? 0 : r1[0].stackSize)
-                + ", шаблон " + r1[1] + ", верстак " + bench);
-            return "алтарь: шаблон крыльев + 20 глыб амтирмиса = Крылья I, ушло 8 глыб и шаблон; на верстаке крылья не крафтятся";
+                && r1[0].stackSize == 12 && r1[1] == null && !bench, "the altar gave " + r1[2] + ", chunks left " + (r1[0] == null ? 0 : r1[0].stackSize)
+                + ", template " + r1[1] + ", crafting table " + bench);
+            return "altar: wings template + 20 amthirmis chunks = Wings I, 8 chunks and the template were spent; wings are not crafted on a crafting table";
         });
-        t("Ветея - этажи", "Ступени II и III", () -> {
+        t("Vethea - Floors", "Tiers II and III", () -> {
             ItemStack[] r2 = infuse(v, new ItemStack(VetheaItems.cermileLump, 12), com.divinerpgextended.vethea.DreamItem.stack(com.divinerpgextended.vethea.DreamItem.QUEEN_TEMPLATE));
             ItemStack[] rt = infuse(v, new ItemStack(VetheaItems.karosLump, 16), trinket(Trinket.DREAM_WINGS_2));
             ItemStack[] r3 = infuse(v, new ItemStack(VetheaItems.quadroticLump, 16), rt[2]);
@@ -4948,11 +4948,11 @@ public class SelfTest {
                 && r3[2] != null && r3[2].getItemDamage() == Trinket.DREAM_WINGS_3.ordinal() && raw[2] == null
                 && lunar[2] != null && lunar[2].getItem() == com.divinerpgextended.vethea.Infusion.lunar()[0][1]
                 && divine[2] != null && divine[0] != null && divine[0].stackSize == 5,
-                "II: " + r2[2] + ", закалка " + rt[2] + ", III: " + r3[2] + ", III без закалки " + raw[2] + ", лунный меч " + lunar[2] + ", лук Divine " + divine[2]);
-            return "шаблон Королевы + 12 цермила = II; II + 16 кароса = закалённые II; + 16 квадротика = III (без закалки - нет); "
-                + "меч из арксиана + 4 лунных осколка = Everlight; рецепты Divine тоже со стаком (лук: 9 глыб, ушло 4)";
+                "II: " + r2[2] + ", tempering " + rt[2] + ", III: " + r3[2] + ", III without tempering " + raw[2] + ", moon sword " + lunar[2] + ", Divine bow " + divine[2]);
+            return "Queen template + 12 cermile = II; II + 16 karos = tempered II; + 16 quadrotic = III (without tempering - no); "
+                + "arksiane sword + 4 moon shards = Everlight; Divine recipes also work with a stack (bow: 9 chunks, 4 spent)";
         });
-        t("Ветея - прохождение", "Слабости мобов, добивание своим видом, Лхейва без пояса", () -> {
+        t("Vethea - Progression", "Mob weaknesses, finishing with own kind, Lheiva without a belt", () -> {
             TestPlayer zp = join(player(vd, "TestWeak", 300, 40, 300), true);
             loadAround(vw, 300, 300, 1);
             net.divinerpg.entities.vethea.EntityLorgaFlight zl = new net.divinerpg.entities.vethea.EntityLorgaFlight(vw);
@@ -4984,10 +4984,10 @@ public class SelfTest {
             int pearls = 0;
             for (net.minecraft.entity.item.EntityItem it : zdrops) if (it.getEntityItem().getItem() == VetheaItems.polishedPearls) pearls++;
             check(Math.abs(weakDmg - 20) < 0.01 && Math.abs(otherDmg - 2.5) < 0.01 && pearls == 2 && lheiva,
-                "Lorga на крыльях: мечом " + weakDmg + ", молотом " + otherDmg + "; добыча за добивание мечом " + pearls + " (всего предметов " + zdrops.size() + "); Лхейва без пояса ранится " + lheiva);
-            return "Lorga на крыльях: меч x2 (" + weakDmg + "), молот x0.25 (" + otherDmg + "); добит мечом - добыча x2; Лхейву бьют без пояса";
+                "Lorga on wings: sword " + weakDmg + ", maul " + otherDmg + "; loot for finishing with a sword " + pearls + " (total items " + zdrops.size() + "); Lheiva without a belt is hurt " + lheiva);
+            return "Lorga on wings: sword x2 (" + weakDmg + "), maul x0.25 (" + otherDmg + "); finished with a sword - loot x2; Lheiva is hit without a belt";
         });
-        t("Ветея - прохождение", "Пояс хейвы и Шахтёрский амулет в гнёздах брони, ритм", () -> {
+        t("Vethea - Progression", "Heiva Belt and Miner's Amulet in armor sockets, rhythm", () -> {
             TestPlayer zp = join(player(vd, "TestRhythm", 320, 40, 300), true);
             boolean place = Sockets.fit(bare(2), new ItemStack(VetheaItems.heivaBelt), zp, null) == Sockets.Fit.OK
                 && Sockets.fit(bare(0), new ItemStack(VetheaItems.minersAmulet), zp, null) == Sockets.Fit.OK
@@ -5021,10 +5021,10 @@ public class SelfTest {
             unwearT(zp);
             boolean rhythm = Math.abs(got[0] - 10) < 0.01 && Math.abs(got[1] - 11.5) < 0.01 && Math.abs(got[2] - 13) < 0.01 && Math.abs(got[3] - 13) < 0.01
                 && Math.abs(got[4] - 14.5) < 0.01 && Math.abs(got[5] - 16) < 0.01 && Math.abs(got[6] - 16) < 0.01 && Math.abs(got[seq.length] - 10) < 0.01;
-            check(place && !amuletBefore && amulet && rhythm, "встают: пояс в поножи, амулет в шлем (не в нагрудник) " + place + ", амулет без гнезда " + amuletBefore + ", в гнезде " + amulet + "; удары " + zs + "после паузы " + got[seq.length]);
-            return "пояс встраивается в поножи, амулет в шлем (работает только оттуда); ритм: " + zs + "- смена вида +15% до +60%, пауза - сброс (" + got[seq.length] + ")";
+            check(place && !amuletBefore && amulet && rhythm, "fit: belt into leggings, amulet into helmet (not chestplate) " + place + ", amulet without a socket " + amuletBefore + ", in the socket " + amulet + "; hits " + zs + "after a pause " + got[seq.length]);
+            return "the belt fits into leggings, the amulet into the helmet (works only from there); rhythm: " + zs + "- a change of kind +15% up to +60%, pause - reset (" + got[seq.length] + ")";
         });
-        t("Ветея - прохождение", "Шлемы ветейской брони и взрывы", () -> {
+        t("Vethea - Progression", "Vethea armor helmets and explosions", () -> {
             TestPlayer zp = join(player(vd, "TestHelm", 340, 40, 300), true);
             armor(zp, com.divinerpgextended.vethea.Infusion.vethea("tormentedHelmet"), com.divinerpgextended.vethea.Infusion.vethea("tormentedBody"),
                 com.divinerpgextended.vethea.Infusion.vethea("tormentedLegs"), com.divinerpgextended.vethea.Infusion.vethea("tormentedBoots"));
@@ -5052,10 +5052,10 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.world.ExplosionEvent.Detonate(vw, zx, zl));
             // the torturer's helmet in Divine itself gives +9 melee; the addon adds +25% on top
             check(Math.abs(melee - 19 * 1.25F) < 0.01 && Math.abs(maskMelee - 10) < 0.01 && Math.abs(blast - 4) < 0.01 && zl.size() == 1,
-                "шлем и меч " + melee + ", маска и меч " + maskMelee + ", взрыв в сете " + blast + ", вещей во взрыве " + (zl.size() - 1));
-            return "мучительский сет: шлем - +9 Divine и +25% аддона ближнему (10 -> " + melee + "), маска ближнему не помогает; взрыв 10 -> " + blast + "; лежащие вещи взрыв не берёт";
+                "helmet and sword " + melee + ", mask and sword " + maskMelee + ", explosion in the set " + blast + ", items in the explosion " + (zl.size() - 1));
+            return "tormentor set: helmet - +9 Divine and +25% addon to melee (10 -> " + melee + "), the mask does not help melee; explosion 10 -> " + blast + "; dropped items are not taken by the explosion";
         });
-        t("Ветея - прохождение", "Леди Луна: меч, полёт, пушка; лунные осколки, Everlight", () -> {
+        t("Vethea - Progression", "Lady Luna: sword, flight, cannon; moon shards, Everlight", () -> {
             TestPlayer zp = join(player(vd, "TestLuna", 400, 20, 300), true);
             Item zark = com.divinerpgextended.vethea.Infusion.lunar()[0][0];
             loadAround(vw, 400, 300, 2);
@@ -5099,12 +5099,12 @@ public class SelfTest {
             java.lang.reflect.Field mat = cpw.mods.fml.relauncher.ReflectionHelper.findField(net.divinerpg.items.base.ItemModSword.class, "mat");
             float everDmg = ((Item.ToolMaterial) mat.get(ever)).getDamageVsEntity() + 5, maulDmg = ((Item.ToolMaterial) mat.get(maul)).getDamageVsEntity() + 5;
             check(p1sword && !p2sword && flies && p3cannon && !p3sword && marks && shards == com.divinerpgextended.vethea.LunaFight.SHARDS && everDmg >= 50 && everDmg > maulDmg,
-                "1: меч " + p1sword + "; 2: меч " + p2sword + ", летит " + flies + "; 3: пушка " + p3cannon + ", меч " + p3sword + "; осколков " + shards
-                    + "; Everlight " + everDmg + " / маул " + maulDmg);
-            return "фаза 1 - меч ранит; фаза 2 - взлетает, меч не ранит; фаза 3 - только пушка; каждому " + shards + " лунных осколка; Everlight " + everDmg
-                + " > маул " + maulDmg;
+                "1: sword " + p1sword + "; 2: sword " + p2sword + ", flies " + flies + "; 3: cannon " + p3cannon + ", sword " + p3sword + "; shards " + shards
+                    + "; Everlight " + everDmg + " / maul " + maulDmg);
+            return "phase 1 - the sword hurts; phase 2 - takes off, the sword does not hurt; phase 3 - only the cannon; each gets " + shards + " moon shards; Everlight " + everDmg
+                + " > maul " + maulDmg;
         });
-        t("Ветея - прохождение", "Голод: Пояс хейвы за 30 красного жемчуга, шаблон крыльев", () -> {
+        t("Vethea - Progression", "The Hunger: Heiva Belt for 30 red pearls, wings template", () -> {
             TestPlayer zp = join(player(vd, "TestHungerShop", 420, 40, 300), true);
             net.divinerpg.entities.vethea.EntityTheHunger zh = new net.divinerpg.entities.vethea.EntityTheHunger(vw);
             zh.setPosition(421, 40, 300);
@@ -5120,10 +5120,10 @@ public class SelfTest {
                 if (com.divinerpgextended.vethea.DreamItem.QUEEN_TEMPLATE.is(r.getItemToSell())) tpl2 = r.getItemToBuy().getItem() == VetheaItems.cleanPearls;
             }
             zh.setDead();
-            check(belt && tpl && tpl2, "пояс за 30 красного " + belt + ", шаблон крыльев за серый " + tpl + ", шаблон полуночи за голубой " + tpl2);
-            return "Пояс хейвы - 30 красного жемчуга, шаблон Крыльев сна - 8 серого, шаблон Крыльев полуночи - 8 голубого";
+            check(belt && tpl && tpl2, "belt for 30 red " + belt + ", wings template for gray " + tpl + ", midnight template for blue " + tpl2);
+            return "Heiva Belt - 30 red pearls, Dreamer's Wings template - 8 gray, Midnight Wings template - 8 blue";
         });
-        t("Ветея - прохождение", "Сон покорён: вещи сна наяву, вещи яви во сне", () -> {
+        t("Vethea - Progression", "Dream conquered: dream items awake, waking items in the dream", () -> {
             TestPlayer zo = join(player(0, "TestAwake", p.posX + 3, p.posY, p.posZ), true);
             persisted(zo).removeTag("dre_dream_done");
             net.minecraft.entity.monster.EntityZombie zz = new net.minecraft.entity.monster.EntityZombie(zo.worldObj);
@@ -5143,10 +5143,10 @@ public class SelfTest {
             persisted(zv).removeTag("dre_dream_done");
             boolean nightmare = com.divinerpgextended.vethea.Nightmare.active(zv);
             zz.setDead();
-            check(!before && after && freeInDream && nightmare, "оружие сна наяву до " + before + ", после " + after + "; в Ветее кошмар после победы " + !freeInDream + ", до " + nightmare);
-            return "до победы над всеми боссами Ветеи меч сна наяву не ранит; после - ранит, а в Ветее кошмар для этого игрока снят";
+            check(!before && after && freeInDream && nightmare, "dream weapon awake until " + before + ", after " + after + "; in Vethea nightmare after the victory " + !freeInDream + ", until " + nightmare);
+            return "until all Vethea bosses are defeated the dream sword does not hurt awake; after - it hurts, and in Vethea the nightmare is lifted for this player";
         });
-        t("Ветея - прохождение", "Раглок, Крушитель, Луна: очередь держит снаряжение; перки Странника", () -> {
+        t("Vethea - Progression", "Raglok, Wreck, Luna: the queue holds the gear; Wanderer perks", () -> {
             TestPlayer zo = join(player(vd, "TestOrder", 460, 20, 300), true);
             net.divinerpg.entities.vethea.EntityWreck zw = new net.divinerpg.entities.vethea.EntityWreck(vw);
             zw.setPosition(464, 20, 300);
@@ -5177,20 +5177,20 @@ public class SelfTest {
                 && com.divinerpgextended.perk.Perk.ARCANA_FLOW.unlock == com.divinerpgextended.boss.Boss.WRECK
                 && com.divinerpgextended.perk.Perk.ANGEL_FLIGHT.unlock == com.divinerpgextended.boss.Boss.LADY_LUNA;
             check(Math.abs(teaker - 0.1F) < 0.001 && Math.abs(karos - 0.5F) < 0.001 && helio >= 20 && Math.abs(lunaHelio - 0.5F) < 0.001 && lunaArk >= 20 && perks,
-                "Крушитель: тикер " + teaker + ", карос " + karos + ", гелиозис " + helio + "; Луна: гелиозис " + lunaHelio + ", арксиан " + lunaArk + "; перки " + perks);
-            return "удар 20: Крушителю тикер " + teaker + ", карос " + karos + ", гелиозис " + helio + "; Луне гелиозис " + lunaHelio + ", арксиан " + lunaArk
-                + "; Раглок - Восстановление, Крушитель - Поток арканы, Луна - Ангельский полёт";
+                "Wreck: ticker " + teaker + ", karos " + karos + ", heliosis " + helio + "; Luna: heliosis " + lunaHelio + ", arksiane " + lunaArk + "; perks " + perks);
+            return "hit 20: Wreck ticker " + teaker + ", karos " + karos + ", heliosis " + helio + "; Luna heliosis " + lunaHelio + ", arksiane " + lunaArk
+                + "; Raglok - Regeneration, Wreck - Arcana Flow, Luna - Angelic Flight";
         });
-        t("Ветея - этажи", "Крылья вне Ветеи", () -> {
+        t("Vethea - Floors", "Wings outside Vethea", () -> {
             TestPlayer o = player(0, "TestWing", p.posX, p.posY, p.posZ);
             wearT(o, Trinket.DREAM_WINGS_1);
             wearT(v, Trinket.DREAM_WINGS_1);
             int out = DoubleJump.wingTicks(o), in = DoubleJump.wingTicks(v);
             unwearT(v);
-            check(out == 0 && in == 85, "запас вне Ветеи " + out + ", в Ветее " + in);
-            return "вне Ветеи 0, в Ветее 85 тиков";
+            check(out == 0 && in == 85, "reserve outside Vethea " + out + ", in Vethea " + in);
+            return "outside Vethea 0, in Vethea 85 ticks";
         });
-        t("Ветея - этажи", "Этаж засчитан", () -> {
+        t("Vethea - Floors", "Floor counted", () -> {
             TestPlayer o = player(0, "TestGift", p.posX, p.posY, p.posZ);
             persisted(o).removeTag("dre_dream_done");
             persisted(o).removeTag("dre_dream_pending");
@@ -5198,28 +5198,28 @@ public class SelfTest {
             Object floor2 = giftC.getEnumConstants()[0];
             call(VetheaFloors.class, "mark", new Class<?>[] { EntityPlayer.class, giftC }, o, floor2);
             int pending = persisted(o).getInteger("dre_dream_pending");
-            check(pending == 1, "отметка дара: " + pending);
+            check(pending == 1, "gift mark: " + pending);
             call(VetheaFloors.class, "deliverGifts", new Class<?>[] { EntityPlayer.class }, o);
             int realmite = count(o, VanillaItemsOther.realmiteIngot), dia = count(o, Items.diamond);
-            check(realmite == 12 && dia == 6, "дар: реалмит " + realmite + ", алмазы " + dia);
+            check(realmite == 12 && dia == 6, "gift: realmite " + realmite + ", diamonds " + dia);
             call(VetheaFloors.class, "mark", new Class<?>[] { EntityPlayer.class, giftC }, o, floor2);
             int again = persisted(o).getInteger("dre_dream_pending");
-            check(again == 0, "повторная отметка: " + again);
-            return "отмечен, выдан (12 реалмита, 6 алмазов), повторно нет";
+            check(again == 0, "repeat mark: " + again);
+            return "marked, given (12 realmite, 6 diamonds), not again";
         });
         z.setDead();
     }
 
     private void serverTests(final TestPlayer p, final TestPlayer q) {
-        t("Сервер", "Эффекты по игроку", () -> {
+        t("Server", "Per-player effects", () -> {
             reset(p);
             reset(q);
             wearT(p, Trinket.PARASECTA_STING);
             hit(q, DamageSource.causePlayerDamage(p), 1);
-            check(!q.isPotionActive(Potion.poison), "Жало Парасекты отравило игрока");
-            return "Жало Парасекты не травит игрока (PvE-only)";
+            check(!q.isPotionActive(Potion.poison), "Parasecta Sting poisoned the player");
+            return "Parasecta Sting does not poison a player (PvE-only)";
         });
-        t("Сервер", "Панцирь Карцинуса", () -> {
+        t("Server", "Carcinus Shell", () -> {
             reset(p);
             reset(q);
             wearT(q, Trinket.CARCINUS_SHELL);
@@ -5231,46 +5231,46 @@ public class SelfTest {
                 hit(q, DamageSource.causePlayerDamage(p), 1);
                 taken += before - hp(p);
             }
-            check(taken == 0, "атакующий игрок получил отражённый урон " + f(taken));
-            return "за 100 ударов игрок не получил отражения";
+            check(taken == 0, "the attacking player took reflected damage " + f(taken));
+            return "in 100 hits the player took no reflection";
         });
     }
 
     private void auditTests(final TestPlayer p) {
-        t("Отладка", "Журнал аудита", () -> {
-            Audit.log(p, "Selftest", "проверка журнала");
+        t("Debug", "Audit log", () -> {
+            Audit.log(p, "Selftest", "log check");
             File log = new File(server.getFile("logs"), "dre-audit.log");
             String all = new String(java.nio.file.Files.readAllBytes(log.toPath()), StandardCharsets.UTF_8);
-            check(all.contains("Selftest: проверка журнала"), "строки нет в " + log);
-            return "строка в logs/dre-audit.log";
+            check(all.contains("Selftest: log check"), "line not found in " + log);
+            return "line in logs/dre-audit.log";
         });
 
-        t("Отладка", "Дамп добычи сундуков и ящиков (logs/dre-loot.json)", () -> {
+        t("Debug", "Chest and crate loot dump (logs/dre-loot.json)", () -> {
             StringBuilder js = new StringBuilder("[\n");
             final java.util.Random seed = new java.util.Random(117);
             // lairs and Iceika: ordinary weighted tables
-            Object[][] lair = { { "crab", "Нора Карцинуса и купола логов", 5, 8, com.divinerpgextended.world.LairLoot.class },
-                { "snow", "Ледяная пещера Снежного Глакона (морозные сундуки)", 5, 8, null }, { "village", "Дома жителей Айсики", 3, 5, null },
-                { "iceikaDungeon", "Подземелья Айсики и пещеры к ним", 4, 7, null }, { "tomb", "Саркофаги Древней гробницы", 4, 7, null } };
+            Object[][] lair = { { "crab", "Carcinus Burrow and lair domes", 5, 8, com.divinerpgextended.world.LairLoot.class },
+                { "snow", "Snow Glacon Ice Cave (frost chests)", 5, 8, null }, { "village", "Iceika villager houses", 3, 5, null },
+                { "iceikaDungeon", "Iceika dungeons and their caves", 4, 7, null }, { "tomb", "Ancient Tomb sarcophagi", 4, 7, null } };
             for (Object[] l : lair) {
                 java.lang.reflect.Method m = com.divinerpgextended.world.LairLoot.class.getDeclaredMethod((String) l[0]);
                 m.setAccessible(true);
-                lootWeighted(js, "Логова и Айсика", (String) l[1], "", (Integer) l[2], (Integer) l[3], (net.minecraft.util.WeightedRandomChestContent[]) m.invoke(null));
+                lootWeighted(js, "Lairs and Iceika", (String) l[1], "", (Integer) l[2], (Integer) l[3], (net.minecraft.util.WeightedRandomChestContent[]) m.invoke(null));
             }
             // twilight worlds: ruins and dungeons, per world
             for (com.divinerpgextended.world.twilight.TwilightWorld tw : com.divinerpgextended.world.twilight.TwilightWorld.values()) {
-                lootWeighted(js, "Сумеречные миры", "Руины: " + tw.name(), tw.name(), 5, 7, com.divinerpgextended.world.twilight.TwilightLoot.ruins(tw));
-                lootWeighted(js, "Сумеречные миры", "Подземелья: " + tw.name(), tw.name(), 6, 8, com.divinerpgextended.world.twilight.TwilightLoot.dungeon(tw));
+                lootWeighted(js, "Twilight dimensions", "Ruins: " + tw.name(), tw.name(), 5, 7, com.divinerpgextended.world.twilight.TwilightLoot.ruins(tw));
+                lootWeighted(js, "Twilight dimensions", "Dungeons: " + tw.name(), tw.name(), 6, 8, com.divinerpgextended.world.twilight.TwilightLoot.dungeon(tw));
             }
             // Arcana chests and reliquaries - loot is computed by code on opening: we run it 20000 times
             for (com.divinerpgextended.block.BlockLockedChest.Kind k : com.divinerpgextended.block.BlockLockedChest.Kind.values()) {
                 final com.divinerpgextended.block.BlockLockedChest.Kind kk = k;
-                lootSampled(js, k.arcana() ? "Сундуки Арканы" : "Реликварии", k.name(), k.name(), 20000, r -> com.divinerpgextended.world.ArcanaChests.loot(kk, r), seed);
+                lootSampled(js, k.arcana() ? "Arcana Chests" : "Reliquaries", k.name(), k.name(), 20000, r -> com.divinerpgextended.world.ArcanaChests.loot(kk, r), seed);
             }
             // gifts under Iceika fir trees
             final java.lang.reflect.Method gifts = Class.forName("com.divinerpgextended.world.IceikaXmasTree").getDeclaredMethod("gifts", java.util.Random.class, net.minecraft.inventory.IInventory.class);
             gifts.setAccessible(true);
-            lootSampled(js, "Логова и Айсика", "Подарки под ёлками Айсики", "", 20000, r -> {
+            lootSampled(js, "Lairs and Iceika", "Gifts under Iceika trees", "", 20000, r -> {
                 net.minecraft.inventory.InventoryBasic inv = new net.minecraft.inventory.InventoryBasic("g", false, 27);
                 try {
                     gifts.invoke(null, r, inv);
@@ -5288,17 +5288,17 @@ public class SelfTest {
                     String[] tiers = { "CAVE_UPPER", "CAVE_MIDDLE", "CAVE_DEEP" };
                     for (int k = 0; k < tiers.length; k++) {
                         final int kk = k;
-                        lootSampled(js, "Рыболовные ящики", tiers[k], tiers[k], 20000, r -> com.divinerpgextended.fishing.FishingLoot.crate(r, zz, kk), seed);
+                        lootSampled(js, "Fishing Crates", tiers[k], tiers[k], 20000, r -> com.divinerpgextended.fishing.FishingLoot.crate(r, zz, kk), seed);
                     }
                     continue;
                 }
-                lootSampled(js, "Рыболовные ящики", z.name(), z.name(), 20000, r -> com.divinerpgextended.fishing.FishingLoot.crate(r, zz), seed);
+                lootSampled(js, "Fishing Crates", z.name(), z.name(), 20000, r -> com.divinerpgextended.fishing.FishingLoot.crate(r, zz), seed);
             }
             js.append(lootFishTables());
             js.append("]\n");
             File f = new File(server.getFile("logs"), "dre-loot.json");
             java.nio.file.Files.write(f.toPath(), js.toString().getBytes(StandardCharsets.UTF_8));
-            return "добыча сундуков, реликвариев, подарков и ящиков рыбалки - " + f.getName() + " (" + js.length() / 1024 + " КБ)";
+            return "loot of chests, reliquaries, gifts and fishing crates - " + f.getName() + " (" + js.length() / 1024 + " KB)";
         });
     }
 
@@ -5391,7 +5391,7 @@ public class SelfTest {
         java.util.Map<?, ?> tables = (java.util.Map<?, ?>) tf.get(null);
         StringBuilder js = new StringBuilder();
         boolean firstZone = true;
-        js.append("{\"group\":\"Улов рыбалки\",\"kind\":\"fish\",\"zones\":{");
+        js.append("{\"group\":\"Fishing Catch\",\"kind\":\"fish\",\"zones\":{");
         for (java.util.Map.Entry<?, ?> z : tables.entrySet()) {
             Object t = z.getValue();
             js.append(firstZone ? "" : ",").append(jstr(z.getKey().toString())).append(":{");
@@ -5450,7 +5450,7 @@ public class SelfTest {
         final int sz) throws Exception {
         // ---- bosses: the real death of Carcinus ----
         final TestPlayer k = join(player(0, "TestBoss", sx + 3, sy, sz), false);
-        t("Прохождение", "Лор после боссов", () -> {
+        t("Progression", "Lore after bosses", () -> {
             com.divinerpgextended.entity.EntityCarcinus c = new com.divinerpgextended.entity.EntityCarcinus(ow);
             c.setPosition(sx + 4, sy, sz);
             ow.spawnEntityInWorld(c);
@@ -5460,28 +5460,28 @@ public class SelfTest {
             }
             boolean dead = !c.isEntityAlive();
             c.setDead();
-            check(dead, "Карцинус не умер");
-            check(BossProgress.has(k, Boss.CARCINUS), "Карцинус не засчитан");
-            check(k.heard("dre.chat.boss_unlocked"), "нет сообщения о победе, чат: " + k.chat);
+            check(dead, "Carcinus did not die");
+            check(BossProgress.has(k, Boss.CARCINUS), "Carcinus not counted");
+            check(k.heard("dre.chat.boss_unlocked"), "no victory message, chat: " + k.chat);
             boolean lore = !net.minecraft.util.StatCollector.canTranslate("dre.lore.carcinus") || k.heard("dre.lore.carcinus");
-            check(lore, "нет строки лора, чат: " + k.chat);
-            return "засчитан, сообщение о победе и строка лора пришли";
+            check(lore, "no lore line, chat: " + k.chat);
+            return "counted, the victory message and the lore line arrived";
         });
-        t("Прохождение", "Ачивки", () -> {
+        t("Progression", "Achievements", () -> {
             net.minecraft.stats.Achievement a = com.divinerpgextended.DreAchievements.forBoss(Boss.CARCINUS);
-            check(a != null && k.stats.contains(a.statId), "ачивки за Карцинуса нет, выдано: " + k.stats);
+            check(a != null && k.stats.contains(a.statId), "no achievement for Carcinus, granted: " + k.stats);
             String parent = a.parentAchievement == null ? null : a.parentAchievement.statId;
-            check(parent == null || k.stats.contains(parent), "родительская ачивка " + parent + " не выдана: " + k.stats);
-            return "ачивка " + a.statId + (parent != null ? " и родительская " + parent : "") + " выданы";
+            check(parent == null || k.stats.contains(parent), "parent achievement " + parent + " not granted: " + k.stats);
+            return "achievement " + a.statId + (parent != null ? " and parent " + parent : "") + " granted";
         });
-        t("Аксессуары", "С боссов", () -> {
+        t("Accessories", "From bosses", () -> {
             int shell = ownedDrops(k, Trinket.CARCINUS_SHELL);
-            check(shell == 1 && countTrinket(k, Trinket.CARCINUS_SHELL) == 0, "Панцирь Карцинуса после первой победы: на земле " + shell + ", в инвентаре " + countTrinket(k, Trinket.CARCINUS_SHELL));
-            return "настоящая победа над Карцинусом - Панцирь на земле с именем игрока (не в инвентаре); повторные победы ~10% (2000 бросков)";
+            check(shell == 1 && countTrinket(k, Trinket.CARCINUS_SHELL) == 0, "Carcinus Shell after the first victory: on the ground " + shell + ", in inventory " + countTrinket(k, Trinket.CARCINUS_SHELL));
+            return "a real victory over Carcinus - the Shell on the ground with the player's name (not in the inventory); repeat victories ~10% (2000 rolls)";
         });
 
         // ---- the Ayeraco flock ----
-        t("Аксессуары", "Дроп после всей стаи", () -> {
+        t("Accessories", "Drop after the whole flock", () -> {
             TestPlayer a = join(player(0, "TestFlock", sx + 6, sy, sz + 6), true);
             persisted(a).removeTag("dre_acc_got");
             net.divinerpg.entities.vanilla.EntityAyeracoGreen g1 = new net.divinerpg.entities.vanilla.EntityAyeracoGreen(ow);
@@ -5498,12 +5498,12 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(g2, DamageSource.causePlayerDamage(a)));
             int afterLast = ownedDrops(a, Trinket.AYERACO_WING);
             g2.setDead();
-            check(afterFirst == 0 && afterLast == 1, "крыло после первого: " + afterFirst + ", после последнего: " + afterLast);
-            return "после первого дракона крыла нет, после последнего - есть";
+            check(afterFirst == 0 && afterLast == 1, "wing after the first: " + afterFirst + ", after the last: " + afterLast);
+            return "after the first dragon there is no wing, after the last there is";
         });
 
         // ---- a jump with the Ayeraco Wing cancels the fall ----
-        t("Аксессуары", "Гасит падение", () -> {
+        t("Accessories", "Cancels fall", () -> {
             reset(p);
             wearT(p, Trinket.AYERACO_WING);
             java.lang.reflect.Constructor<cpw.mods.fml.common.network.simpleimpl.MessageContext> mc = cpw.mods.fml.common.network.simpleimpl.MessageContext.class
@@ -5517,12 +5517,12 @@ public class SelfTest {
             p.fallDistance = 20;
             new DoubleJump.JumpHandler().onMessage(new DoubleJump.Jump(), ctx);
             float second = p.fallDistance;
-            check(first == 0 && second == 20, "падение после прыжка: " + f(first) + ", после лишнего прыжка: " + f(second));
-            return "прыжок в воздухе обнуляет падение, лишний (сверх 1) сервер отклоняет";
+            check(first == 0 && second == 20, "fall after the jump: " + f(first) + ", after an extra jump: " + f(second));
+            return "an air jump zeroes the fall, an extra one (beyond 1) is rejected by the server";
         });
 
         // ---- accessory window without a dupe ----
-        t("Аксессуары", "Старые слоты: только забрать", () -> {
+        t("Accessories", "Old slots: take only", () -> {
             reset(p);
             Accessories acc = Accessories.of(p);
             acc.setInventorySlotContents(0, trinket(Trinket.VALOR_MEDAL));
@@ -5536,11 +5536,11 @@ public class SelfTest {
             c.slotClick(Accessories.SIZE, 0, 1, p);
             int medals = countTrinket(p, Trinket.VALOR_MEDAL), arrows = count(p, Items.arrow);
             boolean empty = !acc.leftovers();
-            check(!worksBefore && notPut && medals == 1 && arrows == 10 && empty, "медаль в старом слоте работает " + worksBefore + "; положить нельзя " + notPut
-                + "; забрано: медалей " + medals + ", стрел " + arrows + " из 10; слоты пусты " + empty);
-            return "в старых слотах ничего не работает и ничего не кладётся; вещи забираются целиком, без дюпа";
+            check(!worksBefore && notPut && medals == 1 && arrows == 10 && empty, "medal in the old slot works " + worksBefore + "; cannot be placed " + notPut
+                + "; taken: medals " + medals + ", arrows " + arrows + " of 10; slots empty " + empty);
+            return "nothing works in the old slots and nothing can be placed; items are taken whole, no duping";
         });
-        t("Аксессуары", "Правка админом при открытом окне", () -> {
+        t("Accessories", "Admin edit with the window open", () -> {
             reset(p);
             reset(q);
             Accessories.of(p).setInventorySlotContents(0, trinket(Trinket.VALOR_MEDAL));
@@ -5549,11 +5549,11 @@ public class SelfTest {
             adm.slotClick(0, 0, 1, q);
             own.slotClick(0, 0, 1, p);
             int total = countTrinket(p, Trinket.VALOR_MEDAL) + countTrinket(q, Trinket.VALOR_MEDAL) + accCount(p, Trinket.VALOR_MEDAL);
-            check(total == 1 && countTrinket(q, Trinket.VALOR_MEDAL) == 1, "всего медалей " + total + ", у админа " + countTrinket(q, Trinket.VALOR_MEDAL));
-            return "админ забрал, окно владельца пустое - медаль одна";
+            check(total == 1 && countTrinket(q, Trinket.VALOR_MEDAL) == 1, "total medals " + total + ", admin has " + countTrinket(q, Trinket.VALOR_MEDAL));
+            return "the admin took it, the owner's window is empty - one medal";
         });
 
-        t("Аксессуары", "Ваттикус рассказывает", () -> {
+        t("Accessories", "Vatticus tells a story", () -> {
             reset(p);
             net.divinerpg.entities.arcana.EntityVatticus vat = new net.divinerpg.entities.arcana.EntityVatticus(ow);
             hold(p, trinket(Trinket.MAGIC_CARPET));
@@ -5562,11 +5562,11 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(new EntityInteractEvent(p, vat));
             p.setSneaking(false);
             hold(p, null);
-            check(p.heard("dre.trinket.magic_carpet.lore"), "нет рассказа о ковре, чат: " + p.chat);
-            return "присел и ПКМ по Ваттикусу с ковром в руке - подробный рассказ о ковре";
+            check(p.heard("dre.trinket.magic_carpet.lore"), "no story about the carpet, chat: " + p.chat);
+            return "sneak and right click on Vatticus with the carpet in hand - a detailed story about the carpet";
         });
         // ---- trading ----
-        t("Аксессуары", "У торговцев", () -> {
+        t("Accessories", "At traders", () -> {
             reset(p);
             net.divinerpg.entities.arcana.EntityCaptianMerik merik = new net.divinerpg.entities.arcana.EntityCaptianMerik(ow);
             p.chat.clear();
@@ -5574,30 +5574,30 @@ public class SelfTest {
             BossProgress.grant(p, Boss.CADILLION_EDEN); // Merik comes after the Eden Cadillion
             MinecraftForge.EVENT_BUS.post(new EntityInteractEvent(p, merik));
             boolean m = sells(merik.getRecipes(p), Trinket.MASTER_SCABBARD);
-            check(refused, "Мерик до прогресса не отказал");
+            check(refused, "Merik did not refuse before progress");
             net.divinerpg.entities.iceika.EntityWorkshopMerchant shop = new net.divinerpg.entities.iceika.EntityWorkshopMerchant(ow);
             MinecraftForge.EVENT_BUS.post(new EntityInteractEvent(p, shop));
             boolean s = sells(shop.getRecipes(p), Trinket.WARM_SCARF);
-            check(m && s, "Мерик продаёт ножны " + m + ", торговец мастерской - шарф " + s);
-            return "до кадиллиона Эдема Мерик отказывает; после - Ножны мастера у Мерика, Тёплый шарф у торговца мастерской";
+            check(m && s, "Merik sells the scabbard " + m + ", workshop trader - scarf " + s);
+            return "before the Eden cadillion Merik refuses; after - Master Scabbard from Merik, Warm Scarf from the workshop trader";
         });
-        t("Аркана", "Без лимитов", () -> {
+        t("Arcana", "No limits", () -> {
             net.divinerpg.entities.base.InfiniteTrade tr = new net.divinerpg.entities.base.InfiniteTrade(new ItemStack(Items.bone), new ItemStack(Items.apple));
             for (int i = 0; i < 200; i++) tr.incrementToolUses();
-            check(!tr.isRecipeDisabled(), "после 200 сделок сделка заблокирована");
-            return "200 сделок подряд - не блокируется";
+            check(!tr.isRecipeDisabled(), "after 200 trades the trade is blocked");
+            return "200 trades in a row - not blocked";
         });
-        t("Торговля", "Добыча III", () -> {
+        t("Trading", "Looting III", () -> {
             reset(p);
             ItemStack sword = new ItemStack(Items.diamond_sword);
             hold(p, sword);
             int plain = heads(p, ow, 20000);
             sword.addEnchantment(net.minecraft.enchantment.Enchantment.looting, 3);
             int loot3 = heads(p, ow, 20000);
-            check(plain > 280 && plain < 520 && loot3 > 850 && loot3 < 1150, "голов на 20000 зомби: без Добычи " + plain + ", Добыча III " + loot3 + " (ждали ~400 и ~1000)");
-            return String.format("голова зомби: без Добычи %.1f%%, с Добычей III %.1f%%", plain / 200.0, loot3 / 200.0);
+            check(plain > 280 && plain < 520 && loot3 > 850 && loot3 < 1150, "heads per 20000 zombies: without Looting " + plain + ", Looting III " + loot3 + " (expected ~400 and ~1000)");
+            return String.format("zombie head: without Looting %.1f%%, with Looting III %.1f%%", plain / 200.0, loot3 / 200.0);
         });
-        t("Торговля", "Заказы из голов", () -> {
+        t("Trading", "Head orders", () -> {
             reset(p);
             BossProgress.grant(p, Boss.LICH_KING);
             hold(p, new ItemStack(Items.skull, 8, 0));
@@ -5609,13 +5609,13 @@ public class SelfTest {
             call(jack, "order", new Class<?>[] { EntityPlayer.class }, p);
             int after = countTrinket(p, Trinket.BONE_RING);
             check(before == 0 && after == 1 && count(p, Items.skull) == 0 && count(p, Items.bone) == 0 && count(p, VanillaItemsOther.shadowCoins) == 0,
-                "кольцо до подтверждения " + before + ", после " + after + "; осталось голов " + count(p, Items.skull) + ", костей " + count(p, Items.bone)
-                    + ", монет " + count(p, VanillaItemsOther.shadowCoins));
-            return "8 голов скелета + 32 кости + 16 монет, повтор = Кольцо костяного стрелка";
+                "ring before confirmation " + before + ", after " + after + "; heads left " + count(p, Items.skull) + ", bones " + count(p, Items.bone)
+                    + ", coins " + count(p, VanillaItemsOther.shadowCoins));
+            return "8 skeleton heads + 32 bones + 16 coins, repeat = Bone Archer's Ring";
         });
 
         // ---- General's hearts ----
-        t("Аркана", "Сердца после смены мира", () -> {
+        t("Arcana", "Hearts after changing world", () -> {
             reset(p);
             NBTTagCompound gen = persisted(p).getCompoundTag("dre_general");
             gen.setInteger("statues", 3);
@@ -5632,11 +5632,11 @@ public class SelfTest {
             float hpAfter = p.getHealth();
             gen.setInteger("statues", 0);
             com.divinerpgextended.arcana.WarGeneral.applyHearts(p, true);
-            check(near(max1, 24) && near(max2, 24), "максимум после статуй " + f(max1) + ", после смены мира " + f(max2));
-            check(near(hpAfter, 23), "здоровье после перезахода " + f(hpAfter) + " (было 23)");
-            return "2 статуи = 24 здоровья, держится после смены мира; после перезахода 23 не обрезалось";
+            check(near(max1, 24) && near(max2, 24), "maximum after statues " + f(max1) + ", after changing world " + f(max2));
+            check(near(hpAfter, 23), "health after rejoining " + f(hpAfter) + " (was 23)");
+            return "2 statues = 24 health, holds after changing world; after rejoining 23 was not cut off";
         });
-        t("Аркана", "Кролик выше 20 здоровья", () -> {
+        t("Arcana", "Bunny above 20 health", () -> {
             reset(p);
             net.divinerpg.entities.twilight.EntityBunny b = new net.divinerpg.entities.twilight.EntityBunny(ow);
             b.setPosition(p.posX + 1, p.posY, p.posZ);
@@ -5646,18 +5646,18 @@ public class SelfTest {
             b.setHealth(22);
             hold(p, new ItemStack(Items.cooked_porkchop, 5));
             boolean cancelled = MinecraftForge.EVENT_BUS.post(new EntityInteractEvent(p, b));
-            check(b.getHealth() > 22 && count(p, Items.cooked_porkchop) == 4, "кролик 22/30 после мяса: " + f(b.getHealth()) + ", мяса осталось "
+            check(b.getHealth() > 22 && count(p, Items.cooked_porkchop) == 4, "bunny 22/30 after meat: " + f(b.getHealth()) + ", meat left "
                 + count(p, Items.cooked_porkchop));
-            return "кролик 22/30 + мясо > " + f(b.getHealth());
+            return "bunny 22/30 + meat > " + f(b.getHealth());
         });
 
         // ---- Twilight dimensions: the carpet on the server ----
         final TestPlayer e = player(ConfigurationHelper.eden, "TestCarpet", 0, 150, 0);
-        t("Сумеречные миры", "Откуда", () -> {
-            check(com.divinerpgextended.trinket.AccessorySources.extraForBoss(Boss.ANCIENT_ENTITY) == Trinket.MAGIC_CARPET, "за кадиллиона Эдема не ковёр");
-            return "Великий кадиллион Эдема даёт ковёр (первая победа наверняка, дальше 10%)";
+        t("Twilight dimensions", "Where from", () -> {
+            check(com.divinerpgextended.trinket.AccessorySources.extraForBoss(Boss.ANCIENT_ENTITY) == Trinket.MAGIC_CARPET, "no carpet from the Eden cadillion");
+            return "The Great Eden Cadillion drops the carpet (first victory guaranteed, then 10%)";
         });
-        t("Сумеречные миры", "Заряд только на земле", () -> {
+        t("Twilight dimensions", "Charge only on the ground", () -> {
             reset(e);
             wearT(e, Trinket.MAGIC_CARPET);
             e.onGround = true;
@@ -5668,10 +5668,10 @@ public class SelfTest {
             int spent = carpetLeft(e);
             tick(e, 5);
             int still = carpetLeft(e);
-            check(full == 200 && spent == 190 && still == 185, "запас: на земле " + full + ", после 10 тиков парения " + spent + ", ещё 5 " + still);
-            return "на земле 200 тиков, в воздухе тратится и не восстанавливается";
+            check(full == 200 && spent == 190 && still == 185, "reserve: on the ground " + full + ", after 10 ticks of hovering " + spent + ", another 5 " + still);
+            return "on the ground 200 ticks, in the air it is spent and does not recover";
         });
-        t("Сумеречные миры", "Планирование после запаса", () -> {
+        t("Twilight dimensions", "Gliding after the reserve", () -> {
             wearT(e, Trinket.MAGIC_CARPET);
             e.onGround = true;
             tick(e, 1);
@@ -5688,20 +5688,20 @@ public class SelfTest {
                 maxFall = Math.max(maxFall, e.fallDistance);
             }
             e.setPosition(e.posX, 100, e.posZ);
-            check(left <= 0 && maxFall < 0.2F, "запас " + left + ", накопленное падение при планировании до " + maxFall);
-            return "запас кончился - планирование 2 блока/с, высота падения не копится";
+            check(left <= 0 && maxFall < 0.2F, "reserve " + left + ", accumulated fall while gliding up to " + maxFall);
+            return "reserve ran out - gliding 2 blocks/s, fall height does not accumulate";
         });
-        t("Сумеречные миры", "Фриз клиента не тратит ковёр", () -> {
+        t("Twilight dimensions", "Client freeze does not spend the carpet", () -> {
             int before = carpetLeft(e);
             for (int i = 0; i < 10; i++) {
                 e.ticksExisted++; // server ticks without packets from the client
                 FMLCommonHandler.instance().bus().post(new TickEvent.PlayerTickEvent(TickEvent.Phase.END, e));
             }
             int after = carpetLeft(e);
-            check(after == before, "за 10 тиков без пакетов запас " + before + " > " + after);
-            return "клиент завис на 10 тиков - запас ковра не тронут (" + after + ")";
+            check(after == before, "in 10 ticks without packets the reserve " + before + " > " + after);
+            return "client froze for 10 ticks - the carpet reserve is untouched (" + after + ")";
         });
-        t("Сумеречные миры", "Снять ковёр в воздухе", () -> {
+        t("Twilight dimensions", "Take off the carpet in the air", () -> {
             e.onGround = true; // charge on the ground and spend a little in the air
             tick(e, 1);
             e.onGround = false;
@@ -5712,23 +5712,23 @@ public class SelfTest {
             wearT(e, Trinket.MAGIC_CARPET);
             tick(e, 1);
             int after = carpetLeft(e);
-            check(after < before, "после снятия и надевания в воздухе: было " + before + ", стало " + after);
-            return "снял и надел в воздухе: запас " + before + " > " + after + " (не восстановился)";
+            check(after < before, "after taking off and putting on in the air: was " + before + ", became " + after);
+            return "took off and put on in the air: reserve " + before + " > " + after + " (did not recover)";
         });
-        t("Сумеречные миры", "Касание воды", () -> {
+        t("Twilight dimensions", "Touching water", () -> {
             ReflectionHelper.setPrivateValue(net.minecraft.entity.Entity.class, e, true, "inWater", "field_70171_ac");
             tick(e, 1);
             int left = carpetLeft(e);
             ReflectionHelper.setPrivateValue(net.minecraft.entity.Entity.class, e, false, "inWater", "field_70171_ac");
-            check(left == 200, "после касания воды запас " + left);
-            return "в воде запас снова полный (200)";
+            check(left == 200, "after touching water the reserve " + left);
+            return "in water the reserve is full again (200)";
         });
-        t("Сумеречные миры", "Падение не гасит", () -> {
+        t("Twilight dimensions", "Does not cancel the fall", () -> {
             boolean c = MinecraftForge.EVENT_BUS.post(new LivingFallEvent(e, 20));
-            check(!c, "ковёр отменил урон от падения");
-            return "с ковром падение ранит как обычно";
+            check(!c, "the carpet canceled fall damage");
+            return "with the carpet the fall hurts as usual";
         });
-        t("Сервер", "Нет кика за полёт", () -> {
+        t("Server", "No kick for flying", () -> {
             wearT(e, Trinket.MAGIC_CARPET);
             e.onGround = true;
             tick(e, 1);
@@ -5736,10 +5736,10 @@ public class SelfTest {
             setFloating(e, 70);
             tick(e, 1);
             int fl = floating(e);
-            check(fl == 0, "счётчик кика за полёт при парении: " + fl);
-            return "пока ковёр держит - счётчик кика (порог 80) сбрасывается в 0";
+            check(fl == 0, "fly-kick counter while hovering: " + fl);
+            return "while the carpet holds, the kick counter (threshold 80) resets to 0";
         });
-        t("Сумеречные миры", "Высота падения от ковра", () -> {
+        t("Twilight dimensions", "Fall height from the carpet", () -> {
             wearT(e, Trinket.MAGIC_CARPET);
             e.onGround = true;
             tick(e, 1);
@@ -5747,16 +5747,16 @@ public class SelfTest {
             e.fallDistance = 12;
             tick(e, 2);
             float hover = e.fallDistance;
-            check(hover == 0, "высота падения на ковре " + hover);
-            return "пока ковёр держит, накопленная высота падения (12) сбрасывается - урон считается от ковра";
+            check(hover == 0, "fall height on the carpet " + hover);
+            return "while the carpet holds, the accumulated fall height (12) is reset - damage is counted from the carpet";
         });
-        t("Сумеречные миры", "Небо Эдема и Вайлдвуда", () -> {
+        t("Twilight dimensions", "Sky of Eden and Wildwood", () -> {
             WorldServer eden = server.worldServerForDimension(ConfigurationHelper.eden);
             WorldServer wild = server.worldServerForDimension(ConfigurationHelper.wildwood);
-            check(!eden.provider.hasNoSky && !wild.provider.hasNoSky, "небо выключено: Эдем " + eden.provider.hasNoSky + ", Вайлдвуд " + wild.provider.hasNoSky);
-            return "небесный свет на месте (тени и темнота как в оригинале)";
+            check(!eden.provider.hasNoSky && !wild.provider.hasNoSky, "sky off: Eden " + eden.provider.hasNoSky + ", Wildwood " + wild.provider.hasNoSky);
+            return "sky light in place (shadows and darkness as in the original)";
         });
-        t("Сумеречные миры", "Починка чёрных чанков 0.44.0", () -> {
+        t("Twilight dimensions", "Black chunk repair 0.44.0", () -> {
             WorldServer eden = server.worldServerForDimension(ConfigurationHelper.eden);
             net.minecraft.world.chunk.Chunk c = eden.getChunkFromChunkCoords(320, 320);
             int top = c.getHeightValue(8, 8) + 1;
@@ -5779,15 +5779,15 @@ public class SelfTest {
             sl[100] = (byte) 0xFF;
             lit.setByteArray("SkyLight", sl);
             healthy.appendTag(lit);
-            check(!com.divinerpgextended.world.SkyRepair.dark(healthy), "обычный чанк принят за чёрный");
+            check(!com.divinerpgextended.world.SkyRepair.dark(healthy), "a normal chunk taken for a black one");
             level.setTag("Sections", sections);
             nbt.setTag("Level", level);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.world.ChunkDataEvent.Load(c, nbt));
             int sky = c.getSavedLightValue(net.minecraft.world.EnumSkyBlock.Sky, 8, top, 8);
-            check(sky == 15, "небесный свет над землёй после починки " + sky);
-            return "чанк без неба (0.44.0) и с нулевым небом (0.44.1): свет над землёй снова 15; обычный чанк не трогается";
+            check(sky == 15, "sky light above ground after repair " + sky);
+            return "chunk without sky (0.44.0) and with zero sky (0.44.1): light above ground is 15 again; a normal chunk is not touched";
         });
-        t("Сумеречные миры", "Чанк целиком при заселении", () -> {
+        t("Twilight dimensions", "Whole chunk on population", () -> {
             WorldServer eden = server.worldServerForDimension(ConfigurationHelper.eden);
             TestPlayer v = player(ConfigurationHelper.eden, "TestResend", 7000, 120, 7000);
             eden.getPlayerManager().addPlayer(v);
@@ -5808,13 +5808,13 @@ public class SelfTest {
                 int afterGen = com.divinerpgextended.world.PopulationResend.resends;
                 eden.getPlayerManager().updatePlayerInstances();
                 for (int x = 7000; x <= 7002; x++) eden.setBlockToAir(x, 125, 7000);
-                check(afterPlayer == before && afterGen > afterPlayer, "пересылок: от игрока " + (afterPlayer - before) + ", от заселения " + (afterGen - afterPlayer));
-                return "блоки от заселения уходят чанком целиком, правки игрока - как раньше";
+                check(afterPlayer == before && afterGen > afterPlayer, "resends: from the player " + (afterPlayer - before) + ", from population " + (afterGen - afterPlayer));
+                return "blocks from population are sent as a whole chunk, player edits - as before";
             } finally {
                 eden.getPlayerManager().removePlayer(v);
             }
         });
-        t("Логова", "Заповедная роща", () -> {
+        t("Lairs", "Grove sanctuary", () -> {
             int dim = ConfigurationHelper.eden;
             WorldServer w = server.worldServerForDimension(dim);
             int[] c = com.divinerpgextended.world.twilight.WorldGenNests.nearest(w.getSeed(), dim, 0, 0);
@@ -5825,7 +5825,7 @@ public class SelfTest {
             boolean clear = w.isAirBlock(c[0], top + 5, c[2]) && w.isAirBlock(c[0] + 5, top + 3, c[2] + 5);
             dump(w, c[0], top, c[2], 48, "nest-eden");
             check(altar == com.divinerpgextended.registry.ModBlocks.nestAltar && mid == net.divinerpg.utils.blocks.VanillaBlocks.lamp1 && w.getBlockMetadata(c[0], top, c[2]) == 7 && clear,
-                "в " + c[0] + "," + c[2] + ": алтарь " + altar.getUnlocalizedName() + ", центр " + mid.getUnlocalizedName() + ", над полом пусто " + clear);
+                "in " + c[0] + "," + c[2] + ": altar " + altar.getUnlocalizedName() + ", center " + mid.getUnlocalizedName() + ", above the floor empty " + clear);
             // the altar accepts the Call of Eden and places the cadillion at the nest center
             TestPlayer v = player(dim, "TestNest", c[0], top + 1, az + 2);
             hold(v, new ItemStack(com.divinerpgextended.registry.ModItems.cadillionCall, 1, 0));
@@ -5834,10 +5834,10 @@ public class SelfTest {
                 net.minecraft.util.AxisAlignedBB.getBoundingBox(c[0] - 4, top - 2, c[2] - 4, c[0] + 4, top + 8, c[2] + 4));
             ItemStack left = v.getHeldItem();
             for (Object o : bosses) ((net.minecraft.entity.Entity) o).setDead();
-            check(bosses.size() == 1 && (left == null || left.stackSize == 0), "кадиллионов в центре " + bosses.size() + ", зов в руке " + left);
-            return "роща в " + c[0] + "," + c[2] + " на высоте " + top + ": алтарь у святилища, свет в центре поляны; Зов на алтаре - кадиллион в центре";
+            check(bosses.size() == 1 && (left == null || left.stackSize == 0), "cadillions in the center " + bosses.size() + ", Call in hand " + left);
+            return "grove in " + c[0] + "," + c[2] + " at height " + top + ": altar by the sanctuary, light in the center of the clearing; Call on the altar - a cadillion in the center";
         });
-        t("Логова", "Храм ветров", () -> {
+        t("Lairs", "Temple of Winds", () -> {
             int dim = ConfigurationHelper.skythern;
             WorldServer w = server.worldServerForDimension(dim);
             int[] c = com.divinerpgextended.world.twilight.WorldGenNests.nearest(w.getSeed(), dim, 0, 0);
@@ -5870,7 +5870,7 @@ public class SelfTest {
                 }
             }
             open &= roof == 0;
-            log = "алтарь " + altar + ", колонна " + column + ", над центром пусто " + open + " (столбцов с потолком " + roof + ": " + roofAt + "), облачных площадок " + clouds + ", лестниц " + ladders;
+            log = "altar " + altar + ", column " + column + ", above the center empty " + open + " (columns with a ceiling " + roof + ": " + roofAt + "), cloud platforms " + clouds + ", stairs " + ladders;
             dump(w, c[0], top, c[2], 46, "temple-skythern");
             // the Call on the altar - the Wind Lord, totems stand on the platforms
             TestPlayer v = player(dim, "TestTemple", c[0], top + 1, az + 2);
@@ -5890,10 +5890,10 @@ public class SelfTest {
                 }
                 l.setDead();
             }
-            check(altar && column && open && clouds == 4 && ladders == 4 && lords.size() == 1 && totems == 4, log + ", повелителей " + lords.size() + ", тотемов на облаках " + totems);
-            return "храм в " + c[0] + "," + c[2] + ": небо над островом открыто, колоннада, алтарь, 4 постамента с лестницами и облаками; Зов - Повелитель, тотемы встают на облака";
+            check(altar && column && open && clouds == 4 && ladders == 4 && lords.size() == 1 && totems == 4, log + ", lords " + lords.size() + ", totems on clouds " + totems);
+            return "temple in " + c[0] + "," + c[2] + ": the sky over the island is open, colonnade, altar, 4 pedestals with stairs and clouds; Call - the Wind Lord, totems stand on clouds";
         });
-        t("Логова", "Капище и родники", () -> {
+        t("Lairs", "Shrine and springs", () -> {
             int dim = ConfigurationHelper.wildwood;
             WorldServer w = server.worldServerForDimension(dim);
             int[] c = com.divinerpgextended.world.twilight.WorldGenNests.nearest(w.getSeed(), dim, 0, 0);
@@ -5916,7 +5916,7 @@ public class SelfTest {
             w.getBlock(c[0], top + 2, az).onBlockActivated(w, c[0], top + 2, az, v, 1, 0.5F, 0.5F, 0.5F);
             java.util.List<?> gl = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityAncientGolem.class,
                 net.minecraft.util.AxisAlignedBB.getBoundingBox(c[0] - 6, top - 2, c[2] - 6, c[0] + 6, top + 12, c[2] + 6));
-            String log = "алтарь " + altar + ", родников " + waters + ", мшистых камней на высоте 3: " + mossy + ", големов " + gl.size();
+            String log = "altar " + altar + ", springs " + waters + ", mossy stones at height 3: " + mossy + ", golems " + gl.size();
             float healed = 0;
             double up = 0;
             boolean asleep = false;
@@ -5940,10 +5940,10 @@ public class SelfTest {
                 g3.setDead();
             }
             check(altar && waters == 4 && mossy > 20 && gl.size() == 1 && healed >= 4 && up > 1 && asleep,
-                log + ", вылечил " + healed + ", гейзер " + up + ", родник уснул " + asleep);
-            return "капище: алтарь, менгиры и укрытия из мшистого камня, 4 родника; в сете Дикого леса родник лечит (+" + healed + "), через 1.5 с гейзер выкидывает, родник засыпает";
+                log + ", healed " + healed + ", geyser " + up + ", spring fell asleep " + asleep);
+            return "shrine: altar, menhirs and shelters of mossy stone, 4 springs; in the Wildwood set the spring heals (+" + healed + "), after 1.5 s the geyser throws out, the spring falls asleep";
         });
-        t("Логова", "Священная гора и ярусы", () -> {
+        t("Lairs", "Sacred mountain and tiers", () -> {
             int dim = ConfigurationHelper.apalachia;
             WorldServer w = server.worldServerForDimension(dim);
             int[] c = com.divinerpgextended.world.twilight.WorldGenNests.nearest(w.getSeed(), dim, 0, 0);
@@ -5961,7 +5961,7 @@ public class SelfTest {
             w.getBlock(c[0], top + 2, az).onBlockActivated(w, c[0], top + 2, az, v, 1, 0.5F, 0.5F, 0.5F);
             java.util.List<?> kl = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityWarriorKing.class,
                 net.minecraft.util.AxisAlignedBB.getBoundingBox(c[0] - 6, top - 2, az - 2, c[0] + 8, top + 12, az + 8));
-            String log = "алтарь " + altar + ", вершина " + summit + ", лестница " + stairs + ", частокол " + stands + ", королей у алтаря " + kl.size();
+            String log = "altar " + altar + ", summit " + summit + ", stairs " + stairs + ", palisade " + stands + ", kings at the altar " + kl.size();
             double y2 = 0;
             boolean stuck = false;
             if (kl.size() == 1) {
@@ -5972,10 +5972,10 @@ public class SelfTest {
                 stuck = !w.getCollidingBoundingBoxes(k3, k3.boundingBox).isEmpty();
                 k3.setDead();
             }
-            check(altar && summit && stairs && stands && kl.size() == 1 && Math.abs(y2 - 10) < 0.6 && !stuck, log + ", 2-я встреча на высоте " + y2 + ", в блоках " + stuck);
-            return "священная гора: курган в 3 уровня с лестницами, частокол, алтарь на полу; Король у алтаря, 2-ю встречу начинает на вершине (+10), не в блоках";
+            check(altar && summit && stairs && stands && kl.size() == 1 && Math.abs(y2 - 10) < 0.6 && !stuck, log + ", 2nd encounter at height " + y2 + ", in blocks " + stuck);
+            return "sacred mountain: a 3-level mound with stairs, palisade, altar on the floor; the King at the altar starts the 2nd encounter on the summit (+10), not in blocks";
         });
-        t("Логова", "Глыба крошит укрытие", () -> {
+        t("Lairs", "Boulder crushes the shelter", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
             loadAround(w, 9550, 9550, 1);
             w.setBlock(9550, 100, 9550, Blocks.mossy_cobblestone);
@@ -5995,10 +5995,10 @@ public class SelfTest {
             }
             boolean gone = w.isAirBlock(9550, 100, 9550), stoneKept = w.getBlock(9551, 100, 9550) == Blocks.stone;
             w.setBlockToAir(9551, 100, 9550);
-            check(gone && stoneKept, "мшистый камень разбит " + gone + ", обычный камень цел " + stoneKept);
-            return "глыба голема крошит мшистые камни-укрытия, обычный камень не трогает";
+            check(gone && stoneKept, "mossy stone broken " + gone + ", normal stone intact " + stoneKept);
+            return "the golem's boulder crushes mossy shelter stones, does not touch normal stone";
         });
-        t("Логова", "Бой с кадиллионом", () -> {
+        t("Lairs", "Fight with the cadillion", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             int x = 9500, y = 100, z = 9500;
             loadAround(w, x + 8, z, 3); // an entity updates only if 32 blocks around are loaded
@@ -6044,11 +6044,11 @@ public class SelfTest {
                 stunned = c.chargeState() == com.divinerpgextended.entity.EntityGreatCadillion.STUNNED;
             }
             c.setDead();
-            check(!far && near && !again && Math.abs(lost - 20) < 0.5 && stunned, "с 5 блоков " + far + ", с 2 " + near + ", сразу второй " + again
-                + ", урон оглушённому " + lost + " из 10, таран в стену оглушил " + stunned + " (стадия " + maxState + ", x " + (int) c.posX + ")");
-            return "бьёт только вблизи и раз в 1.25 с; таран в стену - оглушение, оглушённый получает двойной урон";
+            check(!far && near && !again && Math.abs(lost - 20) < 0.5 && stunned, "from 5 blocks " + far + ", from 2 " + near + ", second right away " + again
+                + ", damage to the stunned " + lost + " of 10, ram into the wall stunned " + stunned + " (stage " + maxState + ", x " + (int) c.posX + ")");
+            return "hits only up close and once per 1.25 s; ram into a wall - stun, the stunned takes double damage";
         });
-        t("Логова", "Подкрепление кадиллиона", () -> {
+        t("Lairs", "Cadillion reinforcements", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             int x = 9600, y = 100, z = 9600;
             loadAround(w, x, z, 2);
@@ -6077,10 +6077,10 @@ public class SelfTest {
             }
             b.setDead();
             check(total > 0 && total <= com.divinerpgextended.entity.EntityGreatCadillion.MAX_ADDS && mine == total,
-                "позвал " + total + ", его подручных рядом " + mine + " (рядом ещё 6 обычных мобов Эдема)");
-            return "кадиллион зовёт мобов Эдема (" + total + ") даже среди обычных мобов мира, своих живых не больше " + com.divinerpgextended.entity.EntityGreatCadillion.MAX_ADDS;
+                "called " + total + ", its minions nearby " + mine + " (6 more normal Eden mobs nearby)");
+            return "the cadillion calls Eden mobs (" + total + ") even among normal world mobs, no more than this many of its own alive " + com.divinerpgextended.entity.EntityGreatCadillion.MAX_ADDS;
         });
-        t("Логова", "Самонаведение эденского лука", () -> {
+        t("Lairs", "Eden bow homing", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             int x = 9700, y = 120, z = 9700;
             loadAround(w, x, z, 2);
@@ -6095,10 +6095,10 @@ public class SelfTest {
             double up = a.motionY, side = a.motionZ;
             cori.setDead();
             boolean noTarget = !com.divinerpgextended.perk.HomingArrows.steer(a);
-            check(turned && up > 0.1 && side < 0.3 && noTarget, "довернула " + turned + ", вверх " + up + ", вбок " + side + ", без цели " + noTarget);
-            return "стрела доворачивает на Кори впереди; без летучей цели летит как летела";
+            check(turned && up > 0.1 && side < 0.3 && noTarget, "turned " + turned + ", up " + up + ", sideways " + side + ", no target " + noTarget);
+            return "the arrow turns toward a Cori ahead; without a flying target it flies as it flew";
         });
-        t("Сумеречные миры", "Ковёр после фриза", () -> {
+        t("Twilight dimensions", "Carpet after freeze", () -> {
             wearT(e, Trinket.MAGIC_CARPET);
             e.onGround = true;
             tick(e, 1);
@@ -6114,10 +6114,10 @@ public class SelfTest {
                 maxFall = Math.max(maxFall, e.fallDistance);
             }
             e.setPosition(e.posX, 100, e.posZ);
-            check(carpetLeft(e) > 0 && maxFall < 0.2F, "запас на сервере " + carpetLeft(e) + ", накоплено падения " + maxFall);
-            return "клиент планирует, хотя у сервера запас ещё есть - высота падения всё равно не копится";
+            check(carpetLeft(e) > 0 && maxFall < 0.2F, "reserve on the server " + carpetLeft(e) + ", fall accumulated " + maxFall);
+            return "the client glides although the server still has reserve - fall height still does not accumulate";
         });
-        t("Логова", "В обычном мире нет биомов других модов на месте мутаций (Сумеречный лес)", () -> {
+        t("Lairs", "No biomes of other mods in place of mutations in the normal world (Twilight Forest)", () -> {
             WorldServer w = server.worldServerForDimension(0);
             // foreign biomes on mutation ids (128+), e.g. Thornlands of Twilight Forest at 150 = jungle hills + 128
             java.util.List<String> foreign = new java.util.ArrayList<String>();
@@ -6140,14 +6140,14 @@ public class SelfTest {
                 if (b == null || b.biomeID < 128) continue;
                 // own Overworld biomes at high ids exist by design (Thaumcraft: Magical Forest, Tainted Land) - these are not mutations
                 boolean vanilla = b.biomeID >= 168 || b instanceof net.minecraft.world.biome.BiomeGenMutated || b.getClass().getName().startsWith("net.minecraft.");
-                String bk = b.biomeID + " " + b.biomeName + (vanilla ? "" : " ЧУЖОЙ");
+                String bk = b.biomeID + " " + b.biomeName + (vanilla ? "" : " FOREIGN");
                 seen.put(bk, seen.containsKey(bk) ? seen.get(bk) + 1 : 1);
                 if (!vanilla) bad++;
             }
-            check(hookOk && bad == 0, "чужих биомов на местах мутаций зарегистрировано: " + foreign + "; проверка хука " + hookOk + "; в генерации чужих " + bad + "; мутации в мире: " + seen);
-            return "чужих биомов на местах мутаций: " + foreign.size() + " " + foreign + " - в обычный мир не попадают; ванильные мутации на месте: " + seen.keySet();
+            check(hookOk && bad == 0, "foreign biomes in place of mutations registered: " + foreign + "; hook check " + hookOk + "; in generation of foreign ones " + bad + "; mutations in the world: " + seen);
+            return "foreign biomes in place of mutations: " + foreign.size() + " " + foreign + " - do not get into the normal world; vanilla mutations in place: " + seen.keySet();
         });
-        t("Прохождение", "Пасхалки: H.E.V., crowbar, rpg по имени; голос костюма и морфин; диван с РПГ", () -> {
+        t("Progression", "Easter eggs: H.E.V., crowbar, rpg by name; suit voice and morphine; couch with RPG", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x0 = 9420, y0 = 120, z0 = 9300;
             loadAround(w, x0, z0, 1);
@@ -6251,13 +6251,13 @@ public class SelfTest {
             boolean wavOk = cbar == null || (cbar[22] == 1 && cbar[34] == 16 && cbar.length > 1000);
             boolean sounds = (hl1 == null || cbar != null && wavOk && events >= 15) && (hl2 == null || sprint != null && sprint[22] == 1);
             check(names && logon && once && morphine && cooldown && fracture && placed && halves && sits && gone && style && meshes && sounds && musou,
-                "имена " + names + ", вход в систему " + logon + " (раз " + once + "), морфин " + morphine + ", перезарядка " + cooldown + ", перелом " + fracture
-                    + "; диван поставлен " + placed + ", обе половины " + halves + ", сел и встал " + sits + ", сломал половину - весь пропал " + gone + "; чат " + hp.chat
-                    + "; вид шлема в верстаке " + style + "; Musou no Hitotachi от молнии " + musou + " (" + ms.getDisplayName() + ")" + "; модели " + groups + "; звуки: HL " + hl1 + ", HL2 " + hl2 + ", событий " + events + ", WAV " + wavOk);
-            return "реалмитовая броня с именем H.E.V - костюм (голос: вход в систему, морфин раз в 5 минут, перелом; шлем в верстаке - очки и обратно), реалмитовый меч crowbar, ракетница Мерика rpg; диван с РПГ: две половины, на нём сидят; модели " + groups
-                + "; звуки из Half-Life " + (hl1 != null) + " и Half-Life 2 " + (hl2 != null) + ": событий " + events + "/" + com.divinerpgextended.easter.HalfLifeMount.EVENTS.size();
+                "names " + names + ", logon " + logon + " (once " + once + "), morphine " + morphine + ", cooldown " + cooldown + ", fracture " + fracture
+                    + "; couch placed " + placed + ", both halves " + halves + ", sat and stood up " + sits + ", broke one half - the whole thing vanished " + gone + "; chat " + hp.chat
+                    + "; helmet look in the crafting table " + style + "; Musou no Hitotachi from lightning " + musou + " (" + ms.getDisplayName() + ")" + "; models " + groups + "; sounds: HL " + hl1 + ", HL2 " + hl2 + ", events " + events + ", WAV " + wavOk);
+            return "Realmite armor named H.E.V is the suit (voice: logon, morphine every 5 minutes, fracture; helmet in the crafting table - glasses and back), Realmite sword crowbar, Merik's rocket launcher rpg; couch with RPG: two halves, can be sat on; models " + groups
+                + "; sounds from Half-Life " + (hl1 != null) + " and Half-Life 2 " + (hl2 != null) + ": events " + events + "/" + com.divinerpgextended.easter.HalfLifeMount.EVENTS.size();
         });
-        t("Логова", "Ступень брони: божественная - R1 (на кадиллиона Эдема), элитный реалмит - R0", () -> {
+        t("Lairs", "Armor tier: divine - R1 (against the Eden Cadillion), elite realmite - R0", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             TestPlayer v = player(ConfigurationHelper.eden, "TestTier", 9700.5, 120, 9700.5);
             com.divinerpgextended.entity.EntityGreatCadillion cad = new com.divinerpgextended.entity.EntityGreatCadillion(w);
@@ -6278,10 +6278,10 @@ public class SelfTest {
             armor(v, null, null, null, null);
             float mult = (float) com.divinerpgextended.Config.underTierMultiplier;
             check(tiers[0] == 1 && tiers[1] == 0 && tiers[2] == 0 && near(got[0], 10) && near(got[1], 10 * mult),
-                "ступень: божественная " + tiers[0] + ", элитный реалмит " + tiers[1] + ", без брони " + tiers[2] + "; удар 10 кадиллиона Эдема: " + f(got[0]) + " / " + f(got[1]) + " / " + f(got[2]));
-            return "божественная броня - ступень 1: кадиллион Эдема бьёт честно (" + f(got[0]) + "); элитный реалмит - ступень 0: x" + f(mult) + " (" + f(got[1]) + ")";
+                "tier: divine " + tiers[0] + ", elite realmite " + tiers[1] + ", no armor " + tiers[2] + "; Eden Cadillion hit of 10: " + f(got[0]) + " / " + f(got[1]) + " / " + f(got[2]));
+            return "divine armor - tier 1: the Eden Cadillion hits fairly (" + f(got[0]) + "); elite realmite - tier 0: x" + f(mult) + " (" + f(got[1]) + ")";
         });
-        t("Логова", "Кадиллион вне рощи неуязвим", () -> {
+        t("Lairs", "Cadillion is invulnerable outside the grove", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             int x = 9800, y = 100, z = 9800;
             loadAround(w, x, z, 2);
@@ -6299,10 +6299,10 @@ public class SelfTest {
             b.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(v), 10);
             float near = hp - b.getHealth();
             b.setDead();
-            check(far == 0 && near > 0, "урон издалека " + far + ", с поляны " + near);
-            return "издалека (вне рощи) кадиллиона не ранить, с поляны - как обычно";
+            check(far == 0 && near > 0, "damage from afar " + far + ", from the clearing " + near);
+            return "the Cadillion cannot be hurt from afar (outside the grove), from the clearing - as usual";
         });
-        t("Броня", "Броня дома", () -> {
+        t("Armor", "Armor at home", () -> {
             TestPlayer v = player(ConfigurationHelper.eden, "TestHomeArmor", 9900, 100, 9900);
             armor(v, net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet, net.divinerpg.utils.items.TwilightItemsArmor.edenChestplate,
                 net.divinerpg.utils.items.TwilightItemsArmor.edenLeggings, net.divinerpg.utils.items.TwilightItemsArmor.edenBoots);
@@ -6328,11 +6328,11 @@ public class SelfTest {
             armor(v, null, null, null, null);
             armor(o, null, null, null, null);
             check(home && !away && Math.abs(ev.ammount - 7) < 0.6 && Math.abs(divine - 0.15F) < 0.01 && Math.abs(mixed - 0.1875F) < 0.01
-                && Math.abs(edenInWild - 0.15F) < 0.01, "дома " + home + ", в чужом мире " + away + ", урон моба 10 > " + ev.ammount
-                + "; божественный в Эдеме " + divine + ", шлем Эдема + божественный " + mixed + ", Эдем в Диком лесу " + edenInWild);
-            return "сет Эдема в Эдеме: урон мобов x0.7; божественный в Эдеме и Эдема в Диком лесу - x0.85 (полуступень); смешанный - по частям";
+                && Math.abs(edenInWild - 0.15F) < 0.01, "home " + home + ", in a foreign world " + away + ", mob damage 10 > " + ev.ammount
+                + "; divine in Eden " + divine + ", Eden helmet + divine " + mixed + ", Eden in Wildwood " + edenInWild);
+            return "Eden set in Eden: mob damage x0.7; divine in Eden and Eden in Wildwood - x0.85 (half tier); mixed - by pieces";
         });
-        t("Броня", "Перки сетов", () -> {
+        t("Armor", "Set perks", () -> {
             TestPlayer sv = player(ConfigurationHelper.apalachia, "TestSetPerks", 9920, 100, 9920);
             armor(sv, com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA.armor()[0], com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA.armor()[1],
                 com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA.armor()[2], com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA.armor()[3]);
@@ -6368,10 +6368,10 @@ public class SelfTest {
             armor(sv, null, null, null, null);
             sv.setHealth(sv.getMaxHealth());
             check(kb >= 1 && kbOff < 1 && reflected > 1 && reflected <= 2 && procs >= 15 && procs <= 100 && Math.abs(healed - com.divinerpgextended.perk.SetPerks.DRAIN_MAX) < 0.01,
-                "отбрасывание " + kb + " (снят сет " + kbOff + "), отражено " + reflected + ", вампиризм " + procs + " из 200 ударов, по " + healed);
-            return "Апалачия: не отбрасывает, около 20% урона (после защиты дома) вернулось зомби; Мортум: из 200 ударов на 10 лечили " + procs + ", каждый на " + healed;
+                "knockback " + kb + " (set removed " + kbOff + "), reflected " + reflected + ", vampirism " + procs + " out of 200 hits, by " + healed);
+            return "Apalachia: no knockback, about 20% of damage (after home protection) returned to the zombie; Mortum: out of 200 hits healed 10 " + procs + ", each by " + healed;
         });
-        t("Броня", "Лесной следопыт", () -> {
+        t("Armor", "Forest Tracker", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
             loadAround(w, 9580, 9580, 1);
             TestPlayer fv = player(ConfigurationHelper.wildwood, "TestTracker", 9580.5, 100, 9580.5);
@@ -6381,10 +6381,10 @@ public class SelfTest {
             w.setBlock(9580, 101, 9580, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodLeaves);
             boolean inLeaves = com.divinerpgextended.perk.SetPerks.inNature(fv);
             w.setBlockToAir(9580, 101, 9580);
-            check(!onGrass && inLeaves, "на траве лечит " + onGrass + ", голова в листве " + inLeaves);
-            return "сет Дикого леса лечит только с головой в листве (и под водой - Divine), на траве - нет";
+            check(!onGrass && inLeaves, "on grass heals " + onGrass + ", head in leaves " + inLeaves);
+            return "Wildwood set heals only with the head in leaves (and underwater - Divine), not on grass";
         });
-        t("Броня", "Ковёр Хозяина ветров", () -> {
+        t("Armor", "Wind Lord Carpet", () -> {
             TestPlayer kv = player(ConfigurationHelper.skythern, "TestSkyCarpet", 9930, 120, 9930);
             Item[] sky = com.divinerpgextended.world.twilight.TwilightWorld.SKYTHERN.armor();
             armor(kv, sky[0], sky[1], sky[2], sky[3]);
@@ -6395,10 +6395,10 @@ public class SelfTest {
             double down = com.divinerpgextended.trinket.DoubleJump.skyLift(kv, false, true);
             boolean master = com.divinerpgextended.trinket.DoubleJump.skyMaster(kv);
             armor(kv, null, null, null, null);
-            check(master && up > 0.25 && level == 0 && down < -0.25, "сет " + master + ", вверх " + up + ", ровно " + level + ", присед " + down);
-            return "в сете Скайтерна ковёр поднимается по взгляду вверх, держит высоту при ровном взгляде, присед - вниз";
+            check(master && up > 0.25 && level == 0 && down < -0.25, "set " + master + ", up " + up + ", level " + level + ", sneak " + down);
+            return "in the Skythern set the carpet rises when looking up, holds height when looking level, sneak - down";
         });
-        t("Логова", "Древний голем", () -> {
+        t("Lairs", "Ancient Golem", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
             loadAround(w, 9960, 9960, 2);
             TestPlayer gv = player(ConfigurationHelper.wildwood, "TestGolem", 9960, 100, 9950);
@@ -6411,7 +6411,7 @@ public class SelfTest {
             net.minecraft.entity.projectile.EntityArrow ar = new net.minecraft.entity.projectile.EntityArrow(w);
             ar.setPosition(gol.posX, gol.posY + gol.height * 0.7, gol.posZ - 1.6);
             boolean core = gol.attackEntityFrom(net.minecraft.util.DamageSource.causeArrowDamage(ar, gv), 50);
-            log += "корпус " + core;
+            log += "body " + core;
             // legs
             int n = 0;
             while (!gol.broken(com.divinerpgextended.entity.EntityAncientGolem.LEGS) && n++ < 100) {
@@ -6445,19 +6445,19 @@ public class SelfTest {
             boolean dead = gol.getHealth() <= 0;
             gol.setDead();
             check(!core && first == com.divinerpgextended.entity.EntityAncientGolem.LEGS && h < 5 && leftWhole && open && dead,
-                log + ", первой отбита " + first + ", рост без ног " + h + ", левая цела после правой " + leftWhole + ", ядро " + open + ", убит " + dead);
-            return "корпус звенит, пока целы руки и ноги; ноги, правая и левая руки отбиваются по месту попадания; без ног голем оседает; потом открывается ядро и голем погибает";
+                log + ", first knocked off " + first + ", growth without legs " + h + ", left intact after the right " + leftWhole + ", core " + open + ", killed " + dead);
+            return "the body rings while the arms and legs are intact; legs, right and left arms are knocked off by hit location; without legs the golem sinks; then the core opens and the golem dies";
         });
-        t("Логова", "Голем на алтаре", () -> {
+        t("Lairs", "Golem at the altar", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
             net.minecraft.entity.EntityLiving made = com.divinerpgextended.entity.EntityGroveGuardian.create(w, com.divinerpgextended.world.CadillionWorld.WILDWOOD);
             net.minecraft.entity.EntityLiving eden = com.divinerpgextended.entity.EntityGroveGuardian.create(w, com.divinerpgextended.world.CadillionWorld.EDEN);
             com.divinerpgextended.boss.Boss b = com.divinerpgextended.boss.Boss.of(made);
             check(made instanceof com.divinerpgextended.entity.EntityAncientGolem && eden instanceof com.divinerpgextended.entity.EntityGreatCadillion
-                && b == com.divinerpgextended.boss.Boss.CADILLION_WILDWOOD, "Дикий лес " + made + ", Эдем " + eden + ", босс " + b);
-            return "Зов Дикого леса вызывает Древнего голема (засчитывается как страж Дикого леса), Зов Эдема - кадиллиона";
+                && b == com.divinerpgextended.boss.Boss.CADILLION_WILDWOOD, "Wildwood " + made + ", Eden " + eden + ", boss " + b);
+            return "Wildwood Call summons the Ancient Golem (counts as a Wildwood guardian), Eden Call - the Cadillion";
         });
-        t("Логова", "Король-воин", () -> {
+        t("Lairs", "Warrior King", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9970, 9970, 2);
             TestPlayer kv = player(ConfigurationHelper.apalachia, "TestKing", 9970, 100, 9964);
@@ -6469,22 +6469,22 @@ public class SelfTest {
             for (int r = 0; r < 3; r++) {
                 king.hurtResistantTime = 0;
                 king.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(kv), 100000);
-                log += "встреча " + (r + 1) + ": колено " + king.kneeling() + ", жив " + (king.getHealth() > 0) + "; ";
+                log += "round " + (r + 1) + ": kneel " + king.kneeling() + ", alive " + (king.getHealth() > 0) + "; ";
                 if (r < 2) {
                     king.hurtResistantTime = 0;
                     boolean hurt = king.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(kv), 5);
-                    log += "на колене урон " + hurt + "; ";
+                    log += "kneeling: damage " + hurt + "; ";
                     for (int i = 0; i < com.divinerpgextended.entity.EntityWarriorKing.KNEEL + 2; i++) king.onLivingUpdate();
                 }
             }
             boolean dead = king.getHealth() <= 0;
             float hp3 = king.getMaxHealth();
             king.setDead();
-            check(dead && hp3 > hp0 * 1.9F && log.contains("встреча 1: колено 100") && log.contains("встреча 2: колено 100") && !log.contains("урон true"),
-                log + "здоровье 1-й " + hp0 + ", 3-й " + hp3 + ", убит " + dead);
-            return "Король-воин дважды встаёт на колено (неуязвим) и поднимается сильнее (здоровье x" + (hp3 / hp0) + "), третья победа - смерть";
+            check(dead && hp3 > hp0 * 1.9F && log.contains("round 1: kneel 100") && log.contains("round 2: kneel 100") && !log.contains("damage true"),
+                log + "health of 1st " + hp0 + ", 3rd " + hp3 + ", killed " + dead);
+            return "The Warrior King kneels twice (invulnerable) and rises stronger (health x" + (hp3 / hp0) + "), the third victory is death";
         });
-        t("Логова", "Повелитель ветров", () -> {
+        t("Lairs", "Wind Lord", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.skythern);
             loadAround(w, 9980, 9980, 3);
             for (int i = -16; i <= 16; i++) for (int wk = -16; wk <= 16; wk++) for (int h = 99; h < 125; h++) w.setBlockToAir(9980 + i, h, 9980 + wk);
@@ -6503,7 +6503,7 @@ public class SelfTest {
                 if (i == 0) { // stepped away - the charge resets
                     wv.setPositionAndUpdate(tt[0] + 8.5, tt[1], tt[2] + 0.5);
                     for (int wk = 0; wk < 5; wk++) lord.onLivingUpdate();
-                    log += "сдуло: зарядка " + lord.charging() + "; ";
+                    log += "blown away: charge " + lord.charging() + "; ";
                     wv.setPositionAndUpdate(tt[0] + 1.5, tt[1], tt[2] + 0.5);
                     w.getBlock(tt[0], tt[1], tt[2]).onBlockActivated(w, tt[0], tt[1], tt[2], wv, 1, 0.5F, 1F, 0.5F);
                 }
@@ -6514,7 +6514,7 @@ public class SelfTest {
                     if (wk % 10 == 5) w.getBlock(tt[0], tt[1], tt[2]).onBlockActivated(w, tt[0], tt[1], tt[2], wv, 1, 0.5F, 1F, 0.5F);
                     lord.onLivingUpdate();
                 }
-                log += "тотем " + (i + 1) + " " + isTotem + " горит " + lord.litTotems() + ", здоровье " + (int) lord.getHealth() + "; ";
+                log += "totem " + (i + 1) + " " + isTotem + " lit " + lord.litTotems() + ", health " + (int) lord.getHealth() + "; ";
             }
             // after the fourth: 1 health, on the ground, finished off by anything - and the win is counted
             boolean grounded = lord.grounded() && lord.getHealth() > 0 && lord.getHealth() <= 1.01F;
@@ -6528,12 +6528,12 @@ public class SelfTest {
             server.getConfigurationManager().playerEntityList.remove(wv);
             w.removeEntity(wv);
             for (int i = -16; i <= 16; i++) for (int wk = -16; wk <= 16; wk++) for (int h = 99; h < 125; h++) w.setBlockToAir(9980 + i, h, 9980 + wk);
-            check(immune && grounded && dead && credited && log.contains("зарядка false") && log.contains("тотем 3 true горит 3") && log.contains("тотем 4 true горит 4"),
-                "неуязвим " + immune + "; " + log + "после 4-го на земле с 1 здоровья " + grounded + ", добит ударом " + dead + ", победа засчитана " + credited);
-            return "оружие Повелителя не берёт; 4 тотема на разной высоте, зарядка сбрасывается, если отойти, а от повторных кликов - нет; каждый заряженный - молния на четверть здоровья; "
-                + "после четвёртого он на земле с 1 здоровья, добит ударом - победа засчитана";
+            check(immune && grounded && dead && credited && log.contains("charge false") && log.contains("totem 3 true lit 3") && log.contains("totem 4 true lit 4"),
+                "invulnerable " + immune + "; " + log + "after the 4th on the ground with 1 health " + grounded + ", finished by a hit " + dead + ", victory credited " + credited);
+            return "the Lord's weapon does not work; 4 totems at different heights, charge resets if you step away but not from repeated clicks; each charged one - lightning for a quarter of health; "
+                + "after the fourth he is on the ground with 1 health, finished by a hit - victory credited";
         });
-        t("Логова", "Демон сумерек: дилемма", () -> {
+        t("Lairs", "Twilight Fiend: dilemma", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             loadAround(w, 9990, 9990, 1);
             TestPlayer dv = player(ConfigurationHelper.mortum, "TestDemon", 9990, 100, 9984);
@@ -6551,7 +6551,7 @@ public class SelfTest {
                     dm.hurtResistantTime = 0;
                     float hp = dm.getHealth();
                     dm.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(dv), 10);
-                    log += "отказ: фаза " + com.divinerpgextended.boss.MortumBosses.phase(dm) + ", урон по предложению " + (hp - dm.getHealth()) + "; ";
+                    log += "refused: phase " + com.divinerpgextended.boss.MortumBosses.phase(dm) + ", damage from offer " + (hp - dm.getHealth()) + "; ";
                     dm.setHealth(dm.getMaxHealth() * 0.3F);
                     MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(dm));
                     offer = com.divinerpgextended.boss.MortumBosses.offerLeft(dm);
@@ -6560,7 +6560,7 @@ public class SelfTest {
                 while (!dm.isDead && n++ < com.divinerpgextended.boss.MortumBosses.OFFER + 5)
                     MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(dm));
                 left[run] = dm.isDead;
-                log += "заход " + (run + 1) + ": предложение " + offer + ", ушёл " + dm.isDead + "; ";
+                log += "visit " + (run + 1) + ": offer " + offer + ", left " + dm.isDead + "; ";
                 dm.setDead();
             }
             // trophies of leaving: only Mortum souls (halite weapon does not drop from the Demon)
@@ -6572,11 +6572,11 @@ public class SelfTest {
                 ((net.minecraft.entity.Entity) o).setDead();
             }
             boolean granted = souls == 6 + 10 && halite == 0;
-            check(left[0] && left[1] && granted && log.contains("отказ: фаза 1, урон по предложению 0.0") && log.contains("предложение 200"),
-                log + "душ " + souls + ", оружия халита " + halite);
-            return "на 2/3 Демон замирает и предлагает уйти: не трогать - уходит с трофеями фазы (6 душ); ударить - удар не проходит, фаза 2, на 1/3 новое предложение, уход - 10 душ (оружия халита нет)";
+            check(left[0] && left[1] && granted && log.contains("refused: phase 1, damage from offer 0.0") && log.contains("offer 200"),
+                log + "souls " + souls + ", halite weapons " + halite);
+            return "at 2/3 the Fiend freezes and offers to leave: do not touch - it leaves with the phase trophies (6 souls); strike - the hit does not land, phase 2, at 1/3 a new offer, leaving - 10 souls (no halite weapons)";
         });
-        t("Логова", "Карот: зеркало", () -> {
+        t("Lairs", "Karot: mirror", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             loadAround(w, 9995, 9995, 1);
             TestPlayer mv = player(ConfigurationHelper.mortum, "TestMirror", 9995, 100, 9990);
@@ -6605,11 +6605,11 @@ public class SelfTest {
             kr.setDead();
             mv.setCurrentItemOrArmor(0, null);
             armor(mv, null, null, null, null);
-            check(in[0] == 10 && in[1] < 5 && out[0] < out[1] && power > 1.0, "по голому Кароту " + in[0] + ", по Кароту в алмазе " + in[1]
-                + "; Карот бьёт голого " + out[0] + ", в алмазе " + out[1] + ", сила для трофеев " + power);
-            return "голый игрок: Карот без брони и бьёт кулаком (" + out[0] + "); в алмазе с мечом: держит удар (10 > " + in[1] + ") и бьёт как меч (" + out[1] + "), трофеев больше";
+            check(in[0] == 10 && in[1] < 5 && out[0] < out[1] && power > 1.0, "against bare Karot " + in[0] + ", against Karot in diamond " + in[1]
+                + "; Karot hits the bare one " + out[0] + ", in diamond " + out[1] + ", strength for trophies " + power);
+            return "bare player: Karot has no armor and hits with fists (" + out[0] + "); in diamond with a sword: holds the hit (10 > " + in[1] + ") and hits like a sword (" + out[1] + "), more trophies";
         });
-        t("Ветея - кошмар", "Королева улья: бессмертна, гибнет от гибели роя", () -> {
+        t("Vethea - Nightmare", "Hive Queen: immortal, dies when the swarm dies", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.vethea);
             loadAround(w, 9000, 9000, 2);
             TestPlayer hq = join(player(ConfigurationHelper.vethea, "TestHive", 9000, 120, 8994), true);
@@ -6620,7 +6620,7 @@ public class SelfTest {
             boolean hit = queen.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(hq), 1000);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(queen));
             int need = com.divinerpgextended.vethea.HiveTimer.left(queen);
-            String log = "удар " + hit + ", рой " + need;
+            String log = "hit " + hit + ", swarm " + need;
             java.util.function.IntConsumer kill = n -> {
                 for (int i = 0; i < n; i++) {
                     net.divinerpg.entities.vethea.EntityHiveSoldier m = new net.divinerpg.entities.vethea.EntityHiveSoldier(w);
@@ -6634,11 +6634,11 @@ public class SelfTest {
             };
             kill.accept(need / 2);
             float half = queen.getHealth() / queen.getMaxHealth();
-            log += ", на половине " + half;
+            log += ", at half " + half;
             hq.setPositionAndUpdate(9000, 120, 9060); // left - start over
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(queen));
             boolean reset = com.divinerpgextended.vethea.HiveTimer.left(queen) == 0 && queen.getHealth() == queen.getMaxHealth();
-            log += ", сброс " + reset;
+            log += ", reset " + reset;
             hq.setPositionAndUpdate(9000, 120, 8994);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(queen));
             kill.accept(need);
@@ -6646,10 +6646,10 @@ public class SelfTest {
             queen.setDead();
             for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(8980, 100, 8980, 9020, 140, 9020)))
                 if (!(o instanceof EntityPlayer)) ((net.minecraft.entity.Entity) o).setDead();
-            check(!hit && need == 20 && Math.abs(half - 0.5F) < 0.03F && reset && dead, log + ", гибель " + dead);
-            return "Королеву не ранить; полоска - сколько роя осталось (20 на одного, на половине " + half + "), ушёл - сначала; рой перебит - Королева гибнет";
+            check(!hit && need == 20 && Math.abs(half - 0.5F) < 0.03F && reset && dead, log + ", death " + dead);
+            return "The Queen cannot be hurt; the bar shows how much of the swarm is left (20 per player, at half " + half + "), leaving - starts over; swarm killed - the Queen dies";
         });
-        t("Прохождение", "Грядка мечтаний: посадки ломаются вместе с пашней", () -> {
+        t("Progression", "Dream Bed: plants break together with the farmland", () -> {
             WorldServer zw = server.worldServerForDimension(ConfigurationHelper.vethea);
             loadAround(zw, 500, 500, 1);
             TestPlayer zp = join(player(ConfigurationHelper.vethea, "TestCropProbe", 500.5, 21, 498.5), true);
@@ -6682,10 +6682,10 @@ public class SelfTest {
             boolean planted = zw.getBlock(500, 21, 500) == carrot;
             zw.setBlockToAir(500, 21, 500);
             zw.setBlockToAir(500, 20, 500);
-            check(dried && trampled && stemGone && planted, "пашня -> земля: морковь " + dried + ", вытоптана " + trampled + ", стебель " + stemGone + ", посажена " + planted + "; мотыга: " + hoe);
-            return "на пашне сажается; пашня стала землёй (пересохла или вытоптана) - морковь и стебель арбуза мечтаний ломаются; мотыга: " + hoe;
+            check(dried && trampled && stemGone && planted, "farmland -> dirt: carrot " + dried + ", trampled " + trampled + ", stem " + stemGone + ", planted " + planted + "; hoe: " + hoe);
+            return "can be planted on farmland; farmland turned to dirt (dried out or trampled) - the carrot and the dream melon stem break; hoe: " + hoe;
         });
-        t("Прохождение", "Вода мечтаний не держит потоки обычной воды", () -> {
+        t("Progression", "Dream water does not hold flows of ordinary water", () -> {
             WorldServer zw = server.worldServerForDimension(0);
             int x0 = 9300, y0 = 120, z0 = 9300;
             loadAround(zw, x0, z0, 1);
@@ -6699,10 +6699,10 @@ public class SelfTest {
             boolean eden = false;
             for (net.minecraft.world.biome.BiomeGenBase b : net.minecraft.world.biome.BiomeGenBase.getBiomeGenArray())
                 if (b != null && b.getClass().getSimpleName().equals("BiomeGenEden")) eden = b.waterColorMultiplier == 0xFFFFFF;
-            check(dream == -1 && water == 0 && eden, "для ванильной воды: вода мечтаний " + dream + ", свой источник " + water + "; вода Эдема без чёрного множителя " + eden);
-            return "ванильная вода не считает воду мечтаний источником (" + dream + "), свой источник - да (" + water + "); вода Эдема без чёрного множителя (текстура золотая на клиенте)";
+            check(dream == -1 && water == 0 && eden, "for vanilla water: dream water " + dream + ", own source " + water + "; Eden water without the black multiplier " + eden);
+            return "vanilla water does not count dream water as a source (" + dream + "), own source - yes (" + water + "); Eden water without the black multiplier (texture is gold on the client)";
         });
-        t("Прохождение", "Факелы Заснежья и Везеи, водный факел зова", () -> {
+        t("Progression", "Frost and Vethea torches, water lure torch", () -> {
             WorldServer zw = server.worldServerForDimension(0);
             ItemStack ti = craft(zw, new Object[] { null, net.divinerpg.utils.items.IceikaItems.iceShards, null, null,
                 com.divinerpgextended.world.twilight.TwilightCrafts.stick(com.divinerpgextended.world.twilight.WorldWood.FROZEN), null, null, null, null });
@@ -6740,12 +6740,12 @@ public class SelfTest {
             te.updateEntity();
             boolean out = zw.getBlock(x0, y0, z0) == com.divinerpgextended.registry.ModBlocks.lureTorch;
             zw.setBlockToAir(x0, y0, z0);
-            check(recipes && wards && lit && first == 9600 && second == 9600 && paid && timer && out, "рецепты " + recipes + ", миры " + wards + "; зажёгся " + lit + ", минут " + first / 1200
-                + ", подлит с 1 минуты до " + second / 1200 + ", арканиум списан (на полном не тратится) " + paid + ", таймер " + timer + " " + zp.chat + ", догорел " + out);
-            return "факел Заснежья (ледяные осколки на морозной палке) и Везеи (серый жемчуг на палке) - по 4, гонят монстров в своём мире; "
-                + "водный факел зова - 1 из водного слитка и водного стержня ифрита, арканиум = 8 минут горения (подлить - снова 8), догорел - потушен";
+            check(recipes && wards && lit && first == 9600 && second == 9600 && paid && timer && out, "recipes " + recipes + ", worlds " + wards + "; lit " + lit + ", minutes " + first / 1200
+                + ", topped up from 1 minute to " + second / 1200 + ", arcanium consumed (not spent on a full one) " + paid + ", timer " + timer + " " + zp.chat + ", burned out " + out);
+            return "Frost torch (ice shards on a frosty stick) and Vethea torch (gray pearl on a stick) - 4 each, repel monsters in their own world; "
+                + "water lure torch - 1 from a water ingot and an ifrit water rod, arcanium = 8 minutes of burning (top up - 8 again), burned out - extinguished";
         });
-        t("Прохождение", "Свисток питомцев: зов, без драк между своими, отпустить в яйцо и выпустить того же", () -> {
+        t("Progression", "Pet Whistle: call, no fights between own pets, release into an egg and release the same one", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x0 = 9360, y0 = 120, z0 = 9300;
             loadAround(w, x0, z0, 2);
@@ -6760,7 +6760,7 @@ public class SelfTest {
             if (added) players.add(o);
             net.divinerpg.entities.vanilla.EntityGrizzle gz = new net.divinerpg.entities.vanilla.EntityGrizzle(w, o, 1);
             gz.setLocationAndAngles(x0 + 20.5, y0, z0 + 0.5, 0, 0);
-            gz.setCustomNameTag("Мишка");
+            gz.setCustomNameTag("Teddy");
             w.spawnEntityInWorld(gz);
             net.divinerpg.entities.arcana.EntityFyracryx fy = new net.divinerpg.entities.arcana.EntityFyracryx(w, o);
             fy.setLocationAndAngles(x0 + 18.5, y0, z0 + 2.5, 0, 0);
@@ -6796,12 +6796,12 @@ public class SelfTest {
                 net.divinerpg.entities.vanilla.EntityGrizzle back = null;
                 for (Object ge : w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.EntityGrizzle.class, o.boundingBox.expand(8, 4, 8)))
                     if (((net.divinerpg.entities.vanilla.EntityGrizzle) ge).isEntityAlive()) back = (net.divinerpg.entities.vanilla.EntityGrizzle) ge;
-                boolean same = back != null && "Мишка".equals(back.getCustomNameTag()) && near(back.getHealth(), hpIn) && back.getColor() == 1
+                boolean same = back != null && "Teddy".equals(back.getCustomNameTag()) && near(back.getHealth(), hpIn) && back.getColor() == 1
                     && com.divinerpgextended.item.ItemPetWhistle.owner(back) == o && (o.getHeldItem() == null || o.getHeldItem().stackSize == 0);
                 if (back != null) back.setDead();
-                check(pets && noTarget && noHurt && called && inEgg && same, "питомцы узнаны " + pets + ", брат не цель " + noTarget + ", брата не ранит " + noHurt
-                    + ", свисток позвал " + called + " " + o.chat + ", гризли в яйце " + inEgg + ", вышел он же " + same);
-                return "свисток зовёт питомцев к хозяину и снимает цели; свои не дерутся; удар свистком - гризли уходит в бурое яйцо и выходит из него тем же (имя, здоровье)";
+                check(pets && noTarget && noHurt && called && inEgg && same, "pets recognized " + pets + ", brother is not a target " + noTarget + ", does not hurt the brother " + noHurt
+                    + ", whistle called " + called + " " + o.chat + ", grizzle in the egg " + inEgg + ", the same one came out " + same);
+                return "the whistle calls pets to the owner and clears targets; own pets do not fight; hitting with the whistle - the grizzle goes into a brown egg and comes out of it the same (name, health)";
             } finally {
                 gz.setDead();
                 fy.setDead();
@@ -6809,7 +6809,7 @@ public class SelfTest {
                 if (added) players.remove(o);
             }
         });
-        t("Прохождение", "Белый список спавна в мирах Divine", () -> {
+        t("Progression", "Spawn whitelist in Divine worlds", () -> {
             WorldServer zi = server.worldServerForDimension(ConfigurationHelper.iceika);
             net.minecraft.entity.monster.EntitySlime slime = new net.minecraft.entity.monster.EntitySlime(zi);
             net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn cs = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(slime, zi, 0, 80, 0);
@@ -6823,10 +6823,10 @@ public class SelfTest {
             cs = new net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn(home, server.worldServerForDimension(0), 0, 80, 0);
             MinecraftForge.EVENT_BUS.post(cs);
             boolean overworld = cs.getResult() != cpw.mods.fml.common.eventhandler.Event.Result.DENY;
-            check(foreign && own && overworld, "слизень в Iceika запрещён " + foreign + ", роллум можно " + own + ", слизень в обычном мире можно " + overworld);
-            return "в мирах Divine сами по себе появляются только мобы Divine и аддона (слизень в Iceika - нет, роллум - да); обычный мир не затронут";
+            check(foreign && own && overworld, "slime in Iceika forbidden " + foreign + ", rollum allowed " + own + ", slime in the ordinary world allowed " + overworld);
+            return "in Divine worlds only Divine and addon mobs spawn on their own (slime in Iceika - no, rollum - yes); the ordinary world is unaffected";
         });
-        t("Прохождение", "Спавнеры Арканы и арканитовая кирка", () -> {
+        t("Progression", "Arcana spawners and the Arcanite Pickaxe", () -> {
             WorldServer za = server.worldServerForDimension(ConfigurationHelper.arcana);
             net.minecraft.block.Block sp = net.divinerpg.utils.blocks.ArcanaBlocks.deathHoundSpawner;
             float hard = com.divinerpgextended.perk.MiningGuard.real(sp, za, 0, 0, 0);
@@ -6851,11 +6851,11 @@ public class SelfTest {
             for (com.divinerpgextended.boss.Boss b : com.divinerpgextended.item.ItemArcanePick.MORTUM) com.divinerpgextended.boss.BossProgress.grant(zp, b);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.EntityInteractEvent(zp, gen));
             for (Object o : gen.getRecipes(zp)) if (((net.minecraft.village.MerchantRecipe) o).getItemToSell().getItem() == ModItems.arcanePick) after = true;
-            check(hard > 0 && diamond == 0 && arcane > 0 && !before && after, "прочность спавнера " + hard + ", алмазной киркой " + diamond + ", арканитовой " + arcane
-                + "; у Генерала до Мортума " + before + ", после " + after);
-            return "спавнеры Арканы ломаются только арканитовой киркой (прочность " + hard + ", алмазная - 0); кирку продаёт Генерал войны после всех боссов Мортума";
+            check(hard > 0 && diamond == 0 && arcane > 0 && !before && after, "spawner durability " + hard + ", with a diamond pickaxe " + diamond + ", with an arcanite one " + arcane
+                + "; at the General before Mortum " + before + ", after " + after);
+            return "Arcana spawners can only be broken with an arcanite pickaxe (durability " + hard + ", diamond - 0); the pickaxe is sold by the War General after all Mortum bosses";
         });
-        t("Прохождение", "Заряженная арканитовая кирка: у Генерала после всех боссов Divine, копает 3x3", () -> {
+        t("Progression", "Charged Arcanite Pickaxe: from the General after all Divine bosses, mines 3x3", () -> {
             WorldServer za = server.worldServerForDimension(ConfigurationHelper.arcana);
             TestPlayer zp = join(player(ConfigurationHelper.arcana, "TestArcCharged", 100, 60, 100), true);
             // trading: ordinary for 20 arcanium after Mortum; exchange for a charged one - after all Divine bosses
@@ -6909,13 +6909,13 @@ public class SelfTest {
                 for (Object o : za.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class,
                     net.minecraft.util.AxisAlignedBB.getBoundingBox(x0 - 3, y0 - 3, z0 - 4, x0 + 3, y0 + 3, z0 + 3))) ((net.minecraft.entity.Entity) o).setDead();
             }
-            check(com.divinerpgextended.item.ItemArcanePick.locked().contains(brick), "кирпич Арканы не в списке неломаемых");
-            check(price && swap && broke[0] == 9 && broke[1] == 1 && broke[2] == 1, "обычная за 20 арканиума " + price + ", обмен на заряженную только после всех боссов Divine "
-                + swap + " (до них " + (early != null) + "); сломано: заряженной " + broke[0] + ", присев " + broke[1] + ", обычной " + broke[2]);
-            return "обычная кирка - 20 арканиума; заряженная - обмен у Генерала (кирка + 20 арканиума) после всех " + com.divinerpgextended.item.ItemArcanePick.DIVINE.length
-                + " боссов Divine; стена 3x3 из кирпича Арканы: заряженной - 9 блоков, присев - 1, обычной - 1";
+            check(com.divinerpgextended.item.ItemArcanePick.locked().contains(brick), "Arcana brick is not in the unbreakable list");
+            check(price && swap && broke[0] == 9 && broke[1] == 1 && broke[2] == 1, "regular one for 20 arcanium " + price + ", exchange for the charged one only after all Divine bosses "
+                + swap + " (before them " + (early != null) + "); broken: charged " + broke[0] + ", sneaking " + broke[1] + ", regular " + broke[2]);
+            return "regular pickaxe - 20 arcanium; charged - exchange at the General (pickaxe + 20 arcanium) after all " + com.divinerpgextended.item.ItemArcanePick.DIVINE.length
+                + " Divine bosses; 3x3 wall of Arcana brick: charged - 9 blocks, sneaking - 1, regular - 1";
         });
-        t("Прохождение", "Арканитовая кирка ломает все блоки Арканы и они не выпадают", () -> {
+        t("Progression", "Arcanite Pickaxe breaks all Arcana blocks and they drop nothing", () -> {
             WorldServer za = server.worldServerForDimension(ConfigurationHelper.arcana);
             java.util.Set<net.minecraft.block.Block> locked = com.divinerpgextended.item.ItemArcanePick.locked();
             java.util.Set<net.minecraft.block.Block> spawners = com.divinerpgextended.item.ItemArcanePick.spawners();
@@ -6939,11 +6939,11 @@ public class SelfTest {
             }
             boolean portalSafe = true;
             for (net.minecraft.block.Block b : locked) if (b instanceof net.minecraft.block.BlockPortal) portalSafe = false;
-            check(other >= 3 && breakable == other && diamondStuck == other && drops == other && portalSafe, "блоков Арканы кроме спавнеров " + other + ": ломаемы " + breakable
-                + ", алмазной не ломаются " + diamondStuck + ", без дропа " + drops + (bad.length() > 0 ? " (выпали: " + bad + ")" : "") + ", портал не тронут " + portalSafe);
-            return "неломаемых блоков Арканы (кроме спавнеров) " + other + ": все ломаются только арканитовой киркой и не выпадают; портал не тронут";
+            check(other >= 3 && breakable == other && diamondStuck == other && drops == other && portalSafe, "Arcana blocks except spawners " + other + ": breakable " + breakable
+                + ", not broken by diamond " + diamondStuck + ", no drop " + drops + (bad.length() > 0 ? " (dropped: " + bad + ")" : "") + ", portal untouched " + portalSafe);
+            return "unbreakable Arcana blocks (except spawners) " + other + ": all are broken only by the arcanite pickaxe and drop nothing; portal untouched";
         });
-        t("Прохождение", "Спавнеры Арканы: переносятся, а ломает только кирка и без дропа", () -> {
+        t("Progression", "Arcana spawners: can be moved, and only the pickaxe breaks them, with no drop", () -> {
             WorldServer mw = server.worldServerForDimension(0);
             int mx = 21600, my = 150, mz = 21600, farX = mx + 4;
             net.minecraft.block.Block spawner = com.divinerpgextended.item.ItemArcanePick.spawners().iterator().next(), brick = net.divinerpg.utils.blocks.ArcanaBlocks.ancientBrick;
@@ -6951,10 +6951,10 @@ public class SelfTest {
             float forOthers = spawner.getBlockHardness(mw, mx, my, mz), forFocus = com.divinerpgextended.perk.MiningGuard.forMover(spawner, mw, mx, my, mz),
                 brickFocus = com.divinerpgextended.perk.MiningGuard.forMover(brick, mw, mx, my, mz), stoneFocus = com.divinerpgextended.perk.MiningGuard.forMover(Blocks.stone, mw, mx, my, mz);
             check(forOthers < 0 && forFocus > 0 && brickFocus < 0 && stoneFocus == Blocks.stone.getBlockHardness(mw, mx, my, mz),
-                "прочность спавнера для всех " + forOthers + ", для набалдашника " + forFocus + "; кирпич для набалдашника " + brickFocus + ", камень " + stoneFocus);
+                "spawner durability for all " + forOthers + ", for the Relocation knob " + forFocus + "; brick for the knob " + brickFocus + ", stone " + stoneFocus);
             if (cpw.mods.fml.common.Loader.isModLoaded("ThaumicTinkerer")) {
                 Class.forName("thaumic.tinkerer.common.item.foci.ItemFocusDislocation");
-                check(com.divinerpgextended.asm.MoverTransformer.focusPatched, "набалдашник Перемещение не исправлен при загрузке");
+                check(com.divinerpgextended.asm.MoverTransformer.focusPatched, "Relocation knob was not patched at load");
             }
             // real breaking: how many items remained on the ground, -1 - the block is not broken
             TestPlayer mp = join(player(0, "TestMover", mx + 0.5, my + 3, mz + 0.5), true);
@@ -6980,10 +6980,10 @@ public class SelfTest {
             server.getConfigurationManager().playerEntityList.remove(mp);
             mw.removeEntity(mp);
             check(pickSpawner == 0 && pickBrick == 0 && silkBrick == 0 && silkSpawner == 0 && pickStone == 1 && diamondSpawner == -1,
-                "на земле после кирки: спавнер " + pickSpawner + ", кирпич " + pickBrick + "; с шёлком: кирпич " + silkBrick + ", спавнер " + silkSpawner + "; камень " + pickStone + "; спавнер алмазной " + diamondSpawner);
-            String pickDone = "копателям спавнер неломаем, арканитовая кирка ломает его и кирпич Арканы без дропа, с Шёлковым касанием тоже, камень с неё падает как обычно, алмазная спавнер не берёт";
-            if (!cpw.mods.fml.common.Loader.isModLoaded("AWWayofTime")) return pickDone + "; Blood Magic нет - телепозер не проверялся";
-            check(com.divinerpgextended.asm.MoverTransformer.teleposerPatched, "телепозер не исправлен при загрузке");
+                "on the ground after the pickaxe: spawner " + pickSpawner + ", brick " + pickBrick + "; with silk: brick " + silkBrick + ", spawner " + silkSpawner + "; stone " + pickStone + "; diamond spawner " + diamondSpawner);
+            String pickDone = "miners cannot break the spawner, the arcanite pickaxe breaks it and the Arcana brick without drop, with Silk Touch too, stone from it drops as usual, the diamond one does not take the spawner";
+            if (!cpw.mods.fml.common.Loader.isModLoaded("AWWayofTime")) return pickDone + "; no Blood Magic - teleposer was not checked";
+            check(com.divinerpgextended.asm.MoverTransformer.teleposerPatched, "teleposer was not patched at load");
             // a real teleposer and the rule as on RedServer: hardness below zero - refusal
             Class<?> event = Class.forName("WayofTime.alchemicalWizardry.api.event.TeleposeEvent");
             cpw.mods.fml.common.eventhandler.ListenerList listeners = ((cpw.mods.fml.common.eventhandler.Event) event.getConstructor(net.minecraft.world.World.class, int.class, int.class, int.class, net.minecraft.block.Block.class, int.class,
@@ -7043,16 +7043,16 @@ public class SelfTest {
                 pulse.run();
                 boolean brickStayed = mw.getBlock(mx, my + 1, mz) == brick && mw.isAirBlock(farX, my + 1, mz);
                 float brickSeen = seen[0];
-                check(spawnerMoved && spawnerSeen > 0 && after < 0 && before.equals(moved) && brickStayed && brickSeen < 0, "спавнер перенесён " + spawnerMoved + ", прочность в телепозере " + spawnerSeen + ", после него " + after
-                    + ", данные целы " + before.equals(moved) + "; кирпич остался " + brickStayed + ", его прочность в телепозере " + brickSeen);
-                rep = pickDone + "; телепозер при запрете неломаемых, как на RedServer, переносит спавнер с его данными, кирпич Арканы не берёт, после работы спавнер снова неломаем";
+                check(spawnerMoved && spawnerSeen > 0 && after < 0 && before.equals(moved) && brickStayed && brickSeen < 0, "spawner moved " + spawnerMoved + ", durability in the teleposer " + spawnerSeen + ", after it " + after
+                    + ", data intact " + before.equals(moved) + "; brick stayed " + brickStayed + ", its durability in the teleposer " + brickSeen);
+                rep = pickDone + "; with unbreakables forbidden, as on RedServer, the teleposer moves the spawner with its data, does not take the Arcana brick, and after the work the spawner is unbreakable again";
             } finally {
                 listeners.unregister(bus, noUnbreakable);
                 for (int[] at : new int[][] { { mx, my - 2 }, { mx, my - 1 }, { mx, my }, { mx, my + 1 }, { farX, my }, { farX, my + 1 } }) mw.setBlockToAir(at[0], at[1], mz);
             }
-            return rep + (cpw.mods.fml.common.Loader.isModLoaded("ThaumicTinkerer") ? "" : "; Thaumic Tinkerer нет - набалдашник в работе не запускался");
+            return rep + (cpw.mods.fml.common.Loader.isModLoaded("ThaumicTinkerer") ? "" : "; no Thaumic Tinkerer - the knob was not run in action");
         });
-        t("Прохождение", "Подвиды оружия обычного мира: окно неуязвимости и урон", () -> {
+        t("Progression", "Ordinary world weapon subtypes: invulnerability window and damage", () -> {
             WorldServer w = server.worldServerForDimension(0);
             loadAround(w, sx + 200, sz, 1);
             double px = sx + 200.5, pz = sz + 0.5;
@@ -7096,15 +7096,15 @@ public class SelfTest {
             boolean mobs = kn[2] == 6 && r[2] == 8 && kb[2] == 10 && s[2] == 10 && m[2] == 20 && kn[1] == 16 && r[1] == 18 && s[1] == 20 && m[1] == 30
                 && Math.abs(kn[0] / kb[0] - 0.75F) < 0.01 && Math.abs(r[0] / rb[0] - 0.9F) < 0.01 && Math.abs(m[0] / s[0] - com.divinerpgextended.perk.MeleeRoles.Kind.MAUL.damage * (com.divinerpgextended.perk.AquatoothEffects.MAUL_DAMAGE + 1) / (com.divinerpgextended.perk.AquatoothEffects.SWORD_DAMAGE + 1)) < 0.01;
             ok &= mobs;
-            rep.append("моб: нож ").append(f(kn[0])).append(" окно ").append((int) kn[2]).append(" (меч с тем же уроном ").append(f(kb[0])).append(", окно ").append((int) kb[2])
-                .append("); рапира ").append(f(r[0])).append(" окно ").append((int) r[2]).append(" (меч ").append(f(rb[0])).append("); кувалда ").append(f(m[0])).append(" окно ").append((int) m[2])
-                .append(" (меч ").append(f(s[0])).append(" окно ").append((int) s[2]).append(")");
+            rep.append("mob: knife ").append(f(kn[0])).append(" window ").append((int) kn[2]).append(" (sword with the same damage ").append(f(kb[0])).append(", window ").append((int) kb[2])
+                .append("); rapier ").append(f(r[0])).append(" window ").append((int) r[2]).append(" (sword ").append(f(rb[0])).append("); sledgehammer ").append(f(m[0])).append(" window ").append((int) m[2])
+                .append(" (sword ").append(f(s[0])).append(" window ").append((int) s[2]).append(")");
             // weapons of other worlds and non-weapons - as in regular Minecraft
             float[] other = strike.apply(z, net.divinerpg.utils.items.TwilightItemsWeapons.edenBlade), dia = strike.apply(z, Items.diamond_sword);
             boolean foreign = other[1] == 20 && other[2] == 10 && dia[1] == 20 && dia[2] == 10 && com.divinerpgextended.perk.MeleeRoles.kind(new ItemStack(Items.diamond_sword)) == null
                 && com.divinerpgextended.perk.MeleeRoles.kind(new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.edenBlade)) == null;
             ok &= foreign;
-            rep.append("; других миров окно ").append((int) other[2]).append(", алмазный ").append((int) dia[2]);
+            rep.append("; other worlds window ").append((int) other[2]).append(", diamond ").append((int) dia[2]);
             // a strong hit inside the window passes as the difference and does not extend the window
             ItemStack ik = new ItemStack(knife);
             hold(a, ik);
@@ -7117,7 +7117,7 @@ public class SelfTest {
             a.getAttributeMap().removeAttributeModifiers(ik.getAttributeModifiers());
             boolean inside = z.getHealth() < hpIn && z.hurtResistantTime == 16;
             ok &= inside;
-            rep.append("; разницей внутри окна ").append(f(hpIn - z.getHealth())).append(", окно ").append(z.hurtResistantTime);
+            rep.append("; difference within the window ").append(f(hpIn - z.getHealth())).append(", window ").append(z.hurtResistantTime);
             // on a player: without the setting - normal; with the setting - own numbers; in a region without PvP - normal
             armor(foe, null, null, null, null);
             float[] kOff = strike.apply(foe, knife), mOff = strike.apply(foe, maul);
@@ -7135,8 +7135,8 @@ public class SelfTest {
             }
             boolean on = kOn[1] == 18 && kOn[2] == 8 && Math.abs(kOn[0] / kOff[0] - 1F) < 0.01 && mOn[1] == 30 && mOn[2] == 20 && Math.abs(mOn[0] / mOff[0] - com.divinerpgextended.perk.MeleeRoles.Kind.MAUL.damagePvp) < 0.01 && kPriv[1] == 20 && kPriv[2] == 10;
             ok &= off && on;
-            rep.append("; игрок выкл: нож ").append(f(kOff[0])).append(" окно ").append((int) kOff[2]).append(", кувалда ").append(f(mOff[0])).append(" окно ").append((int) mOff[2]).append("; вкл: нож ")
-                .append(f(kOn[0])).append(" окно ").append((int) kOn[2]).append(", кувалда ").append(f(mOn[0])).append(" окно ").append((int) mOn[2]).append("; приват: окно ").append((int) kPriv[2]);
+            rep.append("; player off: knife ").append(f(kOff[0])).append(" window ").append((int) kOff[2]).append(", sledgehammer ").append(f(mOff[0])).append(" window ").append((int) mOff[2]).append("; on: knife ")
+                .append(f(kOn[0])).append(" window ").append((int) kOn[2]).append(", sledgehammer ").append(f(mOn[0])).append(" window ").append((int) mOn[2]).append("; private area: window ").append((int) kPriv[2]);
             // the master switch: everything as in regular Minecraft, and the subtype numbers are read from the setting
             com.divinerpgextended.Config.meleeRoles = false;
             float[] kDis;
@@ -7155,8 +7155,8 @@ public class SelfTest {
             }
             boolean toggles = kDis[1] == 20 && kDis[2] == 10 && Math.abs(kDis[0] / kb[0] - 1F) < 0.01 && kCfg[2] == 3;
             ok &= toggles;
-            rep.append("; выключено: окно ").append((int) kDis[2]).append(", урон ").append(f(kDis[0])).append("; окно из настройки ").append((int) kCfg[2]);
-            // Bedrock mace wave: the neighbor gets 40% of the hit x1.2, its window is normal (the rule applies only to the target)
+            rep.append("; off: window ").append((int) kDis[2]).append(", damage ").append(f(kDis[0])).append("; window from settings ").append((int) kCfg[2]);
+            // Bedrock Maul wave: the neighbor gets 40% of the hit x1.2, its window is normal (the rule applies only to the target)
             net.minecraft.entity.monster.EntityZombie near = new net.minecraft.entity.monster.EntityZombie(w);
             near.setLocationAndAngles(px + 2.5, sy, pz, 0, 0);
             w.spawnEntityInWorld(near);
@@ -7173,7 +7173,7 @@ public class SelfTest {
             float mainHit = z.getMaxHealth() - z.getHealth(), waveHit = near.getMaxHealth() - near.getHealth();
             boolean wave = z.hurtResistantTime == 30 && near.hurtResistantTime == 20 && Math.abs(waveHit / mainHit - 0.4F) < 0.02;
             ok &= wave;
-            rep.append("; волна: цель ").append(f(mainHit)).append(" окно ").append(z.hurtResistantTime).append(", сосед ").append(f(waveHit)).append(" окно ").append(near.hurtResistantTime);
+            rep.append("; wave: target ").append(f(mainHit)).append(" window ").append(z.hurtResistantTime).append(", neighbor ").append(f(waveHit)).append(" window ").append(near.hurtResistantTime);
             // an arrow with a sledgehammer in hand: subtype rules only for a melee hit
             hold(a, new ItemStack(maul));
             z.hurtResistantTime = 0;
@@ -7183,7 +7183,7 @@ public class SelfTest {
             float arrowHit = z.getMaxHealth() - z.getHealth();
             boolean shot = z.hurtResistantTime == 20 && arrowHit < 10F;
             ok &= shot;
-            rep.append("; стрела ").append(f(arrowHit)).append(" окно ").append(z.hurtResistantTime);
+            rep.append("; arrow ").append(f(arrowHit)).append(" window ").append(z.hurtResistantTime);
             // the dummy counts as a mob, the window lives on it itself
             com.divinerpgextended.dummy.EntityTrainingDummy d = new com.divinerpgextended.dummy.EntityTrainingDummy(w);
             d.setPosition(px - 2, sy, pz);
@@ -7198,7 +7198,7 @@ public class SelfTest {
             float dummyHit = d.lastHit();
             int dummyWindow = d.hurtResistantTime;
             a.getAttributeMap().removeAttributeModifiers(dk.getAttributeModifiers());
-            // Bedrock mace on a dummy: one hit x1.2, the wave does not affect the dummy itself
+            // Bedrock Maul on a dummy: one hit x1.2, the wave does not affect the dummy itself
             d.copy(a);
             ItemStack db = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.bedrockMaul);
             hold(a, db);
@@ -7209,7 +7209,7 @@ public class SelfTest {
             float dummyMaul = d.lastHit();
             boolean dummy = dummyWindow == 16 && Math.abs(dummyHit - 14F * 0.75F) < 0.01 && d.hurtResistantTime == 30 && Math.abs(dummyMaul - 14F * com.divinerpgextended.perk.MeleeRoles.Kind.MAUL.damage) < 0.01;
             ok &= dummy;
-            rep.append("; манекен: нож ").append(f(dummyHit)).append(" окно ").append(dummyWindow).append(", бедроковая булава ").append(f(dummyMaul)).append(" окно ").append(d.hurtResistantTime);
+            rep.append("; dummy: knife ").append(f(dummyHit)).append(" window ").append(dummyWindow).append(", bedrock mace ").append(f(dummyMaul)).append(" window ").append(d.hurtResistantTime);
             d.setDead();
             near.setDead();
             z.setDead();
@@ -7217,7 +7217,7 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "Сет Terran: крит с земли без прыжка", () -> {
+        t("Progression", "Terran set: crit from the ground without jumping", () -> {
             WorldServer w = server.worldServerForDimension(0);
             loadAround(w, sx + 206, sz, 1);
             double px = sx + 206.5, pz = sz + 0.5;
@@ -7293,13 +7293,13 @@ public class SelfTest {
             z.setDead();
             a.getAttributeMap().removeAttributeModifiers(held.getAttributeModifiers());
             hold(a, null);
-            String rep = "без сета " + f(bare) + " (в прыжке " + f(bareJump) + "); сет: с земли " + f(ground) + ", в воздухе " + f(air) + ", в прыжке " + f(jump) + "; игрок: без сета " + f(bareFoe) + ", выкл " + f(foeOff) + ", вкл " + f(foeOn) + ", приват " + f(foePrivate)
-                + "; подвиды выключены " + f(rolesOff) + "; стрела " + f(arrow) + "; неполный сет " + f(partial) + "; Странник " + f(wanderer) + "; манекен: воздух " + f(dummyAir) + ", земля " + f(dummyGround);
+            String rep = "without set " + f(bare) + " (while jumping " + f(bareJump) + "); set: from the ground " + f(ground) + ", in the air " + f(air) + ", while jumping " + f(jump) + "; player: without set " + f(bareFoe) + ", off " + f(foeOff) + ", on " + f(foeOn) + ", private " + f(foePrivate)
+                + "; subtypes off " + f(rolesOff) + "; arrow " + f(arrow) + "; incomplete set " + f(partial) + "; Wanderer " + f(wanderer) + "; dummy: air " + f(dummyAir) + ", ground " + f(dummyGround);
             check(near(ground / bare, 1.5F) && near(air, bare) && near(jump, bareJump) && near(foeOff, bareFoe) && near(foeOn, bareFoe * 1.5F) && near(foePrivate, bareFoe) && near(rolesOff, ground) && arrow < 10F && near(partial, bare) && near(wanderer, bare)
                 && near(dummyGround / dummyAir, 1.5F), rep);
             return rep;
         });
-        t("Прохождение", "Божественная броня: бонус только по врагам", () -> {
+        t("Progression", "Divine armor: bonus only against enemies", () -> {
             WorldServer w = server.worldServerForDimension(0);
             TestPlayer a = player(0, "TestDivineFoe", sx + 216.5, sy, sz + 0.5);
             EntityLivingBase[] targets = { new net.minecraft.entity.monster.EntityZombie(w), new net.minecraft.entity.monster.EntitySpider(w), new net.minecraft.entity.passive.EntityCow(w),
@@ -7310,7 +7310,7 @@ public class SelfTest {
             for (int mode = 0; mode < 2; mode++) {
                 if (mode == 0) armor(a, VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots);
                 else wearCore(a, com.divinerpgextended.item.ArmorCore.DIVINE);
-                rep.append(mode == 0 ? "сет:" : "; ядро:");
+                rep.append(mode == 0 ? "set:" : "; core:");
                 for (int i = 0; i < targets.length; i++) {
                     float got = hurtBy(targets[i], DamageSource.causePlayerDamage(a), 10F);
                     ok &= near(got, want[i]);
@@ -7318,12 +7318,12 @@ public class SelfTest {
                 }
                 float shot = hurtBy(targets[0], DamageSource.causeArrowDamage(new net.minecraft.entity.projectile.EntityArrow(w, a, 1F), a), 10F);
                 ok &= near(shot, 10F);
-                rep.append(", выстрел ").append(f(shot));
+                rep.append(", shot ").append(f(shot));
             }
-            check(ok, rep + " (зомби, паук, корова, волк, голем, игрок: ждали 20 16 10 10 10 16)");
+            check(ok, rep + " (zombie, spider, cow, wolf, golem, player: expected 20 16 10 10 10 16)");
             return rep.toString();
         });
-        t("Прохождение", "Небесный терн: невесомость, порыв и прыжки мобов", () -> {
+        t("Progression", "Skythern Thorn: weightlessness, gust and mob jumps", () -> {
             int dim = ConfigurationHelper.skythern;
             WorldServer w = server.worldServerForDimension(dim);
             double x = 40.5, y = 150, z = 40.5;
@@ -7353,14 +7353,14 @@ public class SelfTest {
             com.divinerpgextended.world.twilight.SkythernWinds.floatStep(a);
             after[3] = a.motionY;
             boolean floats = near((float) after[0], -0.1608F) && near((float) after[1], -0.2F) && near((float) after[2], -0.2F) && near((float) after[3], -0.2F);
-            rep.append("падение: сет ").append(after[0]).append(", шифт ").append(after[1]).append(", земля ").append(after[2]).append(", без шлема ").append(after[3]);
+            rep.append("fall: set ").append(after[0]).append(", shift ").append(after[1]).append(", ground ").append(after[2]).append(", no helmet ").append(after[3]);
             // jump: Divine's bonus is removed, the rest stays
             armor(a, sky[0], sky[1], sky[2], sky[3]);
             a.motionY = 0.42;
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingJumpEvent(a));
             double jump = a.motionY;
             boolean jumpOk = near((float) jump, 0.42F);
-            rep.append("; прыжок ").append(jump);
+            rep.append("; jump ").append(jump);
             // a gust from a hit: once per mob, projectiles and bosses do not push, knockback protection holds
             net.divinerpg.entities.twilight.EntitySkythernFiend m = new net.divinerpg.entities.twilight.EntitySkythernFiend(w);
             m.setPosition(x - 3, y, z);
@@ -7368,7 +7368,7 @@ public class SelfTest {
             hurtBy(a, DamageSource.causeMobDamage(m), 5F);
             com.divinerpgextended.world.twilight.SkythernWinds.flush(a);
             boolean gust = near((float) a.motionX, 1.6F) && near((float) a.motionY, 0.35F);
-            rep.append("; порыв ").append(a.motionX).append("/").append(a.motionY);
+            rep.append("; gust ").append(a.motionX).append("/").append(a.motionY);
             a.motionX = a.motionY = a.motionZ = 0;
             hurtBy(a, DamageSource.causeMobDamage(m), 5F);
             com.divinerpgextended.world.twilight.SkythernWinds.flush(a);
@@ -7385,7 +7385,7 @@ public class SelfTest {
             com.divinerpgextended.world.twilight.SkythernWinds.flush(a);
             boolean held = near((float) a.motionX, 0F);
             a.getEntityAttribute(SharedMonsterAttributes.knockbackResistance).removeModifier(hold);
-            rep.append("; перезарядка ").append(cooldown).append(", стрела без порыва ").append(arrowNo).append(", защита держит ").append(held);
+            rep.append("; cooldown ").append(cooldown).append(", arrow without gust ").append(arrowNo).append(", protection holds ").append(held);
             // mob jump: jumps far and high, not nearby and not for an archer
             net.divinerpg.entities.twilight.EntitySkythernGolem skyGolem = new net.divinerpg.entities.twilight.EntitySkythernGolem(w);
             skyGolem.setPosition(x - 10, y, z);
@@ -7403,11 +7403,11 @@ public class SelfTest {
             net.divinerpg.entities.twilight.EntitySkythernArcher ar = new net.divinerpg.entities.twilight.EntitySkythernArcher(w);
             ar.setPosition(x - 10, y, z);
             boolean archerNo = !com.divinerpgextended.world.twilight.SkythernWinds.leap(ar);
-            rep.append("; прыжки: далеко ").append(far).append(", сразу снова нет ").append(again).append(", вверх ").append(above).append(", рядом нет ").append(nearNo).append(", лучник нет ").append(archerNo);
+            rep.append("; jumps: far ").append(far).append(", immediately again no ").append(again).append(", up ").append(above).append(", nearby no ").append(nearNo).append(", archer no ").append(archerNo);
             check(floats && jumpOk && gust && cooldown && arrowNo && held && far && again && above && nearNo && archerNo, rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "Мортум: посмертие мобов", () -> {
+        t("Progression", "Mortum: mob afterlife", () -> {
             int dim = ConfigurationHelper.mortum;
             WorldServer w = server.worldServerForDimension(dim);
             double x = 40.5, y = 150, z = 40.5;
@@ -7452,7 +7452,7 @@ public class SelfTest {
                     back.setDead();
                 }
                 ok &= voidNo && left && early && rose && once && noDrops;
-                rep.append("пустота без души ").append(voidNo).append(", душа ").append(left).append(", рано не встаёт ").append(early).append(", встал ").append(rose).append(", второй раз нет ").append(once).append(", без добычи ").append(noDrops);
+                rep.append("void without a soul ").append(voidNo).append(", soul ").append(left).append(", does not rise early ").append(early).append(", rose ").append(rose).append(", second time no ").append(once).append(", no loot ").append(noDrops);
                 // hit on a soul: dissipated, a world soul; a hit by a non-player does not count
                 net.minecraft.entity.EntityLiving m2 = place.apply(new net.divinerpg.entities.twilight.EntityMortumDemon(w));
                 MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(m2, DamageSource.causePlayerDamage(a)));
@@ -7470,7 +7470,7 @@ public class SelfTest {
                     }
                 }
                 ok &= mobHit && playerHit && dropped == 1;
-                rep.append("; удар моба мимо ").append(mobHit).append(", удар игрока ").append(playerHit).append(", душ мира ").append(dropped);
+                rep.append("; mob hit missed ").append(mobHit).append(", player hit ").append(playerHit).append(", world souls ").append(dropped);
                 // the Mortum set takes it by itself and heals
                 Item[] mort = com.divinerpgextended.world.twilight.TwilightWorld.MORTUM.armor();
                 armor(a, mort[0], mort[1], mort[2], mort[3]);
@@ -7483,7 +7483,7 @@ public class SelfTest {
                 if (s3 != null) s3.onUpdate();
                 boolean taken = s3 != null && s3.isDead && near(a.getHealth(), 12F);
                 ok &= taken;
-                rep.append("; сет забрал ").append(taken);
+                rep.append("; set took ").append(taken);
                 // do not count: henchman, chance 0
                 armor(a, null, null, null, null);
                 net.minecraft.entity.EntityLiving boss = new net.divinerpg.entities.twilight.EntityMortumDemon(w), minion = place.apply(new net.divinerpg.entities.twilight.EntityMortumDemon(w));
@@ -7496,7 +7496,7 @@ public class SelfTest {
                 none.setDead();
                 boolean skipped = souls.get().stream().noneMatch(en -> !en.isDead);
                 ok &= skipped;
-                rep.append("; приспешник и шанс 0 без души ").append(skipped);
+                rep.append("; minion and chance 0 without a soul ").append(skipped);
             } finally {
                 Config.mortumSoulChance = oldChance;
                 for (net.minecraft.entity.Entity en : souls.get()) en.setDead();
@@ -7504,7 +7504,7 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "Эдем: перегрев от солнца", () -> {
+        t("Progression", "Eden: sun overheating", () -> {
             int dim = ConfigurationHelper.eden;
             WorldServer w = server.worldServerForDimension(dim);
             int x = 60, y = 200, z = 60;
@@ -7525,7 +7525,7 @@ public class SelfTest {
                 com.divinerpgextended.world.twilight.EdenSun.step(a);
                 float got = com.divinerpgextended.world.twilight.EdenSun.heat(a), want = (Float) sets[i][1] == 0F ? 9F : 10F + unit * (Float) sets[i][1];
                 rates &= near(got, want);
-                rep.append(i == 0 ? "за секунду с 10: " : ", ").append(got);
+                rep.append(i == 0 ? "per second out of 10: " : ", ").append(got);
             }
             armor(a, null, null, null, null);
             a.clearActivePotions();
@@ -7554,11 +7554,11 @@ public class SelfTest {
             com.divinerpgextended.world.twilight.EdenSun.setHeat(away, 100F);
             com.divinerpgextended.world.twilight.EdenSun.step(away);
             boolean left = near(com.divinerpgextended.world.twilight.EdenSun.heat(away), 95F) && !away.isPotionActive(Potion.weakness) && !away.isBurning();
-            rep.append("; 40 без эффектов ").append(calm).append(", 50 слабость ").append(weak).append(", 75 тошнота ").append(sick).append(", 100 горит ").append(burn).append(", тень ").append(shade).append(", другой мир ").append(left);
+            rep.append("; 40 no effects ").append(calm).append(", 50 weakness ").append(weak).append(", 75 nausea ").append(sick).append(", 100 burning ").append(burn).append(", shade ").append(shade).append(", other world ").append(left);
             check(rates && calm && weak && sick && burn && shade && left, rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "Дикий лес: ливень, влага и морские крафты", () -> {
+        t("Progression", "Wildwood: downpour, moisture and sea crafts", () -> {
             int dim = ConfigurationHelper.wildwood;
             WorldServer w = server.worldServerForDimension(dim);
             int x = 60, y = 200, z = 60;
@@ -7640,8 +7640,8 @@ public class SelfTest {
                 cg.setInventorySlotContents(1, new ItemStack(net.divinerpg.utils.items.TwilightItemsOther.wildwoodChunk));
                 ItemStack oldWay = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(cg, w);
                 boolean craft = blade != null && blade.getItem() == net.divinerpg.utils.items.TwilightItemsWeapons.wildwoodBlade && oldWay == null;
-                rep.append("затишье ").append(calmNo).append("; замедление ").append(slow).append(", крыша ").append(roof).append(", Kraken ").append(kraken).append("; влага: вместе ").append(f(both)).append(", броня ").append(f(armorOnly)).append(", без ").append(f(plain)).append(", кинжал ").append(f(dag))
-                    .append("; сет леса лечит ").append(healed).append("; мобы ").append(mobs).append("; фазы ").append(warn).append("/").append(storm).append("/").append(over).append("; клинок с якорем ").append(craft);
+                rep.append("lull ").append(calmNo).append("; slowdown ").append(slow).append(", roof ").append(roof).append(", Kraken ").append(kraken).append("; moisture: together ").append(f(both)).append(", armor ").append(f(armorOnly)).append(", without ").append(f(plain)).append(", dagger ").append(f(dag))
+                    .append("; forest set heals ").append(healed).append("; mobs ").append(mobs).append("; phases ").append(warn).append("/").append(storm).append("/").append(over).append("; blade with anchor ").append(craft);
                 ok = calmNo && slow && roof && kraken && wetOk && healed && mobs && warn && storm && over && craft;
             } finally {
                 wx.phase = oldPhase;
@@ -7650,7 +7650,7 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "Апалачия: камнепад и каменные големы", () -> {
+        t("Progression", "Apalachia: rockfall and stone golems", () -> {
             int dim = ConfigurationHelper.apalachia;
             WorldServer w = server.worldServerForDimension(dim);
             int x = 60, y = 200, z = 60;
@@ -7704,11 +7704,11 @@ public class SelfTest {
             a.getEntityAttribute(SharedMonsterAttributes.maxHealth).removeModifier(a.getEntityAttribute(SharedMonsterAttributes.maxHealth).getModifier(bulk));
             a.setHealth(a.getMaxHealth());
             fillBox(w, x - 14, y - 1, z - 14, x + 14, y - 1, z + 14, Blocks.air);
-            rep.append("удар ").append(f(open)).append(", под крышей ").append(f(roofed)).append(", сет ").append(f(set)).append(", в стороне ").append(far).append("; глыб за секунду ").append(made).append(" (в мире ").append(rocks).append("); фаза ").append(on).append("; голем не отлетает ").append(stone).append(", молот ").append(f(maul)).append(", меч ").append(f(sword));
+            rep.append("hit ").append(f(open)).append(", under a roof ").append(f(roofed)).append(", set ").append(f(set)).append(", to the side ").append(far).append("; boulders per second ").append(made).append(" (in the world ").append(rocks).append("); phase ").append(on).append("; golem is not knocked back ").append(stone).append(", hammer ").append(f(maul)).append(", sword ").append(f(sword));
             check(open > 0 && roofed == 0F && set == 0F && far && made == 2 && rocks >= 2 && on && stone && near(maul, 15F) && near(sword, 10F), rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "Гарпуны и влага морского оружия", () -> {
+        t("Progression", "Harpoons and sea weapon moisture", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x = sx + 224, z = sz;
             loadAround(w, x, z, 1);
@@ -7790,16 +7790,16 @@ public class SelfTest {
                 divineShot &= zombNear.motionX < -0.5;
                 bullet.setDead();
             }
-            rep.append("настоящий бросок ").append(divineShot).append("; ");
+            rep.append("real throw ").append(divineShot).append("; ");
             // outside water and rain sea weapons have no moisture
             hold(a, new ItemStack(VanillaItemsWeapons.aquaticDagger));
             float dry = hurtBy(zombNear, DamageSource.causePlayerDamage(a), 10F);
-            rep.append("тянет ").append(pulled).append(", дальше дальности нет ").append(tooFar).append(", призывные якоря не тянут ").append(summonsDont).append(", откат ").append(cooldown).append("; удар ").append(f(first)).append(" потом ").append(f(second)).append("; босс на месте, игрок летит ").append(bossStill)
-                .append("; оглушение ").append(stun).append("; игрок без PvP не тянется ").append(noPvp).append("; снаряд помнит гарпун ").append(remembers).append("; сухой кинжал ").append(f(dry));
+            rep.append("pulls ").append(pulled).append(", no pull beyond range ").append(tooFar).append(", summoning anchors do not pull ").append(summonsDont).append(", cooldown ").append(cooldown).append("; hit ").append(f(first)).append(" then ").append(f(second)).append("; boss stays, the player flies ").append(bossStill)
+                .append("; stun ").append(stun).append("; a player without PvP is not pulled ").append(noPvp).append("; projectile remembers the harpoon ").append(remembers).append("; dry dagger ").append(f(dry));
             check(pulled && tooFar && summonsDont && cooldown && near(first, 15F) && near(second, 10F) && bossStill && stun && noPvp && remembers && near(dry, 10F) && divineShot, rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "Мини-боссы: здоровье, добыча и появление", () -> {
+        t("Progression", "Mini-bosses: health, loot and spawning", () -> {
             StringBuilder rep = new StringBuilder();
             // health: no more than x3 of an ordinary mob and less than the world guardian
             boolean hp = com.divinerpgextended.entity.mini.EntityNoonCori.HEALTH <= 75 * 3 && com.divinerpgextended.entity.mini.EntityNoonCori.HEALTH < Config.cadillionHealth[0]
@@ -7807,7 +7807,7 @@ public class SelfTest {
                 && com.divinerpgextended.entity.mini.EntityStonebreaker.HEALTH <= 250 * 3 && com.divinerpgextended.entity.mini.EntityStonebreaker.HEALTH < Config.cadillionHealth[2]
                 && com.divinerpgextended.entity.mini.EntitySkyGrabber.HEALTH <= 80 * 3 && com.divinerpgextended.entity.mini.EntitySkyGrabber.HEALTH < Config.cadillionHealth[3]
                 && com.divinerpgextended.entity.mini.EntityMourner.HEALTH <= 200 * 3;
-            rep.append("здоровье ").append(hp);
+            rep.append("health ").append(hp);
             // spawning and loot in each world
             com.divinerpgextended.world.twilight.TwilightWorld[] worlds = com.divinerpgextended.world.twilight.TwilightWorld.values();
             Class<?>[] kinds = { com.divinerpgextended.entity.mini.EntityNoonCori.class, com.divinerpgextended.entity.mini.EntityOldVerek.class, com.divinerpgextended.entity.mini.EntityStonebreaker.class,
@@ -7835,7 +7835,7 @@ public class SelfTest {
                         it.setDead();
                     }
                     looted &= gems >= 2 && gems <= 3 && souls >= 3 && souls <= 5;
-                    rep.append("; ").append(m.key()).append(" камней ").append(gems).append(", душ ").append(souls);
+                    rep.append("; ").append(m.key()).append(" stones ").append(gems).append(", souls ").append(souls);
                     m.setDead();
                 }
                 fillBox(w, cx - 34, cy - 1, cz - 34, cx + 34, cy - 1, cz + 34, Blocks.air);
@@ -7861,11 +7861,11 @@ public class SelfTest {
             boolean top = com.divinerpgextended.entity.mini.MiniBosses.create(dream) == null;
             TestPlayer overworld = player(0, "TestMiniTop", sx + 230.5, sy, sz + 0.5);
             boolean notHere = com.divinerpgextended.entity.mini.MiniBosses.create(overworld) == null;
-            rep.append("; появление ").append(spawned).append(", отсрочка ").append(delayed).append(", настройка ").append(off).append("; Ветея 1/3/4 ").append(floorOne).append("/").append(floorThree).append("/").append(top).append(", обычный мир нет ").append(notHere);
+            rep.append("; spawning ").append(spawned).append(", delay ").append(delayed).append(", setting ").append(off).append("; Vethea 1/3/4 ").append(floorOne).append("/").append(floorThree).append("/").append(top).append(", ordinary world no ").append(notHere);
             check(hp && spawned && looted && delayed && off && floorOne && floorThree && top && notHere, rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "Мини-боссы: приёмы", () -> {
+        t("Progression", "Mini-bosses: moves", () -> {
             StringBuilder rep = new StringBuilder();
             int cx = 120, cy = 200, cz = 120;
             java.util.function.Function<Integer, WorldServer> arena = dim -> {
@@ -7893,7 +7893,7 @@ public class SelfTest {
             boolean burned = noon.strike(ea) && near(com.divinerpgextended.world.twilight.EdenSun.heat(ea), com.divinerpgextended.entity.mini.EntityNoonCori.BEAM_HEAT) && ea.isBurning() && ea.getHealth() < ea.getMaxHealth();
             ea.extinguish();
             clear.accept(edenDim, ew);
-            rep.append("кори: крыша ").append(roofNo).append(", луч ").append(burned);
+            rep.append("cori: roof ").append(roofNo).append(", beam ").append(burned);
             // Old Verek: calls the pack at two thresholds, invisible in a downpour
             int wildDim = ConfigurationHelper.wildwood;
             WorldServer ww = arena.apply(wildDim);
@@ -7914,7 +7914,7 @@ public class SelfTest {
             wx.phase = oldPhase;
             for (Object o : ww.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class, verek.boundingBox.expand(10, 6, 10))) ((net.minecraft.entity.Entity) o).setDead();
             clear.accept(wildDim, ww);
-            rep.append("; верек: тихо ").append(quiet).append(", вой ").append(howl1).append("/").append(howl2).append(", стая ").append(pack).append(", ливень ").append(hidden);
+            rep.append("; verek: quiet ").append(quiet).append(", howl ").append(howl1).append("/").append(howl2).append(", pack ").append(pack).append(", downpour ").append(hidden);
             // Stonebreaker: the skin holds 70%, the maul and its own boulder remove it
             int apDim = ConfigurationHelper.apalachia;
             WorldServer aw = arena.apply(apDim);
@@ -7939,7 +7939,7 @@ public class SelfTest {
             for (Object o : aw.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityRockfall.class, stone2.boundingBox.expand(16, 40, 16))) ((net.minecraft.entity.Entity) o).setDead();
             stone2.setDead();
             clear.accept(apDim, aw);
-            rep.append("; Камнелом: с кожей ").append(f(withSkin)).append(", молот ").append(f(maul)).append(", снята ").append(bare).append(", глыба далеко мимо ").append(farKept).append(", своя снимает ").append(rockBroke).append(", зовёт глыб ").append(called);
+            rep.append("; Stonebreaker: with skin ").append(f(withSkin)).append(", hammer ").append(f(maul)).append(", removed ").append(bare).append(", boulder far off-target ").append(farKept).append(", own removes ").append(rockBroke).append(", calls boulders ").append(called);
             // Sky Grabber: grabs nearby, Stone Wall does not give in, drops at height, a strong hit makes it let go
             int skyDim = ConfigurationHelper.skythern;
             WorldServer sw = arena.apply(skyDim);
@@ -7969,7 +7969,7 @@ public class SelfTest {
             boolean letGo = again && grab.held() == null;
             boolean noLeap = !com.divinerpgextended.world.twilight.SkythernWinds.leap(grab);
             clear.accept(skyDim, sw);
-            rep.append("; хват: стена держит ").append(wallHolds).append(", схватил ").append(grabbed).append(", несёт ").append(lifted).append(", роняет ").append(dropped).append(", выпускает ").append(letGo).append(", не прыгает ").append(noLeap);
+            rep.append("; grabber: wall holds ").append(wallHolds).append(", grabbed ").append(grabbed).append(", carries ").append(lifted).append(", drops ").append(dropped).append(", releases ").append(letGo).append(", does not jump ").append(noLeap);
             // Mourner: a death nearby feeds it, far away does not, limit 5; it leaves no souls itself
             int morDim = ConfigurationHelper.mortum;
             WorldServer mw = arena.apply(morDim);
@@ -7996,7 +7996,7 @@ public class SelfTest {
             Config.mortumSoulChance = oldChance;
             mourn.setDead();
             clear.accept(morDim, mw);
-            rep.append("; Плакальщик: далеко нет ").append(farNo).append(", кормится ").append(fed).append(", предел ").append(capped).append(", без души ").append(noSoul);
+            rep.append("; Mourner: far no ").append(farNo).append(", feeds ").append(fed).append(", limit ").append(capped).append(", without soul ").append(noSoul);
             // Sleepwalker: vulnerability cycles and is visible to the Vethea fight
             WorldServer vw2 = server.worldServerForDimension(ConfigurationHelper.vethea);
             com.divinerpgextended.entity.mini.EntitySleepwalker walker = new com.divinerpgextended.entity.mini.EntitySleepwalker(vw2);
@@ -8010,13 +8010,13 @@ public class SelfTest {
             boolean weak2 = com.divinerpgextended.vethea.VetheaCombat.weakness(walker).contains(com.divinerpgextended.vethea.WeaponKind.STAFF);
             walker.shift();
             boolean round = walker.group() == 0 && near(walker.getMaxHealth(), 300F);
-            rep.append("; Сомнамбула: ближний ").append(weak0).append(", дальний ").append(weak1).append(", аркана ").append(weak2).append(", по кругу ").append(round);
+            rep.append("; Sleepwalker: near ").append(weak0).append(", far ").append(weak1).append(", arcana ").append(weak2).append(", in a circle ").append(round);
             boolean ok = roofNo && burned && quiet && howl1 && howl2 && pack == 4 && hidden && near(withSkin, 3F) && near(maul, 10F) && bare && farKept && rockBroke && called == 3
                 && wallHolds && grabbed && lifted && dropped && letGo && noLeap && farNo && fed && capped && noSoul && weak0 && weak1 && weak2 && round;
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "/dreblizzard: метель, ливень и камнепад одной командой", () -> {
+        t("Progression", "/dreblizzard: blizzard, downpour and rockfall as one command", () -> {
             com.divinerpgextended.cold.Blizzard bz = com.divinerpgextended.cold.Blizzard.get(server.worldServerForDimension(ConfigurationHelper.iceika));
             com.divinerpgextended.world.twilight.WorldWeather rain = com.divinerpgextended.world.twilight.WorldWeather.get(server.worldServerForDimension(ConfigurationHelper.wildwood)),
                 quake = com.divinerpgextended.world.twilight.WorldWeather.get(server.worldServerForDimension(ConfigurationHelper.apalachia));
@@ -8041,8 +8041,8 @@ public class SelfTest {
                 quake.timer = 99999;
                 cmd.processCommand(server, new String[] { "start" });
                 boolean keep = rain.timer == 20 && quake.timer == 99999 && quake.phase == ACTIVE;
-                check(started && stopped && keep, "старт из затишья во всех трёх мирах " + started + ", стоп идущих " + stopped + ", идущий камнепад старт не сбросил " + keep);
-                rep = "start из затишья запускает метель Айсики, ливень Дикого леса и камнепад Апалачии (через предупреждение), stop обрывает идущие, уже идущее событие старт не перезапускает";
+                check(started && stopped && keep, "start from lull in all three worlds " + started + ", stop of running ones " + stopped + ", running rockfall not reset by start " + keep);
+                rep = "start from lull launches the Iceika blizzard, the Wildwood downpour and the Apalachia rockfall (via a warning), stop aborts running ones, start does not restart an already running event";
             } finally {
                 bz.phase = was[0];
                 bz.timer = was[1];
@@ -8053,7 +8053,7 @@ public class SelfTest {
             }
             return rep;
         });
-        t("Прохождение", "Вьюжная ель: приходит с метелью и уходит с ней", () -> {
+        t("Progression", "Blizzard Spruce: comes with the blizzard and leaves with it", () -> {
             int dim = ConfigurationHelper.iceika;
             WorldServer w = server.worldServerForDimension(dim);
             int cx = 120, cy = 200, cz = 120;
@@ -8083,14 +8083,14 @@ public class SelfTest {
                 com.divinerpgextended.entity.mini.EntityBlizzardSpruce sp = null;
                 for (Object o : w.getEntitiesWithinAABB(com.divinerpgextended.entity.mini.EntityBlizzardSpruce.class, a.boundingBox.expand(40, 16, 40))) sp = (com.divinerpgextended.entity.mini.EntityBlizzardSpruce) o;
                 boolean found = sp != null && near(sp.getMaxHealth(), 300F);
-                rep.append("без метели нет ").append(calmNo).append("; пришла ").append(came).append(", один раз ").append(once).append(", стоит в мире ").append(found);
+                rep.append("no blizzard no ").append(calmNo).append("; came ").append(came).append(", once ").append(once).append(", stands in the world ").append(found);
                 // infernal weapons as against all cold mobs, ordinary ones as usual
                 hold(a, new ItemStack(VanillaItemsWeapons.infernoSword));
                 float hell = hurtBy(sp, DamageSource.causePlayerDamage(a), 10F);
                 sp.extinguish();
                 hold(a, new ItemStack(Items.diamond_sword));
                 float plain = hurtBy(sp, DamageSource.causePlayerDamage(a), 10F);
-                rep.append("; адский меч ").append(f(hell)).append(", обычный ").append(f(plain));
+                rep.append("; hell sword ").append(f(hell)).append(", regular ").append(f(plain));
                 // clumps: damage and cold
                 float coldBefore = a.getEntityData().getCompoundTag(net.minecraft.entity.player.EntityPlayer.PERSISTED_NBT_TAG).getFloat("dreCold");
                 com.divinerpgextended.entity.mini.EntitySnowClump clump = new com.divinerpgextended.entity.mini.EntitySnowClump(w, sp, com.divinerpgextended.entity.mini.EntityBlizzardSpruce.CLUMP_DAMAGE, com.divinerpgextended.entity.mini.EntityBlizzardSpruce.CLUMP_COLD);
@@ -8101,7 +8101,7 @@ public class SelfTest {
                 int thrown = sp.throwClumps(a);
                 int flying = w.getEntitiesWithinAABB(com.divinerpgextended.entity.mini.EntitySnowClump.class, sp.boundingBox.expand(4, 4, 4)).size();
                 for (Object o : w.getEntitiesWithinAABB(com.divinerpgextended.entity.mini.EntitySnowClump.class, sp.boundingBox.expand(8, 8, 8))) ((net.minecraft.entity.Entity) o).setDead();
-                rep.append("; ком холодит ").append(chilled).append(", веер ").append(thrown).append("/").append(flying);
+                rep.append("; snowball chills ").append(chilled).append(", fan ").append(thrown).append("/").append(flying);
                 // snowman: the target is a player, hostile, throws clumps
                 com.divinerpgextended.entity.mini.EntityBlizzardSnowman man = new com.divinerpgextended.entity.mini.EntityBlizzardSnowman(w);
                 man.setPosition(cx + 4.5, cy, cz + 0.5);
@@ -8111,7 +8111,7 @@ public class SelfTest {
                 for (Object o : w.getEntitiesWithinAABB(com.divinerpgextended.entity.mini.EntitySnowClump.class, man.boundingBox.expand(8, 8, 8))) ((net.minecraft.entity.Entity) o).setDead();
                 boolean snowman = man instanceof net.minecraft.entity.monster.IMob && com.divinerpgextended.perk.ColdMobs.isCold(man) && manClumps == 1 && near(man.getMaxHealth(), 20F);
                 man.setDead();
-                rep.append("; снеговик ").append(snowman);
+                rep.append("; snowman ").append(snowman);
                 // loot with snowflakes, stone and shards
                 sp.loot(0);
                 int flakes = 0, shards = 0, stones = 0;
@@ -8123,14 +8123,14 @@ public class SelfTest {
                     it.setDead();
                 }
                 boolean loot = flakes >= 6 && shards >= 4 && stones >= 1;
-                rep.append("; добыча ").append(flakes).append("/").append(shards).append("/").append(stones);
+                rep.append("; loot ").append(flakes).append("/").append(shards).append("/").append(stones);
                 // the blizzard ended: it leaves by itself, without loot
                 boolean stays = !sp.leaveWithStorm();
                 b.phase = com.divinerpgextended.cold.Blizzard.CALM;
                 boolean gone = sp.leaveWithStorm() && sp.isDead;
                 int left = 0; // items marked above still lie in the world lists until its tick
                 for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, sp.boundingBox.expand(4, 4, 4))) if (!((net.minecraft.entity.Entity) o).isDead) left++;
-                rep.append("; пока метель стоит ").append(stays).append(", конец - ушла ").append(gone).append(", предметов ").append(left);
+                rep.append("; while the blizzard lasts ").append(stays).append(", end - left ").append(gone).append(", items ").append(left);
                 ok = calmNo && came && once && found && near(hell, 20F) && near(plain, 10F) && chilled && thrown == 3 && flying == 3 && snowman && loot && stays && gone && left == 0;
             } finally {
                 b.phase = oldPhase;
@@ -8142,7 +8142,7 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "Вьюга: укрывают только закрытые места", () -> {
+        t("Progression", "Blizzard: only enclosed places shelter", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x = 31400, y = 200, z = 31400, head = y + 1;
             loadAround(w, x + 12, z, 3);
@@ -8199,13 +8199,13 @@ public class SelfTest {
             boolean remembered = !com.divinerpgextended.cold.Blizzard.exposed(inside);
             TestPlayer outside = player(0, "TestGaleOut", x + 0.5, y, z + 0.5);
             boolean playerOpen = com.divinerpgextended.cold.Blizzard.exposed(outside);
-            String rep = "поле " + open + "; ёлка " + tree + " (крона над головой " + underTreeRoof + "); навес " + canopy + "; дом " + closed + "; дверь закрыта " + doorShut + ", открыта " + doorOpen
-                + "; люк закрыт " + hatchShut + ", открыт " + hatchOpen + "; стекло " + glass + " (небо для игры " + glassSky + "); под водой " + underWater + ", над водой " + overWater
-                + "; пещера: глубина " + deep + ", 13 шагов " + pastReach + ", 12 шагов " + atReach + ", вход " + mouth + "; игрок: в глубине " + playerDeep + ", ответ помнит " + remembered + ", на поле " + playerOpen;
+            String rep = "field " + open + "; spruce " + tree + " (crown above the head " + underTreeRoof + "); canopy " + canopy + "; house " + closed + "; door closed " + doorShut + ", open " + doorOpen
+                + "; hatch closed " + hatchShut + ", open " + hatchOpen + "; glass " + glass + " (sky for the game " + glassSky + "); underwater " + underWater + ", above water " + overWater
+                + "; cave: depth " + deep + ", 13 steps " + pastReach + ", 12 steps " + atReach + ", entrance " + mouth + "; player: in the depths " + playerDeep + ", answer remembers " + remembered + ", in the field " + playerOpen;
             check(open && underTreeRoof && tree && canopy && closed && doorShut && doorOpen && hatchShut && hatchOpen && glassSky && glass && underWater && overWater && deep && pastReach && atReach && mouth && playerDeep && remembered && playerOpen, rep);
             return rep;
         });
-        t("Прохождение", "Бедрок: нерушимость на месте", () -> {
+        t("Progression", "Bedrock: indestructibility in place", () -> {
             WorldServer w = server.worldServerForDimension(0);
             loadAround(w, sx + 212, sz, 1);
             TestPlayer a = join(player(0, "TestStance", sx + 212.5, sy, sz + 0.5), true);
@@ -8233,7 +8233,7 @@ public class SelfTest {
                 com.divinerpgextended.perk.PerkEffects.stance(a);
                 boolean moved = kb.getAttributeValue() < 0.5;
                 ok &= early && stage1 && stage2 && nudge && moved;
-                rep.append(mode == 0 ? "сет: " : "ядро: ").append("рано ").append(early).append(", I ").append(stage1).append(", II ").append(stage2).append(", толчок ").append(nudge).append(", шаг ").append(moved).append("; ");
+                rep.append(mode == 0 ? "set: " : "core: ").append("early ").append(early).append(", I ").append(stage1).append(", II ").append(stage2).append(", push ").append(nudge).append(", step ").append(moved).append("; ");
             }
             // another set and armor taken off: the stance ends, knockback returns
             for (int i = 0; i < first; i++) com.divinerpgextended.perk.PerkEffects.stance(a);
@@ -8245,11 +8245,11 @@ public class SelfTest {
             for (int i = 0; i <= second; i++) com.divinerpgextended.perk.PerkEffects.stance(a);
             boolean other = !a.isPotionActive(Potion.resistance) && kb.getAttributeValue() < 0.5;
             ok &= off && other;
-            rep.append("сняли ").append(off).append(", ядро Тени без стойки ").append(other);
+            rep.append("removed ").append(off).append(", Shadow core without stance ").append(other);
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "Inferno и Netherite: руда падает переплавленной", () -> {
+        t("Progression", "Inferno and Netherite: ore drops smelted", () -> {
             WorldServer w = server.worldServerForDimension(0);
             loadAround(w, sx + 218, sz, 1);
             TestPlayer a = join(player(0, "TestSmelt", sx + 218.5, sy, sz + 0.5), true);
@@ -8282,20 +8282,20 @@ public class SelfTest {
                 ok = iron.getItem() == Items.iron_ingot && iron.stackSize == 1 && rupee.getItem() == VanillaItemsOther.rupeeIngot && many.getItem() == Items.gold_ingot && many.stackSize == 3
                     && cobble.getItem() == Item.getItemFromBlock(Blocks.cobblestone) && log.getItem() == Item.getItemFromBlock(Blocks.log) && silk.getItem() == Item.getItemFromBlock(Blocks.iron_ore)
                     && machine.getItem() == Item.getItemFromBlock(Blocks.iron_ore) && zero.getItem() == Item.getItemFromBlock(Blocks.iron_ore) && netherite.getItem() == Items.iron_ingot && terran.getItem() == Item.getItemFromBlock(Blocks.iron_ore);
-                rep = "железо " + iron + ", рупий " + rupee + ", 3 золота " + many + ", булыжник " + cobble + ", бревно " + log + ", шёлк " + silk + ", без игрока " + machine + ", шанс 0 " + zero + ", Netherite " + netherite + ", Terran " + terran;
+                rep = "iron " + iron + ", rupees " + rupee + ", 3 gold " + many + ", cobblestone " + cobble + ", log " + log + ", silk " + silk + ", without player " + machine + ", chance 0 " + zero + ", Netherite " + netherite + ", Terran " + terran;
             } finally {
                 com.divinerpgextended.Config.netherSmeltChance = was;
             }
             check(ok, rep);
             return rep;
         });
-        t("Аксессуары", "Очки откровения в шлеме через наковальню", () -> {
-            if (!cpw.mods.fml.common.Loader.isModLoaded("Thaumcraft")) return "нет Таума - пропущено";
+        t("Accessories", "Revelation Glasses in a helmet via the anvil", () -> {
+            if (!cpw.mods.fml.common.Loader.isModLoaded("Thaumcraft")) return "no Thaumcraft - skipped";
             WorldServer w = server.worldServerForDimension(0);
             TestPlayer a = join(player(0, "TestGoggles", sx + 224.5, sy, sz + 0.5), true);
             a.experienceLevel = 500;
             Item gg = com.divinerpgextended.accessory.Goggles.item();
-            check(gg != null, "очки Таума не нашлись в реестре");
+            check(gg != null, "Thaumcraft glasses not found in the registry");
             Class<?> revealer = Class.forName("thaumcraft.api.nodes.IRevealer"), popups = Class.forName("thaumcraft.api.IGoggles"), gear = Class.forName("thaumcraft.api.IVisDiscountGear");
             java.lang.reflect.Method shows = revealer.getMethod("showNodes", ItemStack.class, net.minecraft.entity.EntityLivingBase.class), pops = popups.getMethod("showIngamePopups", ItemStack.class, net.minecraft.entity.EntityLivingBase.class), disc = null;
             for (java.lang.reflect.Method m : gear.getMethods()) if ("getVisDiscount".equals(m.getName())) disc = m;
@@ -8305,7 +8305,7 @@ public class SelfTest {
                 if (one == null) one = x;
                 else if (two == null && !one.provides().contains(x) && !x.provides().contains(one)) two = x;
             }
-            check(one != null && two != null, "нет двух разных аксессуаров для шлема");
+            check(one != null && two != null, "no two different accessories for the helmet");
             StringBuilder rep = new StringBuilder();
             boolean ok = true;
             com.divinerpgextended.station.AnvilWork an = new com.divinerpgextended.station.AnvilWork();
@@ -8327,19 +8327,19 @@ public class SelfTest {
             AnvilLogic.Status third = AnvilLogic.evaluate(an, a, AnvilLogic.SOCKETS).status;
             an.setInventorySlotContents(AnvilLogic.DONOR, null);
             ok &= types && before && ready == AnvilLogic.Status.READY_SOCKET && after && same == AnvilLogic.Status.SOCKET_SAME && withTrinket == AnvilLogic.Status.READY_SOCKET && both && third == AnvilLogic.Status.SOCKET_FULL;
-            rep.append("Divine: интерфейсы ").append(types).append(", до ").append(before).append(", готово ").append(ready).append(", после ").append(after).append(", вторые очки ").append(same).append(", аксессуар ").append(withTrinket).append(", третье ").append(third);
+            rep.append("Divine: interfaces ").append(types).append(", before ").append(before).append(", ready ").append(ready).append(", after ").append(after).append(", second glasses ").append(same).append(", accessory ").append(withTrinket).append(", third ").append(third);
             // extract: the goggles come back, the helmet no longer shows them
             int gi = Goggles_index(helm, gg);
             boolean out = AnvilLogic.extract(an, a, 0, gi) && an.getStackInSlot(AnvilLogic.DONOR) != null && an.getStackInSlot(AnvilLogic.DONOR).getItem() == gg && !(Boolean) shows.invoke(helm.getItem(), helm, a) && (Integer) disc.invoke(helm.getItem(), helm, a, null) == 0;
             ok &= out;
-            rep.append("; вынуть ").append(out);
+            rep.append("; take out ").append(out);
             // helmet only
             for (int i = 0; i < AnvilLogic.SIZE; i++) an.setInventorySlotContents(i, null);
             an.setInventorySlotContents(AnvilLogic.ARMOR + 1, new ItemStack(VanillaItemsArmor.divineBody));
             an.setInventorySlotContents(AnvilLogic.DONOR, new ItemStack(gg));
             AnvilLogic.Status chest = AnvilLogic.evaluate(an, a, AnvilLogic.SOCKETS).status;
             ok &= chest == AnvilLogic.Status.SOCKET_PART;
-            rep.append("; в нагрудник ").append(chest);
+            rep.append("; into the chestplate ").append(chest);
             // Wanderer helmet: goggles go straight into the second socket, the boss is needed only for the accessory; with goggles there is no second accessory
             for (int i = 0; i < AnvilLogic.SIZE; i++) an.setInventorySlotContents(i, null);
             ItemStack wh = new ItemStack(ModItems.wanderer[0]);
@@ -8356,12 +8356,12 @@ public class SelfTest {
             AnvilLogic.Status fullNow = AnvilLogic.evaluate(an, a, AnvilLogic.SOCKETS).status;
             boolean bossOk = !Config.requireBossUnlocks || closed == AnvilLogic.Status.NEED_BOSS;
             ok &= first && bossOk && wanderGoggles && fullNow == AnvilLogic.Status.SOCKET_FULL;
-            rep.append("; Странник: аксессуар ").append(first).append(", второй до босса ").append(closed).append(", очки ").append(wanderGoggles).append(", второй после босса ").append(fullNow);
+            rep.append("; Wanderer: accessory ").append(first).append(", second before the boss ").append(closed).append(", glasses ").append(wanderGoggles).append(", second after the boss ").append(fullNow);
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "Чужие копатели не берут блоки с правилами добычи", () -> {
-            check(com.divinerpgextended.asm.MiningGuardTransformer.patched, "ForgeHooks.blockStrength не исправлен при загрузке");
+        t("Progression", "Other mods' miners do not take blocks with mining rules", () -> {
+            check(com.divinerpgextended.asm.MiningGuardTransformer.patched, "ForgeHooks.blockStrength was not patched at load");
             int x = 21500, y = 150, z = 21500;
             com.divinerpgextended.world.twilight.TwilightWorld eden = com.divinerpgextended.world.twilight.TwilightWorld.values()[0];
             net.minecraft.block.Block brick = net.divinerpg.utils.blocks.ArcanaBlocks.ancientBrick, ore = eden.ore(), jungle = com.divinerpgextended.registry.ModBlocks.jungleOre,
@@ -8386,9 +8386,9 @@ public class SelfTest {
             server.getConfigurationManager().playerEntityList.remove(tp);
             ow.removeEntity(tp);
             check(hard.length() == 0 && speed[0] == 0 && speed[1] == 0 && speed[2] == 0 && speed[3] > 0 && speed[4] > 0 && speed[5] > 0,
-                "ломаемы для всех: " + hard + "; алмазная: Аркана " + speed[0] + ", руда Эдема " + speed[1] + ", руда джунглей " + speed[2] + ", камень " + speed[3]
-                    + "; арканитовая по Аркане " + speed[4] + "; кирка Эдема по руде " + speed[5]);
-            if (!cpw.mods.fml.common.Loader.isModLoaded("AWWayofTime")) return "блоки с правилами для всех неломаемые, игрок ломает нужным инструментом; Blood Magic нет - настоящей киркой не проверялось";
+                "breakable for all: " + hard + "; diamond: Arcana " + speed[0] + ", Eden ore " + speed[1] + ", jungle ore " + speed[2] + ", stone " + speed[3]
+                    + "; arcanite on Arcana " + speed[4] + "; Eden pickaxe on ore " + speed[5]);
+            if (!cpw.mods.fml.common.Loader.isModLoaded("AWWayofTime")) return "blocks with rules are unbreakable for all, the player breaks them with the right tool; no Blood Magic - not checked with a real pickaxe";
             // a real bound pickaxe: right-click breaks everything around bypassing events; it rejects a fake player, hence an ordinary EntityPlayerMP
             net.minecraft.item.Item pick = (net.minecraft.item.Item) Class.forName("WayofTime.alchemicalWizardry.ModItems").getField("boundPickaxe").get(null);
             net.minecraft.entity.player.EntityPlayerMP real = new net.minecraft.entity.player.EntityPlayerMP(server, ow,
@@ -8412,10 +8412,10 @@ public class SelfTest {
                 for (Object o : ow.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class,
                     net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 8, y - 8, z - 8, x + 8, y + 8, z + 8))) ((net.minecraft.entity.Entity) o).setDead();
             }
-            check(plainGone && kept == guarded.length, "кирка Blood Magic: камень сломан " + plainGone + ", защищённых цело " + kept + " из " + guarded.length);
-            return "блоки с правилами для всех неломаемые, игрок ломает нужным инструментом; связанная кирка Blood Magic сломала камень рядом, а кирпич Арканы, руду Эдема, руду джунглей и сумеречный камень не тронула";
+            check(plainGone && kept == guarded.length, "Blood Magic pickaxe: stone broken " + plainGone + ", protected intact " + kept + " of " + guarded.length);
+            return "blocks with rules are unbreakable for all, the player breaks them with the right tool; the bound Blood Magic pickaxe broke the stone nearby but did not touch the Arcana brick, Eden ore, jungle ore and twilight stone";
         });
-        t("Прохождение", "Площадные инструменты чужих модов не ломают в привате", () -> {
+        t("Progression", "Area tools of other mods do not break in a private area", () -> {
             // the patches landed on the mods present in the modpack; full coverage with Vethea - by the "Vethea - coverage" filter
             StringBuilder miss = new StringBuilder();
             String[] want = { "WayofTime.alchemicalWizardry.common.items.BoundPickaxe", "WayofTime.alchemicalWizardry.common.items.BoundAxe",
@@ -8439,8 +8439,8 @@ public class SelfTest {
             }
             if (baubles && com.divinerpgextended.asm.BaublesTransformer.patched < 2) miss.append("Baubles ");
             if (!com.divinerpgextended.asm.ArmorTickTransformer.patched) miss.append("InventoryPlayer ");
-            check(miss.length() == 0, "без поправки: " + miss);
-            if (!cpw.mods.fml.common.Loader.isModLoaded("AWWayofTime")) return "поправки на месте; Blood Magic нет - связанными инструментами не проверялось";
+            check(miss.length() == 0, "without the patch: " + miss);
+            if (!cpw.mods.fml.common.Loader.isModLoaded("AWWayofTime")) return "patches in place; no Blood Magic - bound tools were not checked";
             int x = 21600, y = 150, z = 21500;
             Protection prot = new Protection();
             prot.dim = 0;
@@ -8469,7 +8469,7 @@ public class SelfTest {
                     tool.onItemRightClick(st, ow, real);
                     int kept = (ow.getBlock(x - 2, y, z) == Blocks.stone ? 1 : 0) + (ow.getBlock(x + 2, y, z) == Blocks.log ? 1 : 0) + (ow.getBlock(x, y, z + 2) == Blocks.dirt ? 1 : 0);
                     ok &= kept == 3;
-                    rep.append(f).append(": цело ").append(kept).append(" из 3; ");
+                    rep.append(f).append(": intact ").append(kept).append(" of 3; ");
                 }
             } finally {
                 MinecraftForge.EVENT_BUS.unregister(prot);
@@ -8480,9 +8480,9 @@ public class SelfTest {
                     net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 8, y - 8, z - 8, x + 8, y + 8, z + 8))) ((net.minecraft.entity.Entity) o).setDead();
             }
             check(ok, rep.toString());
-            return "поправки на месте; в привате связанные кирка, топор и лопата Blood Magic ничего не сломали (" + rep.toString().trim() + ")";
+            return "patches in place; in a private area the bound Blood Magic pickaxe, axe and shovel broke nothing (" + rep.toString().trim() + ")";
         });
-        t("Прохождение", "Факел зова не зовёт мобов выше ранга игроков рядом", () -> {
+        t("Progression", "Lure torch does not summon mobs above the rank of nearby players", () -> {
             WorldServer zw = server.worldServerForDimension(0);
             TestPlayer zp = join(player(0, "TestLureRank", 21000.5, 80, 21000.5), true);
             com.divinerpgextended.boss.BossProgress.revoke(zp, com.divinerpgextended.boss.Boss.CARCINUS);
@@ -8495,10 +8495,10 @@ public class SelfTest {
             boolean high = com.divinerpgextended.boss.ProgressSpawns.denied(zw, spider, spider.posX, spider.posZ);
             server.getConfigurationManager().playerEntityList.remove(zp);
             zw.removeEntity(zp);
-            check(low && !high, "паук джунглей у игрока ранга 0 запрещён " + low + ", у ранга 2 " + high);
-            return "факел зова (как и естественный спавн) не зовёт моба выше ранга игроков рядом: паук джунглей у ранга 0 - нет, у ранга 2 - да";
+            check(low && !high, "jungle spider forbidden for a rank 0 player " + low + ", for rank 2 " + high);
+            return "the lure torch (like natural spawning) does not summon a mob above the rank of nearby players: jungle spider for rank 0 - no, for rank 2 - yes";
         });
-        t("Прохождение", "Яйцо Странника: свой мир в родном биоме, иначе Странник без мира", () -> {
+        t("Progression", "Wanderer Egg: own world in the native biome, otherwise a Wanderer without a world", () -> {
             WorldServer eden = server.worldServerForDimension(ConfigurationHelper.eden);
             int ex = 7000, ez = 7000;
             loadAround(eden, ex, ez, 0);
@@ -8527,14 +8527,14 @@ public class SelfTest {
             server.getConfigurationManager().playerEntityList.remove(zp);
             zw.removeEntity(zp);
             check(home == com.divinerpgextended.world.twilight.TwilightWorld.EDEN && foreignBiome == null && overworld == null && strayOk && edenTrades,
-                "в Эдеме " + home + ", в Эдеме на чужом биоме " + foreignBiome + ", в обычном мире " + overworld + "; призван в обычном мире без мира и без сделок " + strayOk
-                + ", Странник Эдема торгует " + edenTrades);
-            return "яйцо в родном биоме мира - Странник этого мира со сделками; в обычном мире или на чужом биоме - Странник в зелёной робе без сделок";
+                "in Eden " + home + ", in Eden on a foreign biome " + foreignBiome + ", in the ordinary world " + overworld + "; summoned in the ordinary world without a world and without trades " + strayOk
+                + ", the Eden Wanderer trades " + edenTrades);
+            return "egg in the native biome of a world - Wanderer of that world with trades; in the ordinary world or on a foreign biome - Wanderer in a green robe without trades";
         });
-        t("Логова", "Ванильные шахты и подземелья со спавнером не ставятся у логов", () -> {
+        t("Lairs", "Vanilla mineshafts and spawner dungeons are not placed near lairs", () -> {
             WorldServer zw = server.worldServerForDimension(0);
             int[] site = com.divinerpgextended.world.LairSites.nearest(zw, com.divinerpgextended.world.LairSites.CARCINUS, 0, 0, 6000, 0);
-            check(site != null, "логово Карцинуса в 6000 блоках не найдено");
+            check(site != null, "Carcinus lair not found within 6000 blocks");
             boolean nearSite = com.divinerpgextended.world.VanillaClearance.nearLair(zw, site[0] + 20, site[1] - 20, 0);
             // far from all lairs: we look for a point with no lair nearby
             int[] far = null;
@@ -8563,12 +8563,12 @@ public class SelfTest {
                 reach = Math.max(reach, Math.max(Math.max(c0 - bb.minX, bb.maxX - c0), Math.max(c1 - bb.minZ, bb.maxZ - c1)));
             }
             boolean reachOk = reach <= com.divinerpgextended.world.VanillaClearance.MINESHAFT_REACH;
-            check(nearSite && dungeonDenied && far != null && farAllowed && shafts && reachOk, "охват шахт " + reach + " при отступе " + com.divinerpgextended.world.VanillaClearance.MINESHAFT_REACH
-                + "; у логова Карцинуса " + site[0] + "," + site[1] + ": рядом " + nearSite + ", подземелье запрещено " + dungeonDenied
-                + "; вдали от логов разрешено " + farAllowed + " (" + (far == null ? "точки не нашлось" : far[0] + "," + far[1]) + "); генератор шахт заменён " + shafts);
-            return "у логова Карцинуса " + site[0] + "," + site[1] + " подземелья со спавнером и начала шахт не ставятся, вдали - как обычно";
+            check(nearSite && dungeonDenied && far != null && farAllowed && shafts && reachOk, "mineshaft reach " + reach + " at offset " + com.divinerpgextended.world.VanillaClearance.MINESHAFT_REACH
+                + "; near the Carcinus lair " + site[0] + "," + site[1] + ": nearby " + nearSite + ", dungeon forbidden " + dungeonDenied
+                + "; far from lairs allowed " + farAllowed + " (" + (far == null ? "no point found" : far[0] + "," + far[1]) + "); mineshaft generator replaced " + shafts);
+            return "near the Carcinus lair " + site[0] + "," + site[1] + " spawner dungeons and mineshaft starts are not placed, far away - as usual";
         });
-        t("Прохождение", "Карта к храму джунглей, Странник, подозрительный песчаник, Повелитель ветров", () -> {
+        t("Progression", "Map to the jungle temple, Wanderer, suspicious sandstone, Wind Lord", () -> {
             WorldServer zw = server.worldServerForDimension(0);
             TestPlayer zp = join(player(0, "TestJungleMap", 0.5, 120, 0.5), true);
             zp.inventory.clearInventory(null, -1);
@@ -8601,12 +8601,12 @@ public class SelfTest {
                 new String[] { "func_70673_aS", "getDeathSound" }).invoke(lord));
             ItemStack pick = new com.divinerpgextended.entity.EntitySkyCart(zw).getPickedResult(null);
             boolean cartPick = pick != null && pick.getItem() == ModItems.skyCart;
-            check(map && trapOk && wHp == 1000 && oldHp == 1000 && fighters == 1 && quietDeath && cartPick, "карта к храму " + map + " (" + said + "); песчаник " + trap
-                + "; Странник " + wHp + ", старый " + oldHp + "; Повелитель: бивших " + fighters + ", звук смерти не драконий " + quietDeath + "; вагонетка по средней кнопке " + pick);
-            return "карта к храму джунглей ведёт к месту из сида (" + said + "); 5 гладкого песчаника шлемом = 5 подозрительного; Странник 1000 здоровья (и старые); "
-                + "звук победы над Повелителем ветров - только бившим; средняя кнопка по вагонетке Апалачии даёт её";
+            check(map && trapOk && wHp == 1000 && oldHp == 1000 && fighters == 1 && quietDeath && cartPick, "map to the temple " + map + " (" + said + "); sandstone " + trap
+                + "; Wanderer " + wHp + ", old " + oldHp + "; Lord: attackers " + fighters + ", death sound is not the dragon's " + quietDeath + "; minecart by middle button " + pick);
+            return "the map to the jungle temple leads to the place from the seed (" + said + "); 5 smooth sandstone with a helmet = 5 suspicious; Wanderer has 1000 health (and old ones); "
+                + "the victory sound over the Wind Lord - only for those who hit him; middle button on an Apalachia cart gives it";
         });
-        t("Прохождение", "Фонтанный зал Арканы: концентрат, аркана, рыба Арканы", () -> {
+        t("Progression", "Arcana fountain hall: concentrate, arcana, Arcana fish", () -> {
             WorldServer za = server.worldServerForDimension(ConfigurationHelper.arcana);
             int[] room = null;
             for (int fc = 0; fc < 12 && room == null; fc++) {
@@ -8616,7 +8616,7 @@ public class SelfTest {
                     if (com.divinerpgextended.world.ArcanaFountain.build(za, fcx * 16, com.divinerpgextended.world.ArcanaFountain.floorY(fl), fcz * 16))
                         room = new int[] { fcx * 16, com.divinerpgextended.world.ArcanaFountain.floorY(fl), fcz * 16 };
             }
-            check(room != null, "ни одной комнаты без тайников в 12 чанках");
+            check(room != null, "no room without caches within 12 chunks");
             // a hall in a new chunk stands on a real floor: under the lowest floor (height 8) it is empty and nothing is built there
             boolean belowRefused = !com.divinerpgextended.world.ArcanaFountain.build(za, 52 * 16, 0, 40 * 16);
             int savedChance = Config.arcanaFountainChance, builtBefore = com.divinerpgextended.world.ArcanaFountain.built, under = 0;
@@ -8633,7 +8633,7 @@ public class SelfTest {
                 Config.arcanaFountainChance = savedChance;
             }
             int madeHalls = com.divinerpgextended.world.ArcanaFountain.built - builtBefore;
-            check(belowRefused && madeHalls > 0 && under == 0, "под картой отказ " + belowRefused + ", построено залов в 24 чанках " + madeHalls + ", блоков ниже нижнего этажа " + under);
+            check(belowRefused && madeHalls > 0 && under == 0, "under the map refusal " + belowRefused + ", halls built within 24 chunks " + madeHalls + ", blocks below the lowest floor " + under);
             int pool = 0;
             for (int x = room[0]; x < room[0] + 16; x++) for (int z = room[2]; z < room[2] + 16; z++)
                 if (za.getBlock(x, room[1] + 1, z) == com.divinerpgextended.registry.ModBlocks.arcaneConcentrate) pool++;
@@ -8661,11 +8661,11 @@ public class SelfTest {
                 }
                 hk.setDead();
             }
-            check(pool >= 30 && bar > 0 && zone && waits[0] == 0 && waits[1] > 0, "чаша " + pool + " блоков, аркана в концентрате " + bar + ", зона " + zone
-                + ", поклёвка: обычная удочка " + waits[0] + ", арканная " + waits[1]);
-            return "в комнате Арканы - зал с чашей концентрата (" + pool + " блоков): стоящий в нём восстанавливает аркану; рыба Арканы - только в концентрате и только на арканную удочку";
+            check(pool >= 30 && bar > 0 && zone && waits[0] == 0 && waits[1] > 0, "bowl " + pool + " blocks, arcana in the concentrate " + bar + ", zone " + zone
+                + ", bite: regular rod " + waits[0] + ", arcane " + waits[1]);
+            return "in an Arcana room - a hall with a concentrate bowl (" + pool + " blocks): standing in it restores arcana; Arcana fish - only in the concentrate and only with the arcane rod";
         });
-        t("Логова", "Покой арены", () -> {
+        t("Lairs", "Arena peace", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
             loadAround(w, 9700, 9800, 2);
             net.minecraft.entity.monster.EntityZombie wild = new net.minecraft.entity.monster.EntityZombie(w);
@@ -8690,10 +8690,10 @@ public class SelfTest {
             int outside = com.divinerpgextended.trinket.DoubleJump.carpetTicks(cp);
             unwearT(cp);
             ag.setDead();
-            check(cleared && denied && inFight == 0 && outside > 0, "расчищено " + cleared + ", спавн в бою запрещён " + denied + ", ковёр в бою " + inFight + ", вне арены " + outside);
-            return "вызов босса расчищает поляну, пока он жив - мобы на арене не спавнятся; ковёр в бою не работает, за ареной работает";
+            check(cleared && denied && inFight == 0 && outside > 0, "cleared " + cleared + ", spawning in battle forbidden " + denied + ", carpet in battle " + inFight + ", outside the arena " + outside);
+            return "boss summon clears the clearing, while he is alive mobs do not spawn on the arena; the carpet does not work in battle, works outside the arena";
         });
-        t("Логова", "Голем швыряет глыбы", () -> {
+        t("Lairs", "Golem throws boulders", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
             loadAround(w, 9600, 9600, 2);
             for (int i = -4; i <= 24; i++) for (int k2 = -4; k2 <= 4; k2++) {
@@ -8712,10 +8712,10 @@ public class SelfTest {
             }
             for (Object o : w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityBoulder.class, g2.boundingBox.expand(40, 20, 40))) ((net.minecraft.entity.Entity) o).setDead();
             g2.setDead();
-            check(boulders > 0, "глыб за 6.5 с при цели в 18 блоках: " + boulders);
-            return "цель держится в 18 блоках - голем вырывает и швыряет глыбу";
+            check(boulders > 0, "boulders in 6.5 s with the target 18 blocks away: " + boulders);
+            return "the target stays within 18 blocks - the golem tears out and throws a boulder";
         });
-        t("Логова", "Голем против лучника", () -> {
+        t("Lairs", "Golem versus archer", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
             loadAround(w, 9620, 9640, 2);
             TestPlayer av = join(player(ConfigurationHelper.wildwood, "TestArcher", 9636.5, 100, 9640.5), true);
@@ -8735,10 +8735,10 @@ public class SelfTest {
             }
             double pull = av.motionX; // the golem is to the west - pulls toward -x
             g4.setDead();
-            check(windup && pull < -0.5, "замах лианы " + windup + ", рывок к голему " + pull);
-            return "стрела издалека - замах лианы 0.75 с, потом рывок стрелка к голему (не чаще раза в 3 с)";
+            check(windup && pull < -0.5, "vine windup " + windup + ", dash to the golem " + pull);
+            return "arrow from afar - vine windup 0.75 s, then the archer dashes to the golem (not more than once in 3 s)";
         });
-        t("Логова", "Слайсер режет лиану", () -> {
+        t("Lairs", "Slicer cuts the vine", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
             loadAround(w, 9620, 9680, 2);
             TestPlayer sv5 = join(player(ConfigurationHelper.wildwood, "TestSlicer", 9636.5, 100, 9680.5), true);
@@ -8763,10 +8763,10 @@ public class SelfTest {
             }
             double pulled = sv5.motionX;
             g5.setDead();
-            check(wind && cut && pulled > -0.5, "замах " + wind + ", перерезана " + cut + ", рывок " + pulled);
-            return "слайсер на замахе лианы перерезает её - рывка нет";
+            check(wind && cut && pulled > -0.5, "windup " + wind + ", cut " + cut + ", dash " + pulled);
+            return "the slicer cuts the vine during the windup - no dash";
         });
-        t("Логова", "Блиц: дробь", () -> {
+        t("Lairs", "Blitz: buckshot", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9500, 9700, 1);
             TestPlayer bv2 = join(player(ConfigurationHelper.eden, "TestBlitz", 9500.5, 120, 9700.5), true);
@@ -8806,10 +8806,10 @@ public class SelfTest {
             boolean noKnock = Math.abs(kb.motionX) < 0.01;
             kb.setDead();
             check(pellets == com.divinerpgextended.perk.RangedRoles.PELLETS && owned == pellets && Math.abs(h1.ammount - 10 * pd * 2) < 0.01 && Math.abs(h2.ammount - 10 * pd) < 0.01 && noKnock,
-                "снарядов " + pellets + " (со стрелком " + owned + "), по подручному " + h1.ammount + ", по обычному " + h2.ammount + ", босса не отбросило " + noKnock);
-            return "выстрел блица - 5 снарядов веером; дробина по обычному мобу " + Math.round(pd * 100) + "%, по подручному босса x2; боссов дробь не отбрасывает";
+                "projectiles " + pellets + " (with a shooter " + owned + "), against the sidekick " + h1.ammount + ", against a regular one " + h2.ammount + ", boss not knocked back " + noKnock);
+            return "Blitz shot - 5 projectiles in a fan; pellet against a regular mob " + Math.round(pd * 100) + "%, against the boss's sidekick x2; pellets do not knock bosses back";
         });
-        t("Логова", "Фазер: пробой и тотем", () -> {
+        t("Lairs", "Phaser: pierce and totem", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.skythern);
             loadAround(w, 9520, 9720, 2);
             TestPlayer pv = join(player(ConfigurationHelper.skythern, "TestPhaser", 9510.5, 120, 9720.5), true);
@@ -8849,10 +8849,10 @@ public class SelfTest {
                 w.setBlockToAir(t2[0], t2[1], t2[2]);
             }
             wl.setDead();
-            check(behind && lit && shots == 5 && hp < 0.8F, "снаряд за спиной " + behind + " (было " + before + ", стало " + after.size() + "), тотем зажжён " + lit + " за " + shots + " попаданий, здоровье " + hp);
-            return "фазер пробивает моба насквозь (летит дальше); 5 быстрых попаданий в тотем зажигают его издалека";
+            check(behind && lit && shots == 5 && hp < 0.8F, "projectile behind " + behind + " (was " + before + ", became " + after.size() + "), totem lit " + lit + " in " + shots + " hits, health " + hp);
+            return "the phaser pierces a mob through (flies on); 5 quick hits on the totem light it from afar";
         });
-        t("Прохождение", "Вагонетка на полном ходу по кольцу: не в блоках", () -> {
+        t("Progression", "Minecart at full speed on a loop: not in blocks", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9540, 9520, 1);
             int x0 = 9540, y0 = 100, z0 = 9520, W = 14, H = 6;
@@ -8887,13 +8887,13 @@ public class SelfTest {
                 double mx = cart.posX, my = cart.posY + cart.height / 2, mz = cart.posZ;
                 if (w.getBlock((int) Math.floor(mx), (int) Math.floor(my), (int) Math.floor(mz)).isNormalCube()) {
                     bodyIn++;
-                    if (where.length() < 300) where.append(" тело@").append(java.util.Arrays.toString(cart.railPos()));
+                    if (where.length() < 300) where.append(" body@").append(java.util.Arrays.toString(cart.railPos()));
                 }
                 double ex = mx + n[0] * com.divinerpgextended.entity.EntitySkyCart.EYES, ey = my + n[1] * com.divinerpgextended.entity.EntitySkyCart.EYES,
                     ez = mz + n[2] * com.divinerpgextended.entity.EntitySkyCart.EYES;
                 if (w.getBlock((int) Math.floor(ex), (int) Math.floor(ey), (int) Math.floor(ez)).isNormalCube()) {
                     eyeIn++;
-                    if (where.length() < 300) where.append(" глаза@").append(java.util.Arrays.toString(cart.railPos()));
+                    if (where.length() < 300) where.append(" eyes@").append(java.util.Arrays.toString(cart.railPos()));
                 }
                 for (int i = 0; i < 3; i++) {
                     cp[i] += ((i == 0 ? cart.posX : i == 1 ? cart.posY : cart.posZ) - cp[i]) / com.divinerpgextended.entity.EntitySkyCart.CLIENT_LERP;
@@ -8904,7 +8904,7 @@ public class SelfTest {
                     kz = cp[2] + cn[2] / cl * com.divinerpgextended.entity.EntitySkyCart.EYES;
                 if (w.getBlock((int) Math.floor(kx), (int) Math.floor(ky), (int) Math.floor(kz)).isNormalCube()) {
                     camIn++;
-                    if (where.length() < 300) where.append(" камера@").append(java.util.Arrays.toString(cart.railPos()));
+                    if (where.length() < 300) where.append(" camera@").append(java.util.Arrays.toString(cart.railPos()));
                 }
             }
             rp.mountEntity(null);
@@ -8923,7 +8923,7 @@ public class SelfTest {
                 mc.updateRiderPosition();
                 if (zr.isEntityInsideOpaqueBlock()) {
                     mobIn++;
-                    if (where.length() < 400) where.append(" моб@").append(java.util.Arrays.toString(mc.railPos()));
+                    if (where.length() < 400) where.append(" mob@").append(java.util.Arrays.toString(mc.railPos()));
                 }
             }
             double mobTop = mc.speed();
@@ -8931,11 +8931,11 @@ public class SelfTest {
             zr.setDead();
             mc.setDead();
             for (int x = x0 - 1; x <= x0 + W; x++) for (int y = y0 - 1; y <= y0 + H; y++) for (int z = z0 - 2; z <= z0 + 2; z++) w.setBlockToAir(x, y, z);
-            check(top >= 0.8 && bodyIn == 0 && eyeIn == 0 && camIn == 0 && mobIn == 0, "скорость " + String.format("%.2f", top) + ": тело в блоке " + bodyIn
-                + " тиков, глаза " + eyeIn + ", камера со сглаживанием " + camIn + ", моб в блоке " + mobIn + " (скорость моба " + String.format("%.2f", mobTop) + ")" + where);
-            return "на полном ходу (" + String.format("%.2f", top) + ") по кольцу пол - стена - потолок ни вагонетка, ни глаза, ни камера, ни моб не уходят в блоки";
+            check(top >= 0.8 && bodyIn == 0 && eyeIn == 0 && camIn == 0 && mobIn == 0, "speed " + String.format("%.2f", top) + ": body in block " + bodyIn
+                + " ticks, eyes " + eyeIn + ", camera with smoothing " + camIn + ", mob in block " + mobIn + " (mob speed " + String.format("%.2f", mobTop) + ")" + where);
+            return "at full speed (" + String.format("%.2f", top) + ") on a floor - wall - ceiling loop neither the minecart, nor the eyes, nor the camera, nor the mob go into blocks";
         });
-        t("Прохождение", "Вагонетка на полном ходу через гору: не в блоках", () -> {
+        t("Progression", "Minecart at full speed over a mountain: not in blocks", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9540, 9470, 2);
             int x0 = 9520, y0 = 100, z0 = 9470, xa = x0 + 12, xb = xa + 3, xe = xb + 12, Hh = 4;
@@ -8969,13 +8969,13 @@ public class SelfTest {
                 if (cart.railPos()[0] >= xa - 1 && cart.railPos()[0] <= xb + 1) fast = Math.max(fast, cart.speed());
                 if (w.getBlock((int) Math.floor(mx), (int) Math.floor(my), (int) Math.floor(mz)).isNormalCube()) {
                     bodyIn++;
-                    if (where.length() < 300) where.append(" тело@").append(java.util.Arrays.toString(cart.railPos())).append(String.format("/%.2f", cart.speed()));
+                    if (where.length() < 300) where.append(" body@").append(java.util.Arrays.toString(cart.railPos())).append(String.format("/%.2f", cart.speed()));
                 }
                 double ex = mx + n[0] * com.divinerpgextended.entity.EntitySkyCart.EYES, ey = my + n[1] * com.divinerpgextended.entity.EntitySkyCart.EYES,
                     ez = mz + n[2] * com.divinerpgextended.entity.EntitySkyCart.EYES;
                 if (w.getBlock((int) Math.floor(ex), (int) Math.floor(ey), (int) Math.floor(ez)).isNormalCube()) {
                     eyeIn++;
-                    if (where.length() < 300) where.append(" глаза@").append(java.util.Arrays.toString(cart.railPos())).append(String.format("/%.2f", cart.speed()));
+                    if (where.length() < 300) where.append(" eyes@").append(java.util.Arrays.toString(cart.railPos())).append(String.format("/%.2f", cart.speed()));
                 }
                 for (int i = 0; i < 3; i++) {
                     cp[i] += ((i == 0 ? cart.posX : i == 1 ? cart.posY : cart.posZ) - cp[i]) / com.divinerpgextended.entity.EntitySkyCart.CLIENT_LERP;
@@ -8986,7 +8986,7 @@ public class SelfTest {
                     kz = cp[2] + cn[2] / cl * com.divinerpgextended.entity.EntitySkyCart.EYES;
                 if (w.getBlock((int) Math.floor(kx), (int) Math.floor(ky), (int) Math.floor(kz)).isNormalCube()) {
                     camIn++;
-                    if (where.length() < 300) where.append(" камера@").append(java.util.Arrays.toString(cart.railPos())).append(String.format("/%.2f", cart.speed()));
+                    if (where.length() < 300) where.append(" camera@").append(java.util.Arrays.toString(cart.railPos())).append(String.format("/%.2f", cart.speed()));
                 }
             }
             rp.mountEntity(null);
@@ -9005,19 +9005,19 @@ public class SelfTest {
                 mobMax = Math.max(mobMax, mc.railPos()[0]);
                 if (zr.isEntityInsideOpaqueBlock()) {
                     mobIn++;
-                    if (where.length() < 400) where.append(" моб@").append(java.util.Arrays.toString(mc.railPos())).append(String.format("/%.2f", mc.speed()));
+                    if (where.length() < 400) where.append(" mob@").append(java.util.Arrays.toString(mc.railPos())).append(String.format("/%.2f", mc.speed()));
                 }
             }
             zr.mountEntity(null);
             zr.setDead();
             mc.setDead();
             for (int x = x0 - 1; x <= xe + 1; x++) for (int y = y0 - 1; y <= y0 + 8; y++) for (int z = z0 - 2; z <= z0 + 2; z++) w.setBlockToAir(x, y, z);
-            check(maxX >= xe - 1 && bodyIn == 0 && eyeIn == 0 && camIn == 0 && mobIn == 0, "скорость " + String.format("%.2f", top) + " (на горе " + String.format("%.2f", fast)
-                + "), доехала до " + (maxX - x0) + " из " + (xe - x0) + ", моб до " + (mobMax - x0) + ": тело в блоке " + bodyIn + " тиков, глаза " + eyeIn
-                + ", камера со сглаживанием " + camIn + ", моб в блоке " + mobIn + where);
-            return "разгон на рельсах арканы, гора (стена вверх, верх, стена вниз) на скорости " + String.format("%.2f", fast) + ": ничего не уходит в блоки";
+            check(maxX >= xe - 1 && bodyIn == 0 && eyeIn == 0 && camIn == 0 && mobIn == 0, "speed " + String.format("%.2f", top) + " (on the mountain " + String.format("%.2f", fast)
+                + "), reached " + (maxX - x0) + " of " + (xe - x0) + ", mob up to " + (mobMax - x0) + ": body in block " + bodyIn + " ticks, eyes " + eyeIn
+                + ", camera with smoothing " + camIn + ", mob in block " + mobIn + where);
+            return "acceleration on Arcana rails, a mountain (wall up, top, wall down) at speed " + String.format("%.2f", fast) + ": nothing goes into blocks";
         });
-        t("Прохождение", "Целое снаряжение с мобов Divine", () -> {
+        t("Progression", "Intact gear from Divine mobs", () -> {
             WorldServer w = server.worldServerForDimension(0);
             net.divinerpg.entities.vanilla.EntityWildfire wf = new net.divinerpg.entities.vanilla.EntityWildfire(w);
             ItemStack bowD = new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.infernoBow);
@@ -9036,10 +9036,10 @@ public class SelfTest {
             wd.add(new net.minecraft.entity.item.EntityItem(w, 0, 100, 0, dye));
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(wf, DamageSource.generic, wd, 0, true, 0));
             check(bowD.getItemDamage() == 0 && bow2.getItemDamage() == 37 && dye.getItemDamage() == 4,
-                "лук инферно после дропа с Wildfire " + bowD.getItemDamage() + ", лук зомби " + bow2.getItemDamage() + ", краситель " + dye.getItemDamage());
-            return "лук инферно с Wildfire падает целым; снаряжение ванильных мобов и предметы с подтипами не меняются";
+                "inferno bow after drop from Wildfire " + bowD.getItemDamage() + ", zombie bow " + bow2.getItemDamage() + ", dye " + dye.getItemDamage());
+            return "the inferno bow drops intact from Wildfire; gear of vanilla mobs and items with subtypes are unchanged";
         });
-        t("Прохождение", "Палящий меч, адское оружие по морозным, клинки Лича у Трона", () -> {
+        t("Progression", "Blazing Sword, hell weapon against frost mobs, Lich blades at the Throne", () -> {
             WorldServer w = server.worldServerForDimension(0);
             TestPlayer hp14 = join(player(0, "TestHellBlade", sx + 40.5, sy, sz + 0.5), true);
             hold(hp14, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.scorchingSword));
@@ -9062,11 +9062,11 @@ public class SelfTest {
             server.getConfigurationManager().playerEntityList.remove(hp14);
             w.removeEntity(hp14);
             check(lit && hh.ammount >= 9.99F && fa.isBurning() && cold && vsC > 1.0F && hm.ammount >= 9.99F,
-                "палящий поджёг зомби " + lit + ", по морозному лучнику " + hh.ammount + " (горит " + fa.isBurning() + "), морозные Лич и Колосс " + cold
-                + ", ледяной меч по Колоссу x" + vsC + ", по мертвецу Трона " + hm.ammount);
-            return "палящий меч поджигает; адское оружие по морозному лучнику x2 и поджог (Лич и Колосс тоже морозные); ледяной меч по Колоссу x" + vsC + ", по мертвецам x2";
+                "blazing set a zombie on fire " + lit + ", against the frost archer " + hh.ammount + " (burning " + fa.isBurning() + "), frost Lich and Colossus " + cold
+                + ", ice sword against the Colossus x" + vsC + ", against the Throne dead man " + hm.ammount);
+            return "the blazing sword ignites; hell weapon against a frost archer x2 and ignites (Lich and Colossus are frost too); ice sword against the Colossus x" + vsC + ", against the dead x2";
         });
-        t("Прохождение", "Приват без PvP: эффекты оружия не трогают мирных", () -> {
+        t("Progression", "Private area without PvP: weapon effects do not touch peaceful mobs", () -> {
             WorldServer w = server.worldServerForDimension(0);
             TestPlayer pv = join(player(0, "TestPvpOff", sx + 44.5, sy, sz + 0.5), true);
             hold(pv, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.redEnderSword));
@@ -9084,10 +9084,10 @@ public class SelfTest {
                 && !com.divinerpgextended.perk.Protection.shielded(new net.minecraft.entity.monster.EntitySpider(w));
             server.getConfigurationManager().playerEntityList.remove(pv);
             w.removeEntity(pv);
-            check(!lit[0] && lit[1] && lit[2] && kinds, "в привате корова горит " + lit[0] + ", зомби горит " + lit[1] + "; без привата корова горит " + lit[2] + "; кого бережёт " + kinds);
-            return "в привате без PvP красный меч не поджигает корову (зомби - поджигает); вне привата - как обычно; свинозомби и пауков приват не бережёт";
+            check(!lit[0] && lit[1] && lit[2] && kinds, "in a private area the cow burns " + lit[0] + ", zombie burns " + lit[1] + "; without a private area the cow burns " + lit[2] + "; whom it spares " + kinds);
+            return "in a private area without PvP the red sword does not ignite the cow (the zombie - it ignites); outside a private area - as usual; zombie pigmen and spiders are not spared by the private area";
         });
-        t("Прохождение", "Эндермен от красного меча не прыгает, пока горит", () -> {
+        t("Progression", "Enderman does not jump from the red sword while burning", () -> {
             WorldServer w = server.worldServerForDimension(0);
             TestPlayer ep = join(player(0, "TestRedEnder", sx + 48.5, sy, sz + 0.5), true);
             hold(ep, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.redEnderSword));
@@ -9106,10 +9106,10 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(te2);
             server.getConfigurationManager().playerEntityList.remove(ep);
             w.removeEntity(ep);
-            check(until > w.getTotalWorldTime() && held && !te2.isCanceled(), "прибит до " + (until - w.getTotalWorldTime()) + " тиков, горящий держится " + held + ", потухший и отпущенный прыгает " + !te2.isCanceled());
-            return "после удара красным мечом эндермен прибит, пока горит (огонь меча больше не гонит его прыгать); потух - снова прыгает";
+            check(until > w.getTotalWorldTime() && held && !te2.isCanceled(), "pinned until " + (until - w.getTotalWorldTime()) + " ticks, the burning one holds " + held + ", the extinguished and released one jumps " + !te2.isCanceled());
+            return "after a hit with the red sword the enderman is pinned while burning (the sword's fire no longer drives him to jump); extinguished - jumps again";
         });
-        t("Прохождение", "Снежки по 64, вагонетка в творческом, кирка инея и руда", () -> {
+        t("Progression", "Snowballs by 64, minecart in creative, frost pickaxe and ore", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             boolean snow = new ItemStack(Items.snowball).getMaxStackSize() == 64;
             loadAround(w, 9600, 9440, 1);
@@ -9132,10 +9132,10 @@ public class SelfTest {
             }
             boolean ore = com.divinerpgextended.item.ItemIcePick.square(com.divinerpgextended.registry.ModBlocks.rimeOre)
                 && com.divinerpgextended.item.ItemIcePick.square(net.divinerpg.utils.blocks.IceikaBlocks.frozenStone);
-            check(snow && gone && ore, "снежки по " + new ItemStack(Items.snowball).getMaxStackSize() + ", вагонетка в творческом исчезла " + cc.isDead + " (предметов " + items + "), руда инея в квадрате " + ore);
-            return "снежки стакаются по 64; вагонетка, сломанная в творческом, исчезает без выпадения; кирка инея ломает квадратом и руду инея";
+            check(snow && gone && ore, "snowballs by " + new ItemStack(Items.snowball).getMaxStackSize() + ", minecart in creative vanished " + cc.isDead + " (items " + items + "), frost ore in the square " + ore);
+            return "snowballs stack by 64; a minecart broken in creative vanishes without dropping; the frost pickaxe breaks in a square and frost ore";
         });
-        t("Прохождение", "Грядка мечтаний: морковь и арбуз", () -> {
+        t("Progression", "Dream Bed: carrot and melon", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int fx = sx + 52, fy = sy + 20, fz = sz;
             for (int dx = -1; dx <= 2; dx++) for (int dz = -1; dz <= 1; dz++) {
@@ -9179,11 +9179,11 @@ public class SelfTest {
                 w.setBlockToAir(fx + dx, fy, fz + dz);
                 w.setBlockToAir(fx + dx, fy - 1, fz + dz);
             }
-            check(planted && notEaten && lucky > plain && fruit && slices >= 3 && seedsPlant, "посажена " + planted + ", не съедена " + notEaten + ", урожай без удачи " + plain
-                + " / с удачей III " + lucky + " (40 раз), арбуз вырос " + fruit + ", долек " + slices + ", семечки сажают стебель " + seedsPlant);
-            return "морковь мечтаний сажается на пашню (не съедается тем же кликом), с удачей урожай больше (" + plain + " -> " + lucky + "); семечки - стебель - блок арбуза мечтаний - " + slices + " долек";
+            check(planted && notEaten && lucky > plain && fruit && slices >= 3 && seedsPlant, "planted " + planted + ", not eaten " + notEaten + ", harvest without luck " + plain
+                + " / with luck III " + lucky + " (40 times), melon grew " + fruit + ", slices " + slices + ", seeds plant a stem " + seedsPlant);
+            return "dream carrot is planted on farmland (not eaten by the same click), with luck the harvest is bigger (" + plain + " -> " + lucky + "); seeds - stem - dream melon block - " + slices + " slices";
         });
-        t("Прохождение", "Яйца призыва боссов", () -> {
+        t("Progression", "Boss summon eggs", () -> {
             WorldServer w = server.worldServerForDimension(0);
             StringBuilder bad = new StringBuilder();
             int ok14 = 0;
@@ -9195,10 +9195,10 @@ public class SelfTest {
                 if (be != null) be.setDead();
             }
             String nm = new ItemStack(com.divinerpgextended.registry.ModItems.bossEgg, 1, 0).getDisplayName();
-            check(bad.length() == 0, "не призвались:" + bad);
-            return "все " + ok14 + " яиц призывают своих боссов (\"" + nm + "\" и т.д.)";
+            check(bad.length() == 0, "not summoned:" + bad);
+            return "all " + ok14 + " eggs summon their own bosses (\"" + nm + "\" etc.)";
         });
-        t("Прохождение", "Карцинус: лимит крабов, пауза, крабы умирают с боссом, ближний бой", () -> {
+        t("Progression", "Carcinus: crab limit, pause, crabs die with the boss, melee", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int cx14 = sx + 70, cy14 = sy + 40, cz14 = sz;
             for (int dx = -10; dx <= 10; dx++) for (int dz = -10; dz <= 10; dz++) {
@@ -9253,11 +9253,11 @@ public class SelfTest {
             server.getConfigurationManager().playerEntityList.remove(cp14);
             w.removeEntity(cp14);
             check(most <= com.divinerpgextended.entity.EntityCarcinus.MAX_CRABS && full >= 8 && noLoot && during <= full - 1 && !farHit && nearHit && left == 0,
-                "крабов максимум " + most + " (стало " + full + "), с краба лут " + !noLoot + ", после гибели краба за 14 с крабов " + during + ", бьёт с 5 блоков " + farHit
-                + ", с 2 блоков " + nearHit + ", после смерти босса живых крабов " + left);
-            return "Карцинус держит не больше " + com.divinerpgextended.entity.EntityCarcinus.MAX_CRABS + " крабов (набрал " + full + "), после гибели краба 15 с не зовёт новых, крабы без лута и гибнут с боссом; клешнями достаёт с 2 блоков, с 5 - нет";
+                "crabs maximum " + most + " (became " + full + "), loot from a crab " + !noLoot + ", after a crab's death in 14 s crabs " + during + ", hits from 5 blocks " + farHit
+                + ", from 2 blocks " + nearHit + ", living crabs after the boss's death " + left);
+            return "Carcinus holds no more than " + com.divinerpgextended.entity.EntityCarcinus.MAX_CRABS + " crabs (reached " + full + "), after a crab's death does not summon new ones for 15 s, crabs without loot and die with the boss; reaches with claws from 2 blocks, not from 5";
         });
-        t("Прохождение", "Блоки норы Карцинуса ломаются, но не уносятся", () -> {
+        t("Progression", "Carcinus burrow blocks break but are not carried away", () -> {
             WorldServer w = server.worldServerForDimension(0);
             boolean hard = com.divinerpgextended.registry.ModBlocks.burrow.getBlockHardness(w, 0, 0, 0) > 0
                 && com.divinerpgextended.registry.ModBlocks.sharkNest.getBlockHardness(w, 0, 0, 0) > 0;
@@ -9280,10 +9280,10 @@ public class SelfTest {
             w.setBlockToAir(bx, by, bz);
             server.getConfigurationManager().playerEntityList.remove(bp14);
             w.removeEntity(bp14);
-            check(hard && conv && placed, "ломаются " + hard + ", в инвентаре стали ванильными " + conv + ", поставленное гнездо - песок " + placed);
-            return "песчаник норы и гнездо ломаются, как раньше (пролом засыпает песком); в инвентаре: песчаник норы - песчаник (песчаный - песок), сердце - резной песчаник, гнездо - песок; поставленное игроком - обычный блок";
+            check(hard && conv && placed, "breaks " + hard + ", in inventory became vanilla " + conv + ", placed nest is sand " + placed);
+            return "burrow sandstone and nest break as before (the breach fills with sand); in inventory: burrow sandstone - sandstone (sandy - sand), heart - chiseled sandstone, nest - sand; player-placed - plain block";
         });
-        t("Прохождение", "Факелы гонят монстров своего мира; адский факел", () -> {
+        t("Progression", "Torches repel monsters of their own world; Nether torch", () -> {
             WorldServer ow14 = server.worldServerForDimension(0), wild = server.worldServerForDimension(ConfigurationHelper.wildwood),
                 nether = server.worldServerForDimension(-1);
             Block wt = com.divinerpgextended.registry.ModBlocks.worldTorch[com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD.ordinal()];
@@ -9311,10 +9311,10 @@ public class SelfTest {
                 if (r.getRecipeOutput() != null && r.getRecipeOutput().getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.netherTorch)) recipe = true;
             }
             check(!"DENY".equals(res[0]) && "DENY".equals(res[1]) && "DENY".equals(res[2]) && "DENY".equals(res[3]) && recipe,
-                "факел Дикого леса в обычном мире: циклоп " + res[0] + "; в Диком лесу: бегемот " + res[1] + "; скелетный в обычном мире: " + res[2] + "; адский в Аду: " + res[3] + "; рецепт " + recipe);
-            return "факел Дикого леса гонит монстров только в Диком лесу, скелетный - всех монстров Divine в обычном мире, адский (из стержня ифрита) - в Аду";
+                "Wildwood torch in the overworld: cyclops " + res[0] + "; in Wildwood: behemoth " + res[1] + "; skeleton in the overworld: " + res[2] + "; Nether in the Nether: " + res[3] + "; recipe " + recipe);
+            return "Wildwood torch repels monsters only in Wildwood, skeleton torch - all Divine monsters in the overworld, Nether torch (from a blaze rod) - in the Nether";
         });
-        t("Прохождение", "Лета из ведра и река Леты текут одинаково, между двумя источниками - новый", () -> {
+        t("Progression", "Lethe from a bucket and the Lethe river flow the same, a new source forms between two sources", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int x0 = 9660, y0 = 100, z0 = 9640;
             loadAround(w, x0, z0, 1);
@@ -9339,10 +9339,10 @@ public class SelfTest {
                 for (int x = x0 - 3; x <= x0 + 3; x++) for (int z = z0 - 3; z <= z0 + 3; z++) if (w.getBlock(x, y0, z) == rv) rv.updateTick(w, x, y0, z, w.rand);
             boolean still = w.getBlock(x0 + 2, y0, z0) == rv && w.getBlockMetadata(x0 + 2, y0, z0) > 0;
             for (int x = x0 - 4; x <= x0 + 4; x++) for (int z = z0 - 4; z <= z0 + 4; z++) for (int y = y0 - 1; y <= y0 + 2; y++) w.setBlockToAir(x, y, z);
-            check(spread && source && still, "из ведра растеклась на 2 блока " + spread + ", между двумя источниками новый " + source + ", река мира растеклась так же " + still);
-            return "Лета из ведра растекается, между двумя источниками рождается третий; река Мортума течёт так же";
+            check(spread && source && still, "bucket spread 2 blocks " + spread + ", new one between two sources " + source + ", world river spread the same " + still);
+            return "Lethe from a bucket spreads, a third source forms between two sources; the Mortum river flows the same";
         });
-        t("Прохождение", "Фроссивенс: перезарядка и при ударах босса", () -> {
+        t("Progression", "Frossiven: cooldown and on boss hits", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
             TestPlayer fr = join(player(ConfigurationHelper.iceika, "TestFross", 9700.5, 120, 9700.5), true);
             fr.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
@@ -9367,10 +9367,10 @@ public class SelfTest {
             float chill = fr.getEntityData().getFloat("dreChill");
             server.getConfigurationManager().playerEntityList.remove(fr);
             w.removeEntity(fr);
-            check(heals >= 2 && heals <= 3 && chill > 0, "за 5 с при ударах каждый тик и клике каждые 0.25 с лечений " + heals + ", переохлаждение " + chill);
-            return "Фроссивенс лечит не чаще раза в 2 с и когда босс бьёт в тот же тик (" + heals + " лечения за 5 с), копится переохлаждение";
+            check(heals >= 2 && heals <= 3 && chill > 0, "heals in 5 s with hits every tick and clicks every 0.25 s " + heals + ", chill " + chill);
+            return "Frossiven heals no more than once per 2 s and when the boss hits in the same tick (" + heals + " heals in 5 s), chill builds up";
         });
-        t("Прохождение", "Снежное подземелье только где лежит снег", () -> {
+        t("Progression", "Snow dungeon only where snow lies", () -> {
             StringBuilder sb14 = new StringBuilder();
             boolean ok14 = net.minecraft.world.biome.BiomeGenBase.icePlains != null && com.divinerpgextended.world.Biomes.snowsAt(net.minecraft.world.biome.BiomeGenBase.icePlains, 0, 0)
                 && !com.divinerpgextended.world.Biomes.snowsAt(net.minecraft.world.biome.BiomeGenBase.taiga, 0, 0)
@@ -9381,10 +9381,10 @@ public class SelfTest {
                 sb14.append(b.biomeName).append(sn ? "+" : "-").append(" ");
                 if ("Dead Forest".equals(b.biomeName) && sn) ok14 = false;
             }
-            check(ok14, "снежные по словарю (+ снег у земли): " + sb14);
-            return "снег у земли: " + sb14.toString().trim();
+            check(ok14, "snowy by dictionary (+ snow on the ground): " + sb14);
+            return "snow on the ground: " + sb14.toString().trim();
         });
-        t("Прохождение", "Рельсы на стенах и потолке", () -> {
+        t("Progression", "Rails on walls and ceiling", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9540, 9760, 1);
             int x0 = 9540, y0 = 100, z0 = 9760;
@@ -9417,10 +9417,10 @@ public class SelfTest {
             rp.mountEntity(null);
             cart.setDead();
             for (int x = x0 - 1; x <= x0 + 6; x++) for (int y = y0 - 1; y <= y0 + 6; y++) for (int z = z0 - 1; z <= z0 + 1; z++) w.setBlockToAir(x, y, z);
-            check(wall && ceiling && back, "по стене " + wall + ", по потолку " + ceiling + ", вернулась на старт " + back + " за " + ticks + " тиков");
-            return "вагонетка Апалачии объехала кольцо пол - стена - потолок - стена и вернулась (" + ticks + " тиков)";
+            check(wall && ceiling && back, "on wall " + wall + ", on ceiling " + ceiling + ", returned to start " + back + " in " + ticks + " ticks");
+            return "Apalachia minecart went around the floor - wall - ceiling - wall ring and returned (" + ticks + " ticks)";
         });
-        t("Прохождение", "Вагонетка Апалачии: толчок, инерция, моб садится", () -> {
+        t("Progression", "Apalachia minecart: push, inertia, mob boards", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9540, 9650, 1);
             int x0 = 9540, y0 = 100, z0 = 9650;
@@ -9450,10 +9450,10 @@ public class SelfTest {
             pc.setDead();
             for (int x = x0 - 2; x <= x0 + 30; x++) for (int z = z0 - 2; z <= z0 + 2; z++) for (int y = y0 - 1; y <= y0 + 3; y++) w.setBlockToAir(x, y, z);
             check(m0 > 0.2 && afterX > startX + 2 && m1 < m0 && rides && stopped,
-                "толчок: разгон " + m0 + ", проехала с " + startX + " до " + afterX + ", разгон через секунду " + m1 + "; зомби сел " + rides + ", остановилась " + stopped);
-            return "толкнули - покатилась (" + (afterX - startX) + " блоков за секунду) и тормозит; движущаяся вагонетка сажает моба; потом останавливается";
+                "push: acceleration " + m0 + ", traveled from " + startX + " to " + afterX + ", acceleration after a second " + m1 + "; zombie boarded " + rides + ", stopped " + stopped);
+            return "pushed - it rolled (" + (afterX - startX) + " blocks per second) and slows down; a moving minecart seats a mob; then it stops";
         });
-        t("Прохождение", "Навесные рельсы держат поворот и переключаются как стрелка", () -> {
+        t("Progression", "Hanging rails hold a curve and switch like a junction", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9540, 9600, 1);
             int x0 = 9540, y0 = 100, z0 = 9600;
@@ -9489,10 +9489,10 @@ public class SelfTest {
             java.util.List<net.minecraftforge.common.util.ForgeDirection> off = java.util.Arrays.asList(com.divinerpgextended.block.BlockSkyRail.links(w, x0, y0, z0));
             boolean switched = !new java.util.HashSet<Object>(before).equals(new java.util.HashSet<Object>(on)) && new java.util.HashSet<Object>(before).equals(new java.util.HashSet<Object>(off));
             for (int y = y0 - 3; y <= y0 + 3; y++) for (int z = z0 - 3; z <= z0 + 3; z++) for (int x = x0 - 1; x <= x0 + 1; x++) w.setBlockToAir(x, y, z);
-            check(curve && kept && switched, "поворот " + l1 + ", после поломки соседа " + l2 + "; развилка: было " + before + ", с сигналом " + on + ", без сигнала " + off);
-            return "на стене поворот держится, когда убрали соседа; на развилке сигнал перекидывает ветку и обратно (" + before + " -> " + on + ")";
+            check(curve && kept && switched, "curve " + l1 + ", after the neighbor broke " + l2 + "; fork: was " + before + ", with signal " + on + ", without signal " + off);
+            return "on a wall the curve holds when the neighbor is removed; at a fork the signal flips the branch and back (" + before + " -> " + on + ")";
         });
-        t("Прохождение", "Навесной рельс как ванильный: одинокий встаёт прямо к соседу, угол держится без соседей", () -> {
+        t("Progression", "Hanging rail like vanilla: a lone one faces straight toward a neighbor, a corner holds without neighbors", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9540, 9640, 1);
             final int x0 = 9540, y0 = 100, z0 = 9640;
@@ -9547,11 +9547,11 @@ public class SelfTest {
             clear.run();
             for (int y = y0 - 3; y <= y0 + 3; y++) for (int z = z0 - 3; z <= z0 + 3; z++) w.setBlockToAir(x0 - 1, y, z);
             check(lone.equals(hSet) && up.equals(vSet) && vert.equals(vSet) && side.equals(hSet) && corner.equals(cSet) && noX.equals(cSet) && noZ.equals(cSet)
-                && none.equals(cSet), "вдоль стены " + lone + ", с соседом сверху " + up + "; вертикальный " + vert + ", с соседом сбоку " + side + "; YZ/X: поворот "
-                    + corner + ", без X " + noX + ", без Z " + noZ + ", без обоих " + none);
-            return "одинокий рельс на стене разворачивается прямо к соседу сверху или сбоку; поворот Y в схеме YZ/X держится без X, без Z и без обоих";
+                && none.equals(cSet), "along the wall " + lone + ", with neighbor above " + up + "; vertical " + vert + ", with neighbor at the side " + side + "; YZ/X: curve "
+                    + corner + ", without X " + noX + ", without Z " + noZ + ", without both " + none);
+            return "a lone rail on a wall turns straight toward a neighbor above or at the side; a Y curve in the YZ/X scheme holds without X, without Z and without both";
         });
-        t("Прохождение", "Карта логова не ведёт к месту в старом чанке, где логова нет", () -> {
+        t("Progression", "Lair map does not lead to a spot in an old chunk with no lair", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int T = com.divinerpgextended.world.LairSites.CARCINUS;
             com.divinerpgextended.world.LairData data = com.divinerpgextended.world.LairData.get(w);
@@ -9564,13 +9564,13 @@ public class SelfTest {
                     cand -> !data.near(T + com.divinerpgextended.world.LairData.FAILED, cand[0], cand[1], 24));
                 if (s == null) continue;
                 for (int i = -1; i <= 2; i++) for (int j = -1; j <= 2; j++) w.theChunkProviderServer.loadChunk((s[0] >> 4) + i, (s[1] >> 4) + j);
-                tried.append(s[0]).append(',').append(s[1]).append(data.near(T, s[0], s[1], 96) ? " построено; " : " не подошло; ");
+                tried.append(s[0]).append(',').append(s[1]).append(data.near(T, s[0], s[1], 96) ? " built; " : " did not fit; ");
                 if (data.near(T, s[0], s[1], 96)) {
                     site = s;
                     builtStale = com.divinerpgextended.world.LairSites.stale(w, T, s[0], s[1]);
                 }
             }
-            check(site != null, "не нашлось построенного логова Карцинуса: " + tried);
+            check(site != null, "no built Carcinus lair found: " + tried);
             // as in an old world: the chunk is populated, there is no lair record
             java.util.List<int[]> gone = data.forget(T, site[0], site[1], 96);
             boolean oldStale = com.divinerpgextended.world.LairSites.stale(w, T, site[0], site[1]);
@@ -9582,21 +9582,21 @@ public class SelfTest {
             for (int[] at : new int[][] { { 4600, -4600 }, { -4600, -4600 }, { 4600, 4600 }, { 0, -4600 } }) // not every biome modpack has beaches nearby
                 if (far == null) far = com.divinerpgextended.world.LairSites.nearest(w, T, at[0], at[1], 2000, 0);
             boolean farStale = far != null && com.divinerpgextended.world.LairSites.stale(w, T, far[0], far[1]);
-            check(!builtStale && oldStale && remembered && !farStale, "построенное " + site[0] + "," + site[1] + ": пропущено " + builtStale
-                + "; без записи (старый чанк): пропущено " + oldStale + ", запомнено " + remembered + "; несозданное " + (far == null ? "нет" : far[0] + "," + far[1])
-                + ": пропущено " + farStale);
-            return "место с построенным логовом карта показывает; место в уже созданном чанке без логова (старый мир) пропускает и запоминает; место в несозданных краях остаётся целью";
+            check(!builtStale && oldStale && remembered && !farStale, "built " + site[0] + "," + site[1] + ": skipped " + builtStale
+                + "; no record (old chunk): skipped " + oldStale + ", remembered " + remembered + "; uncreated " + (far == null ? "none" : far[0] + "," + far[1])
+                + ": skipped " + farStale);
+            return "a spot with a built lair is shown by the map; a spot in an already generated chunk without a lair (old world) is skipped and remembered; a spot in ungenerated lands stays a target";
         });
-        t("Совместимость", "Morph: форма моба Divine не выкидывает из мира (удаление списков модели без вылета)", () -> {
+        t("Compatibility", "Morph: Divine mob form does not kick you out of the world (removing model lists without a crash)", () -> {
             byte[] raw = net.minecraft.launchwrapper.Launch.classLoader.getClassBytes("morph.client.model.ModelHelper"); // bytes, without loading the client class
-            if (raw == null) return "Morph не установлен - нечего чинить";
+            if (raw == null) return "Morph is not installed - nothing to fix";
             byte[] out = new com.divinerpgextended.asm.MorphModelTransformer().transform("morph.client.model.ModelHelper", "morph.client.model.ModelHelper", raw);
             String s = new String(out, "ISO-8859-1");
             check(out != raw && s.contains("com/divinerpgextended/asm/MorphHooks") && !s.contains("func_74523_b"),
-                "класс Morph не исправлен: изменён " + (out != raw) + ", вызов хука " + s.contains("com/divinerpgextended/asm/MorphHooks"));
-            return "ModelHelper Morph удаляет списки модели через хук аддона: повторное удаление (Skythern Golem) больше не роняет клиент";
+                "Morph class not fixed: changed " + (out != raw) + ", hook call " + s.contains("com/divinerpgextended/asm/MorphHooks"));
+            return "Morph ModelHelper removes model lists through the addon hook: repeated removal (Skythern Golem) no longer crashes the client";
         });
-        t("Нагрузка", "Жидкости аддона в покое (озеро, море) не нагружают сервер", () -> {
+        t("Load", "Addon liquids at rest (lake, sea) do not load the server", () -> {
             WorldServer w = server.worldServerForDimension(0);
             final int x0 = 30016, z0 = 30016, y0 = 200, N = 32, H = 6;
             for (int cx = (x0 - 1) >> 4; cx <= (x0 + N) >> 4; cx++) for (int cz = (z0 - 1) >> 4; cz <= (z0 + N) >> 4; cz++) w.getChunkProvider().loadChunk(cx, cz);
@@ -9625,14 +9625,14 @@ public class SelfTest {
                 int added = pending(w, x0, z0, N) - pending0;
                 if (f == Blocks.water) waterNs = ns;
                 else ok &= changed == 0 && added == 0 && ns < Math.max(2000, waterNs * 20);
-                sb.append(f.getLocalizedName()).append(": ").append(String.format("%.0f", ns)).append(" нс на блок, изменилось ").append(changed)
-                    .append(", новых обновлений ").append(added).append("; ");
+                sb.append(f.getLocalizedName()).append(": ").append(String.format("%.0f", ns)).append(" ns per block, changed ").append(changed)
+                    .append(", new updates ").append(added).append("; ");
             }
             for (int x = x0 - 1; x <= x0 + N; x++) for (int z = z0 - 1; z <= z0 + N; z++) for (int y = y0 - 1; y <= y0 + H; y++) w.setBlock(x, y, z, Blocks.air, 0, 2);
             check(ok, sb.toString());
-            return "озеро 32x32x6 каждой жидкости в покое: тик блока не меняет озеро и не ставит новых обновлений (" + sb + ")";
+            return "32x32x6 lake of each liquid at rest: block tick does not change the lake and schedules no new updates (" + sb + ")";
         });
-        t("Прохождение", "Рельсы на потолке и старые рельсы держат поворот и стрелку", () -> {
+        t("Progression", "Ceiling rails and old rails hold a curve and a junction", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9540, 9560, 1);
             int x0 = 9540, y0 = 100, z0 = 9560;
@@ -9678,11 +9678,11 @@ public class SelfTest {
             java.util.List<Object> l3 = java.util.Arrays.asList((Object[]) com.divinerpgextended.block.BlockSkyRail.links(w, x0, y0, z0));
             boolean adopted = l3.contains(E) && l3.contains(S);
             for (int x = x0 - 3; x <= x0 + 3; x++) for (int z = z0 - 3; z <= z0 + 3; z++) for (int y = y0 - 1; y <= y0 + 1; y++) w.setBlockToAir(x, y, z);
-            check(curve && kept && switched && adopted, "потолок: поворот " + l1 + ", после поломки соседа " + l2 + "; развилка " + before + " -> " + on
-                + "; старый рельс после загрузки " + l3);
-            return "на потолке поворот держится и развилка переключается сигналом; старые рельсы (до 0.99.13) запоминают форму при загрузке и тоже держат поворот";
+            check(curve && kept && switched && adopted, "ceiling: curve " + l1 + ", after the neighbor broke " + l2 + "; fork " + before + " -> " + on
+                + "; old rail after load " + l3);
+            return "on the ceiling the curve holds and the fork is switched by a signal; old rails (before 0.99.13) remember their shape on load and also hold a curve";
         });
-        t("Прохождение", "Рельсы снаружи: через рёбра блока", () -> {
+        t("Progression", "Rails outside: over block edges", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9540, 9700, 1);
             int x0 = 9540, y0 = 100, z0 = 9700;
@@ -9715,10 +9715,10 @@ public class SelfTest {
             op.mountEntity(null);
             oc.setDead();
             for (int x = x0 - 3; x <= x0 + 6; x++) for (int y = y0 - 3; y <= y0 + 6; y++) for (int z = z0 - 1; z <= z0 + 1; z++) w.setBlockToAir(x, y, z);
-            check(right && under && left && home && !inside, "справа " + right + ", снизу " + under + ", слева " + left + ", вернулась наверх " + home + ", сквозь блок " + inside + " за " + ticks + " тиков");
-            return "вагонетка Апалачии объехала столб снаружи: верх - правая грань - низ - левая грань - верх, через четыре внешних ребра (" + ticks + " тиков)";
+            check(right && under && left && home && !inside, "right " + right + ", below " + under + ", left " + left + ", returned to top " + home + ", through the block " + inside + " in " + ticks + " ticks");
+            return "Apalachia minecart went around a pillar on the outside: top - right face - bottom - left face - top, through four outer edges (" + ticks + " ticks)";
         });
-        t("Прохождение", "Дробь, пыль фазера, колчаны", () -> {
+        t("Progression", "Pellets, phaser dust, quivers", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9480, 9800, 1);
             TestPlayer qv = join(player(ConfigurationHelper.eden, "TestQuiver", 9480.5, 120, 9800.5), true);
@@ -9760,11 +9760,11 @@ public class SelfTest {
             unwearT(qv);
             qv.setCurrentItemOrArmor(0, null);
             check(pellets && dry && shot && arrow && gone,
-                "дробь без неуязвимости " + pellets + ", фазер без пыли стреляет " + dry + ", с пылью " + shot + " (пыли осталось " + dustLeft + " из 3), колчан: натянут " + drawn
-                    + ", выстрел " + fired + ", Бесконечность снята " + gone);
-            return "дробины блица бьют одну цель все; с колчаном лук без стрел натягивается и стреляет, стрел в инвентаре нет";
+                "pellets without invulnerability " + pellets + ", phaser without dust fires " + dry + ", with dust " + shot + " (dust left " + dustLeft + " of 3), quiver: drawn " + drawn
+                    + ", shot " + fired + ", Infinity removed " + gone);
+            return "blitz pellets all hit one target; with a quiver a bow without arrows draws and fires, no arrows in inventory";
         });
-        t("Прохождение", "Блиц - кибер-дробовик, фазеры и халит не ломаются", () -> {
+        t("Progression", "Blitz - cyber shotgun, phasers and halite do not break", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9470, 9850, 2);
             TestPlayer fv = join(player(ConfigurationHelper.eden, "TestBlitzCooldown", 9470.5, 120, 9850.5), true);
@@ -9867,12 +9867,12 @@ public class SelfTest {
             int P = com.divinerpgextended.perk.RangedRoles.PELLETS;
             check(guns > 0 && unbreakable == guns && tuned == guns / 2 && halitePhaser && repaired && shots[0] == P && shots[1] == 0 && shots[2] == P && wrapFixed && tools
                 && tooltip && rails,
-                "фазеров и блицев " + guns + ", не ломаются " + unbreakable + ", блицы с перезарядкой и своим звуком " + tuned + ", халитовый фазер " + halitePhaser
-                    + ", поношенный починен " + repaired + "; выстрелы: " + shots[0] + ", сразу " + shots[1] + ", после перезарядки " + shots[2] + "; сброс после круга счётчика "
-                    + wrapFixed + "; халит не ломается " + tools + ", подсказка " + tip + " / " + iceTip + "; подсказок кирок " + pickTips + ", сбой " + pickFail + ", халит: " + haliteTip + "; рельсы " + rails);
-            return "фазеры и блицы (и халитовые) не ломаются; блиц стреляет раз в " + com.divinerpgextended.perk.RangedRoles.BLITZ_COOLDOWN + " тиков (5 дробин), второй выстрел сразу - нет; халитовые инструменты не изнашиваются, подсказка с эффективностью как у Divine; рельсы Divine в инвентаре стали рельсами аддона";
+                "phasers and blitzes " + guns + ", do not break " + unbreakable + ", blitzes with cooldown and own sound " + tuned + ", halite phaser " + halitePhaser
+                    + ", worn one repaired " + repaired + "; shots: " + shots[0] + ", immediately " + shots[1] + ", after cooldown " + shots[2] + "; reset after counter cycle "
+                    + wrapFixed + "; halite does not break " + tools + ", tooltip " + tip + " / " + iceTip + "; pickaxe tooltips " + pickTips + ", failure " + pickFail + ", halite: " + haliteTip + "; rails " + rails);
+            return "phasers and blitzes (and halite ones) do not break; blitz fires once per " + com.divinerpgextended.perk.RangedRoles.BLITZ_COOLDOWN + " ticks (5 pellets), second shot immediately - no; halite tools do not wear, tooltip with efficiency like Divine; Divine rails in inventory became addon rails";
         });
-        t("Прохождение", "Эндер-меч прибивает и игрока: без телепортов, в привате без PvP - нет", () -> {
+        t("Progression", "Ender sword pins a player too: no teleports, in a no-PvP claim - no", () -> {
             WorldServer w = server.worldServerForDimension(0);
             TestPlayer a = join(player(0, "TestPinA", 40.5, 120, 40.5), true), v = join(player(0, "TestPinV", 42.5, 120, 40.5), true);
             hold(a, new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.enderSword));
@@ -9901,10 +9901,10 @@ public class SelfTest {
                 w.removeEntity(a);
                 w.removeEntity(v);
             }
-            check(pinned && blocked && !sparePinned, "прибит " + pinned + ", телепорт предметом запрещён " + blocked + ", в привате без PvP прибит " + sparePinned);
-            return "удар эндер-мечом по игроку - " + com.divinerpgextended.perk.EnderGear.PIN_TICKS / 20 + " с без телепортов; в привате без PvP - нет";
+            check(pinned && blocked && !sparePinned, "pinned " + pinned + ", item teleport forbidden " + blocked + ", pinned in a no-PvP claim " + sparePinned);
+            return "an ender sword hit on a player - " + com.divinerpgextended.perk.EnderGear.PIN_TICKS / 20 + " s without teleports; in a no-PvP claim - no";
         });
-        t("Прохождение", "Эндер-лук и эндер-меч против эндер-мобов", () -> {
+        t("Progression", "Ender bow and ender sword vs ender mobs", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9470, 9890, 2);
             TestPlayer fv = join(player(ConfigurationHelper.eden, "TestEnderGear", 9470.5, 120, 9890.5), true);
@@ -9935,13 +9935,13 @@ public class SelfTest {
                     long bowPin = em.getEntityData().getLong(com.divinerpgextended.perk.EnderGear.PIN) - w.getTotalWorldTime();
                     if (b == 0) {
                         ok &= moved < 0.01 && bowPin == com.divinerpgextended.perk.EnderGear.PIN_TICKS;
-                        rep.append("прибит стрелой на ").append(bowPin).append(" тиков, ");
+                        rep.append("pinned by arrow for ").append(bowPin).append(" ticks, ");
                     }
                     a.setDead();
                     em.setDead();
                 }
                 ok &= lost[0] > 0 && lost[1] == 0;
-                rep.append(kc.getSimpleName()).append(": эндер-лук ").append(lost[0]).append(", обычный ").append(lost[1]).append("; ");
+                rep.append(kc.getSimpleName()).append(": ender bow ").append(lost[0]).append(", ordinary ").append(lost[1]).append("; ");
             }
             // sword: after a hit, 3 seconds without teleporting
             net.minecraft.entity.monster.EntityEnderman em = new net.minecraft.entity.monster.EntityEnderman(w);
@@ -9960,10 +9960,10 @@ public class SelfTest {
             em.setDead();
             fv.inventory.clearInventory(null, -1);
             boolean sword = !before.isCanceled() && pinned.isCanceled() && left == com.divinerpgextended.perk.EnderGear.PIN_TICKS && !after.isCanceled();
-            check(ok && sword, rep + "меч: до удара телепорт " + !before.isCanceled() + ", после удара запрещён " + pinned.isCanceled() + " на " + left + " тиков, потом снова можно " + !after.isCanceled());
-            return "по эндермену, эндер-наблюдателю и эндер-пауку попадает только стрела эндер-лука (обычная - уворот телепортом); попадание эндер-лука и удар эндер-мечом - 3 секунды без телепорта";
+            check(ok && sword, rep + "sword: teleport before the hit " + !before.isCanceled() + ", forbidden after the hit " + pinned.isCanceled() + " for " + left + " ticks, then allowed again " + !after.isCanceled());
+            return "against the enderman, Ender Watcher and ender spider only the ender bow arrow hits (an ordinary one - dodged by teleport); an ender bow hit and an ender sword hit - 3 seconds without teleport";
         });
-        t("Броня", "Цвета Divine и бедрок", () -> {
+        t("Armor", "Divine colors and bedrock", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9470, 9930, 2);
             TestPlayer fv = join(player(ConfigurationHelper.eden, "TestColorGear", 9470.5, 120, 9930.5), true);
@@ -10093,14 +10093,14 @@ public class SelfTest {
             gz.setDead();
             fv.inventory.clearInventory(null, -1);
             boolean wave = near > 0 && far == 0 && !flew && golems;
-            rep.append("мечи (красный, синий, зелёный, жёлтый, серый) ").append(java.util.Arrays.toString(fx)).append(", по горящему ").append(bh.ammount)
-                .append("; 2 красные + 2 жёлтые: огонь 8 > ").append(fire.ammount).append(", скорость +").append(speedMod).append("; серый сет: отбрасывание ").append(kb)
-                .append(" (снят ").append(kbOff).append("), стрела 8 > ").append(shot.ammount).append("; бедрок-меч: устойчивость ").append(kbSword)
-                .append("; волна булавы: рядом ").append(near).append(", далеко ").append(far).append(", отлетел ").append(flew).append("; по голему: второй голем задет ").append(g1.getHealth() < gb).append(", зомби рядом цел ").append(gz.getHealth() == zb).append(", волк без хозяина в сети и лошадь целы ").append(pets);
+            rep.append("swords (red, blue, green, yellow, gray) ").append(java.util.Arrays.toString(fx)).append(", against a burning target ").append(bh.ammount)
+                .append("; 2 red + 2 yellow: fire 8 > ").append(fire.ammount).append(", speed +").append(speedMod).append("; gray set: knockback ").append(kb)
+                .append(" (removed ").append(kbOff).append("), arrow 8 > ").append(shot.ammount).append("; Bedrock sword: resistance ").append(kbSword)
+                .append("; mace wave: near ").append(near).append(", far ").append(far).append(", flew off ").append(flew).append("; on a golem: second golem hit ").append(g1.getHealth() < gb).append(", zombie nearby intact ").append(gz.getHealth() == zb).append(", ownerless online wolf and horse intact ").append(pets);
             check(fx[0] && fx[1] && fx[2] && fx[3] && fx[4] && pigPoisoned && redBonus && mixed && gray && kbOff < 0.01 && kbSword >= 0.99 && wave, rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "Фазер и блиц: пыль, подсумок, Бесконечность", () -> {
+        t("Progression", "Phaser and blitz: dust, pouch, Infinity", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9470, 9830, 2);
             TestPlayer fv = join(player(ConfigurationHelper.eden, "TestDustAmmo", 9470.5, 120, 9830.5), true);
@@ -10177,13 +10177,13 @@ public class SelfTest {
             boolean ok = shots[0] == 0 && shots[1] == P && shots[2] == P && shots[3] == P && left[3] == 2 && shots[4] == 0 && left[4] == 4 && shots[5] == P && left[5] == 0
                 && shots[6] > 0 && left[6] == 2 && shots[7] == 0 && shots[8] > 0 && left[8] == 3 && shots[9] > 0 && left[9] == 1 && dustNeverInBag;
             check(mapped && ok && dirtSafe && restored && anvil && still,
-                "пыль задана " + mapped + "; блиц без пыли " + shots[0] + ", с подсумком " + shots[1] + ", с Бесконечностью " + shots[2] + ", зарядом 7 " + shots[3] + " (осталось " + left[3]
-                    + "), 4 пыли " + shots[4] + " (осталось " + left[4] + "), 3 зарядом + 2 в инвентаре " + shots[5] + " (осталось " + left[5]
-                    + "); фазер с пылью " + shots[6] + " (осталось " + left[6] + " из 3), без пыли " + shots[7] + ", с подсумком " + shots[8] + " (осталось " + left[8] + "); фазер зарядом, рюкзак забит: " + shots[9] + " (осталось " + left[9] + "), пыль в рюкзак не попадала " + dustNeverInBag + "; земля цела " + dirtSafe
-                    + ", патрон вернулся " + restored + ", наковальня " + anvil + ", зомби не отброшен " + still);
-            return "фазер и блиц тратят пыль своего мира (из заряда и инвентаря), блиц - 5 за выстрел, меньше - молчит; подсумок или Бесконечность (книгой на наковальне) - пыль не нужна; вещи рюкзака не трогаются; дробь не отбрасывает";
+                "dust mapped " + mapped + "; blitz without dust " + shots[0] + ", with pouch " + shots[1] + ", with Infinity " + shots[2] + ", with charge 7 " + shots[3] + " (left " + left[3]
+                    + "), 4 dust " + shots[4] + " (left " + left[4] + "), 3 charge + 2 in inventory " + shots[5] + " (left " + left[5]
+                    + "); phaser with dust " + shots[6] + " (left " + left[6] + " of 3), without dust " + shots[7] + ", with pouch " + shots[8] + " (left " + left[8] + "); phaser by charge, backpack full: " + shots[9] + " (left " + left[9] + "), dust did not go to the backpack " + dustNeverInBag + "; ground intact " + dirtSafe
+                    + ", cartridge returned " + restored + ", anvil " + anvil + ", zombie not knocked back " + still);
+            return "phaser and blitz spend dust of their world (from charge and inventory), blitz - 5 per shot, fewer - silent; a pouch or Infinity (book on an anvil) - no dust needed; backpack items are untouched; pellets do not knock back";
         });
-        t("Прохождение", "Цифра патронов на значке оружия", () -> {
+        t("Progression", "Ammo count on the weapon icon", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9476, 9846, 1);
             TestPlayer lp = join(player(ConfigurationHelper.eden, "TestAmmoLabel", 9476.5, 120, 9846.5), true);
@@ -10212,11 +10212,11 @@ public class SelfTest {
             lp.inventory.clearInventory(null, -1);
             check("\u00a7c0".equals(noArrows) && "8".equals(eight) && outside == null && stone == null && "1k".equals(many) && "\u221e".equals(quiver)
                 && "\u00a7c3".equals(few) && "7".equals(enough),
-                "лук без стрел " + noArrows + ", 3 зарядом + 5 в инвентаре " + eight + ", копия не из инвентаря " + outside + ", у стрел " + stone + ", 1413 стрел " + many
-                    + ", с колчаном " + quiver + "; блиц с 3 пыли " + few + ", с 7 " + enough);
-            return "на значке оружия из своего инвентаря - запас патронов (заряд + инвентарь), тысячи как 1k, колчан или подсумок - бесконечность, меньше чем на выстрел - красным; вне инвентаря цифры нет";
+                "bow without arrows " + noArrows + ", 3 charge + 5 in inventory " + eight + ", copy not from inventory " + outside + ", for arrows " + stone + ", 1413 arrows " + many
+                    + ", with quiver " + quiver + "; blitz with 3 dust " + few + ", with 7 " + enough);
+            return "on a weapon icon in its own inventory - ammo reserve (charge + inventory), thousands as 1k, quiver or pouch - infinity, less than one shot - red; outside the inventory no number";
         });
-        t("Прохождение", "Мобы других миров в обычном мире и боссы не своего этапа", () -> {
+        t("Progression", "Mobs of other worlds in the overworld and bosses of the wrong stage", () -> {
             WorldServer w = server.worldServers[0];
             loadAround(w, 7300, 7300, 1);
             TestPlayer lo = join(player(0, "TestStageLow", 7300.5, 100, 7300.5), true), hi = join(player(0, "TestStageHigh", 7303.5, 100, 7300.5), true);
@@ -10240,7 +10240,7 @@ public class SelfTest {
                 }
                 if (mob == null) {
                     ok = false;
-                    sb.append(chs[ci].key()).append(": нет моба; ");
+                    sb.append(chs[ci].key()).append(": no mob; ");
                     continue;
                 }
                 mob.setPosition(7301.5, 100, 7302.5);
@@ -10261,8 +10261,8 @@ public class SelfTest {
                 boolean one = seesLo == want[ci][0] && seesHi == want[ci][1] && targetLo == seesLo && targetHi == seesHi && hitLo.isCanceled() == !seesLo
                     && dropsLo == seesLo && dropsHi == seesHi;
                 ok &= one;
-                sb.append(chs[ci].key()).append(" (").append(net.minecraft.entity.EntityList.getEntityString(mob)).append("): ниже ").append(seesLo).append("/цель ").append(targetLo)
-                    .append("/дроп ").append(dropsLo).append(", выше ").append(seesHi).append("/дроп ").append(dropsHi).append(one ? "" : " НЕ ТАК").append("; ");
+                sb.append(chs[ci].key()).append(" (").append(net.minecraft.entity.EntityList.getEntityString(mob)).append("): below ").append(seesLo).append("/target ").append(targetLo)
+                    .append("/drop ").append(dropsLo).append(", above ").append(seesHi).append("/drop ").append(dropsHi).append(one ? "" : " WRONG").append("; ");
             }
             // the same mob at home - as usual
             String wildName = com.divinerpgextended.bestiary.Bestiary.mobs(com.divinerpgextended.bestiary.Bestiary.Chapter.WILDWOOD).get(0);
@@ -10289,11 +10289,11 @@ public class SelfTest {
                 w.removeEntity(tp);
             }
             check(ok && homeFree && !watcherDrops && !loWatcher && kingDrops && !loKing && hiKing && !karotHere && karotHome,
-                sb + "дома в Диком лесу " + homeFree + "; Смотритель от игрока без Древней сущности: дроп " + watcherDrops + ", победа " + loWatcher
-                    + "; Король Скорчеров вдвоём: дроп " + kingDrops + ", победа ниже " + loKing + "/выше " + hiKing + "; Карот в обычном мире " + karotHere + ", в Мортуме " + karotHome);
-            return "мобы Айсики, сумеречных миров, Арканы и Ветеи в обычном мире не замечают и не бьют игрока, не дошедшего до их мира, и с убитых им ничего не падает; у себя дома - как обычно. Босс не своего этапа (обычный мир, Ад, Край) - ни победы, ни доли; не дошёл никто - ничего не падает";
+                sb + "at home in Wildwood " + homeFree + "; Watcher from a player without Ancient Entity: drop " + watcherDrops + ", win " + loWatcher
+                    + "; King of Scorchers by two: drop " + kingDrops + ", win below " + loKing + "/above " + hiKing + "; Karot in the overworld " + karotHere + ", in Mortum " + karotHome);
+            return "mobs of Iceika, twilight worlds, Arcana and Vethea in the overworld do not notice or hit a player who has not reached their world, and nothing drops from those he kills; at home - as usual. A boss of the wrong stage (overworld, Nether, End) - no win and no share; if nobody got there - nothing drops";
         });
-        t("Броня", "Противоядие: сет джунглей и перк - плохие эффекты проходят быстрее", () -> {
+        t("Armor", "Antidote: jungle set and perk - bad effects pass faster", () -> {
             TestPlayer ap = player(0, "TestAntidote", 0, 100, 0);
             Item[] jg = { VanillaItemsArmor.jungleBoots, VanillaItemsArmor.jungleLegs, VanillaItemsArmor.jungleBody, VanillaItemsArmor.jungleHelmet };
             int extra = (int) Math.round(com.divinerpgextended.perk.Antidote.PERIOD * (com.divinerpgextended.Config.jungleDebuffSpeed - 1));
@@ -10343,11 +10343,11 @@ public class SelfTest {
             boolean set = got[1][0] == 200 - extra && got[1][1] == 0 && got[1][2] == 200 && !poisoned[1];
             boolean perk = got[2][0] == 200 - extra && got[2][1] == 0 && got[2][2] == 200 && !poisoned[2];
             check(bare && set && perk && tickPoison.isCanceled() && !harm.isCanceled() && tcOk,
-                "слабость 200 / голод 15 / скорость 200 / яд: без брони " + java.util.Arrays.toString(got[0]) + " яд " + poisoned[0] + "; сет джунглей " + java.util.Arrays.toString(got[1]) + " яд " + poisoned[1]
-                    + "; Странник с перком " + java.util.Arrays.toString(got[2]) + " яд " + poisoned[2] + "; тик яда отменён " + tickPoison.isCanceled() + ", зелье вреда отменено " + harm.isCanceled() + "; Таумкрафт: " + tc);
-            return "в сете джунглей и с перком на броне Странника яд снят, плохие эффекты за секунду теряют лишнюю секунду (короткие кончаются), хорошие не трогаются; эффекты варпа Таумкрафта помечены плохими - их тоже укорачивает; зелье вреда ранит как обычно";
+                "weakness 200 / hunger 15 / speed 200 / poison: no armor " + java.util.Arrays.toString(got[0]) + " poison " + poisoned[0] + "; jungle set " + java.util.Arrays.toString(got[1]) + " poison " + poisoned[1]
+                    + "; Wanderer with perk " + java.util.Arrays.toString(got[2]) + " poison " + poisoned[2] + "; poison tick cancelled " + tickPoison.isCanceled() + ", harming potion cancelled " + harm.isCanceled() + "; Thaumcraft: " + tc);
+            return "in the jungle set and with the perk on Wanderer armor poison is removed, bad effects lose an extra second each second (short ones end), good ones are untouched; Thaumcraft warp effects are marked bad - they are shortened too; harming potion hurts as usual";
         });
-        t("Броня", "Броня из бедрока не изнашивается", () -> {
+        t("Armor", "Bedrock armor does not wear out", () -> {
             boolean all = true;
             StringBuilder sb = new StringBuilder();
             TestPlayer bp = player(0, "TestBedrockWear", 0, 100, 0);
@@ -10368,12 +10368,12 @@ public class SelfTest {
             }
             ItemStack iron = new ItemStack(Items.iron_helmet);
             iron.damageItem(5, bp);
-            check(all && iron.getItemDamage() == 5, sb + "железный шлем износился на " + iron.getItemDamage());
-            return "удар 40 по броне из бедрока не снимает прочность, Divine пишет бесконечную прочность; обычная броня изнашивается как прежде";
+            check(all && iron.getItemDamage() == 5, sb + "iron helmet worn by " + iron.getItemDamage());
+            return "a 40 hit on bedrock armor does not reduce durability, Divine writes infinite durability; regular armor wears as before";
         });
-        t("Мир", "Острова слизи Tinkers не появляются в мирах Divine", () -> {
+        t("World", "Tinkers slime islands do not appear in Divine worlds", () -> {
             Boolean over = com.divinerpgextended.world.ForeignTweaks.tinkersIslandsAllowed(0);
-            if (over == null) return "Tinkers' Construct нет в сборке - нечего проверять";
+            if (over == null) return "Tinkers' Construct is not in the pack - nothing to check";
             StringBuilder sb = new StringBuilder();
             boolean none = true;
             for (int dim : com.divinerpgextended.world.ForeignTweaks.divineDims()) {
@@ -10381,10 +10381,10 @@ public class SelfTest {
                 none &= Boolean.FALSE.equals(allowed);
                 sb.append(dim).append(':').append(allowed).append(' ');
             }
-            check(none, "острова разрешены: " + sb + "; обычный мир " + over);
-            return "чёрный список измерений Tinkers дополнен мирами Divine (новые чанки), обычный мир как в настройке Tinkers";
+            check(none, "islands allowed: " + sb + "; overworld " + over);
+            return "Tinkers dimension blacklist extended with Divine worlds (new chunks), overworld as in the Tinkers setting";
         });
-        t("Прохождение", "Заряд в оружии", () -> {
+        t("Progression", "Charge in a weapon", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9488, 9840, 1);
             TestPlayer av = join(player(ConfigurationHelper.eden, "TestAmmo", 9488.5, 120, 9840.5), true);
@@ -10395,7 +10395,7 @@ public class SelfTest {
             av.inventory.mainInventory[0] = bow;
             av.inventory.mainInventory[5] = new ItemStack(Items.arrow, 5);
             ItemStack named = new ItemStack(Items.arrow, 3);
-            named.setStackDisplayName("Особая");
+            named.setStackDisplayName("Special");
             av.inventory.mainInventory[6] = named;
             int canLoad = com.divinerpgextended.perk.Ammo.loadable(av);
             int loaded = com.divinerpgextended.perk.AmmoLoad.load(av);
@@ -10463,12 +10463,12 @@ public class SelfTest {
             boolean cannonOk = com.divinerpgextended.perk.Ammo.loaded(cn) == 3 && count(av, bullet) == 0;
             av.inventory.clearInventory(null, -1);
             check(loadOk && bareOk && drawn && fired && afterShot == 4 && firstLoaded && capOk && unloadOk && spill && cannonOk,
-                "зарядка " + canLoad + "/" + loaded + " (особые стрелы не взяты " + (named.stackSize == 3) + ", с пустым тегом взяты " + bareLoaded + ") ; лук натянут " + drawn + ", выстрел " + fired + ", заряд " + afterShot
-                    + " из 5; заряд раньше инвентаря и при забитом рюкзаке " + firstLoaded + "; вместимость " + cap + " " + capOk + "; разрядка " + un.status + " " + un.param
-                    + " " + unloadOk + "; сломался - высыпалось " + spill + "; пушка " + cannonOk);
-            return "присесть + ПКМ заряжает всё из инвентаря (до 4 стопок, особые не берёт); стреляет сначала заряд, рюкзак не трогается; разрядка на наковальне - сколько влезет; сломалось оружие - заряд высыпается";
+                "charging " + canLoad + "/" + loaded + " (special arrows not taken " + (named.stackSize == 3) + ", taken with an empty tag " + bareLoaded + ") ; bow drawn " + drawn + ", shot " + fired + ", charge " + afterShot
+                    + " of 5; charge before inventory and with a full backpack " + firstLoaded + "; capacity " + cap + " " + capOk + "; discharge " + un.status + " " + un.param
+                    + " " + unloadOk + "; broke - spilled " + spill + "; gun " + cannonOk);
+            return "sneak + RMB loads everything from the inventory (up to 4 stacks, does not take special ones); fires charge first, backpack is untouched; discharge on an anvil - as much as fits; weapon broke - charge spills";
         });
-        t("Прохождение", "Грозовой лук заряжается стрелами Дикого леса", () -> {
+        t("Progression", "Storm Bow is charged with Wildwood arrows", () -> {
             WorldServer w = server.worldServerForDimension(0);
             loadAround(w, 9720, 9840, 1);
             TestPlayer sp = join(player(0, "TestStormAmmo", 9720.5, 120, 9840.5), true);
@@ -10493,11 +10493,11 @@ public class SelfTest {
             com.divinerpgextended.perk.Ammo.settle(sp);
             boolean refundOk = com.divinerpgextended.perk.Ammo.loaded(old) == 0 && count(sp, Items.arrow) == 17 && com.divinerpgextended.perk.Ammo.loaded(bow) == 5;
             sp.inventory.clearInventory(null, -1);
-            check(loadOk && shotOk && refundOk, "зарядка " + got + " (" + Item.itemRegistry.getNameForObject(wild) + ") " + loadOk + ", выстрел из заряда " + shotOk
-                + ", старый заряд обычными стрелами вернулся " + refundOk);
-            return "Грозовой лук: заряд - стрелы Дикого леса, обычные не берёт; стреляет сначала зарядом; старый заряд обычными стрелами возвращается игроку";
+            check(loadOk && shotOk && refundOk, "charging " + got + " (" + Item.itemRegistry.getNameForObject(wild) + ") " + loadOk + ", shot from charge " + shotOk
+                + ", old charge returned as ordinary arrows " + refundOk);
+            return "Storm Bow: charge - Wildwood arrows, does not take ordinary ones; fires charge first; old charge returns to the player as ordinary arrows";
         });
-        t("Прохождение", "Самострел быстрых луков, шанс Бесконечного колчана, ранги", () -> {
+        t("Progression", "Fast-bow crossbow, Endless Quiver chance, ranks", () -> {
             // bows with accelerated draw - who shoots by themselves and after how many ticks
             StringBuilder fast = new StringBuilder();
             int nFast = 0;
@@ -10523,7 +10523,7 @@ public class SelfTest {
                 }
             }
             boolean autoFired = true;
-            String fastName = "нет";
+            String fastName = "none";
             if (fastBow != null) {
                 fastName = String.valueOf(Item.itemRegistry.getNameForObject(fastBow.getItem()));
                 bp.inventory.currentItem = 0;
@@ -10551,11 +10551,11 @@ public class SelfTest {
             boolean rankOk = com.divinerpgextended.boss.CommandDreRank.next(0) == Boss.CARCINUS && com.divinerpgextended.boss.CommandDreRank.next(2) == Boss.ANCIENT_ENTITY
                 && com.divinerpgextended.boss.CommandDreRank.next(3) == null && net.minecraft.util.StatCollector.canTranslate("dre.chat.rank_up");
             bp.inventory.clearInventory(null, -1);
-            check(vanillaSlow && shadow && nFast > 0 && autoFired && quiverOk && rankOk, "быстрых луков " + nFast + " (" + fast + "), обычный медленный " + vanillaSlow
-                + ", Теневой " + shadow + ", сам выстрелил " + fastName + " " + autoFired + "; колчан " + q0 + "/" + q3 + "/" + q5 + ", подсумок " + pouch + "; ранги " + rankOk);
-            return "быстрых луков " + nFast + ": " + fast.toString().trim() + "; колчан 0,4% (+0,2% за Добычу, до 1%); /drerank";
+            check(vanillaSlow && shadow && nFast > 0 && autoFired && quiverOk && rankOk, "fast bows " + nFast + " (" + fast + "), ordinary slow " + vanillaSlow
+                + ", Shadow " + shadow + ", fired itself " + fastName + " " + autoFired + "; quiver " + q0 + "/" + q3 + "/" + q5 + ", pouch " + pouch + "; ranks " + rankOk);
+            return "fast bows " + nFast + ": " + fast.toString().trim() + "; quiver 0,4% (+0,2% per Looting, up to 1%); /drerank";
         });
-        t("Прохождение", "Вагонетка Апалачии: рельсы арканы и обычные", () -> {
+        t("Progression", "Apalachia minecart: arcana and ordinary rails", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9600, 9900, 1);
             int x0 = 9600, y0 = 100, z0 = 9900;
@@ -10585,10 +10585,10 @@ public class SelfTest {
                 w.setBlockToAir(x, y0, z0);
                 w.setBlockToAir(x, y0 - 1, z0);
             }
-            check(top > 0.6 && far >= 25, "разгон до " + String.format("%.2f", top) + " (обычная " + com.divinerpgextended.entity.EntitySkyCart.SPEED + "), доехала до " + far + " по ванильным");
-            return "рельсы арканы разгоняют вагонетку Апалачии (до " + String.format("%.2f", top) + "), дальше она едет по обычным ванильным рельсам";
+            check(top > 0.6 && far >= 25, "speed up to " + String.format("%.2f", top) + " (ordinary " + com.divinerpgextended.entity.EntitySkyCart.SPEED + "), reached " + far + " on vanilla");
+            return "arcana rails speed up the Apalachia minecart (up to " + String.format("%.2f", top) + "), then it moves on ordinary vanilla rails";
         });
-        t("Прохождение", "Бонусы колчанов", () -> {
+        t("Progression", "Quiver bonuses", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             TestPlayer kv = join(player(ConfigurationHelper.eden, "TestQuiverBonus", 9482.5, 120, 9810.5), true);
             net.minecraft.entity.monster.EntityZombie zb = new net.minecraft.entity.monster.EntityZombie(w);
@@ -10612,10 +10612,10 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(hp);
             unwearT(kv);
             check(Math.abs(got[0] - 10) < 0.01 && Math.abs(got[1] - 11) < 0.01 && Math.abs(hp.ammount - 11.5) < 0.01,
-                "стрела без колчана " + got[0] + ", с колчаном " + got[1] + ", фазер с подсумком " + hp.ammount);
-            return "колчан: стрелы +10%; подсумок: фазер +15%";
+                "arrow without quiver " + got[0] + ", with quiver " + got[1] + ", phaser with pouch " + hp.ammount);
+            return "quiver: arrows +10%; pouch: phaser +15%";
         });
-        t("Прохождение", "Колчаны со стрелков", () -> {
+        t("Progression", "Quivers from shooters", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             TestPlayer dv2 = player(ConfigurationHelper.eden, "TestQuiverDrop", 9484.5, 120, 9820.5);
             net.divinerpg.entities.twilight.EntitySunArcher arch = new net.divinerpg.entities.twilight.EntitySunArcher(w);
@@ -10651,12 +10651,12 @@ public class SelfTest {
                 MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(eternal, net.minecraft.util.DamageSource.causePlayerDamage(dv2), bd, 0, true, 0));
                 for (net.minecraft.entity.item.EntityItem d : bd) if (d.getEntityItem().getItem() == com.divinerpgextended.registry.ModItems.trinket) bossGot++;
             }
-            // 0.4% без Добычи: из 5000 в среднем 20
+            // 0.4% without Looting: 20 out of 5000 on average
             check(got >= 6 && got <= 40 && other == 0 && craft == null && skyQuiver && bossGot == 20,
-                "колчанов с 5000 солнечных лучников " + got + ", чужих " + other + ", крафт " + craft + ", лучник Скайтерна " + skyQuiver + ", с Вечного лучника " + bossGot + " из 20");
-            return "колчан падает с лучников (0,4%: " + got + " из 5000), с Вечного лучника всегда, не крафтится";
+                "quivers from 5000 solar archers " + got + ", others' " + other + ", craft " + craft + ", Skythern archer " + skyQuiver + ", from Eternal Archer " + bossGot + " of 20");
+            return "quiver drops from archers (0.4%: " + got + " of 5000), from the Eternal Archer always, not craftable";
         });
-        t("Прохождение", "Рельсы как в игре: пол, горка, стена, потолок", () -> {
+        t("Progression", "Rails like in the game: floor, slope, wall, ceiling", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9580, 9860, 1);
             int x0 = 9580, y0 = 100, z0 = 9860;
@@ -10729,11 +10729,11 @@ public class SelfTest {
             }
             for (int x = x0 - 2; x <= x0 + 8; x++) for (int y = y0 - 1; y <= y0 + 8; y++) for (int z = z0 - 2; z <= z0 + 2; z++) w.setBlockToAir(x, y, z);
             check(floor == 5 && bent && wall == 5 && ceil == 5 && ramps && sat && ceilEnd && home && jump < 0.5 && minNy < -0.99 && eyesFree,
-                "на полу " + floor + ", поворот " + bent + " (мета " + bend + "), на стене " + wall + ", на потолке " + ceil + ", горки " + low + "/" + high + ", сел " + sat + ", до конца потолка " + ceilEnd
-                    + ", вернулась " + home + " за " + ticks + " тиков, скачок " + String.format("%.2f", jump) + ", вверх дном " + (minNy < -0.99) + ", глаза не в камне " + eyesFree);
-            return "рельсы Апалачии: пол - гнущиеся рельсы, у стены горка, стена и потолок - навесные; вагонетка с седоком доезжает до конца потолка и возвращается без скачков";
+                "on floor " + floor + ", curve " + bent + " (meta " + bend + "), on wall " + wall + ", on ceiling " + ceil + ", slopes " + low + "/" + high + ", boarded " + sat + ", to the end of the ceiling " + ceilEnd
+                    + ", returned " + home + " in " + ticks + " ticks, jump " + String.format("%.2f", jump) + ", upside down " + (minNy < -0.99) + ", eyes not in stone " + eyesFree);
+            return "Apalachia rails: floor - bending rails, slope at the wall, wall and ceiling - hanging; a minecart with a rider reaches the end of the ceiling and returns without jumps";
         });
-        t("Прохождение", "Рельсы Апалачии на стену и в дроп", () -> {
+        t("Progression", "Apalachia rails onto a wall and into drops", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9560, 9820, 1);
             w.setBlock(9560, 100, 9820, Blocks.stone);
@@ -10754,10 +10754,10 @@ public class SelfTest {
             w.setBlockToAir(9561, 100, 9820);
             w.setBlockToAir(9560, 100, 9820);
             check(used && placed && meta == net.minecraftforge.common.util.ForgeDirection.WEST.ordinal() && r4.stackSize == 3 && drops,
-                "поставлено " + placed + ", опора " + meta + ", осталось " + r4.stackSize + ", выпадают рельсами аддона " + drops);
-            return "рельсы Апалачии ставятся на стену навесными (опора - камень с запада); и навесной, и рельс Divine ломаются в рельсы Апалачии";
+                "placed " + placed + ", support " + meta + ", left " + r4.stackSize + ", drop as addon rails " + drops);
+            return "Apalachia rails are placed on a wall as hanging ones (support - stone to the west); both the hanging rail and the Divine rail break into Apalachia rails";
         });
-        t("Логова", "Король: прыжок ввысь", () -> {
+        t("Lairs", "King: leap upward", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             loadAround(w, 9650, 9650, 3);
             for (int i = -24; i <= 24; i++) for (int k2 = -24; k2 <= 24; k2++) {
@@ -10790,10 +10790,10 @@ public class SelfTest {
             kk.setDead();
             sv2.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth).setBaseValue(20);
             sv2.setHealth(20);
-            check(maxY > 105 && held, trace + "; высшая точка " + (maxY - 100) + " над полом, зависал " + held + ", здоровье игрока " + hp + " > " + sv2.getHealth());
-            return "со 2-й встречи Король прыгает ввысь на " + (int) (maxY - 100) + " блоков, зависает над меткой и обрушивается";
+            check(maxY > 105 && held, trace + "; highest point " + (maxY - 100) + " above the floor, hovered " + held + ", player health " + hp + " > " + sv2.getHealth());
+            return "from the 2nd encounter the King leaps up " + (int) (maxY - 100) + " blocks, hovers over the mark and crashes down";
         });
-        t("Логова", "Скол рога", () -> {
+        t("Lairs", "Horn chip", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 9940, 9940, 1);
             TestPlayer hv = player(ConfigurationHelper.eden, "TestHorn", 9940, 100, 9940);
@@ -10815,10 +10815,10 @@ public class SelfTest {
             boss.setDead();
             armor(hv, null, null, null, null);
             hv.setCurrentItemOrArmor(0, null);
-            check(!plain && broken && lost > boss.getMaxHealth() * 0.14F, "без сета " + plain + ", в сете " + broken + ", снято " + lost + " из " + boss.getMaxHealth());
-            return "оглушённый кадиллион Эдема: кирка в сете Эдема откалывает рог (-" + (int) lost + " здоровья, таранов больше нет), без сета - нет";
+            check(!plain && broken && lost > boss.getMaxHealth() * 0.14F, "without set " + plain + ", in set " + broken + ", removed " + lost + " of " + boss.getMaxHealth());
+            return "stunned Eden cadillion: a pickaxe in the Eden set chips off the horn (-" + (int) lost + " health, no more rams), without the set - no";
         });
-        t("Прохождение", "Материалы с мобов", () -> {
+        t("Progression", "Materials from mobs", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             TestPlayer v = player(ConfigurationHelper.eden, "TestDrops", 9950, 100, 9950);
             net.divinerpg.entities.twilight.EntityEdenCori cori = new net.divinerpg.entities.twilight.EntityEdenCori(w);
@@ -10834,10 +10834,10 @@ public class SelfTest {
                         && it.getItemDamage() == com.divinerpgextended.world.twilight.TwilightMaterial.SUN_FEATHER.ordinal()) got++;
                 }
             }
-            check(got > 15 && got < 60, "солнечных перьев с 100 Кори: " + got);
-            return "с Кори падает солнечное перо: " + got + " из 100 (шанс 35%)";
+            check(got > 15 && got < 60, "solar feathers from 100 Cori: " + got);
+            return "a solar feather drops from Cori: " + got + " of 100 (chance 35%)";
         });
-        t("Прохождение", "Зов требует печать", () -> {
+        t("Progression", "The Call requires a seal", () -> {
             net.minecraft.inventory.InventoryCrafting old = grid(), now = grid();
             Item soul = net.divinerpg.utils.items.TwilightItemsOther.edenSoul, gem = net.divinerpg.utils.items.TwilightItemsOther.edenGem;
             for (int i = 0; i < 9; i++) old.setInventorySlotContents(i, new ItemStack(i == 4 ? gem : soul));
@@ -10848,10 +10848,10 @@ public class SelfTest {
             ItemStack a = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(old, server.worldServers[0]);
             ItemStack b = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(now, server.worldServers[0]);
             check(a == null && b != null && b.getItem() == com.divinerpgextended.registry.ModItems.cadillionCall && b.getItemDamage() == 0,
-                "старый рецепт " + a + ", новый " + b);
-            return "8 душ вокруг камня больше не дают Зов; души + камень + обломок рога + печать святилища - Зов Эдема";
+                "old recipe " + a + ", new " + b);
+            return "8 souls around a stone no longer give the Call; souls + stone + horn shard + sanctum seal - Call of Eden";
         });
-        t("Прохождение", "Закалка", () -> {
+        t("Progression", "Tempering", () -> {
             Item feather = com.divinerpgextended.registry.ModItems.twilightMaterial, gem = net.divinerpg.utils.items.TwilightItemsOther.edenGem;
             int ff = com.divinerpgextended.world.twilight.TwilightMaterial.SUN_FEATHER.ordinal(), root = com.divinerpgextended.world.twilight.TwilightMaterial.GREENFEET_ROOT.ordinal();
             net.minecraft.inventory.InventoryCrafting tg = grid();
@@ -10870,10 +10870,10 @@ public class SelfTest {
             bg.setInventorySlotContents(4, new ItemStack(gem));
             ItemStack bow = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(bg, server.worldServers[0]);
             check(com.divinerpgextended.item.TemperRecipe.tempered(helm) && short_ == null && com.divinerpgextended.item.TemperRecipe.tempered(bow),
-                "шлем " + helm + ", без одного корня " + short_ + ", лук " + bow);
-            return "шлем Эдема + 2 пера + 2 корня + камень - закалён; без корня не крафтится; лук Эдема + 3 пера + камень - закалён";
+                "helmet " + helm + ", without one root " + short_ + ", bow " + bow);
+            return "Eden helmet + 2 feathers + 2 roots + stone - tempered; not craftable without a root; Eden bow + 3 feathers + stone - tempered";
         });
-        t("Прохождение", "Закалённый сет", () -> {
+        t("Progression", "Tempered set", () -> {
             TestPlayer v = player(ConfigurationHelper.eden, "TestTempered", 9960, 100, 9960);
             Item[] set = { net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet, net.divinerpg.utils.items.TwilightItemsArmor.edenChestplate,
                 net.divinerpg.utils.items.TwilightItemsArmor.edenLeggings, net.divinerpg.utils.items.TwilightItemsArmor.edenBoots };
@@ -10892,10 +10892,10 @@ public class SelfTest {
                 net.minecraft.util.DamageSource.causeMobDamage(zz), 10);
             MinecraftForge.EVENT_BUS.post(ev);
             armor(v, null, null, null, null);
-            check(!blind && Math.abs(ev.ammount - 5) < 0.6, "ослепление осталось " + blind + ", урон моба 10 > " + ev.ammount);
-            return "закалённый сет Эдема снимает ослепление, урон мобов дома x0.5";
+            check(!blind && Math.abs(ev.ammount - 5) < 0.6, "blindness left " + blind + ", mob damage 10 > " + ev.ammount);
+            return "tempered Eden set removes blindness, mob damage at home x0.5";
         });
-        t("Прогрессия", "Палки мира", () -> {
+        t("Progression", "World sticks", () -> {
             net.minecraft.inventory.InventoryCrafting cg = grid();
             cg.setInventorySlotContents(0, new ItemStack(net.divinerpg.utils.blocks.TwilightBlocks.edenPlanks));
             cg.setInventorySlotContents(3, new ItemStack(net.divinerpg.utils.blocks.TwilightBlocks.edenPlanks));
@@ -10915,10 +10915,10 @@ public class SelfTest {
             check(st != null && st.getItem() == com.divinerpgextended.registry.ModItems.worldStick && st.getItemDamage() == com.divinerpgextended.world.twilight.WorldWood.EDEN.ordinal()
                 && st.stackSize == 4 && torch != null && torch.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.worldTorch[0]) && ore
                 && vanilla.length() == 0 && oak,
-                "из досок Эдема " + st + ", факел " + torch + ", stickWood " + ore + "; обычные палки из досок миров: [" + vanilla + "], из дубовых " + oak);
-            return "2 доски Эдема - 4 палки Эдема, пыль Эдема на палке - 4 факела Эдема; палка мира годится как обычная; обычных палок из досок 8 миров нет";
+                "from Eden planks " + st + ", torch " + torch + ", stickWood " + ore + "; ordinary sticks from world planks: [" + vanilla + "], from oak " + oak);
+            return "2 Eden planks - 4 Eden sticks, Eden dust on a stick - 4 Eden torches; a world stick works as an ordinary one; there are no ordinary sticks from the planks of 8 worlds";
         });
-        t("Прогрессия", "Цепочка крафтов", () -> {
+        t("Progression", "Crafting chain", () -> {
             Item chunk = net.divinerpg.utils.items.TwilightItemsOther.wildwoodChunk;
             ItemStack horn = com.divinerpgextended.world.twilight.TwilightCrafts.mat(com.divinerpgextended.world.twilight.TwilightWorld.WILDWOOD,
                 com.divinerpgextended.world.twilight.TwilightCrafts.ARMOR_MAT);
@@ -10968,13 +10968,13 @@ public class SelfTest {
             check(helm != null && helm.getItem() == net.divinerpg.utils.items.TwilightItemsArmor.wildwoodHelmet && gearKept && byOldSet == null && wrongGear == null
                 && edenHelm != null && edenHelm.getItem() == net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet && edenOld == null && oldHelm == null
                 && blade != null && blade.getItem() == net.divinerpg.utils.items.TwilightItemsWeapons.edenBlade && plainStick == null,
-                "шлем Дикого леса " + helm + ", шестерня осталась " + gearKept + ", со шлемом Эдема " + byOldSet + ", с шестернёй Дикого леса " + wrongGear
-                    + "; шлем Эдема " + edenHelm + ", с божественным шлемом " + edenOld + "; старый рецепт " + oldHelm + ", клинок Эдема " + blade
-                    + ", на обычной палке " + plainStick);
-            return "шлем Дикого леса = шестерня Эдема (остаётся в верстаке) + 2 куска + лунный рог + 2 китовых плавника, прошлый сет не нужен; шлем Эдема - из кусков и материала Эдема;"
-                + " 5 кусков больше не крафтят; клинок Эдема по-прежнему из божественного меча на палке Эдема (обычная не подходит)";
+                "Wildwood helmet " + helm + ", gear remained " + gearKept + ", with Eden helmet " + byOldSet + ", with Wildwood gear " + wrongGear
+                    + "; Eden helmet " + edenHelm + ", with divine helmet " + edenOld + "; old recipe " + oldHelm + ", Eden blade " + blade
+                    + ", on an ordinary stick " + plainStick);
+            return "Wildwood helmet = Eden gear (stays in the workbench) + 2 pieces + moon horn + 2 whale fins, the previous set is not needed; Eden helmet - from pieces and Eden material;"
+                + " 5 pieces no longer craft; Eden blade is still from a divine sword on an Eden stick (an ordinary one does not fit)";
         });
-        t("Прогрессия", "Шестерня времени не тратится", () -> {
+        t("Progression", "Time gear is not consumed", () -> {
             TestPlayer cp = player(0, "TestClockGear", 0, 100, 0);
             net.minecraft.inventory.InventoryCrafting cg = grid();
             cg.setInventorySlotContents(0, com.divinerpgextended.item.ItemWandererClock.withTier(ModItems.wandererClock, 1));
@@ -10985,10 +10985,10 @@ public class SelfTest {
             boolean kept = left != null && left.getItem() == ModItems.timeGear && left.getItemDamage() == 0 && cg.getStackInSlot(0) == null;
             int max = new ItemStack(ModItems.timeGear).getMaxStackSize();
             check(up != null && com.divinerpgextended.item.ItemWandererClock.tier(up) == 2 && kept && max == 1,
-                "часы " + (up == null ? null : com.divinerpgextended.item.ItemWandererClock.tier(up)) + ", шестерня в сетке " + left + ", в стопке до " + max);
-            return "часы I + шестерня Эдема - часы II, шестерня остаётся в верстаке; шестерни не складываются в стопку (хватает одной на мир)";
+                "clock " + (up == null ? null : com.divinerpgextended.item.ItemWandererClock.tier(up)) + ", gear in grid " + left + ", in stack up to " + max);
+            return "clock I + Eden gear - clock II, the gear stays in the workbench; gears do not stack (one per world is enough)";
         });
-        t("Броня", "Странник: привязка к владельцу", () -> {
+        t("Armor", "Wanderer: binding to owner", () -> {
             WorldServer w = server.worldServers[0];
             TestPlayer a = player(0, "TestOwnerA", 0, 100, 0), b = player(0, "TestOwnerB", 0, 100, 0);
             ItemStack[] set = new ItemStack[4];
@@ -11041,14 +11041,14 @@ public class SelfTest {
             check(tier[0] == 3 && tier[1] == 0 && core[0] && !core[1] && sock[0] && !sock[1] && ratio[0] > 0.2F && ratio[1] == 0F && display[0] > 0 && display[1] == 0
                 && fall[0] == 0F && fall[1] == bare && bare > 15F && fakeSkips && bound && foreign.status == AnvilLogic.Status.FOREIGN && foreign.param == 0 && stranger
                 && mine == AnvilLogic.Status.READY_UNBIND && freed && allFree && after == AnvilLogic.Status.NEED_DONOR,
-                "ступень для боссов: владелец " + tier[0] + ", чужой " + tier[1] + "; ядро " + core[0] + "/" + core[1] + "; гнездо " + sock[0] + "/" + sock[1]
-                    + "; защита нагрудника " + f(ratio[0]) + "/" + f(ratio[1]) + ", полоска " + display[0] + "/" + display[1] + "; падение 20 > " + f(fall[0]) + "/" + f(fall[1]) + " (без брони " + f(bare) + ")"
-                    + "; заглушка не привязала " + fakeSkips + ", игрок привязал " + bound + "; наковальня чужому " + foreign.status + " (" + foreign.param + "), снял " + !stranger
-                    + "; владельцу " + mine + ", снято " + freed + "/" + allFree + ", потом " + after);
-            return "на владельце R3: ступень 3, ядро, гнёзда, защита и без падения; на чужом - ступень 0 (тройной урон боссов), ни защиты, ни эффектов;"
-                + " привязывается при первой примерке (заглушки модов - нет); на наковальне снять привязку может только владелец";
+                "boss tier: owner " + tier[0] + ", other " + tier[1] + "; core " + core[0] + "/" + core[1] + "; socket " + sock[0] + "/" + sock[1]
+                    + "; chestplate protection " + f(ratio[0]) + "/" + f(ratio[1]) + ", bar " + display[0] + "/" + display[1] + "; fall 20 > " + f(fall[0]) + "/" + f(fall[1]) + " (without armor " + f(bare) + ")"
+                    + "; stub did not bind " + fakeSkips + ", player bound " + bound + "; anvil for another " + foreign.status + " (" + foreign.param + "), removed " + !stranger
+                    + "; owner " + mine + ", removed " + freed + "/" + allFree + ", then " + after);
+            return "on the owner R3: tier 3, core, sockets, protection and no fall damage; on another - tier 0 (triple boss damage), no protection and no effects;"
+                + " binds on first fitting (mod stubs - no); on an anvil only the owner can remove the binding";
         });
-        t("Броня", "Странник: мягкое приземление только перком", () -> {
+        t("Armor", "Wanderer: soft landing only via the perk", () -> {
             TestPlayer slP = player(0, "TestSoftLanding", 0, 100, 0);
             float[] slFall = new float[2];
             // without armor (in the Magic modpack one of the mods itself removes fall damage from a block, so it is not exactly 20)
@@ -11075,10 +11075,10 @@ public class SelfTest {
             AnvilLogic.Result slR = AnvilLogic.evaluate(slAn, slP, AnvilLogic.UPGRADE);
             reset(slP);
             check(slFall[0] == slBare.distance && slBare.distance > 15F && slFall[1] == 0F && Perk.byDonor(slEl) == Perk.SOFT_LANDING && slR.status == AnvilLogic.Status.READY_PERK && slR.param == Perk.SOFT_LANDING.ordinal(),
-                "падение 20 > без перка " + f(slFall[0]) + " (без брони " + f(slBare.distance) + "), с перком " + f(slFall[1]) + "; донор элитный реалмит " + Perk.byDonor(slEl) + ", наковальня R1 " + slR.status);
-            return "сет Странника R5 без перка падение не гасит, с \"Мягким приземлением\" - гасит; перк ставится на наковальне сетом элитного реалмита за арлемит";
+                "fall 20 > without perk " + f(slFall[0]) + " (without armor " + f(slBare.distance) + "), with perk " + f(slFall[1]) + "; donor elite realmite " + Perk.byDonor(slEl) + ", anvil R1 " + slR.status);
+            return "Wanderer R5 set without the perk does not cancel falls, with \"Soft landing\" it does; the perk is applied on an anvil by an elite realmite set for arlemite";
         });
-        t("Броня", "Странник: покраска и отмывка", () -> {
+        t("Armor", "Wanderer: dyeing and washing", () -> {
             ItemStack helm = com.divinerpgextended.item.ItemWandererArmor.stack(ModItems.wanderer[0], 4, com.divinerpgextended.item.ArmorCore.DIVINE);
             com.divinerpgextended.item.ArmorData.setPerks(helm, java.util.Arrays.asList(com.divinerpgextended.perk.Perk.values()[0]));
             net.minecraft.inventory.InventoryCrafting cg = grid();
@@ -11108,13 +11108,13 @@ public class SelfTest {
             check(rc == 0x993333 && com.divinerpgextended.item.ArmorData.tier(red) == 4 && com.divinerpgextended.item.ArmorData.perks(red).size() == 1
                 && com.divinerpgextended.item.ArmorData.color(helm) == -1 && mc >= 0 && mc != 0x993333 && withStick == null && two == null && cancel
                 && com.divinerpgextended.item.ArmorData.color(washed) == -1 && level == 2,
-                "красная " + Integer.toHexString(rc) + ", ступень и перки на месте; с лазуритом " + Integer.toHexString(mc) + "; с палкой " + withStick + ", две части " + two
-                    + "; котёл: клик перехвачен " + cancel + ", цвет после " + (washed == null ? null : Integer.toHexString(com.divinerpgextended.item.ArmorData.color(washed)))
-                    + ", вода " + level + " из 3");
-            return "часть Странника + красители в верстаке - цвет как у кожаной брони (смешивается), ступень и перки остаются; с чужим предметом или двумя частями не красится;"
-                + " котёл с водой отмывает и тратит треть воды";
+                "red " + Integer.toHexString(rc) + ", tier and perks in place; with lapis " + Integer.toHexString(mc) + "; with stick " + withStick + ", two pieces " + two
+                    + "; cauldron: click intercepted " + cancel + ", color after " + (washed == null ? null : Integer.toHexString(com.divinerpgextended.item.ArmorData.color(washed)))
+                    + ", water " + level + " of 3");
+            return "a Wanderer piece + dyes in a workbench - color like leather armor (mixes), tier and perks stay; with a foreign item or two pieces it is not dyed;"
+                + " a cauldron with water washes it and uses a third of the water";
         });
-        t("Прогрессия", "Камни врат", () -> {
+        t("Progression", "Gate stones", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             net.minecraft.inventory.InventoryCrafting cg = grid();
             for (int i = 0; i < 9; i++) cg.setInventorySlotContents(i, i == 4 ? new ItemStack(com.divinerpgextended.registry.ModItems.guardianHeart, 1, 0)
@@ -11139,10 +11139,10 @@ public class SelfTest {
             }
             for (int i = -1; i <= 4; i++) for (int h = -1; h <= 5; h++) w.setBlockToAir(gx + i, gy + h, gz);
             check(gates != null && gates.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.gateStone[0]) && gates.stackSize == 10
-                && lit[0] && !lit[1], "камни врат " + gates + ", портал из камней врат " + lit[0] + ", из блоков Эдема " + lit[1]);
-            return "8 блоков Эдема + сердце стража - 10 камней врат; часы II зажигают портал в Дикий лес из камней врат, из блоков Эдема - нет";
+                && lit[0] && !lit[1], "gate stones " + gates + ", portal from gate stones " + lit[0] + ", from Eden blocks " + lit[1]);
+            return "8 Eden blocks + guardian heart - 10 gate stones; clock II lights a portal to Wildwood from gate stones, from Eden blocks - no";
         });
-        t("Прогрессия", "Уровни кирок", () -> {
+        t("Progression", "Pickaxe tiers", () -> {
             TestPlayer mv = player(ConfigurationHelper.wildwood, "TestMiner", 9800, 100, 9800);
             Item divine = net.divinerpg.utils.items.VanillaItemsTools.divinePickaxe, eden = net.divinerpg.utils.items.TwilightItemsTools.edenPickaxe,
                 wild = net.divinerpg.utils.items.TwilightItemsTools.wildwoodPickaxe;
@@ -11162,13 +11162,13 @@ public class SelfTest {
                 net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed ev = new net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed(mv,
                     (Block) c[1], 0, 1.0F, 9800, 99, 9800);
                 MinecraftForge.EVENT_BUS.post(ev);
-                if ((ev.newSpeed > 0) != (Boolean) c[2]) bad += (c[0] == null ? "рука" : ((Item) c[0]).getUnlocalizedName()) + " / " + ((Block) c[1]).getUnlocalizedName() + "; ";
+                if ((ev.newSpeed > 0) != (Boolean) c[2]) bad += (c[0] == null ? "hand" : ((Item) c[0]).getUnlocalizedName()) + " / " + ((Block) c[1]).getUnlocalizedName() + "; ";
             }
             mv.setCurrentItemOrArmor(0, null);
-            check(bad.isEmpty(), "не так: " + bad);
-            return "в Диком лесу камень берёт кирка Эдема (божественная - нет), руду Дикого леса - только его кирка, руду Эдема - она же; землю - рука; халитовые кирка и мультиинструмент берут любую руду и камень, божественный шикакс - как божественная кирка";
+            check(bad.isEmpty(), "wrong: " + bad);
+            return "in Wildwood stone is mined by an Eden pickaxe (divine - no), Wildwood ore - only by its pickaxe, Eden ore - the same one; dirt - hand; halite pickaxe and multitool mine any ore and stone, divine shickaxe - like the divine pickaxe";
         });
-        t("Логова", "Торговля странника", () -> {
+        t("Lairs", "Wanderer trading", () -> {
             net.minecraft.village.MerchantRecipeList l = com.divinerpgextended.entity.EntityWanderer.trades(com.divinerpgextended.world.twilight.TwilightWorld.EDEN);
             boolean pointless = false, torches = false, swap = false;
             for (Object o : l) {
@@ -11178,10 +11178,10 @@ public class SelfTest {
                 if (out == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.worldTorch[0])) torches = true;
                 if (in == com.divinerpgextended.registry.ModItems.twilightMaterial && out == in) swap = true;
             }
-            check(!pointless && torches && swap, "обмен осколков/душ " + pointless + ", факелы " + torches + ", обмен материалов " + swap + ", сделок " + l.size());
-            return "Странник Эдема: " + l.size() + " сделок - карта, факелы, стрелы, саженцы, обмен материалов, еда, лечение; осколки и души на камни больше не меняет";
+            check(!pointless && torches && swap, "shard/soul exchange " + pointless + ", torches " + torches + ", material exchange " + swap + ", trades " + l.size());
+            return "Eden Wanderer: " + l.size() + " trades - map, torches, arrows, saplings, material exchange, food, healing; no longer exchanges shards and souls for stones";
         });
-        t("Прогрессия", "Лампы миров", () -> {
+        t("Progression", "World lamps", () -> {
             net.minecraft.inventory.InventoryCrafting lg = grid();
             for (int i = 0; i < 9; i++) lg.setInventorySlotContents(i, new ItemStack(i == 4 ? net.divinerpg.utils.items.TwilightItemsOther.mortumFragments : Items.iron_ingot));
             ItemStack lamp = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(lg, server.worldServers[0]);
@@ -11201,10 +11201,10 @@ public class SelfTest {
                 if (b == Blocks.glowstone) glow++;
             }
             check(lamp != null && lamp.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.worldLamp[4]) && lamps > 0 && glow == 0,
-                "рецепт " + lamp + ", ламп Мортума в руинах " + lamps + ", глоустоуна " + glow);
-            return "железо вокруг осколка Мортума - лампа Мортума; руины освещены лампой своего мира, глоустоуна нет";
+                "recipe " + lamp + ", Mortum lamps in ruins " + lamps + ", glowstone " + glow);
+            return "iron around a Mortum shard - Mortum lamp; ruins are lit by their own world's lamp, no glowstone";
         });
-        t("Логова", "Зов мимо алтаря", () -> {
+        t("Lairs", "Call away from the altar", () -> {
             int dim = ConfigurationHelper.eden;
             WorldServer w = server.worldServerForDimension(dim);
             TestPlayer v = player(dim, "TestCallAway", 3000, 100, 3000);
@@ -11215,10 +11215,10 @@ public class SelfTest {
             call.getItem().onItemUse(call, v, w, 3000, 99, 3000, 1, 0.5F, 1F, 0.5F);
             java.util.List<?> bosses = w.getEntitiesWithinAABB(com.divinerpgextended.entity.EntityGreatCadillion.class,
                 net.minecraft.util.AxisAlignedBB.getBoundingBox(2990, 90, 2990, 3010, 110, 3010));
-            check(bosses.isEmpty() && call.stackSize == 1 && v.heard("dre.chat.call_at_nest"), "боссов " + bosses.size() + ", зов " + call.stackSize + ", чат " + v.chat);
-            return "Зов по обычному блоку не работает, подсказка про алтарь гнезда";
+            check(bosses.isEmpty() && call.stackSize == 1 && v.heard("dre.chat.call_at_nest"), "bosses " + bosses.size() + ", call " + call.stackSize + ", chat " + v.chat);
+            return "the Call on an ordinary block does not work, a hint about the nest altar";
         });
-        t("Логова", "Арены Мортума", () -> {
+        t("Lairs", "Mortum arenas", () -> {
             int dim = ConfigurationHelper.mortum;
             WorldServer w = server.worldServerForDimension(dim);
             StringBuilder sb = new StringBuilder();
@@ -11228,7 +11228,7 @@ public class SelfTest {
                 int[] c = com.divinerpgextended.world.twilight.MortumArenas.nearestOf(w, t, 0, 0, 6);
                 if (c == null) {
                     ok = false;
-                    sb.append(t.key()).append(": нет; ");
+                    sb.append(t.key()).append(": none; ");
                     continue;
                 }
                 loadAround(w, c[0], c[2], 3);
@@ -11292,18 +11292,18 @@ public class SelfTest {
                         if (!walk) blocked++;
                     }
                     floor &= hollow == 0 && blocked == 0;
-                    sb.append("демон: полость под двором ").append(hollow).append(", ход от нижней двери перекрыт в ").append(blocked).append(" местах; ");
+                    sb.append("demon: cavity under the courtyard ").append(hollow).append(", passage from the lower door blocked in ").append(blocked).append(" places; ");
                 }
-                sb.append(t.key()).append(good ? " ок" : " пол " + floor + " алтарь " + altar + " (над ним " + w.getBlock(ax, ay + 1, az).getUnlocalizedName() + "/" + w.getBlock(ax, ay + 2, az).getUnlocalizedName() + ", пол " + w.getBlock(c[0] + 3, fy, c[2] + 3).getUnlocalizedName() + "/" + w.getBlock(c[0] + 3, fy + 1, c[2] + 3).getUnlocalizedName() + "/" + w.getBlock(c[0] + 3, fy + 3, c[2] + 3).getUnlocalizedName() + ") статуй " + statues + " вызвано боссов " + summoned + " свой " + in + " чужой " + wrong + " мимо алтаря " + floorClick + " снаружи " + out).append("; ");
+                sb.append(t.key()).append(good ? " ok" : " floor " + floor + " altar " + altar + " (above it " + w.getBlock(ax, ay + 1, az).getUnlocalizedName() + "/" + w.getBlock(ax, ay + 2, az).getUnlocalizedName() + ", floor " + w.getBlock(c[0] + 3, fy, c[2] + 3).getUnlocalizedName() + "/" + w.getBlock(c[0] + 3, fy + 1, c[2] + 3).getUnlocalizedName() + "/" + w.getBlock(c[0] + 3, fy + 3, c[2] + 3).getUnlocalizedName() + ") statues " + statues + " bosses summoned " + summoned + " own " + in + " foreign " + wrong + " beside the altar " + floorClick + " outside " + out).append("; ");
             }
             // neighboring squares are always of different kinds
             boolean differ = true;
             for (int i = -5; i <= 5; i++) for (int j = -5; j <= 5; j++) for (int a = -1; a <= 1; a++) for (int b = -1; b <= 1; b++)
                 if ((a != 0 || b != 0) && com.divinerpgextended.world.twilight.MortumArenas.type(w.getSeed(), i, j) == com.divinerpgextended.world.twilight.MortumArenas.type(w.getSeed(), i + a, j + b)) differ = false;
-            check(ok && differ, sb + "соседи разные " + differ);
-            return "у каждого из шести боссов Мортума своя арена с алтарём, статуй нет; кристалл по алтарю своей арены вызывает босса (Карот и лучник - на свободном месте зала), мимо алтаря, чужой и снаружи - отказ; соседние арены разные";
+            check(ok && differ, sb + "neighbors differ " + differ);
+            return "each of the six Mortum bosses has its own arena with an altar, no statues; a crystal on the altar of its own arena summons the boss (Karot and the archer - at a free spot in the hall), beside the altar, foreign and outside - refused; neighboring arenas differ";
         });
-        t("Логова", "Боссы арен Мортума: механики", () -> {
+        t("Lairs", "Mortum arena bosses: mechanics", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int x0 = 9700, y0 = 90, z0 = 9700;
             loadAround(w, x0, z0, 2);
@@ -11411,11 +11411,11 @@ public class SelfTest {
             ea.setDead();
             for (int x = x0 - 12; x <= x0 + 12; x++) for (int z = z0 - 12; z <= z0 + 12; z++) for (int y = y0 - 1; y <= y0 + 8; y++) w.setBlockToAir(x, y, z);
             check(shield && revived && noLoot && raised == com.divinerpgextended.boss.MortumArenaBosses.SOULS && used && guarded && open && stunned && arrows == 9 && eroded && stepped,
-                "близнецы: дуэль (второй неуязвим, дуэлянт уязвим и тянет) " + shield + ", в очереди " + queued + ", после " + com.divinerpgextended.boss.MortumArenaBosses.pending() + ", Денсосов рядом " + w.getEntitiesWithinAABB(net.divinerpg.entities.twilight.EntityDensos.class, re.boundingBox.expand(30, 10, 30)).size() + ", поднят " + revived + ", без трофеев " + noLoot + "; шаг за спину " + stepped + "; пожиратель: надгробий " + stones + ", душ " + raised + ", целых осталось " + intact + ", неуязвим " + guarded + ", потом уязвим " + open
-                    + "; вамачерон: оглушён на тике " + stunAt + ", урон " + vh.ammount + "; лучник: стрел " + arrows + ", колонна осыпалась " + eroded);
-            return "близнецы бьются по очереди (дуэлянт тянет на свою половину, второй неуязвим), шагают за спину и поднимают брата (без трофеев); Пожиратель поднимает души только из целых могил рядом, могила рассыпается, пока души живы - неуязвим; Вамачерон оглушается о стену (урон x2); лучник бьёт залпом и рушит укрытия";
+                "twins: duel (the second is invulnerable, the duelist is vulnerable and pulls) " + shield + ", in queue " + queued + ", after " + com.divinerpgextended.boss.MortumArenaBosses.pending() + ", Densos nearby " + w.getEntitiesWithinAABB(net.divinerpg.entities.twilight.EntityDensos.class, re.boundingBox.expand(30, 10, 30)).size() + ", lifted " + revived + ", no trophies " + noLoot + "; step behind " + stepped + "; Soul Fiend: gravestones " + stones + ", souls " + raised + ", intact left " + intact + ", invulnerable " + guarded + ", then vulnerable " + open
+                    + "; Vamacheron: stunned at tick " + stunAt + ", damage " + vh.ammount + "; archer: arrows " + arrows + ", column crumbled " + eroded);
+            return "the twins fight in turns (the duelist pulls to their half, the second is invulnerable), step behind and lift their brother (no trophies); the Soul Fiend raises souls only from intact graves nearby, a grave crumbles, while souls live - invulnerable; Vamacheron is stunned against a wall (damage x2); the archer fires volleys and destroys cover";
         });
-        t("Логова", "Мортум: останки гигантов", () -> {
+        t("Lairs", "Mortum: giant remains", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int x0 = 9820, y0 = 60, z0 = 9820;
             loadAround(w, x0, z0, 2);
@@ -11441,10 +11441,10 @@ public class SelfTest {
                 }
             for (int x = x0 - 12; x <= x0 + 12; x++) for (int z = z0 - 12; z <= z0 + 12; z++) for (int y = y0 - 6; y <= 120; y++) w.setBlockToAir(x, y, z);
             check(skull && bone > 120 && chest == 1 && airInside > 5 && buried && ribs && rib > 60 && high > 10,
-                "череп " + skull + ": кости " + bone + ", сундук " + chest + ", полость " + airInside + ", в земле " + buried + "; рёбра " + ribs + ": кости " + rib + ", из них выше 4 блоков " + high);
-            return "череп гиганта (" + bone + " блоков кости, наполовину в земле, внутри полость и сундук) и грудная клетка (" + rib + " блоков, рёбра дугами)";
+                "skull " + skull + ": bones " + bone + ", chest " + chest + ", cavity " + airInside + ", in ground " + buried + "; ribs " + ribs + ": bones " + rib + ", of them above 4 blocks " + high);
+            return "giant skull (" + bone + " bone blocks, half in the ground, a cavity and a chest inside) and rib cage (" + rib + " blocks, ribs in arcs)";
         });
-        t("Прохождение", "Доски из дерева Ветеи и крафты из них", () -> {
+        t("Progression", "Vethea wood planks and crafts from them", () -> {
             StringBuilder sb = new StringBuilder();
             boolean ok = true;
             for (com.divinerpgextended.block.BlockVetheaPlanks.Wood wd : com.divinerpgextended.block.BlockVetheaPlanks.Wood.values()) {
@@ -11463,12 +11463,12 @@ public class SelfTest {
                     && table != null && table.getItem() == net.minecraft.item.Item.getItemFromBlock(Blocks.crafting_table)
                     && sticks != null && sticks.getItem() == net.minecraft.init.Items.stick;
                 ok &= good;
-                sb.append(wd.key()).append(good ? " ок; " : " бревно -> " + planks + ", верстак " + table + ", палки " + sticks + "; ");
+                sb.append(wd.key()).append(good ? " ok; " : " log -> " + planks + ", workbench " + table + ", sticks " + sticks + "; ");
             }
             check(ok, sb.toString());
-            return "4 дерева Ветеи: бревно - 4 доски, из досок верстак и палки (доски в рудном словаре plankWood)";
+            return "4 Vethea woods: log - 4 planks, workbench and sticks from planks (planks in the plankWood ore dictionary)";
         });
-        t("Логова", "Iceika: Морозный лучник стреляет раз в 1-2 секунды", () -> {
+        t("Lairs", "Iceika: Frost Archer fires once per 1-2 seconds", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
             int x0 = 9800, y0 = 70, z0 = 9800;
             loadAround(w, x0, z0, 1);
@@ -11493,10 +11493,10 @@ public class SelfTest {
             fa.setDead();
             server.getConfigurationManager().playerEntityList.remove(fp);
             w.removeEntity(fp);
-            check(arrows >= 2 && arrows <= 6, "стрел за 5 секунд: " + arrows);
-            return "за 5 секунд по игроку в 6 блоках - " + arrows + " стрел (у Divine было бы около 50)";
+            check(arrows >= 2 && arrows <= 6, "arrows in 5 seconds: " + arrows);
+            return "in 5 seconds at a player within 6 blocks - " + arrows + " arrows (Divine would have about 50)";
         });
-        t("Логова", "Рядом с боссом не полетать (кроме Скайтерна)", () -> {
+        t("Lairs", "No flying near a boss (except Skythern)", () -> {
             String log = "";
             boolean ok = true;
             int[] dims = { ConfigurationHelper.iceika, ConfigurationHelper.skythern };
@@ -11519,12 +11519,12 @@ public class SelfTest {
                 server.getConfigurationManager().playerEntityList.remove(fl);
                 w.removeEntity(fl);
                 ok &= k2 == 0 ? !flying && after : flying && after;
-                log += (k2 == 0 ? "Iceika у Колосса" : "Скайтерн у Повелителя ветров") + ": летит " + flying + ", после смерти босса летит " + after + "; ";
+                log += (k2 == 0 ? "Iceika at the Colossus" : "Skythern at the Wind Lord") + ": flies " + flying + ", after the boss dies flies " + after + "; ";
             }
             check(ok, log);
-            return "у Ледяного Колосса полёт выключается, без босса снова можно; в Скайтерне у Повелителя ветров летать можно";
+            return "near the Frost Colossus flight is disabled, without the boss it is allowed again; in Skythern near the Wind Lord flying is allowed";
         });
-        t("Логова", "Арена босса: у края бойца тянет к центру, без бойцов босс уходит через bossArenaLeaveSeconds", () -> {
+        t("Lairs", "Boss arena: a fighter at the edge is pulled to the center, without fighters the boss leaves via bossArenaLeaveSeconds", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
             int x0 = 9500, y0 = 150, z0 = 9500;
             loadAround(w, x0, z0, 2);
@@ -11597,16 +11597,16 @@ public class SelfTest {
                 boolean creative = !solo.getEntityData().getBoolean(com.divinerpgextended.boss.BossArena.ON)
                     && sb[3] == com.divinerpgextended.Config.bossArenaRadius;
                 check(applies && on && pushed && farFree && warned && waits && reset && gone && inherits && instant && never && creative,
-                    "босс с ареной " + applies + ", бой начат " + on + ", у края тянет " + pushed + ", издалека не тянет " + farFree + ", предупредил " + warned
-                        + ", за 59.5 с не ушёл " + waits + ", возврат сбросил " + reset + ", через минуту ушёл " + gone + ", лич на арене Колосса " + inherits
-                        + ", при 0 сразу " + instant + ", при -1 никогда " + never + ", творческий бой не начал " + creative + "; чат " + f.chat);
-                return "боец у края летит к центру; все ушли - минута ожидания (вернулся - сначала), потом босс исчезает; 0 - сразу, -1 - никогда";
+                    "boss with arena " + applies + ", fight started " + on + ", pulled at the edge " + pushed + ", not pulled from afar " + farFree + ", warned " + warned
+                        + ", did not leave in 59.5 s " + waits + ", return reset " + reset + ", left after a minute " + gone + ", lich in the Colossus arena " + inherits
+                        + ", at 0 immediately " + instant + ", at -1 never " + never + ", creative fight did not start " + creative + "; chat " + f.chat);
+                return "a fighter at the edge flies to the center; everyone left - a minute of waiting (came back - from the start), then the boss disappears; 0 - immediately, -1 - never";
             } finally {
                 com.divinerpgextended.Config.bossArenaLeaveSeconds = keep;
                 for (net.minecraft.entity.EntityLiving m : made) m.setDead();
             }
         });
-        t("Логова", "Вызов босса вне логова - только на свободной площадке, как у Стража Гайи", () -> {
+        t("Lairs", "Summoning a boss outside a lair - only on a free site, like the Gaia Guardian", () -> {
             com.divinerpgextended.world.CadillionWorld cw = com.divinerpgextended.world.CadillionWorld.byMeta(0);
             WorldServer w = server.worldServerForDimension(cw.dimension());
             int x0 = 9300, y0 = 200, z0 = 9300;
@@ -11657,12 +11657,12 @@ public class SelfTest {
             w.setBlockToAir(x0 + 6, y0 + 2, z0 + 6);
             for (net.minecraft.entity.Entity se : spawned) se.setDead();
             check(clut > com.divinerpgextended.boss.BossArena.FIELD_CLUTTER && refused && divineRefused && clear && divineOk && summoned && room && blocked,
-                "застроено " + f((float) (clut * 100)) + "%, Зов отклонён " + refused + ", Зов Смотрителя отклонён " + divineRefused + ", после расчистки свободно " + clear
-                    + ", Смотритель пропущен " + divineOk + ", кадиллион вызван " + summoned + ", Глакону место есть " + room + ", блок в рамке мешает " + blocked
-                    + "; чат " + sp.chat);
-            return "две стены на площадке (" + f((float) (clut * 100)) + "% колонн) - Зов кадиллиона и Зов Смотрителя не срабатывают; на чистой - вызов идёт";
+                "built up " + f((float) (clut * 100)) + "%, Call rejected " + refused + ", Watcher's Call rejected " + divineRefused + ", free after clearing " + clear
+                    + ", Watcher skipped " + divineOk + ", cadillion summoned " + summoned + ", Glacon has room " + room + ", block in frame interferes " + blocked
+                    + "; chat " + sp.chat);
+            return "two walls on the site (" + f((float) (clut * 100)) + "%) of columns - the cadillion Call and the Watcher Call do not work; on a clean one - the summon goes through";
         });
-        t("Сумеречные миры", "Рамка портала, построенная телепортом, ничего не роняет", () -> {
+        t("Twilight dimensions", "A portal frame built by teleport drops nothing", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
             int x0 = 9600, z0 = 9600;
             loadAround(w, x0, z0, 2);
@@ -11687,10 +11687,10 @@ public class SelfTest {
             java.util.ArrayList<ItemStack> d2 = frame.getDrops(w, x0 + 30, 120, z0, 0, 0);
             net.minecraftforge.event.ForgeEventFactory.fireBlockHarvesting(d2, w, frame, x0 + 30, 120, z0, 0, 0, 1.0F, false, pp);
             w.setBlockToAir(x0 + 30, 120, z0);
-            check(marked >= 10 && d1.isEmpty() && !d2.isEmpty(), "отмечено блоков рамки " + marked + ", дроп отмеченного " + d1 + ", дроп своего " + d2);
-            return "портал телепорта в Диком лесу: " + marked + " блоков Эдема в рамке, добытые - пусто; свой блок Эдема роняет себя";
+            check(marked >= 10 && d1.isEmpty() && !d2.isEmpty(), "frame blocks marked " + marked + ", drop of marked " + d1 + ", drop of own " + d2);
+            return "teleport portal in Wildwood: " + marked + " Eden blocks in the frame, mined ones - empty; an own Eden block drops itself";
         });
-        t("Сумеречные миры", "Новый портал над пустотой встаёт на остров", () -> {
+        t("Twilight dimensions", "A new portal over the void sits on an island", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.EDEN;
             // we look for a void near an island: a column without ground, 100 blocks from it - ground
@@ -11729,11 +11729,11 @@ public class SelfTest {
                 if (bb == edenFrame) { frames++; if (fr.isEmpty()) fr = x + "," + y + "," + z; }
                 if (bb == net.divinerpg.utils.blocks.TwilightBlocks.edenPortal) portals++;
             }
-            check(found && low != null && grounded, "пустота " + vx + "," + vz + " найдена " + found + "; портал " + java.util.Arrays.toString(low) + " в " + (int) moved
-                + " блоках, под рамкой земля острова " + grounded + "; в 60 блоках рамки " + frames + " (" + fr + "), портала " + portals + "; игрок " + px + "," + (int) vp.posY + "," + pz);
-            return "вход над пустотой в Эдеме: новый портал построен на ближайшем острове (" + (int) moved + " блоков), под рамкой земля";
+            check(found && low != null && grounded, "void " + vx + "," + vz + " found " + found + "; portal " + java.util.Arrays.toString(low) + " in " + (int) moved
+                + " blocks, under the frame is island ground " + grounded + "; within 60 blocks of the frame " + frames + " (" + fr + "), portal " + portals + "; player " + px + "," + (int) vp.posY + "," + pz);
+            return "entry over the void in Eden: the new portal is built on the nearest island (" + (int) moved + " blocks), ground under the frame";
         });
-        t("Прохождение", "Вагонетка Апалачии: крен вида и мышь на стене и потолке", () -> {
+        t("Progression", "Apalachia minecart: view tilt and mouse on wall and ceiling", () -> {
             StringBuilder sb = new StringBuilder();
             boolean ok = true;
             // floor - no roll; ceiling - upside down; wall to the east when looking south - the cart's "top" (east) is at the top of the screen
@@ -11741,7 +11741,7 @@ public class SelfTest {
             double ceil = com.divinerpgextended.entity.SkyCartView.roll(0, 0, new double[] { 0, -1, 0 });
             double wall = com.divinerpgextended.entity.SkyCartView.roll(0, 0, new double[] { 1, 0, 0 });
             ok &= Math.abs(floor) < 0.01 && Math.abs(Math.abs(ceil) - 180) < 0.01 && Math.abs(wall + 90) < 0.01;
-            sb.append("пол ").append((int) floor).append(", потолок ").append((int) ceil).append(", стена ").append((int) wall).append("; ");
+            sb.append("floor ").append((int) floor).append(", ceiling ").append((int) ceil).append(", wall ").append((int) wall).append("; ");
             // mouse: a shift "up the screen" and "right on the screen" leads the look where on the tilted screen up and right are
             java.util.Random rnd = new java.util.Random(5);
             int bad = 0;
@@ -11770,11 +11770,11 @@ public class SelfTest {
                 }
             }
             ok &= bad == 0;
-            sb.append("несовпадений мыши и верха ").append(bad);
+            sb.append("mouse/top mismatches ").append(bad);
             check(ok, sb.toString());
-            return "на полу крена нет, на потолке картинка вверх ногами, на стене - на бок; мышь вверх/вправо по экрану ведёт взгляд вверх/вправо по экрану (200 случайных положений)";
+            return "on the floor no tilt, on the ceiling the picture is upside down, on the wall - sideways; the mouse up/right on screen moves the view up/right on screen (200 random positions)";
         });
-        t("Сумеречные миры", "Ведро Леты; статус босса у боссов Divine", () -> {
+        t("Twilight dimensions", "Lethe bucket; boss status for Divine bosses", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int x0 = 9650, y0 = 100, z0 = 9650;
             loadAround(w, x0, z0, 1);
@@ -11797,10 +11797,10 @@ public class SelfTest {
             // Divine bosses have boss status, like the Wither (mods such as Blood Magic's sacrificial dagger spare them)
             boolean boss = (Object) new net.divinerpg.entities.twilight.EntityTwilightDemon(w) instanceof net.minecraft.entity.boss.IBossDisplayData
                 && (Object) new net.divinerpg.entities.vanilla.EntityKingOfScorchers(w) instanceof net.minecraft.entity.boss.IBossDisplayData;
-            check(filled && placed && container && boss, "ведро набрало Лету " + filled + ", поставило " + placed + ", контейнер Forge " + container + ", статус босса " + boss);
-            return "ведро из источника Леты - ведро Леты, ставит Лету обратно, в словаре жидкостей Forge; боссы Divine с IBossDisplayData";
+            check(filled && placed && container && boss, "bucket picked up Lethe " + filled + ", placed " + placed + ", Forge container " + container + ", boss status " + boss);
+            return "a bucket from a Lethe source - Lethe bucket, places Lethe back, in the Forge fluid dictionary; Divine bosses with IBossDisplayData";
         });
-        t("Прохождение", "Факелы Divine отгоняют мобов Divine; Айрако слышно только рядом; крабы Карцинуса пустые", () -> {
+        t("Progression", "Divine torches repel Divine mobs; Ayeraco heard only nearby; Carcinus crabs empty", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x0 = 70000, y0 = 90, z0 = 70000;
             loadAround(w, x0, z0, 2);
@@ -11844,11 +11844,11 @@ public class SelfTest {
             drop.setAccessible(true);
             for (int i = 0; i < 20; i++) drop.invoke(crab, true, 3);
             boolean empty = crab.capturedDrops.isEmpty();
-            check(ward && heard && empty, "спавн циклопа у факела " + res[0] + ", в 60 блоках " + res[1] + ", после поломки факела " + res[2]
-                + "; Айрако: рядом услышал " + !nearP.chat.isEmpty() + ", в 300 блоках " + !farP.chat.isEmpty() + "; краб Карцинуса пустой " + empty);
-            return "у факела Divine мобы Divine не спавнятся (дальше и после поломки - как обычно); призыв Айрако слышно только рядом; крабы из боя с Карцинусом ничего не роняют";
+            check(ward && heard && empty, "cyclops spawn at torch " + res[0] + ", within 60 blocks " + res[1] + ", after torch broken " + res[2]
+                + "; Ayeraco: heard nearby " + !nearP.chat.isEmpty() + ", within 300 blocks " + !farP.chat.isEmpty() + "; Carcinus crab empty " + empty);
+            return "near a Divine torch Divine mobs do not spawn (farther and after breaking - as usual); the Ayeraco summon is heard only nearby; crabs from the Carcinus fight drop nothing";
         });
-        t("Логова", "Iceika: весь Ледяной Трон по чертежу (чанки в случайном порядке)", () -> {
+        t("Lairs", "Iceika: whole Frozen Throne by blueprint (chunks in random order)", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
             int[] c = com.divinerpgextended.world.WorldGenThrone.nearest(w.getSeed(), 6000, -6000);
             int r = com.divinerpgextended.world.WorldGenThrone.R + 24;
@@ -11870,12 +11870,12 @@ public class SelfTest {
             if (spot != null) seal.generate(w.rand, (spot[0] - 8) >> 4, (spot[1] - 8) >> 4, w, w.theChunkProviderServer, w.theChunkProviderServer);
             seal.generate(w.rand, (wx - 8) >> 4, (wz - 8) >> 4, w, w.theChunkProviderServer, w.theChunkProviderServer);
             boolean healed = (spot == null || w.isAirBlock(spot[0], 12, spot[1])) && w.getBlock(wx, 10, wz) == wallWas && w.getBlock(wx, 11, wz) == wallWas;
-            check(bad[0] == 0 && bad[1] == 0 && bad[2] == 0 && spot != null && healed, "Трон " + c[0] + "," + c[2] + ", чанков " + chunks.size() + ": лишних блоков " + bad[0]
-                + ", дыр " + bad[1] + ", подмен " + bad[2] + " (" + ex + "); лава в зале и камень с водой в стене убраны " + healed);
-            return "весь Трон (" + chunks.size() + " чанков в случайном порядке) совпадает с чертежом: ни лишних блоков внутри, ни дыр и подмен в стенах и своде; "
-                + "лава в зале, замороженный камень и вода в стене после всех генераторов возвращаются по чертежу";
+            check(bad[0] == 0 && bad[1] == 0 && bad[2] == 0 && spot != null && healed, "Throne " + c[0] + "," + c[2] + ", chunks " + chunks.size() + ": extra blocks " + bad[0]
+                + ", holes " + bad[1] + ", substitutions " + bad[2] + " (" + ex + "); lava in the hall and stone with water in the wall removed " + healed);
+            return "whole Throne (" + chunks.size() + " chunks in random order) matches the blueprint: no extra blocks inside, no holes or substitutions in walls and vault; "
+                + "lava in the hall, frozen stone and water in the wall return to the blueprint after all generators";
         });
-        t("Логова", "Iceika: Ледяной Трон - заселение Divine мимо, всё освещено", () -> {
+        t("Lairs", "Iceika: Frozen Throne - Divine population skips it, everything lit", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
             int[] c = com.divinerpgextended.world.WorldGenThrone.nearest(w.getSeed(), 0, 0);
             int px = c[0] + 60, pz = c[2] + 40;
@@ -11942,12 +11942,12 @@ public class SelfTest {
             boolean spawns = "DENY".equals(inSpawn.getResult().name()) && !"DENY".equals(outSpawn.getResult().name());
             // light is for show: in the modpack a few places are dark (some mod recomputes lighting), there is no spawning there anyway
             check(changed == 0 && skipped > 0 && inside && spawns && floorSpots > 500 && darkFloor * 100 <= floorSpots && steps > 50 && darkSteps * 100 <= steps,
-                "в куполе изменилось блоков " + changed + " (" + changes + "), генераторов пропущено " + skipped + ", граница Трона " + inside + ", спавн в Троне запрещён " + spawns + "; пол: мест " + floorSpots + ", тёмных " + darkFloor + " (" + floorAt + ")"
-                    + "; ступени: мест " + steps + ", тёмных " + darkSteps + " (" + darkAt + ")");
-            return "повторное заселение 16 чанков над куполом: в Троне не изменилось ни блока, генераторов Divine пропущено " + skipped + "; пол арены (" + floorSpots
-                + " мест, тёмных " + darkFloor + ") и ступени лестниц (" + steps + ", тёмных " + darkSteps + ") освещены; мобы в Троне сами не появляются";
+                "blocks changed in the dome " + changed + " (" + changes + "), generators skipped " + skipped + ", Throne border " + inside + ", spawn in the Throne forbidden " + spawns + "; floor: spots " + floorSpots + ", dark " + darkFloor + " (" + floorAt + ")"
+                    + "; steps: spots " + steps + ", dark " + darkSteps + " (" + darkAt + ")");
+            return "repeated population of 16 chunks above the dome: not a single block changed in the Throne, Divine generators skipped " + skipped + "; arena floor (" + floorSpots
+                + " spots, dark " + darkFloor + ") and stair steps (" + steps + ", dark " + darkSteps + ") lit; mobs in the Throne do not appear on their own";
         });
-        t("Логова", "Iceika: новогодняя ёлка", () -> {
+        t("Lairs", "Iceika: New Year tree", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
             int x0 = 9900, y0 = 70, z0 = 9900;
             loadAround(w, x0, z0, 2);
@@ -11978,10 +11978,10 @@ public class SelfTest {
             boolean star = w.getBlock(x0, y0 + com.divinerpgextended.world.IceikaXmasTree.HEIGHT + 1, z0) == net.divinerpg.utils.blocks.IceikaBlocks.workshopLamp;
             for (int x = x0 - 10; x <= x0 + 10; x++) for (int z = z0 - 10; z <= z0 + 10; z++) for (int y = y0 - 3; y <= 122; y++) w.setBlockToAir(x, y, z);
             check(built && lights > 10 && presents == com.divinerpgextended.world.IceikaXmasTree.PRESENTS && gifts >= 12 && canes == 6 && leaves > 150 && star && santa,
-                "построена " + built + ", огоньков " + lights + ", подарков " + presents + " (вещей " + gifts + "), тростей " + canes + ", хвои " + leaves + ", звезда " + star + ", шапка Санты бывает " + santa);
-            return "ёлка: ярусы хвои (" + leaves + "), гирлянды Divine (" + lights + "), звезда, " + presents + " подарочные коробки Divine со сладостями (бывает вещь Санты), леденцовые трости";
+                "built " + built + ", lights " + lights + ", gifts " + presents + " (items " + gifts + "), canes " + canes + ", needles " + leaves + ", star " + star + ", Santa hat sometimes " + santa);
+            return "tree: needle tiers (" + leaves + "), Divine garlands (" + lights + "), star, " + presents + " Divine gift boxes with sweets (a Santa item may appear), candy canes";
         });
-        t("Логова", "Мортум 0.78: Демон-маг, ладья, Пожиратель, карты", () -> {
+        t("Lairs", "Mortum 0.78: Demon Mage, barge, Soul Fiend, maps", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int x0 = 9880, y0 = 90, z0 = 9880;
             loadAround(w, x0, z0, 2);
@@ -12083,12 +12083,12 @@ public class SelfTest {
             for (int i = 0; i < 70; i++) for (int j = 0; j < 70; j++) if (com.divinerpgextended.world.twilight.MortumWorld.dockChunk(w.getSeed(), i, j)) docks++;
             for (int x = x0 - 14; x <= x0 + 14; x++) for (int z = z0 - 14; z <= z0 + 14; z++) for (int y = y0 - 3; y <= y0 + 10; y++) w.setBlockToAir(x, y, z);
             check(onlyPhaser && snapped && runes == 3 && exploded && bolts == 3 && halite && sideWeak && bought && safe && bitten && rotted && noWild && punished && maps && docks == 100,
-                "демон: только фазер " + onlyPhaser + " (стрела " + arrow.ammount + ", фазер " + phaser.ammount + "), тетива рвётся " + snapped + ", руны " + runes + " взорвались " + exploded
-                    + ", снарядов блинка " + bolts + "; халит " + halite + "; боковая дробина " + sh.ammount + "; ладья куплена " + bought + ", в ладье цел " + safe + ", вплавь грызут " + bitten
-                    + ", лодка разъелась " + rotted + "; пауков Divine нет " + noWild + ", надгробие наказано " + punished + "; карты " + maps + ", Харонов на 70x70 чанков " + docks);
-            return "Демона пробивает только фазер, луки рядом рвутся, руны взрываются, блинк с тремя снарядами; халитовое оружие - как у миров; ладья у Харона спасает от Леты, лодка разъедается; надгробия Пожирателя дорого бить; карты к каждой арене";
+                "demon: only phaser " + onlyPhaser + " (arrow " + arrow.ammount + ", phaser " + phaser.ammount + "), bowstring snaps " + snapped + ", runes " + runes + " exploded " + exploded
+                    + ", blink projectiles " + bolts + "; halite " + halite + "; side pellet " + sh.ammount + "; barge bought " + bought + ", intact in the barge " + safe + ", gnawed while swimming " + bitten
+                    + ", boat eaten away " + rotted + "; no Divine spiders " + noWild + ", gravestone punished " + punished + "; maps " + maps + ", Charons on 70x70 chunks " + docks);
+            return "the Demon is hit only by a phaser, bows nearby snap, runes explode, blink with three projectiles; halite weapons - as in the worlds; Charon's barge saves from Lethe, the boat is eaten away; Soul Fiend gravestones are costly to break; maps to each arena";
         });
-        t("Логова", "РЕНДЕР роща Эдема: корни под островом", () -> {
+        t("Lairs", "RENDER Eden grove: roots under the island", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             int cx = 40000, cz = 40000, T = com.divinerpgextended.world.twilight.WorldGenNests.TOP;
             loadAround(w, cx, cz, 4);
@@ -12109,10 +12109,10 @@ public class SelfTest {
                 if (run > 6) deep++;
             }
             dump(w, cx, T, cz, 44, "render-grove");
-            check(under > 40 && deep == 0, "корней под островом " + under + ", колонн длиннее 6 " + deep);
-            return "под островом рощи корней " + under + ", колонн-сталактитов нет";
+            check(under > 40 && deep == 0, "roots under the island " + under + ", columns longer than 6 " + deep);
+            return "under the grove island roots " + under + ", no stalactite columns";
         });
-        t("Логова", "РЕНДЕР живые арены Мортума", () -> {
+        t("Lairs", "RENDER live Mortum arenas", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             StringBuilder rep = new StringBuilder();
             com.divinerpgextended.world.twilight.MortumArenas.Type[] types = { com.divinerpgextended.world.twilight.MortumArenas.Type.VAMACHERON,
@@ -12126,7 +12126,7 @@ public class SelfTest {
             }
             return rep.toString();
         });
-        t("Логова", "РЕНДЕР арен Мортума на ровном дне", () -> {
+        t("Lairs", "RENDER Mortum arenas on flat ground", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int n = 0;
             for (com.divinerpgextended.world.twilight.MortumArenas.Type t : com.divinerpgextended.world.twilight.MortumArenas.Type.values()) {
@@ -12143,9 +12143,9 @@ public class SelfTest {
                 dump(w, cx, com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP + 20, cz, 44, "render-" + t.key());
                 n++;
             }
-            return "построено и сброшено для рендера: " + n;
+            return "built and dumped for render: " + n;
         });
-        t("Логова", "Демон сумерек: бой по этажам башни", () -> {
+        t("Lairs", "Twilight Demon: fight by tower floors", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int cx = 30000, cz = 30000; // the tower is built by the render test
             loadAround(w, cx, cz, 3);
@@ -12198,11 +12198,11 @@ public class SelfTest {
             dm.setDead();
             tp.inventory.clearInventory(null, -1);
             check(inHall && farSafe && nearHit && st == com.divinerpgextended.boss.MortumBosses.STAGE_AT.length && free && lit && focusSafe && broken && home != null && home[1] == flc + 1,
-                "зал: этаж " + st1 + " y " + (int) dm.posY + " ок " + inHall + "; со двора неуязвим " + farSafe + ", на этаже бьётся " + nearHit + "; этажи " + floors + "до " + st + ", места свободны " + free
-                    + "; фокус горит " + lit + ", пока горит - неуязвим " + focusSafe + ", разбит - бьётся " + broken);
-            return "Демон уходит в башню на 85% и поднимается по этажу каждые 12% до коронного зала; не на его этаже его не достать; в короне держит фокус - разбил, бей";
+                "hall: floor " + st1 + " y " + (int) dm.posY + " ok " + inHall + "; invulnerable from the yard " + farSafe + ", hittable on the floor " + nearHit + "; floors " + floors + "up to " + st + ", free spots " + free
+                    + "; focus burning " + lit + ", while burning - invulnerable " + focusSafe + ", broken - hittable " + broken);
+            return "The Demon retreats into the tower at 85% and climbs a floor every 12% up to the crown hall; unreachable when not on his floor; in the crown he holds a focus - break it, then strike";
         });
-        t("Логова", "Вечный лучник: бегуны, залп сквозь блоки, дождь стрел", () -> {
+        t("Lairs", "Eternal Archer: runners, volley through blocks, arrow rain", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int cx = 30000 + com.divinerpgextended.world.twilight.MortumArenas.Type.ARCHER.ordinal() * 160, cz = 30000; // the gallery is built by the render test
             loadAround(w, cx, cz, 3);
@@ -12233,10 +12233,10 @@ public class SelfTest {
             for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, ea.boundingBox.expand(48, 20, 48))) ((net.minecraft.entity.Entity) o).setDead();
             tp.inventory.clearInventory(null, -1);
             check(roof && arrows == com.divinerpgextended.boss.MortumArenaBosses.VOLLEY_ARROWS && holes > 0 && r1 == 2 && r2 == 1 && rain == com.divinerpgextended.boss.MortumArenaBosses.RAIN_ARROWS,
-                "кровля из ступеней с обсидиановым коньком " + roof + "; залп " + arrows + " стрел, пробито блоков в стенке " + holes + "; бегунов " + r1 + "+" + r2 + "; дождь " + rain + " стрел");
-            return "кровля галереи - ступени адского кирпича; залп пробивает стенку (" + holes + " блоков), бегуны до трёх, дождь стрел " + rain;
+                "roof of stairs with an obsidian ridge " + roof + "; volley " + arrows + " arrows, blocks broken in the wall " + holes + "; runners " + r1 + "+" + r2 + "; rain " + rain + " arrows");
+            return "gallery roof - nether brick stairs; the volley breaks through the wall (" + holes + " blocks), up to three runners, arrow rain " + rain;
         });
-        t("Логова", "Карот: отражает снаряды, смотрится в зеркало", () -> {
+        t("Lairs", "Karot: reflects projectiles, looks in the mirror", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int cx = 30000 + com.divinerpgextended.world.twilight.MortumArenas.Type.KAROT.ordinal() * 160, cz = 30000; // the hall is built by the render test
             loadAround(w, cx, cz, 2);
@@ -12267,10 +12267,10 @@ public class SelfTest {
             ar.setDead();
             ar2.setDead();
             check(reflected && melee && gazed && edge == com.divinerpgextended.world.twilight.MortumArenas.MIRROR_H - 3 && open,
-                "стрела отражена в стрелка " + reflected + ", ближний бой проходит " + melee + "; у зеркала " + gazed + " (от центра " + edge + "), снаряд в окне зеркала " + !s2.isCanceled() + ", урон " + h2.ammount);
-            return "Карот отражает стрелы и снаряды в стрелка, ближний бой проходит; у зеркальной стены замирает, и снаряды бьют его x" + com.divinerpgextended.boss.MortumBosses.GAZE_DMG;
+                "arrow reflected at the shooter " + reflected + ", melee goes through " + melee + "; at the mirror " + gazed + " (from center " + edge + "), projectile in the mirror window " + !s2.isCanceled() + ", damage " + h2.ammount);
+            return "Karot reflects arrows and projectiles back at the shooter, melee goes through; at the mirror wall he freezes, and projectiles hit him x" + com.divinerpgextended.boss.MortumBosses.GAZE_DMG;
         });
-        t("Логова", "Мортум: река у арен, причалы, мосты", () -> {
+        t("Lairs", "Mortum: river by the arenas, docks, bridges", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             long seed = w.getSeed();
             int sea = com.divinerpgextended.world.twilight.MortumWorld.SEA;
@@ -12297,7 +12297,7 @@ public class SelfTest {
                     if (r < minR && com.divinerpgextended.world.twilight.MortumWorld.river(seed, c[0] + (int) Math.round(Math.cos(a2 * Math.PI / 180) * r), c[2] + (int) Math.round(Math.sin(a2 * Math.PI / 180) * r))) minR = r;
                 int sg = com.divinerpgextended.world.twilight.WorldGenNests.spacing(w.provider.dimensionId);
                 boolean placed = com.divinerpgextended.world.twilight.WorldGenNests.riverPoint(seed, w.provider.dimensionId, Math.floorDiv(c[0], sg), Math.floorDiv(c[2], sg)) != null;
-                sb.append(t.key()).append(near ? " у реки" : " без реки").append(inside ? " (река по арене! ближе всего " + minR + " из " + ext + ", место у реки найдено " + placed + ")" : "").append("; ");
+                sb.append(t.key()).append(near ? " by the river" : " no river").append(inside ? " (river through the arena! nearest " + minR + " of " + ext + ", river spot found " + placed + ")" : "").append("; ");
             }
             // across many worlds: the share of arenas by a river and of arenas the river noise still crosses
             int sTotal = 0, sNear = 0, sWet = 0, sNone = 0;
@@ -12317,7 +12317,7 @@ public class SelfTest {
                 if (in2) sWet++;
                 if (com.divinerpgextended.world.twilight.WorldGenNests.riverPoint(ss, dimM, rx, rz) == null) sNone++;
             }
-            sb.append("по 8 мирам: арен ").append(sTotal).append(", у реки ").append(sNear).append(", река заходит на арену ").append(sWet).append(", места у реки не нашлось ").append(sNone).append("; ");
+            sb.append("over 8 worlds: arenas ").append(sTotal).append(", by the river ").append(sNear).append(", river enters the arena ").append(sWet).append(", no river spot found ").append(sNone).append("; ");
             // bridge: the one nearest the origin
             double[] b = null;
             int specs = 0, covered = 0;
@@ -12328,9 +12328,9 @@ public class SelfTest {
                 if (com.divinerpgextended.world.twilight.MortumWorld.open(w, bq)) b = bq;
                 else covered++;
             }
-            sb.append("мест под мост ").append(specs).append(", из них в тоннеле (без моста) ").append(covered).append("; ");
+            sb.append("bridge spots ").append(specs).append(", of them in a tunnel (no bridge) ").append(covered).append("; ");
             boolean bridge = false;
-            String bs = "моста нет";
+            String bs = "no bridge";
             if (b != null) {
                 int bx = (int) Math.floor(b[0]), bz = (int) Math.floor(b[1]);
                 loadAround(w, bx, bz, 3);
@@ -12346,14 +12346,14 @@ public class SelfTest {
                 for (int y = sea + up + 1; y <= sea + up + 20; y++) if (!w.isAirBlock(bx, y, bz) && !com.divinerpgextended.world.twilight.MortumWorld.soft(w, bx, y, bz)) sky = false;
                 bridge = overWater && deck > 30 && rail > 8 && sky;
                 dump(w, bx, sea + 10, bz, 30, "render-bridge");
-                bs = "мост у " + bx + "," + bz + ": над Летой " + overWater + ", над ним открыто " + sky + ", настила " + deck + ", перил " + rail + ", вода шириной " + (int) (b[4] * 2);
+                bs = "bridge at " + bx + "," + bz + ": over Lethe " + overWater + ", open above it " + sky + ", deck " + deck + ", rails " + rail + ", water width " + (int) (b[4] * 2);
             }
             int docks = com.divinerpgextended.world.twilight.MortumWorld.arenaDocks;
-            sb.append("причалов у арен построено ").append(docks).append("; ");
+            sb.append("docks built at arenas ").append(docks).append("; ");
             check(total == 6 && sNear >= sTotal * 0.85 && sWet <= sTotal * 0.08 && sWet <= sNone && bridge && docks > 0, sb + bs);
-            return "арен у русла " + sNear + " из " + sTotal + " (8 миров), река заходит на арену у " + sWet + ", причалов у арен " + docks + "; " + bs;
+            return "arenas by the channel " + sNear + " of " + sTotal + " (8 worlds), river enters the arena at " + sWet + ", docks at arenas " + docks + "; " + bs;
         });
-        t("Прохождение", "Бестиарий: главы, убийства, знаки охотника", () -> {
+        t("Progression", "Bestiary: chapters, kills, hunter's marks", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int sx0 = 9440, sz0 = 9830;
             loadAround(w, sx0, sz0, 1);
@@ -12428,11 +12428,11 @@ public class SelfTest {
             bp.inventory.clearInventory(null, -1);
             boolean dmg = Math.abs(h1.ammount - 10.6F) < 0.01 && Math.abs(h2.ammount - 11.5F) < 0.01 && Math.abs(h3.ammount - 8.8F) < 0.01;
             check(filled && noBoss && dup == 0 && enderInEnd && one == 1 && still == 1 && sold && done && ie.isCanceled() && marks == 1 && again == 0 && dmg,
-                sb + "моб в двух главах " + dup + ", боссов нет " + noBoss + ", паук-эндер в Энде " + enderInEnd + "; убит " + first + ": " + one + ", подручный не в счёт " + (still == 1)
-                    + "; книга в продаже " + sold + ", глава Эдема закрыта " + done + ", знаков выдано " + marks + ", повторно " + again + "; урон: в обычном мире " + h1.ammount + ", в Эдеме " + h2.ammount + ", от моба в Эдеме " + h3.ammount);
-            return "главы: " + sb + "моб - в одной главе, боссов нет; убийства считаются (подручные боссов - нет); торговец скотом продаёт книгу и выдаёт знак за закрытую главу один раз; знак Эдема: +6% везде, +15% и -12% в Эдеме";
+                sb + "mob in two chapters " + dup + ", no bosses " + noBoss + ", ender spider in the End " + enderInEnd + "; killed " + first + ": " + one + ", boss minion does not count " + (still == 1)
+                    + "; book on sale " + sold + ", Eden chapter closed " + done + ", marks given " + marks + ", repeat " + again + "; damage: in the normal world " + h1.ammount + ", in Eden " + h2.ammount + ", from a mob in Eden " + h3.ammount);
+            return "chapters: " + sb + "a mob is in one chapter, no bosses; kills count (boss minions do not); the cattle trader sells the book and gives a mark for a closed chapter once; Eden mark: everywhere +6%, in Eden +15% and -12%";
         });
-        t("Отладка", "РЕНДЕР список предметов Divine", () -> {
+        t("Debug", "RENDER Divine item list", () -> {
             java.io.PrintWriter out = new java.io.PrintWriter(new File(MinecraftServer.getServer().getFile("logs"), "divine-items.txt"), "UTF-8");
             String[] holders = { "VanillaItemsOther", "VanillaItemsWeapons", "VanillaItemsArmor", "VanillaItemsTools", "ItemsFood", "IceikaItems", "ArcanaItems",
                 "TwilightItemsOther", "TwilightItemsWeapons", "TwilightItemsArmor", "TwilightItemsTools", "TwilightItemsCrops", "VetheaItems" };
@@ -12474,9 +12474,9 @@ public class SelfTest {
                 }
             }
             out.close();
-            return "выгружено предметов и блоков Divine: " + n;
+            return "dumped Divine items and blocks: " + n;
         });
-        t("Аркана", "Смелтер плавит руду на земле", () -> {
+        t("Arcana", "Smelter smelts ore on the ground", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x0 = 9420, z0 = 9830;
             loadAround(w, x0, z0, 1);
@@ -12498,10 +12498,10 @@ public class SelfTest {
             mined.setDead();
             thrown.setDead();
             sm.setDead();
-            check(melted && kept, "выпавшая руда: " + a + ", выброшенная игроком: " + b);
-            return "руда, выпавшая рядом с хозяином смелтера 2+, сразу на земле становится слитками (3 руды - 3 слитка); выброшенную игроком не трогает";
+            check(melted && kept, "dropped ore: " + a + ", thrown by the player: " + b);
+            return "ore dropped near a smelter 2+ owner is smelted into ingots right on the ground (3 ore - 3 ingots); ore thrown by the player is left alone";
         });
-        t("Логова", "Халит, частички душ и Кровать кошмаров", () -> {
+        t("Lairs", "Halite, soul sparks and the Nightmare Bed", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x0 = 9400, y0 = 100, z0 = 9830;
             loadAround(w, x0, z0, 1);
@@ -12587,11 +12587,11 @@ public class SelfTest {
             boolean speeds = pick == 60 && multiStone == 60 && multiWood == 60 && hoe;
             hp.inventory.clearInventory(null, -1);
             check(noHalite && shards >= 4 && shards <= 6 && trophy && spark && distinct && ingot != null && ingot.getItem() == ModItems.haliteMaterial && bed && speeds,
-                "готового халита нет " + noHalite + ", осколков " + shards + ", трофей (в инвентарь не кладут, чужой не поднимет) " + trophy + ", частичка " + spark + "; дух сумерек из разных " + (r1 != null) + ", из двух одинаковых нет " + (r2 == null)
-                    + "; слиток " + ingot + "; кровать: старый рецепт " + oldBed + ", новый " + newBed + "; скорость кирки " + pick + ", мульти камень " + multiStone + " дерево " + multiWood + ", пашет " + hoe);
-            return "с босса Мортума каждому игроку рядом - своя доля на землю (осколки, трофей, частичка), чужую не поднять, в инвентарь ничего не кладётся, готового халита нет; дух сумерек - только из трёх разных частичек; слиток из осколков; Кровать кошмаров - только с Духом вселенной; кирка 60, мультиинструмент 60 и пашет";
+                "no ready halite " + noHalite + ", shards " + shards + ", trophy (not put in inventory, others cannot pick up) " + trophy + ", spark " + spark + "; Twilight Spirit from different ones " + (r1 != null) + ", from two identical ones none " + (r2 == null)
+                    + "; ingot " + ingot + "; bed: old recipe " + oldBed + ", new " + newBed + "; pickaxe speed " + pick + ", multi stone " + multiStone + " wood " + multiWood + ", tills " + hoe);
+            return "from the Mortum boss every nearby player gets their own share on the ground (shards, trophy, spark), others cannot pick it up, nothing goes into the inventory, no ready halite; Twilight Spirit only from three different sparks; ingot from shards; Nightmare Bed only with the Spirit of the Universe; pickaxe 60, multitool 60 and tills";
         });
-        t("Логова", "Джунгли: руда, тотем, логово, Древний драмкрикс", () -> {
+        t("Lairs", "Jungle: ore, totem, lair, Ancient Dramcryx", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x0 = 30000, z0 = 33000, gy = 80;
             loadAround(w, x0 + 7, z0 + 7, 6);
@@ -12640,7 +12640,7 @@ public class SelfTest {
                 java.util.HashSet<Long> seen = new java.util.HashSet<Long>();
                 qq.add(new int[] { tsx, tsy, tsz });
                 int[][] nb = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
-                reachInfo[0] = "старт " + w.getBlock(tsx, tsy, tsz).getUnlocalizedName() + "/" + w.getBlock(tsx, tsy - 1, tsz).getUnlocalizedName() + "/" + w.getBlock(tsx, tsy - 3, tsz).getUnlocalizedName() + " у " + tsx + "," + tsy + "," + tsz + "; алтарь " + altar[0] + "," + altar[1] + "," + altar[2];
+                reachInfo[0] = "start " + w.getBlock(tsx, tsy, tsz).getUnlocalizedName() + "/" + w.getBlock(tsx, tsy - 1, tsz).getUnlocalizedName() + "/" + w.getBlock(tsx, tsy - 3, tsz).getUnlocalizedName() + " at " + tsx + "," + tsy + "," + tsz + "; altar " + altar[0] + "," + altar[1] + "," + altar[2];
                 int minY = 999, best = 99999, wet = 0;
                 int air = 0;
                 while (!qq.isEmpty() && air < 400000 && !reach) {
@@ -12662,7 +12662,7 @@ public class SelfTest {
                         air++;
                     }
                 }
-                reachInfo[0] += "; обошёл воздуха " + air + ", всего клеток " + seen.size() + ", ниже всего " + minY + ", ближе всего " + best + ", воды по пути " + wet;
+                reachInfo[0] += "; walked air " + air + ", total cells " + seen.size() + ", lowest " + minY + ", closest " + best + ", water on the way " + wet;
             }
             // ore: only the halite pickaxe
             TestPlayer jp2 = join(player(0, "TestJungle", x0 + 2.5, gy + 1, z0 - 30.5), true);
@@ -12703,7 +12703,7 @@ public class SelfTest {
                     near.hurtResistantTime = 0;
                     near.setHealth(near.getMaxHealth());
                     int hitN = boss.sweep();
-                    sweepInfo[0] = "задето " + hitN + ", здоровье " + near.getHealth();
+                    sweepInfo[0] = "hit " + hitN + ", health " + near.getHealth();
                     sweep = hitN >= 1 && near.getHealth() < near.getMaxHealth();
                     near.setHealth(near.getMaxHealth());
                 }
@@ -12723,13 +12723,13 @@ public class SelfTest {
                 && com.divinerpgextended.halite.Halite.sparkOf(com.divinerpgextended.boss.Boss.JUNGLE_KING) == com.divinerpgextended.halite.Halite.Spark.JUNGLE;
             if (boss != null) boss.setDead();
             jp2.inventory.clearInventory(null, -1);
-            check(lair && reach && ore && summoned && shell && sweep && spirit && sofa && ferns > 50 && badFerns == 0 && centered && rootBlocks > 2000 && rootFloor > 0 && vines > 100, "логово " + lair + ", арена в центре " + centered
-                + ", корней " + rootBlocks + " (у пола " + rootFloor + "), лиан " + vines + ", диван с РПГ в особом доме " + sofa
-                + ", папоротников " + ferns + " (не на траве " + badFerns + "), дошёл от храма до алтаря " + reach + " (" + reachInfo[0] + "); руда (алмазной нет, халитовой да) " + ore + "; призыв " + summoned
-                + "; шкура при порабощённых " + shell + "; хвост " + sweep + " (" + sweepInfo[0] + "); дух мира только с частичкой джунглей " + spirit);
-            return "под храмом джунглей логово: колодец, город кольцом, арена с алтарём в центре - дойти можно; корней " + rootBlocks + ", лиан " + vines + "; руду берёт только халитовая кирка; тотем на алтаре зовёт Древнего драмкрикса; при порабощённых шкура держит урон, хвост бьёт по кругу; дух мира - Древняя сущность + босс джунглей";
+            check(lair && reach && ore && summoned && shell && sweep && spirit && sofa && ferns > 50 && badFerns == 0 && centered && rootBlocks > 2000 && rootFloor > 0 && vines > 100, "lair " + lair + ", arena in the center " + centered
+                + ", roots " + rootBlocks + " (by the floor " + rootFloor + "), vines " + vines + ", sofa with RPG in the special house " + sofa
+                + ", ferns " + ferns + " (not on grass " + badFerns + "), reached the altar from the temple " + reach + " (" + reachInfo[0] + "); ore (no diamond, halite yes) " + ore + "; summon " + summoned
+                + "; hide with enthralled " + shell + "; tail " + sweep + " (" + sweepInfo[0] + "); World Spirit only with a jungle spark " + spirit);
+            return "a lair under the jungle temple: well, ring city, arena with an altar in the center - reachable; roots " + rootBlocks + ", vines " + vines + "; ore is mined only by the halite pickaxe; the totem on the altar summons the Ancient Dramcryx; with enthralled around, the hide holds damage, the tail sweeps in a circle; World Spirit - Ancient entity + jungle boss";
         });
-        t("Логова", "РЕНДЕР карта Леты", () -> {
+        t("Lairs", "RENDER Lethe map", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int bx = 40000, bz = 40000, size = 192;
             loadAround(w, bx + size / 2, bz + size / 2, size / 32 + 1);
@@ -12759,9 +12759,9 @@ public class SelfTest {
                 out.println(row);
             }
             out.close();
-            return "карта Леты 192x192: открыто " + open + ", в тоннелях/под навесом " + tunnel + ", водопадов (столбцов) " + falls;
+            return "Lethe map 192x192: open " + open + ", in tunnels/under cover " + tunnel + ", waterfalls (columns) " + falls;
         });
-        t("Логова", "Мортум: русло Леты по рельефу", () -> {
+        t("Lairs", "Mortum: Lethe channel follows the terrain", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             // a river far from the other tests
             int rx = 0, rz = 0;
@@ -12797,10 +12797,10 @@ public class SelfTest {
             dump(w, rx, 40, rz, 34, "lethe-river");
             // isolated pockets under the bottom appear later, when neighboring chunks populate; in the game Lethe drains into them
             check(columns > 100 && hanging * 500 <= lethe && spikes < columns / 20 && plants == 0,
-                "у " + rx + "," + rz + ": столбцов реки " + columns + ", блоков Леты " + lethe + ", с пустотой под собой " + hanging + " (" + hangAt + "), одиночных столбов " + spikes + ", растений на воде " + plants);
-            return "Лета течёт руслом по рельефу: " + columns + " столбцов, пустота под водой " + hanging + " из " + lethe + ", висящих столбов и растений на воде нет";
+                "at " + rx + "," + rz + ": river columns " + columns + ", Lethe blocks " + lethe + ", with a void beneath " + hanging + " (" + hangAt + "), single pillars " + spikes + ", plants on water " + plants);
+            return "Lethe flows in a channel along the terrain: " + columns + " columns, void under water " + hanging + " of " + lethe + ", no hanging pillars or plants on water";
         });
-        t("Логова", "Мортум: Лета, Харон, склеп", () -> {
+        t("Lairs", "Mortum: Lethe, Charon, crypt", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int x0 = 9760, y0 = 90, z0 = 9760;
             loadAround(w, x0, z0, 2);
@@ -12859,11 +12859,11 @@ public class SelfTest {
             lp.inventory.clearInventory(null, -1);
             for (int x = x0 - 8; x <= x0 + 16; x++) for (int z = z0 - 8; z <= z0 + 16; z++) for (int y = y0 - 2; y <= y0 + 10; y++) w.setBlockToAir(x, y, z);
             check(cleared && forgot && ignored && drained && share > 0.05 && share < 0.3 && crypt && chest && ferried,
-                "Лета: эффекты сняты " + cleared + ", моб забыл " + forgot + ", не берёт в цель " + ignored + ", опыт " + xpBefore + " > " + lp.experienceTotal
-                    + "; русло " + String.format("%.1f%%", share * 100) + "; склеп " + crypt + ", саркофаг и спавнер " + chest + "; Харон: до зала " + String.format("%.0f", dist) + " на " + dir + ", душ " + left + " из 7, сказал " + said + ", подсказка верна " + ferried);
-            return "Лета снимает эффекты, мобы забывают игрока, утекает опыт; русло - узкие ленты (" + String.format("%.1f%%", share * 100) + "); склеп с саркофагом; Харон по кристаллу говорит сторону и расстояние до арены босса, никуда не переносит";
+                "Lethe: effects cleared " + cleared + ", mob forgot " + forgot + ", does not target " + ignored + ", experience " + xpBefore + " > " + lp.experienceTotal
+                    + "; channel " + String.format("%.1f%%", share * 100) + "; crypt " + crypt + ", sarcophagus and spawner " + chest + "; Charon: to the hall " + String.format("%.0f", dist) + " toward " + dir + ", souls " + left + " of 7, said " + said + ", hint correct " + ferried);
+            return "Lethe clears effects, mobs forget the player, experience drains away; the channel is narrow ribbons (" + String.format("%.1f%%", share * 100) + "); crypt with a sarcophagus; Charon uses the crystal to give the direction and distance to the boss arena, does not teleport anywhere";
         });
-        t("Логова", "Мортум: земля в пещере", () -> {
+        t("Lairs", "Mortum: ground in the cave", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             loadAround(w, 9450, 9450, 1);
             int sx2 = 9450, sz2 = 9450;
@@ -12873,15 +12873,15 @@ public class SelfTest {
             w.setBlock(sx2, 99, sz2, net.divinerpg.utils.blocks.TwilightBlocks.mortumGrass);
             int found = com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.surface(w, com.divinerpgextended.world.twilight.TwilightWorld.MORTUM, sx2, sz2);
             for (int y = 95; y <= 127; y++) w.setBlock(sx2, y, sz2, Blocks.air);
-            check(found == 99, "найдена земля на " + found + " (потолок - камень 115-122 и бедрок 123-127, пол пещеры - трава на 99)");
-            return "в Мортуме постройки ищут пол пещеры, а не камень под бедроковым потолком";
+            check(found == 99, "ground found at " + found + " (ceiling - stone 115-122 and bedrock 123-127, cave floor - grass at 99)");
+            return "in Mortum structures look for the cave floor, not the stone under the bedrock ceiling";
         });
-        t("Логова", "Часы только у гробницы", () -> {
+        t("Lairs", "Clock only at the tomb", () -> {
             String r = com.divinerpgextended.boss.LairSummons.refusal(p, net.divinerpg.utils.items.VanillaItemsOther.mysteriousClock, 0, 64, 0);
-            check("dre.chat.summon_tomb".equals(r), "отказ " + r);
-            return "Таинственные часы вне алтаря гробницы не работают";
+            check("dre.chat.summon_tomb".equals(r), "refusal " + r);
+            return "The Mysterious Clock does not work outside the tomb altar";
         });
-        t("Логова", "Босс не падает из логова", () -> {
+        t("Lairs", "Boss does not fall out of the lair", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             net.minecraft.entity.monster.EntityZombie b = new net.minecraft.entity.monster.EntityZombie(w);
             b.setPosition(4000.5, 150, 4000.5);
@@ -12892,10 +12892,10 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(b));
             double x = b.posX, y = b.posY;
             b.setDead();
-            check(Math.abs(x - 4000.5) < 0.1 && y > 140, "босс в " + x + ", " + y);
-            return "босс, ушедший за край логова, вернулся в центр";
+            check(Math.abs(x - 4000.5) < 0.1 && y > 140, "boss at " + x + ", " + y);
+            return "a boss that went past the lair edge returned to the center";
         });
-        t("Логова", "Руины", () -> {
+        t("Lairs", "Ruins", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
             int x = 9000, y = 100, z = 9000;
             loadAround(w, x, z, 3); // neighbors are populated before the clearing, not over it
@@ -12913,10 +12913,10 @@ public class SelfTest {
             java.util.List<?> guards = w.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class,
                 net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 1, y, z - 1, x + 10, y + 4, z + 10));
             for (Object o : guards) ((net.minecraft.entity.Entity) o).setDead();
-            check(built && stacks >= 4 && guards.size() >= 2, "построено " + built + ", в сундуке стопок " + stacks + ", стражи " + guards.size());
-            return "руины на ровном острове Вайлдвуда: сундук (" + stacks + " стопок), стража " + guards.size();
+            check(built && stacks >= 4 && guards.size() >= 2, "built " + built + ", stacks in the chest " + stacks + ", guards " + guards.size());
+            return "ruins on a flat Wildwood island: chest (" + stacks + " stacks), guards " + guards.size();
         });
-        t("Логова", "Подземелье в острове", () -> {
+        t("Lairs", "Dungeon in the island", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
             int x = 9100, z = 9100, top = 100;
             loadAround(w, x, z, 3);
@@ -12939,10 +12939,10 @@ public class SelfTest {
             }
             chest &= seal;
             boolean ladder = w.getBlock(x + 1, floor + 6, z + 7) == Blocks.ladder && w.isAirBlock(x + 4, floor + 2, z + 4);
-            check(built && (com.divinerpgextended.Config.dungeonSpawners ? mob != null : sp == null) && chest && ladder, "построено " + built + ", спавнер " + mob + ", сундук " + chest + ", лестница " + ladder);
-            return "комната в толще острова Апалачии: " + (mob != null ? "спавнер (" + mob + ")" : "без спавнера") + ", сундук, лестница наверх";
+            check(built && (com.divinerpgextended.Config.dungeonSpawners ? mob != null : sp == null) && chest && ladder, "built " + built + ", spawner " + mob + ", chest " + chest + ", ladder " + ladder);
+            return "a room inside the Apalachia island: " + (mob != null ? "spawner (" + mob + ")" : "no spawner") + ", chest, ladder up";
         });
-        t("Логова", "Мост через пропасть", () -> {
+        t("Lairs", "Bridge over the chasm", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             int x0 = 9208, z0 = 9208, y = 100; // population area of chunk (575, 575)
             loadAround(w, x0 + 8, z0 + 8, 3);
@@ -12966,10 +12966,10 @@ public class SelfTest {
             String where = "";
             for (int x = x0 - 8; x < x0 + 24 && where.isEmpty(); x++) for (int zz = z0 - 8; zz < z0 + 24 && where.isEmpty(); zz++)
                 for (int h = 60; h < 140; h++) if (w.getBlock(x, h, zz) == net.divinerpg.utils.blocks.TwilightBlocks.edenPlanks) { where = (x - x0) + "," + h + "," + (zz - z0); break; }
-            check(built && planks >= 7 && lamps == 0, "мост " + built + ", досок над пропастью " + planks + ", глоустоуна " + lamps + ", первая доска (от x0,z0) " + where);
-            return "мост из досок Эдема через пропасть в 10 блоков (" + planks + " досок пролёта)";
+            check(built && planks >= 7 && lamps == 0, "bridge " + built + ", planks over the chasm " + planks + ", glowstone " + lamps + ", first plank (from x0,z0) " + where);
+            return "an Eden plank bridge over a 10-block chasm (" + planks + " span planks)";
         });
-        t("Логова", "Пруд для рыбалки и озеро Ветеи", () -> {
+        t("Lairs", "Fishing pond and Vethea lake", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.wildwood);
             int x = 9300, y = 100, z = 9500;
             loadAround(w, x, z, 3);
@@ -13010,13 +13010,13 @@ public class SelfTest {
             for (int i = -2; i < 14; i++) for (int kk = -2; kk < 14; kk++) for (int h = vf - 3; h <= vf; h++)
                 if (v.getBlock(vx + i, h, vz + kk) == Blocks.water) v.setBlock(vx + i, h, vz + kk, net.divinerpg.utils.blocks.VetheaBlocks.dreamDirt);
             check(built && water >= 40 && lily >= 3 && planks == 10 && logs >= 7 && leaves >= 25 && hanging >= 3 && zone && lake && vwater >= 30,
-                "пруд " + built + ": воды " + water + ", кувшинок " + lily + ", досок причала " + planks + ", брёвен " + logs + ", листвы " + leaves + " (свисает " + hanging
-                + "), зона рыбалки " + zone + "; озеро Ветеи " + lake + ", воды " + vwater);
-            return "пруд в Диком лесу: " + water + " воды, " + lily + " кувшинок, причал из 10 досок, ива; озеро на этаже Ветеи (" + vwater + " воды)";
+                "pond " + built + ": water " + water + ", lily pads " + lily + ", dock planks " + planks + ", logs " + logs + ", leaves " + leaves + " (hanging " + hanging
+                + "), fishing zone " + zone + "; Vethea lake " + lake + ", water " + vwater);
+            return "pond in the Wildwood: " + water + " water, " + lily + " lily pads, a 10-plank dock, willow; lake on a Vethea floor (" + vwater + " water)";
         });
-        t("Прохождение", "Ритуал Гайи (Blood Magic) даёт биомы сумеречных миров", () -> {
-            if (!cpw.mods.fml.common.Loader.isModLoaded("AWWayofTime")) return "нет Blood Magic - пропущено";
-            check(com.divinerpgextended.asm.BiomeRitualTransformer.patched, "ритуал Гайи не исправлен при загрузке");
+        t("Progression", "Gaia ritual (Blood Magic) gives twilight world biomes", () -> {
+            if (!cpw.mods.fml.common.Loader.isModLoaded("AWWayofTime")) return "no Blood Magic - skipped";
+            check(com.divinerpgextended.asm.BiomeRitualTransformer.patched, "Gaia ritual was not fixed on load");
             net.minecraft.world.WorldServer gw = server.worldServerForDimension(0);
             Class<?> stone = Class.forName("WayofTime.alchemicalWizardry.api.rituals.IMasterRitualStone");
             Object effect = Class.forName("WayofTime.alchemicalWizardry.common.rituals.RitualEffectBiomeChanger").newInstance();
@@ -13065,10 +13065,10 @@ public class SelfTest {
                 net.minecraft.world.biome.BiomeGenBase got = gw.getBiomeGenForCoords(x, z);
                 boolean ok = got != null && got.getClass().getSimpleName().equals(c[0]);
                 all &= ok;
-                sb.append(String.valueOf(c[0]).substring(8)).append(" -> ").append(got == null ? "?" : got.biomeName + " (" + got.biomeID + ")").append(ok ? "" : " НЕ ТОТ").append("; ");
+                sb.append(String.valueOf(c[0]).substring(8)).append(" -> ").append(got == null ? "?" : got.biomeName + " (" + got.biomeID + ")").append(ok ? "" : " WRONG ONE").append("; ");
             }
             if (!all) { // free combinations (no biome is closer than 0.1 on both)
-                sb.append("свободно: ");
+                sb.append("free: ");
                 for (int ti = 0; ti <= 20; ti++) for (int hi = 0; hi <= 20; hi++) {
                     boolean free = true;
                     for (net.minecraft.world.biome.BiomeGenBase b : net.minecraft.world.biome.BiomeGenBase.getBiomeGenArray())
@@ -13078,9 +13078,9 @@ public class SelfTest {
                 }
             }
             check(all, sb.toString());
-            return "ритуал на воздухе с постаментами: " + sb;
+            return "ritual in the air with pedestals: " + sb;
         });
-        t("Ветея - этажи", "Озеро в потолке: вода мечтаний течёт вверх, у глади висят вверх ногами", () -> {
+        t("Vethea - Floors", "Lake in the ceiling: dream water flows up, creatures hang upside down at the surface", () -> {
             WorldServer v = server.worldServerForDimension(ConfigurationHelper.vethea);
             int vx = 9400, vz = 9400, vf = 64, ceil = 80;
             loadAround(v, vx, vz, 2);
@@ -13190,15 +13190,15 @@ public class SelfTest {
             for (int i = -9; i <= 9; i++) for (int kk = -9; kk <= 9; kk++) for (int h = vf + 1; h < ceil + 8; h++) v.setBlockToAir(vx + i, h, vz + kk);
             boolean physics = inv[0] && my[0] > 0 && inv[1] && Math.abs(my[1] - 0.02) < 0.01 && my[2] < 0 && inv[3] && my[3] > 0.03 && letGo < -0.3 && dive > 0.1 && rise < 0 && held > -0.1;
             check(built && water >= 60 && column == 0 && surface == ceil && rises && infinite && physics && breathes && bucket && zone && floats && plainIdle && hungerBites,
-                "построено " + built + ", воды " + water + ", гладь на " + surface + " (потолок " + ceil + "), блоков под потолком " + column
-                + "; течёт вверх " + rises + ", бесконечная " + infinite + "; на глубине 0.2/0.6/0.9/1.6: перевёрнут " + java.util.Arrays.toString(inv)
-                + ", скорость " + String.format("%.3f/%.3f/%.3f/%.3f", my[0], my[1], my[2], my[3]) + ", Shift " + String.format("%.2f", dive)
-                + ", пробел у глади " + String.format("%.2f", letGo) + ", пробел в глубине/после всплытия " + String.format("%.2f/%.2f", rise, held) + ", дышит у глади " + breathes + "; ведро " + bucket + ", зона " + zone + ", поплавок у глади " + floats
-                + String.format(" (%.2f..%.2f)", lo, hi) + "; обычная удочка не клюёт " + plainIdle + ", удочка Голода клюёт " + hungerBites);
-            return "озеро вырезано в потолке (" + water + " воды мечтаний), течёт вверх, бесконечная; коснулся - сразу перевёрнут и висит у глади, "
-                + "Shift - нырнул глубже, пробел - вынырнул, всплыл с пробелом - висит у глади; голова в воздухе - дышит; ведро; поплавок держится у глади; клюёт только на удочку Голода";
+                "built " + built + ", water " + water + ", surface at " + surface + " (ceiling " + ceil + "), blocks under the ceiling " + column
+                + "; flows up " + rises + ", infinite " + infinite + "; at depth 0.2/0.6/0.9/1.6: flipped " + java.util.Arrays.toString(inv)
+                + ", speed " + String.format("%.3f/%.3f/%.3f/%.3f", my[0], my[1], my[2], my[3]) + ", Shift " + String.format("%.2f", dive)
+                + ", space at the surface " + String.format("%.2f", letGo) + ", space in depth/after surfacing " + String.format("%.2f/%.2f", rise, held) + ", breathes at the surface " + breathes + "; bucket " + bucket + ", zone " + zone + ", bobber at the surface " + floats
+                + String.format(" (%.2f..%.2f)", lo, hi) + "; plain rod does not bite " + plainIdle + ", Hunger rod bites " + hungerBites);
+            return "lake carved into the ceiling (" + water + " dream water), flows up, infinite; touched - flipped at once and hangs at the surface, "
+                + "Shift - dive deeper, space - surface, surfaced with space - hangs at the surface; head in air - breathes; bucket; bobber stays at the surface; bites only on the Hunger rod";
         });
-        t("Ветея - этажи", "Вода мечтаний: вещь на краю загруженного не догружает чанк и не роняет сервер", () -> {
+        t("Vethea - Floors", "Dream water: an item at the edge of the loaded area does not load a chunk and does not crash the server", () -> {
             WorldServer w = server.worldServerForDimension(1);
             int cx = 1500001, cz = 1500001; // a chunk that is surely not loaded
             boolean before = w.getChunkProvider().chunkExists(cx, cz);
@@ -13216,10 +13216,10 @@ public class SelfTest {
                 list.remove(it);
             }
             boolean after = w.getChunkProvider().chunkExists(cx, cz);
-            check(!before && !after && err.isEmpty(), "чанк был " + before + ", после обхода " + after + ", ошибка " + err);
-            return "вещь в незагруженном чанке пропущена: чанк не грузится, список сущностей не меняется посреди обхода";
+            check(!before && !after && err.isEmpty(), "chunk was " + before + ", after the pass " + after + ", error " + err);
+            return "item in an unloaded chunk skipped: the chunk is not loaded, the entity list does not change mid-iteration";
         });
-        t("Ветея - этажи", "Вода мечтаний: мелкие мобы не задыхаются, из глубины всплывают, вещи тонут к дну озера", () -> {
+        t("Vethea - Floors", "Dream water: small mobs do not suffocate, rise from the depth, items sink to the lake bottom", () -> {
             WorldServer v = server.worldServerForDimension(ConfigurationHelper.vethea);
             int vx = 9600, vz = 9600, ceil = 80, surface = 76;
             loadAround(v, vx, vz, 1);
@@ -13251,11 +13251,11 @@ public class SelfTest {
             it.setDead();
             for (int i = -3; i <= 3; i++) for (int kk = -3; kk <= 3; kk++) for (int h = surface; h < ceil; h++) v.setBlockToAir(vx + i, h, vz + kk);
             check(hold < 0.3 && breathes && Math.abs(still) < 0.05 && rises < -0.2 && item > 0.01,
-                "глубина курицы у глади " + String.format("%.2f", hold) + ", дышит " + breathes + ", скорость у глади " + String.format("%.3f", still)
-                + ", из глубины " + String.format("%.3f", rises) + ", вещь " + String.format("%.3f", item));
-            return "курица висит у глади на " + String.format("%.2f", hold) + " блока и дышит; из глубины всплывает; яблоко в озере уходит вверх к дну";
+                "chicken depth at the surface " + String.format("%.2f", hold) + ", breathes " + breathes + ", speed at the surface " + String.format("%.3f", still)
+                + ", from depth " + String.format("%.3f", rises) + ", item " + String.format("%.3f", item));
+            return "chicken hangs at the surface at " + String.format("%.2f", hold) + " blocks and breathes; rises from the depth; an apple in the lake moves up to the bottom";
         });
-        t("Сумеречные миры", "Лунный волк, Лета для мобов, климат биомов, адский факел", () -> {
+        t("Twilight dimensions", "Moon wolf, Lethe for mobs, biome climate, nether torch", () -> {
             WorldServer m = server.worldServerForDimension(ConfigurationHelper.mortum);
             // moon wolf: tamed, from 20 health it rises to the health of a wild one
             net.divinerpg.entities.twilight.EntityMoonWolf mw = new net.divinerpg.entities.twilight.EntityMoonWolf(m);
@@ -13323,12 +13323,12 @@ public class SelfTest {
             rodOnly.setInventorySlotContents(4, new ItemStack(Items.blaze_rod));
             boolean recipe = torch != null && torch.getItem() == Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.netherTorch) && torch.stackSize == 4
                 && !isTorch(net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(rodOnly, m)); // a lone rod - blaze powder, not a torch
-            check(wolf && lethe && climate && recipe, "волк: дикий " + wildHp + ", приручённый " + mw.getMaxHealth() + "/" + mw.getHealth() + "; Лета: свинья -" + lost[0]
-                + ", скелет -" + lost[1] + ", паук душ -" + lost[2] + "; Эдем " + java.util.Arrays.toString(eden) + ", Скайтерн " + java.util.Arrays.toString(sky)
-                + "; факел " + torch);
-            return "приручённый лунный волк сохраняет " + (int) wildHp + " здоровья; Лета грызёт мобов в любом мире (корова в обычном мире - тоже), кроме нежити и жителей Мортума; климат Эдема 1.7/0.1, Скайтерна 0.5/1.9; адский факел - уголь над стержнем ифрита";
+            check(wolf && lethe && climate && recipe, "wolf: wild " + wildHp + ", tamed " + mw.getMaxHealth() + "/" + mw.getHealth() + "; Lethe: pig -" + lost[0]
+                + ", skeleton -" + lost[1] + ", soul spider -" + lost[2] + "; Eden " + java.util.Arrays.toString(eden) + ", Skythern " + java.util.Arrays.toString(sky)
+                + "; torch " + torch);
+            return "a tamed moon wolf keeps " + (int) wildHp + " health; Lethe gnaws mobs in any world (a cow in the normal world too), except the undead and Mortum inhabitants; climate of Eden 1.7/0.1, Skythern 0.5/1.9; nether torch - coal over an ifrit rod";
         });
-        t("Прохождение", "Призывы боссов Divine - приспешники", () -> {
+        t("Progression", "Divine boss summons - minions", () -> {
             WorldServer w = server.worldServerForDimension(-1);
             int bx = 9000, by = 80, bz = 9000;
             loadAround(w, bx, bz, 1);
@@ -13348,11 +13348,11 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(king, DamageSource.generic));
             boolean died = !sc.isEntityAlive(), alive = wild.isEntityAlive();
             for (net.minecraft.entity.Entity ke : new net.minecraft.entity.Entity[] { king, sc, wild }) ke.setDead();
-            check(minion && free && died && alive, "скорчер, появившийся в ход Короля, - приспешник " + minion + ", в чужой ход - свободен " + free
-                + "; со смертью Короля приспешник погиб " + died + ", свободный жив " + alive);
-            return "моб, появившийся в ход босса Divine рядом с ним, - его приспешник (без лута и опыта, гибнет с боссом); остальные - как были";
+            check(minion && free && died && alive, "a scorcher that appeared on the King's turn is a minion " + minion + ", on someone else's turn - free " + free
+                + "; when the King dies the minion died " + died + ", the free one is alive " + alive);
+            return "a mob that appeared on a Divine boss's turn next to it is its minion (no loot or XP, dies with the boss); the rest are as they were";
         });
-        t("Ветея - этажи", "Быстрый полёт по Ветее: генерация без цепочки чанков", () -> {
+        t("Vethea - Floors", "Fast flight over Vethea: generation without a chunk chain", () -> {
             long[] took = new long[2], worstStep = new long[2];
             long skip0 = com.divinerpgextended.asm.VetheaGenHooks.skipped;
             int[] dims = { ConfigurationHelper.vethea, 0 };
@@ -13374,12 +13374,12 @@ public class SelfTest {
             }
             long skipped = com.divinerpgextended.asm.VetheaGenHooks.skipped - skip0;
             double ratio = (double) took[0] / Math.max(1, took[1]);
-            check(skipped > 0 && ratio < 3.0 && worstStep[0] < 4000000000L, String.format("Ветея %d мс (худший шаг %d мс), обычный мир %d мс, в %.1f раза; отсечено обращений к несозданным чанкам %d",
+            check(skipped > 0 && ratio < 3.0 && worstStep[0] < 4000000000L, String.format("Vethea %d ms (worst step %d ms), normal world %d ms, %.1f times; skipped accesses to uncreated chunks %d",
                 took[0] / 1000000, worstStep[0] / 1000000, took[1] / 1000000, ratio, skipped));
-            return String.format("40 шагов по чанку: Ветея %d мс (худший %d мс), обычный мир %d мс - в %.1f раза (было в 2-10); отсечено обращений украшений к несозданным чанкам: %d",
+            return String.format("40 chunk steps: Vethea %d ms (worst %d ms), normal world %d ms - %.1f times (was 2-10); decoration accesses to uncreated chunks skipped: %d",
                 took[0] / 1000000, worstStep[0] / 1000000, took[1] / 1000000, ratio, skipped);
         });
-        t("Логова", "Логова для прохождения есть в квадрате 10000 x 10000", () -> {
+        t("Lairs", "Progression lairs exist within a 10000 x 10000 square", () -> {
             WorldServer w = server.worldServerForDimension(0);
             boolean jungles = com.divinerpgextended.world.ScatterGen.hasJungles(w);
             int[] kinds = new int[3];
@@ -13403,13 +13403,13 @@ public class SelfTest {
                     if (bb.minX >> 4 == firstJungle[0] || bb.minX >> 4 == firstJungle[0] - 1 || bb.minX >> 4 == firstJungle[0] + 1) temple = true;
             }
             check(kinds[0] > 0 && kinds[1] > 0 && snow != null && tomb != null && crab != null && temple,
-                "джунгли в мире " + jungles + "; мест под пирамиды " + kinds[0] + ", храмы джунглей " + kinds[1] + ", хижины " + kinds[2]
-                + "; ближайшие: снежное подземелье " + java.util.Arrays.toString(snow) + ", гробница " + java.util.Arrays.toString(tomb) + ", Карцинус " + java.util.Arrays.toString(crab)
-                + "; храм джунглей в " + java.util.Arrays.toString(firstJungle) + " построен " + temple);
-            return "в квадрате 10000 x 10000 есть всё для прохождения: пирамиды " + kinds[0] + ", храмы джунглей " + kinds[1] + (jungles ? "" : " (джунглей нет - в тёплых землях)")
-                + ", снежное подземелье, гробница, логово Карцинуса";
+                "jungle in the world " + jungles + "; pyramid sites " + kinds[0] + ", jungle temples " + kinds[1] + ", huts " + kinds[2]
+                + "; nearest: snow dungeon " + java.util.Arrays.toString(snow) + ", tomb " + java.util.Arrays.toString(tomb) + ", Carcinus " + java.util.Arrays.toString(crab)
+                + "; jungle temple at " + java.util.Arrays.toString(firstJungle) + " built " + temple);
+            return "within a 10000 x 10000 square there is everything for progression: pyramids " + kinds[0] + ", jungle temples " + kinds[1] + (jungles ? "" : " (no jungle - in the warm lands)")
+                + ", snow dungeon, tomb, Carcinus lair";
         });
-        t("Логова", "Лагерь странника", () -> {
+        t("Lairs", "Wanderer camp", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.skythern);
             int x = 9300, y = 100, z = 9300;
             loadAround(w, x, z, 3);
@@ -13442,11 +13442,11 @@ public class SelfTest {
                 if (mr.getItemToSell().getItem() == com.divinerpgextended.registry.ModItems.sanctumSeal) sealDeal = true;
             }
             check(built && traders.size() == 1 && deals >= 7 && fire && mark != null && back && dist < 1.5 && sealDeal,
-                "построено " + built + ", странников " + traders.size() + ", сделок " + deals + ", костёр " + fire + ", метка " + (mark != null)
-                    + ", возврат " + back + " (" + dist + "), печать святилища у Странника Апалачии " + sealDeal);
-            return "лагерь в Скайтерне: Странник (" + deals + " сделок), горящий костёр; костёр запомнил - возрождение у него";
+                "built " + built + ", wanderers " + traders.size() + ", trades " + deals + ", campfire " + fire + ", mark " + (mark != null)
+                    + ", return " + back + " (" + dist + "), shrine seal at the Apalachia Wanderer " + sealDeal);
+            return "camp in Skythern: Wanderer (" + deals + " trades), a burning campfire; the campfire remembered - respawn at it";
         });
-        t("Прохождение", "Адское оружие: пушка гаста, Maelstrom, музыкалки, перезарядка, защита от взрывов после Смотрителя", () -> {
+        t("Progression", "Nether weapons: ghast cannon, Maelstrom, music weapons, reload, explosion protection after the Watcher", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x0 = 30500, y0 = 120, z0 = 30500;
             loadAround(w, x0, z0, 2);
@@ -13542,14 +13542,14 @@ public class SelfTest {
             server.getConfigurationManager().playerEntityList.remove(v);
             w.removeEntity(v);
             check(pierce && scorcher && cooldown && bounce && notes && dragon && reload && blastGate,
-                "Maelstrom пробил " + pierce + " (снарядов " + before + " -> " + after.size() + "); король скорчеров: меч " + km.ammount + ", Maelstrom " + kr.ammount + "; музыкалка: первый " + first + ", второй " + second
-                    + ", заряд " + v.inventory.mainInventory[8] + "; отскок " + bounce + "; приспешнику " + mh.ammount + ", Колоссу колядками " + ch.ammount + "; дракон сбит " + dragon
-                    + "; перезарядка без короля " + locked + ", с ним " + (loaded == null ? null : loaded.getItemDamage()) + ", Maelstrom " + (loadedM == null ? null : loadedM.getItemDamage())
-                    + ", не тот патрон " + wrongAmmo + "; Bedrock до Смотрителя ранит " + hurtBefore + ", после нет " + safeAfter);
-            return "Maelstrom пробивает и бьёт короля скорчеров x1.5 (меч x0.5); музыкалки раз в 8 тиков без траты заряда, ноты отскакивают, приспешникам x2, колядки замедляют и бьют Колосса x1.5;"
-                + " пушка гаста сбивает дыхание дракона орды; перезарядка слезами и сгустками - после короля скорчеров; защита Bedrock от взрывов - после Смотрителя";
+                "Maelstrom pierced " + pierce + " (projectiles " + before + " -> " + after.size() + "); scorcher king: sword " + km.ammount + ", Maelstrom " + kr.ammount + "; music weapon: first " + first + ", second " + second
+                    + ", charge " + v.inventory.mainInventory[8] + "; bounce " + bounce + "; to the minion " + mh.ammount + ", to the Colossus with carols " + ch.ammount + "; dragon shot down " + dragon
+                    + "; reload without the king " + locked + ", with him " + (loaded == null ? null : loaded.getItemDamage()) + ", Maelstrom " + (loadedM == null ? null : loadedM.getItemDamage())
+                    + ", wrong ammo " + wrongAmmo + "; Bedrock hurts before the Watcher " + hurtBefore + ", not after " + safeAfter);
+            return "Maelstrom pierces and hits the scorcher king x1.5 (sword x0.5); music weapons once per 8 ticks without spending charge, notes bounce, x2 to minions, carols slow and hit the Colossus x1.5;"
+                + " ghast cannon shoots down the horde dragon's breath; reload with tears and clots - after the scorcher king; Bedrock explosion protection - after the Watcher";
         });
-        t("Логова", "Логово Смотрителя: обсерватория Ока, две фазы, глаза, адское оружие", () -> {
+        t("Lairs", "Watcher lair: Eye observatory, two phases, eyes, nether weapons", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.WATCHER;
             WorldServer w = server.worldServerForDimension(-1);
             int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
@@ -13740,16 +13740,16 @@ public class SelfTest {
             w.removeEntity(v);
             check(shell && mosaic && pillar && lamps >= 8 && windows && empty && tunnel && in == null && "dre.chat.summon_lair_0".equals(out) && upgraded && charged && shot && openEye && cannon
                 && warm && nether && eyes >= 2 && bites > 0 && roar && roarImmune && phase2 && dashed && hits > 0 && crashed && ram && blast && orphaned,
-                "не по чертежу " + alien + " в x " + abox[0] + ".." + abox[1] + " z " + abox[2] + ".." + abox[3] + " (центр " + cx + "," + cz + "); оболочка и окулюс " + shell + ", мозаика " + mosaic + " (" + w.getBlock(cx, F, cz).getUnlocalizedName() + "/" + w.getBlock(cx + 4, F, cz).getUnlocalizedName() + "/" + w.getBlock(cx + 9, F, cz + 1).getUnlocalizedName() + "), колонна " + pillar + ", ламп " + lamps + ", окна " + windows + ", занято " + fill0[0] + "/" + fill0[1]
-                    + ", вход " + tunnel + " (непроходимо на шагах:" + walk + ", ворота и причал " + gate + "), вызов внутри " + in + " снаружи " + out
-                    + "; старый зал перестроен " + tidied + "/" + again + " " + upgraded + "; заряд " + charged + ", выстрел " + shot + ", стрела в открытый глаз " + openEye + " (" + ar.ammount + ")"
-                    + "; пушка гаста " + cannon + " (" + gc.ammount + "), огненный меч " + warm + ", адский меч " + nether + " (" + bg.ammount + ")"
-                    + "; за колонной глаз " + eyes + ", укусов " + bites + " (ближе всего " + String.format("%.1f", closest) + ", боец " + String.format("%.1f,%.1f,%.1f", v.posX - cx, v.posY - F, v.posZ - cz) + ", путь" + path + "); рёв " + roar + ", неуязвим " + roarImmune + ", вторая фаза " + phase2
-                    + ", рывок " + dashed + " задел " + hits + ", в колонну " + crashed + "; на таранах стрела " + ramArrow.ammount + ", меч Энда " + ramEnder.ammount + ", бедроковый молот " + ramMaul.ammount + "; взрыв " + blast + " (бойцу " + boom.ammount + "); глаза без хозяина " + orphaned);
-            return "обсерватория Ока в Аду в " + cx + "," + cz + ": мозаика, колонны, окна с лавой, окулюс; вход с воротами и причалом; старый зал перестраивается; первая фаза - заряд, открытый глаз x2,"
-                + " пушка гаста сбивает; за колонной - глаза-прислужники кусают; на половине - рёв и рывки, в колонну - оглушён, снаряды 15%, Энд и бедрок вплотную x2; взрывы блоков не ломают, бойцу не больше " + (int) com.divinerpgextended.boss.WatcherHunt.BLAST_CAP;
+                "off blueprint " + alien + " in x " + abox[0] + ".." + abox[1] + " z " + abox[2] + ".." + abox[3] + " (center " + cx + "," + cz + "); shell and oculus " + shell + ", mosaic " + mosaic + " (" + w.getBlock(cx, F, cz).getUnlocalizedName() + "/" + w.getBlock(cx + 4, F, cz).getUnlocalizedName() + "/" + w.getBlock(cx + 9, F, cz + 1).getUnlocalizedName() + "), column " + pillar + ", lamps " + lamps + ", windows " + windows + ", occupied " + fill0[0] + "/" + fill0[1]
+                    + ", entrance " + tunnel + " (impassable at steps:" + walk + ", gate and dock " + gate + "), challenge inside " + in + " outside " + out
+                    + "; old hall rebuilt " + tidied + "/" + again + " " + upgraded + "; charge " + charged + ", shot " + shot + ", arrow into an open eye " + openEye + " (" + ar.ammount + ")"
+                    + "; ghast cannon " + cannon + " (" + gc.ammount + "), fire sword " + warm + ", nether sword " + nether + " (" + bg.ammount + ")"
+                    + "; eye behind the column " + eyes + ", bites " + bites + " (closest " + String.format("%.1f", closest) + ", fighter " + String.format("%.1f,%.1f,%.1f", v.posX - cx, v.posY - F, v.posZ - cz) + ", path" + path + "); roar " + roar + ", invulnerable " + roarImmune + ", second phase " + phase2
+                    + ", dash " + dashed + " hit " + hits + ", into the column " + crashed + "; on the rams arrow " + ramArrow.ammount + ", End sword " + ramEnder.ammount + ", bedrock maul " + ramMaul.ammount + "; explosion " + blast + " (to the fighter " + boom.ammount + "); ownerless eyes " + orphaned);
+            return "Eye observatory in the Nether at " + cx + "," + cz + ": mosaic, columns, windows with lava, oculus; entrance with a gate and dock; the old hall is rebuilt; first phase - charge, open eye x2,"
+                + " ghast cannon shoots down; behind the column minion eyes bite; at half - roar and dashes, into the column - stunned, projectiles reduced to 15 percent, End and bedrock at point-blank x2; explosions do not break blocks, fighter takes no more than " + (int) com.divinerpgextended.boss.WatcherHunt.BLAST_CAP;
         });
-        t("Логова", "Огненная палата: трек под лавой", () -> {
+        t("Lairs", "Fire chamber: track under lava", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.SCORCHERS;
             WorldServer w = server.worldServerForDimension(-1);
             int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
@@ -13841,14 +13841,14 @@ public class SelfTest {
             server.getConfigurationManager().playerEntityList.remove(kp);
             w.removeEntity(kp);
             check(shell && track && posts && gate && walk.isEmpty() && in && "dre.chat.summon_lair_1".equals(out) && clash == 0 && races && scorchers >= 2 && pit && damage && leaks == 0 && friendly,
-                "оболочка " + shell + ", трек (клетка, ров, мостки, финиш) " + track + ", огненные столбы " + posts + ", ворота с флагом " + gate + ", непроходимо:" + walk
-                    + ", внутри " + in + ", снаружи " + out + ", наложений на Смотрителя " + clash + "; гонка " + races + " (радиус " + String.format("%.1f", r1) + ", угол "
-                    + String.format("%.2f -> %.2f", a0, a1) + ", след " + com.divinerpgextended.boss.KingRace.trail(king) + "), скорчеров " + scorchers + ", пит-стоп " + pit
-                    + "; урон: водный кинжал на пит-стопе " + aqPit.ammount + ", меч на пит-стопе " + swPit.ammount + ", меч на ходу " + swRace.ammount + ", выстрел по Inferno " + shot.ammount
-                    + "; протечек лавы " + leaks + " (залатано " + sealed + "), приспешники не ранят своих " + friendly + " (" + mins.size() + ")");
-            return "палата в Аду в " + cx + "," + cz + ": трек под лавой - клетчатый помост за рвом, финиш, огненные столбы, ворота с клетчатым флагом; пламя вне палаты не работает; король гоняет по треку со следом, зовёт скорчеров, встаёт на пит-стоп; водное оружие гасит щит, Inferno вдвое режет его урон";
+                "shell " + shell + ", track (cage, moat, walkways, finish) " + track + ", fire pillars " + posts + ", gate with a flag " + gate + ", impassable:" + walk
+                    + ", inside " + in + ", outside " + out + ", overlaps with the Watcher " + clash + "; race " + races + " (radius " + String.format("%.1f", r1) + ", angle "
+                    + String.format("%.2f -> %.2f", a0, a1) + ", trail " + com.divinerpgextended.boss.KingRace.trail(king) + "), scorchers " + scorchers + ", pit stop " + pit
+                    + "; damage: water dagger at the pit stop " + aqPit.ammount + ", sword at the pit stop " + swPit.ammount + ", sword on the move " + swRace.ammount + ", shot at Inferno " + shot.ammount
+                    + "; lava leaks " + leaks + " (patched " + sealed + "), minions do not hurt their own " + friendly + " (" + mins.size() + ")");
+            return "chamber in the Nether at " + cx + "," + cz + ": track under lava - a checkered platform behind a moat, finish, fire pillars, gate with a checkered flag; flame does not work outside the chamber; the king races along the track leaving a trail, summons scorchers, takes a pit stop; water weapons put out the shield, Inferno halves its damage";
         });
-        t("Логова", "Места логов из сида: строятся, карта видит заранее", () -> {
+        t("Lairs", "Lair sites from the seed: built, the map sees ahead", () -> {
             WorldServer w = server.worldServerForDimension(0);
             final com.divinerpgextended.world.LairData data = com.divinerpgextended.world.LairData.get(w);
             StringBuilder rep = new StringBuilder();
@@ -13873,7 +13873,7 @@ public class SelfTest {
                         built[lk]++;
                         if (firstBuilt == null && type == com.divinerpgextended.world.LairSites.CARCINUS) firstBuilt = site;
                     }
-                    rep.append(type == 0 ? "краб " : "снег ").append(site[0]).append(",").append(site[1]).append(ok ? " построено" : fail ? " рельеф не подошёл" : " ничего").append("; ");
+                    rep.append(type == 0 ? "crab " : "snow ").append(site[0]).append(",").append(site[1]).append(ok ? " built" : fail ? " terrain did not fit" : " nothing").append("; ");
                 }
             }
             // pyramid: the place from the MapGenScatteredFeature formula - whether the game put it there
@@ -13883,7 +13883,7 @@ public class SelfTest {
                 loadAround(w, pyr[0], pyr[1], 3);
                 for (int x = pyr[0] - 24; x <= pyr[0] + 24 && !pyramid; x++) for (int z = pyr[1] - 24; z <= pyr[1] + 24 && !pyramid; z++)
                     for (int y = 90; y >= 30 && !pyramid; y--) if (w.getBlock(x, y, z) == Blocks.stone_pressure_plate && w.getBlock(x, y - 2, z) == Blocks.tnt) pyramid = true;
-                rep.append("пирамида по формуле ").append(pyr[0]).append(",").append(pyr[1]).append(pyramid ? " стоит" : " НЕТ").append("; ");
+                rep.append("pyramid by formula ").append(pyr[0]).append(",").append(pyr[1]).append(pyramid ? " stands" : " NONE").append("; ");
             }
             // map: standing at a built lair, it leads to the next; a second click at once - cooldown
             boolean skipOk = true, cdOk = true, explorer = false;
@@ -13933,8 +13933,8 @@ public class SelfTest {
                     if (is != null && is.getItem() == com.divinerpgextended.registry.ModItems.lairMap) lairLeft = true;
                 }
                 explorer = explorer && rebuy && !lairLeft;
-                rep.append("; купил заново и открыл: карта ").append(rebuy).append(", купленная осталась ").append(lairLeft);
-                rep.append("карта у логова: ").append(first).append("; повторно: ").append(mp.chat.size() >= 2 ? mp.chat.get(1) : "-");
+                rep.append("; bought again and opened: map ").append(rebuy).append(", the bought one remained ").append(lairLeft);
+                rep.append("map at the lair: ").append(first).append("; again: ").append(mp.chat.size() >= 2 ? mp.chat.get(1) : "-");
             }
             // a distant search with an empty cache: the game does not freeze - the answer comes in parts, no longer than ~20 ms per tick
             com.divinerpgextended.world.LairSites.clearCache();
@@ -13958,19 +13958,19 @@ public class SelfTest {
             }
             String farAnswer = fp.chat.isEmpty() ? "" : fp.chat.get(fp.chat.size() - 1);
             boolean farOk = (farAnswer.startsWith("dre.chat.map_site_snow") || farAnswer.startsWith("dre.chat.map_none_snow")) && total / (ticksToAnswer + 1) < 40 && worst < 1000; // a single request to the biome generator cannot be interrupted
-            rep.append("; дальний поиск: первый ответ ").append(fp.chat.isEmpty() ? "-" : fp.chat.get(0)).append(", итог ").append(farAnswer)
-                .append(" за ").append(ticksToAnswer).append(" тиков, в среднем ").append(total / (ticksToAnswer + 1)).append(" мс, самый долгий тик ").append(worst).append(" мс");
+            rep.append("; far search: first answer ").append(fp.chat.isEmpty() ? "-" : fp.chat.get(0)).append(", result ").append(farAnswer)
+                .append(" in ").append(ticksToAnswer).append(" ticks, on average ").append(total / (ticksToAnswer + 1)).append(" ms, longest tick ").append(worst).append(" ms");
             server.getConfigurationManager().playerEntityList.remove(fp);
             w.removeEntity(fp);
-            rep.append("; карта исследователя ").append(explorer);
+            rep.append("; explorer map ").append(explorer);
             check(built[0] >= 1 && (tried[1] == 0 || built[1] >= 1) && (pyr == null || pyramid) && skipOk && cdOk && farOk && explorer, rep.toString());
-            return "Карцинус построен " + built[0] + " из " + tried[0] + ", ледяная пещера " + built[1] + " из " + tried[1] + " мест из сида; пирамида там, где её считает карта " + pyramid
-                + "; карта у найденного логова ведёт к следующему, повторный клик - перезарядка; дальний поиск по частям: " + ticksToAnswer + " тиков, тик до " + worst + " мс";
+            return "Carcinus built " + built[0] + " of " + tried[0] + ", ice cave " + built[1] + " of " + tried[1] + " seed sites; pyramid where the map counts it " + pyramid
+                + "; the map at a found lair leads to the next, a repeated click - reload; far search in parts: " + ticksToAnswer + " ticks, tick up to " + worst + " ms";
         });
-        t("Логова", "Ледяной купол Глакона: иглу, шахта, гнездо, озеро, сталактиты, без ковра ламп", () -> {
+        t("Lairs", "Glacon ice dome: igloo, mine, nest, lake, stalactites, no carpet of lamps", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int[] site = com.divinerpgextended.world.LairSites.nearest(w, com.divinerpgextended.world.LairSites.SNOW, 0, 0, 6000, 0);
-            check(site != null, "нет места ледяного купола в 6000 блоков");
+            check(site != null, "no ice dome site within 6000 blocks");
             int[] c = com.divinerpgextended.world.LairDomes.glaconCenter(site);
             int fl = com.divinerpgextended.world.LairDomes.G_FL, R = com.divinerpgextended.world.LairDomes.G_R;
             // ordinary world generation: dome and igloo chunks are created and populated
@@ -14028,13 +14028,13 @@ public class SelfTest {
             boolean noSpawns = in.getResult() == cpw.mods.fml.common.eventhandler.Event.Result.DENY && outE.getResult() != cpw.mods.fml.common.eventhandler.Event.Result.DENY;
             dump(w, c[0], fl + 20, c[2], 60, "render-glacon");
             check(altar && lakeIce * 10 >= lakeAll * 9 && hanging > 150 && stalagnates >= 3 && lamps > 0 && lamps <= 60 && lanterns > 0 && reach && noSpawns && wet == 0,
-                "алтарь в гнезде " + altar + " (там " + w.getBlock(c[0], fl + 3, c[2]).getUnlocalizedName() + "/" + w.getBlock(c[0], fl + 2, c[2]).getUnlocalizedName() + "/"
-                    + w.getBlock(c[0], fl + 1, c[2]).getUnlocalizedName() + " у " + c[0] + "," + c[2] + ", чанк заселён " + w.getChunkFromBlockCoords(c[0], c[2]).isTerrainPopulated + "), лёд озера " + lakeIce + "/" + lakeAll + ", льда со свода " + hanging + ", сталагнатов (столбцов) " + stalagnates + ", ламп " + lamps
-                    + ", фонарей " + lanterns + ", жидкости внутри " + wet + ", от иглу до алтаря дошёл " + reach + " (воздуха " + air + "), спавн внутри запрещён " + noSpawns);
-            return "купол у " + c[0] + "," + c[2] + ": иглу и шахта ведут к гнезду с алтарём, озеро подо льдом, сталактиты (" + hanging + " блоков) и сталагнаты (" + stalagnates
-                + "), ламп всего " + lamps + " - на концах сталактитов и в гнезде; чужие монстры внутри не появляются";
+                "altar in the nest " + altar + " (there " + w.getBlock(c[0], fl + 3, c[2]).getUnlocalizedName() + "/" + w.getBlock(c[0], fl + 2, c[2]).getUnlocalizedName() + "/"
+                    + w.getBlock(c[0], fl + 1, c[2]).getUnlocalizedName() + " at " + c[0] + "," + c[2] + ", chunk populated " + w.getChunkFromBlockCoords(c[0], c[2]).isTerrainPopulated + "), lake ice " + lakeIce + "/" + lakeAll + ", ice from the vault " + hanging + ", stalagnates (columns) " + stalagnates + ", lamps " + lamps
+                    + ", lanterns " + lanterns + ", liquid inside " + wet + ", reached the altar from the igloo " + reach + " (air " + air + "), spawn inside forbidden " + noSpawns);
+            return "dome at " + c[0] + "," + c[2] + ": the igloo and mine lead to the nest with the altar, lake under the ice, stalactites (" + hanging + " blocks) and stalagnates (" + stalagnates
+                + "), lamps total " + lamps + " - at the stalactite tips and in the nest; foreign monsters do not appear inside";
         });
-        t("Сервер", "Айрако без братьев сохраняется", () -> {
+        t("Server", "Ayeraco without siblings saves", () -> {
             WorldServer w = server.worldServerForDimension(0);
             String bad = "";
             Object[] kinds = { new net.divinerpg.entities.vanilla.EntityAyeracoGreen(w), new net.divinerpg.entities.vanilla.EntityAyeracoRed(w),
@@ -14049,10 +14049,10 @@ public class SelfTest {
                     bad += ay.getClass().getSimpleName() + ": " + t + "; ";
                 }
             }
-            check(bad.isEmpty(), "сохранение падает: " + bad);
-            return "одиночные Айрако всех пяти цветов сохраняются (раньше NullPointerException: вылет при сохранении чанка, в сборке с Morph - при убийстве)";
+            check(bad.isEmpty(), "saving fails: " + bad);
+            return "single Ayeraco of all five colors save (before: NullPointerException - crash when saving a chunk, in the Morph pack - on kill)";
         });
-        t("Сервер", "ID биомов Divine не совпадают с BoP", () -> {
+        t("Server", "Divine biome IDs do not clash with BoP", () -> {
             java.io.File root = java.nio.file.Files.createTempDirectory("dre-biomeids").toFile();
             java.nio.charset.Charset u = java.nio.charset.Charset.forName("UTF-8");
             String[] res = new String[4];
@@ -14083,10 +14083,10 @@ public class SelfTest {
             boolean c1 = res[1].startsWith("{}") && res[1].contains("Apalachia biome ID\"=170");
             boolean c2 = res[2].contains("Eden biome ID\"=172") && res[2].contains("dimension {");
             boolean c3 = res[3].contains("Apalachia biome ID\"=171") && !res[3].contains("=170");
-            check(c0 && c1 && c2 && c3, "по умолчанию рядом с BoP: " + res[0] + " || как на RedServer: " + res[1] + " || первый запуск: " + res[2] + " || 170 занят Twilight: " + res[3]);
-            return "ID 100-107 рядом с BoP переставлены на 170-177 (остальные ключи конфига целы); конфиг как на RedServer не трогается; на первом запуске конфиг создаётся сразу со свободными; занятый Twilight Forest ID пропускается; веса биомов BoP за ID не считаются";
+            check(c0 && c1 && c2 && c3, "default next to BoP: " + res[0] + " || as on RedServer: " + res[1] + " || first launch: " + res[2] + " || 170 taken by Twilight: " + res[3]);
+            return "IDs 100-107 next to BoP moved to 170-177 (other config keys intact); a config as on RedServer is not touched; on first launch the config is created at once with free ones; an ID taken by Twilight Forest is skipped; BoP biome weights do not count as IDs";
         });
-        t("Сервер", "Биомы сборки: ID, Ад, пляжи, снега, джунгли", () -> {
+        t("Server", "Pack biomes: IDs, Nether, beaches, snows, jungles", () -> {
             StringBuilder rep = new StringBuilder();
             boolean ok = true;
             // 1. Divine world biomes on their own IDs (with BoP by default 101-107 coincided with its biomes)
@@ -14097,7 +14097,7 @@ public class SelfTest {
                 net.minecraft.world.biome.BiomeGenBase b = net.minecraft.world.biome.BiomeGenBase.getBiome(id);
                 boolean own = b != null && b.getClass().getName().startsWith("net.divinerpg.");
                 ok &= own;
-                ids.append(bk.replace("Biome", "")).append("=").append(id).append(own ? "" : "(занят: " + (b == null ? "пусто" : b.biomeName) + ")").append(" ");
+                ids.append(bk.replace("Biome", "")).append("=").append(id).append(own ? "" : "(taken: " + (b == null ? "empty" : b.biomeName) + ")").append(" ");
             }
             rep.append("ID Divine: ").append(ids).append("; ");
             // 2. Divine mobs in each Nether biome
@@ -14110,7 +14110,7 @@ public class SelfTest {
                 ok &= n >= 3;
                 hell.append(b.biomeName).append("#").append(b.biomeID).append("=").append(n).append(" ");
             }
-            rep.append("Ад (мобов Divine): ").append(hell).append("; ");
+            rep.append("Nether (Divine mobs): ").append(hell).append("; ");
             // 3. Overworld biome map: how many chunks suit lairs by the old rules and by the new
             WorldServer w = server.worldServerForDimension(0);
             int[] c = new int[6];
@@ -14147,20 +14147,20 @@ public class SelfTest {
                     far.append(fp[0]).append(",").append(fp[1]).append("=").append(fb == null ? "null" : fb.biomeName).append(" ");
                 } catch (Throwable tt) {
                     ok = false;
-                    far.append(fp[0]).append(",").append(fp[1]).append(" ПАДАЕТ ").append(tt).append(" ");
+                    far.append(fp[0]).append(",").append(fp[1]).append(" FAILS ").append(tt).append(" ");
                 }
             }
-            rep.append("дальние точки: ").append(far).append("; ");
-            rep.append("широко (19200 x 19200, ").append(wide[0]).append(" проб): под храмы и пирамиды ").append(wide[1]).append(" ").append(templeWide)
-                .append(", снег ").append(wide[2]).append(" ").append(snowWide).append(", джунгли ").append(wide[3]).append("; ");
-            rep.append("чанков из 25600 - пляж: было ").append(c[0]).append(", стало ").append(c[1]).append(" ").append(beachNames)
-                .append("; снег: было ").append(c[2]).append(", стало ").append(c[3]).append(" ").append(snowNames)
-                .append("; джунгли: было ").append(c[4]).append(", стало ").append(c[5]);
+            rep.append("far points: ").append(far).append("; ");
+            rep.append("wide (19200 x 19200, ").append(wide[0]).append(" probes): for temples and pyramids ").append(wide[1]).append(" ").append(templeWide)
+                .append(", snow ").append(wide[2]).append(" ").append(snowWide).append(", jungle ").append(wide[3]).append("; ");
+            rep.append("chunks of 25600 - beach: was ").append(c[0]).append(", became ").append(c[1]).append(" ").append(beachNames)
+                .append("; snow: was ").append(c[2]).append(", became ").append(c[3]).append(" ").append(snowNames)
+                .append("; jungle: was ").append(c[4]).append(", became ").append(c[5]);
             ok &= c[1] >= c[0] && (c[2] == 0 || c[3] > 0) && c[5] >= c[4];
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Прохождение", "Ранги: спавн по карте 10000 x 10000 не проседает", () -> {
+        t("Progression", "Ranks: spawn on the 10000 x 10000 map does not sag", () -> {
             WorldServer w = server.worldServerForDimension(0);
             net.minecraft.entity.EnumCreatureType mon = net.minecraft.entity.EnumCreatureType.monster;
             // sites: land where the biome list has ranked mobs - spread across a 10000 x 10000 square
@@ -14247,8 +14247,8 @@ public class SelfTest {
                             if (tier > 0) cnt[c][site][1]++;
                             if (tier > allowed) {
                                 cnt[c][site][2]++;
-                                if (bad.length() < 400) bad.append(c == 1 ? "по-старому " : "по-новому ").append(mob.getClass().getSimpleName()).append(" (ранг ").append(tier)
-                                    .append(", можно до ").append(allowed).append(", ").append(mob.isRiding() || mob.riddenByEntity != null ? "наездник" : "сам").append("); ");
+                                if (bad.length() < 400) bad.append(c == 1 ? "the old way " : "the new way ").append(mob.getClass().getSimpleName()).append(" (rank ").append(tier)
+                                    .append(", allowed up to ").append(allowed).append(", ").append(mob.isRiding() || mob.riddenByEntity != null ? "rider" : "alone").append("); ");
                             }
                         }
                         purge(w, spawned);
@@ -14271,8 +14271,8 @@ public class SelfTest {
             StringBuilder rep = new StringBuilder();
             for (int i = 0; i < n; i++) {
                 int[] c = sites.get(i);
-                rep.append(i == 6 ? "ранги 0+3" : "ранг " + siteRank[i]).append(" в ").append(c[0]).append(",").append(c[1]).append(" (")
-                    .append(w.getWorldChunkManager().getBiomeGenAt(c[0], c[1]).biomeName).append(", мобов с рангом ").append(c[2] / 10).append("% веса): ")
+                rep.append(i == 6 ? "ranks 0+3" : "rank " + siteRank[i]).append(" at ").append(c[0]).append(",").append(c[1]).append(" (")
+                    .append(w.getWorldChunkManager().getBiomeGenAt(c[0], c[1]).biomeName).append(", mobs with a rank ").append(c[2] / 10).append("% of weight): ")
                     .append(cnt[0][i][0]).append("/").append(cnt[1][i][0]).append("/").append(cnt[2][i][0]).append("; ");
                 for (int kk = 0; kk < 3; kk++) forb[kk] += cnt[kk][i][2];
                 if (siteRank[i] < 3) {
@@ -14281,15 +14281,15 @@ public class SelfTest {
                 }
             }
             double msOld = ns[1] / 1e6 / cycles, msNew = ns[2] / 1e6 / cycles;
-            String sum = "площадок " + n + " (прогрев: " + warm + " мобов), за " + cycles + " циклов спавна мобов у слабых площадок без рангов/по-старому/по-новому: " + low[0] + "/" + low[1] + "/" + low[2]
-                + String.format(" (старый способ %.0f%%, новый %.0f%%)", 100.0 * low[1] / Math.max(1, low[0]), 100.0 * low[2] / Math.max(1, low[0]))
-                + ", из них с рангом без ограничений " + tieredA + "; запрещённых по-старому " + forb[1] + ", по-новому " + forb[2]
-                + String.format("; цикл спавна по-старому %.1f мс, по-новому %.1f мс", msOld, msNew) + "; вызовов хука " + hook + ", монстров в мире до теста " + capBefore
-                + (bad.length() > 0 ? "; запрещённые: " + bad : "");
-            check(n >= 5 && hook > 0 && tieredA > 0 && forb[2] == 0 && low[2] >= 0.8 * low[0] && msNew <= msOld * 1.5 + 5, sum + ". По площадкам (без рангов/по-старому/по-новому): " + rep);
+            String sum = "sites " + n + " (warm-up: " + warm + " mobs), over " + cycles + " mob spawn cycles near weak sites without ranks/old way/new way: " + low[0] + "/" + low[1] + "/" + low[2]
+                + String.format(" (old way %.0f%%, new way %.0f%%)", 100.0 * low[1] / Math.max(1, low[0]), 100.0 * low[2] / Math.max(1, low[0]))
+                + ", of them with a rank without limits " + tieredA + "; forbidden the old way " + forb[1] + ", the new way " + forb[2]
+                + String.format("; spawn cycle the old way %.1f ms, the new way %.1f ms", msOld, msNew) + "; hook calls " + hook + ", monsters in the world before the test " + capBefore
+                + (bad.length() > 0 ? "; forbidden: " + bad : "");
+            check(n >= 5 && hook > 0 && tieredA > 0 && forb[2] == 0 && low[2] >= 0.8 * low[0] && msNew <= msOld * 1.5 + 5, sum + ". By sites (without ranks/old way/new way): " + rep);
             return sum;
         });
-        t("Прохождение", "Ранги: Энд закрыт для игрока ниже ранга", () -> {
+        t("Progression", "Ranks: the End is closed to a player below the rank", () -> {
             WorldServer w = server.worldServerForDimension(1);
             loadAround(w, 0, 0, 5);
             int y = w.getTopSolidOrLiquidBlock(40, 40);
@@ -14310,7 +14310,7 @@ public class SelfTest {
                         net.minecraft.entity.Entity en = (net.minecraft.entity.Entity) o;
                         if (en.isDead || com.divinerpgextended.boss.ProgressSpawns.tier(en) != 3) continue;
                         got[pass]++;
-                        if (pass == 0 && where.length() < 300) where.append(en.getClass().getSimpleName()).append(" ").append((int) en.posX).append(",").append((int) en.posZ).append(" (").append((int) en.getDistanceToEntity(low)).append(" бл.); ");
+                        if (pass == 0 && where.length() < 300) where.append(en.getClass().getSimpleName()).append(" ").append((int) en.posX).append(",").append((int) en.posZ).append(" (").append((int) en.getDistanceToEntity(low)).append(" bl.); ");
                         en.setDead();
                     }
                 }
@@ -14363,12 +14363,12 @@ public class SelfTest {
             }
             check(got[0] == 0 && "DENY".equals(res[0]) && !"DENY".equals(res[1]) && !"DENY".equals(both.getResult().name()) && lowHits == 0
                 && "DENY".equals(owBoth.getResult().name()),
-                "мобов Энда при игроке ранга 0: " + got[0] + " (" + where + "); смотритель в 150 блоках: ранг 0 - " + res[0] + ", ранг 3 - " + res[1]
-                    + "; в Энде игроки рангов 0 и 3 вместе: " + both.getResult() + ", слабого целит " + lowHits + "; в обычном мире ранги 0 и 2 вместе: " + owBoth.getResult());
-            return "естественный спавн в Энде при игроке ранга 0: мобов Divine " + got[0] + " (при ранге 3 - " + got[1] + "); смотритель в 150 блоках от игрока ранга 0 запрещён, ранга 3 - разрешён; "
-                + "в Энде игрок ранга 0 рядом с игроком ранга 3 спавну не мешает (сам целью не становится), в обычном мире по-прежнему решает слабый";
+                "End mobs with a rank 0 player: " + got[0] + " (" + where + "); watcher within 150 blocks: rank 0 - " + res[0] + ", rank 3 - " + res[1]
+                    + "; in the End players of ranks 0 and 3 together: " + both.getResult() + ", the weak one is targeted " + lowHits + "; in the normal world ranks 0 and 2 together: " + owBoth.getResult());
+            return "natural spawn in the End with a rank 0 player: Divine mobs " + got[0] + " (with rank 3 - " + got[1] + "); a watcher within 150 blocks of a rank 0 player is forbidden, rank 3 - allowed; "
+                + "in the End a rank 0 player next to a rank 3 player does not block the spawn (is not targeted themselves), in the normal world the weak one still decides";
         });
-        t("Логова", "Гнездовье Айрако", () -> {
+        t("Lairs", "Ayeraco nest", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.AYERACO;
             WorldServer w = server.worldServerForDimension(1);
             int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
@@ -14433,14 +14433,14 @@ public class SelfTest {
             int far = Math.max(Math.abs(c[0]), Math.abs(c[2])) + com.divinerpgextended.world.WorldGenOuterLairs.BELT_OUT + 6;
             check(nest && altar && in == null && "dre.chat.summon_altar_ayeraco".equals(floorClick) && "DENY".equals(calm[0]) && !"DENY".equals(calm[1])
                 && "dre.chat.summon_lair_2".equals(out) && dist >= 800 && dist <= 900 && far <= com.divinerpgextended.world.WorldGenOuterLairs.WORLD_EDGE && pillars == 5 && islet && overVoid && big && rocks > 30 && tower,
-                "гнездовье " + nest + " в " + dist + " блоках (дальний край пояса " + far + "), алтарь " + altar + ", рог на алтаре " + in + ", на полу " + floorClick + ", снаружи " + out
-                    + "; спавн в 120 блоках " + calm[0] + ", в 200 " + calm[1] + "; столпов " + pillars + "/5, островок-передышка " + islet
-                    + ", остров над бездной " + overVoid + ", большой " + big + ", направлений с астероидами " + rocks + "/180, башня с лестницей " + tower + " (ступеней " + steps + ")");
-            return "гнездовье - большой остров над бездной в " + c[0] + "," + c[2] + " (" + dist + " блоков от центра), пояс астероидов (" + rocks
-                + "/180 направлений), 5 башен с лестницами и цветными столпами, островки-передышки через "
-                + com.divinerpgextended.world.WorldGenOuterLairs.ISLET_STEP + "; рог только на алтаре в центре арены, в 160 блоках сам никто не появляется";
+                "nest " + nest + " at " + dist + " blocks (far edge of the belt " + far + "), altar " + altar + ", horn on the altar " + in + ", on the floor " + floorClick + ", outside " + out
+                    + "; spawn within 120 blocks " + calm[0] + ", within 200 " + calm[1] + "; pillars " + pillars + "/5, rest islet " + islet
+                    + ", island over the void " + overVoid + ", big " + big + ", directions with asteroids " + rocks + "/180, tower with stairs " + tower + " (steps " + steps + ")");
+            return "nest - a big island over the void at " + c[0] + "," + c[2] + " (" + dist + " blocks from the center), asteroid belt (" + rocks
+                + "/180 directions), 5 towers with stairs and colored pillars, rest islets every "
+                + com.divinerpgextended.world.WorldGenOuterLairs.ISLET_STEP + "; the horn works only on the altar in the arena center, nobody spawns by themselves within 160 blocks";
         });
-        t("Логова", "Алтарь орды Айрако вызывает орду, в творческом - и без рога", () -> {
+        t("Lairs", "Ayeraco horde altar summons the horde, in creative also without a horn", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.AYERACO;
             WorldServer w = server.worldServerForDimension(1);
             int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
@@ -14465,11 +14465,11 @@ public class SelfTest {
             w.setBlockToAir(c[0], ay + 1, c[2]);
             server.getConfigurationManager().playerEntityList.remove(v);
             w.removeEntity(v);
-            check(placed && emptySurvival && horn && creative, "алтарь поставлен обходом " + placed + "; пустой рукой в выживании ничего " + emptySurvival + "; рогом - знак призыва и рог потрачен " + horn
-                + "; в творческом пустой рукой " + creative);
-            return "в старом гнездовье алтарь ставится, когда рядом игрок; рог на алтаре зовёт орду и тратится, пустая рука в выживании - нет, в творческом - да";
+            check(placed && emptySurvival && horn && creative, "altar placed by the pass " + placed + "; empty hand in survival does nothing " + emptySurvival + "; with the horn - summon sign and the horn is spent " + horn
+                + "; in creative with an empty hand " + creative);
+            return "in an old nest the altar is placed when a player is near; the horn on the altar summons the horde and is spent, an empty hand in survival - no, in creative - yes";
         });
-        t("Логова", "Алтари боссов: сломанный ничего не роняет, предмет алтаря исчезает", () -> {
+        t("Lairs", "Boss altars: a broken one drops nothing, the altar item disappears", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x = 21640, y = 150, z = 21640;
             net.minecraft.block.Block[] altars = { com.divinerpgextended.registry.ModBlocks.carcinusAltar, com.divinerpgextended.registry.ModBlocks.glaconAltar,
@@ -14499,10 +14499,10 @@ public class SelfTest {
             v.inventory.mainInventory[6] = null;
             server.getConfigurationManager().playerEntityList.remove(v);
             w.removeEntity(v);
-            check(dropped == 0 && silk == 0 && onGround == 0 && swept == 1 && stoneKept, "дроп " + dropped + ", шёлком " + silk + ", на земле " + onGround + "; из инвентаря убрано " + swept + ", камень остался " + stoneKept);
-            return altars.length + " алтарей: ничего не роняют (и с шёлком), брошенный предметом алтарь на землю не попадает, из инвентаря в выживании исчезает";
+            check(dropped == 0 && silk == 0 && onGround == 0 && swept == 1 && stoneKept, "drop " + dropped + ", with silk touch " + silk + ", on the ground " + onGround + "; removed from inventory " + swept + ", stone remained " + stoneKept);
+            return altars.length + " altars: drop nothing (even with silk touch), a thrown altar item does not reach the ground, in survival it vanishes from the inventory";
         });
-        t("Логова", "Арены Мортума: под постройкой нет пустот", () -> {
+        t("Lairs", "Mortum arenas: no voids under the structure", () -> {
             int dim = ConfigurationHelper.mortum;
             WorldServer w = server.worldServerForDimension(dim);
             int top = com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP;
@@ -14520,12 +14520,12 @@ public class SelfTest {
                     int lethe = 0;
                     for (int ddx = -4; ddx <= 4; ddx++) for (int ddz = -4; ddz <= 4; ddz++) for (int ddy = -4; ddy <= 2; ddy++)
                         if (w.getBlock(c[0] + fh[5] + ddx, com.divinerpgextended.world.twilight.MortumArenas.holesTop(t) + fh[6] + ddy, c[2] + fh[7] + ddz) instanceof com.divinerpgextended.block.BlockLethe) lethe++;
-                    sb.append("[").append(t.key()).append(": подмыто ").append(fh[4]).append(" у ").append(fh[5]).append(',').append(fh[6]).append(',').append(fh[7])
-                        .append(", Леты рядом ").append(lethe).append("] ");
+                    sb.append("[").append(t.key()).append(": undercut ").append(fh[4]).append(" at ").append(fh[5]).append(',').append(fh[6]).append(',').append(fh[7])
+                        .append(", Lethe nearby ").append(lethe).append("] ");
                 }
                 total += holes;
                 sb.append(t.key()).append(' ').append(holes);
-                if (holes > 0) sb.append(" (первая ").append(hx).append(',').append(hy).append(',').append(hz).append(')');
+                if (holes > 0) sb.append(" (first ").append(hx).append(',').append(hy).append(',').append(hz).append(')');
                 sb.append("; ");
             }
             // old arena: dig a void under the outer wall of the Bone Pit - the touch-up fills it, the pit and ribs are not touched
@@ -14539,11 +14539,11 @@ public class SelfTest {
             // demon cliff: a site higher than the others, at their height - a natural slope and Lethe; the touch-up does not touch it
             int[] dc = com.divinerpgextended.world.twilight.MortumArenas.nearestOf(w, com.divinerpgextended.world.twilight.MortumArenas.Type.DEMON, 0, 0, 6);
             int demonHeal = dc == null ? 0 : com.divinerpgextended.world.twilight.MortumArenas.healFloor(w, dc);
-            check(total == 0 && healed == 2 && filled && pitKept && demonHeal == 0, "пустоты под потолком в слоях фундамента и пола: " + sb + "; долечивание старой арены: засыпано " + healed + ", пустота закрыта " + filled
-                + ", яма не тронута " + pitKept + "; у утёса демона долечивание засыпало " + demonHeal);
-            return "под всеми шестью аренами в слоях фундамента и пола нет пустот под блоками: " + sb + "; в старой Костяной яме пустота под стеной засыпается, яма остаётся";
+            check(total == 0 && healed == 2 && filled && pitKept && demonHeal == 0, "voids under the ceiling in the foundation and floor layers: " + sb + "; healing of the old arena: filled " + healed + ", void closed " + filled
+                + ", pit untouched " + pitKept + "; at the demon cliff the healing filled " + demonHeal);
+            return "under all six arenas in the foundation and floor layers there are no voids under blocks: " + sb + "; in the old Bone Pit the void under the wall is filled, the pit stays";
         });
-        t("Логова", "Арены Мортума: в творческом босс без кристалла", () -> {
+        t("Lairs", "Mortum arenas: in creative the boss needs no crystal", () -> {
             int dim = ConfigurationHelper.mortum;
             WorldServer w = server.worldServerForDimension(dim);
             com.divinerpgextended.world.twilight.MortumArenas.Type t = com.divinerpgextended.world.twilight.MortumArenas.Type.FIEND;
@@ -14566,10 +14566,10 @@ public class SelfTest {
             }
             server.getConfigurationManager().playerEntityList.remove(v);
             w.removeEntity(v);
-            check(got[0] == 0 && got[1] == 1, "пустой рукой: в выживании боссов " + got[0] + ", в творческом " + got[1]);
-            return "алтарь арены Погоста: пустой рукой в выживании - подсказка, в творческом - Пожиратель душ без кристалла";
+            check(got[0] == 0 && got[1] == 1, "empty hand: in survival bosses " + got[0] + ", in creative " + got[1]);
+            return "Graveyard arena altar: an empty hand in survival gives a hint, in creative - a Soul Fiend without a crystal";
         });
-        t("Прохождение", "Перевод: описания Divine из кода, Край, бедрок, Халит, Повреждённая броня", () -> {
+        t("Progression", "Translation: Divine descriptions from code, End, bedrock, Halite, Damaged armor", () -> {
             java.util.Map<String, String> ru = new java.util.HashMap<String, String>();
             java.io.InputStream in = SelfTest.class.getResourceAsStream("/assets/divinerpgextended/lang/ru_RU.lang");
             java.util.Scanner sc = new java.util.Scanner(in, "UTF-8").useDelimiter("\\A");
@@ -14588,10 +14588,10 @@ public class SelfTest {
                 if (v.matches(".*(Энд(?!ермен|ику)|коренн|(?<![А-Яа-яЁё])[Гг]алит|Броня порчи|Ядро порчи).*")) old.append(en.getKey()).append(' ');
             }
             boolean bedrock = "Шлем из бедрока".equals(ru.get("item.bedrockHelmet.name")) && "Халит".equals(ru.get("tooltip.halite")) && "Край".equals(ru.get("dre.bestiary.chapter.end"));
-            check(lost.length() == 0 && rules && old.length() == 0 && bedrock, "нет ключей: " + lost + "; образцы " + rules + "; старые слова: " + old + "; бедрок, Халит, Край " + bedrock);
-            return com.divinerpgextended.client.TooltipRu.keys().length + " описаний Divine из кода переводятся; Энд, коренная порода, Галит и порча как имя сета не встречаются";
+            check(lost.length() == 0 && rules && old.length() == 0 && bedrock, "no keys: " + lost + "; samples " + rules + "; old words: " + old + "; bedrock, Halite, End " + bedrock);
+            return com.divinerpgextended.client.TooltipRu.keys().length + " Divine descriptions from code are translated; the old Russian wording for End, bedrock, Galit and corruption as a set name does not occur";
         });
-        t("Мир", "Лагерь Странника вписан в рельеф: без постамента и вырезов", () -> {
+        t("World", "Wanderer camp fits the terrain: no pedestal or cutouts", () -> {
             com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.EDEN;
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             int x = 40000, z = 40000;
@@ -14623,10 +14623,10 @@ public class SelfTest {
             for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.Entity.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 12, 60, z - 12, x + 22, 100, z + 22)))
                 if (!(o instanceof EntityPlayer)) ((net.minecraft.entity.Entity) o).setDead();
             for (int ci = -12; ci < 22; ci++) for (int ck = -12; ck < 22; ck++) for (int y = 60; y <= 100; y++) w.setBlock(x + ci, y, z + ck, Blocks.air, 0, 2);
-            check(built && tent && step <= 1, "лагерь " + built + ", палатка " + tent + ", площадка на " + (base - 80) + " над западом; самый крутой шаг рельефа " + step + " (x+" + at + "); край z+7: " + row);
-            return "лагерь на склоне с уступом в 3 блока: площадка на средней высоте, вокруг откос, ни одного шага выше блока (было: земляной постамент в 3 блока)";
+            check(built && tent && step <= 1, "camp " + built + ", tent " + tent + ", platform at " + (base - 80) + " above the west; steepest terrain step " + step + " (x+" + at + "); edge z+7: " + row);
+            return "camp on a slope with a 3-block ledge: the platform at mid height, a slope around it, not a single step higher than a block (was: a 3-block dirt pedestal)";
         });
-        t("Мортум", "Лета: дыры в русле заливаются, аркану съедает", () -> {
+        t("Mortum", "Lethe: holes in the channel are refilled, arcana is consumed", () -> {
             WorldServer w = server.worldServerForDimension(0);
             int x = 21680, y = 150, z = 21680;
             com.divinerpgextended.block.BlockLethe river = (com.divinerpgextended.block.BlockLethe) com.divinerpgextended.registry.ModBlocks.lethe;
@@ -14660,11 +14660,11 @@ public class SelfTest {
             server.getConfigurationManager().playerEntityList.remove(v);
             w.removeEntity(v);
             for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) for (int dy = -3; dy <= 1; dy++) w.setBlock(x + dx, y + dy, z + dz, Blocks.air, 0, 2);
-            check(top && bottom && mid && over == 0 && helper && seconds == 4 && left == 0, "залито: у поверхности " + top + ", на дне " + bottom + ", после блока " + mid + "; над рекой " + over
-                + "; аркана 100 съедена за " + seconds + " с, осталось " + left);
-            return "вычерпанное ведром, дыра на дне и место сломанного блока снова заливаются, над рекой и за берегом - нет; аркана 100 тает за 4 с, потом Лета кусает";
+            check(top && bottom && mid && over == 0 && helper && seconds == 4 && left == 0, "filled: at the surface " + top + ", at the bottom " + bottom + ", after a block " + mid + "; over the river " + over
+                + "; arcana 100 consumed in " + seconds + " s, left " + left);
+            return "scooped with a bucket, a hole at the bottom and the place of a broken block fill again, over the river and beyond the bank - no; arcana 100 melts in 4 s, then Lethe bites";
         });
-        t("Логова", "Орда Айрако: коршуны, ауры, столпы; броня Энда: цвета, шаг, спасение", () -> {
+        t("Lairs", "Ayeraco horde: kites, auras, pillars; End armor: colors, step, rescue", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.AYERACO;
             WorldServer w = server.worldServerForDimension(1);
             int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
@@ -14761,14 +14761,14 @@ public class SelfTest {
             if (added) players.remove(v);
             check(member && steers && speed > 0.05 && blinkIn && near(rage, 15) && near(rageRed, 10) && deflected && pierced && near(vsRed, 15) && pillar && blink
                 && moved > 5 && near(spent, 25) && !voidBlink && "dre.blink.void".equals(voidWhy) && "".equals(again) && ledge == null && rose > 1.9 && rescued && stuck == 0,
-                "орда " + member + ", полёт ведёт аддон " + steers + " (скорость " + f((float) speed) + "), телепорт над островом " + blinkIn + "; ярость " + f(rage)
-                    + ", в красной броне " + f(rageRed) + "; синий отбил стрелу " + deflected + ", синей бронёй пробил " + pierced + "; по красному в красном+сером "
-                    + f(vsRed) + "; столп красного цел " + pillar + "; шаг " + blink + " на " + f((float) moved) + " за " + f(spent) + " арканы, в бездну " + voidBlink
-                    + " (" + voidWhy + "), сразу второй (" + again + "), на уступ " + ledge + " поднял на " + f((float) rose) + "; спасение из пустоты " + rescued + "; среди столбов шагов " + steps + ", застрял в блоках " + stuck);
-            return "орда кружит под управлением аддона и телепортируется только над островом; красный бьёт x1.5 (красная броня Энда снимает), синий отбивает стрелы "
-                + "(синяя пробивает); броня цвета +50% по своему Айрако, серая +10%; полный сет: шаг на " + f((float) moved) + " блока за 25 арканы, не в бездну, спасение из пустоты";
+                "horde " + member + ", flight steered by the addon " + steers + " (speed " + f((float) speed) + "), teleport over the island " + blinkIn + "; rage " + f(rage)
+                    + ", in red armor " + f(rageRed) + "; blue deflected the arrow " + deflected + ", pierced with blue armor " + pierced + "; vs red in red+gray "
+                    + f(vsRed) + "; red pillar intact " + pillar + "; step " + blink + " by " + f((float) moved) + " for " + f(spent) + " arcana, into the void " + voidBlink
+                    + " (" + voidWhy + "), immediately a second (" + again + "), onto a ledge " + ledge + " raised by " + f((float) rose) + "; rescue from the void " + rescued + "; steps among pillars " + steps + ", stuck in blocks " + stuck);
+            return "the horde circles under the addon's control and teleports only over the island; red hits x1.5 (red End armor removes it), blue deflects arrows "
+                + "(blue pierces); color armor +50% against its own Ayeraco, gray +10%; full set: a step of " + f((float) moved) + " blocks for 25 arcana, not into the void, rescue from the void";
         });
-        t("Логова", "Орда Айрако как Гидра: подлёт по очереди, огненное дыхание, снаряд навесом, лучи убираются", () -> {
+        t("Lairs", "Ayeraco horde like the Hydra: approach in turns, fire breath, lobbed projectile, beams cleared", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.AYERACO;
             WorldServer w = server.worldServerForDimension(1);
             int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);
@@ -14891,12 +14891,12 @@ public class SelfTest {
                 if (add != null) add.setDead();
                 check(turns && burnt > 0 && onFire && dodged == 0 && resisted == 0 && flying == 1 && ticks < 120 && shelled > 0 && burning == 1 && swept == 2 && beamsGone && fireType
                     && pierces && near(bow, 20) && anchored && noHeal && bowWeapon && step == null && toPrey < 4 && addOk && calmOk,
-                    "подлетает " + engaged + " из 5 (очередь " + turns + "); дыхание " + f(burnt) + ", горит " + onFire + ", вбок " + f(dodged) + ", с огнестойкостью " + f(resisted)
-                        + "; снаряд в полёте " + flying + ", долетел за " + ticks + " тиков, урон " + f(shelled) + ", горящих мест " + burning + "; лучей убрано " + swept + ", чисто " + beamsGone + "; лук сквозь щит " + pierces + ", урон " + f(bow) + " (ждали 20), якорь "
-                        + anchored + ", лечение снято " + noHeal + ", лук и ледяной меч - оружие шага " + bowWeapon + ", шаг к Айрако " + step + " (в " + f((float) toPrey) + ")"
-                        + "; подмога " + addOk + " (" + add + "), покой арены " + calmOk + " (убрано " + calmed + ")");
-                return "подлетает по одному (при трёх и меньше - по двое); пустотное пламя жжёт " + f(burnt) + " и поджигает, уйти вбок можно, огнестойкость спасает; снаряд навесом летит "
-                    + ticks + " тиков, бьёт на " + f(shelled) + " и поджигает землю; лучи Divine после боя убираются; лук Энда x2 с якорем, шаг к Айрако на якоре; подмога и покой арены";
+                    "approaching " + engaged + " of 5 (queue " + turns + "); breath " + f(burnt) + ", burning " + onFire + ", sideways " + f(dodged) + ", with fire resistance " + f(resisted)
+                        + "; projectile in flight " + flying + ", arrived in " + ticks + " ticks, damage " + f(shelled) + ", burning spots " + burning + "; beams removed " + swept + ", clean " + beamsGone + "; bow through the shield " + pierces + ", damage " + f(bow) + " (expected 20), anchor "
+                        + anchored + ", healing removed " + noHeal + ", bow and ice sword - step weapon " + bowWeapon + ", step toward Ayeraco " + step + " (by " + f((float) toPrey) + ")"
+                        + "; reinforcements " + addOk + " (" + add + "), arena calm " + calmOk + " (removed " + calmed + ")");
+                return "approaches one by one (with three or fewer - two at a time); void flame burns for " + f(burnt) + " and ignites, you can step aside, fire resistance saves; the lobbed projectile flies "
+                    + ticks + " ticks, hits for " + f(shelled) + " and ignites the ground; Divine beams are cleared after the fight; End bow x2 with an anchor, step toward Ayeraco on the anchor; reinforcements and arena calm";
             } finally {
                 for (net.divinerpg.entities.vanilla.EntityAyeraco a : horde) a.setDead();
                 v.extinguish();
@@ -14905,7 +14905,7 @@ public class SelfTest {
                 unloadAll(w); // an island with a belt - hundreds of End chunks
             }
         });
-        t("Логова", "Мягкая привязь", () -> {
+        t("Lairs", "Soft leash", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             loadAround(w, 4100, 4100, 2);
             net.minecraft.entity.monster.EntityZombie b = new net.minecraft.entity.monster.EntityZombie(w);
@@ -14916,19 +14916,19 @@ public class SelfTest {
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent(b));
             double x = b.posX, mx = b.motionX;
             b.setDead();
-            check(Math.abs(x - 4122.5) < 0.1 && mx < -0.2, "позиция " + x + ", скорость к центру " + mx);
-            return "чуть за краем - разворачивает к центру без телепорта (далеко или ниже пола - телепорт)";
+            check(Math.abs(x - 4122.5) < 0.1 && mx < -0.2, "position " + x + ", speed toward the center " + mx);
+            return "just past the edge - turns toward the center without teleport (far away or below the floor - teleport)";
         });
-        t("Логова", "Карта к роще", () -> {
+        t("Lairs", "Map to the grove", () -> {
             int dim = ConfigurationHelper.eden;
             TestPlayer v = player(dim, "TestNestMap", 100, 150, 100);
             ItemStack map = new ItemStack(com.divinerpgextended.registry.ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.NEST);
             v.chat.clear();
             map.getItem().onItemRightClick(map, server.worldServerForDimension(dim), v);
-            check(v.heard("dre.chat.map_found_nest"), "чат " + v.chat);
-            return "карта в Эдеме показывает ближайшую рощу";
+            check(v.heard("dre.chat.map_found_nest"), "chat " + v.chat);
+            return "the map in Eden shows the nearest grove";
         });
-        t("Сумеречные миры", "Быстрый поиск портала", () -> {
+        t("Twilight dimensions", "Fast portal search", () -> {
             net.minecraft.block.Block portal = net.divinerpg.utils.blocks.TwilightBlocks.wildwoodPortal;
             net.minecraft.block.Block frame = ReflectionHelper.getPrivateValue(net.divinerpg.blocks.base.portal.BlockModPortal.class,
                 (net.divinerpg.blocks.base.portal.BlockModPortal) portal, "blockFrame");
@@ -14943,12 +14943,12 @@ public class SelfTest {
             t0 = System.nanoTime();
             placePig(new com.divinerpgextended.portal.FastTeleporter(w, dim, portal, frame), w, -2997, 3002, b);
             long fast = System.nanoTime() - t0;
-            check(java.util.Arrays.equals(a, b), "Divine поставил в " + java.util.Arrays.toString(a) + ", быстрый в "
+            check(java.util.Arrays.equals(a, b), "Divine placed at " + java.util.Arrays.toString(a) + ", fast one at "
                 + java.util.Arrays.toString(b));
-            check(fast * 3 < divine, "быстрый " + fast / 1000000 + " мс, Divine " + divine / 1000000 + " мс");
-            return "та же точка у портала; поиск " + divine / 1000000 + " > " + fast / 1000000 + " мс";
+            check(fast * 3 < divine, "fast " + fast / 1000000 + " ms, Divine " + divine / 1000000 + " ms");
+            return "same point at the portal; search " + divine / 1000000 + " > " + fast / 1000000 + " ms";
         });
-        t("Сервер", "Ковёр у порога кика", () -> {
+        t("Server", "Carpet at the kick threshold", () -> {
             e.onGround = true;
             tick(e, 1);
             e.onGround = false;
@@ -14958,14 +14958,14 @@ public class SelfTest {
                 tick(e, 1);
                 maxSeen = Math.max(maxSeen, floating(e));
             }
-            check(maxSeen < 80, "счётчик дошёл до " + maxSeen);
-            return "за весь запас (3 с) счётчик кика не растёт выше " + maxSeen;
+            check(maxSeen < 80, "counter reached " + maxSeen);
+            return "over the whole margin (3 s) the kick counter does not rise above " + maxSeen;
         });
 
         // ---- Vethea ----
         final int vd = ConfigurationHelper.vethea;
         final WorldServer vw = server.worldServerForDimension(vd);
-        t("Ветея - этажи", "Крыльев I впритык", () -> {
+        t("Vethea - Floors", "Wings I barely enough", () -> {
             double y = 0, m = 0.42; // jump from the floor
             int fuel = 85;
             for (int i = 0; i < 400; i++) {
@@ -14977,16 +14977,16 @@ public class SelfTest {
                 m = (m - 0.08) * 0.98;
                 if (m < 0 && fuel == 0) break;
             }
-            check(y >= 49, "крылья I поднимают на " + String.format("%.1f", y) + " блоков, а до пола 2 этажа 48-49");
-            return String.format("взлёт с пола на %.1f блоков при подъёме в 48 (запас %.1f)", y, y - 48);
+            check(y >= 49, "Wings I lift by " + String.format("%.1f", y) + " blocks, and the floor of floor 2 is at 48-49");
+            return String.format("takeoff from the floor by %.1f blocks with a lift of 48 (margin %.1f)", y, y - 48);
         });
-        t("Ветея - кошмар", "Подсказка на входе", () -> {
+        t("Vethea - Nightmare", "Hint on entry", () -> {
             TestPlayer v = player(vd, "TestHint", 30, 20, 30);
             FMLCommonHandler.instance().bus().post(new PlayerEvent.PlayerChangedDimensionEvent(v, 0, vd));
-            check(v.heard("dre.nightmare.enter"), "подсказки нет, чат: " + v.chat);
-            return "при входе в Ветею пришла подсказка";
+            check(v.heard("dre.nightmare.enter"), "no hint, chat: " + v.chat);
+            return "a hint arrived on entering Vethea";
         });
-        t("Ветея - этажи", "Боссы Ветеи", () -> {
+        t("Vethea - Floors", "Vethea bosses", () -> {
             TestPlayer v1 = join(player(vd, "TestQueen1", 40, 20, 40), true), v2 = join(player(vd, "TestQueen2", 60, 20, 40), true);
             persisted(v1).removeTag("dre_dream_done");
             persisted(v1).removeTag("dre_dream_pending");
@@ -15000,11 +15000,11 @@ public class SelfTest {
             hq.setDead();
             int bit = 1 << 3; // HIVE_QUEEN
             int a = persisted(v1).getInteger("dre_dream_pending"), b = persisted(v2).getInteger("dre_dream_pending");
-            check((a & bit) != 0 && (b & bit) != 0, "дар за Королеву улья: убийце " + ((a & bit) != 0) + ", игроку в 18 блоках " + ((b & bit) != 0));
-            return "дар за Королеву улья отмечен и убийце, и стоявшему рядом";
+            check((a & bit) != 0 && (b & bit) != 0, "gift for the Hive Queen: for the killer " + ((a & bit) != 0) + ", for a player within 18 blocks " + ((b & bit) != 0));
+            return "the Hive Queen gift is marked for both the killer and the player standing nearby";
         });
-        copyResult("Ветея - этажи", "Боссы Ветеи", "Ветея - этажи", "Босса добил другой");
-        t("Ветея - этажи", "Дар после смерти или выхода", () -> {
+        copyResult("Vethea - Floors", "Vethea bosses", "Vethea - Floors", "Boss finished by another");
+        t("Vethea - Floors", "Gift after death or logout", () -> {
             TestPlayer o = player(0, "TestGift2", sx, sy, sz);
             persisted(o).setInteger("dre_dream_done", 1);
             persisted(o).setInteger("dre_dream_pending", 1);
@@ -15013,37 +15013,37 @@ public class SelfTest {
             reborn.clonePlayer(o, false);
             call(VetheaFloors.class, "deliverGifts", new Class<?>[] { EntityPlayer.class }, reborn);
             int realmite = count(reborn, VanillaItemsOther.realmiteIngot);
-            check(realmite == 12, "после смерти дар не выдан: реалмита " + realmite);
-            return "отмеченный дар пережил смерть и выдан";
+            check(realmite == 12, "gift not given after death: realmite " + realmite);
+            return "the marked gift survived death and was given";
         });
-        copyResult("Ветея - этажи", "Этаж засчитан", "Ветея - этажи", "Дар по пробуждении");
-        copyResult("Ветея - этажи", "Этаж засчитан", "Ветея - этажи", "Без повторов");
-        copyResult("Ветея - этажи", "В шахте не построить", "Ветея - этажи", "Край разлома");
-        copyResult("Ветея - этажи", "Падение не ранит", "Ветея - этажи", "Снять крылья в полёте");
-        t("Ветея - этажи", "Перезаход выше дозволенного", () -> {
+        copyResult("Vethea - Floors", "Floor counted", "Vethea - Floors", "Gift on waking");
+        copyResult("Vethea - Floors", "Floor counted", "Vethea - Floors", "No repeats");
+        copyResult("Vethea - Floors", "Cannot build in the shaft", "Vethea - Floors", "Edge of the rift");
+        copyResult("Vethea - Floors", "Fall does not hurt", "Vethea - Floors", "Take off wings in flight");
+        t("Vethea - Floors", "Relog above the allowed height", () -> {
             TestPlayer v = player(vd, "TestRelog", 30, 70, 30);
             persisted(v).removeTag("dre_wing_tier");
             FMLCommonHandler.instance().bus().post(new PlayerEvent.PlayerLoggedOutEvent(v));
             FMLCommonHandler.instance().bus().post(new PlayerEvent.PlayerLoggedInEvent(v));
             tick(v, 31);
-            check(VetheaFloors.floorOf(v.posY) == 1, "после перезахода на 2 этаже не сброшен: y " + f((float) v.posY));
-            return "после перезахода на 2 этаже без крыльев - сброшен на 1";
+            check(VetheaFloors.floorOf(v.posY) == 1, "not reset after relogging on floor 2: y " + f((float) v.posY));
+            return "after relogging on floor 2 without wings - reset to 1";
         });
-        copyResultNote("Ветея - этажи", "Страж этажей", "Ветея - этажи", "Водяной лифт и жемчуг",
-            "страж срабатывает по положению игрока, способ попадания (лифт, жемчуг) не важен");
-        copyResultNote("Ветея - этажи", "Страж этажей", "Ветея - этажи", "Кровать кошмаров наверху",
-            "страж срабатывает по положению после возрождения так же, как после входа");
+        copyResultNote("Vethea - Floors", "Floor guard", "Vethea - Floors", "Water elevator and pearl",
+            "the guard triggers by player position, the way of getting there (elevator, pearl) does not matter");
+        copyResultNote("Vethea - Floors", "Floor guard", "Vethea - Floors", "Nightmare bed upstairs",
+            "the guard triggers by position after respawn the same way as after entry");
 
         // ---- third block ----
-        t("Аксессуары", "Из сундуков", () -> {
+        t("Accessories", "From chests", () -> {
             Class<?> ll = com.divinerpgextended.world.LairLoot.class;
             int shell = chestRate(call(ll, "crab", new Class<?>[0]), Trinket.DEEP_SHELL);
             int ring = chestRate(call(ll, "iceikaDungeon", new Class<?>[0]), Trinket.ETERNAL_ICE_RING);
             int ankh = chestRate(call(ll, "tomb", new Class<?>[0]), Trinket.PHARAOH_ANKH);
-            check(shell > 0 && ring > 0 && ankh > 0, "на 2000 сундуков: Ракушка " + shell + ", Кольцо льда " + ring + ", Анх " + ankh);
-            return String.format("на 2000 сундуков: Ракушка глубин %d (логово краба), Кольцо вечного льда %d (Айсика), Анх %d (гробница)", shell, ring, ankh);
+            check(shell > 0 && ring > 0 && ankh > 0, "per 2000 chests: Shell " + shell + ", Ice Ring " + ring + ", Ankh " + ankh);
+            return String.format("per 2000 chests: Shell of the Deep %d (crab lair), Ring of Eternal Ice %d (Iceika), Ankh %d (tomb)", shell, ring, ankh);
         });
-        t("Сервер", "PvP по своей броне", () -> {
+        t("Server", "PvP by own armor", () -> {
             reset(p);
             reset(q);
             float naked = hit(q, DamageSource.causePlayerDamage(p), 1);
@@ -15055,11 +15055,11 @@ public class SelfTest {
             armor(q, VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs, VanillaItemsArmor.divineBoots);
             float victimSet = hit(q, DamageSource.causePlayerDamage(p), 1);
             q.setHealth(q.getMaxHealth());
-            check(near(naked, 1) && near(divine, 7) && victimSet < 1.01F, "голый по голому " + f(naked) + ", атакующий в Divine " + f(divine)
-                + ", жертва в Divine " + f(victimSet));
-            return "бонус +6 только от сета атакующего; сет жертвы ему бонуса не даёт";
+            check(near(naked, 1) && near(divine, 7) && victimSet < 1.01F, "naked vs naked " + f(naked) + ", attacker in Divine " + f(divine)
+                + ", victim in Divine " + f(victimSet));
+            return "the +6 bonus comes only from the attacker's set; the victim's set gives it no bonus";
         });
-        t("Ветея - кошмар", "Белый список", () -> {
+        t("Vethea - Nightmare", "Whitelist", () -> {
             TestPlayer v = player(vd, "TestWhite", 30, 20, 30);
             hold(v, new ItemStack(Items.diamond_sword));
             EntityZombie zz = new EntityZombie(vw);
@@ -15071,14 +15071,14 @@ public class SelfTest {
                 cache.set(null, null);
                 zz.setHealth(20);
                 float d = hit(zz, DamageSource.causePlayerDamage(v), 7);
-                check(d > 0, "алмазный меч из белого списка: изменение здоровья " + f(-d));
-                return "алмазный меч в белом списке бьёт мобов Ветеи как свой";
+                check(d > 0, "diamond sword from the whitelist: health change " + f(-d));
+                return "a diamond sword on the whitelist hits Vethea mobs like its own";
             } finally {
                 Config.vetheaWhitelist = old;
                 cache.set(null, null);
             }
         });
-        t("Ветея - кошмар", "Чужое оружие из конфига", () -> {
+        t("Vethea - Nightmare", "Foreign weapon from config", () -> {
             TestPlayer v = player(vd, "TestForeign", 30, 20, 30);
             hold(v, new ItemStack(Items.stick));
             net.minecraft.entity.EntityLiving zz = new net.divinerpg.entities.vethea.EntityCymesoid(vw);
@@ -15092,17 +15092,17 @@ public class SelfTest {
                 cache.set(null, null);
                 zz.setHealth(10);
                 float listed = hit(zz, DamageSource.causePlayerDamage(v), 1);
-                check(plain > 0 && listed < 0, "палка без настройки: " + f(-plain) + ", палка в vetheaWeapons: " + f(-listed));
-                return "предмет из vetheaWeapons считается чужим оружием и лечит моба, без настройки - обычный удар";
+                check(plain > 0 && listed < 0, "stick without config: " + f(-plain) + ", stick in vetheaWeapons: " + f(-listed));
+                return "an item from vetheaWeapons counts as a foreign weapon and heals the mob, without config - a normal hit";
             } finally {
                 Config.vetheaWeapons = old;
                 cache.set(null, null);
             }
         });
-        t("Сервер", "Без HawkEye", () -> {
+        t("Server", "Without HawkEye", () -> {
             File log = new File(server.getFile("logs"), "dre-audit.log");
-            check(log.exists() && log.length() > 0, "журнал аудита пуст");
-            return "тестовый сервер без HawkEye: ошибок нет, журнал аудита пишется";
+            check(log.exists() && log.length() > 0, "audit log is empty");
+            return "test server without HawkEye: no errors, the audit log is written";
         });
 
         // ---- protected regions ----
@@ -15127,7 +15127,7 @@ public class SelfTest {
         for (int i = results.size() - 1; i >= 0; i--) {
             String[] r = results.get(i);
             if (r[0].equals(fromSheet) && r[1].equals(fromRow)) {
-                results.add(new String[] { sheet, row, r[2], (note != null ? note + "; " : "") + "по тесту \"" + fromRow + "\": " + r[3] });
+                results.add(new String[] { sheet, row, r[2], (note != null ? note + "; " : "") + "from test \"" + fromRow + "\": " + r[3] });
                 return;
             }
         }
@@ -15188,7 +15188,7 @@ public class SelfTest {
     private void protectionTests(final int sx, final int sy, final int sz, final WorldServer ow) {
         prot = new Protection();
         MinecraftForge.EVENT_BUS.register(prot);
-        t("Сервер", "Кирка изморози 3x3", () -> {
+        t("Server", "Rime Pickaxe 3x3", () -> {
             WorldServer ice = server.worldServerForDimension(ConfigurationHelper.iceika);
             TestPlayer m = player(ConfigurationHelper.iceika, "TestMiner", 10, 202, 10);
             m.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
@@ -15208,11 +15208,11 @@ public class SelfTest {
             for (int dz = 0; dz < 3; dz++) if (dz != 1 && ice.getBlock(11, y, 9 + dz) == Blocks.stone) open++;
             for (int dz = 0; dz < 3; dz++) if (ice.getBlock(10, y, 9 + dz) == Blocks.stone && dz != 1) open++;
             prot.dim = Integer.MIN_VALUE;
-            check(priv == 3 && open == 0, "в привате уцелело " + priv + " из 3, вне привата осталось " + open + " из 4 (центр не считаем)");
-            return "3 блока в привате целы, 4 соседних вне привата сломаны";
+            check(priv == 3 && open == 0, "intact in the claim: " + priv + " of 3, left outside the claim: " + open + " of 4 (center not counted)");
+            return "3 blocks in the claim intact, 4 neighbors outside the claim broken";
         });
-        copyResult("Сервер", "Кирка изморози 3x3", "Сервер", "3x3 на границе привата");
-        t("Сервер", "Кошмарный бур 3x3", () -> {
+        copyResult("Server", "Rime Pickaxe 3x3", "Server", "3x3 on the claim border");
+        t("Server", "Nightmare Drill 3x3", () -> {
             TestPlayer m = player(0, "TestDrill", sx + 20.5, 202, sz + 20.5);
             m.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
             m.rotationPitch = 90;
@@ -15233,8 +15233,8 @@ public class SelfTest {
             for (int dx = 0; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) if (!(dx == 0 && dz == 0) && ow.getBlock(cx + dx, y, cz + dz) == Blocks.stone) open++;
             prot.dim = Integer.MIN_VALUE;
             for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) ow.setBlockToAir(cx + dx, y, cz + dz);
-            check(priv == 3 && open == 0, "в привате уцелело " + priv + " из 3, вне привата осталось " + open + " из 5");
-            return "бур: в привате 3 блока целы, 5 соседних вне привата сломаны";
+            check(priv == 3 && open == 0, "intact in the claim: " + priv + " of 3, left outside the claim: " + open + " of 5");
+            return "drill: 3 blocks in the claim intact, 5 neighbors outside the claim broken";
         });
     }
 
@@ -15245,19 +15245,19 @@ public class SelfTest {
         final com.divinerpgextended.debug.CommandDreDebug cmd = new com.divinerpgextended.debug.CommandDreDebug();
         final String[] logPath = new String[1];
         final int[] mark = new int[4];
-        t("Отладка", "Без отладки ничего не пишется", () -> {
-            check(!com.divinerpgextended.debug.Debug.any(), "отладка уже включена у кого-то");
-            com.divinerpgextended.debug.Debug.note(d, "проверка");
-            check(d.chat.isEmpty(), "без отладки пришло в чат: " + d.chat);
-            return "пока никто не включил /dredebug - ни чата, ни файла";
+        t("Debug", "Nothing is written without debug", () -> {
+            check(!com.divinerpgextended.debug.Debug.any(), "debug is already enabled for someone");
+            com.divinerpgextended.debug.Debug.note(d, "check");
+            check(d.chat.isEmpty(), "came to chat without debug: " + d.chat);
+            return "while nobody has enabled /dredebug - no chat, no file";
         });
-        t("Отладка", "Включение", () -> {
+        t("Debug", "Enabling", () -> {
             cmd.processCommand(d, new String[] { "on" });
-            check(com.divinerpgextended.debug.Debug.any(), "отладка не включилась");
-            check(d.heard("Debug: chat on, file on"), "нет статуса в чате: " + d.chat);
+            check(com.divinerpgextended.debug.Debug.any(), "debug did not turn on");
+            check(d.heard("Debug: chat on, file on"), "no status in chat: " + d.chat);
             Object log = call(com.divinerpgextended.debug.Debug.class, "log", new Class<?>[0]);
             logPath[0] = ((com.divinerpgextended.debug.DebugLog) log).file().getAbsolutePath();
-            return "включилась, статус в чате, файл " + new File(logPath[0]).getName();
+            return "turned on, status in chat, file " + new File(logPath[0]).getName();
         });
         // actions in this tick, hit results - at the end of the tick
         try {
@@ -15274,26 +15274,26 @@ public class SelfTest {
             d.heal(3);
         });
         at(43, () -> {
-            t("Отладка", "Твой удар", () -> {
-                check(d.heard("[hit] Iron Golem"), "нет строки о своём ударе: " + d.chat);
-                return "строка [удар] Iron Golem с разбором";
+            t("Debug", "Your hit", () -> {
+                check(d.heard("[hit] Iron Golem"), "no line about your own hit: " + d.chat);
+                return "line [hit] Iron Golem with breakdown";
             });
-            t("Отладка", "Урон по тебе", () -> {
-                check(d.heard("[damage] -"), "нет строки об уроне по себе: " + d.chat);
-                return "строка [урон] с ударом, эффектами и бронёй";
+            t("Debug", "Damage to you", () -> {
+                check(d.heard("[damage] -"), "no line about damage to yourself: " + d.chat);
+                return "line [damage] with hit, effects and armor";
             });
-            t("Отладка", "Отменённый урон", () -> {
-                check(d.heard("[damage cancelled") && d.heard("rank"), "нет отменённого удара с причиной: " + d.chat);
-                return "удар эндер-паука по рангу 0: [урон отменён] и причина про ранг";
+            t("Debug", "Cancelled damage", () -> {
+                check(d.heard("[damage cancelled") && d.heard("rank"), "no cancelled hit with a reason: " + d.chat);
+                return "Ender Spider hit at rank 0: [damage cancelled] and a reason about rank";
             });
-            t("Отладка", "Файл действий", () -> {
+            t("Debug", "Action file", () -> {
                 com.divinerpgextended.debug.DebugLog log = (com.divinerpgextended.debug.DebugLog) call(com.divinerpgextended.debug.Debug.class, "log",
                     new Class<?>[0]);
                 log.flush();
                 String all = new String(java.nio.file.Files.readAllBytes(new File(logPath[0]).toPath()), StandardCharsets.UTF_8);
-                check(all.contains(";damage_dealt;") && all.contains(";damage_taken;") && all.contains(";block_break;"), "в файле нет нужных строк");
+                check(all.contains(";damage_dealt;") && all.contains(";damage_taken;") && all.contains(";block_break;"), "the file lacks the needed lines");
                 mark[0] = all.length();
-                return "в CSV есть damage_dealt, damage_taken, block_break";
+                return "the CSV has damage_dealt, damage_taken, block_break";
             });
             try {
                 cmd.processCommand(d, new String[] { "chat", "off" });
@@ -15302,14 +15302,14 @@ public class SelfTest {
             } catch (Throwable ignored) {}
         });
         at(46, () -> {
-            t("Отладка", "Чат выкл, файл вкл", () -> {
+            t("Debug", "Chat off, file on", () -> {
                 com.divinerpgextended.debug.DebugLog log = (com.divinerpgextended.debug.DebugLog) call(com.divinerpgextended.debug.Debug.class, "log",
                     new Class<?>[0]);
                 log.flush();
                 long len = new File(logPath[0]).length();
-                check(!d.heard("[hit]"), "в чат пришло при выключенном чате: " + d.chat);
-                check(len > mark[0], "файл не вырос");
-                return "чат молчит, файл пишется";
+                check(!d.heard("[hit]"), "came to chat while chat is off: " + d.chat);
+                check(len > mark[0], "file did not grow");
+                return "chat is silent, file is written";
             });
             try {
                 cmd.processCommand(d, new String[] { "chat", "on" });
@@ -15325,41 +15325,41 @@ public class SelfTest {
         });
         at(49, () -> {
             ow.difficultySetting = net.minecraft.world.EnumDifficulty.NORMAL;
-            t("Отладка", "Сложность", () -> {
-                check(d.heard("difficulty easy"), "нет пометки о сложности: " + d.chat);
-                return "на лёгкой сложности в разборе удара есть строка про поправку";
+            t("Debug", "Difficulty", () -> {
+                check(d.heard("difficulty easy"), "no difficulty note: " + d.chat);
+                return "on easy difficulty the hit breakdown has a line about the adjustment";
             });
-            t("Отладка", "Бои мобов рядом", () -> {
-                check(d.heard("[hit] Iron Golem") && d.heard("mob, Zombie"), "нет строки о бое мобов: " + d.chat);
-                return "с mobs on видно, как зомби бьёт голема рядом";
+            t("Debug", "Mob fights nearby", () -> {
+                check(d.heard("[hit] Iron Golem") && d.heard("mob, Zombie"), "no line about the mob fight: " + d.chat);
+                return "with mobs on you can see a zombie hitting a golem nearby";
             });
-            t("Отладка", "Перезаход с отладкой", () -> {
+            t("Debug", "Relog with debug", () -> {
                 com.divinerpgextended.debug.DebugLog log = (com.divinerpgextended.debug.DebugLog) call(com.divinerpgextended.debug.Debug.class, "log",
                     new Class<?>[0]);
                 log.flush();
                 String all = new String(java.nio.file.Files.readAllBytes(new File(logPath[0]).toPath()), StandardCharsets.UTF_8);
-                check(all.contains(";login;") && com.divinerpgextended.debug.Debug.any(), "после входа отладка не продолжилась");
-                return "после входа отладка продолжает писать (login в файле)";
+                check(all.contains(";login;") && com.divinerpgextended.debug.Debug.any(), "debug did not continue after login");
+                return "after login debug keeps writing (login in the file)";
             });
-            t("Отладка", "Аудит /dreinv", () -> {
+            t("Debug", "Audit /dreinv", () -> {
                 TestPlayer target = join(player(0, "TestInvTarget", sx, sy, sz), false);
                 new com.divinerpgextended.accessory.CommandDreInv().processCommand(d, new String[] { "TestInvTarget" });
                 File log = new File(server.getFile("logs"), "dre-audit.log");
                 String all = new String(java.nio.file.Files.readAllBytes(log.toPath()), StandardCharsets.UTF_8);
-                check(all.contains("[TestDebug]") && all.contains("dreinv: TestInvTarget"), "в журнале аудита нет записи /dreinv");
-                return "в dre-audit.log: dreinv TestInvTarget - правка";
+                check(all.contains("[TestDebug]") && all.contains("dreinv: TestInvTarget"), "the audit log has no /dreinv entry");
+                return "in dre-audit.log: dreinv TestInvTarget - edit";
             });
         });
         // the debug writes the healing result once per 20 server ticks - we check after the nearest such mark
         at(64, () -> {
-            t("Отладка", "Эффекты и лечение", () -> {
+            t("Debug", "Effects and healing", () -> {
                 com.divinerpgextended.debug.DebugLog log = (com.divinerpgextended.debug.DebugLog) call(com.divinerpgextended.debug.Debug.class, "log",
                     new Class<?>[0]);
                 log.flush();
                 String all = new String(java.nio.file.Files.readAllBytes(new File(logPath[0]).toPath()), StandardCharsets.UTF_8);
-                check(all.contains(";effect;+potion.regeneration"), "в файле нет записи о регенерации");
-                check(all.contains(";heal;"), "в файле нет записи о лечении");
-                return "наложенная регенерация и лечение записаны";
+                check(all.contains(";effect;+potion.regeneration"), "the file has no regeneration entry");
+                check(all.contains(";heal;"), "the file has no healing entry");
+                return "applied regeneration and healing are recorded";
             });
             try {
                 cmd.processCommand(d, new String[] { "off" });
@@ -15409,7 +15409,7 @@ public class SelfTest {
     /** Overworld weapons (0.99.117): slime and eye summons, aggro radii, throwable stacks, anvil, cannon, fury, swords, bows, serenades, lightning. */
     private void earlyWeaponTests(final WorldServer ow, final int sx, final int sy, final int sz) {
         final net.minecraftforge.event.entity.player.PlayerInteractEvent.Action AIR = net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR;
-        t("Оружие обычного мира", "Призывы слизня и ока, радиусы агра", () -> {
+        t("Overworld weapons", "Slime and eye summons, aggro radii", () -> {
             WorldServer w = ow;
             double px = sx + 300.5, py = 200, pz = sz + 0.5;
             loadAround(w, (int) px, (int) pz, 2);
@@ -15434,7 +15434,7 @@ public class SelfTest {
                     boolean denied = air.useItem == cpw.mods.fml.common.eventhandler.Event.Result.DENY;
                     int one = com.divinerpgextended.magic.AnchorSummons.count(ap, kinds[n]);
                     ok &= byBlock == 0 && denied && one == 1;
-                    rep.append(n == 0 ? "" : "; ").append(kinds[n]).append(": по блоку ").append(byBlock).append(", в воздух ").append(one).append(" (выстрел отменён ").append(denied).append(")");
+                    rep.append(n == 0 ? "" : "; ").append(kinds[n]).append(": on block ").append(byBlock).append(", in the air ").append(one).append(" (shot cancelled ").append(denied).append(")");
                 }
                 com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
                 // ladder: the aggro radius grows slime - crab - eye - shark - wraith, the eye hits weaker than all
@@ -15445,7 +15445,7 @@ public class SelfTest {
                 float eyeDmg = com.divinerpgextended.magic.AnchorSummons.Kind.EYE.damage;
                 for (com.divinerpgextended.magic.AnchorSummons.Kind k : com.divinerpgextended.magic.AnchorSummons.Kind.values()) if (k != com.divinerpgextended.magic.AnchorSummons.Kind.EYE) ladder &= k.damage > eyeDmg;
                 ok &= ladder;
-                rep.append("; радиусы ").append(java.util.Arrays.toString(r)).append(", око слабее всех ").append(ladder);
+                rep.append("; radii ").append(java.util.Arrays.toString(r)).append(", the eye is weaker than all ").append(ladder);
                 // its own enemy is found within the radius, beyond the radius - not
                 z.setLocationAndAngles(px + 3, py, pz, 0, 0);
                 w.spawnEntityInWorld(z);
@@ -15457,14 +15457,14 @@ public class SelfTest {
                     z.setPosition(px + rad + 1.5, py, pz);
                     boolean out = com.divinerpgextended.magic.AnchorSummons.foe(ap, rad) == null;
                     ok &= in && out;
-                    if (!in || !out) rep.append("; радиус ").append(rad).append(": внутри ").append(in).append(", снаружи пусто ").append(out);
+                    if (!in || !out) rep.append("; radius ").append(rad).append(": inside ").append(in).append(", outside empty ").append(out);
                 }
                 // the owner's target farther than the kind's radius - it does not chase: at 8 blocks the slime (6) does not, the shark (12) does
                 z.setPosition(px + 8, py, pz);
                 boolean slimeIgnores = new com.divinerpgextended.magic.AnchorSummons.Aim().pick(ap, z, com.divinerpgextended.magic.AnchorSummons.Kind.SLIME.aggro) == null;
                 boolean sharkChases = new com.divinerpgextended.magic.AnchorSummons.Aim().pick(ap, z, com.divinerpgextended.magic.AnchorSummons.Kind.SHARK.aggro) == z;
                 ok &= slimeIgnores && sharkChases;
-                rep.append("; цель хозяина на 8 блоках: слизень не идёт ").append(slimeIgnores).append(", акула идёт ").append(sharkChases);
+                rep.append("; owner's target at 8 blocks: slime does not go ").append(slimeIgnores).append(", shark goes ").append(sharkChases);
                 // the eye rushes at a nearby enemy by itself (without the owner's mark) and knocks it away from the owner
                 z.setPosition(px + 3, py, pz);
                 z.motionX = z.motionY = z.motionZ = 0;
@@ -15474,7 +15474,7 @@ public class SelfTest {
                 float dealt = z.getMaxHealth() - z.getHealth();
                 boolean pushed = z.motionX > 0.5;
                 ok &= dealt >= eyeDmg - 0.01F && pushed;
-                rep.append("; око без метки: урон ").append(f(dealt)).append(", отброс ").append(f((float) z.motionX));
+                rep.append("; eye without mark: damage ").append(f(dealt)).append(", knockback ").append(f((float) z.motionX));
             } finally {
                 com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
                 z.setDead();
@@ -15485,7 +15485,7 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Оружие обычного мира", "Стопки метательного до 256", () -> {
+        t("Overworld weapons", "Throwing weapon stacks up to 256", () -> {
             WorldServer w = ow;
             TestPlayer tp = player(0, "TestThrowStack", sx + 0.5, sy + 1, sz + 0.5);
             StringBuilder rep = new StringBuilder();
@@ -15530,10 +15530,10 @@ public class SelfTest {
                 boolean kinds = com.divinerpgextended.perk.ThrowStack.is(net.divinerpg.utils.items.TwilightItemsWeapons.edenSlicer)
                     && com.divinerpgextended.perk.ThrowStack.is(IceikaItems.snowflakeShuriken) && !com.divinerpgextended.perk.ThrowStack.is(Items.snowball);
                 ok = full && limit == 1 && "256".equals(label) && afterThrow == 255 && bullets == 1 && plain && pick && vsTotal == 7 && vsAfter == 6 && kinds;
-                rep.append("собрано ").append(got).append(" (можно ").append(canGather).append(") - в руке ").append(total).append(", осталось в инвентаре ").append(left)
-                    .append("; предел стопки ").append(limit).append(", на значке ").append(label).append("; бросок: ").append(afterThrow).append(", снарядов ").append(bullets)
-                    .append("; из двух - обычный ").append(plain).append("; подбор ").append(absorbed).append(" -> ").append(com.divinerpgextended.perk.ThrowStack.total(h))
-                    .append("; ураган ").append(vsTotal).append(" -> ").append(vsAfter).append("; слайсеры и снежный сюрикен ").append(kinds);
+                rep.append("gathered ").append(got).append(" (possible ").append(canGather).append(") - in hand ").append(total).append(", left in inventory ").append(left)
+                    .append("; stack limit ").append(limit).append(", on the icon ").append(label).append("; throw: ").append(afterThrow).append(", projectiles ").append(bullets)
+                    .append("; of two - the normal one ").append(plain).append("; pickup ").append(absorbed).append(" -> ").append(com.divinerpgextended.perk.ThrowStack.total(h))
+                    .append("; hurricane ").append(vsTotal).append(" -> ").append(vsAfter).append("; slicers and snow shuriken ").append(kinds);
             } finally {
                 killNear(w, tp.posX, tp.posY, tp.posZ, 8);
                 reset(tp);
@@ -15541,7 +15541,7 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Оружие обычного мира", "Бесконечность, Прочность и Восстановление на стрелковом Divine", () -> {
+        t("Overworld weapons", "Infinity, Unbreaking and Repair on Divine ranged weapons", () -> {
             WorldServer w = ow;
             TestPlayer tp = player(0, "TestRangedEnch", sx + 0.5, sy + 1, sz + 0.5);
             StringBuilder rep = new StringBuilder();
@@ -15578,16 +15578,16 @@ public class SelfTest {
                     && !com.divinerpgextended.perk.EarlyWeapons.divineRanged(new ItemStack(VanillaItemsWeapons.cyclopsianStaff));
                 Enchantment rep2 = com.divinerpgextended.perk.EarlyWeapons.tcRepair();
                 ok = furyInf && nuggets && vanillaUnb && cannonInf && bowVanilla && has && "∞".equals(label) && staff;
-                rep.append("Золотая ярость + Бесконечность ").append(furyInf).append(" (патрон - самородки ").append(nuggets).append("); пушка: Прочность наковальней ").append(vanillaUnb)
-                    .append(", Бесконечность нами ").append(cannonInf).append("; лук - наковальней ").append(bowVanilla).append("; без патронов стреляет ").append(has).append(", значок ").append(label)
-                    .append("; жезл циклопа не стрелок ").append(staff).append("; Восстановление Таумкрафта ").append(rep2 == null ? "нет мода" : "есть");
+                rep.append("Golden Fury + Infinity ").append(furyInf).append(" (ammo - nuggets ").append(nuggets).append("); cannon: Unbreaking via anvil ").append(vanillaUnb)
+                    .append(", Infinity by us ").append(cannonInf).append("; bow - via anvil ").append(bowVanilla).append("; fires without ammo ").append(has).append(", icon ").append(label)
+                    .append("; Cyclops rod is not a ranged weapon ").append(staff).append("; Thaumcraft Repair ").append(rep2 == null ? "no mod" : "present");
             } finally {
                 reset(tp);
             }
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Оружие обычного мира", "Ледяное оружие: обморожение, на третий удар моб вмерзает в лёд", () -> {
+        t("Overworld weapons", "Ice weapon: frostbite, on the third hit the mob freezes into ice", () -> {
             WorldServer w = ow;
             double bx = sx + 360.5, by = 200, bz = sz + 0.5;
             loadAround(w, (int) bx, (int) bz, 2);
@@ -15606,11 +15606,11 @@ public class SelfTest {
                 hold(tp, new ItemStack(IceikaItems.glacierSword));
                 MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(z, DamageSource.causePlayerDamage(tp), 6));
                 net.minecraft.potion.PotionEffect s1 = z.getActivePotionEffect(net.minecraft.potion.Potion.moveSlowdown);
-                if (s1 == null || s1.getAmplifier() != 0) bad.append("1-й удар: замедление ").append(s1 == null ? "нет" : "уровня " + (s1.getAmplifier() + 1)).append("; ");
+                if (s1 == null || s1.getAmplifier() != 0) bad.append("1st hit: slowness ").append(s1 == null ? "none" : "level " + (s1.getAmplifier() + 1)).append("; ");
                 // an ordinary sword does not freeze
                 hold(tp, new ItemStack(Items.diamond_sword));
                 MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(plain, DamageSource.causePlayerDamage(tp), 6));
-                if (plain.getActivePotionEffect(net.minecraft.potion.Potion.moveSlowdown) != null) bad.append("алмазный меч замедлил; ");
+                if (plain.getActivePotionEffect(net.minecraft.potion.Potion.moveSlowdown) != null) bad.append("diamond sword slowed; ");
                 // stages by time (the whole run is one tick, we set the time ourselves)
                 long t0 = w.getTotalWorldTime();
                 int st2 = com.divinerpgextended.perk.FrostBite.hit(z, t0 + 10);
@@ -15621,9 +15621,9 @@ public class SelfTest {
                 // a frozen mob does not hit: its hit on a player is cancelled
                 net.minecraftforge.event.entity.living.LivingAttackEvent atk = new net.minecraftforge.event.entity.living.LivingAttackEvent(tp, DamageSource.causeMobDamage(z), 4);
                 MinecraftForge.EVENT_BUS.post(atk);
-                if (st2 != 2 || s2 == null || s2.getAmplifier() != 2) bad.append("2-й удар: ступень ").append(st2).append(", замедление ").append(s2 == null ? "нет" : "уровня " + (s2.getAmplifier() + 1)).append("; ");
-                if (st3 != 3 || !frozen || speed > 1e-6) bad.append("3-й удар: ступень ").append(st3).append(", вморожен ").append(frozen).append(", скорость ").append(f((float) speed)).append("; ");
-                if (!atk.isCanceled()) bad.append("вмороженный зомби ударил; ");
+                if (st2 != 2 || s2 == null || s2.getAmplifier() != 2) bad.append("2nd hit: tier ").append(st2).append(", slowness ").append(s2 == null ? "none" : "level " + (s2.getAmplifier() + 1)).append("; ");
+                if (st3 != 3 || !frozen || speed > 1e-6) bad.append("3rd hit: tier ").append(st3).append(", frozen in ").append(frozen).append(", speed ").append(f((float) speed)).append("; ");
+                if (!atk.isCanceled()) bad.append("frozen zombie hit; ");
                 // thawed - speed returned; does not freeze again at once (only strong slowness), after immunity - it freezes
                 long thaw = t0 + 20 + com.divinerpgextended.perk.FrostBite.FREEZE;
                 com.divinerpgextended.perk.FrostBite.tick(z, thaw);
@@ -15631,32 +15631,32 @@ public class SelfTest {
                 int i1 = com.divinerpgextended.perk.FrostBite.hit(z, thaw + 10), i2 = com.divinerpgextended.perk.FrostBite.hit(z, thaw + 20), i3 = com.divinerpgextended.perk.FrostBite.hit(z, thaw + 30);
                 long after = thaw + com.divinerpgextended.perk.FrostBite.IMMUNE + 10;
                 int a1 = com.divinerpgextended.perk.FrostBite.hit(z, after), a2 = com.divinerpgextended.perk.FrostBite.hit(z, after + 10), a3 = com.divinerpgextended.perk.FrostBite.hit(z, after + 20);
-                if (back < 0.1) bad.append("после оттаивания скорость ").append(f((float) back)).append("; ");
-                if (i3 == 3) bad.append("вмёрз снова сразу после оттаивания (").append(i1).append(i2).append(i3).append("); ");
-                if (a3 != 3) bad.append("после иммунитета не вмёрз (").append(a1).append(a2).append(a3).append("); ");
+                if (back < 0.1) bad.append("speed after thawing ").append(f((float) back)).append("; ");
+                if (i3 == 3) bad.append("froze again right after thawing (").append(i1).append(i2).append(i3).append("); ");
+                if (a3 != 3) bad.append("did not freeze after immunity (").append(a1).append(a2).append(a3).append("); ");
                 // hits that are too frequent do not accumulate; a boss is only slowed
                 net.minecraft.entity.monster.EntityZombie fast = new net.minecraft.entity.monster.EntityZombie(w);
                 int f1 = com.divinerpgextended.perk.FrostBite.hit(fast, t0), f2 = com.divinerpgextended.perk.FrostBite.hit(fast, t0 + 2), f3 = com.divinerpgextended.perk.FrostBite.hit(fast, t0 + 4);
-                if (f3 == 3 || f2 != 1) bad.append("скорострельное: ступени ").append(f1).append(f2).append(f3).append("; ");
+                if (f3 == 3 || f2 != 1) bad.append("rapid-fire: tiers ").append(f1).append(f2).append(f3).append("; ");
                 net.minecraft.entity.boss.EntityWither boss = new net.minecraft.entity.boss.EntityWither(w);
                 int b3 = 0;
                 for (int k = 0; k < 5; k++) b3 = com.divinerpgextended.perk.FrostBite.hit(boss, t0 + 10L * k);
-                if (b3 == 3) bad.append("босс вмёрз; ");
+                if (b3 == 3) bad.append("boss froze in; ");
                 boolean tip = !net.minecraft.util.StatCollector.translateToLocal("dre.tooltip.frost").equals("dre.tooltip.frost")
                     && com.divinerpgextended.perk.FrostBite.iceWeapon(IceikaItems.frozenMaul) && com.divinerpgextended.perk.FrostBite.iceWeapon(IceikaItems.icicleBow)
                     && !com.divinerpgextended.perk.FrostBite.iceWeapon(Items.diamond_sword);
-                if (!tip) bad.append("подсказка или список ледяного оружия; ");
+                if (!tip) bad.append("tooltip or ice weapon list; ");
             } finally {
                 z.setDead();
                 plain.setDead();
                 reset(tp);
             }
             check(bad.length() == 0, bad.toString());
-            return "ледяной меч: 1-й удар - замедление I, 2-й - III, 3-й - зомби вмёрз (скорость 0, его удар отменён) на "
-                + com.divinerpgextended.perk.FrostBite.FREEZE / 20F + " с; оттаял - скорость вернулась, " + com.divinerpgextended.perk.FrostBite.IMMUNE / 20
-                + " с снова не вмерзает; частые попадания не копятся; босса только замедляет; алмазный меч не морозит";
+            return "ice sword: 1st hit - slowness I, 2nd - III, 3rd - the zombie froze in (speed 0, its hit cancelled) for "
+                + com.divinerpgextended.perk.FrostBite.FREEZE / 20F + " s; thawed - speed returned, " + com.divinerpgextended.perk.FrostBite.IMMUNE / 20
+                + " s it does not freeze in again; frequent hits do not stack; a boss is only slowed; a diamond sword does not freeze";
         });
-        t("Оружие обычного мира", "Пушка, Золотая ярость, мечи, луки, сюрикен, ураган", () -> {
+        t("Overworld weapons", "Cannon, Golden Fury, swords, bows, shuriken, hurricane", () -> {
             WorldServer w = ow;
             double bx = sx + 340.5, by = 200, bz = sz + 0.5;
             loadAround(w, (int) bx, (int) bz, 3);
@@ -15681,7 +15681,7 @@ public class SelfTest {
                 tp.setPosition(bx, by, bz);
                 boolean cannon = near(top, 1F) && near(deep, 1.6F) && near(mid, 1.3F) && near(nether, 1F);
                 ok &= cannon;
-                rep.append("пушка: y64 x").append(f(top)).append(", y34 x").append(f(mid)).append(", y5 x").append(f(deep)).append(", Ад x").append(f(nether));
+                rep.append("cannon: y64 x").append(f(top)).append(", y34 x").append(f(mid)).append(", y5 x").append(f(deep)).append(", Nether x").append(f(nether));
                 // Golden Fury: projectile tag and loot
                 hold(tp, new ItemStack(VanillaItemsWeapons.goldenFury));
                 net.divinerpg.entities.vanilla.projectile.EntityShooterBullet b = new net.divinerpg.entities.vanilla.projectile.EntityShooterBullet(w, tp, 30F, Items.gold_nugget);
@@ -15703,7 +15703,7 @@ public class SelfTest {
                 }
                 boolean fury = tagged && Math.abs(nug / (float) n - 0.25F) < 0.03F && Math.abs(coin / (float) n - 0.10F) < 0.02F;
                 ok &= fury;
-                rep.append("; ярость: метка ").append(tagged).append(", самородки ").append(f(nug * 100F / n)).append("%, монеты ").append(f(coin * 100F / n)).append("%");
+                rep.append("; fury: mark ").append(tagged).append(", nuggets ").append(f(nug * 100F / n)).append("% / coins ").append(f(coin * 100F / n)).append("%");
                 // Stone-blood sword: 8%, below a third - 20%
                 hold(tp, new ItemStack(VanillaItemsWeapons.bloodgemSword));
                 tp.setHealth(10);
@@ -15712,7 +15712,7 @@ public class SelfTest {
                 float hit2 = hurtBy(z, DamageSource.causePlayerDamage(tp), 10F), healed2 = tp.getHealth() - 5;
                 boolean vamp = Math.abs(healed - hit * 0.08F) < 0.05F && Math.abs(healed2 - hit2 * 0.20F) < 0.05F && healed > 0;
                 ok &= vamp;
-                rep.append("; кровавый меч: +").append(f(healed)).append(" с ").append(f(hit)).append(", ниже трети +").append(f(healed2)).append(" с ").append(f(hit2));
+                rep.append("; blood sword: +").append(f(healed)).append(" for hit ").append(f(hit)).append(", below a third +").append(f(healed2)).append(" for hit ").append(f(hit2));
                 // Poison Saber: the hit target does not heal, after the time - it heals
                 hold(tp, new ItemStack(VanillaItemsWeapons.poisonSaber));
                 hurtBy(z, DamageSource.causePlayerDamage(tp), 5F);
@@ -15724,9 +15724,9 @@ public class SelfTest {
                 float after = z.getHealth();
                 boolean saber = near(blocked, 50) && near(after, 60);
                 ok &= saber;
-                rep.append("; сабля: лечение под ядом ").append(f(blocked - 50)).append(", после ").append(f(after - 50));
+                rep.append("; saber: healing under poison ").append(f(blocked - 50)).append(", after ").append(f(after - 50));
                 z.setHealth(z.getMaxHealth());
-                // Hunter's Bow: stronger from afar; Shadow Bow: stronger from a run-up; compared with the same arrow without a tag
+                // Hunter Bow: stronger from afar; Shadow Bow: stronger from a run-up; compared with the same arrow without a tag
                 EntityArrow plain = new EntityArrow(w, tp, 1F);
                 plain.getEntityData().setString(com.divinerpgextended.perk.EarlyWeapons.TAG, "none");
                 z.setPosition(bx + 30, by, bz);
@@ -15739,7 +15739,7 @@ public class SelfTest {
                     && Math.abs(far / base - com.divinerpgextended.perk.EarlyWeapons.snipeMult(dist)) < 0.02F && near(com.divinerpgextended.perk.EarlyWeapons.snipeMult(10), 1F)
                     && near(com.divinerpgextended.perk.EarlyWeapons.snipeMult(40), 1.5F);
                 ok &= hunter;
-                rep.append("; охотничий на 30 блоков x").append(f(far / base));
+                rep.append("; hunting at 30 blocks x").append(f(far / base));
                 tp.getEntityData().setInteger(com.divinerpgextended.perk.EarlyWeapons.RUN, 0);
                 tp.setSprinting(true);
                 com.divinerpgextended.perk.EarlyWeapons ew = new com.divinerpgextended.perk.EarlyWeapons();
@@ -15753,7 +15753,7 @@ public class SelfTest {
                 float ranHit = hurtBy(z, DamageSource.causeArrowDamage(run, tp), 10F);
                 boolean shadow = near(half, 1.25F) && Math.abs(ranHit / base - 1.5F) < 0.02F && tp.getEntityData().getInteger(com.divinerpgextended.perk.EarlyWeapons.RUN) == 0;
                 ok &= shadow;
-                rep.append("; теневой: полсекунды бега x").append(f(half)).append(", полный разбег x").append(f(ranHit / base));
+                rep.append("; shadow: half a second of running x").append(f(half)).append(", full run-up x").append(f(ranHit / base));
                 // shuriken: a chain +15% per hit up to +60%, a break over 2 s - start over
                 long t0 = w.getTotalWorldTime() + 1000;
                 tp.getEntityData().removeTag(com.divinerpgextended.perk.EarlyWeapons.SERIES_AT);
@@ -15762,7 +15762,7 @@ public class SelfTest {
                 s[6] = com.divinerpgextended.perk.EarlyWeapons.series(tp, t0 + 5 * 20 + 41);
                 boolean series = near(s[0], 1F) && near(s[1], 1.15F) && near(s[4], 1.6F) && near(s[5], 1.6F) && near(s[6], 1F);
                 ok &= series;
-                rep.append("; сюрикен ").append(f(s[0])).append("/").append(f(s[1])).append("/").append(f(s[2])).append("/").append(f(s[3])).append("/").append(f(s[4])).append("/").append(f(s[5])).append(", после перерыва ").append(f(s[6]));
+                rep.append("; shuriken ").append(f(s[0])).append("/").append(f(s[1])).append("/").append(f(s[2])).append("/").append(f(s[3])).append("/").append(f(s[4])).append("/").append(f(s[5])).append(", after a break ").append(f(s[6]));
                 // Sneaky Hurricane: it landed - a cloud; the cloud poisons mobs (not zombies: undead do not succumb to poison), not cows
                 cr.setLocationAndAngles(bx + 3, by, bz, 0, 0);
                 w.spawnEntityInWorld(cr);
@@ -15778,7 +15778,7 @@ public class SelfTest {
                 int poisoned = com.divinerpgextended.perk.EarlyWeapons.testCloud(w, bx + 3, by, bz);
                 boolean vile = cloud && poisoned == 1 && cr.isPotionActive(Potion.poison) && !cow.isPotionActive(Potion.poison);
                 ok &= vile;
-                rep.append("; ураган: облако на месте падения ").append(cloud).append(", отравлено ").append(poisoned).append(" (крипер ").append(cr.isPotionActive(Potion.poison)).append(", корова ").append(cow.isPotionActive(Potion.poison)).append(")");
+                rep.append("; hurricane: cloud at the landing spot ").append(cloud).append(", poisoned ").append(poisoned).append(" (creeper ").append(cr.isPotionActive(Potion.poison)).append(", cow ").append(cow.isPotionActive(Potion.poison)).append(")");
             } finally {
                 z.setDead();
                 cow.setDead();
@@ -15791,7 +15791,7 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Оружие обычного мира", "Лечащие мечи в привате без PvP", () -> {
+        t("Overworld weapons", "Healing swords in a claim without PvP", () -> {
             WorldServer w = ow;
             double hx = sx + 380.5, hy = 200, hz = sz + 0.5;
             loadAround(w, (int) hx, (int) hz, 2);
@@ -15843,8 +15843,8 @@ public class SelfTest {
                 a.attackTargetEntityWithCurrentItem(z);
                 float mob = z.getMaxHealth() - z.getHealth();
                 ok = ironHit == 0 && near(healed, 2F) && again == 0 && wear == 1 && near(pet, 3F) && mob > 0;
-                rep.append("приват без PvP: железный меч ранил на ").append(f(ironHit)).append("; Палавенс вылечил игрока на ").append(f(healed)).append(", сразу снова ")
-                    .append(f(again)).append(", износ ").append(wear).append("; Массивенс - своего волка на ").append(f(pet)).append("; зомби ранен на ").append(f(mob));
+                rep.append("claim without PvP: iron sword hurt for ").append(f(ironHit)).append("; Palavence healed the player for ").append(f(healed)).append(", immediately again ")
+                    .append(f(again)).append(", wear ").append(wear).append("; Massivence - own wolf for ").append(f(pet)).append("; zombie hurt for ").append(f(mob));
             } finally {
                 MinecraftForge.EVENT_BUS.unregister(pr);
                 wolf.setDead();
@@ -15858,7 +15858,7 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Оружие обычного мира", "Серенады смерти и наполнения", () -> {
+        t("Overworld weapons", "Serenades of Death and Infusion", () -> {
             WorldServer w = ow;
             TestPlayer dp = player(0, "TestSerenades", sx + 0.5, sy + 1, sz + 0.5);
             StringBuilder rep = new StringBuilder();
@@ -15904,16 +15904,16 @@ public class SelfTest {
                 boolean clarity = com.divinerpgextended.magic.ArcaneEffects.has(dp, com.divinerpgextended.magic.ArcaneEffect.CLARITY);
                 boolean infusion = near(bar, 60) && clarity;
                 ok = recipe && heal && saved && diedAfter && infusion;
-                rep.append("рецепт ").append(made == null ? "нет" : made.getDisplayName()).append(" (рецептов ").append(recipes).append(", применений ").append(VanillaItemsWeapons.serenadeOfDeath.getMaxDamage())
-                    .append("); ПКМ лечит ").append(heal).append("; спасла от смерти ").append(saved).append(", без неё - смерть ").append(diedAfter).append("; наполнение: аркана 10 -> ")
-                    .append(f(bar)).append(", Ясность ").append(clarity);
+                rep.append("recipe ").append(made == null ? "none" : made.getDisplayName()).append(" (recipes ").append(recipes).append(", uses ").append(VanillaItemsWeapons.serenadeOfDeath.getMaxDamage())
+                    .append("); RMB heals ").append(heal).append("; saved from death ").append(saved).append(", without it - death ").append(diedAfter).append("; infusion: arcana 10 -> ")
+                    .append(f(bar)).append(", Clarity ").append(clarity);
             } finally {
                 reset(dp);
             }
             check(ok, rep.toString());
             return rep.toString();
         });
-        t("Оружие обычного мира", "Молнии оружия не жгут добычу и не поджигают", () -> {
+        t("Overworld weapons", "Weapon lightning does not burn loot or set fires", () -> {
             WorldServer w = ow;
             int lx = sx + 420, lz = sz, ly = 200;
             loadAround(w, lx, lz, 2);
@@ -15953,9 +15953,9 @@ public class SelfTest {
                 for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.effect.EntityLightningBolt.class, lp.boundingBox.expand(8, 8, 8))) ((net.minecraft.entity.Entity) o).setDead();
                 clearFire(w, (int) lp.posX, (int) lp.posY, (int) lp.posZ);
                 ok = targets && safeFire == 0 && vanillaFire > 0 && ours > 0 && plainBolts == 0;
-                rep.append("бьёт: зомби ").append(hit[0]).append(", вещь ").append(hit[1]).append(", опыт ").append(hit[2]).append(", игрока ").append(hit[3]).append(", корову ").append(hit[4])
-                    .append(" (обычная бьёт вещь ").append(vanillaHitsItem).append("); огонь: своя ").append(safeFire).append(", обычная ").append(vanillaFire)
-                    .append("; Меч бури: своих молний ").append(ours).append(", обычных ").append(plainBolts);
+                rep.append("hits: zombie ").append(hit[0]).append(", item ").append(hit[1]).append(", experience ").append(hit[2]).append(", player ").append(hit[3]).append(", cow ").append(hit[4])
+                    .append(" (normal one hits item ").append(vanillaHitsItem).append("); fire: own ").append(safeFire).append(", normal ").append(vanillaFire)
+                    .append("; Storm Sword: own lightning ").append(ours).append(", normal ").append(plainBolts);
             } finally {
                 w.difficultySetting = was;
                 clearFire(w, lx, ly, lz);
@@ -15972,7 +15972,7 @@ public class SelfTest {
 
     /** Icons chosen from the concepts of 12.11.2026: mob materials, boss loot, Wanderer's Clock by level - own pictures in the jar. */
     private void dropIconTests() {
-        t("Предметы", "Значки: материалы мобов, лут боссов, Часы Странника по уровням", () -> {
+        t("Items", "Icons: mob materials, boss loot, Wanderer's Clock by levels", () -> {
             List<String> need = new ArrayList<String>();
             for (com.divinerpgextended.world.twilight.TwilightMaterial m : com.divinerpgextended.world.twilight.TwilightMaterial.values()) need.add("twilight_mat_" + m.key());
             for (com.divinerpgextended.world.CadillionWorld w : com.divinerpgextended.world.CadillionWorld.values()) {
@@ -15984,8 +15984,8 @@ public class SelfTest {
             for (String n : new String[] { "deep_shell", "frozenHeart", "throneShard", "watcherEye", "dreamItem_lunar_shard" }) need.add(n);
             List<String> missing = new ArrayList<String>();
             for (String n : need) if (SelfTest.class.getResource("/assets/divinerpgextended/textures/items/" + n + ".png") == null) missing.add(n);
-            check(missing.isEmpty(), "нет картинок: " + missing);
-            return need.size() + " значков на месте: 15 материалов мобов, сердца стражей и шестерни времени по мирам, 6 трофеев Мортума, Панцирь глубин, ледяное сердце, осколок трона, око Смотрителя, лунный осколок, часы I-V";
+            check(missing.isEmpty(), "no images: " + missing);
+            return need.size() + " icons in place: 15 mob materials, guardian hearts and time gears per world, 6 Mortum trophies, Shell of the Deep, Frozen Heart, Frozen Throne Shard, Eye of the Watcher, Lunar Shard, clock I-V";
         });
     }
 
@@ -16003,7 +16003,7 @@ public class SelfTest {
 
     private void fishingReport() {
         Random r = new Random(42);
-        fishing.append("Рыбалка: 20000 подсечек на удочку в зоне OCEAN, без приманки / с приманкой\n");
+        fishing.append("Fishing: 20000 hooks per rod in the OCEAN zone, without bait / with bait\n");
         for (Rod rod : Rod.values()) {
             for (boolean baited : new boolean[] { false, true }) {
                 int crates = 0, fish = 0, other = 0, relics = 0;
@@ -16015,8 +16015,8 @@ public class SelfTest {
                     else other++;
                     if (baited && FishingLoot.relic(r, Zone.OCEAN, rod.power) != null) relics++;
                 }
-                fishing.append(String.format("  %-9s %s: рыба %5.1f%%, ящики %5.2f%%, прочее %5.1f%%%s%n", rod.name(), baited ? "с приманкой" : "без      ",
-                    fish / 200.0, crates / 200.0, other / 200.0, baited ? String.format(", реликвий %d", relics) : ""));
+                fishing.append(String.format("  %-9s %s: fish %5.1f%%, crates %5.2f%%, other %5.1f%%%s%n", rod.name(), baited ? "with bait" : "without  ",
+                    fish / 200.0, crates / 200.0, other / 200.0, baited ? String.format(", relics %d", relics) : ""));
             }
         }
     }
@@ -16027,12 +16027,12 @@ public class SelfTest {
             dir.mkdirs();
             int ok = 0, bad = 0, err = 0;
             for (String[] r : results) {
-                if ("работает".equals(r[2])) ok++;
-                else if ("баг".equals(r[2])) bad++;
+                if ("works".equals(r[2])) ok++;
+                else if ("bug".equals(r[2])) bad++;
                 else err++;
             }
             PrintWriter txt = new PrintWriter(new OutputStreamWriter(new FileOutputStream(new File(dir, "dre-selftest.txt")), StandardCharsets.UTF_8));
-            txt.println("Самопроверка DivineRPG Extended: работает " + ok + ", баг " + bad + ", сбой теста " + err);
+            txt.println("DivineRPG Extended selftest: works " + ok + ", bug " + bad + ", test crash " + err);
             for (String[] r : results) txt.println("[" + r[2] + "] " + r[0] + " / " + r[1] + ": " + r[3]);
             txt.println();
             txt.print(fishing);
@@ -16040,7 +16040,7 @@ public class SelfTest {
             PrintWriter csv = new PrintWriter(new OutputStreamWriter(new FileOutputStream(new File(dir, "dre-selftest.csv")), StandardCharsets.UTF_8));
             for (String[] r : results) csv.println(r[0] + ";" + r[1] + ";" + r[2] + ";" + r[3].replace(';', ','));
             csv.close();
-            System.out.println("[dre-selftest] работает " + ok + ", баг " + bad + ", сбой теста " + err);
+            System.out.println("[dre-selftest] works " + ok + ", bug " + bad + ", test crash " + err);
         } catch (Exception e) {
             e.printStackTrace();
         }

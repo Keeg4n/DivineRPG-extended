@@ -64,7 +64,7 @@ for t in range(1, 6):
 
 for name, fn in OUT.items():
     Image.fromarray(K.icon(fn), 'RGBA').save(os.path.join(TEX, name + '.png'))
-print('значков', len(OUT))
+print('icons', len(OUT))
 
 if len(sys.argv) > 1:
     names = list(OUT)

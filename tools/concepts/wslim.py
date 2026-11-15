@@ -31,7 +31,7 @@ def slim(key, tier, title):
                 b.k = 2.0
             return bs
         KEYS.append(key)
-        concept(key, tier, 'С', title)(made)
+        concept(key, tier, 'S', title)(made)
         return fn
     return reg
 
@@ -128,7 +128,7 @@ def leaf(bone, start, L, wd, rx=0.0, ry=0.0, rz=0.0, color=t.CG):
 
 # ---- tiers
 
-@slim('r1s', 1, 'Освящённая: серебряная кираса с золотым клином и алым камнем, открытый золотой шлем с крылышками, тонкий алый плащ')
+@slim('r1s', 1, 'Hallowed: a silver cuirass with a gold wedge and a scarlet stone, an open gold helmet with wings, a thin scarlet cloak')
 def r1s():
     gold = P(t.HG, trim(0.3, t.HGD), rect(('up',), -1, 99, -1, 99, t.HGL))
     band = P(t.HG, trim(0.3, t.HGD), rect(SIDES, -1, 99, 2.0, 3.0, t.HS))
@@ -145,7 +145,7 @@ def r1s():
     return bs
 
 
-@slim('r2s', 2, 'Эдем: лепестки на груди и плечах, золотой венец с огненным камнем, нимб')
+@slim('r2s', 2, 'Eden: petals on the chest and shoulders, a gold crown with a fire stone, a halo')
 def r2s():
     gold, red = P(GOLD, trim(0.3, '#9a6a20')), P(ED, trim(0.3, '#7a1a08'))
     base = P('#8a6420', trim(0.3, '#5a3e12'))
@@ -164,7 +164,7 @@ def r2s():
     return bs
 
 
-@slim('r3s', 3, 'Дикий лес: латы из синего дерева, открытый шлем, тонкие рога-ветви')
+@slim('r3s', 3, 'Wildwood: plate armor of blue wood, an open helmet, thin branch antlers')
 def r3s():
     wood = P(WWB, streaks(WWD, 1.0, 0.5), trim(0.35, WWD))
     bark = P(BARK, streaks(WWD))
@@ -178,7 +178,7 @@ def r3s():
     return bs
 
 
-@slim('r4s', 4, 'Апалачия: гранёная малиновая кираса с сиреневым камнем, открытый шлем с веером кристаллов, кристаллы на плечах')
+@slim('r4s', 4, 'Apalachia: a faceted crimson cuirass with a lilac stone, an open helmet with a fan of crystals, crystals on the shoulders')
 def r4s():
     pl = P(t.OM, facets('#ffffff', 0.22), trim(0.3, t.OD))
     lav = P(t.OL, facets('#ffffff', 0.2), trim(0.3, t.OPU))
@@ -194,7 +194,7 @@ def r4s():
     return bs
 
 
-@slim('r5s', 5, 'Небесный терн: серые латы, белый капюшон, белый плащ с голубой каймой и застёжкой')
+@slim('r5s', 5, 'Skythern: gray plate armor, a white hood, a white cloak with a light blue trim and a clasp')
 def r5s():
     plate = P(SKY, trim(0.3, SKYD))
     suit = P('#8a8e98', trim(0.3, '#5e626c'))
@@ -205,7 +205,7 @@ def r5s():
     return bs
 
 
-@slim('r6s', 6, 'Мортум: тень в капюшоне с красными глазами, тёмная кираса с красной каймой, рваный плащ, цепь на поясе')
+@slim('r6s', 6, 'Mortum: a hooded shadow with red eyes, a dark cuirass with a red trim, a tattered cloak, a chain on the belt')
 def r6s():
     lea = P(MO, trim(0.3, MOD))
     suit = P('#222226', trim(0.3, MOD))
@@ -220,7 +220,7 @@ def r6s():
     return bs
 
 
-@slim('r7s', 7, 'Галит: листовые латы, серые вставки, листья на плечах и за спиной, открытый шлем с листьями и тонкими рогами')
+@slim('r7s', 7, 'Halite: leaf plate armor, gray inlays, leaves on the shoulders and back, an open helmet with leaves and thin horns')
 def r7s():
     lf = P(t.CG, trim(0.3, t.CGO), mottle(t.CGB, 1.0, 0.86), rect(('up',), -1, 99, -1, 99, t.CGL))
     suit = P(t.CGD, trim(0.3, t.CGO))

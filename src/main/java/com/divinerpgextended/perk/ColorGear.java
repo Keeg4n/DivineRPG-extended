@@ -177,7 +177,7 @@ public class ColorGear {
         return false;
     }
 
-    /** Bedrock mace wave: mobs around the target (not players) take a share of the hit; no knockback - and we suppress the vanilla one from the hit. */
+    /** Bedrock Maul wave: mobs around the target (not players) take a share of the hit; no knockback - and we suppress the vanilla one from the hit. */
     private static void wave(EntityPlayer p, EntityLivingBase center, float dmg) {
         @SuppressWarnings("unchecked")
         List<EntityLivingBase> l = center.worldObj.getEntitiesWithinAABB(EntityLivingBase.class, center.boundingBox.expand(WAVE_R, 1.5, WAVE_R));

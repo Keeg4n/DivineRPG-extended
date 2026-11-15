@@ -14,8 +14,8 @@ IMG = os.path.join(OUT, 'img')
 os.makedirs(IMG, exist_ok=True)
 TEX = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../src/main/resources/assets/divinerpgextended/textures/items')
 e = html.escape
-LET = 'АБВ'
-COLOR = {'Эдем': '#e8c828', 'Дикий лес': '#5cb0f4', 'Апалачия': '#c868ec', 'Небесный терн': '#dadee4', 'Мортум': '#c08050'}
+LET = 'ABC'
+COLOR = {'Eden': '#e8c828', 'Wildwood': '#5cb0f4', 'Apalachia': '#c868ec', 'Skythern': '#dadee4', 'Mortum': '#c08050'}
 
 
 def save(img16, name):
@@ -58,16 +58,16 @@ html, body { margin: 0; background: #131116; color: #ece5da; font-family: "Golos
 
 
 def foot():
-    return '<div class="foot"><span>DivineRPG Extended - дроп мобов сумеречных миров</span><span>Страница @@PAGE@@ из @@ALL@@</span></div>'
+    return '<div class="foot"><span>DivineRPG Extended - twilight dimension mob drops</span><span>Page @@PAGE@@ of @@ALL@@</span></div>'
 
 
 def row(n):
     key, name, mob, world, use, vs = M.DROPS[n]
-    cols = '<div class="v now"><div class="vt"><b>-</b>Сейчас в игре</div><div class="pics"><img class="big" src="img/m%d_now.png" alt=""><img class="sm" src="img/m%d_now_s.png" alt=""></div></div>' % (n, n)
+    cols = '<div class="v now"><div class="vt"><b>-</b>Currently in game</div><div class="pics"><img class="big" src="img/m%d_now.png" alt=""><img class="sm" src="img/m%d_now_s.png" alt=""></div></div>' % (n, n)
     for j, (label, _) in enumerate(vs):
         cols += ('<div class="v"><div class="vt"><b>%s</b>%s</div><div class="pics"><img class="big" src="img/m%d_%d.png" alt=""><img class="sm" src="img/m%d_%d_s.png" alt=""></div></div>'
                  % (LET[j], e(label), n, j, n, j))
-    return ('<div class="row"><div class="rt"><b>Мат %d</b><i>%s</i><em>Падает: %s<br>Нужен: %s</em></div><div class="cols">%s</div></div>'
+    return ('<div class="row"><div class="rt"><b>Mat %d</b><i>%s</i><em>Drops from: %s<br>Needed for: %s</em></div><div class="cols">%s</div></div>'
             % (n + 1, e(name), e(mob), e(use), cols))
 
 
@@ -79,20 +79,20 @@ by_world = {}
 for n, d in enumerate(M.DROPS):
     by_world.setdefault(d[3], []).append(n)
 
-lede = ('<p class="lede">Материалы, которые аддон добавил в дроп обычных мобов сумеречных миров: по три с каждого мира, рога кадиллионов идут в <b>Зов кадиллиона</b>, '
-        'все - в <b>закалку брони и лука</b> своего мира. Падают с убитого игроком моба в 35% случаев (+10% за уровень Добычи). Сейчас у них временные значки (первая клетка в каждой строке). На каждый материал три варианта: '
-        'крупно и в размере ячейки инвентаря (маленький квадрат на сером фоне). <b>Ответ - номер и буква</b>, например "Мат 2 Б"; можно смешивать идеи '
-        '("форма из А, цвет из В") или оставить нынешний значок.</p>')
+lede = ('<p class="lede">Materials the addon added to the drops of ordinary mobs of the twilight dimensions: three from each world, cadillion horns go into the <b>Cadillion Call</b>,'
+        'all of them into the <b>armor and bow tempering</b> of their own world. They drop from a mob killed by a player in 35% of cases (+10% per Looting level). For now they have temporary icons (the first cell in each row). Each material has three variants:'
+        'large and at inventory slot size (the small square on a gray background). <b>The answer is a number and a letter</b>, for example "Mat 2 B"; ideas can be mixed'
+        '("shape from A, color from C") or the current icon can be kept.</p>')
 pages = [
-    ('Дроп мобов: значки на выбор', lede + world_block('Эдем', by_world['Эдем'])),
-    ('Дроп мобов: значки на выбор', world_block('Дикий лес', by_world['Дикий лес']) + world_block('Апалачия', by_world['Апалачия'])),
-    ('Дроп мобов: значки на выбор', world_block('Небесный терн', by_world['Небесный терн']) + world_block('Мортум', by_world['Мортум'])),
+    ('Mob drops: icons to choose from', lede + world_block('Eden', by_world['Eden'])),
+    ('Mob drops: icons to choose from', world_block('Wildwood', by_world['Wildwood']) + world_block('Apalachia', by_world['Apalachia'])),
+    ('Mob drops: icons to choose from', world_block('Skythern', by_world['Skythern']) + world_block('Mortum', by_world['Mortum'])),
 ]
-doc = ('<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Дроп мобов - концепты</title>'
+doc = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Mob drops - concepts</title>'
        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600&display=block"><style>%s</style></head><body>' % CSS)
 for i, (title, body) in enumerate(pages, 1):
-    doc += ('<section class="page"><div class="head"><h2>%s</h2><span>15 материалов, по 3 варианта</span></div>%s%s</section>' % (e(title), body, foot())).replace(
+    doc += ('<section class="page"><div class="head"><h2>%s</h2><span>15 materials, 3 variants each</span></div>%s%s</section>' % (e(title), body, foot())).replace(
         '@@PAGE@@', str(i)).replace('@@ALL@@', str(len(pages)))
 doc += '</body></html>'
 open(os.path.join(OUT, 'concepts.html'), 'w', encoding='utf-8').write(doc)
-print('страниц', len(pages))
+print('pages', len(pages))

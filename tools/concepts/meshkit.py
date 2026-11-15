@@ -254,7 +254,7 @@ class Model:
         for q in self.quads():
             groups.setdefault((q[0], q[1]), []).append(q)
         with open(mesh, 'w', encoding='utf-8', newline='\n') as fh:
-            fh.write('# %s: атлас %dx%d, коробок %d, граней %d\n' % (self.name, self.W, self.H, len(self.boxes), len(self.faces)))
+            fh.write('# %s: atlas %dx%d, boxes %d, faces %d\n' % (self.name, self.W, self.H, len(self.boxes), len(self.faces)))
             for (piece, bone), qs in groups.items():
                 fh.write('p %s %s\n' % (piece, bone))
                 for _, _, v, uv, n in qs:

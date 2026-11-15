@@ -13,9 +13,9 @@ def loot(key, name, src, *vs):
     LOOT.append((key, name, src, vs))
 
 
-WORLDS = [('Эдем', EDEN), ('Дикий лес', WILD), ('Апалачия', APAL), ('Небесный терн', SKYT)]
-SPARKS = [('Демон сумерек', PUR), ('Вечный лучник', GOLD), ('Денсос и Рейвор', SILV), ('Пожиратель душ', TEAL), ('Вамашерон', BONE), ('Карот', ARC), ('Драмикс', LAP), ('Парасекта', LIME), ('Древняя сущность', SAND),
-          ('Древний драмкрикс', GRN), ('Король Палящих', ORG), ('Айрако', MAG)]
+WORLDS = [('Eden', EDEN), ('Wildwood', WILD), ('Apalachia', APAL), ('Skythern', SKYT)]
+SPARKS = [('Twilight Demon', PUR), ('Eternal Archer', GOLD), ('Densos and Reyvor', SILV), ('Soul Fiend', TEAL), ('Vamacheron', BONE), ('Karot', ARC), ('Dramix', LAP), ('Parasecta', LIME), ('Ancient Entity', SAND),
+          ('Ancient Dramcryx', GRN), ('King of Scorchers', ORG), ('Ayeraco', MAG)]
 
 
 def per(fn, table):
@@ -48,8 +48,8 @@ def heart_frame(c, r):
     c.d(SILV[3], 1, 1, 14, 1, 1, 14, 14, 14)
 
 
-loot('guardian_heart', 'Сердце стража', 'стражи миров, по одному на мир',
-     ('Живое, с сосудами', per(heart_vessels, WORLDS)), ('Огранённый камень', per(heart_gem, WORLDS)), ('В железной оправе', per(heart_frame, WORLDS)))
+loot('guardian_heart', 'Guardian Heart', 'world guardians, one per world',
+     ('Living, with vessels', per(heart_vessels, WORLDS)), ('Cut gem', per(heart_gem, WORLDS)), ('In an iron setting', per(heart_frame, WORLDS)))
 
 
 # ------------------------------------------------------------------ time gears
@@ -75,8 +75,8 @@ def gear_broken(c, r):
     c.f(POLY((12, 1), (15, 2), (14, 5), (11, 4)), r)
 
 
-loot('time_gear', 'Шестерня времени', 'стражи миров, по одной на мир',
-     ('С циферблатом', per(gear_hands, WORLDS)), ('Пара шестерён', per(gear_double, WORLDS)), ('Расколотая, с камнем', per(gear_broken, WORLDS)))
+loot('time_gear', 'Time Gear', 'world guardians, one per world',
+     ('With a dial', per(gear_hands, WORLDS)), ('Pair of gears', per(gear_double, WORLDS)), ('Cracked, with a gem', per(gear_broken, WORLDS)))
 
 
 # ------------------------------------------------------------------ soul fragments
@@ -99,61 +99,61 @@ def spark_orb(c, r):
     c.d(WHITE[4], 9, 4, 8, 5)
 
 
-loot('spirit_spark', 'Частичка души', '12 боссов, у каждого свой цвет',
-     ('Огонёк', per(spark_wisp, SPARKS)), ('Звезда', per(spark_star, SPARKS)), ('Падающая искра', per(spark_orb, SPARKS)))
+loot('spirit_spark', 'Soul Spark', '12 bosses, each with its own color',
+     ('Wisp', per(spark_wisp, SPARKS)), ('Star', per(spark_star, SPARKS)), ('Falling spark', per(spark_orb, SPARKS)))
 
 # ------------------------------------------------------------------ Mortum trophies
-loot('trophy_demon', 'Сердце сумерек', 'Демон сумерек',
-     ('Чёрное сердце в пламени', lambda c: (c.f(POLY((3, 8), (2, 2), (5, 5), (8, 0), (11, 5), (14, 2), (13, 8)), MAG), c.f(HEART(8, 9, 5.4), OBS), c.d(MAG[4], 6, 8, 7, 10))),
-     ('Сумеречная звезда', lambda c: (c.f(POLY((8, 0), (10, 6), (16, 8), (10, 10), (8, 16), (6, 10), (0, 8), (6, 6)), PUR), c.f(DIAMOND(8, 8, 2.6), MAG), c.d(WHITE[4], 8, 7))),
-     ('Рогатое сердце', lambda c: (c.f(POLY((3, 5), (1, 0), (6, 3)), BONE), c.f(POLY((12, 5), (14, 0), (9, 3)), BONE), c.f(HEART(8, 9, 6), PUR), c.l(8, 6, 8, 13, PUR[0]), c.d(PUR[4], 4, 7))))
-loot('trophy_archer', 'Око лучника', 'Вечный лучник',
-     ('Глаз в прицеле', lambda c: (c.f(RING(8, 8, 7.6, 1.2), GOLD), c.f(ELL(8, 8, 5.4, 3.6), ORG), c.f(DISC(8, 8, 2), K), c.d(GOLD[4], 8, 0, 8, 15, 0, 8, 15, 8), c.d(WHITE[4], 6, 6))),
-     ('Глаз на наконечнике', lambda c: (c.f(POLY((8, 0), (14, 12), (8, 10), (2, 12)), GOLD), c.f(RECT(7, 11, 8, 15), BRN), c.f(DISC(8, 6.5, 2.4), BONE), c.d(RED[2], 8, 6, 7, 6), c.d(K, 8, 7))),
-     ('Лук-глаз', lambda c: (c.f(PATH((3, 1), (0, 8), (3, 14), w=2), WOOD), c.l(3, 1, 3, 14, BONE[3]), c.f(PATH((12, 1), (15, 8), (12, 14), w=2), WOOD), c.l(12, 1, 12, 14, BONE[3]), c.f(DISC(8, 8, 3), ORG), c.f(DISC(8, 8, 1.2), K))))
-loot('trophy_twins', 'Знак двух лун', 'Денсос и Рейвор',
-     ('Две половины круга', lambda c: (c.f(DISC(8, 8, 7.4), BONE), c.f(DISC(8, 8, 7.4) & RECT(8, 0, 15, 15), OBS), c.f(DISC(4.5, 8, 2.2), OBS), c.f(DISC(11.5, 8, 2.2), BONE))),
-     ('Серпы спина к спине', lambda c: (c.f(DISC(5, 8, 5.2) - DISC(2.4, 8, 4.4), BONE), c.f(DISC(11, 8, 5.2) - DISC(13.6, 8, 4.4), PUR), c.d(WHITE[4], 7, 4), c.d(PUR[4], 8, 4))),
-     ('Две луны в затмении', lambda c: (c.f(DISC(6, 7, 5.4), SILV), c.f(DISC(10.5, 9.5, 4.6), OBS), c.f(RING(10.5, 9.5, 4.6, 1), MAG), c.d(WHITE[4], 3, 4, 4, 3))))
-loot('trophy_fiend', 'Пленённая душа', 'Пожиратель душ',
-     ('Душа в склянке', lambda c: (c.f(RECT(5, 0, 10, 2), WOOD), c.f(RECT(3, 3, 12, 15), ICE[:3]), c.f(POLY((8, 5), (11, 9), (10, 13), (5, 13), (4, 9)), TEAL), c.d(K, 6, 9, 9, 9), c.d(WHITE[4], 4, 5, 4, 6))),
-     ('Призрак в клетке', lambda c: (c.f(ELL(8, 8, 4, 5), TEAL), c.d(K, 6, 7, 9, 7), [c.l(x, 2, x, 14, IRON[3]) for x in (2, 5, 10, 13)], c.f(RECT(1, 1, 14, 2), IRON), c.f(RECT(1, 14, 14, 15), IRON))),
-     ('Череп с душой', lambda c: (c.f(POLY((8, 0), (12, 4), (11, 7), (5, 7), (4, 4)), TEAL), c.f(RECT(3, 6, 12, 12), BONE), c.f(RECT(5, 13, 10, 15), BONE), c.c(RECT(5, 8, 6, 9), TEAL[3]), c.c(RECT(9, 8, 10, 9), TEAL[3]), c.d(K, 7, 11, 8, 11, 6, 14, 8, 14))))
-loot('trophy_vamacheron', 'Бивень Вамашерона', 'Вамашерон',
-     ('Изогнутый бивень', lambda c: (c.f(POLY((1, 15), (5, 15), (5, 8), (9, 5), (14, 4), (15, 1), (9, 1), (3, 5)), BONE), c.d(BONE[4], 4, 5, 8, 2), c.f(RECT(0, 13, 5, 15), MORT))),
-     ('С золотым кольцом', lambda c: (c.f(POLY((2, 15), (6, 15), (7, 9), (11, 5), (15, 0), (9, 2), (4, 7)), BONE), c.f(POLY((4.5, 8), (8, 9.5), (7, 11.5), (3, 10)), GOLD), c.d(GOLD[4], 5, 9))),
-     ('Пара бивней', lambda c: (c.f(POLY((1, 14), (4, 15), (6, 9), (5, 3), (3, 1), (3, 7)), BONE), c.f(POLY((14, 14), (11, 15), (9, 9), (10, 3), (12, 1), (12, 7)), BONE), c.f(RECT(4, 11, 11, 14), MORT), c.d(GOLD[3], 7, 12, 8, 12))))
-loot('trophy_karot', 'Зеркальное ядро', 'Карот',
-     ('Зеркальный шар', lambda c: (c.f(DISC(8, 8, 7), SILV), c.f(ELL(6, 6, 3.4, 2.4), WHITE), c.c(RECT(4, 10, 11, 11), IRON[2]), c.d(WHITE[4], 5, 5))),
-     ('Гранёное ядро', lambda c: (c.f(DIAMOND(8, 8, 7.8), SILV), c.l(8, 1, 8, 14, IRON[2]), c.l(1, 8, 14, 8, IRON[2]), c.d(WHITE[4], 6, 5, 5, 6), c.d(ARC[3], 10, 10, 11, 9))),
-     ('Ядро в осколках', lambda c: (c.f(DISC(8, 8, 4.4), ARC), c.d(WHITE[4], 7, 6), c.f(POLY((0, 2), (4, 1), (3, 5)), SILV), c.f(POLY((15, 3), (12, 0), (11, 4)), SILV), c.f(POLY((1, 14), (5, 12), (4, 15)), SILV), c.f(POLY((15, 13), (11, 11), (12, 15)), SILV))))
+loot('trophy_demon', 'Twilight Heart', 'Twilight Demon',
+     ('Black heart in flames', lambda c: (c.f(POLY((3, 8), (2, 2), (5, 5), (8, 0), (11, 5), (14, 2), (13, 8)), MAG), c.f(HEART(8, 9, 5.4), OBS), c.d(MAG[4], 6, 8, 7, 10))),
+     ('Twilight star', lambda c: (c.f(POLY((8, 0), (10, 6), (16, 8), (10, 10), (8, 16), (6, 10), (0, 8), (6, 6)), PUR), c.f(DIAMOND(8, 8, 2.6), MAG), c.d(WHITE[4], 8, 7))),
+     ('Horned heart', lambda c: (c.f(POLY((3, 5), (1, 0), (6, 3)), BONE), c.f(POLY((12, 5), (14, 0), (9, 3)), BONE), c.f(HEART(8, 9, 6), PUR), c.l(8, 6, 8, 13, PUR[0]), c.d(PUR[4], 4, 7))))
+loot('trophy_archer', 'Archer\'s Eye', 'Eternal Archer',
+     ('Eye in a crosshair', lambda c: (c.f(RING(8, 8, 7.6, 1.2), GOLD), c.f(ELL(8, 8, 5.4, 3.6), ORG), c.f(DISC(8, 8, 2), K), c.d(GOLD[4], 8, 0, 8, 15, 0, 8, 15, 8), c.d(WHITE[4], 6, 6))),
+     ('Eye on an arrowhead', lambda c: (c.f(POLY((8, 0), (14, 12), (8, 10), (2, 12)), GOLD), c.f(RECT(7, 11, 8, 15), BRN), c.f(DISC(8, 6.5, 2.4), BONE), c.d(RED[2], 8, 6, 7, 6), c.d(K, 8, 7))),
+     ('Eye bow', lambda c: (c.f(PATH((3, 1), (0, 8), (3, 14), w=2), WOOD), c.l(3, 1, 3, 14, BONE[3]), c.f(PATH((12, 1), (15, 8), (12, 14), w=2), WOOD), c.l(12, 1, 12, 14, BONE[3]), c.f(DISC(8, 8, 3), ORG), c.f(DISC(8, 8, 1.2), K))))
+loot('trophy_twins', 'Sign of Two Moons', 'Densos and Reyvor',
+     ('Two halves of a circle', lambda c: (c.f(DISC(8, 8, 7.4), BONE), c.f(DISC(8, 8, 7.4) & RECT(8, 0, 15, 15), OBS), c.f(DISC(4.5, 8, 2.2), OBS), c.f(DISC(11.5, 8, 2.2), BONE))),
+     ('Sickles back to back', lambda c: (c.f(DISC(5, 8, 5.2) - DISC(2.4, 8, 4.4), BONE), c.f(DISC(11, 8, 5.2) - DISC(13.6, 8, 4.4), PUR), c.d(WHITE[4], 7, 4), c.d(PUR[4], 8, 4))),
+     ('Two moons in eclipse', lambda c: (c.f(DISC(6, 7, 5.4), SILV), c.f(DISC(10.5, 9.5, 4.6), OBS), c.f(RING(10.5, 9.5, 4.6, 1), MAG), c.d(WHITE[4], 3, 4, 4, 3))))
+loot('trophy_fiend', 'Captured Soul', 'Soul Fiend',
+     ('Soul in a vial', lambda c: (c.f(RECT(5, 0, 10, 2), WOOD), c.f(RECT(3, 3, 12, 15), ICE[:3]), c.f(POLY((8, 5), (11, 9), (10, 13), (5, 13), (4, 9)), TEAL), c.d(K, 6, 9, 9, 9), c.d(WHITE[4], 4, 5, 4, 6))),
+     ('Ghost in a cage', lambda c: (c.f(ELL(8, 8, 4, 5), TEAL), c.d(K, 6, 7, 9, 7), [c.l(x, 2, x, 14, IRON[3]) for x in (2, 5, 10, 13)], c.f(RECT(1, 1, 14, 2), IRON), c.f(RECT(1, 14, 14, 15), IRON))),
+     ('Skull with a soul', lambda c: (c.f(POLY((8, 0), (12, 4), (11, 7), (5, 7), (4, 4)), TEAL), c.f(RECT(3, 6, 12, 12), BONE), c.f(RECT(5, 13, 10, 15), BONE), c.c(RECT(5, 8, 6, 9), TEAL[3]), c.c(RECT(9, 8, 10, 9), TEAL[3]), c.d(K, 7, 11, 8, 11, 6, 14, 8, 14))))
+loot('trophy_vamacheron', 'Vamacheron Tusk', 'Vamacheron',
+     ('Curved tusk', lambda c: (c.f(POLY((1, 15), (5, 15), (5, 8), (9, 5), (14, 4), (15, 1), (9, 1), (3, 5)), BONE), c.d(BONE[4], 4, 5, 8, 2), c.f(RECT(0, 13, 5, 15), MORT))),
+     ('With a gold ring', lambda c: (c.f(POLY((2, 15), (6, 15), (7, 9), (11, 5), (15, 0), (9, 2), (4, 7)), BONE), c.f(POLY((4.5, 8), (8, 9.5), (7, 11.5), (3, 10)), GOLD), c.d(GOLD[4], 5, 9))),
+     ('Pair of tusks', lambda c: (c.f(POLY((1, 14), (4, 15), (6, 9), (5, 3), (3, 1), (3, 7)), BONE), c.f(POLY((14, 14), (11, 15), (9, 9), (10, 3), (12, 1), (12, 7)), BONE), c.f(RECT(4, 11, 11, 14), MORT), c.d(GOLD[3], 7, 12, 8, 12))))
+loot('trophy_karot', 'Mirror Core', 'Karot',
+     ('Mirror ball', lambda c: (c.f(DISC(8, 8, 7), SILV), c.f(ELL(6, 6, 3.4, 2.4), WHITE), c.c(RECT(4, 10, 11, 11), IRON[2]), c.d(WHITE[4], 5, 5))),
+     ('Faceted core', lambda c: (c.f(DIAMOND(8, 8, 7.8), SILV), c.l(8, 1, 8, 14, IRON[2]), c.l(1, 8, 14, 8, IRON[2]), c.d(WHITE[4], 6, 5, 5, 6), c.d(ARC[3], 10, 10, 11, 9))),
+     ('Core in shards', lambda c: (c.f(DISC(8, 8, 4.4), ARC), c.d(WHITE[4], 7, 6), c.f(POLY((0, 2), (4, 1), (3, 5)), SILV), c.f(POLY((15, 3), (12, 0), (11, 4)), SILV), c.f(POLY((1, 14), (5, 12), (4, 15)), SILV), c.f(POLY((15, 13), (11, 11), (12, 15)), SILV))))
 
 # ------------------------------------------------------------------ the rest
-loot('deep_shell_loot', 'Панцирь глубин', 'Карцинус',
-     ('Наутилус', lambda c: (c.f(DISC(8.5, 8, 7), SAND), c.c(PATH((8, 2), (13, 5), (13, 10), (9, 12), (5, 10), (6, 6), (9, 6), (10, 8)), SAND[0]), c.f(POLY((1, 9), (4, 6), (5, 13), (2, 13)), ORG), c.d(SAND[4], 5, 3))),
-     ('Шипастый панцирь', lambda c: ([c.f(POLY((x, 6), (x + 3, 6), (x + 1.5, 0)), TEAL) for x in (1.5, 6.5, 11.5)], c.f(ELL(8, 10, 7.6, 5), LAP), c.l(8, 6, 8, 14, LAP[0]), c.l(4, 8, 4, 13, LAP[0]), c.l(12, 8, 12, 13, LAP[0]), c.d(CYAN[4], 3, 7, 4, 6))),
-     ('Створка с волной', lambda c: (c.f(POLY((8, 15), (1, 8), (2, 3), (5, 1), (11, 1), (14, 3), (15, 8)), ORG), [c.l(8, 14, x, 2, ORG[0]) for x in (3, 6, 10, 13)], c.f(PATH((3, 9), (6, 7), (9, 9), (13, 7)), CYAN), c.d(ORG[4], 5, 2))))
-loot('frozen_heart', 'Ледяное сердце', 'Король-лич',
-     ('Сердце-льдина', lambda c: (c.f(HEART(8, 8, 7.2), ICE), c.l(5, 3, 8, 9, WHITE[3]), c.l(8, 9, 12, 6, WHITE[3]), c.l(8, 9, 8, 14, ICE[0]), c.d(WHITE[4], 3, 4, 4, 3))),
-     ('Ледяные шипы', lambda c: (c.f(POLY((3, 6), (2, 0), (6, 3)), ICE), c.f(POLY((8, 4), (8, 0), (10, 3)), ICE), c.f(POLY((12, 6), (14, 0), (10, 3)), ICE), c.f(HEART(8, 9, 6.2), SKY), c.d(WHITE[4], 4, 7, 5, 6))),
-     ('С алым ядром', lambda c: (c.f(HEART(8, 8, 7.2), ICE), c.f(HEART(8, 7.5, 3.4), RED), c.d(RED[4], 6, 6), c.d(WHITE[4], 3, 4))))
-loot('throne_shard', 'Осколок Ледяного Трона', 'Король-лич',
-     ('Спинка трона', lambda c: (c.f(POLY((3, 15), (3, 5), (5, 1), (7, 5), (8, 0), (10, 5), (12, 2), (13, 8), (10, 11), (11, 15)), ICE), c.l(6, 6, 6, 14, ICE[1]), c.d(WHITE[4], 4, 6, 5, 3))),
-     ('Острый скол', lambda c: (c.f(POLY((1, 15), (3, 8), (9, 1), (15, 0), (13, 7), (7, 13)), ICE), c.l(2, 14, 13, 2, WHITE[4]), c.l(4, 14, 14, 4, ICE[1]))),
-     ('Скол с руной', lambda c: (c.f(POLY((2, 13), (1, 5), (7, 1), (14, 3), (15, 10), (9, 15)), LAP), c.f(PATH((5, 5), (8, 11), (11, 5)), CYAN), c.l(8, 4, 8, 7, WHITE[4]), c.d(LAP[4], 3, 5, 6, 3))))
-loot('watcher_eye_loot', 'Око Смотрителя', 'Смотритель',
-     ('Глазное яблоко', lambda c: (c.f(DISC(8, 8, 7.2), BONE), c.f(DISC(9, 8, 3.8), ORG), c.f(DISC(9.5, 8, 1.8), K), c.d(WHITE[4], 8, 6), c.l(1, 6, 4, 7, RED[2]), c.l(2, 11, 5, 10, RED[2]), c.l(4, 2, 6, 4, RED[2]))),
-     ('Веко в пламени', lambda c: (c.f(POLY((0, 8), (2, 3), (5, 5), (8, 0), (11, 5), (14, 3), (15, 8), (12, 13), (4, 13)), HELL), c.f(ELL(8, 9, 5, 3), BONE), c.f(DISC(8, 9, 2), K), c.d(RED[3], 7, 8))),
-     ('Глаз в призме', lambda c: (c.f(POLY((8, 0), (15, 14), (1, 14)), OBS), c.f(ELL(8, 9.5, 3.8, 2.6), BONE), c.f(DISC(8, 9.5, 1.5), RED), c.d(K, 8, 9), c.l(8, 1, 14, 13, GOLD[3]), c.l(8, 1, 2, 13, GOLD[3]))))
+loot('deep_shell_loot', 'Shell of the Deep', 'Carcinus',
+     ('Nautilus', lambda c: (c.f(DISC(8.5, 8, 7), SAND), c.c(PATH((8, 2), (13, 5), (13, 10), (9, 12), (5, 10), (6, 6), (9, 6), (10, 8)), SAND[0]), c.f(POLY((1, 9), (4, 6), (5, 13), (2, 13)), ORG), c.d(SAND[4], 5, 3))),
+     ('Spiked shell', lambda c: ([c.f(POLY((x, 6), (x + 3, 6), (x + 1.5, 0)), TEAL) for x in (1.5, 6.5, 11.5)], c.f(ELL(8, 10, 7.6, 5), LAP), c.l(8, 6, 8, 14, LAP[0]), c.l(4, 8, 4, 13, LAP[0]), c.l(12, 8, 12, 13, LAP[0]), c.d(CYAN[4], 3, 7, 4, 6))),
+     ('Valve with a wave', lambda c: (c.f(POLY((8, 15), (1, 8), (2, 3), (5, 1), (11, 1), (14, 3), (15, 8)), ORG), [c.l(8, 14, x, 2, ORG[0]) for x in (3, 6, 10, 13)], c.f(PATH((3, 9), (6, 7), (9, 9), (13, 7)), CYAN), c.d(ORG[4], 5, 2))))
+loot('frozen_heart', 'Frozen Heart', 'Lich King',
+     ('Ice-floe heart', lambda c: (c.f(HEART(8, 8, 7.2), ICE), c.l(5, 3, 8, 9, WHITE[3]), c.l(8, 9, 12, 6, WHITE[3]), c.l(8, 9, 8, 14, ICE[0]), c.d(WHITE[4], 3, 4, 4, 3))),
+     ('Ice spikes', lambda c: (c.f(POLY((3, 6), (2, 0), (6, 3)), ICE), c.f(POLY((8, 4), (8, 0), (10, 3)), ICE), c.f(POLY((12, 6), (14, 0), (10, 3)), ICE), c.f(HEART(8, 9, 6.2), SKY), c.d(WHITE[4], 4, 7, 5, 6))),
+     ('With a scarlet core', lambda c: (c.f(HEART(8, 8, 7.2), ICE), c.f(HEART(8, 7.5, 3.4), RED), c.d(RED[4], 6, 6), c.d(WHITE[4], 3, 4))))
+loot('throne_shard', 'Frozen Throne Shard', 'Lich King',
+     ('Throne back', lambda c: (c.f(POLY((3, 15), (3, 5), (5, 1), (7, 5), (8, 0), (10, 5), (12, 2), (13, 8), (10, 11), (11, 15)), ICE), c.l(6, 6, 6, 14, ICE[1]), c.d(WHITE[4], 4, 6, 5, 3))),
+     ('Sharp chip', lambda c: (c.f(POLY((1, 15), (3, 8), (9, 1), (15, 0), (13, 7), (7, 13)), ICE), c.l(2, 14, 13, 2, WHITE[4]), c.l(4, 14, 14, 4, ICE[1]))),
+     ('Chip with a rune', lambda c: (c.f(POLY((2, 13), (1, 5), (7, 1), (14, 3), (15, 10), (9, 15)), LAP), c.f(PATH((5, 5), (8, 11), (11, 5)), CYAN), c.l(8, 4, 8, 7, WHITE[4]), c.d(LAP[4], 3, 5, 6, 3))))
+loot('watcher_eye_loot', 'Eye of the Watcher', 'The Watcher',
+     ('Eyeball', lambda c: (c.f(DISC(8, 8, 7.2), BONE), c.f(DISC(9, 8, 3.8), ORG), c.f(DISC(9.5, 8, 1.8), K), c.d(WHITE[4], 8, 6), c.l(1, 6, 4, 7, RED[2]), c.l(2, 11, 5, 10, RED[2]), c.l(4, 2, 6, 4, RED[2]))),
+     ('Eyelid in flames', lambda c: (c.f(POLY((0, 8), (2, 3), (5, 5), (8, 0), (11, 5), (14, 3), (15, 8), (12, 13), (4, 13)), HELL), c.f(ELL(8, 9, 5, 3), BONE), c.f(DISC(8, 9, 2), K), c.d(RED[3], 7, 8))),
+     ('Eye in a prism', lambda c: (c.f(POLY((8, 0), (15, 14), (1, 14)), OBS), c.f(ELL(8, 9.5, 3.8, 2.6), BONE), c.f(DISC(8, 9.5, 1.5), RED), c.d(K, 8, 9), c.l(8, 1, 14, 13, GOLD[3]), c.l(8, 1, 2, 13, GOLD[3]))))
 HAL = ['#0e3c2c', '#1c6a4c', '#34a878', '#6adca4', '#c4f8dc']
-loot('halite_shard', 'Осколок халита', 'боссы Мортума',
-     ('Рваный скол', lambda c: (c.f(POLY((1, 12), (4, 5), (8, 7), (11, 2), (15, 6), (13, 12), (8, 14)), HAL), c.l(4, 7, 8, 12, HAL[1]), c.d(HAL[4], 4, 7, 11, 4))),
-     ('Друза', lambda c: (c.f(POLY((2, 14), (3, 6), (6, 3), (7, 14)), HAL), c.f(POLY((6, 14), (8, 1), (11, 5), (11, 14)), HAL), c.f(POLY((10, 14), (12, 7), (15, 9), (14, 14)), HAL), c.f(RECT(1, 13, 14, 15), IRON), c.d(HAL[4], 8, 3, 4, 6))),
-     ('Длинная игла', lambda c: (c.f(POLY((1, 15), (3, 10), (13, 0), (15, 2), (6, 13)), HAL), c.l(3, 12, 13, 2, HAL[4]), c.d(WHITE[4], 12, 1, 3, 13))))
-loot('lunar_shard', 'Лунный осколок', 'Леди Луна',
-     ('Серп-осколок', lambda c: (c.f(DISC(8, 8, 7.2) - DISC(11.5, 6.5, 6.2), ICE), c.d(WHITE[4], 3, 7, 4, 4, 3, 10), c.d(ICE[4], 11, 3, 13, 7, 9, 5))),
-     ('Гранёный серп', lambda c: (c.f(POLY((12, 1), (5, 2), (1, 8), (5, 14), (12, 15), (8, 12), (6, 8), (8, 4)), MAG), c.l(4, 5, 4, 11, MAG[4]), c.d(WHITE[4], 3, 8))),
-     ('Камень со звёздами', lambda c: (c.f(POLY((2, 13), (1, 6), (6, 1), (13, 2), (15, 9), (10, 15)), OBS), [c.d(WHITE[4], x, y) for x, y in ((5, 5), (10, 4), (12, 9), (7, 10), (4, 11))], c.d(ICE[3], 8, 7, 11, 12), c.f(DISC(8, 7, 1), ICE))))
+loot('halite_shard', 'Halite Shard', 'Mortum bosses',
+     ('Ragged chip', lambda c: (c.f(POLY((1, 12), (4, 5), (8, 7), (11, 2), (15, 6), (13, 12), (8, 14)), HAL), c.l(4, 7, 8, 12, HAL[1]), c.d(HAL[4], 4, 7, 11, 4))),
+     ('Geode', lambda c: (c.f(POLY((2, 14), (3, 6), (6, 3), (7, 14)), HAL), c.f(POLY((6, 14), (8, 1), (11, 5), (11, 14)), HAL), c.f(POLY((10, 14), (12, 7), (15, 9), (14, 14)), HAL), c.f(RECT(1, 13, 14, 15), IRON), c.d(HAL[4], 8, 3, 4, 6))),
+     ('Long needle', lambda c: (c.f(POLY((1, 15), (3, 10), (13, 0), (15, 2), (6, 13)), HAL), c.l(3, 12, 13, 2, HAL[4]), c.d(WHITE[4], 12, 1, 3, 13))))
+loot('lunar_shard', 'Lunar Shard', 'Lady Luna',
+     ('Sickle shard', lambda c: (c.f(DISC(8, 8, 7.2) - DISC(11.5, 6.5, 6.2), ICE), c.d(WHITE[4], 3, 7, 4, 4, 3, 10), c.d(ICE[4], 11, 3, 13, 7, 9, 5))),
+     ('Faceted sickle', lambda c: (c.f(POLY((12, 1), (5, 2), (1, 8), (5, 14), (12, 15), (8, 12), (6, 8), (8, 4)), MAG), c.l(4, 5, 4, 11, MAG[4]), c.d(WHITE[4], 3, 8))),
+     ('Stone with stars', lambda c: (c.f(POLY((2, 13), (1, 6), (6, 1), (13, 2), (15, 9), (10, 15)), OBS), [c.d(WHITE[4], x, y) for x, y in ((5, 5), (10, 4), (12, 9), (7, 10), (4, 11))], c.d(ICE[3], 8, 7, 11, 12), c.f(DISC(8, 7, 1), ICE))))
 
 
 # ------------------------------------------------------------------ Wanderer's Clock: one item, 5 levels
@@ -220,7 +220,7 @@ def clock_wheel(t):
     return fn
 
 
-CLOCKS = [('А', 'Карманные часы', 'Один корпус, металл меняется от меди до чёрной стали. По кругу пять гнёзд: на каждом уровне загорается камень следующего мира.', clock_pocket),
-          ('Б', 'Песочные часы', 'Песок цвета текущего мира и его становится больше, рамка растёт: дерево, стойки, серебро, золото с шипами, чёрная сталь.', clock_sand),
-          ('В', 'Круг миров', 'Циферблат из пяти секторов, каждый сектор - мир. Новый уровень зажигает следующий, ещё не открытые остаются тёмной бронзой. По часам сразу видно, сколько пройдено.', clock_wheel)]
-TIER_NAMES = ['I Эдем', 'II Дикий лес', 'III Апалачия', 'IV Небесный терн', 'V Мортум']
+CLOCKS = [('A', 'Pocket Watch', 'One case, the metal changes from copper to black steel. Five sockets around the rim: at each level the gem of the next world lights up.', clock_pocket),
+          ('B', 'Hourglass', 'The sand is the color of the current world and there is more of it, the frame grows: wood, posts, silver, gold with spikes, black steel.', clock_sand),
+          ('C', 'Circle of Worlds', 'A dial of five sectors, each sector is a world. A new level lights up the next one; those not yet unlocked stay dark bronze. The clock shows at a glance how far you have come.', clock_wheel)]
+TIER_NAMES = ['I Eden', 'II Wildwood', 'III Apalachia', 'IV Skythern', 'V Mortum']

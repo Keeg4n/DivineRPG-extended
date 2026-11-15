@@ -37,27 +37,25 @@ def load_lang(text):
             LANG.setdefault(k.strip(), v.strip())
 
 
-load_lang(open(os.path.join(OURS, 'lang/ru_RU.lang'), encoding='utf-8').read())
-load_lang(DV.read('assets/divinerpg/lang/ru_RU.lang').decode('utf-8', 'replace'))
-load_lang(TC.read('assets/thaumcraft/lang/ru_RU.lang').decode('utf-8', 'replace'))  # Thaumcraft ores
-load_lang(TK.read('assets/tinker/lang/ru_RU.lang').decode('utf-8', 'replace'))  # Tinkers ores
-idx = json.load(open(HOME + '/.gradle/caches/minecraft/assets/indexes/1.7.10.json'))
-h = idx['objects']['minecraft/lang/ru_RU.lang']['hash']
-load_lang(open(HOME + '/.gradle/caches/minecraft/assets/objects/%s/%s' % (h[:2], h), encoding='utf-8').read())
+load_lang(open(os.path.join(OURS, 'lang/en_US.lang'), encoding='utf-8').read())
+load_lang(DV.read('assets/divinerpg/lang/en_US.lang').decode('utf-8', 'replace'))
+load_lang(TC.read('assets/thaumcraft/lang/en_US.lang').decode('utf-8', 'replace'))  # Thaumcraft ores
+load_lang(TK.read('assets/tinker/lang/en_US.lang').decode('utf-8', 'replace'))  # Tinkers ores
+load_lang(MC.read('assets/minecraft/lang/en_US.lang').decode('utf-8', 'replace'))  # vanilla English is inside the jar
 
-WORLD_RU = {'EDEN': 'Эдем', 'WILDWOOD': 'Дикий лес', 'APALACHIA': 'Апалачия', 'SKYTHERN': 'Небесный терн', 'MORTUM': 'Мортум'}
+WORLD_RU = {'EDEN': 'Eden', 'WILDWOOD': 'Wildwood', 'APALACHIA': 'Apalachia', 'SKYTHERN': 'Skythern', 'MORTUM': 'Mortum'}
 EFFECTS = re.findall(r'^\s+([A-Z_]+)\(0x([0-9A-Fa-f]{6})', open(os.path.join(REPO, 'src/main/java/com/divinerpgextended/magic/ArcaneEffect.java'), encoding='utf-8').read(), re.M)
 
 
 def name_of(it):
     if it['id'] == 'divinerpgextended:arcanePotion':
         n = LANG.get(it['unloc'] + '.name', it['en'])
-        return 'Зелье: ' + n + (' (сильное)' if it['meta'] & 32 else '')
+        return 'Potion: ' + n + (' (strong)' if it['meta'] & 32 else '')
     if it['id'] == 'minecraft:golden_apple' and it['meta'] == 1:
-        return 'Зачарованное золотое яблоко'
+        return 'Enchanted Golden Apple'
     for k in (it['unloc'] + '.name', it['unloc']):
         if k in LANG:
-            return LANG[k].replace('Вайлдвуда', 'Дикого леса').replace('Вайлдвуд', 'Дикий лес')
+            return LANG[k]
     return it['en']
 
 
@@ -188,7 +186,7 @@ def icon_file(it):
         im = icon_of(it)
         if im is None:
             im = Image.new('RGBA', (16, 16), (200, 0, 200, 255))
-            print('нет значка:', it['id'], it['meta'], it['icon'])
+            print('no icon:', it['id'], it['meta'], it['icon'])
         im.resize((32, 32), Image.NEAREST).save(os.path.join(IMG, k + '.png'))
         ICONS[k] = 'img/%s.png' % k
     return ICONS[k]
@@ -224,7 +222,7 @@ def weighted_rows(t):
     return rows, W
 
 
-TIER_RU = {'common': 'обычное', 'uncommon': 'необычное', 'rare': 'редкое', 'veryRare': 'очень редкое'}
+TIER_RU = {'common': 'common', 'uncommon': 'uncommon', 'rare': 'rare', 'veryRare': 'very rare'}
 
 
 def fish_tier(zone, it):
@@ -233,10 +231,10 @@ def fish_tier(zone, it):
             if x['id'] == it['id'] and x['meta'] == it['meta']:
                 return TIER_RU[tier], str(x['weight'])
     if it['id'].startswith('divinerpgextended:') and 'bait' in it['unloc'].lower():
-        return 'приманка', '-'
+        return 'bait', '-'
     if it.get('block') and zone in ('CAVE', 'HELL'):  # miner's crates: ore in blocks
-        return 'руда', '-'
-    return 'снаряжение/приманка', '-'
+        return 'ore', '-'
+    return 'gear/bait', '-'
 
 
 # ------------------------------------------------------------------ pages
@@ -275,8 +273,8 @@ def section_weighted(t, title=None):
     a, b = t['rolls']
     body = ''.join('<tr><td class="ic"><img src="%s"></td><td>%s</td><td class="n">%s</td><td class="n"><b>%s</b></td><td class="n">%s</td><td class="n"><b>%s</b></td></tr>'
                    % (icon_file(x), e(name_of(x)), q, w, p1, pc) for x, q, w, p1, pc in sorted(rows, key=lambda r: -r[0]['weight']))
-    return ('<h3>%s</h3><p class="note">Сундук тянет %s раз, сумма весов %d. "За раз" - шанс вытянуть предмет одним броском; "в сундуке" - что он есть хотя бы раз.</p>'
-            '<table><tr><th></th><th>Предмет</th><th class="n">Штук</th><th class="n">Вес</th><th class="n">За раз</th><th class="n">В сундуке</th></tr>%s</table>'
+    return ('<h3>%s</h3><p class="note">The chest rolls %s times, total weight %d. "Per roll" is the chance to get an item in a single roll; "in chest" is the chance it appears at least once.</p>'
+            '<table><tr><th></th><th>Item</th><th class="n">Qty</th><th class="n">Weight</th><th class="n">Per roll</th><th class="n">In chest</th></tr>%s</table>'
             % (e(title or t['name']), qty(a, b), W, body))
 
 
@@ -287,18 +285,18 @@ def section_sampled(t, title, note='', zone=None):
         extra = ''
         if zone is not None:
             tier, w = fish_tier(zone, x)
-            cls = {'обычное': 't-common', 'необычное': 't-uncommon', 'редкое': 't-rare', 'очень редкое': 't-veryrare', 'руда': 't-ore'}.get(tier, 't-other')
+            cls = {'common': 't-common', 'uncommon': 't-uncommon', 'rare': 't-rare', 'very rare': 't-veryrare', 'ore': 't-ore'}.get(tier, 't-other')
             extra = '<td><span class="chip %s">%s</span></td><td class="n">%s</td>' % (cls, tier, w)
         body += ('<tr><td class="ic"><img src="%s"></td><td>%s</td><td class="n">%s</td><td class="n">%.1f</td>%s<td class="n"><b>%s</b></td></tr>'
                  % (icon_file(x), e(name_of(x)), qty(x['min'], x['max']), x['avg'], extra, pct(x['chance'])))
-    head = '<tr><th></th><th>Предмет</th><th class="n">Штук</th><th class="n">В среднем</th>%s<th class="n">В сундуке</th></tr>' % (
-        '<th>Группа</th><th class="n">Вес</th>' if zone is not None else '')
+    head = '<tr><th></th><th>Item</th><th class="n">Qty</th><th class="n">Average</th>%s<th class="n">In chest</th></tr>' % (
+        '<th>Group</th><th class="n">Weight</th>' if zone is not None else '')
     return '<h3>%s</h3>%s<table>%s%s</table>' % (e(title), ('<p class="note">%s</p>' % note) if note else '', head, body)
 
 
 def twilight_combined(kind):
     """Ruins or dungeons: weights are the same in all worlds, only the items are world-specific - a row per entry, an icon per world."""
-    ts = [t for t in TABLES if t['group'] == 'Сумеречные миры' and t['name'].startswith(kind)]
+    ts = [t for t in TABLES if t['group'] == 'Twilight dimensions' and t['name'].startswith(kind)]
     base = ts[0]
     rows, W = weighted_rows(base)
     a, b = base['rolls']
@@ -307,70 +305,70 @@ def twilight_combined(kind):
         items = [t['entries'][n] for t in ts]
         same = len(set((i['id'], i['meta']) for i in items)) == 1
         icons = ''.join('<img src="%s" title="%s">' % (icon_file(i), e(WORLD_RU[t['world']])) for i, t in zip(items, ts)) if not same else '<img src="%s">' % icon_file(x)
-        label = name_of(x) if same else re.sub(r'\b(Эдема|Эдем)\b', 'мира', name_of(x))
+        label = name_of(x) if same else re.sub(r'\bEden\b', 'world', name_of(x))
         if not same and x['id'] == 'divinerpgextended:sanctumSeal':
-            label = 'Печать святилища мира (в Мортуме - камень Мортума)'
+            label = 'Sanctum Seal of the world (in Mortum - Mortum stone)'
         if not same and x['id'] == 'divinerpgextended:lairMap':
-            label = 'Карта к логову мира (гнездо; в Мортуме - к Демоническому кругу)'
+            label = 'Map to the world lair (nest; in Mortum - to the Demonic Circle)'
         body += ('<tr><td class="ics">%s</td><td>%s</td><td class="n">%s</td><td class="n"><b>%s</b></td><td class="n">%s</td><td class="n"><b>%s</b></td></tr>'
                  % (icons, e(label), q, w, p1, pc))
-    return ('<table><tr><th style="width:33mm">Эдем, Дикий лес, Апалачия, Терн, Мортум</th><th>Предмет</th><th class="n">Штук</th><th class="n">Вес</th><th class="n">За раз</th><th class="n">В сундуке</th></tr>%s</table>'
+    return ('<table><tr><th style="width:33mm">Eden, Wildwood, Apalachia, Skythern, Mortum</th><th>Item</th><th class="n">Qty</th><th class="n">Weight</th><th class="n">Per roll</th><th class="n">In chest</th></tr>%s</table>'
             % body, W, (a, b))
 
 
 # title
-parts.append('<h1>Добыча сундуков и ящиков DivineRPG Extended</h1>')
-parts.append('<div class="box"><p><b>Что здесь.</b> Все сундуки, которые наполняет аддон, и ящики рыбалки: что в них лежит, сколько штук и с каким шансом. '
-             'Числа сняты с игры автотестом, а не переписаны руками.</p>'
-             '<p><b>Обычные сундуки</b> (логова, Айсика, гробница, руины и подземелья миров) тянут предметы из таблицы по весу несколько раз: '
-             'чем больше вес, тем чаще. Править проще всего вес и "штук".</p>'
-             '<p><b>Сундуки Арканы, реликварии, подарки и ящики рыбалки</b> собирает код (часть вещей кладётся всегда, часть - с шансом); здесь шанс и количество '
-             'посчитаны по 20 000 открытиям.</p>'
-             '<p><b>Как править:</b> напиши, например, "Нора Карцинуса: алмазы вес 2 -> 4, штук 1-2 -> 2-3" или "Ящик пещер: убрать изумруды".</p></div>')
+parts.append('<h1>Chest and crate loot in DivineRPG Extended</h1>')
+parts.append('<div class="box"><p><b>What this is.</b> All chests the addon fills, and fishing crates: what is in them, how many pieces and with what chance. '
+             'The numbers were taken from the game by the selftest, not typed by hand.</p>'
+             '<p><b>Regular chests</b> (lairs, Iceika, tomb, ruins and dungeons of the worlds) roll items from a table by weight several times: '
+             'the higher the weight, the more often. The easiest things to edit are the weight and "qty".</p>'
+             '<p><b>Arcana chests, reliquaries, gifts and fishing crates</b> are built by code (some items are always placed, some with a chance); here the chance and quantity '
+             'are calculated over 20,000 openings.</p>'
+             '<p><b>How to edit:</b> write, for example, "Carcinus Burrow: diamonds weight 2 -> 4, qty 1-2 -> 2-3" or "Caves Crate: remove emeralds".</p></div>')
 
 # lairs and Iceika
-parts.append('<h2>Логова, Айсика и гробница</h2>')
+parts.append('<h2>Lairs, Iceika and tomb</h2>')
 for t in TABLES:
-    if t['group'] == 'Логова и Айсика' and t['kind'] == 'weighted':
+    if t['group'] == 'Lairs and Iceika' and t['kind'] == 'weighted':
         parts.append(section_weighted(t))
-gift = next(t for t in TABLES if t['name'].startswith('Подарки'))
-parts.append(section_sampled(gift, 'Подарки под ёлками Айсики', 'Всегда 2-4 сладости и снежинки; дальше одно из: вещь Санты 30%, снежный шар 20%, "Звук колядок" 10%, ледяные камни 20%, ничего 20%.'))
-parts.append('<h3>Добавлено в ванильные сундуки</h3><p class="note">Подземелья, заброшенные шахты, пирамиды пустыни и джунглей, крепости: к ванильной таблице добавлены две записи (шанс зависит от ванильной таблицы).</p>'
-             '<table><tr><th></th><th>Предмет</th><th class="n">Штук</th><th class="n">Вес</th></tr>'
+gift = next(t for t in TABLES if t['name'].startswith('Gifts'))
+parts.append(section_sampled(gift, 'Gifts under Iceika fir trees', 'Always 2-4 candies and snowflakes; then one of: Santa item 30%, snowball 20%, "Sound of Carols" 10%, ice stones 20%, nothing 20%.'))
+parts.append('<h3>Added to vanilla chests</h3><p class="note">Dungeons, abandoned mineshafts, desert and jungle temples, strongholds: two entries were added to the vanilla table (the chance depends on the vanilla table).</p>'
+             '<table><tr><th></th><th>Item</th><th class="n">Qty</th><th class="n">Weight</th></tr>'
              '<tr><td class="ic"><img src="%s"></td><td>%s</td><td class="n">1-2</td><td class="n"><b>8</b></td></tr>'
              '<tr><td class="ic"><img src="%s"></td><td>%s</td><td class="n">1</td><td class="n"><b>3</b></td></tr></table>'
              % (icon_file({'id': 'divinerpg:weakArcanaPotion', 'meta': 0, 'icon': 'divinerpg:weakArcanaPotion', 'block': False, 'unloc': 'item.weakArcanaPotion', 'en': 'Weak Arcana Potion'}),
-                e(LANG.get('item.weakArcanaPotion.name', 'Слабое зелье арканы')),
+                e(LANG.get('item.weakArcanaPotion.name', 'Weak Arcana Potion')),
                 icon_file({'id': 'divinerpg:strongArcanaPotion', 'meta': 0, 'icon': 'divinerpg:strongArcanaPotion', 'block': False, 'unloc': 'item.strongArcanaPotion', 'en': 'Strong Arcana Potion'}),
-                e(LANG.get('item.strongArcanaPotion.name', 'Сильное зелье арканы'))))
+                e(LANG.get('item.strongArcanaPotion.name', 'Strong Arcana Potion'))))
 
 # twilight worlds
-parts.append('<h2>Сумеречные миры: руины, подземелья, корабли, Мортум</h2>')
-tb, W, (a, b) = twilight_combined('Руины')
-parts.append('<h3>Руины (и сундук терновых кораблей)</h3><p class="note">Руины тянут %s раз (малые руины 3-5, корабль 4-6), сумма весов %d. Веса общие для всех миров, предметы - своего мира. В руинах Апалачии ещё всегда кладётся печать святилища.</p>%s' % (qty(a, b), W, tb))
-tb, W, (a, b) = twilight_combined('Подземелья')
-parts.append('<h3>Подземелья островов (и сундуки Мортума)</h3><p class="note">Тянут %s раз (в Мортуме 4-8), сумма весов %d. Кроме этого в каждом подземелье всегда лежит печать святилища мира (кроме Мортума).</p>%s' % (qty(a, b), W, tb))
+parts.append('<h2>Twilight dimensions: ruins, dungeons, ships, Mortum</h2>')
+tb, W, (a, b) = twilight_combined('Ruins')
+parts.append('<h3>Ruins (and the Skythern ship chest)</h3><p class="note">Ruins roll %s times (small ruins 3-5, ship 4-6), total weight %d. Weights are shared by all worlds, items are specific to each world. Apalachia ruins also always contain a sanctum seal.</p>%s' % (qty(a, b), W, tb))
+tb, W, (a, b) = twilight_combined('Dungeons')
+parts.append('<h3>Island dungeons (and Mortum chests)</h3><p class="note">Roll %s times (4-8 in Mortum), total weight %d. In addition, every dungeon always contains the world sanctum seal (except Mortum).</p>%s' % (qty(a, b), W, tb))
 
 # Arcana and reliquaries
-parts.append('<h2>Сундуки Арканы и реликварии</h2><p class="note">Открываются ключом, добыча собирается кодом при открытии.</p>')
+parts.append('<h2>Arcana chests and reliquaries</h2><p class="note">Opened with a key, the loot is built by code on opening.</p>')
 for t in TABLES:
-    if t['group'] == 'Сундуки Арканы':
+    if t['group'] == 'Arcana Chests':
         parts.append(section_sampled(t, LANG.get('tile.dre.lockedChest.%s.name' % t['name'].lower(), t['name'])))
 for t in TABLES:
-    if t['group'] == 'Реликварии':
-        parts.append(section_sampled(t, LANG.get('tile.dre.lockedChest.%s.name' % t['name'].lower(), t['name']).replace('Вайлдвуда', 'Дикого леса')))
+    if t['group'] == 'Reliquaries':
+        parts.append(section_sampled(t, LANG.get('tile.dre.lockedChest.%s.name' % t['name'].lower(), t['name'])))
 
 # fishing crates
-parts.append('<h2>Ящики рыбалки</h2><p class="note">Ящик даёт 4-7 вещей из необычного (3 из 4) и редкого (1 из 4) улова своей зоны, в 1 ящике из 8 - ещё одну очень редкую, всегда одну обычную рыбу, '
-             'в половине ящиков - 2-4 приманки Арканы; в сумеречных мирах ещё 2% оружие или инструмент мира и 0.5% часть брони. Вес - внутри своей группы улова (общие таблицы улова и ящика). '
-             'Шахтёрские ящики (пещеры по ярусам высоты поплавка и лава) - 5-8 стопок руды блоками своего яруса, в пещерах в 1 из 8 ещё алмаз, изумруд или рупий.</p>')
+parts.append('<h2>Fishing crates</h2><p class="note">A crate gives 4-7 items from the uncommon (3 of 4) and rare (1 of 4) catch of its zone, 1 crate in 8 also contains one very rare item, always one common fish, '
+             'half of the crates contain 2-4 Arcana baits; in the twilight dimensions also a world weapon or tool (2%) and an armor piece (0.5%). Weight is within its own catch group (the catch and crate tables are shared). '
+             'Miner crates (caves by bobber height tier, and lava) give 5-8 stacks of ore as blocks of their tier, in caves 1 crate in 8 also has a diamond, emerald or rupee.</p>')
 for t in TABLES:
-    if t['group'] == 'Рыболовные ящики':
+    if t['group'] == 'Fishing Crates':
         z = t['name']
         if z.startswith('CAVE_'):  # miner's cave crates by tier
             parts.append(section_sampled(t, LANG.get('item.dre.crate.mine_%s.name' % z[5:].lower(), z), zone='CAVE'))
         else:
-            parts.append(section_sampled(t, 'Ящик: ' + LANG.get('dre.zone.%s' % z.lower(), z).replace('Вайлдвуд', 'Дикий лес'), zone=z))
+            parts.append(section_sampled(t, 'Crate: ' + LANG.get('dre.zone.%s' % z.lower(), z), zone=z))
 
 # ------------------------------------------------------------------ proposal: miner's fishing
 def ore(domain, tex, name):
@@ -378,45 +376,45 @@ def ore(domain, tex, name):
 
 
 O = {
-    'coal': ore('minecraft', 'coal_ore', 'Угольная руда'), 'iron': ore('minecraft', 'iron_ore', 'Железная руда'), 'gold': ore('minecraft', 'gold_ore', 'Золотая руда'),
-    'lapis': ore('minecraft', 'lapis_ore', 'Лазуритовая руда'), 'redstone': ore('minecraft', 'redstone_ore', 'Красная руда'), 'diamond': ore('minecraft', 'diamond_ore', 'Алмазная руда'),
-    'emerald': ore('minecraft', 'emerald_ore', 'Изумрудная руда'), 'quartz': ore('minecraft', 'quartz_ore', 'Кварцевая руда'),
-    'realmite': ore('divinerpg', 'realmiteOre', 'Реалмитовая руда'), 'arlemite': ore('divinerpg', 'arlemiteOre', 'Арлемитовая руда'), 'rupee': ore('divinerpg', 'rupeeOre', 'Рупиевая руда'),
-    'netherite': ore('divinerpg', 'netheriteOre', 'Незеритовая руда'), 'bloodgem': ore('divinerpg', 'bloodgemOre', 'Руда кровавого камня'),
-    'amber': ore('thaumcraft', 'amberore', 'Янтарная руда (Таумкрафт)'), 'cinnabar': ore('thaumcraft', 'cinnibar', 'Киноварная руда (Таумкрафт)'),
-    'infused': ore('thaumcraft', 'infusedorestone', 'Камни с аспектами (Таумкрафт, 6 видов)'),
+    'coal': ore('minecraft', 'coal_ore', 'Coal Ore'), 'iron': ore('minecraft', 'iron_ore', 'Iron Ore'), 'gold': ore('minecraft', 'gold_ore', 'Gold Ore'),
+    'lapis': ore('minecraft', 'lapis_ore', 'Lapis Lazuli Ore'), 'redstone': ore('minecraft', 'redstone_ore', 'Redstone Ore'), 'diamond': ore('minecraft', 'diamond_ore', 'Diamond Ore'),
+    'emerald': ore('minecraft', 'emerald_ore', 'Emerald Ore'), 'quartz': ore('minecraft', 'quartz_ore', 'Nether Quartz Ore'),
+    'realmite': ore('divinerpg', 'realmiteOre', 'Realmite Ore'), 'arlemite': ore('divinerpg', 'arlemiteOre', 'Arlemite Ore'), 'rupee': ore('divinerpg', 'rupeeOre', 'Rupee Ore'),
+    'netherite': ore('divinerpg', 'netheriteOre', 'Netherite Ore'), 'bloodgem': ore('divinerpg', 'bloodgemOre', 'Bloodgem Ore'),
+    'amber': ore('thaumcraft', 'amberore', 'Amber Ore (Thaumcraft)'), 'cinnabar': ore('thaumcraft', 'cinnibar', 'Cinnabar Ore (Thaumcraft)'),
+    'infused': ore('thaumcraft', 'infusedorestone', 'Infused Stones (Thaumcraft, 6 types)'),
 }
 LAYERS = [
-    ('Верхние пещеры', 'поплавок на высоте 33-47', [('coal', 10, '2-4'), ('iron', 8, '1-3'), ('amber', 3, '1-2'), ('infused', 3, '1-2'), ('redstone', 2, '1-2')]),
-    ('Средние пещеры', 'высота 17-32', [('iron', 8, '1-3'), ('coal', 5, '2-3'), ('gold', 5, '1-2'), ('lapis', 5, '1-3'), ('redstone', 4, '1-3'), ('realmite', 4, '1-2'), ('cinnabar', 2, '1'), ('infused', 3, '1-2')]),
-    ('Глубины', 'высота 16 и ниже; полный набор - с силой рыбалки 40+, слабее - как средние', [('redstone', 6, '1-3'), ('gold', 5, '1-2'), ('realmite', 6, '1-3'), ('lapis', 3, '1-2'), ('arlemite', 3, '1'),
+    ('Upper caves', 'bobber at height 33-47', [('coal', 10, '2-4'), ('iron', 8, '1-3'), ('amber', 3, '1-2'), ('infused', 3, '1-2'), ('redstone', 2, '1-2')]),
+    ('Middle caves', 'height 17-32', [('iron', 8, '1-3'), ('coal', 5, '2-3'), ('gold', 5, '1-2'), ('lapis', 5, '1-3'), ('redstone', 4, '1-3'), ('realmite', 4, '1-2'), ('cinnabar', 2, '1'), ('infused', 3, '1-2')]),
+    ('Depths', 'height 16 and below; full set - with fishing power 40+, weaker - as middle', [('redstone', 6, '1-3'), ('gold', 5, '1-2'), ('realmite', 6, '1-3'), ('lapis', 3, '1-2'), ('arlemite', 3, '1'),
                                                                                         ('rupee', 3, '1'), ('diamond', 2, '1'), ('emerald', 1, '1')]),
-    ('Лава', 'рыбалка в лаве (огненная приманка или удочка Мортума), ящик "Лава и Незер"', [('quartz', 10, '2-4'), ('netherite', 4, '1-2'), ('bloodgem', 3, '1')]),
+    ('Lava', 'fishing in lava (fire bait or Mortum Fishing Rod), "Lava and Nether" crate', [('quartz', 10, '2-4'), ('netherite', 4, '1-2'), ('bloodgem', 3, '1')]),
 ]
 
 
 def proposal():
-    out = ('<h2>Шахтёрская рыбалка (в игре с 0.99.124, веса - ниже и в таблицах шахтёрских ящиков)</h2>'
-           '<div class="box"><p><b>Было:</b> зона "Пещеры" - любая вода ниже высоты 48 без неба над головой, и от глубины ничего не зависело: '
-           'улов и ящик давали уголь, красную пыль и слитки (железо, золото, рупий, арлемит), редко алмаз и изумруд.</p>'
-           '<p><b>Стало:</b> пещеры делятся на ярусы по высоте поплавка и дают <b>руду блоками</b> (переплавка и удвоение машинами работают как с добытой). '
-           'Ящик пещер - шахтёрский своего яруса: 5-8 стопок руды, в 1 из 8 - ещё одна редкая (алмаз, изумруд, рупий); необычный улов - 1-2 руды яруса. '
-           'Ящик лавы - тоже шахтёрский, с рудой Ада. Руды модов сборки берутся по рудному словарю сами (у RedServer Magic это Таумкрафт; '
-           'медь, олово, серебро и свинец - если они есть в сборке).</p>'
-           '<p><b>Темп:</b> с хорошей снастью поклёвка раз в 10-15 с, ящик примерно каждая 10-я - выходит 4-6 руды в минуту, как неспешная шахта. '
-           'Приманка тратится на каждую поклёвку, так что бесплатной фермы нет.</p></div>')
+    out = ('<h2>Miner fishing (in the game since 0.99.124, weights are below and in the miner crate tables)</h2>'
+           '<div class="box"><p><b>Before:</b> the "Caves" zone was any water below height 48 with no sky overhead, and nothing depended on depth: '
+           'the catch and crate gave coal, redstone dust and ingots (iron, gold, rupee, arlemite), rarely diamond and emerald.</p>'
+           '<p><b>Now:</b> caves are split into tiers by bobber height and give <b>ore as blocks</b> (smelting and machine doubling work as with mined ore). '
+           'A caves crate is a miner crate of its tier: 5-8 stacks of ore, 1 in 8 also has one rare item (diamond, emerald, rupee); an uncommon catch is 1-2 ores of the tier. '
+           'A lava crate is also a miner crate, with Nether ore. Ores from modpack mods are picked up automatically via the ore dictionary (for RedServer Magic this is Thaumcraft; '
+           'copper, tin, silver and lead - if they are in the modpack).</p>'
+           '<p><b>Pace:</b> with good tackle a bite comes every 10-15 s, about every 10th is a crate - that is 4-6 ores a minute, like a leisurely mine. '
+           'Bait is spent on every bite, so there is no free farm.</p></div>')
     for title, where, rows in LAYERS:
         W = sum(w for _, w, _ in rows)
         body = ''.join('<tr><td class="ic"><img src="%s"></td><td>%s</td><td class="n">%s</td><td class="n"><b>%d</b></td><td class="n">%s</td></tr>'
                        % (icon_file(O[k]), e(O[k]['en']), q, w, pct(w / W)) for k, w, q in rows)
-        out += ('<h3>%s</h3><p class="note">%s; сумма весов %d</p><table><tr><th></th><th>Руда</th><th class="n">Штук</th><th class="n">Вес</th><th class="n">За раз</th></tr>%s</table>'
+        out += ('<h3>%s</h3><p class="note">%s; total weight %d</p><table><tr><th></th><th>Ore</th><th class="n">Qty</th><th class="n">Weight</th><th class="n">Per roll</th></tr>%s</table>'
                 % (e(title), e(where), W, body))
     return out
 
 
 parts.append(proposal())
 
-doc = ('<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Добыча сундуков</title>'
+doc = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Chest loot</title>'
        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600&display=block"><style>%s</style></head><body>%s</body></html>' % (CSS, ''.join(parts)))
 open(os.path.join(OUT, 'loot.html'), 'w', encoding='utf-8').write(doc)
-print('значков', len(ICONS))
+print('icons', len(ICONS))

@@ -37,7 +37,7 @@ import io.netty.buffer.ByteBuf;
  * compare against it. A hit inside the window, as in vanilla, goes through as the difference from the previous one.
  * <p>
  * The rules apply only to the player's own click hit: {@link AttackEntityEvent} sets a mark, the first direct damage from
- * that player clears it. The Bedrock mace wave and other hits "on behalf of the player" bypass it, projectiles all the more so.
+ * that player clears it. The Bedrock Maul wave and other hits "on behalf of the player" bypass it, projectiles all the more so.
  * A dummy counts as a mob: its hit goes through the ghost player, and the window lives on the dummy itself.
  * <p>
  * Also here is the crit of the full Terran set ({@link #terranCrit}): a hit from the ground x{@link #TERRAN_CRIT} without jumping. The jump crit

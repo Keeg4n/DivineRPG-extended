@@ -66,7 +66,7 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
 final class VetheaCoverage {
 
     static boolean enabled(String[] only) {
-        for (String o : only) if (o.contains("покрытие")) return true;
+        for (String o : only) if (o.contains("coverage")) return true;
         return false;
     }
 
@@ -116,8 +116,8 @@ final class VetheaCoverage {
             DamageSource s = e.source;
             if (log.length() > 0) log.append(", ");
             log.append(s.damageType).append(' ').append(String.format("%.1f", e.ammount));
-            if (s.getEntity() != null) log.append(" от ").append(s.getEntity().getClass().getSimpleName());
-            if (s.getSourceOfDamage() != null && s.getSourceOfDamage() != s.getEntity()) log.append(" через ").append(s.getSourceOfDamage().getClass().getSimpleName());
+            if (s.getEntity() != null) log.append(" from ").append(s.getEntity().getClass().getSimpleName());
+            if (s.getSourceOfDamage() != null && s.getSourceOfDamage() != s.getEntity()) log.append(" via ").append(s.getSourceOfDamage().getClass().getSimpleName());
             // who dealt it: frames above attackEntityFrom (the damage call itself is in the mob and its ancestors)
             StackTraceElement[] st = new Throwable().getStackTrace();
             int k = 0;
@@ -161,21 +161,21 @@ final class VetheaCoverage {
 
         @Override
         public String toString() {
-            if (error != null) return "сбой: " + error;
+            if (error != null) return "failure: " + error;
             StringBuilder b = new StringBuilder();
-            if (world != Integer.MIN_VALUE) b.append("уносит в мир ").append(world).append(' ');
-            if (blocks > 0) b.append("блоков ").append(blocks).append(' ');
-            if (Math.abs(mob) > 0.01F) b.append(mob < 0 ? "урон " : "лечит моба ").append(String.format("%.1f", Math.abs(mob))).append(mob < 0 && !hurtBy.isEmpty() ? " (" + hurtBy + ")" : "").append(' ');
-            if (moved > 1.5) b.append("сдвиг ").append(String.format("%.1f", moved)).append(' ');
-            if (summons > 0) b.append("существ ").append(summons).append(" (").append(who).append(") ");
-            if (shots > 0) b.append("снарядов ").append(shots).append(' ');
-            if (!effects.isEmpty()) b.append("эффекты ").append(effects).append(' ');
-            if (fly) b.append("полёт ");
-            if (attrs) b.append("атрибуты").append(attrWhy).append(' ');
-            if (died) b.append("игрок погиб ");
-            else if (heal > 0.5F) b.append("лечит игрока ").append(String.format("%.1f", heal)).append(' ');
-            if (!dream.isEmpty()) b.append("сами пришли: ").append(dream).append(' ');
-            if (!Float.isNaN(hurt)) b.append("удар 6 -> ").append(String.format("%.1f", hurt)).append(' ');
+            if (world != Integer.MIN_VALUE) b.append("carries to world ").append(world).append(' ');
+            if (blocks > 0) b.append("blocks ").append(blocks).append(' ');
+            if (Math.abs(mob) > 0.01F) b.append(mob < 0 ? "damage " : "heals mob ").append(String.format("%.1f", Math.abs(mob))).append(mob < 0 && !hurtBy.isEmpty() ? " (" + hurtBy + ")" : "").append(' ');
+            if (moved > 1.5) b.append("shift ").append(String.format("%.1f", moved)).append(' ');
+            if (summons > 0) b.append("creatures ").append(summons).append(" (").append(who).append(") ");
+            if (shots > 0) b.append("projectiles ").append(shots).append(' ');
+            if (!effects.isEmpty()) b.append("effects ").append(effects).append(' ');
+            if (fly) b.append("flight ");
+            if (attrs) b.append("attributes").append(attrWhy).append(' ');
+            if (died) b.append("player died ");
+            else if (heal > 0.5F) b.append("heals player ").append(String.format("%.1f", heal)).append(' ');
+            if (!dream.isEmpty()) b.append("came on their own: ").append(dream).append(' ');
+            if (!Float.isNaN(hurt)) b.append("hit 6 -> ").append(String.format("%.1f", hurt)).append(' ');
             return b.length() == 0 ? "-" : b.toString().trim();
         }
     }
@@ -210,7 +210,7 @@ final class VetheaCoverage {
     }
 
     private void log(String s) {
-        prog.println(String.format("[%6.1f мин] ", (System.currentTimeMillis() - t0) / 60000.0) + s);
+        prog.println(String.format("[%6.1f min] ", (System.currentTimeMillis() - t0) / 60000.0) + s);
         prog.flush();
     }
 
@@ -228,12 +228,12 @@ final class VetheaCoverage {
                 if (!guarded || c == null) continue;
                 if (dt > HANG_DUMP && !c.equals(dumped)) {
                     dumped = c;
-                    StringBuilder b = new StringBuilder("думает ").append(dt / 1000).append(" с: ").append(c);
+                    StringBuilder b = new StringBuilder("thinking ").append(dt / 1000).append(" s: ").append(c);
                     for (StackTraceElement e : main.getStackTrace()) b.append("\n    at ").append(e);
                     log(b.toString());
                 }
                 if (dt > HANG_KILL && guarded) {
-                    log("прерываю: " + c);
+                    log("interrupting: " + c);
                     stopMain();
                     actStart = System.currentTimeMillis(); // the next hit - no sooner than HANG_KILL later
                 }
@@ -362,7 +362,7 @@ final class VetheaCoverage {
     /** The item carried the player to another world (teleport crystal and the like bypassing travelToDimension): return to Vethea as new. */
     private void bringBack() {
         if (p.worldObj == w && p.dimension == w.provider.dimensionId) return;
-        log("игрок унесён в мир " + p.dimension + " (" + current + ") - возвращаю в Ветею");
+        log("player carried to world " + p.dimension + " (" + current + ") - returning to Vethea");
         WorldServer was = (WorldServer) p.worldObj;
         server.getConfigurationManager().playerEntityList.remove(p);
         was.getPlayerManager().removePlayer(p);
@@ -568,7 +568,7 @@ final class VetheaCoverage {
                 if (armor) p.inventory.armorInventory[3 - ((ItemArmor) held.getItem()).armorType] = held;
                 act.run();
             } catch (Throwable t) {
-                fx.error = t instanceof ThreadDeath ? "завис" : t.getClass().getSimpleName() + (t.getMessage() == null ? "" : ": " + t.getMessage());
+                fx.error = t instanceof ThreadDeath ? "hung" : t.getClass().getSimpleName() + (t.getMessage() == null ? "" : ": " + t.getMessage());
                 if (t.getCause() != null) fx.error += " <- " + t.getCause();
             }
             // new entities: projectiles and summons - give them 40 ticks
@@ -591,11 +591,11 @@ final class VetheaCoverage {
                 throw d;
             } catch (Throwable ignored) {}
         } catch (ThreadDeath d) {
-            if (fx.error == null) fx.error = "завис";
+            if (fx.error == null) fx.error = "hung";
         } finally {
             guarded = false;
         }
-        if ("завис".equals(fx.error)) hung++;
+        if ("hung".equals(fx.error)) hung++;
         if (p.worldObj != w) fx.world = p.dimension;
         fx.died = p.deaths > deaths0;
         fx.blocks = diff(false);
@@ -610,8 +610,8 @@ final class VetheaCoverage {
         double dSpeed = p.getEntityAttribute(SharedMonsterAttributes.movementSpeed).getAttributeValue() - speed0, dMax = p.getMaxHealth() - max0,
             dDmg = p.getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue() - dmg0;
         fx.attrs = Math.abs(dSpeed) > 1e-4 || Math.abs(dMax) > 0.01 || (bauble || armor) && Math.abs(dDmg) > 1e-4;
-        if (fx.attrs) fx.attrWhy = (Math.abs(dSpeed) > 1e-4 ? String.format(" скорость %+.3f", dSpeed) : "") + (Math.abs(dMax) > 0.01 ? String.format(" здоровье %+.1f", dMax) : "")
-            + (Math.abs(dDmg) > 1e-4 ? String.format(" урон %+.1f", dDmg) : "");
+        if (fx.attrs) fx.attrWhy = (Math.abs(dSpeed) > 1e-4 ? String.format(" speed %+.3f", dSpeed) : "") + (Math.abs(dMax) > 0.01 ? String.format(" health %+.1f", dMax) : "")
+            + (Math.abs(dDmg) > 1e-4 ? String.format(" damage %+.1f", dDmg) : "");
         fx.hurtBy = HurtLog.log.toString();
         HurtLog.target = null;
         fx.heal = p.getHealth() - hp0;
@@ -766,7 +766,7 @@ final class VetheaCoverage {
         try {
             build();
             p = makePlayer();
-            emit("id\tмета\tимя\tвиды\tфаза\tудар\tПКМ в воздух\tПКМ по блоку\tкопка камня\tрубка дерева\tскорость копки x\tношение\tитог\tмс\n");
+            emit("id\tmeta\tname\tkinds\tphase\thit\tRMB in air\tRMB on block\tmining stone\tchopping wood\tmining speed x\twearing\tresult\tms\n");
             List<Object[]> todo = new ArrayList<Object[]>();
             for (Object o : Item.itemRegistry) {
                 Item i = (Item) o;
@@ -784,10 +784,10 @@ final class VetheaCoverage {
                         todo.add(new Object[] { id, s, wp, tl, use, bb, ar });
                     }
                 } catch (Throwable t) {
-                    log("не разобрал " + id + ": " + t);
+                    log("could not parse " + id + ": " + t);
                 }
             }
-            log("вещей к проверке: " + todo.size());
+            log("items to check: " + todo.size());
             int n = 0;
             for (Object[] it : todo) {
                 n++;
@@ -795,7 +795,7 @@ final class VetheaCoverage {
                 ItemStack s = (ItemStack) it[1];
                 if (System.currentTimeMillis() - t0 > budget) {
                     cut = true;
-                    log("предел времени: проверено " + (n - 1) + " из " + todo.size());
+                    log("time limit: checked " + (n - 1) + " of " + todo.size());
                     break;
                 }
                 current = id + "#" + s.getItemDamage();
@@ -804,16 +804,16 @@ final class VetheaCoverage {
                     check(id, s, (Boolean) it[2], (Boolean) it[3], (Boolean) it[4], (Boolean) it[5], (Boolean) it[6], n, todo.size());
                 } catch (Throwable t) { // ThreadDeath between actions or a failure of the check itself
                     crashes++;
-                    emit(id + "\t" + s.getItemDamage() + "\t\t\t\tсбой проверки: " + t + "\n");
-                    log("сбой проверки " + current + ": " + t);
+                    emit(id + "\t" + s.getItemDamage() + "\t\t\t\tcheck failure: " + t + "\n");
+                    log("check failure " + current + ": " + t);
                 }
                 long dt = System.currentTimeMillis() - a;
                 items++;
                 byMod.merge(id.substring(0, id.indexOf(':')), 1, Integer::sum);
-                if (dt > 2000) slow.add(current + " " + dt + " мс");
-                if (n % 50 == 0 || dt > 2000) log(n + "/" + todo.size() + " " + current + " " + dt + " мс; утечек " + leaks.size());
+                if (dt > 2000) slow.add(current + " " + dt + " ms");
+                if (n % 50 == 0 || dt > 2000) log(n + "/" + todo.size() + " " + current + " " + dt + " ms; leaks " + leaks.size());
             }
-            current = "площадные в привате";
+            current = "area tools in a claim";
             boundEverywhere();
         } finally {
             current = null;
@@ -825,20 +825,20 @@ final class VetheaCoverage {
                 if (mob != null) mob.setDead();
                 build(); // the room - as it was
             } finally {
-                log("готово; долгие вещи (>2 с): " + slow);
+                log("done; slow items (>2 s): " + slow);
                 out.close();
                 prog.close();
             }
         }
-        return "вещей " + items + " " + byMod + (cut ? " (не все: предел времени)" : "") + "; работает только после прохождения " + okCount + ", без заметного действия "
-            + neutral + ", утечек " + leaks.size() + ", сбоев " + crashes + ", зависаний " + hung + "; поправки: площадная ломка "
-            + com.divinerpgextended.asm.AreaBreakTransformer.patched.size() + " классов, Baubles " + com.divinerpgextended.asm.BaublesTransformer.patched + " из 2, тик брони "
-            + (com.divinerpgextended.asm.ArmorTickTransformer.patched ? "да" : "НЕТ") + " (logs/dre-vethea-cover.tsv)";
+        return "items " + items + " " + byMod + (cut ? " (not all: time limit)" : "") + "; works only after progression " + okCount + ", no noticeable effect "
+            + neutral + ", leaks " + leaks.size() + ", failures " + crashes + ", hangs " + hung + "; fixes: area breaking "
+            + com.divinerpgextended.asm.AreaBreakTransformer.patched.size() + " classes, Baubles " + com.divinerpgextended.asm.BaublesTransformer.patched + " of 2, armor tick "
+            + (com.divinerpgextended.asm.ArmorTickTransformer.patched ? "yes" : "NO") + " (logs/dre-vethea-cover.tsv)";
     }
 
     private void check(String id, ItemStack s, boolean wp, boolean tl, boolean use, boolean bb, boolean ar, int n, int total) {
         long a = System.currentTimeMillis();
-        String kinds = (wp ? "оружие " : "") + (tl ? "инструмент " : "") + (use ? "ПКМ " : "") + (bb ? "баубл " : "") + (ar ? "броня " : "");
+        String kinds = (wp ? "weapon " : "") + (tl ? "tool " : "") + (use ? "RMB " : "") + (bb ? "bauble " : "") + (ar ? "armor " : "");
         String name;
         try {
             name = s.getDisplayName();
@@ -882,7 +882,7 @@ final class VetheaCoverage {
             if (post[k] != null && post[k].any()) works = true;
         }
         if (crash) crashes++;
-        String verdict = leak ? "УТЕЧКА" : places ? "ставит блок" : works ? "ок" : "нет действия";
+        String verdict = leak ? "LEAK" : places ? "places block" : works ? "ok" : "no effect";
         if (leak) leaks.add(id + "#" + s.getItemDamage() + " (" + name + ") " + kinds.trim() + " - " + why);
         else if (works || places) okCount++;
         else neutral++;
@@ -890,7 +890,7 @@ final class VetheaCoverage {
         long ms = System.currentTimeMillis() - a;
         for (int phase = 0; phase < 2; phase++) {
             Fx[] r = phase == 0 ? pre : post;
-            tsv.append(id).append('\t').append(s.getItemDamage()).append('\t').append(name).append('\t').append(kinds.trim()).append('\t').append(phase == 0 ? "до" : "после");
+            tsv.append(id).append('\t').append(s.getItemDamage()).append('\t').append(name).append('\t').append(kinds.trim()).append('\t').append(phase == 0 ? "before" : "after");
             for (int k = 0; k < 5; k++) tsv.append('\t').append(r[k] == null ? "" : r[k].toString());
             tsv.append('\t').append(tl ? String.format("%.2f", spd[phase]) : "").append('\t').append(r[5] == null ? "" : r[5].toString()).append('\t')
                 .append(phase == 0 ? verdict : "").append('\t').append(phase == 0 ? String.valueOf(ms) : "").append('\n');
@@ -898,7 +898,7 @@ final class VetheaCoverage {
         emit(tsv.toString());
     }
 
-    private static final String[] ACTS = { "удар", "ПКМ", "ПКМ по блоку", "копка", "рубка", "ношение" };
+    private static final String[] ACTS = { "hit", "RMB", "RMB on block", "mining", "chopping", "wearing" };
 
     private static boolean toolClass(ItemStack s, String c) {
         try {
@@ -933,7 +933,7 @@ final class VetheaCoverage {
         list.add(op);
         ow.spawnEntityInWorld(op);
         RealPlayer keep = p;
-        emit("\n# площадные инструменты и вещи с ПКМ в привате обычного мира: сколько блоков из каменного куба 9x9x9 сломано (должно быть 0)\n");
+        emit("\n# area tools and RMB items in an overworld claim: how many blocks of a 9x9x9 stone cube were broken (should be 0)\n");
         try {
             // area tools: Blood Magic bound tools, Tinkers hammer/excavator/lumber axe, Terra Shatterer, Thaumcraft elemental; diamond axe - for Treecapitator
             Set<String> area = new HashSet<String>(java.util.Arrays.asList("BoundPickaxe", "BoundAxe", "BoundShovel", "Hammer", "Excavator", "LumberAxe", "ItemTerraPick",
@@ -956,7 +956,7 @@ final class VetheaCoverage {
                     p.setLocationAndAngles(bx + 0.5, by, bz + 0.5, 0, 0);
                     p.setPositionAndUpdate(bx + 0.5, by, bz + 0.5);
                     p.inventory.currentItem = 0;
-                    current = "в привате " + Item.itemRegistry.getNameForObject(s.getItem()) + " режим " + mode;
+                    current = "in claim " + Item.itemRegistry.getNameForObject(s.getItem()) + " mode " + mode;
                     actStart = System.currentTimeMillis();
                     guarded = true;
                     try {
@@ -980,8 +980,8 @@ final class VetheaCoverage {
                     }
                 }
                 String id = Item.itemRegistry.getNameForObject(s.getItem());
-                emit(id + "\t" + s.getDisplayName() + "\tсломано в привате: " + broken + "\n");
-                if (broken > 0) leaks.add(id + " (" + s.getDisplayName() + ") - ломает в привате обычного мира: " + broken + " блоков");
+                emit(id + "\t" + s.getDisplayName() + "\tbroken in claim: " + broken + "\n");
+                if (broken > 0) leaks.add(id + " (" + s.getDisplayName() + ") - breaks in an overworld claim: " + broken + " blocks");
             }
         } finally {
             p = keep;

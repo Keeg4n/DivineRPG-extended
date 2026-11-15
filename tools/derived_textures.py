@@ -113,8 +113,8 @@ def palette(ours):
     return ','.join('%08xx%d' % (v, c) for v, c in pairs)
 
 
-lines = ['# Производные текстуры: собираются при запуске из текстур установленного DivineRPG (в jar их нет).',
-         '# выход|исходники Divine через ;|md5 результата|md5 исходника|цвет>цвет,...|пиксель>цвет,...|палитра цвет x число по яркости']
+lines = ['# Derived textures: built at startup from the textures of the installed DivineRPG (they are not in the jar).',
+         '# output|Divine sources joined by ;|md5 of the result|md5 of the source|color>color,...|pixel>color,...|palette color x count by brightness']
 total_px = 0
 for rel in sorted(targets):
     ours = argb(ORIG + '/' + rel)

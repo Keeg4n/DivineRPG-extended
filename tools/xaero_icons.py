@@ -97,4 +97,4 @@ if __name__ == '__main__':
     dummy_sprite()
     ids = divine_ids() | our_ids()
     definitions(ids)
-    print('описаний Xaero:', len(ids))
+    print('Xaero descriptions:', len(ids))

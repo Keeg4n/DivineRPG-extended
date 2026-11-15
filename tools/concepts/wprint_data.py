@@ -1,55 +1,55 @@
 """Texts and styles of the second round of Wanderer armor concepts (styles are shared by all rounds)."""
 
-ROUND = 'Второй раунд'
-LEDE = ('По первому раунду выбраны три облика, они ниже. Для R1, R4, R5 и R7 - по три новых варианта, буквы Г, Д, Е, чтобы не путать '
-        'с первым раундом. R1 теперь делается из божественной брони, поэтому все три новых R1 идут от неё: золото, тёмно-алые вставки, '
-        'голубой камень, стальные ботинки. Модели так же черновые: из блоков, на костях игрока, слева вид спереди, справа сзади.')
+ROUND = 'Second round'
+LEDE = ('Three looks were picked in the first round, they are below. For R1, R4, R5 and R7 there are three new variants each, letters D, E, F, so as not to confuse '
+        'them with the first round. R1 is now made from Divine armor, so all three new R1 variants build on it: gold, dark scarlet inlays, '
+        'a light blue stone, steel boots. The models are rough again: made of blocks, on the player bones, front view on the left, back view on the right.')
 
 PICKED = [
-    ('r2c', 2, 'Эдем', 'В', 'Лепестки и нимб', 'Золотые и алые лепестки на груди и плечах, золотой обруч с камнем, над головой светится нимб.'),
-    ('r3b', 3, 'Дикий лес', 'Б', 'Деревянные латы', 'Латы из синего дерева, глухой шлем с ветвистыми рогами, корни у ботинок.'),
-    ('r6a', 6, 'Мортум', 'А', 'Тень в капюшоне', 'Чёрный рваный плащ и капюшон, лицо в темноте, красные глаза, цепи на поясе.'),
+    ('r2c', 2, 'Eden', 'C', 'Petals and halo', 'Gold and scarlet petals on the chest and shoulders, a gold circlet with a stone, a halo glows above the head.'),
+    ('r3b', 3, 'Wildwood', 'B', 'Wooden plate armor', 'Plate armor of blue wood, a closed helmet with branching antlers, roots by the boots.'),
+    ('r6a', 6, 'Mortum', 'A', 'Hooded shadow', 'A black tattered cloak and hood, the face in darkness, red eyes, chains on the belt.'),
 ]
 
 TOC = [
-    (1, 'Божественная', '#ccaf3b', 'новые'),
-    (2, 'Эдем', '#d8401c', 'выбрано В'),
-    (3, 'Дикий лес', '#1a62e0', 'выбрано Б'),
-    (4, 'Апалачия', '#c020d8', 'новые'),
-    (5, 'Небесный терн', '#aeb2ba', 'новые'),
-    (6, 'Мортум', '#ff3020', 'выбрано А'),
-    (7, 'Галит', '#50e010', 'новые'),
+    (1, 'Divine', '#ccaf3b', 'new'),
+    (2, 'Eden', '#d8401c', 'picked C'),
+    (3, 'Wildwood', '#1a62e0', 'picked B'),
+    (4, 'Apalachia', '#c020d8', 'new'),
+    (5, 'Skythern', '#aeb2ba', 'new'),
+    (6, 'Mortum', '#ff3020', 'picked A'),
+    (7, 'Halite', '#50e010', 'new'),
 ]
 
 TIERS = [
-    (1, 'Божественная', 'из божественной брони, без босса', ['#ccaf3b', '#a01c0c', '#46d6e6'], [
-        ('r1d', 'Г', 'Путник в божественном', 'Тёмный дорожный кафтан, поверх золотая кираса с голубым камнем, золотые наплечники и наручи, '
-                                             'обруч с камнем на лбу, короткий алый плащ, стальные ботинки как у божественной брони.'),
-        ('r1e', 'Д', 'Божественные латы', 'Сама божественная броня, только тяжелее: золотые латы с алой каймой, алые кисти под наплечниками, '
-                                         'глухой шлем с голубым камнем во лбу и алым гребнем, стальные ботинки.'),
-        ('r1f', 'Е', 'Вестник', 'Светлые латы с золотом и алой перевязью, голубые камни на шлеме и груди, за спиной сложенные золотые '
-                               'крылья: верх выглядывает над плечами, маховые перья почти до колен.')]),
-    (4, 'Апалачия', 'босс - Великий кадиллион Апалачии', ['#c020d8', '#5a1078', '#f090ff'], [
-        ('r4d', 'Г', 'Чародей', 'Тёмная мантия до пят со светящейся каймой и рунами по подолу, широкие рукава, '
-                               'остроконечная шляпа с сиреневой лентой, за спиной парит руническое кольцо.'),
-        ('r4e', 'Д', 'Зачарованный воин', 'Стальные латы с сиреневым отблеском зачарования, пурпурный табар с золотой каймой, '
-                                         'шлем с длинным пурпурным плюмажем, за спиной призрачный круглый щит.'),
-        ('r4f', 'Е', 'Горы Апалачии', 'Броня как скала: лиловый камень, пурпурный мох на воротнике, поясе и у краёв, '
-                                     'на плечах и шлеме ступенчатые пики со снежными шапками.')]),
-    (5, 'Небесный терн', 'босс - Великий кадиллион Небесного терна', ['#c8ccd4', '#1c2450', '#8ab8ec'], [
-        ('r5d', 'Г', 'Мегалит', 'Тяжёлые каменные плиты со светящимися голубыми швами, огромные квадратные наплечники, '
-                               'на груди светится круг, шлем-монолит с одной светящейся прорезью.'),
-        ('r5e', 'Д', 'Звездочёт', 'Ночное небо: тёмно-синий капюшон и плащ в мерцающих звёздах с серебряной каймой, '
-                                 'серп луны на груди, рядом парят маленькие звёзды.'),
-        ('r5f', 'Е', 'Буревестник', 'Грозовые латы с молнией через грудь и шлем, на плечах тучи, из них вниз бьют молнии, '
-                                   'шлем с птичьим клювом и гребнем из перьев.')]),
-    (7, 'Галит', 'босс - Карот', ['#50e010', '#1e4a0a', '#e0b84a'], [
-        ('r7d', 'Г', 'Венец странствий', 'Тёмно-зелёные латы с золотом. На груди вокруг светящегося галита - шесть камней пройденных миров, '
-                                        'те же камни в золотой короне на шлеме, длинный плащ с золотой каймой.'),
-        ('r7e', 'Д', 'Парящие латы', 'Пластины галита не касаются тела: висят вокруг тёмного костюма, между ними светятся швы, '
-                                    'шлем из раздвинутых пластин со светящейся щелью, за спиной кольцо света.'),
-        ('r7f', 'Е', 'Странник у цели', 'Длинный тёмно-зелёный сюртук со светящимися пуговицами, шарф из галита, широкополая шляпа '
-                                       'с золотой лентой и зелёным пером, на поясе галитовый фонарь.')]),
+    (1, 'Divine', 'made from Divine armor, no boss', ['#ccaf3b', '#a01c0c', '#46d6e6'], [
+        ('r1d', 'D', 'Traveler in Divine', 'A dark traveling coat, over it a gold cuirass with a light blue stone, gold pauldrons and bracers, '
+                                             'a circlet with a stone on the brow, a short scarlet cloak, steel boots like the Divine armor ones.'),
+        ('r1e', 'E', 'Divine plate armor', 'The Divine armor itself, only heavier: gold plate armor with a scarlet trim, scarlet tassels under the pauldrons, '
+                                         'a closed helmet with a light blue stone on the brow and a scarlet crest, steel boots.'),
+        ('r1f', 'F', 'Herald', 'Light plate armor with gold and a scarlet sash, light blue stones on the helmet and chest, folded gold wings '
+                               'on the back: the tops peek out over the shoulders, the flight feathers reach almost to the knees.')]),
+    (4, 'Apalachia', 'boss - Great Cadillion of Apalachia', ['#c020d8', '#5a1078', '#f090ff'], [
+        ('r4d', 'D', 'Sorcerer', 'A dark floor-length robe with a glowing trim and runes along the hem, wide sleeves, '
+                               'a pointed hat with a lilac ribbon, a runic ring floats behind the back.'),
+        ('r4e', 'E', 'Enchanted warrior', 'Steel plate armor with a lilac enchantment sheen, a purple tabard with a gold trim, '
+                                         'a helmet with a long purple plume, a ghostly round shield on the back.'),
+        ('r4f', 'F', 'Mountains of Apalachia', 'Armor like a rock: lilac stone, purple moss on the collar, belt and edges, '
+                                     'stepped spikes with snowcaps on the shoulders and helmet.')]),
+    (5, 'Skythern', 'boss - Great Cadillion of Skythern', ['#c8ccd4', '#1c2450', '#8ab8ec'], [
+        ('r5d', 'D', 'Megalith', 'Heavy stone slabs with glowing light blue seams, huge square pauldrons, '
+                               'a circle glows on the chest, a monolith helmet with a single glowing slit.'),
+        ('r5e', 'E', 'Stargazer', 'Night sky: a dark blue hood and a cloak in twinkling stars with a silver trim, '
+                                 'a crescent moon on the chest, small stars float nearby.'),
+        ('r5f', 'F', 'Stormpetrel', 'Storm plate armor with a lightning bolt across the chest and helmet, clouds on the shoulders, lightning strikes down from them, '
+                                   'a helmet with a bird beak and a feather crest.')]),
+    (7, 'Halite', 'boss - Karot', ['#50e010', '#1e4a0a', '#e0b84a'], [
+        ('r7d', 'D', 'Crown of wanderings', 'Dark green plate armor with gold. On the chest around the glowing halite are six stones of the worlds passed, '
+                                        'the same stones in a gold crown on the helmet, a long cloak with a gold trim.'),
+        ('r7e', 'E', 'Floating plate armor', 'The halite plates do not touch the body: they hang around a dark suit, seams glow between them, '
+                                    'a helmet of separated plates with a glowing gap, a ring of light on the back.'),
+        ('r7f', 'F', 'Wanderer at the goal', 'A long dark green frock coat with glowing buttons, a halite scarf, a wide-brimmed hat '
+                                       'with a gold ribbon and a green feather, a halite lantern on the belt.')]),
 ]
 
 CSS = """

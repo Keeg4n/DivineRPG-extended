@@ -137,18 +137,18 @@ def fmt(v):
 
 def main():
     items = acc_items1.ITEMS
-    lines = ['# Посадка аксессуаров на теле (tools/concepts/acc_export.py). Координаты - пиксели модели в кости ModelBiped, y вниз.',
-             '# s <спрайт> <палитра AARRGGBB через запятую> <256 знаков: индекс палитры, . - пусто>',
-             '# a <ключ>; p <профиль>; c <кость> x y z w h d RRGGBB [rx ry rz px py pz]; f <кость> ox oy oz uxx uxy uxz uyx uyy uyz <спрайт> px t']
+    lines = ['# Accessory fit on the body (tools/concepts/acc_export.py). Coordinates are pixels of the model in the ModelBiped bone, y down.',
+             '# s <sprite> <AARRGGBB palette separated by commas> <256 characters: palette index, . means empty>',
+             '# a <key>; p <profile>; c <bone> x y z w h d RRGGBB [rx ry rz px py pz]; f <bone> ox oy oz uxx uxy uxz uyx uyy uyz <sprite> px t']
     body = []
     icons_dir = os.path.join(RES, 'textures/items')
     for n, (key, name, slot, vs) in enumerate(items, 1):
         pick = PICK.get(n)
         if pick is None:
-            print('%2d %-18s - не трогаем' % (n, key))
+            print('%2d %-18s - leaving untouched' % (n, key))
             continue
         if pick == 'A1':
-            label, fn, wear = vs[0][0] + ' (посадка А1)', vs[0][1], scarf_a1
+            label, fn, wear = vs[0][0] + ' (fit A1)', vs[0][1], scarf_a1
         else:
             label, fn, wear = vs[pick][0], vs[pick][1], vs[pick][2]
         ic = K.icon(fn)
@@ -185,7 +185,7 @@ def main():
     sys.path.insert(0, os.path.join(HERE, '..'))
     import relic_icons  # noqa: E402
     relic_icons.append_halo(os.path.join(RES, 'wear/accessories.txt'))  # Sun halo (Eden reliquary): not from the concepts, a ring above the head
-    print('спрайтов', len(SPRITES), 'строк', len(body))
+    print('sprites', len(SPRITES), 'lines', len(body))
     # altars
     ad = os.path.join(RES, 'textures/blocks/altar')
     os.makedirs(ad, exist_ok=True)
@@ -197,7 +197,7 @@ def main():
         for part, fn in (('side', side), ('top', top)):
             arr = np.asarray(fn(), np.uint8)
             Image.fromarray(arr if arr.shape[2] == 4 else arr[..., :3], 'RGBA' if arr.shape[2] == 4 else 'RGB').save(os.path.join(ad, '%s_%s.png' % (name, part)))
-        print('алтарь %-9s %s' % (name, title))
+        print('altar %-9s %s' % (name, title))
 
 
 if __name__ == '__main__':

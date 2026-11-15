@@ -106,7 +106,7 @@ def leaf(bone, start, L, wd, color, rib, edge, rx=0.0, rz=0.0):
 
 # ---- R1 Divine: everything as in the fourth round, a shield instead of a cape
 
-@slim('r1v', 1, 'Освящённая: серебряная кираса с золотым клином, открытый золотой шлем с крылышками, на спине щит с алым камнем')
+@slim('r1v', 1, 'Hallowed: a silver cuirass with a gold wedge, an open gold helmet with wings, a shield with a scarlet stone on the back')
 def r1v():
     gold = P(t.HG, trim(0.3, t.HGD), rect(('up',), -1, 99, -1, 99, t.HGL))
     band = P(t.HG, trim(0.3, t.HGD), rect(SIDES, -1, 99, 2.0, 3.0, t.HS))
@@ -149,7 +149,7 @@ def plus_hole(*rects):
     return a
 
 
-@slim('r3v', 3, 'Дикий лес: доски из синего дерева, глухой шлем с прорезью-плюсом и рогами-ветвями, листья на плечах, посох за спиной')
+@slim('r3v', 3, 'Wildwood: boards of blue wood, a closed helmet with a plus-shaped slit and branch antlers, leaves on the shoulders, a staff on the back')
 def r3v():
     wood = P(PL[0], bands(PL, 2.0), seams(2.0, PL_D), trim(0.3, PL_D))
     chest = P(PL[0], bands(PL, 2.0), seams(2.0, PL_D), trim(0.3, PL_D), disc(('north',), 4.6, 2.9, 1.8, GLOWC, glow=True, r0=1.2), rect(('north',), 4.35, 4.85, 0.8, 5.2, GLOWC, glow=True))
@@ -182,7 +182,7 @@ LEATHER, LEATHER_D, LEATHER_L = '#6e2478', '#2c0a34', '#8e3a98'
 BEAD_L = '#f2e4f8'
 
 
-@slim('r4v', 4, 'Апалачия, индейский стиль: убор из перьев с вышитой налобной лентой, нагрудник из бусин, узоры и бахрома, веер перьев на спине')
+@slim('r4v', 4, 'Apalachia, Native American style: a feather headdress with an embroidered headband, a breastplate of beads, patterns and fringe, a fan of feathers on the back')
 def r4v():
     leather = P(LEATHER, trim(0.3, LEATHER_D))
     beads = P(LEATHER, trim(0.3, LEATHER_D), bands((BEAD_L, t.OP, BEAD_L, t.OM), 1.0, axis=1, faces=('north',)), rect(('north',), 4.1, 5.1, -1, 99, LEATHER_D), trim(0.3, LEATHER_D))
@@ -229,7 +229,7 @@ def wing_feather(x, y, z, L, wd, color, rz, rx=5.0):
     return box('body', x - wd / 2, y, z, wd, L, 0.3, paint, rot=(rx, 0, rz), pivot=(x, y, z))
 
 
-@slim('r5v', 5, 'Небесный терн: белые латы с небесной каймой, закрытый шлем с голубым гребнем и ребрами-крыльями, сложенные крылья на спине')
+@slim('r5v', 5, 'Skythern: white plate armor with a sky trim, a closed helmet with a light blue crest and rib-wings, folded wings on the back')
 def r5v():
     white = P(SKYL, trim(0.3, BLUE))
     silver = P(SKY, trim(0.3, BLUE), rect(SIDES, -1, 99, 4.8, 5.3, BLUE))
@@ -274,7 +274,7 @@ def cult_hood():
             box('head', -3.5, -10.0, 3.5, 7.0, 8.0, 3.0, cloth, rot=(-20, 0, 0), pivot=(0, 0, 0)), box('head', -3.0, -10.7, 3.5, 6.0, 7.0, 3.0, cloth, rot=(-33, 0, 0), pivot=(0, 0, 0))]
 
 
-@slim('r6v', 6, 'Мортум: капюшон культиста с красными глазами в тёмной арке, тёмная кираса с красной каймой, цепь, на спине хребет из костей')
+@slim('r6v', 6, 'Mortum: a cultist hood with red eyes in a dark arch, a dark cuirass with a red trim, a chain, a spine of bones on the back')
 def r6v():
     lea = P(MO, trim(0.3, MOD))
     suit = P('#222226', trim(0.3, MOD))
@@ -309,7 +309,7 @@ def crest_leaf(bone, start, L, wd, color, rib, edge, rx=0.0):
     return box(bone, sx - 0.15, sy - L, sz - wd / 2, 0.3, L, wd, paint, rot=(rx, 0, 0), pivot=(sx, sy, sz))
 
 
-@slim('r7x', 7, 'Галит, как хлорофит Террарии: закрытая маска со светящимся забралом и гребнем из листьев, листовые наплечники, парящий кристалл')
+@slim('r7x', 7, 'Halite, like Terraria Chlorophyte: a closed mask with a glowing visor and a crest of leaves, leaf pauldrons, a floating crystal')
 def r7x():
     vein = (mottle(t.CGD, 1.0, 0.82), mottle(t.CGB, 1.4, 0.95))  # light leaf texture
     lf = P(t.CG, trim(0.3, t.CGO), *vein, rect(('up',), -1, 99, -1, 99, t.CGL))
@@ -337,7 +337,7 @@ def r7x():
     return bs
 
 
-@slim('r7y', 7, 'Галит, как террасталь Ботании: открытый шлем с выступом над носом, веером листьев и ветками, ветки на плечах и сапогах')
+@slim('r7y', 7, 'Halite, like Botania Terrasteel: an open helmet with a ridge above the nose, a fan of leaves and branches, branches on the shoulders and boots')
 def r7y():
     plate = P(t.CG, trim(0.3, t.CGO), mottle(t.CGD, 1.0, 0.78), mottle(t.CGB, 1.4, 0.92), rect(('up',), -1, 99, -1, 99, t.CGL))
     suit = P(t.CGD, trim(0.3, t.CGO))
@@ -425,7 +425,7 @@ def spike(bone, start, L, wd, color, rx=0.0, rz=0.0):
     return box(bone, sx - wd / 2, sy - L, sz - 0.15, wd, L, 0.3, paint, rot=(rx, 0, rz), pivot=(sx, sy, sz))
 
 
-@slim('r7z', 7, 'Галит, хлорофитовая броня: острый шлем с чёрным плюсом и красными глазами, закрученные рога, высокий воротник, чешуя, мех и когти')
+@slim('r7z', 7, 'Halite, Chlorophyte armor: a sharp helmet with a black plus and red eyes, twisted horns, a tall collar, scales, fur and claws')
 def r7z():
     g = P(CH_G, trim(0.3, CH_K))
     dark = P(CH_GD, trim(0.2, '#141414'))

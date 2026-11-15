@@ -12,15 +12,15 @@ OUT = sys.argv[1]
 e = html.escape
 IMG = os.path.join(os.path.dirname(os.path.abspath(OUT)), 'img')
 
-LEDE = ('Берём Ж, но глаза шире друг от друга, а верх - балахоном, по мотивам Абаддона из Dota 2 (его часто сравнивают с назгулом: глубокий капюшон, '
-        'тьма с глазами, многослойный балахон с рваным подолом, латы из-под ткани, туман). Вырез капюшона стал чуть шире, чтобы оба глаза были видны и в повороте. '
-        'Пелерина короткая, на плечах: это не плащ, спина свободна. Выбрать букву: К, Л или М.')
+LEDE = ('Taking G, but with the eyes wider apart and a robe on top, inspired by Abaddon from Dota 2 (he is often compared to a Nazgul: a deep hood, '
+        'darkness with eyes, a layered robe with a ragged hem, plate armor under the cloth, mist). The hood opening is a bit wider so both eyes are visible even when turned. '
+        'The cape is short, on the shoulders: it is not a cloak, the back is free. Pick a letter: J, K or L.')
 
-WAS = ('r8g', 'Ж', 'Как было', 'Латы, глаза близко.')
+WAS = ('r8g', 'G', 'As it was', 'Plate armor, eyes close together.')
 VARIANTS = [
-    ('r8j', 'К', 'Балахон', 'Свободный балахон складками до бёдер, на груди застёжка-огонёк, верёвочный пояс с огоньком на конце. Широкие рукава колоколом со светящимся краем. Ниже - те же призрачные ленты.'),
-    ('r8k', 'Л', 'Балахон с пелериной', 'Балахон, на плечах короткая пелерина в два слоя со светящимся краем. Рукава до локтя, из-под них тёмные латные перчатки, сапоги тоже тёмные латные. Ближе к рыцарю в балахоне.'),
-    ('r8l', 'М', 'По Абаддону', 'Как Л, но рукава широкие, а у капюшона острый хвост назад, как у назгула. Вокруг подола, плеч и сапог - клочья светящегося тумана вместо огоньков за спиной.'),
+    ('r8j', 'J', 'Robe', 'A loose robe in folds down to the thighs, a wisp clasp on the chest, a rope belt with a wisp on the end. Wide bell sleeves with a glowing edge. Below - the same ghostly ribbons.'),
+    ('r8k', 'K', 'Robe with a cape', 'A robe, a short two-layer cape on the shoulders with a glowing edge. Sleeves to the elbow, dark plate gauntlets under them, the boots are dark plate too. Closer to a knight in a robe.'),
+    ('r8l', 'L', 'Abaddon style', 'Like K, but the sleeves are wide, and the hood has a sharp tail to the back, like a Nazgul. Around the hem, shoulders and boots are wisps of glowing mist instead of the wisps behind the back.'),
 ]
 
 EXTRA = """
@@ -49,19 +49,19 @@ def front(key):
 
 
 def foot(n):
-    return '<div class="foot"><span>Облики брони Странника, R8 - Призрак, четвёртый раунд</span><span>Страница %d из 4</span></div>' % n
+    return '<div class="foot"><span>Wanderer armor looks, R8 - Phantom, fourth round</span><span>Page %d of 4</span></div>' % n
 
 
 for v in [WAS] + VARIANTS:
     front(v[0])
-parts = ['<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Облики брони Странника - R8, Призрак</title>',
+parts = ['<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Wanderer armor looks - R8, Phantom</title>',
          '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600&family=Pixelify+Sans:wght@700&display=block">',
          '<style>%s%s</style></head><body>' % (CSS, EXTRA)]
 cells = ''.join('<div class="t%s"><img src="img/%s_f.png" alt=""><div class="lab"><b>%s</b>%s<div>%s</div></div></div>' % (' was' if k == WAS[0] else '', k, e(l), e(n), e(d))
                 for k, l, n, d in [WAS] + VARIANTS)
-parts.append('<section class="page"><h1>Облики брони Странника</h1><div class="sub">R8 - Призрак, четвёртый раунд</div><p class="lede">%s</p><div class="four">%s</div>%s</section>' % (e(LEDE), cells, foot(1)))
+parts.append('<section class="page"><h1>Wanderer armor looks</h1><div class="sub">R8 - Phantom, fourth round</div><p class="lede">%s</p><div class="four">%s</div>%s</section>' % (e(LEDE), cells, foot(1)))
 for n, (k, l, name, d) in enumerate(VARIANTS, 2):
-    parts.append('<section class="page"><div class="head"><h2>Вариант %s: %s</h2></div><div class="solo"><img src="img/%s.png" alt=""><div class="vv"><span>спереди</span><span>сзади</span></div></div>'
+    parts.append('<section class="page"><div class="head"><h2>Variant %s: %s</h2></div><div class="solo"><img src="img/%s.png" alt=""><div class="vv"><span>front</span><span>back</span></div></div>'
                  '<p class="lede solotext">%s</p>%s</section>' % (e(l), e(name), k, e(d), foot(n)))
 parts.append('</body></html>')
 open(OUT, 'w', encoding='utf-8').write('\n'.join(parts))

@@ -300,7 +300,7 @@ def concept(key, tier, line, title):
 COP, COPD, COPL, LEA, LEAD, CLOTH, BRASS, MAIL = '#c8642c', '#7a3a18', '#f0a050', '#6b4a2e', '#4a321e', '#7e5f40', '#d8b04a', '#8a8c90'
 
 
-@concept('r1a', 1, 'А', 'Путник: куртка, капюшон, компас')
+@concept('r1a', 1, 'A', 'Wayfarer: jacket, hood, compass')
 def r1a():
     lea = P(LEA, trim(0.45, LEAD))
     bs = chest(P(LEA, trim(0.45, LEAD), rect(('north',), 4.8, 5.2, 0, 99, LEAD), disc(('north',), 5, 4.2, 1.9, BRASS),
@@ -314,7 +314,7 @@ def r1a():
     return bs
 
 
-@concept('r1b', 1, 'Б', 'Рыцарь: бригантина, шапель, бармица')
+@concept('r1b', 1, 'B', 'Knight: brigandine, chapel-de-fer, aventail')
 def r1b():
     cop = P(COP, trim(0.45, COPD), dots(('north', 'south', 'east', 'west'), 2.0, 0.3, BRASS, off=1.0))
     mail = P(MAIL, dots('all', 0.8, 0.28, '#5a5c60'), noise=0.08, bevel=0.1)
@@ -330,7 +330,7 @@ def r1b():
     return bs
 
 
-@concept('r1c', 1, 'В', 'Дух мира: рудная броня с тлеющими трещинами')
+@concept('r1c', 1, 'C', 'World Spirit: ore armor with smoldering cracks')
 def r1c():
     ore = P('#4a3c34', veins('#ff8a2a', scale=0.9, width=0.22), mottle('#5e4c40', 1.4, 0.7), noise=0.12)
     bs = chest(ore) + upper_arm(ore) + vambrace(ore) + thigh(ore) + boot(ore, toe=0.4) + belt(P('#3a2e28', noise=0.1))
@@ -347,7 +347,7 @@ def r1c():
 ED, EDD, WH, GOLD, GLOWG = '#d8401c', '#8a2010', '#f0ede6', '#f0c040', '#ffe27a'
 
 
-@concept('r2a', 2, 'А', 'Путник: плащ заката, застёжка-солнце')
+@concept('r2a', 2, 'A', 'Wayfarer: sunset cloak, sun clasp')
 def r2a():
     red = P(ED, trim(0.5, WH))
     bs = chest(P(WH, stripe(('north',), 0.75, -1.0, 1.1, ED), stripe(('south',), -0.75, 10.0, 1.1, ED), trim(0.35, '#c8c4bc')))
@@ -360,7 +360,7 @@ def r2a():
     return bs
 
 
-@concept('r2b', 2, 'Б', 'Рыцарь: светлые латы, гребень из лучей')
+@concept('r2b', 2, 'B', 'Knight: bright plate armor, crest of rays')
 def r2b():
     plate = P(WH, trim(0.5, ED))
     bs = chest(P(WH, trim(0.5, ED), disc(('north',), 5, 4.5, 2.2, GOLD), disc(('north',), 5, 4.5, 1.2, ED)))
@@ -372,7 +372,7 @@ def r2b():
     return bs
 
 
-@concept('r2c', 2, 'В', 'Дух мира: золотые лепестки, нимб')
+@concept('r2c', 2, 'C', 'World Spirit: golden petals, halo')
 def r2c():
     base = P('#b8862a', trim(0.3, '#7a5418'))
     bs = chest(base) + upper_arm(base) + vambrace(P(GOLD, trim(0.3, '#9a6a20'))) + belt(P(ED)) + thigh(P('#a0301a')) + boot(P(GOLD, trim(0.3, '#9a6a20')))
@@ -397,7 +397,7 @@ def leaves():
     return P(WWB, mottle(LEAFD, 1.2, 0.55), mottle(WWL, 1.7, 0.86), noise=0.08)
 
 
-@concept('r3a', 3, 'А', 'Путник: лиственный плащ, фонарь со светлячками')
+@concept('r3a', 3, 'A', 'Wayfarer: leaf cloak, lantern with fireflies')
 def r3a():
     dark = P('#262c3a', trim(0.35, '#151a24'))
     bs = chest(dark) + upper_arm(dark) + vambrace(P(BARK, streaks(WWD))) + belt(P('#3a2a1c')) + thigh(P('#2a3040')) + boot(P(BARK, streaks(WWD)), toe=0.3)
@@ -410,7 +410,7 @@ def r3a():
     return bs
 
 
-@concept('r3b', 3, 'Б', 'Рыцарь: латы из синего дерева, рога-ветви')
+@concept('r3b', 3, 'B', 'Knight: blue wood plate armor, branch antlers')
 def r3b():
     wood = P(WWB, streaks(WWD, 1.0, 0.5), trim(0.4, WWD))
     bs = chest(wood) + upper_arm(wood) + vambrace(wood) + pauldron(P(WWB, streaks(WWD, 1.0, 0.5), trim(0.45, WWD)), tilt=-14, big=1.0)
@@ -424,7 +424,7 @@ def r3b():
     return bs
 
 
-@concept('r3c', 3, 'В', 'Дух мира: древень с мхом и светящимися грибами')
+@concept('r3c', 3, 'C', 'World Spirit: treant with moss and glowing mushrooms')
 def r3c():
     bark = P(BARK, streaks(WWD, 1.0, 0.45), mottle(MOSS, 1.1, 0.8))
     bs = chest(bark) + upper_arm(bark) + vambrace(bark) + belt(P('#1a2238')) + thigh(bark) + boot(bark, toe=0.4)
@@ -443,7 +443,7 @@ def r3c():
 AP, APD, APL, CRY = '#c020d8', '#5a1078', '#f090ff', '#e070ff'
 
 
-@concept('r4a', 4, 'А', 'Путник: пурпурный плащ, вуаль, кристаллы на наручах')
+@concept('r4a', 4, 'A', 'Wayfarer: purple cloak, veil, crystals on the bracers')
 def r4a():
     lea = P(APD, trim(0.35, '#3a0850'))
     bs = chest(P(APD, trim(0.4, AP), rect(('north',), 4.6, 5.4, 0, 99, AP))) + upper_arm(lea) + vambrace(P('#3a0850', trim(0.3, AP)))
@@ -455,7 +455,7 @@ def r4a():
     return bs
 
 
-@concept('r4b', 4, 'Б', 'Рыцарь: гранёные латы, кристалл во лбу')
+@concept('r4b', 4, 'B', 'Knight: faceted plate armor, crystal in the forehead')
 def r4b():
     fac = P(AP, facets('#ffffff', 0.25), facets('#000000', 0.0), trim(0.4, APD))
     bs = chest(P(AP, facets('#ffffff', 0.25), trim(0.45, APD), rect(('north',), 4.2, 5.8, 1.0, 9.0, APD))) + upper_arm(fac) + vambrace(fac)
@@ -468,7 +468,7 @@ def r4b():
     return bs
 
 
-@concept('r4c', 4, 'В', 'Дух мира: друзы кристаллов на плечах и спине')
+@concept('r4c', 4, 'C', 'World Spirit: crystal geodes on the shoulders and back')
 def r4c():
     dark = P('#3a1050', trim(0.3, '#220830'), mottle(APD, 1.2, 0.7))
     bs = chest(dark) + upper_arm(dark) + vambrace(dark) + belt(P('#220830')) + thigh(dark) + boot(dark, toe=0.4)
@@ -486,7 +486,7 @@ def r4c():
 SKY, SKYL, SKYD, BLUE = '#aeb2ba', '#eef0f4', '#6a6e78', '#8ab8ec'
 
 
-@concept('r5a', 5, 'А', 'Путник: серебряный плащ, длинный шарф на ветру')
+@concept('r5a', 5, 'A', 'Wayfarer: silver cloak, long scarf in the wind')
 def r5a():
     sil = P(SKY, trim(0.35, SKYD))
     bs = chest(P(SKY, dots('all', 0.9, 0.3, '#8a8e98'), trim(0.4, SKYD))) + upper_arm(sil) + vambrace(P(SKYL, trim(0.3, BLUE)))
@@ -501,7 +501,7 @@ def r5a():
     return bs
 
 
-@concept('r5b', 5, 'Б', 'Рыцарь: обтекаемые латы, крылатый шлем, перья на плечах')
+@concept('r5b', 5, 'B', 'Knight: streamlined plate armor, winged helmet, feathers on the shoulders')
 def r5b():
     plate = P(SKYL, trim(0.45, BLUE))
     bs = chest(P(SKYL, trim(0.45, BLUE), stripe(('north',), 0.0, 5.0, 0.5, BLUE))) + upper_arm(P(SKY, trim(0.3, SKYD))) + vambrace(plate)
@@ -515,7 +515,7 @@ def r5b():
     return bs
 
 
-@concept('r5c', 5, 'В', 'Дух мира: облачный воротник, парящие кольца')
+@concept('r5c', 5, 'C', 'World Spirit: cloud collar, floating rings')
 def r5c():
     base = P(SKY, trim(0.3, SKYD))
     bs = chest(base) + upper_arm(base) + vambrace(P(SKYL)) + belt(P(SKYD)) + thigh(base) + boot(P(SKYL, trim(0.3, SKY)), toe=0.3)
@@ -545,7 +545,7 @@ def r5c():
 MO, MOD, MOL, BONE, RED, GLOWR = '#2e2e32', '#121214', '#5a5a60', '#d8d0b8', '#b01818', '#ff3020'
 
 
-@concept('r6a', 6, 'А', 'Путник: рваный плащ, глаза в тени капюшона, цепи')
+@concept('r6a', 6, 'A', 'Wayfarer: tattered cloak, eyes in the shadow of the hood, chains')
 def r6a():
     lea = P(MO, trim(0.35, MOD))
     bs = chest(P(MO, trim(0.4, RED))) + upper_arm(lea) + vambrace(P(MOD, trim(0.3, MOL))) + thigh(P('#222226')) + boot(P(MOD, trim(0.3, MOL)), toe=0.3)
@@ -562,7 +562,7 @@ def r6a():
     return bs
 
 
-@concept('r6b', 6, 'Б', 'Рыцарь: готические латы с шипами, рогатый шлем')
+@concept('r6b', 6, 'B', 'Knight: gothic plate armor with spikes, horned helmet')
 def r6b():
     plate = P(MO, trim(0.4, MOL), stripe(('north',), 0.0, 5.0, 0.3, MOL))
     sp = P(MOL, rect('all', -1, 99, -1, 0.8, '#a0a0a8'), bevel=0.1)
@@ -578,7 +578,7 @@ def r6b():
     return bs
 
 
-@concept('r6c', 6, 'В', 'Дух мира: костяной доспех, рогатый череп')
+@concept('r6c', 6, 'C', 'World Spirit: bone armor, horned skull')
 def r6c():
     dark = P(MOD, trim(0.3, '#000000'))
     bn = P(BONE, mottle('#b8ae94', 1.4, 0.7), bevel=0.25)
@@ -602,7 +602,7 @@ def r6c():
 HA, HAD, HAM, HAL, BLK, GLOWH = '#50e010', '#1e4a0a', '#3a8a10', '#c0ff80', '#141a14', '#9aff40'
 
 
-@concept('r7a', 7, 'А', 'Путник: плащ из зелёного стекла, корона из игл')
+@concept('r7a', 7, 'A', 'Wayfarer: green glass cloak, crown of needles')
 def r7a():
     lea = P(HAD, trim(0.35, '#0e2405'))
     bs = chest(P(HAD, trim(0.4, HA))) + upper_arm(lea) + vambrace(P(HAD, trim(0.3, HA))) + belt(P('#0e2405')) + thigh(P('#183a0a'))
@@ -616,7 +616,7 @@ def r7a():
     return bs
 
 
-@concept('r7b', 7, 'Б', 'Рыцарь: латы, из которых растут кристаллы галита')
+@concept('r7b', 7, 'B', 'Knight: plate armor with halite crystals growing out of it')
 def r7b():
     plate = P(HAD, trim(0.45, HA))
     bs = chest(P(HAD, trim(0.45, HA), rect(('north',), 4.6, 5.4, 0, 99, HA, glow=True))) + upper_arm(P(HAD, trim(0.35, HAM))) + vambrace(plate)
@@ -631,7 +631,7 @@ def r7b():
     return bs
 
 
-@concept('r7c', 7, 'В', 'Дух мира: тёмный каркас со светящимися жилами, парящие осколки')
+@concept('r7c', 7, 'C', 'World Spirit: dark frame with glowing veins, floating shards')
 def r7c():
     fr = P(BLK, veins(GLOWH, scale=0.9, width=0.2), trim(0.3, '#000000'))
     bs = chest(fr) + upper_arm(fr) + vambrace(fr) + belt(P('#0a0e0a')) + thigh(fr) + boot(fr, toe=0.4)
@@ -736,7 +736,7 @@ def build(key):
     sheet.paste(back, (front.width, 0))
     path = os.path.join(OUT, key + '.png')
     sheet.save(path, optimize=True)
-    print(key, title, '->', path, 'коробок', len(model.boxes))
+    print(key, title, '->', path, 'boxes', len(model.boxes))
 
 
 if __name__ == '__main__':

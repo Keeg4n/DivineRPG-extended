@@ -77,7 +77,7 @@ DG, DGD, DGL, CRIM, CRIMD, GEM, STEEL, STEELD = '#ccaf3b', '#8b5e16', '#ece184',
 w.TIER_BG[1] = '#2a2210'
 
 
-@new('r1d', 1, 'Г', 'Путник: дорожный кафтан, божественная кираса, обруч с камнем')
+@new('r1d', 1, 'D', 'Traveler: a traveling coat, a Divine cuirass, a circlet with a stone')
 def r1d():
     coat = P('#3e2c1e', trim(0.35, '#22170e'))
     bs = chest(coat) + upper_arm(coat) + vambrace(P(DG, trim(0.35, CRIMD)))
@@ -93,7 +93,7 @@ def r1d():
     return bs
 
 
-@new('r1e', 1, 'Д', 'Рыцарь: божественные латы, алые кисти, камень во лбу')
+@new('r1e', 1, 'E', 'Knight: Divine plate armor, scarlet tassels, a stone on the brow')
 def r1e():
     gold = P(DG, trim(0.45, DGD), mottle(DGL, 1.3, 0.93))
     bs = chest(P(DG, trim(0.5, DGD), mottle(DGL, 1.3, 0.93), rect(('north',), 4.7, 5.3, 0, 99, DGD), disc(('north',), 5, 3.4, 1.4, CRIMD),
@@ -110,7 +110,7 @@ def r1e():
     return bs
 
 
-@new('r1f', 1, 'Е', 'Вестник: светлые латы, сложенные золотые крылья за спиной')
+@new('r1f', 1, 'F', 'Herald: light plate armor, folded gold wings on the back')
 def r1f():
     wh = '#efe8d4'
     light = P(wh, trim(0.45, DG))
@@ -152,7 +152,7 @@ def fuv_v(p, face):
 AP, APD, APL, CRY = '#c020d8', '#5a1078', '#f090ff', '#e070ff'
 
 
-@new('r4d', 4, 'Г', 'Чародей: мантия с рунами, остроконечная шляпа, руническое кольцо за спиной')
+@new('r4d', 4, 'D', 'Sorcerer: a robe with runes, a pointed hat, a runic ring on the back')
 def r4d():
     robe = P('#3a1458', trim(0.3, APL, glow=True), mottle(APD, 1.2, 0.75))
     bs = chest(P('#3a1458', trim(0.3, APL, glow=True), rect(('north',), 4.5, 5.5, 0, 99, AP))) + upper_arm(P('#3a1458', trim(0.25, APD)))
@@ -178,7 +178,7 @@ def r4d():
     return bs
 
 
-@new('r4e', 4, 'Д', 'Зачарованный воин: сталь с сиреневым отблеском, пурпурный табар, призрачный щит')
+@new('r4e', 4, 'E', 'Enchanted warrior: steel with a lilac sheen, a purple tabard, a ghostly shield')
 def r4e():
     gl = [stripe('all', 1.0, b, 0.35, APL, glow=True) for b in (-6.0, 1.0, 8.0)]
     steel = P('#a8aeb8', trim(0.4, '#5c6270'), *gl)
@@ -195,7 +195,7 @@ def r4e():
     return bs
 
 
-@new('r4f', 4, 'Е', 'Горы Апалачии: камень с пурпурным мхом, плечи-пики со снежными шапками')
+@new('r4f', 4, 'F', 'Mountains of Apalachia: stone with purple moss, peak shoulders with snowcaps')
 def r4f():
     RK = '#76648a'
     sides = ('north', 'south', 'east', 'west')
@@ -220,7 +220,7 @@ def r4f():
 SKY, SKYL, SKYD, BLUE = '#aeb2ba', '#eef0f4', '#6a6e78', '#8ab8ec'
 
 
-@new('r5d', 5, 'Г', 'Мегалит: каменные плиты со светящимися швами, шлем-монолит')
+@new('r5d', 5, 'D', 'Megalith: stone slabs with glowing seams, a monolith helmet')
 def r5d():
     stone = P('#c8ccd4', mottle('#aab0ba', 1.2, 0.65), trim(0.25, BLUE, glow=True), noise=0.08)
     bs = chest(P('#c8ccd4', mottle('#aab0ba', 1.2, 0.65), trim(0.25, BLUE, glow=True), disc(('north',), 5, 4.6, 2.4, BLUE, glow=True, r0=1.8),
@@ -232,7 +232,7 @@ def r5d():
     return bs
 
 
-@new('r5e', 5, 'Д', 'Звездочёт: ночное небо - тёмно-синий плащ со звёздами, серп луны')
+@new('r5e', 5, 'E', 'Stargazer: night sky - a dark blue cloak with stars, a crescent moon')
 def r5e():
     navy = '#1c2450'
     stars = mottle('#ffffff', 2.4, 0.95, glow=True)
@@ -250,7 +250,7 @@ def r5e():
     return bs
 
 
-@new('r5f', 5, 'Е', 'Буревестник: грозовые тучи на плечах, молнии, шлем с клювом')
+@new('r5f', 5, 'F', 'Stormpetrel: storm clouds on the shoulders, lightning, a helmet with a beak')
 def r5f():
     storm = '#4a5262'
     sides = ('north', 'south')
@@ -283,7 +283,7 @@ HA, HAD, HAM, HAL, BLK, GLOWH, GOLDH = '#50e010', '#1e4a0a', '#3a8a10', '#c0ff80
 WORLD_GEMS = (GEM, '#ff7a2a', '#2a7aff', '#d040ff', '#bfe4ff', '#ff3020')  # R1-R6
 
 
-@new('r7d', 7, 'Г', 'Венец странствий: на груди и в короне камни всех пройденных миров')
+@new('r7d', 7, 'D', 'Crown of wanderings: stones of all the worlds passed on the chest and in the crown')
 def r7d():
     plate = P(HAD, trim(0.45, GOLDH), mottle(HAM, 1.2, 0.92))
     bs = chest(P(HAD, trim(0.5, GOLDH), mottle(HAM, 1.2, 0.92), disc(('north',), 5, 4.4, 4.3, GOLDH, r0=3.7))) + upper_arm(P(HAD, trim(0.3, HAM)))
@@ -304,7 +304,7 @@ def r7d():
     return bs
 
 
-@new('r7e', 7, 'Д', 'Парящие латы: пластины галита висят вокруг тела, между ними светится ядро')
+@new('r7e', 7, 'E', 'Floating plate armor: halite plates hang around the body, a core glows between them')
 def r7e():
     suit = P(BLK, rect(('north', 'south', 'east', 'west'), -1, 99, 5.6, 6.4, GLOWH, glow=True), trim(0.2, GLOWH, glow=True))
     bs = chest(suit, inf=0.3) + upper_arm(P(BLK, trim(0.2, HAM)), inf=0.3) + thigh(P(BLK, trim(0.2, HAM)), inf=0.3)
@@ -322,7 +322,7 @@ def r7e():
     return bs
 
 
-@new('r7f', 7, 'Е', 'Странник у цели: длинный сюртук, шляпа с пером, галитовый фонарь')
+@new('r7f', 7, 'F', 'Wanderer at the goal: a long frock coat, a hat with a feather, a halite lantern')
 def r7f():
     coat = P('#24401a', trim(0.35, '#0e1e08'), rect(('north',), 4.7, 5.3, 0, 99, '#0e1e08'))
     bs = chest(P('#24401a', trim(0.35, '#0e1e08'), rect(('north',), 4.7, 5.3, 0, 99, '#0e1e08'),

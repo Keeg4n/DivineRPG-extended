@@ -465,7 +465,7 @@ def main():
             big = im.resize((192, 192), Image.NEAREST)
             sheet.paste(big, (20 + i * 200, 14), big)
         sheet.save(sys.argv[1])
-    print('значков', len(icons), '+ посадка нимба и ласт')
+    print('icons', len(icons), '+ halo and fins fitting')
 
 
 if __name__ == '__main__':

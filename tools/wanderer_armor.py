@@ -207,8 +207,8 @@ def main():
             os.remove(dpath)
         share = 0 if dye is None else (dye[..., 3] > 0).sum() / max(1, (base[..., 3] > 0).sum())
         pieces = sorted({b.piece for b in m.boxes})
-        print('%s %s: коробок %d, атлас %dx%d, свечение %s, красится %d%%, части %s' % (name, LOOKS[name], len(m.boxes), m.W, m.H,
-                                                                                 'да' if glow.any() else 'нет', round(share * 100), ','.join(pieces)))
+        print('%s %s: boxes %d, atlas %dx%d, glow %s, dyeable %d%%, parts %s' % (name, LOOKS[name], len(m.boxes), m.W, m.H,
+                                                                                 'yes' if glow.any() else 'no', round(share * 100), ','.join(pieces)))
 
 
 if __name__ == '__main__':

@@ -12,14 +12,14 @@ OUT = sys.argv[1]
 e = html.escape
 IMG = os.path.join(os.path.dirname(os.path.abspath(OUT)), 'img')
 
-LEDE = ('Призрак понравился, но маска странная, а капюшон должен быть в цвет брони. Тело, ленты и огоньки за спиной оставлены как у А, '
-        'капюшон теперь бледно-голубой, как латы. Различается только лицо. Выбрать букву: Г, Д или Е.')
+LEDE = ('The Phantom was liked, but the mask is strange, and the hood should match the armor color. The body, ribbons and wisps behind the back are left as in A, '
+        'the hood is now pale light blue, like the plate armor. Only the face differs. Pick a letter: D, E or F.')
 
-WAS = ('r8a', 'А', 'Как было', 'Тёмно-синий капюшон, белая гладкая маска с прорезями.')
+WAS = ('r8a', 'A', 'As it was', 'A dark blue hood, a white smooth mask with slits.')
 VARIANTS = [
-    ('r8d', 'Г', 'Пустота с глазами', 'Капюшон в цвет брони со светящейся кромкой по краю. Лица нет: внутри тёмная пустота, в ней два голубых горящих глаза. Ближе всего к спектральному капюшону Террарии.'),
-    ('r8e', 'Д', 'Лицо из света', 'Капюшон в цвет брони, лицо - светящийся сгусток, на нём тёмные глаза и рот, как у призрака. Над лбом голубой камень. Обратное Г: светлое лицо, тёмные глаза.'),
-    ('r8f', 'Е', 'Открытое лицо', 'Капюшон в цвет брони открыт спереди: видно лицо игрока. На лбу светящийся обруч с огоньком, низ лица закрыт шарфом в цвет брони с голубой кромкой.'),
+    ('r8d', 'D', 'Void with eyes', 'A hood in the armor color with a glowing edge along the rim. No face: inside is a dark void, with two burning light blue eyes in it. Closest to the Terraria spectral hood.'),
+    ('r8e', 'E', 'Face of light', 'A hood in the armor color, the face is a glowing clump with dark eyes and mouth on it, like a ghost. A light blue stone above the brow. The opposite of D: a light face, dark eyes.'),
+    ('r8f', 'F', 'Open face', 'A hood in the armor color is open at the front: the player face is visible. A glowing circlet with a wisp on the brow, the lower face covered by a scarf in the armor color with a light blue edge.'),
 ]
 
 EXTRA = """
@@ -48,19 +48,19 @@ def front(key):
 
 
 def foot(n):
-    return '<div class="foot"><span>Облики брони Странника, R8 - Призрак, второй раунд</span><span>Страница %d из 4</span></div>' % n
+    return '<div class="foot"><span>Wanderer armor looks, R8 - Phantom, second round</span><span>Page %d of 4</span></div>' % n
 
 
 for v in [WAS] + VARIANTS:
     front(v[0])
-parts = ['<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Облики брони Странника - R8, Призрак</title>',
+parts = ['<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Wanderer armor looks - R8, Phantom</title>',
          '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600&family=Pixelify+Sans:wght@700&display=block">',
          '<style>%s%s</style></head><body>' % (CSS, EXTRA)]
 cells = ''.join('<div class="t%s"><img src="img/%s_f.png" alt=""><div class="lab"><b>%s</b>%s<div>%s</div></div></div>' % (' was' if k == 'r8a' else '', k, e(l), e(n), e(d))
                 for k, l, n, d in [WAS] + VARIANTS)
-parts.append('<section class="page"><h1>Облики брони Странника</h1><div class="sub">R8 - Призрак, второй раунд</div><p class="lede">%s</p><div class="four">%s</div>%s</section>' % (e(LEDE), cells, foot(1)))
+parts.append('<section class="page"><h1>Wanderer armor looks</h1><div class="sub">R8 - Phantom, second round</div><p class="lede">%s</p><div class="four">%s</div>%s</section>' % (e(LEDE), cells, foot(1)))
 for n, (k, l, name, d) in enumerate(VARIANTS, 2):
-    parts.append('<section class="page"><div class="head"><h2>Вариант %s: %s</h2></div><div class="solo"><img src="img/%s.png" alt=""><div class="vv"><span>спереди</span><span>сзади</span></div></div>'
+    parts.append('<section class="page"><div class="head"><h2>Variant %s: %s</h2></div><div class="solo"><img src="img/%s.png" alt=""><div class="vv"><span>front</span><span>back</span></div></div>'
                  '<p class="lede solotext">%s</p>%s</section>' % (e(l), e(name), k, e(d), foot(n)))
 parts.append('</body></html>')
 open(OUT, 'w', encoding='utf-8').write('\n'.join(parts))

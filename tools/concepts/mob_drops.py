@@ -13,8 +13,8 @@ def drop(key, name, mob, world, use, *vs):
     DROPS.append((key, name, mob, world, use, vs))
 
 
-CALL = 'Зов кадиллиона и закалка брони и лука мира'
-TEMPER = 'закалка брони и лука мира'
+CALL = 'Cadillion Call and world armor and bow tempering'
+TEMPER = 'world armor and bow tempering'
 
 
 def horn(c, base, tip, ramp, w0=2.6, bands=None, band=None, curve=0.0):
@@ -465,33 +465,33 @@ def silk_web(c):
     c.d(WHITE[4], 8, 8)
 
 
-drop('sun_feather', 'Солнечное перо', 'Слабая кори', 'Эдем', TEMPER,
-     ('Перо', feather), ('Перо на фоне солнца', feather_sun), ('Огненное перо', feather_flame))
-drop('horn_shard', 'Обломок рога Эдема', 'Единорог Эдема (и Великий кадиллион Эдема)', 'Эдем', CALL,
-     ('Спиральный обломок', horn_spiral), ('Кристалл рога', horn_crystal), ('Два осколка', horn_pieces))
-drop('greenfeet_root', 'Корень зеленонога', 'Зеленоног', 'Эдем', TEMPER,
-     ('Узловатый корень с ростком', root_gnarled), ('Корень-человечек', root_mandrake), ('Связка корней', root_bundle))
-drop('verek_fang', 'Клык верека', 'Верек', 'Дикий лес', TEMPER,
-     ('Клык', fang), ('Челюсть с клыками', fang_jaw), ('Морозный клык', fang_frost))
-drop('moon_horn', 'Лунный рог', 'Единорог Дикого леса', 'Дикий лес', CALL,
-     ('Рог-полумесяц', moon_crescent), ('Спиральный рог в кольце', moon_spiral), ('Рог с самоцветом', moon_gem))
-drop('moss_core', 'Мшистое ядро', 'Голем Дикого леса', 'Дикий лес', TEMPER,
-     ('Камень во мху', moss_stone), ('Рунный куб', moss_rune), ('Треснувший камень со светом', moss_crack))
-drop('golem_heart', 'Аметистовое сердце', 'Голем Апалачии', 'Апалачия', TEMPER,
-     ('Огранённое сердце', heart_cut), ('Друза', heart_druse), ('Каменное сердце с жилами', heart_stone))
-drop('dusk_horn', 'Сумрачный рог', 'Единорог Апалачии', 'Апалачия', CALL,
-     ('Спиральный', dusk_spiral), ('Изогнутый, от сирени к ночи', dusk_gradient), ('Звёздный', dusk_stars))
-drop('warrior_sigil', 'Знак воина Апалачии', 'Зачарованный воин', 'Апалачия', TEMPER,
-     ('Щит с мечом', sigil_shield), ('Медальон со скрещёнными мечами', sigil_medal), ('Рунный камень', sigil_rune))
-drop('sky_essence', 'Небесная эссенция', 'Демон Небесного терна', 'Небесный терн', CALL,
-     ('Флакон', essence_vial), ('Огонёк', essence_wisp), ('Кристалл с облаком', essence_crystal))
-drop('sky_string', 'Небесная тетива', 'Лучник Небесного терна', 'Небесный терн', TEMPER,
-     ('Моток', string_coil), ('Катушка', string_spool), ('Тетива с ушками', string_bow))
-drop('cloud_core', 'Облачное ядро', 'Голем Небесного терна', 'Небесный терн', TEMPER,
-     ('Облако со светом внутри', cloud_core), ('Шар в кольце облаков', cloud_sphere), ('Куб сжатого облака', cloud_cube))
-drop('dark_horn', 'Тёмный рог', 'Единорог Мортума', 'Мортум', TEMPER,
-     ('Витой', dark_twisted), ('Расколотый, с жаром внутри', dark_cracked), ('На костяном основании', dark_bone))
-drop('demon_heart', 'Демоническое сердце', 'Демон тьмы', 'Мортум', TEMPER,
-     ('Рогатое сердце', demon_horned), ('В тёмном пламени', demon_flame), ('Окаменевшее с трещиной', demon_stone))
-drop('soul_silk', 'Призрачный шёлк', 'Паук душ', 'Мортум', TEMPER,
-     ('Клубок', silk_ball), ('Отрез ткани', silk_cloth), ('Паутина с огоньком', silk_web))
+drop('sun_feather', 'Sun Feather', 'Weak Cori', 'Eden', TEMPER,
+     ('Feather', feather), ('Feather against the sun', feather_sun), ('Fiery feather', feather_flame))
+drop('horn_shard', 'Eden Horn Shard', 'Eden Cadillion (and Great Eden Cadillion)', 'Eden', CALL,
+     ('Spiral shard', horn_spiral), ('Horn crystal', horn_crystal), ('Two shards', horn_pieces))
+drop('greenfeet_root', 'Greenfeet Root', 'Greenfeet', 'Eden', TEMPER,
+     ('Knobbly root with a sprout', root_gnarled), ('Root man', root_mandrake), ('Bundle of roots', root_bundle))
+drop('verek_fang', 'Verek Fang', 'Verek', 'Wildwood', TEMPER,
+     ('Fang', fang), ('Jaw with fangs', fang_jaw), ('Frost fang', fang_frost))
+drop('moon_horn', 'Moon Horn', 'Wildwood Cadillion', 'Wildwood', CALL,
+     ('Crescent horn', moon_crescent), ('Spiral horn in a ring', moon_spiral), ('Horn with a gem', moon_gem))
+drop('moss_core', 'Moss Core', 'Wildwood Golem', 'Wildwood', TEMPER,
+     ('Stone in moss', moss_stone), ('Rune cube', moss_rune), ('Cracked stone with light', moss_crack))
+drop('golem_heart', 'Amethyst Heart', 'Apalachia Golem', 'Apalachia', TEMPER,
+     ('Cut heart', heart_cut), ('Geode', heart_druse), ('Stone heart with veins', heart_stone))
+drop('dusk_horn', 'Dusk Horn', 'Apalachia Cadillion', 'Apalachia', CALL,
+     ('Spiral', dusk_spiral), ('Curved, from lilac to night', dusk_gradient), ('Starry', dusk_stars))
+drop('warrior_sigil', 'Apalachian Sigil', 'Enchanted Warrior', 'Apalachia', TEMPER,
+     ('Shield with a sword', sigil_shield), ('Medallion with crossed swords', sigil_medal), ('Rune stone', sigil_rune))
+drop('sky_essence', 'Sky Essence', 'Skythern Fiend', 'Skythern', CALL,
+     ('Flask', essence_vial), ('Wisp', essence_wisp), ('Crystal with a cloud', essence_crystal))
+drop('sky_string', 'Sky String', 'Skythern Archer', 'Skythern', TEMPER,
+     ('Hank', string_coil), ('Spool', string_spool), ('Bowstring with loops', string_bow))
+drop('cloud_core', 'Cloud Core', 'Skythern Golem', 'Skythern', TEMPER,
+     ('Cloud with light inside', cloud_core), ('Orb in a ring of clouds', cloud_sphere), ('Cube of compressed cloud', cloud_cube))
+drop('dark_horn', 'Dark Horn', 'Mortum Cadillion', 'Mortum', TEMPER,
+     ('Twisted', dark_twisted), ('Cracked, with heat inside', dark_cracked), ('On a bone base', dark_bone))
+drop('demon_heart', 'Demon Heart', 'Demon Of Darkness', 'Mortum', TEMPER,
+     ('Horned heart', demon_horned), ('In dark flames', demon_flame), ('Petrified with a crack', demon_stone))
+drop('soul_silk', 'Soul Silk', 'Soul Spider', 'Mortum', TEMPER,
+     ('Tangle', silk_ball), ('Piece of cloth', silk_cloth), ('Web with a wisp', silk_web))

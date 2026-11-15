@@ -101,34 +101,34 @@ cracks = PATH((1, 2), (5, 5), (4, 9), (8, 11), (12, 9), (14, 13)) | PATH((10, 1)
 red_eye = lambda c: (c.f(ELL(8, 8, 5.5, 3.2), RED), c.f(DISC(8, 8, 1.8), K), c.d('#fff080', 7, 7))
 
 ALTARS = [
-    ('Алтарь Карцинуса', 'Карцинус', '4 крабовые клешни', 'сейчас целиком резной каменный кирпич', [
-        ('Резной камень и клешня', 'резной кирпич, песчаник', lambda: draw(frame(T('stonebrick_carved'), T('sandstone_normal'), 1), claw), lambda: draw(frame(T('sandstone_top'), T('stonebrick_carved'), 2), claw)),
-        ('Вода в песчанике', 'резной песчаник, вода, каменный кирпич', lambda: inset(T('sandstone_carved'), T('water_still'), 4), lambda: frame(T('water_still'), T('stonebrick_carved'), 3)),
-        ('Панцирные плиты', 'каменный кирпич, оранжевая глина', lambda: band(band(T('stonebrick'), T('hardened_clay_stained_orange'), 0, 3), T('hardened_clay_stained_orange'), 12, 15), lambda: draw(frame(T('hardened_clay_stained_orange'), T('stonebrick'), 2), lambda c: (c.c(RING(8, 8, 5, 1), ORG[0]), c.d(ORG[0], 8, 8))))]),
-    ('Алтарь Снежного Глакона', 'Снежный Глакон', 'Панцирь глубин', 'сейчас целиком блок лазурита', [
-        ('Лазурит в паковом льду', 'лазурит, паковый лёд', lambda: draw(frame(T('lapis_block'), T('ice_packed'), 2), flake), lambda: draw(frame(T('lapis_block'), T('ice_packed'), 3), flake)),
-        ('Снежная шапка', 'лазурит, снег', lambda: drip(T('lapis_block'), T('snow')), lambda: draw(T('snow'), lambda c: c.f(DIAMOND(8, 8, 5), LAP))),
-        ('Ледяные колонны', 'лазурит, лёд', lambda: columns(T('lapis_block'), T('ice_packed')), lambda: mask(T('ice_packed'), T('lapis_block'), RING(8, 8, 6, 2.2)))]),
-    ('Алтарь Ледяного Трона', 'Ледяной Колосс и Король-лич', '12 снежинок', 'сейчас целиком алмазный блок', [
-        ('Алмаз в обсидиане', 'алмазный блок, обсидиан', lambda: frame(T('diamond_block'), T('obsidian'), 2), lambda: draw(frame(T('diamond_block'), T('obsidian'), 2), crown)),
-        ('Кварц и лёд', 'резной кварц, алмаз, паковый лёд', lambda: inset(band(T('quartz_block_chiseled'), T('ice_packed'), 13, 15), T('diamond_block'), 5), lambda: inset(T('quartz_block_chiseled_top'), T('diamond_block'), 5)),
-        ('Трон изо льда', 'паковый лёд, алмазный блок', lambda: draw(band(T('ice_packed'), T('diamond_block'), 11, 13), lambda c: c.f(POLY((3, 10), (5, 4), (7, 10)) | POLY((9, 10), (11, 4), (13, 10)), SILV)), lambda: mask(T('ice_packed'), T('diamond_block'), RECT(6, 0, 9, 15) | RECT(0, 6, 15, 9)))]),
-    ('Алтарь Древней гробницы', 'Древняя сущность', 'Таинственные часы', 'сейчас целиком золотой блок', [
-        ('Песчаник и анх', 'резной песчаник, золотой блок', lambda: draw(frame(T('sandstone_carved'), T('gold_block'), 1), ankh), lambda: frame(T('sandstone_top'), T('gold_block'), 3)),
-        ('Золото и лазурит', 'золотой блок, лазурит', lambda: draw(columns(T('gold_block'), T('lapis_block'), 3), sun_eye), lambda: draw(T('gold_block'), sun_eye)),
-        ('Гробничные часы', 'гладкий песчаник, золотой блок', lambda: draw(band(T('sandstone_smooth'), T('gold_block'), 0, 2), clock), lambda: draw(frame(T('sandstone_top'), T('gold_block'), 2), clock))]),
-    ('Алтарь заповедной рощи', 'Страж мира (Великий кадиллион, голем, Король-воин, Повелитель ветров)', 'Зов своего мира', 'сейчас целиком изумрудный блок, один на все 4 мира', [
-        ('Изумруд во мху', 'изумрудный блок, мшистый кирпич', lambda: draw(frame(T('emerald_block'), T('stonebrick_mossy'), 2), horn), lambda: frame(T('emerald_block'), T('stonebrick_mossy'), 3)),
-        ('Изумруд в дереве', 'изумрудный блок, тропическая древесина', lambda: inset(T('log_jungle'), T('emerald_block'), 5), lambda: mask(T('log_jungle_top'), T('emerald_block'), RING(8, 8, 5, 2))),
-        ('Заросший', 'изумрудный блок, мицелий, лианы', lambda: over(drip(T('emerald_block'), T('mycelium_side')), T('vine')), lambda: draw(T('mycelium_top'), horn))]),
-    ('Алтарь логова джунглей', 'Древний драмкрикс', 'Тотем Древнего драмкрикса', 'сейчас целиком мшистый кирпич', [
-        ('Золотой идол', 'мшистый булыжник, золотой блок', lambda: draw(T('cobblestone_mossy'), idol), lambda: mask(T('cobblestone_mossy'), T('gold_block'), RING(8, 8, 6, 1.6))),
-        ('В лианах', 'мшистый кирпич, лианы, тропические доски', lambda: draw(over(T('stonebrick_mossy'), T('vine')), gem), lambda: draw(frame(T('planks_jungle'), T('stonebrick_mossy'), 2), gem)),
-        ('Тотемный столб', 'тропическая древесина, мшистый кирпич', lambda: draw(band(T('log_jungle'), T('stonebrick_mossy'), 13, 15), totem), lambda: frame(T('log_jungle_top'), T('stonebrick_mossy'), 2))]),
-    ('Алтарь арены Мортума', '6 боссов Мортума', 'кристалл босса', 'сейчас целиком блок красного камня', [
-        ('Адский кирпич', 'адский кирпич, блок красного камня', lambda: draw(frame(T('redstone_block'), T('nether_brick'), 2), skull), lambda: draw(frame(T('redstone_block'), T('nether_brick'), 2), ring_c)),
-        ('Трещины в обсидиане', 'обсидиан, блок красного камня', lambda: mask(T('obsidian'), T('redstone_block'), cracks), lambda: mask(T('obsidian'), T('redstone_block'), RING(8, 8, 6, 1.6) | cracks)),
-        ('Песок душ и глаз', 'песок душ, адский камень, красный камень, светокамень', lambda: draw(band(band(T('netherrack'), T('soul_sand'), 11, 15), T('redstone_block'), 0, 1), red_eye), lambda: inset(T('soul_sand'), T('glowstone'), 5))]),
+    ('Carcinus Altar', 'Carcinus', '4 crab claws', 'currently a single carved stone brick', [
+        ('Carved stone and claw', 'carved brick, sandstone', lambda: draw(frame(T('stonebrick_carved'), T('sandstone_normal'), 1), claw), lambda: draw(frame(T('sandstone_top'), T('stonebrick_carved'), 2), claw)),
+        ('Water in sandstone', 'carved sandstone, water, stone brick', lambda: inset(T('sandstone_carved'), T('water_still'), 4), lambda: frame(T('water_still'), T('stonebrick_carved'), 3)),
+        ('Shell plates', 'stone brick, orange clay', lambda: band(band(T('stonebrick'), T('hardened_clay_stained_orange'), 0, 3), T('hardened_clay_stained_orange'), 12, 15), lambda: draw(frame(T('hardened_clay_stained_orange'), T('stonebrick'), 2), lambda c: (c.c(RING(8, 8, 5, 1), ORG[0]), c.d(ORG[0], 8, 8))))]),
+    ('Snow Glacon Altar', 'Snow Glacon', 'Shell of the Deep', 'currently a single lapis block', [
+        ('Lapis in packed ice', 'lapis, packed ice', lambda: draw(frame(T('lapis_block'), T('ice_packed'), 2), flake), lambda: draw(frame(T('lapis_block'), T('ice_packed'), 3), flake)),
+        ('Snow cap', 'lapis, snow', lambda: drip(T('lapis_block'), T('snow')), lambda: draw(T('snow'), lambda c: c.f(DIAMOND(8, 8, 5), LAP))),
+        ('Ice pillars', 'lapis, ice', lambda: columns(T('lapis_block'), T('ice_packed')), lambda: mask(T('ice_packed'), T('lapis_block'), RING(8, 8, 6, 2.2)))]),
+    ('Frozen Throne Altar', 'Frost Colossus and Lich King', '12 snowflakes', 'currently a single diamond block', [
+        ('Diamond in obsidian', 'diamond block, obsidian', lambda: frame(T('diamond_block'), T('obsidian'), 2), lambda: draw(frame(T('diamond_block'), T('obsidian'), 2), crown)),
+        ('Quartz and ice', 'carved quartz, diamond, packed ice', lambda: inset(band(T('quartz_block_chiseled'), T('ice_packed'), 13, 15), T('diamond_block'), 5), lambda: inset(T('quartz_block_chiseled_top'), T('diamond_block'), 5)),
+        ('Throne of ice', 'packed ice, diamond block', lambda: draw(band(T('ice_packed'), T('diamond_block'), 11, 13), lambda c: c.f(POLY((3, 10), (5, 4), (7, 10)) | POLY((9, 10), (11, 4), (13, 10)), SILV)), lambda: mask(T('ice_packed'), T('diamond_block'), RECT(6, 0, 9, 15) | RECT(0, 6, 15, 9)))]),
+    ('Ancient Tomb Altar', 'Ancient Entity', 'Mysterious Clock', 'currently a single gold block', [
+        ('Sandstone and ankh', 'carved sandstone, gold block', lambda: draw(frame(T('sandstone_carved'), T('gold_block'), 1), ankh), lambda: frame(T('sandstone_top'), T('gold_block'), 3)),
+        ('Gold and lapis', 'gold block, lapis', lambda: draw(columns(T('gold_block'), T('lapis_block'), 3), sun_eye), lambda: draw(T('gold_block'), sun_eye)),
+        ('Tomb Clock', 'smooth sandstone, gold block', lambda: draw(band(T('sandstone_smooth'), T('gold_block'), 0, 2), clock), lambda: draw(frame(T('sandstone_top'), T('gold_block'), 2), clock))]),
+    ('Sacred Grove Altar', 'World Guardian (Great Cadillion, golem, Warrior King, Wind Lord)', 'Call of One\'s Own World', 'currently a single emerald block, one for all 4 worlds', [
+        ('Emerald in moss', 'emerald block, mossy brick', lambda: draw(frame(T('emerald_block'), T('stonebrick_mossy'), 2), horn), lambda: frame(T('emerald_block'), T('stonebrick_mossy'), 3)),
+        ('Emerald in wood', 'emerald block, tropical wood', lambda: inset(T('log_jungle'), T('emerald_block'), 5), lambda: mask(T('log_jungle_top'), T('emerald_block'), RING(8, 8, 5, 2))),
+        ('Overgrown', 'emerald block, mycelium, vines', lambda: over(drip(T('emerald_block'), T('mycelium_side')), T('vine')), lambda: draw(T('mycelium_top'), horn))]),
+    ('Jungle Lair Altar', 'Ancient Dramcryx', 'Ancient Dramcryx Totem', 'currently a single mossy brick', [
+        ('Golden idol', 'mossy cobblestone, gold block', lambda: draw(T('cobblestone_mossy'), idol), lambda: mask(T('cobblestone_mossy'), T('gold_block'), RING(8, 8, 6, 1.6))),
+        ('In vines', 'mossy brick, vines, tropical planks', lambda: draw(over(T('stonebrick_mossy'), T('vine')), gem), lambda: draw(frame(T('planks_jungle'), T('stonebrick_mossy'), 2), gem)),
+        ('Totem pole', 'tropical wood, mossy brick', lambda: draw(band(T('log_jungle'), T('stonebrick_mossy'), 13, 15), totem), lambda: frame(T('log_jungle_top'), T('stonebrick_mossy'), 2))]),
+    ('Mortum Arena Altar', '6 Mortum bosses', 'boss crystal', 'currently a single redstone block', [
+        ('Nether brick', 'nether brick, redstone block', lambda: draw(frame(T('redstone_block'), T('nether_brick'), 2), skull), lambda: draw(frame(T('redstone_block'), T('nether_brick'), 2), ring_c)),
+        ('Cracks in obsidian', 'obsidian, redstone block', lambda: mask(T('obsidian'), T('redstone_block'), cracks), lambda: mask(T('obsidian'), T('redstone_block'), RING(8, 8, 6, 1.6) | cracks)),
+        ('Soul sand and eye', 'soul sand, netherrack, redstone, glowstone', lambda: draw(band(band(T('netherrack'), T('soul_sand'), 11, 15), T('redstone_block'), 0, 1), red_eye), lambda: inset(T('soul_sand'), T('glowstone'), 5))]),
 ]
 
 

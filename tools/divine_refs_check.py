@@ -148,12 +148,12 @@ def main(addon, divine, *mc):
             r = has(owner, 'field' if kind == 'field' else 'method', mname, desc)
             if r is False:
                 missing_mem.add((owner, kind, mname, desc, name))
-    print('классов аддона %d, обращений к Divine %d' % (len(ours), checked))
+    print('addon classes %d, references to Divine %d' % (len(ours), checked))
     for c, by in sorted(missing_cls):
-        print('НЕТ КЛАССА', c, '<-', by)
+        print('NO CLASS', c, '<-', by)
     for o, k, m, d, by in sorted(missing_mem):
-        print('НЕТ', k, o + '.' + m, d, '<-', by)
-    print('итог:', 'всё есть' if not missing_cls and not missing_mem else 'есть пропуски')
+        print('MISSING', k, o + '.' + m, d, '<-', by)
+    print('result:', 'all present' if not missing_cls and not missing_mem else 'gaps found')
     return 0 if not missing_cls and not missing_mem else 1
 
 

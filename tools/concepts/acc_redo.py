@@ -43,14 +43,14 @@ def steps_top():
 
 
 ALT6 = [
-    ('Изумруд в храмовом камне', 'резной каменный кирпич, изумрудный блок, мох сверху',
+    ('Emerald in temple stone', 'carved stone brick, emerald block, moss on top',
      lambda: AL.drip(AL.inset(T('stonebrick_carved'), T('emerald_block'), 4), T('stonebrick_mossy'), 3, (2, 3, 4, 2, 3, 1, 2, 3, 4, 3, 2, 1, 3, 4, 2, 3)),
      lambda: AL.inset(AL.frame(T('stonebrick_mossy'), T('stonebrick_carved'), 2), T('emerald_block'), 5)),
-    ('Ступени храма', 'мшистый булыжник, каменный кирпич, резной кирпич, изумруд',
+    ('Temple steps', 'mossy cobblestone, stone brick, carved brick, emerald',
      lambda: AL.draw(AL.band(AL.band(T('stonebrick'), T('cobblestone_mossy'), 11, 15), T('stonebrick_carved'), 0, 3),
                      lambda c: (c.f(DIAMOND(8, 7, 2.6), GRN), c.d(GRN[4], 7, 6))),
      steps_top),
-    ('Изумрудные жилы', 'каменный кирпич, изумрудный блок, лианы',
+    ('Emerald veins', 'stone brick, emerald block, vines',
      lambda: AL.over(AL.mask(T('stonebrick'), T('emerald_block'), emerald_veins()), _vine_low()),
      lambda: AL.mask(T('stonebrick'), T('emerald_block'), RING(8, 8, 6, 1.6) | emerald_veins())),
 ]
@@ -112,7 +112,7 @@ def scarf_fit(a, c1, c2, tail='front', h=1.7):
     return out
 
 
-FITS = [('Хвост по груди (как было, но поверх брони)', 'front'), ('Хвост закинут за спину', 'back'), ('Узел сбоку, два коротких хвоста', 'two')]
+FITS = [('Tail down the chest (as it was, but over the armor)', 'front'), ('Tail thrown over the back', 'back'), ('Knot at the side, two short tails', 'two')]
 
 # ------------------------------------------------------------------ carpet
 
@@ -161,7 +161,7 @@ def main():
             K.shot(arm, parts, 'chest', 'back' if kind == 'back' else 'side', w.POSE).save(OUT + '/scarf_%d_%s2.jpg' % (j, an), quality=90)
     # carpet: current, A and two new ones
     cp = items['magic_carpet'][3][0]
-    icons = [('Сейчас в игре', current_icon()), ('А. Алый с золотом', K.icon(cp[1])), ('Г. Волна в полёте', K.icon(carpet_wave)), ('Д. Ночной со звёздами', K.icon(carpet_stars))]
+    icons = [('Currently in game', current_icon()), ('A. Scarlet and gold', K.icon(cp[1])), ('D. Wave in flight', K.icon(carpet_wave)), ('E. Night with stars', K.icon(carpet_stars))]
     for j, (label, ic) in enumerate(icons):
         K.save_icon(ic, OUT + '/carpet_%d.png' % j, 6)
         for an, arm in (('d', dv), ('w', wa)):

@@ -31,7 +31,7 @@ def tabard(paint, top=0.4, length=13.0, w=5.2):
 
 
 # ---- R1 from Divine armor
-@new('r1g', 1, 'Ж', 'Божественная броня начисто: золото, алый пояс, открытый шлем с камнем')
+@new('r1g', 1, 'G', 'Divine armor, clean version: gold, a scarlet belt, an open helmet with a stone')
 def r1g():
     gold = P(DG, trim(0.4, DGD))
     bs = chest(P(DG, trim(0.45, DGD), rect(('north',), 4.6, 5.4, 0, 99, DGD), disc(('north',), 5, 3.0, 0.8, GEM, glow=True)))
@@ -41,7 +41,7 @@ def r1g():
     return bs
 
 
-@new('r1h', 1, 'З', 'Золото и сталь: стальные рукава и бёдра, золотые кираса и наплечники, глухой шлем')
+@new('r1h', 1, 'H', 'Gold and steel: steel sleeves and thighs, a gold cuirass and pauldrons, a closed helmet')
 def r1h():
     gold, steel = P(DG, trim(0.45, DGD)), P(STEEL, trim(0.35, STEELD))
     bs = chest(P(DG, trim(0.45, DGD), rect(('north',), 2.0, 8.0, 7.2, 7.8, CRIM))) + upper_arm(steel) + vambrace(gold)
@@ -52,7 +52,7 @@ def r1h():
     return bs
 
 
-@new('r1i', 1, 'И', 'Алое сюрко: кольчуга, поверх алое сюрко с золотой каймой, кольчужный капюшон с обручем')
+@new('r1i', 1, 'I', 'Scarlet surcoat: chainmail, over it a scarlet surcoat with a gold trim, a chainmail hood with a circlet')
 def r1i():
     mail = P(STEEL, dots('all', 0.8, 0.28, STEELD), noise=0.08, bevel=0.1)
     bs = chest(mail) + upper_arm(mail) + thigh(mail) + vambrace(P(DG, trim(0.3, DGD))) + boot(P(STEEL, trim(0.35, STEELD)), toe=0.3)
@@ -67,7 +67,7 @@ def r1i():
 AP, APD, APL = '#c020d8', '#5a1078', '#f090ff'
 
 
-@new('r4g', 4, 'Ж', 'Пурпурная кожа: куртка со шнуровкой, капюшон, кристалл на поясе')
+@new('r4g', 4, 'G', 'Purple leather: a laced jacket, a hood, a crystal on the belt')
 def r4g():
     lea = P('#7a2a96', trim(0.35, APD))
     bs = chest(P('#7a2a96', trim(0.35, APD), rect(('north',), 4.7, 5.3, 0, 99, APD), *[rect(('north',), 4.2, 5.8, y, y + 0.35, APL) for y in (1.5, 3.5, 5.5)]))
@@ -77,7 +77,7 @@ def r4g():
     return bs
 
 
-@new('r4h', 4, 'З', 'Гладкие латы: пурпурные пластины с сиреневой полосой, шлем с прорезью')
+@new('r4h', 4, 'H', 'Smooth plate armor: purple plates with a lilac stripe, a helmet with a slit')
 def r4h():
     plate = P(AP, trim(0.45, APD), rect(('up',), -1, 99, -1, 99, '#d850ec'))
     bs = chest(P(AP, trim(0.45, APD), rect(('north', 'south'), 4.4, 5.6, 0, 99, APL))) + upper_arm(P(APD, trim(0.3, '#3a0850'))) + vambrace(plate)
@@ -87,7 +87,7 @@ def r4h():
     return bs
 
 
-@new('r4i', 4, 'И', 'Латы и накидка: тёмные латы, пурпурная накидка на плечах и короткий плащ')
+@new('r4i', 4, 'I', 'Plate armor and cape: dark plate armor, a purple cape on the shoulders and a short cloak')
 def r4i():
     dark = P('#3a1a4c', trim(0.4, AP))
     bs = chest(dark) + upper_arm(P('#2a1238', trim(0.3, APD))) + vambrace(dark) + belt(P('#1e0c2a')) + thigh(P('#2a1238')) + boot(dark, toe=0.4)
@@ -103,7 +103,7 @@ def r4i():
 SKY, SKYL, SKYD, BLUE = '#aeb2ba', '#eef0f4', '#6a6e78', '#8ab8ec'
 
 
-@new('r5g', 5, 'Ж', 'Кольчуга и табар: серебряная кольчуга, голубой табар, кольчужный капюшон')
+@new('r5g', 5, 'G', 'Chainmail and tabard: silver chainmail, a light blue tabard, a chainmail hood')
 def r5g():
     mail = P(SKY, dots('all', 0.8, 0.28, '#8a8e98'), noise=0.06, bevel=0.1)
     bs = chest(mail) + upper_arm(mail) + thigh(mail) + vambrace(P(SKYL, trim(0.3, SKYD))) + boot(P(SKYL, trim(0.3, SKYD)), toe=0.3)
@@ -112,7 +112,7 @@ def r5g():
     return bs
 
 
-@new('r5h', 5, 'З', 'Белые латы: гладкие белые пластины с голубой каймой, шлем с прорезью')
+@new('r5h', 5, 'H', 'White plate armor: smooth white plates with a light blue trim, a helmet with a slit')
 def r5h():
     plate = P(SKYL, trim(0.45, BLUE))
     bs = chest(P(SKYL, trim(0.45, BLUE), rect(('north',), 4.5, 5.5, 0, 99, BLUE))) + upper_arm(P(SKY, trim(0.3, SKYD))) + vambrace(plate)
@@ -121,7 +121,7 @@ def r5h():
     return bs
 
 
-@new('r5i', 5, 'И', 'Серый плащ: простые серые латы, белый капюшон и плащ с голубой застёжкой')
+@new('r5i', 5, 'I', 'Gray cloak: plain gray plate armor, a white hood and a cloak with a light blue clasp')
 def r5i():
     plate = P(SKY, trim(0.35, SKYD))
     bs = chest(plate) + upper_arm(plate) + vambrace(P(SKYL, trim(0.3, SKYD))) + belt(P(SKYD)) + thigh(P('#8a8e98')) + boot(plate, toe=0.3)
@@ -135,7 +135,7 @@ def r5i():
 HA, HAD, HAM, HAL, GOLDH = '#50e010', '#1e4a0a', '#3a8a10', '#c0ff80', '#e0b84a'
 
 
-@new('r7g', 7, 'Ж', 'Полированный галит: зелёные латы с гранями, глухой шлем')
+@new('r7g', 7, 'G', 'Polished halite: green plate armor with facets, a closed helmet')
 def r7g():
     plate = P(HAM, trim(0.45, HAD), facets('#ffffff', 0.12))
     bs = chest(P(HAM, trim(0.45, HAD), facets('#ffffff', 0.12), rect(('north',), 4.6, 5.4, 0, 99, HAD))) + upper_arm(P(HAD, trim(0.3, '#0e2405')))
@@ -145,7 +145,7 @@ def r7g():
     return bs
 
 
-@new('r7h', 7, 'З', 'Галит и золото: тёмно-зелёные латы с золотой каймой, камень на груди, короткий плащ')
+@new('r7h', 7, 'H', 'Halite and gold: dark green plate armor with a gold trim, a stone on the chest, a short cloak')
 def r7h():
     plate = P(HAD, trim(0.45, GOLDH))
     bs = chest(P(HAD, trim(0.45, GOLDH), disc(('north',), 5, 3.6, 1.6, GOLDH), disc(('north',), 5, 3.6, 1.0, HA, glow=True)))
@@ -156,7 +156,7 @@ def r7h():
     return bs
 
 
-@new('r7i', 7, 'И', 'Галитовый капюшон: тёмная кожа, зелёный капюшон, галитовая брошь и наручи')
+@new('r7i', 7, 'I', 'Halite hood: dark leather, a green hood, a halite brooch and bracers')
 def r7i():
     lea = P('#24341c', trim(0.35, '#121c0c'))
     bs = chest(lea) + upper_arm(lea) + belt(P('#121c0c', rect(('north',), 4.0, 5.4, 0.3, 2.3, HAM))) + thigh(P('#1c2814')) + boot(lea, toe=0.3)

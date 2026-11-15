@@ -12,28 +12,28 @@ OUT = sys.argv[1]
 e = html.escape
 IMG = os.path.join(os.path.dirname(os.path.abspath(OUT)), 'img')
 
-LEDE = ('Первую ступень брони Странника можно сковать не только из божественной брони, а из любого финального сета обычного мира. Какой сет принёс, такой облик и получил, '
-        'а его свойство остаётся в броне навсегда. На каждый новый сет по три образа, выбрать можно один: например, Тень Б, Бедрок В, Энд А, Порча Б.')
+LEDE = ('The first tier of Wanderer armor can be forged not only from Divine armor but from any final set of the ordinary world. Whichever set was brought, that look is received, '
+        'and its property stays in the armor forever. Each new set has three looks, you can pick one: for example, Shadow B, Bedrock C, Ender A, Corruption B.')
 
-DIVINE = ('r1v', 'Божественная', 'ближний бой', 'Без изменений, этот облик уже в игре. Серебряная кираса с золотым клином, открытый золотой шлем с крылышками и алым камнем, на спине серебряный щит с золотым крестом.')
+DIVINE = ('r1v', 'Divine', 'melee', 'Unchanged, this look is already in the game. A silver cuirass with a gold wedge, an open gold helmet with wings and a scarlet stone, a silver shield with a gold cross on the back.')
 
 SETS = [
-    ('Тень', 'скорость', '#474747', [
-        ('r1t', 'А', 'Ниндзя', 'Зализанные чёрные латы с серым шевроном. Глухой шлем с узкой белой прорезью, на висках крылышки назад, тонкие планки на плечах, предплечьях и пятках. Спина свободна.'),
-        ('r1u', 'Б', 'Ворон', 'Шлем с клювом и круглыми белыми глазами, хохолок и пучки перьев на плечах, на груди чешуя перьев. За спиной наискось большой теневой лук с тетивой.'),
-        ('r1w', 'В', 'Призрак', 'Одежда в обмотках, светлый шарф, голова в тёмной повязке и белая маска с прищуром. На поясе подсумки, на бедре чехол. За спиной большой сюрикен. Самый простой силуэт из трёх.')]),
-    ('Бедрок', 'стойкость', '#7c7c7c', [
-        ('r1k', 'А', 'Голем', 'Латы из крапчатой породы, широкие наплечники в две ступени, массивные сапоги. Глухой шлем с рубленым венцом и белыми глазами. Спина свободна.'),
-        ('r1l', 'Б', 'Бастион', 'Латы как кладка крепости: швы между камнями, зубцы на плечах и на шлеме, как у башни. Узкая голубая прорезь, руна на груди. За спиной ростовой щит из каменной плиты с той же руной.'),
-        ('r1m', 'В', 'Недра', 'Чёрная порода, в трещинах светится лава. Валуны на плечах, рогатый шлем с раскалённой прорезью. На спине каменные шипы веером и раскалённое ядро. Самый яркий из трёх.')]),
-    ('Энд', 'пустотный шаг', '#1674d0', [
-        ('r1n', 'А', 'Портал', 'Гладкие синие латы с белыми искрами, как у брони Энда в Divine, белые полосы и подошвы. Шлем с ромбом и глазом Края, плавники вверх на висках. На спине кольцо портала с жемчужинами.'),
-        ('r1o', 'Б', 'Ходок Края', 'Почти чёрные латы в звёздах с синими светящимися линиями. Длинные глаза во всё лицо, как у эндермена, длинные светящиеся когти. На спине кристалл Края в рамке ромбом.'),
-        ('r1q', 'В', 'Дракон', 'Синяя чешуя и светлые пластины на груди, рогатый шлем с мордой, зубами и пурпурными глазами, шипы на плечах. На спине кожистые крылья, раскрыты вверх и в стороны, а не висят плащом.')]),
-    ('Порча', 'дальний бой', '#594d9a', [
-        ('r1p', 'А', 'Пушкарь', 'Сине-фиолетовые латы с пурпурными пятнами и прожилками, большой глаз на груди. Шлем с тремя глазами Груи и зашитым ртом, костяные шипы. На спине пушка порчи наискось, дуло светится.'),
-        ('r1r', 'Б', 'Охотник', 'Широкополая шляпа с пурпурной лентой и пером, лицо в тени, светятся только глаза, низ закрыт шарфом. Тёмная кожа с патронташем, кобура на бедре. Над плечом колчан со светящимися стрелами.'),
-        ('r1x', 'В', 'Грю', 'Тёмная плоть, зубастая пасть на груди и вторая на шлеме под огромными глазами, глаза на плечах. Из спины растут щупальца с глазами на концах. Самый жуткий из трёх.')]),
+    ('Shadow', 'speed', '#474747', [
+        ('r1t', 'A', 'Ninja', 'Sleek black plate armor with a gray chevron. A closed helmet with a narrow white slit, wings swept back at the temples, thin plates on the shoulders, forearms and heels. The back is free.'),
+        ('r1u', 'B', 'Raven', 'A helmet with a beak and round white eyes, a tuft and bunches of feathers on the shoulders, feather scales on the chest. A large shadow bow with a string slants across the back.'),
+        ('r1w', 'C', 'Phantom', 'Wrapped clothes, a light scarf, the head in a dark wrap and a white mask with a squint. Pouches on the belt, a sheath on the hip. A large shuriken on the back. The simplest silhouette of the three.')]),
+    ('Bedrock', 'resilience', '#7c7c7c', [
+        ('r1k', 'A', 'Golem', 'Plate armor of speckled rock, wide two-step pauldrons, massive boots. A closed helmet with a rough-hewn crown and white eyes. The back is free.'),
+        ('r1l', 'B', 'Bastion', 'Plate armor like fortress masonry: seams between the stones, battlements on the shoulders and on the helmet, like a tower. A narrow light blue slit, a rune on the chest. A full-height shield of a stone slab with the same rune on the back.'),
+        ('r1m', 'C', 'Depths', 'Black rock, lava glows in the cracks. Boulders on the shoulders, a horned helmet with a red-hot slit. Stone spikes fanned out on the back and a red-hot core. The brightest of the three.')]),
+    ('Ender', 'void step', '#1674d0', [
+        ('r1n', 'A', 'Portal', 'Sleek blue plate armor with white sparks, like the Ender armor in Divine, white stripes and soles. A helmet with a diamond and an Ender eye, fins pointing up at the temples. A portal ring with pearls on the back.'),
+        ('r1o', 'B', 'Ender Walker', 'Almost black plate armor in stars with blue glowing lines. Long eyes across the whole face, like an Enderman, long glowing claws. An Ender crystal in a diamond frame on the back.'),
+        ('r1q', 'C', 'Dragon', 'Blue scales and light plates on the chest, a horned helmet with a snout, teeth and purple eyes, spikes on the shoulders. Leathery wings on the back, spread up and to the sides, not hanging like a cloak.')]),
+    ('Corruption', 'ranged', '#594d9a', [
+        ('r1p', 'A', 'Gunner', 'Blue-violet plate armor with purple spots and veins, a big eye on the chest. A helmet with three Grue eyes and a sewn mouth, bone spikes. A corruption cannon slanted across the back, the barrel glows.'),
+        ('r1r', 'B', 'Hunter', 'A wide-brimmed hat with a purple ribbon and a feather, the face in shadow, only the eyes glow, the lower face covered by a scarf. Dark leather with a bandolier, a holster on the hip. A quiver of glowing arrows over the shoulder.'),
+        ('r1x', 'C', 'Grue', 'Dark flesh, a toothy maw on the chest and a second one on the helmet under huge eyes, eyes on the shoulders. Tentacles with eyes at the ends grow from the back. The creepiest of the three.')]),
 ]
 
 EXTRA = """
@@ -63,21 +63,21 @@ def front(key):
 
 def card(m, tag=None):
     key, letter, name, desc = m
-    return ('<div class="card"><div class="pic"><img src="img/%s.png" alt=""><div class="views"><span>спереди</span><span>сзади</span></div></div>'
+    return ('<div class="card"><div class="pic"><img src="img/%s.png" alt=""><div class="views"><span>front</span><span>back</span></div></div>'
             '<div class="body"><div class="title"><span class="tag">%s</span>%s</div><p class="desc">%s</p></div></div>' % (key, e(tag or letter), e(name), e(desc)))
 
 
 def foot(n):
-    return '<div class="foot"><span>Облики брони Странника, вилка R1</span><span>Страница %d из 5</span></div>' % n
+    return '<div class="foot"><span>Wanderer armor looks, R1 fork</span><span>Page %d of 5</span></div>' % n
 
 
 for _, _, _, vs in SETS:
     for v in vs:
         front(v[0])
-parts = ['<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Облики брони Странника - вилка R1</title>',
+parts = ['<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Wanderer armor looks - R1 fork</title>',
          '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600&family=Pixelify+Sans:wght@700&display=block">',
          '<style>%s%s</style></head><body>' % (CSS, EXTRA)]
-parts.append('<section class="page"><h1>Облики брони Странника</h1><div class="sub">Первая ступень: пять сетов и варианты</div><p class="lede">%s</p><div class="blocks">' % e(LEDE))
+parts.append('<section class="page"><h1>Wanderer armor looks</h1><div class="sub">The first tier: five sets and variants</div><p class="lede">%s</p><div class="blocks">' % e(LEDE))
 for name, role, color, vs in SETS:
     parts.append('<div class="block"><div class="row">%s</div><div class="letters">%s</div><div class="lab" style="border-color:%s"><span>%s</span><em>%s</em></div></div>' % (
         ''.join('<img src="img/%s_f.png" alt="">' % v[0] for v in vs), ''.join('<div>%s</div>' % e(v[1]) for v in vs), color, e(name), e(role)))

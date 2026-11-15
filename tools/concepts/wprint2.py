@@ -10,14 +10,14 @@ CSS = importlib.import_module('wprint_data').CSS
 e = html.escape
 ROUND_IN = getattr(d, 'ROUND_IN', d.ROUND.lower())  # round name inside a phrase (proper nouns - capitalized)
 
-parts = ['<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Облики брони Странника - %s</title>' % e(ROUND_IN),
+parts = ['<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Wanderer armor looks - %s</title>' % e(ROUND_IN),
          '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600&family=Pixelify+Sans:wght@700&display=block">',
          '<style>%s</style></head><body>' % CSS]
-parts.append('<section class="page"><h1>Облики брони Странника</h1><div class="sub">%s</div>' % e(d.ROUND))
+parts.append('<section class="page"><h1>Wanderer armor looks</h1><div class="sub">%s</div>' % e(d.ROUND))
 parts.append('<p class="lede">%s</p>' % e(d.LEDE))
-parts.append('<h3>Выбрано</h3><div class="picked">')
+parts.append('<h3>Picked</h3><div class="picked">')
 for key, r, world, ln, title, desc in d.PICKED:
-    parts.append('<div class="card"><div class="pic"><img src="img/%s.png" alt=""><div class="views"><span>спереди</span><span>сзади</span></div></div>'
+    parts.append('<div class="card"><div class="pic"><img src="img/%s.png" alt=""><div class="views"><span>front</span><span>back</span></div></div>'
                  '<div class="body"><div class="title"><span class="ln">R%d</span>%s</div><div class="title t2"><span class="ln">%s</span>%s</div>'
                  '<p class="desc">%s</p></div></div>' % (key, r, e(world), ln, e(title), e(desc)))
 parts.append('</div>')
@@ -28,10 +28,10 @@ for r, name, meta, chips, cs in d.TIERS:
                  % (r, e(name), ''.join('<i style="background:%s"></i>' % c for c in chips), e(meta)))
     parts.append('<div class="grid">')
     for key, ln, title, desc in cs:
-        parts.append('<div class="card"><div class="pic"><img src="img/%s.png" alt=""><div class="views"><span>спереди</span><span>сзади</span></div></div>'
+        parts.append('<div class="card"><div class="pic"><img src="img/%s.png" alt=""><div class="views"><span>front</span><span>back</span></div></div>'
                      '<div class="body"><div class="title"><span class="ln">%s</span>%s</div><p class="desc">%s</p></div></div>'
                      % (key, ln, e(title), e(desc)))
-    parts.append('</div><div class="foot"><span>Облики брони Странника, %s</span><span>R%d из 7</span></div></section>' % (e(ROUND_IN), r))
+    parts.append('</div><div class="foot"><span>Wanderer armor looks, %s</span><span>R%d of 7</span></div></section>' % (e(ROUND_IN), r))
 parts.append('</body></html>')
 open(OUT, 'w', encoding='utf-8').write('\n'.join(parts))
 print('ok', OUT)

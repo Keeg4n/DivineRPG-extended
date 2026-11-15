@@ -62,14 +62,14 @@ def hallowed_wings(y=-5.6, x=-5.0):
                blade('head', (x, y + 1.6, 2.0), 4.0, 1.4, wing, rz=-52, rx=50))
 
 
-@new('r1th', 1, 'Ш', 'Шлем: глухой золотой шлем с тёмным забралом, серебряным гребнем и крылышками')
+@new('r1th', 1, 'H', 'Helmet: a closed gold helmet with a dark visor, a silver crest and small wings')
 def r1th():
     face = P(HG, trim(0.45, HGD), rect(('north',), 1.2, 8.8, 3.6, 6.4, HDK), rect(('north', 'up', 'south'), 4.3, 5.7, -1, 99, HS),
              rect(('north',), 1.2, 8.8, 3.6, 4.0, HSD))
     return hallowed_body() + helm(face) + hallowed_wings() + [box('head', -0.6, -10.6, -4.8, 1.2, 1.8, 9.6, P(HS, trim(0.25, HSD), rect(('up',), -1, 99, -1, 99, '#ececf6')))]
 
 
-@new('r1tm', 1, 'М', 'Маска: серебряная полумаска, золотой открытый шлем с высоким плюмажем')
+@new('r1tm', 1, 'M', 'Mask: a silver half mask, an open gold helmet with a tall plume')
 def r1tm():
     bs = hallowed_body() + open_helm(P(HG, trim(0.35, HGD), rect(('up',), 3.6, 6.2, -1, 99, HS)))
     bs += [box('head', -4.6, -3.2, -4.8, 9.2, 3.4, 0.8, P(HS, trim(0.3, HSD), rect(('north',), 0.6, 8.6, 1.2, 1.6, HSD)))]
@@ -78,7 +78,7 @@ def r1tm():
     return bs
 
 
-@new('r1tk', 1, 'К', 'Капюшон: золотой капюшон, обруч с крыльями и красным камнем')
+@new('r1tk', 1, 'C', 'Cowl: a gold cowl, a circlet with wings and a red stone')
 def r1tk():
     bs = hallowed_body() + hood(P(HG, trim(0.35, HGD), rect(('up',), 3.8, 6.6, -1, 99, HS)), shadow='#1a1006', tip_len=3.6)
     bs += [box('head', -5.4, -7.6, -5.6, 10.8, 1.2, 0.6, P(HS, trim(0.2, HSD))),
@@ -116,13 +116,13 @@ def fan(bone, y, z, color, n=5, spread=70, L0=4.2):
     return out
 
 
-@new('r4th', 4, 'Ш', 'Шлем: глухой гранёный шлем с веером сиреневых шипов')
+@new('r4th', 4, 'H', 'Helmet: a closed faceted helmet with a fan of lilac spikes')
 def r4th():
     face = P(OM, facets('#ffffff', 0.22), trim(0.45, OD), rect(('north',), 1.4, 8.6, 4.0, 5.0, '#14041c'), rect(('north',), 4.4, 5.6, 5.0, 8.4, OL))
     return orichalcum_body() + helm(face) + fan('head', -9.0, 0.0, OP)
 
 
-@new('r4tm', 4, 'М', 'Маска: сиреневая полумаска, открытый шлем с изогнутым рогом-гребнем')
+@new('r4tm', 4, 'M', 'Mask: a lilac half mask, an open helmet with a curved horn crest')
 def r4tm():
     bs = orichalcum_body() + open_helm(P(OM, facets('#ffffff', 0.22), trim(0.35, OD)))
     bs += [box('head', -4.6, -3.2, -4.8, 9.2, 3.4, 0.8, P(OL, facets('#ffffff', 0.2), trim(0.3, OPU)))]
@@ -130,7 +130,7 @@ def r4tm():
     return bs
 
 
-@new('r4tk', 4, 'К', 'Капюшон: гранёный малиновый капюшон с кристаллами на макушке')
+@new('r4tk', 4, 'C', 'Cowl: a faceted crimson cowl with crystals on the crown')
 def r4tk():
     bs = orichalcum_body() + hood(P(OM, facets('#ffffff', 0.22), trim(0.35, OD)), shadow='#1a041a', tip_len=3.4,
                                   capelet=P(OM, facets('#ffffff', 0.22), trim(0.35, OD)))
@@ -171,7 +171,7 @@ def horns(bone, start, segs, t0=1.4):
     return sym(*chain(bone, start, segs, t0, None, taper=0.78, colors=(CMD, '#a8a8a8')))
 
 
-@new('r7th', 7, 'Ш', 'Шлем: глухой листовой шлем, серые рога в стороны, сверху парит листовой кристалл')
+@new('r7th', 7, 'H', 'Helmet: a closed leaf helmet, gray horns to the sides, a leaf crystal floats above')
 def r7th():
     face = P(CG, trim(0.45, CGO), mottle(CGB, 1.0, 0.86), rect(('north',), 1.4, 8.6, 4.0, 5.0, '#031603'), rect(('north',), 4.4, 5.6, 5.0, 8.6, CM))
     bs = chlorophyte_body() + helm(face)
@@ -180,7 +180,7 @@ def r7th():
     return bs
 
 
-@new('r7tm', 7, 'М', 'Маска: листовая полумаска, открытый шлем с листовым гребнем и рогом')
+@new('r7tm', 7, 'M', 'Mask: a leaf half mask, an open helmet with a leaf crest and a horn')
 def r7tm():
     bs = chlorophyte_body() + open_helm(P(CG, trim(0.35, CGO), mottle(CGB, 1.0, 0.86)))
     bs += [box('head', -4.6, -3.2, -4.8, 9.2, 3.4, 0.8, P(CGL, trim(0.3, CG), rect(('north',), 0.6, 8.6, 1.2, 1.6, CG)))]
@@ -189,7 +189,7 @@ def r7tm():
     return bs
 
 
-@new('r7tk', 7, 'К', 'Капюшон: листовой капюшон, загнутые серые рога')
+@new('r7tk', 7, 'C', 'Cowl: a leaf cowl, curved gray horns')
 def r7tk():
     bs = chlorophyte_body() + hood(P(CG, trim(0.35, CGO), mottle(CGB, 1.0, 0.86)), shadow='#021002', tip_len=3.0,
                                    capelet=P(CG, trim(0.35, CGO), mottle(CGB, 1.0, 0.86)))

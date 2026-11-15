@@ -481,7 +481,7 @@ def wanderer_armor(pose, key='r1v'):
         if piece == 'm':
             continue
         surface.append((bone, *_quads_box(v)))
-    _arm[key] = Armor('Странник', [(mk.scene_tris(m.quads(), pose), m.img)], surface)
+    _arm[key] = Armor('Wanderer', [(mk.scene_tris(m.quads(), pose), m.img)], surface)
     return _arm[key]
 
 
@@ -490,7 +490,7 @@ FRAMES = {  # (center y, frame height in units)
 }
 VIEWS = {'front': (-28, 8), 'side': (-62, 8), 'rside': (58, 8), 'back': (152, 8), 'back2': (-152, 8), 'high': (-28, 30), 'hand': (-30, 8)}
 _base = {}
-BGS = {'Divine': ('#51506a', '#2c2b3c'), 'Странник': ('#5a5560', '#322e38')}
+BGS = {'Divine': ('#51506a', '#2c2b3c'), 'Wanderer': ('#5a5560', '#322e38')}
 
 
 def base_frame(armor, frame, view, W=460, H=540):

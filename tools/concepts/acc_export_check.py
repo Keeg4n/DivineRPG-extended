@@ -102,11 +102,11 @@ for n, (k, name, slot, vs) in enumerate(acc_items1.ITEMS, 1):
         worst = max(worst, dev)
         if dev > 0.02:
             bad += 1
-            print('РАСХОЖДЕНИЕ', k, prof, len(want), len(got), dev)
-print('проверено', total, 'расхождений больше 0.02 пикселя', bad, 'наибольшее', round(worst, 4))
+            print('MISMATCH', k, prof, len(want), len(got), dev)
+print('checked', total, 'mismatches over 0.02 pixels', bad, 'largest', round(worst, 4))
 
 # checksums of the concept faces per bone: the mod selftest compares them with the geometry built by Java (WearData)
-sums = ['# ключ профиль кость граней сумма_x сумма_y сумма_z (по всем вершинам граней концепта)']
+sums = ['# key profile bone faces sum_x sum_y sum_z (over all vertices of the concept faces)']
 for n, (k, name, slot, vs) in enumerate(acc_items1.ITEMS, 1):
     pick = X.PICK.get(n)
     if pick is None:
@@ -121,5 +121,5 @@ for n, (k, name, slot, vs) in enumerate(acc_items1.ITEMS, 1):
             sums.append('%s %s %s %d %.3f %.3f %.3f' % (k, prof, bone, c, sx[0], sx[1], sx[2]))
 NL = chr(10)
 open(os.path.join(HERE, '../../src/main/resources/assets/divinerpgextended/wear/accessories_check.txt'), 'w', encoding='utf-8').write(NL.join(sums) + NL)
-print('контрольных сумм', len(sums) - 1)
+print('checksums', len(sums) - 1)
 

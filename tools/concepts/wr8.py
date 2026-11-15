@@ -55,7 +55,7 @@ def ghost(color, edge, glowc, wd, L):
 SP, SP_L, SP_M, SP_D, SP_K, SP_G = '#8ccff4', '#e2f6ff', '#4f8fd0', '#22407a', '#0c1430', '#8af8ff'
 
 
-@slim('r8a', 8, 'Призрак: бледно-голубые латы со светящимися линиями, рваные призрачные ленты от пояса, капюшон с гладкой белой маской, за спиной три огонька')
+@slim('r8a', 8, 'Phantom: pale light blue plate armor with glowing lines, ragged ghostly ribbons from the belt, a hood with a smooth white mask, three wisps behind the back')
 def r8a():
     suit = P(SP_K, trim(0.25, '#050a1c'))
     plate = P(SP, trim(0.3, SP_D), mottle(SP_L, 1.6, 0.9))
@@ -117,7 +117,7 @@ def arc(bone, cx, cy, z, r, a0, a1, n, t0, t1, paint, depth=0.8):
     return out
 
 
-@slim('r8b', 8, 'Лунная: тёмные латы с серебряной окантовкой и сиреневым свечением, полумесяц знаком на груди и наплечниках, гладкий шлем с сиреневым забралом')
+@slim('r8b', 8, 'Lunar: dark plate armor with a silver edging and a lilac glow, a crescent as a sign on the chest and pauldrons, a smooth helmet with a lilac visor')
 def r8b():
     suit = P(MN_K, trim(0.25, '#05050c'))
     silver = P(MN, trim(0.3, MN_M))
@@ -137,7 +137,7 @@ DR, DR_D, DR_L, DR_K, GOLDD, TEAL = '#3a2a6a', '#1c1438', '#6a58b0', '#0e0a1e', 
 STARS = (mottle('#f4f0ff', 5.0, 0.955), mottle(DR_L, 1.6, 0.78))
 
 
-@slim('r8c', 8, 'Сновидец: индиго в звёздах с золотой нитью, гладкая маска с закрытыми глазами и светящимся третьим глазом, на спине ловец снов с перьями')
+@slim('r8c', 8, 'Dreamer: indigo in stars with a gold thread, a smooth mask with closed eyes and a glowing third eye, a dreamcatcher with feathers on the back')
 def r8c():
     suit = P(DR_K, trim(0.25, '#05030c'))
     cloth = P(DR, *STARS, trim(0.3, GOLDD))
@@ -204,14 +204,14 @@ def hood_back():
     return [box('head', -4.0, -9.8, 2.0, 8.0, 8.4, 3.0, hp, rot=(-14, 0, 0), pivot=(0, 0, 0)), box('head', -3.2, -10.3, 3.6, 6.4, 6.8, 2.6, hp, rot=(-28, 0, 0), pivot=(0, 0, 0))]
 
 
-@slim('r8d', 8, 'Призрак Г: капюшон цвета брони со светящейся кромкой, лица нет - тёмная пустота и два голубых глаза')
+@slim('r8d', 8, 'Phantom D: a hood in the armor color with a glowing edge, no face - a dark void and two light blue eyes')
 def r8d():
     front = P(SP, trim(0.3, SP_D), *HOOD, rect(('north',), 0.8, 8.4, 1.2, 99, SP_G, glow=True), rect(('north',), 1.2, 8.0, 1.6, 99, '#050914'),
               rect(('north',), 2.3, 3.7, 4.5, 5.2, SP_G, glow=True), rect(('north',), 5.4, 6.8, 4.5, 5.2, SP_G, glow=True))
     return ghost_body() + [box('head', -4.6, -9.1, -4.7, 9.2, 9.1, 9.4, front)] + hood_back() + ghost_wisps()
 
 
-@slim('r8e', 8, 'Призрак Д: капюшон цвета брони, лицо - сгусток света, в нём тёмные глаза и тёмный рот, на лбу камень')
+@slim('r8e', 8, 'Phantom E: a hood in the armor color, the face is a clump of light with dark eyes and a dark mouth, a stone on the brow')
 def r8e():
     front = P(SP, trim(0.3, SP_D), *HOOD, rect(('north',), 1.0, 8.2, 1.4, 99, SP_D), rect(('north',), 1.4, 7.8, 1.8, 99, '#9feaff', glow=True),
               rect(('north',), 2.2, 7.0, 2.2, 99, '#d8fbff', glow=True),
@@ -220,7 +220,7 @@ def r8e():
     return ghost_body() + [box('head', -4.6, -9.1, -4.7, 9.2, 9.1, 9.4, front), box('head', -0.7, -8.6, -5.0, 1.4, 1.4, 0.4, gem)] + hood_back() + ghost_wisps()
 
 
-@slim('r8f', 8, 'Призрак Е: открытое лицо, капюшон цвета брони с обручем-огоньком на лбу, низ лица закрыт шарфом в цвет брони с голубой кромкой')
+@slim('r8f', 8, 'Phantom F: an open face, a hood in the armor color with a wisp circlet on the brow, the lower face covered by a scarf in the armor color with a light blue edge')
 def r8f():
     hp = P(SP, trim(0.3, SP_D), *HOOD)
     brow = P(SP, trim(0.3, SP_D), *HOOD, rect(('north',), -1, 99, 0.6, 1.0, SP_G, glow=True))
@@ -299,17 +299,17 @@ def deep_hood(kind, eyes='round', peak=False, glow_rim=True, gap=1.0, tip=False,
     return bs
 
 
-@slim('r8g', 8, 'Призрак Ж: глубокий капюшон в цвет брони, вырез аркой со светящейся кромкой, тьма и круглые глаза в глубине')
+@slim('r8g', 8, 'Phantom G: a deep hood in the armor color, an arched opening with a glowing edge, darkness and round eyes deep inside')
 def r8g():
     return ghost_body() + deep_hood('arch') + hood_back() + ghost_wisps()
 
 
-@slim('r8h', 8, 'Призрак З: глубокий капюшон, стрельчатый вырез без кромки, тьма и узкие глаза в глубине')
+@slim('r8h', 8, 'Phantom H: a deep hood, a pointed opening without an edge, darkness and narrow eyes deep inside')
 def r8h():
     return ghost_body() + deep_hood('gothic', eyes='slit', glow_rim=False) + hood_back() + ghost_wisps()
 
 
-@slim('r8i', 8, 'Призрак И: глубокий капюшон с навесом сверху, овальный вырез со светящейся кромкой, тьма и круглые глаза в глубине')
+@slim('r8i', 8, 'Phantom I: a deep hood with an overhang on top, an oval opening with a glowing edge, darkness and round eyes deep inside')
 def r8i():
     return ghost_body() + deep_hood('oval', peak=True) + hood_back() + ghost_wisps()
 
@@ -359,17 +359,17 @@ def mist():
     return out
 
 
-@slim('r8j', 8, 'Призрак К: капюшон Ж, глаза шире; балахон складками до бёдер, верёвочный пояс с огоньком, широкие рукава со светящимся краем')
+@slim('r8j', 8, 'Phantom J: the G hood, eyes wider; a robe in folds down to the thighs, a rope belt with a wisp, wide sleeves with a glowing edge')
 def r8j():
     return robe() + deep_hood('arch', gap=2.2, half=3.6, depth=0.4) + hood_back() + ghost_wisps()
 
 
-@slim('r8k', 8, 'Призрак Л: капюшон Ж, глаза шире; балахон с короткой пелериной на плечах, рукава до локтя, тёмные латные перчатки и сапоги')
+@slim('r8k', 8, 'Phantom K: the G hood, eyes wider; a robe with a short cape on the shoulders, sleeves to the elbow, dark plate gauntlets and boots')
 def r8k():
     return robe(mantle=True, sleeves='short', gauntlets=True) + deep_hood('arch', gap=2.2, half=3.6, depth=0.4) + hood_back() + ghost_wisps()
 
 
-@slim('r8l', 8, 'Призрак М (по Абаддону): острый хвост капюшона назад, глаза шире; балахон с пелериной, широкие рукава, латные перчатки, туман у подола и плеч')
+@slim('r8l', 8, 'Phantom L (Abaddon style): a sharp hood tail to the back, eyes wider; a robe with a cape, wide sleeves, plate gauntlets, mist at the hem and shoulders')
 def r8l():
     return robe(mantle=True, gauntlets=True) + deep_hood('arch', gap=2.2, half=3.6, depth=0.4, tip=True) + hood_back() + mist()
 
@@ -424,7 +424,7 @@ def ghost_hood(half=3.4, gap=2.2, layers=5):
     return bs
 
 
-@slim('r8m', 8, 'Призрак для игры: тело А, капюшон Ж без хвоста и крапин, глаза шире и в глубине, внутри сглаженный арочный тоннель; в игре полупрозрачный')
+@slim('r8m', 8, 'Phantom for the game: body A, the G hood without a tail and speckles, eyes wider and deeper, a smoothed arched tunnel inside; semi-transparent in the game')
 def r8m():
     return ghost_body() + ghost_hood() + ghost_wisps()
 

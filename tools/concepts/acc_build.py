@@ -18,16 +18,16 @@ OUT = sys.argv[1]
 IMG = os.path.join(OUT, 'img')
 os.makedirs(IMG, exist_ok=True)
 e = html.escape
-LET = 'АБВ'
+LET = 'ABC'
 LANG = {}
-for line in open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../src/main/resources/assets/divinerpgextended/lang/ru_RU.lang'), encoding='utf-8'):
+for line in open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../src/main/resources/assets/divinerpgextended/lang/en_US.lang'), encoding='utf-8'):
     if '=' in line:
         k, v = line.rstrip('\n').split('=', 1)
         LANG[k] = v
 
 
 def desc(key):
-    return LANG.get('dre.trinket.%s.desc' % key, '').replace('в мире Энда', 'в мире Края').replace('в мире обычного мира', 'в обычном мире')
+    return LANG.get('dre.trinket.%s.desc' % key, '')
 
 
 def rend(a, parts, frame, view, name):
@@ -55,7 +55,7 @@ for n, (title, boss, cost, now, vs) in enumerate(AL.ALTARS):
         AL.block_render(s, t).save(os.path.join(IMG, 'b%d_%d.jpg' % (n, j)), quality=92)
         AL.flat_tex(s, os.path.join(IMG, 'b%d_%d_s.png' % (n, j)))
         AL.flat_tex(t, os.path.join(IMG, 'b%d_%d_t.png' % (n, j)))
-print('картинки готовы')
+print('images ready')
 
 # ------------------------------------------------------------------ pages
 CSS = """
@@ -114,29 +114,29 @@ pages = []
 
 
 def foot(section):
-    return '<div class="foot"><span>%s</span><span>Страница @@PAGE@@ из @@ALL@@</span></div>' % e(section)
+    return '<div class="foot"><span>%s</span><span>Page @@PAGE@@ of @@ALL@@</span></div>' % e(section)
 
 
 def first():
     d = lambda n, j: '<div class="two"><img src="img/a%d_%d_d.jpg" alt=""><img src="img/a%d_%d_w.jpg" alt=""></div>' % (n, j, n, j)
     idx = {it[0]: i for i, it in enumerate(acc_items1.ITEMS)}
-    return ('<section class="page"><h1>Аксессуары, лут, алтари и часы</h1><div class="sub">Концепты на выбор: по три варианта на каждую вещь</div>'
-            '<p class="lede">Как и с рыбами, ответ - номер и буква, например: Акс 1В, Лут 3Б, Алт 2А, Часы Б. Значки плоские, 16x16, рядом с каждым - вид на стандартной броне Divine и на броне Странника первой ступени. '
-            'Буква выбирает сразу значок и вид на теле. В игре ничего из этого пока нет.</p>'
-            '<div class="toc"><div><b>Часы Странника</b>3 варианта, по 5 текстур на уровни</div><div><b>Алтари</b>7 алтарей, по 3 варианта из ванильных блоков</div><div><b>Аксессуары</b>%d штук, по 3 значка и по 3 вида на теле</div><div><b>Лут с боссов</b>%d предметов и наборов, по 3 значка</div></div>'
-            '<h3>Как это устроено у Ботании</h3><p class="lede" style="margin:0 0 2mm">Ботания рисует фенечки поверх модели игрока, в событии RenderPlayerEvent.Specials.Post. Два прохода: на теле и на голове (тот повторяет поворот головы). Есть три приёма, все три есть в вариантах ниже.</p>'
-            '<div class="meth"><div>%s<b>Плоский значок с толщиной</b>Подвески, лавр, монокль: сам значок предмета, выдавленный на толщину. Подвеска отходит вперёд, если надет нагрудник. Дёшево: не нужно ни модели, ни отдельной текстуры.</div>'
-            '<div>%s<b>Раздутая полоса на торсе</b>Пояса и плащ: своя текстура на чуть увеличенной коробке торса. Ложится на тело плотно. На каждую вещь нужна текстура.</div>'
-            '<div>%s<b>Значки за спиной</b>Крылья тиары: два плоских значка, разведённых в стороны, у неё они ещё и машут. В вариантах крылья такие же, а короны, наплечники, фонари, колчаны и ножны собраны из маленьких коробок: Ботания так не делает, зато вещь объёмная.</div></div>'
-            '<h3>Что будет иначе, чем у Ботании</h3><ul>'
-            '<li><b>Кольца видно.</b> Ботания кольца не рисует совсем, здесь это ободок с камнем у кисти. Их можно и не показывать: скажи, если лишнее.</li>'
-            '<li><b>Посадка считается от брони.</b> Вещь садится по поверхности: широкая Divine и тонкая броня Странника отличаются, поэтому смещение на каждый вид брони своё, а не одно на всех, как у подвески Ботании.</li>'
-            '<li><b>Плащей нет:</b> на спине только крылья, колчаны и панцири, как договорились по броне Странника.</li>'
-            '<li><b>Что надо будет сделать сверх картинок:</b> передавать клиентам, что на ком надето (сейчас аксессуары хранятся на сервере, клиент видит их только в открытом окне, другим игрокам они не приходят), прятать вещи при невидимости, как у Ботании, и дать настройку клиента на отключение.</li>'
-            '</ul><h3>Что нужно решить кроме букв</h3><ul>'
-            '<li><b>Встроенные в броню аксессуары показывать?</b> Я бы показывал так же, как надетые: иначе вещь пропадает с модели в тот момент, когда её встроили.</li>'
-            '<li><b>Несколько вещей сразу.</b> Если надеты три вещи на грудь, они наложатся. Я бы разводил их по точкам крепления, для этого у каждого места нужно 2-3 слота на теле.</li>'
-            '</ul>%s</section>') % (len(acc_items1.ITEMS), len(L.LOOT), d(idx['pharaoh_ankh'], 0), d(idx['blast_belt'], 1), d(idx['dream_wings_2'], 0), foot('Вводная'))
+    return ('<section class="page"><h1>Accessories, loot, altars and clocks</h1><div class="sub">Concepts to choose from: three variants for each item</div>'
+            '<p class="lede">As with the fish, the answer is a number and a letter, for example: Acc 1C, Loot 3B, Alt 2A, Clock B. Icons are flat, 16x16, and next to each one is the view on standard Divine armor and on first-tier Wanderer armor.'
+            'The letter picks both the icon and the on-body look. None of this is in the game yet.</p>'
+            '<div class="toc"><div><b>Wanderer\'s Clock</b>3 variants, 5 textures for the levels</div><div><b>Altars</b>7 altars, 3 variants each from vanilla blocks</div><div><b>Accessories</b>%d items, 3 icons and 3 on-body looks each</div><div><b>Boss loot</b>%d items and sets, 3 icons each</div></div>'
+            '<h3>How it works in Botania</h3><p class="lede" style="margin:0 0 2mm">Botania draws baubles on top of the player model, in the RenderPlayerEvent.Specials.Post event. Two passes: on the body and on the head (the latter follows the head rotation). There are three techniques, and all three appear in the variants below.</p>'
+            '<div class="meth"><div>%s<b>Flat icon with thickness</b>Pendants, laurel, monocle: the item icon itself, extruded to a thickness. The pendant moves forward if a chestplate is worn. Cheap: needs neither a model nor a separate texture.</div>'
+            '<div>%s<b>Inflated band on the torso</b>Belts and cloak: a dedicated texture on a slightly enlarged torso box. Fits the body snugly. Each item needs a texture.</div>'
+            '<div>%s<b>Icons on the back</b>Tiara wings: two flat icons spread apart, which also flap. In the variants the wings are the same, while crowns, pauldrons, lanterns, quivers and scabbards are assembled from small boxes: Botania does not do that, but it makes the item look three-dimensional.</div></div>'
+            '<h3>What will differ from Botania</h3><ul>'
+            '<li><b>Rings are visible.</b> Botania does not draw rings at all; here it is a band with a gem at the wrist. They can also be left hidden: tell me if it is excessive.</li>'
+            '<li><b>Fit is computed from the armor.</b> An item sits on the surface: wide Divine armor and thin Wanderer armor differ, so the offset is separate for each armor type rather than one for all, as with the Botania pendant.</li>'
+            '<li><b>No cloaks:</b> only wings, quivers and shells on the back, as agreed for Wanderer armor.</li>'
+            '<li><b>What needs doing beyond the pictures:</b> sending clients what each player is wearing (currently accessories are stored on the server and the client sees them only in the open window; other players do not receive them), hiding items when invisible, as in Botania, and adding a client setting to turn it off.</li>'
+            '</ul><h3>What needs deciding besides the letters</h3><ul>'
+            '<li><b>Show accessories built into armor?</b> I would show them the same as worn ones: otherwise the item disappears from the model at the moment it is built in.</li>'
+            '<li><b>Several items at once.</b> If three items are worn on the chest, they will overlap. I would spread them across attachment points, which needs 2-3 body slots per area.</li>'
+            '</ul>%s</section>') % (len(acc_items1.ITEMS), len(L.LOOT), d(idx['pharaoh_ankh'], 0), d(idx['blast_belt'], 1), d(idx['dream_wings_2'], 0), foot('Introduction'))
 
 
 def clock_page():
@@ -144,9 +144,9 @@ def clock_page():
     for j, (let, name, text, fn) in enumerate(L.CLOCKS):
         tiers = ''.join('<div><img src="img/c%d_%d.png" alt=""><div>%s</div></div>' % (j, t, e(L.TIER_NAMES[t - 1])) for t in range(1, 6))
         rows += '<div class="clock"><div class="rt"><b>%s</b><i>%s</i></div><p>%s</p><div class="tiers">%s</div></div>' % (let, e(name), e(text), tiers)
-    return ('<section class="page"><div class="head"><h2>Часы Странника</h2><span>один предмет, пять уровней</span></div>'
-            '<p class="lede" style="margin:0 0 3mm">В коде это уже один предмет: уровень хранится в самом предмете и растёт шестернёй времени в верстаке. Не хватает только картинки: сейчас на всех уровнях стоит текстура сумеречных часов Divine. Ниже по пять текстур на каждый вариант, значок будет меняться с уровнем сам, для этого нужна маленькая правка кода.</p>'
-            '<div class="rows">%s</div>%s</section>') % (rows, foot('Часы Странника'))
+    return ('<section class="page"><div class="head"><h2>Wanderer\'s Clock</h2><span>one item, five levels</span></div>'
+            '<p class="lede" style="margin:0 0 3mm">In code it is already a single item: the level is stored in the item itself and grows with a time gear in the workbench. Only the picture is missing: right now every level uses the Divine twilight clock texture. Below are five textures for each variant; the icon will change with the level by itself, which needs a small code change.</p>'
+            '<div class="rows">%s</div>%s</section>') % (rows, foot('Wanderer\'s Clock'))
 
 
 def altar_pages():
@@ -160,11 +160,11 @@ def altar_pages():
             for j, (name, blocks, _, _) in enumerate(vs):
                 cols += ('<div class="v"><div class="vt"><b>%s</b>%s</div><div class="pics"><img class="blk" src="img/b%d_%d.jpg" alt=""><div class="fl"><img src="img/b%d_%d_s.png" alt=""><img src="img/b%d_%d_t.png" alt=""></div></div><div class="vb">%s</div></div>'
                          % (LET[j], e(name), n, j, n, j, n, j, e(blocks)))
-            rows += ('<div class="row alt"><div class="rt"><b>Алт %d</b><i>%s</i><em>%s</em></div><div class="rd">Призыв: %s. Плата: %s.</div><div class="cols">%s</div></div>' % (n + 1, e(title), e(now), e(boss), e(cost), cols))
-        head = ('<div class="head"><h2>Алтари призыва</h2><span>куб, справа грани: бок и верх</span></div>')
+            rows += ('<div class="row alt"><div class="rt"><b>Alt %d</b><i>%s</i><em>%s</em></div><div class="rd">Summon: %s. Cost: %s.</div><div class="cols">%s</div></div>' % (n + 1, e(title), e(now), e(boss), e(cost), cols))
+        head = ('<div class="head"><h2>Summoning altars</h2><span>cube, faces on the right: side and top</span></div>')
         if i == 0:
-            head += '<p class="lede" style="margin:0 0 2.5mm">Сейчас алтарь - это целиком один ванильный блок. В вариантах настоящие ванильные текстуры (подписаны под картинкой) собраны в новый блок со своим узором. Блок всё так же неразрушим и светится.</p>'
-        out.append('<section class="page">%s<div class="rows">%s</div>%s</section>' % (head, rows, foot('Алтари')))
+            head += '<p class="lede" style="margin:0 0 2.5mm">Right now an altar is a single vanilla block. In the variants, real vanilla textures (captioned under the picture) are assembled into a new block with its own pattern. The block is still indestructible and glows.</p>'
+        out.append('<section class="page">%s<div class="rows">%s</div>%s</section>' % (head, rows, foot('Altars')))
     return out
 
 
@@ -179,9 +179,9 @@ def acc_pages():
             cols = ''
             for j, (label, *_rest) in enumerate(vs):
                 cols += ('<div class="v"><div class="vt"><b>%s</b>%s</div><div class="pics"><img class="ico" src="img/a%d_%d.png" alt=""><img class="ren" src="img/a%d_%d_d.jpg" alt=""><img class="ren" src="img/a%d_%d_w.jpg" alt=""></div></div>' % (LET[j], e(label), n, j, n, j, n, j))
-            rows += '<div class="row"><div class="rt"><b>Акс %d</b><i>%s</i><em>%s</em></div><div class="rd">%s</div><div class="cols">%s</div></div>' % (n + 1, e(name), e(slot), e(desc(key)), cols)
-        head = '<div class="head"><h2>Аксессуары</h2><span>в каждой тройке: значок, на броне Divine, на броне Странника</span></div>'
-        out.append('<section class="page">%s<div class="rows">%s</div>%s</section>' % (head, rows, foot('Аксессуары')))
+            rows += '<div class="row"><div class="rt"><b>Acc %d</b><i>%s</i><em>%s</em></div><div class="rd">%s</div><div class="cols">%s</div></div>' % (n + 1, e(name), e(slot), e(desc(key)), cols)
+        head = '<div class="head"><h2>Accessories</h2><span>in each triple: icon, on Divine armor, on Wanderer armor</span></div>'
+        out.append('<section class="page">%s<div class="rows">%s</div>%s</section>' % (head, rows, foot('Accessories')))
     return out
 
 
@@ -192,7 +192,7 @@ def loot_pages():
     def flush():
         nonlocal cur, h
         if cur:
-            out.append('<section class="page"><div class="head"><h2>Новый лут с боссов</h2><span>значки 16x16</span></div><div class="rows">%s</div>%s</section>' % (''.join(cur), foot('Лут с боссов')))
+            out.append('<section class="page"><div class="head"><h2>New boss loot</h2><span>16x16 icons</span></div><div class="rows">%s</div>%s</section>' % (''.join(cur), foot('Boss loot')))
         cur, h = [], 0
 
     for n, (key, name, src, vs) in enumerate(L.LOOT):
@@ -207,23 +207,23 @@ def loot_pages():
             cols += '<div class="v"><div class="vt"><b>%s</b>%s</div><div class="set" style="%s">%s</div></div>' % (LET[j], e(label), style, imgs)
         names = ''
         if size == 4:
-            names = '<div class="names">Слева направо: %s.</div>' % ', '.join(x for x, _ in L.WORLDS)
+            names = '<div class="names">Left to right: %s.</div>' % ', '.join(x for x, _ in L.WORLDS)
         if size == 12:
-            names = '<div class="names">Слева направо, сверху вниз: %s.</div>' % ', '.join(x for x, _ in L.SPARKS)
+            names = '<div class="names">Left to right, top to bottom: %s.</div>' % ', '.join(x for x, _ in L.SPARKS)
         rows_h = 44 if size == 12 else (33 if size == 4 else 31)
         if h + rows_h > LIM:
             flush()
-        cur.append('<div class="row"><div class="rt"><b>Лут %d</b><i>%s</i><em>%s</em></div>%s<div class="cols" style="margin-top:.6mm">%s</div></div>' % (n + 1, e(name), e(src), names, cols))
+        cur.append('<div class="row"><div class="rt"><b>Loot %d</b><i>%s</i><em>%s</em></div>%s<div class="cols" style="margin-top:.6mm">%s</div></div>' % (n + 1, e(name), e(src), names, cols))
         h += rows_h
     flush()
     return out
 
 
 pages = [first(), clock_page()] + altar_pages() + acc_pages() + loot_pages()
-doc = ('<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Аксессуары, лут, алтари и часы</title>'
+doc = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Accessories, loot, altars and clocks</title>'
        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600&display=block"><style>%s</style></head><body>' % CSS)
 for i, p in enumerate(pages, 1):
     doc += p.replace('@@PAGE@@', str(i)).replace('@@ALL@@', str(len(pages)))
 doc += '</body></html>'
 open(os.path.join(OUT, 'concepts.html'), 'w', encoding='utf-8').write(doc)
-print('страниц', len(pages))
+print('pages', len(pages))

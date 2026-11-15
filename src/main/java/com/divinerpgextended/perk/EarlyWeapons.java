@@ -58,7 +58,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * <li>Stone-blood sword - vampirism; Poison Saber - a poisoned target cannot heal;</li>
  * <li>Palavence, Massivence, Frossivence - a hit on a player or one's own pet heals them instead of damaging (before damage: protected regions without
  * PvP do not cancel it);</li>
- * <li>Hunter's Bow - sniper; Shadow Bow - running inertia; shuriken - a chain of hits; Sneaky Hurricane - a poison cloud;</li>
+ * <li>Hunter Bow - sniper; Shadow Bow - running inertia; shuriken - a chain of hits; Sneaky Hurricane - a poison cloud;</li>
  * <li>Serenade of Death - saves from death like the life amulet, and heals on right-click; Serenade of Infusion - arcana and Clarity;</li>
  * <li>weapon lightning does not burn loot and does not ignite ({@link com.divinerpgextended.entity.EntitySafeLightning});</li>
  * <li>Divine ranged weapons - Thaumcraft books of Infinity (no ammo), Durability and Repair on the anvil.</li>
@@ -207,7 +207,7 @@ public class EarlyWeapons {
         return 1F + (RUN_MAX - 1F) * Math.min(1F, p.getEntityData().getInteger(RUN) / (float) RUN_FULL);
     }
 
-    /** Hunter's Bow multiplier by shot distance. */
+    /** Hunter Bow multiplier by shot distance. */
     public static float snipeMult(double dist) {
         return 1F + (SNIPE_MAX - 1F) * (float) Math.max(0, Math.min(1, (dist - SNIPE_FROM) / (SNIPE_FULL - SNIPE_FROM)));
     }

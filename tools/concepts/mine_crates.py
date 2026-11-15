@@ -48,7 +48,7 @@ def main():
         sheet.paste(im.resize((128, 128), Image.NEAREST), (8 + (k + 1) * 136, 8))
     if prev:
         sheet.save(os.path.join(prev, 'mine_crates_preview.png'))
-    print('готово:', ', '.join(TIERS))
+    print('done:', ', '.join(TIERS))
 
 
 if __name__ == '__main__':

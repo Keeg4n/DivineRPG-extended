@@ -39,12 +39,12 @@ public class GenBench {
 
     @SubscribeEvent
     public void onTick(TickEvent.ServerTickEvent e) {
-        if (e.phase == TickEvent.Phase.END && ticks == 39) System.out.println("[dre-genbench] старт");
+        if (e.phase == TickEvent.Phase.END && ticks == 39) System.out.println("[dre-genbench] start");
         if (e.phase != TickEvent.Phase.END || ++ticks != 40) return;
         MinecraftServer server = MinecraftServer.getServer();
         List<String> out = new ArrayList<String>();
-        out.add("Замер генерации: квадрат " + (2 * R + 1) + "x" + (2 * R + 1) + " чанков от (" + ORIGIN + ", " + ORIGIN + ")");
-        out.add(String.format("%-10s %10s %10s %12s %10s %12s %10s", "мир", "мс/чанк", "рельеф мс", "заселение мс", "свет мс", "лишних чанков", "всего"));
+        out.add("Generation benchmark: square of " + (2 * R + 1) + "x" + (2 * R + 1) + " chunks from (" + ORIGIN + ", " + ORIGIN + ")");
+        out.add(String.format("%-10s %10s %10s %12s %10s %12s %10s", "world", "ms/chunk", "terrain ms", "populate ms", "light ms", "extra chunks", "total"));
         String[] names = { "Overworld", "Eden", "Wildwood", "Apalachia", "Skythern", "Mortum", "Iceika", "Vethea", "Arcana" };
         int[] dims = { 0, ConfigurationHelper.eden, ConfigurationHelper.wildwood, ConfigurationHelper.apalachia,
             ConfigurationHelper.skythern, ConfigurationHelper.mortum, ConfigurationHelper.iceika, ConfigurationHelper.vethea,
@@ -53,18 +53,18 @@ public class GenBench {
             try {
                 out.add(bench(server.worldServerForDimension(dims[d]), names[d]));
             } catch (Throwable t) {
-                out.add(names[d] + ": ошибка " + t);
+                out.add(names[d] + ": error " + t);
             }
         }
         out.add("");
-        out.add("Блоки, прилетевшие в уже загруженные чанки при генерации кольца вокруг (их клиент пересчитывает по свету)");
+        out.add("Blocks that landed in already loaded chunks while generating the ring around (the client recalculates them by light)");
         out.addAll(GAPS);
         out.add("");
-        out.add("Мобы после заселения квадрата и время одного их тика");
+        out.add("Mobs after populating the square and the time of one tick of them");
         out.addAll(MOBS);
         out.add("");
-        out.add("Телепорт порталом, мс: Divine > быстрый (Divine создаёт новый телепорт на каждый вход)");
-        out.add(String.format("%-10s %18s %18s %18s", "мир", "1-й вход", "повторный", "назад"));
+        out.add("Portal teleport, ms: Divine > fast (Divine creates a new teleporter on every entry)");
+        out.add(String.format("%-10s %18s %18s %18s", "world", "1st entry", "repeat", "back"));
         net.minecraft.block.Block[] portals = { net.divinerpg.utils.blocks.TwilightBlocks.edenPortal,
             net.divinerpg.utils.blocks.TwilightBlocks.wildwoodPortal, net.divinerpg.utils.blocks.TwilightBlocks.apalachiaPortal,
             net.divinerpg.utils.blocks.TwilightBlocks.skythernPortal, net.divinerpg.utils.blocks.TwilightBlocks.mortumPortal };
@@ -72,7 +72,7 @@ public class GenBench {
             try {
                 out.add(portal(server, names[i + 1], dims[i + 1], portals[i]));
             } catch (Throwable t) {
-                out.add(names[i + 1] + ": ошибка " + t);
+                out.add(names[i + 1] + ": error " + t);
             }
         }
         try {
@@ -108,7 +108,7 @@ public class GenBench {
         double newBack = time(new com.divinerpgextended.portal.FastTeleporter(home, 0, portal, frame), home, x - 2, z + 1, b);
         same &= java.util.Arrays.equals(a, b);
         return String.format("%-10s %9.0f > %-6.0f %9.0f > %-6.0f %9.0f > %-6.0f %s", name, oldFirst, newFirst, oldAgain, newAgain,
-            oldBack, newBack, same ? "та же точка" : "РАЗНЫЕ ТОЧКИ");
+            oldBack, newBack, same ? "same spot" : "DIFFERENT SPOTS");
     }
 
     /** Teleport a pig from (x, 70, z): time in ms, where it was placed - in at. */
@@ -224,12 +224,12 @@ public class GenBench {
                 return b.getValue() - a.getValue();
             }
         });
-        GAPS.add(String.format("%-10s построек: руин %d, подземелий %d, мостов %d, лагерей %d на %d чанков", name,
+        GAPS.add(String.format("%-10s structures: ruins %d, dungeons %d, bridges %d, camps %d in %d chunks", name,
             com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.ruins - ruins0,
             com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.dungeons - dung0,
             com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.bridges - br0,
             com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.camps - camp0, (2 * R + 7) * (2 * R + 7)));
-        GAPS.add(String.format("%-10s изменений %6d, затронуто пар (заселение, загруженный чанк) %5d на %d новых чанков: %s", name, changes, pairs.size(),
+        GAPS.add(String.format("%-10s changes %6d, pairs affected (populate, loaded chunk) %5d on %d new chunks: %s", name, changes, pairs.size(),
             (2 * R + 7) * (2 * R + 7) - (2 * R + 1) * (2 * R + 1), top.subList(0, Math.min(6, top.size()))));
         // cost of sending a whole chunk: packet size and build time (compression)
         Chunk sample = cps.provideChunk(base, base);
@@ -245,7 +245,7 @@ public class GenBench {
             }
             bytes = buf.readableBytes();
         }
-        GAPS.add(String.format("%-10s   чанк целиком: %d байт, сборка %.2f мс", "", bytes, (System.nanoTime() - p0) / 1e6 / 20));
+        GAPS.add(String.format("%-10s   whole chunk: %d bytes, assembly %.2f ms", "", bytes, (System.nanoTime() - p0) / 1e6 / 20));
         // mobs that appeared during population, and the cost of their tick (without a player nearby mobs are not updated - we hold a ticket on the chunks
         // it will not come out through the normal world tick, so we update entities directly)
         int mobs = 0;
@@ -270,7 +270,7 @@ public class GenBench {
             }
         }
         double mobTick = (System.nanoTime() - t0) / 1e6 / 20;
-        MOBS.add(String.format("%-10s мобов %4d, их тик %6.2f мс: %s", name, mobs, mobTick, kinds));
+        MOBS.add(String.format("%-10s mobs %4d, their tick %6.2f ms: %s", name, mobs, mobTick, kinds));
         int outside = 0, all = 0;
         for (Object o : cps.loadedChunks) {
             Chunk c = (Chunk) o;

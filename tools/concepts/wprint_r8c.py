@@ -12,14 +12,14 @@ OUT = sys.argv[1]
 e = html.escape
 IMG = os.path.join(os.path.dirname(os.path.abspath(OUT)), 'img')
 
-LEDE = ('Г ближе всего, но тьма с глазами стояла на краю капюшона, а вырез был квадратным. Теперь капюшон глубокий: козырёк выступает вперёд, '
-        'внутри тёмная подкладка, а тьма и глаза - в глубине, и при повороте головы видно, что они далеко от края. Вырез скруглён. Различается форма выреза. Выбрать букву: Ж, З или И.')
+LEDE = ('D is the closest, but the darkness with eyes sat at the edge of the hood, and the opening was square. Now the hood is deep: the brim juts forward, '
+        'inside is a dark lining, and the darkness and eyes are deep inside, and when the head turns you can see they are far from the edge. The opening is rounded. Only the opening shape differs. Pick a letter: G, H or I.')
 
-WAS = ('r8d', 'Г', 'Как было', 'Тьма и глаза вровень с краем, вырез квадратный.')
+WAS = ('r8d', 'D', 'As it was', 'The darkness and eyes flush with the edge, a square opening.')
 VARIANTS = [
-    ('r8g', 'Ж', 'Арка', 'Вырез аркой: полукруг сверху, прямые бока до низа. По краю выреза светящаяся кромка. В глубине тьма и два круглых голубых глаза.'),
-    ('r8h', 'З', 'Стрельчатая арка', 'Вырез острой аркой, как в готическом окне, без светящейся кромки - капюшон строже. В глубине тьма и два узких глаза-щели.'),
-    ('r8i', 'И', 'Овал', 'Вырез овалом, снизу закрыт подбородком капюшона, по краю светящаяся кромка, сверху небольшой навес. В глубине тьма и два круглых глаза.'),
+    ('r8g', 'G', 'Arch', 'An arched opening: a semicircle on top, straight sides down to the bottom. A glowing edge along the opening rim. Deep inside are darkness and two round light blue eyes.'),
+    ('r8h', 'H', 'Pointed arch', 'An opening with a pointed arch, like a Gothic window, without a glowing edge - the hood is stricter. Deep inside are darkness and two narrow slit eyes.'),
+    ('r8i', 'I', 'Oval', 'An oval opening, closed from below by the chin of the hood, a glowing edge along the rim, a small overhang on top. Deep inside are darkness and two round eyes.'),
 ]
 
 EXTRA = """
@@ -48,19 +48,19 @@ def front(key):
 
 
 def foot(n):
-    return '<div class="foot"><span>Облики брони Странника, R8 - Призрак, третий раунд</span><span>Страница %d из 4</span></div>' % n
+    return '<div class="foot"><span>Wanderer armor looks, R8 - Phantom, third round</span><span>Page %d of 4</span></div>' % n
 
 
 for v in [WAS] + VARIANTS:
     front(v[0])
-parts = ['<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Облики брони Странника - R8, Призрак</title>',
+parts = ['<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Wanderer armor looks - R8, Phantom</title>',
          '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600&family=Pixelify+Sans:wght@700&display=block">',
          '<style>%s%s</style></head><body>' % (CSS, EXTRA)]
 cells = ''.join('<div class="t%s"><img src="img/%s_f.png" alt=""><div class="lab"><b>%s</b>%s<div>%s</div></div></div>' % (' was' if k == WAS[0] else '', k, e(l), e(n), e(d))
                 for k, l, n, d in [WAS] + VARIANTS)
-parts.append('<section class="page"><h1>Облики брони Странника</h1><div class="sub">R8 - Призрак, третий раунд</div><p class="lede">%s</p><div class="four">%s</div>%s</section>' % (e(LEDE), cells, foot(1)))
+parts.append('<section class="page"><h1>Wanderer armor looks</h1><div class="sub">R8 - Phantom, third round</div><p class="lede">%s</p><div class="four">%s</div>%s</section>' % (e(LEDE), cells, foot(1)))
 for n, (k, l, name, d) in enumerate(VARIANTS, 2):
-    parts.append('<section class="page"><div class="head"><h2>Вариант %s: %s</h2></div><div class="solo"><img src="img/%s.png" alt=""><div class="vv"><span>спереди</span><span>сзади</span></div></div>'
+    parts.append('<section class="page"><div class="head"><h2>Variant %s: %s</h2></div><div class="solo"><img src="img/%s.png" alt=""><div class="vv"><span>front</span><span>back</span></div></div>'
                  '<p class="lede solotext">%s</p>%s</section>' % (e(l), e(name), k, e(d), foot(n)))
 parts.append('</body></html>')
 open(OUT, 'w', encoding='utf-8').write('\n'.join(parts))

@@ -324,7 +324,7 @@ def main():
         name = 'r%d' % look if isinstance(look, int) else look
         draw(template, palette, details).save(os.path.join(OUT, '%s_%s.png' % (name, part)))
         draw_dye(template, palette, details, DYE_CHARS.get((look, part), 'hbs')).save(os.path.join(OUT, '%s_%s_dye.png' % (name, part)))
-    print('значков:', len(ICONS))
+    print('icons:', len(ICONS))
 
 
 if __name__ == '__main__':

@@ -47,7 +47,7 @@ def fin_mask(wd, L):
 SH, SH_D, SH_M, SH_L, SH_E = '#2e2e2e', '#101010', '#474747', '#9a9a9a', '#eef4ff'
 
 
-@slim('r1t', 1, 'Тень: зализанные чёрные латы с серым шевроном, глухой шлем с белой прорезью и плавниками назад, тонкие планки назад на плечах, предплечьях и пятках')
+@slim('r1t', 1, 'Shadow: sleek black plate armor with a gray chevron, a closed helmet with a white slit and fins swept back, thin plates swept back on the shoulders, forearms and heels')
 def r1t():
     lean = P(SH, trim(0.25, SH_D))
     light = P(SH_M, trim(0.25, SH_D))
@@ -78,7 +78,7 @@ def stone(*decals):
     return P(BR, mottle(BR_D, 1.0, 0.62), mottle(BR_L, 1.4, 0.8), *decals, trim(0.3, BR_K))
 
 
-@slim('r1k', 1, 'Бедрок: латы из крапчатой породы, широкие рубленые наплечники, глухой шлем с Т-образной прорезью и рубленым венцом')
+@slim('r1k', 1, 'Bedrock: plate armor of speckled rock, wide rough-hewn pauldrons, a closed helmet with a T-shaped slit and a rough-hewn crown')
 def r1k():
     suit = P(BR_K, trim(0.3, '#0a0a0a'))
     dark = P(BR_D, mottle(BR_K, 1.0, 0.7), trim(0.3, BR_K))
@@ -121,7 +121,7 @@ def circle_mask(wd):
     return a
 
 
-@slim('r1n', 1, 'Энд: гладкие синие латы с белыми искрами и светлой окантовкой, шлем с большим глазом Края и плавниками вверх, на спине кольцо портала с жемчужинами')
+@slim('r1n', 1, 'Ender: sleek blue plate armor with white sparks and a light edging, a helmet with a big Ender eye and fins pointing up, a portal ring with pearls on the back')
 def r1n():
     plate = P(EN, *SPARK, trim(0.3, EN_D))
     panel = P(EN_M, *SPARK, trim(0.3, EN_D))
@@ -158,7 +158,7 @@ def eye(cu, cv, r):
     return (disc(('north',), cu, cv, r * 1.35, CO_K), disc(('north',), cu, cv, r, CO_W), disc(('north',), cu, cv, r * 0.72, CO_P, glow=True), disc(('north',), cu, cv, r * 0.3, CO_K))
 
 
-@slim('r1p', 1, 'Порча: сине-фиолетовые латы с пурпурными прожилками и глазом на груди, шлем с тремя глазами Груи и шипами, шипы на плечах, на спине пушка порчи')
+@slim('r1p', 1, 'Corruption: blue-violet plate armor with purple veins and an eye on the chest, a helmet with three Grue eyes and spikes, spikes on the shoulders, a corruption cannon on the back')
 def r1p():
     plate = P(CO, *FLESH, trim(0.3, CO_D))
     dark = P(CO_M, mottle(CO_K, 2.2, 0.9), trim(0.3, CO_D))
@@ -222,7 +222,7 @@ def tri_mask(wd, L):
 
 # Shadow B: raven. Feathers, beak, a shadow bow behind the back
 
-@slim('r1u', 1, 'Тень, ворон: чёрная чешуя перьев на груди, шлем с клювом и круглыми белыми глазами, перья на плечах и затылке, за спиной теневой лук')
+@slim('r1u', 1, 'Shadow, raven: black feather scales on the chest, a helmet with a beak and round white eyes, feathers on the shoulders and nape, a shadow bow on the back')
 def r1u():
     lean = P(SH, trim(0.25, SH_D))
     suit = P(SH_D, trim(0.25, '#000000'))
@@ -261,7 +261,7 @@ def shuriken(bone, cx, cy, z, r, wd, steel, hub):
     return out
 
 
-@slim('r1w', 1, 'Тень, призрак: одежда в обмотках с ремнями крест-накрест, голова в тёмной повязке и белая маска без лица, подсумки, за спиной большой сюрикен')
+@slim('r1w', 1, 'Shadow, phantom: wrapped clothes with crossed straps, the head in a dark wrap and a white faceless mask, pouches, a large shuriken on the back')
 def r1w():
     wrap = ('#2e2e2e', '#262626', '#383838')
     cloth = P(wrap[0], bands(wrap, 1.0, axis=1), trim(0.2, SH_D))
@@ -288,7 +288,7 @@ def masonry(*decals):
     return P('#686868', mottle(BR_D, 2.0, 0.86), mottle(BR_L, 2.2, 0.86), seams(3.0, BR_K, axis=1), *decals, trim(0.3, BR_K))
 
 
-@slim('r1l', 1, 'Бедрок, бастион: латы как кладка крепости с зубцами на плечах и шлеме, узкая светящаяся прорезь, руна на груди, за спиной ростовой щит из плиты')
+@slim('r1l', 1, 'Bedrock, bastion: plate armor like fortress masonry with battlements on the shoulders and helmet, a narrow glowing slit, a rune on the chest, a full-height slab shield on the back')
 def r1l():
     suit = P(BR_K, trim(0.3, '#0a0a0a'))
     dark = P(BR_D, mottle(BR_K, 2.0, 0.8), trim(0.3, BR_K))
@@ -318,7 +318,7 @@ def rock(*decals):
     return P(ROCK, mottle(ROCK_M, 2.0, 0.78), veins(LAVA, 0.7, 0.13, glow=True), *decals, trim(0.3, ROCK_D))
 
 
-@slim('r1m', 1, 'Бедрок, недра: чёрная порода с лавой в трещинах, валуны на плечах, рогатый шлем с раскалённой прорезью, на спине каменные шипы и ядро')
+@slim('r1m', 1, 'Bedrock, depths: black rock with lava in the cracks, boulders on the shoulders, a horned helmet with a red-hot slit, stone spikes and a core on the back')
 def r1m():
     dark = P(ROCK_D, trim(0.25, '#050404'))
     bs = under(dark, dark) + breastplate(rock(disc(('north',), 4.6, 2.8, 1.5, ROCK_D), disc(('north',), 4.6, 2.8, 1.05, LAVA_L, glow=True)), front=-3.4, back=2.6) + waist(rock()) + belt(P(ROCK_D, trim(0.2, '#050404'), rect(('north',), 3.5, 5.6, 0.3, 1.9, LAVA, glow=True)), h=2.0)
@@ -344,7 +344,7 @@ def void(*decals):
     return P(VO, *VSTAR, *decals, trim(0.25, EN_M))
 
 
-@slim('r1o', 1, 'Энд, ходок Края: почти чёрные латы в звёздах с синими светящимися линиями, длинные глаза как у эндермена, длинные когти, на спине кристалл Края в рамке')
+@slim('r1o', 1, 'Ender, Ender walker: almost black plate armor in stars with blue glowing lines, long Enderman-like eyes, long claws, an Ender crystal in a frame on the back')
 def r1o():
     suit = P(VO_D, trim(0.2, VO))
     line = lambda a, b: rect(SIDES, a, b, -1, 99, EN_L, glow=True)
@@ -374,7 +374,7 @@ def fan_mask(wd, L):
     return a
 
 
-@slim('r1q', 1, 'Энд, дракон: синяя чешуя, рогатый шлем с пастью и пурпурными глазами как у дракона Края, шипы на плечах, на спине раскрытые кожистые крылья')
+@slim('r1q', 1, 'Ender, dragon: blue scales, a horned helmet with a maw and purple eyes like the Ender dragon, spikes on the shoulders, spread leathery wings on the back')
 def r1q():
     sc = (EN_M, EN, '#0b4f96', '#1a6cc0')
     scaly = P(EN_M, scales(SIDES, (-1, 99, -1, 99), sc, s=1.3), trim(0.3, EN_K))
@@ -409,7 +409,7 @@ def r1q():
 
 # Corruption B: hunter. Wide-brimmed hat, eyes in shadow, a bandolier, a quiver with glowing arrows
 
-@slim('r1r', 1, 'Порча, охотник: широкополая шляпа с пурпурной лентой, лицо в тени и светятся только глаза, тёмная кожа с патронташем, за спиной колчан со светящимися стрелами')
+@slim('r1r', 1, 'Corruption, hunter: a wide-brimmed hat with a purple ribbon, the face in shadow and only the eyes glow, dark leather with a bandolier, a quiver of glowing arrows on the back')
 def r1r():
     coat = P(CO_M, trim(0.3, CO_D))
     felt = P(CO_D, trim(0.25, CO_K))
@@ -439,7 +439,7 @@ def r1r():
 
 # Corruption V: Grue. A maw on the chest, huge eyes, tentacles with eyes on the back
 
-@slim('r1x', 1, 'Порча, Грю: тёмная плоть с зубастой пастью на груди, шлем-голова с огромными глазами и второй пастью, глаза на плечах, из спины растут щупальца с глазами')
+@slim('r1x', 1, 'Corruption, Grue: dark flesh with a toothy maw on the chest, a head-helmet with huge eyes and a second maw, eyes on the shoulders, tentacles with eyes grow from the back')
 def r1x():
     fl = P(CO_D, mottle(CO_M, 2.0, 0.72), mottle(CO_P, 2.2, 0.93), trim(0.3, CO_K))
     suit = P(CO_K, trim(0.25, '#06040e'))
