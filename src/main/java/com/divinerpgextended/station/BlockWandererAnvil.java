@@ -17,8 +17,8 @@ import net.minecraft.world.World;
 import com.divinerpgextended.DivineRPGExtended;
 
 /**
- * Наковальня Странника. Рисуется моделью ({@link com.divinerpgextended.client.RenderWandererAnvil}), не кубом; мета 0-3 -
- * поворот: лицом к игроку, который ставил. Свет не загораживает.
+ * Wanderer Anvil. Drawn with a model ({@link com.divinerpgextended.client.RenderWandererAnvil}), not a cube; meta 0-3 -
+ * rotation: facing the player who placed it. Does not block light.
  */
 public class BlockWandererAnvil extends BlockContainer {
 
@@ -56,7 +56,7 @@ public class BlockWandererAnvil extends BlockContainer {
 
     @Override
     public int getRenderType() {
-        return -1; // только модель
+        return -1; // model only
     }
 
     @Override
@@ -64,12 +64,12 @@ public class BlockWandererAnvil extends BlockContainer {
         float hy, float hz) {
         if (world.isRemote) return true;
         TileEntity te = world.getTileEntity(x, y, z);
-        if (te instanceof TileWandererAnvil) ((TileWandererAnvil) te).releaseLegacy(player); // вещи, лежавшие в блоке со старых версий
+        if (te instanceof TileWandererAnvil) ((TileWandererAnvil) te).releaseLegacy(player); // items that lay in the block from old versions
         player.openGui(DivineRPGExtended.instance, GuiHandler.ANVIL, world, x, y, z);
         return true;
     }
 
-    /** Блок пуст; выпадают только вещи, оставшиеся в нём со старых версий. Открытые окна закроются сами (блока нет). */
+    /** The block is empty; only items left in it from old versions drop. Open windows close by themselves (the block is gone). */
     @Override
     public void breakBlock(World world, int x, int y, int z, Block block, int meta) {
         TileEntity te = world.getTileEntity(x, y, z);

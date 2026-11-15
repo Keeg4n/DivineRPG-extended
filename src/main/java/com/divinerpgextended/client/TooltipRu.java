@@ -12,14 +12,14 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Перевод описаний предметов Divine, вписанных прямо в код по-английски ("Shoots Lightning", "Fills 3.0 Hunger Bars"): языковым
- * файлом их не перевести. Строка подсказки сравнивается с образцами и заменяется русской из ru_RU.lang; цвет начала строки
- * сохраняется. Ключи есть только в русском файле - на других языках ничего не меняется. Подписан только на клиенте; сам класс
- * общий, чтобы автотест сервера проверил образцы.
+ * Translation of Divine item descriptions hardcoded in English in the code ("Shoots Lightning", "Fills 3.0 Hunger Bars"): they can't be translated
+ * by a language file. The tooltip line is compared with patterns and replaced with the Russian one from ru_RU.lang; the color at the start of the line
+ * is kept. The keys exist only in the Russian file - nothing changes in other languages. Subscribed only on the client; the class itself
+ * is common, so that the server selftest can check the patterns.
  */
 public class TooltipRu {
 
-    /** {образец, ключ}: образец - вся строка без цветов; группы в скобках подставляются в перевод. */
+    /** {pattern, key}: the pattern is the whole line without colors; groups in parentheses are substituted into the translation. */
     private static final Object[][] RULES = {
         { "Fills ([0-9.]+) Hunger Bars", "dre.tip.fills" }, { "([0-9.]+) Saturation", "dre.tip.saturation" },
         { "(?i)Pet Food:\\s*true", "dre.tip.pet_food_yes" }, { "(?i)Pet Food:\\s*false", "dre.tip.pet_food_no" },
@@ -42,7 +42,7 @@ public class TooltipRu {
         for (int i = 0; i < RULES.length; i++) PATTERNS[i] = Pattern.compile((String) RULES[i][0]);
     }
 
-    /** Какой образец подошёл: {ключ, подстановки...}; null - строка не из этих. */
+    /** Which pattern matched: {key, substitutions...}; null - the line is not one of these. */
     public static String[] rule(String plain) {
         for (int i = 0; i < RULES.length; i++) {
             Matcher m = PATTERNS[i].matcher(plain);
@@ -55,14 +55,14 @@ public class TooltipRu {
         return null;
     }
 
-    /** Все ключи перевода (для автотеста: каждый должен быть в ru_RU.lang). */
+    /** All translation keys (for selftest: each must be in ru_RU.lang). */
     public static String[] keys() {
         String[] k = new String[RULES.length];
         for (int i = 0; i < RULES.length; i++) k[i] = (String) RULES[i][1];
         return k;
     }
 
-    /** Перевод одной строки подсказки (null - не из Divine или перевода на этом языке нет). */
+    /** Translation of one tooltip line (null - not from Divine or there is no translation in this language). */
     public static String translate(String line) {
         String[] r = rule(EnumChatFormatting.getTextWithoutFormattingCodes(line).trim());
         if (r == null || !StatCollector.canTranslate(r[0])) return null;
@@ -71,13 +71,13 @@ public class TooltipRu {
         return lead(line) + StatCollector.translateToLocalFormatted(r[0], args);
     }
 
-    /** Имя питомца по-русски из файла Divine (иначе как есть). */
+    /** The pet name in Russian from the Divine file (otherwise as is). */
     private static String pet(String s) {
         String key = "entity.divinerpg." + s.replace(" ", "") + ".name";
         return StatCollector.canTranslate(key) ? StatCollector.translateToLocal(key) : s;
     }
 
-    /** Коды цвета в начале строки. */
+    /** Color codes at the start of the line. */
     private static String lead(String line) {
         int i = 0;
         while (i + 1 < line.length() && line.charAt(i) == '§') i += 2;
@@ -87,7 +87,7 @@ public class TooltipRu {
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onTooltip(ItemTooltipEvent e) {
         List<String> tip = e.toolTip;
-        for (int i = 1; i < tip.size(); i++) { // первая строка - имя предмета
+        for (int i = 1; i < tip.size(); i++) { // the first line is the item name
             String t = translate(tip.get(i));
             if (t != null) tip.set(i, t);
         }

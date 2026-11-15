@@ -1,5 +1,5 @@
-"""Лист концептов вилки R1 (A4): облики брони Странника первой ступени по сету, из которого она скована, по три варианта на сет; божественный - как в игре.
-Запуск: python wprint_r1.py <out.html>. Картинки ждёт в img/ рядом с HTML: r1v (wslim5.py) и варианты из wr1.py; кадры "спереди" для обзора собираются здесь."""
+"""Sheet of R1 fork concepts (A4): looks of first-tier Wanderer armor by the set it is forged from, three variants per set; divine is as in the game.
+Run: python wprint_r1.py <out.html>. Expects images in img/ next to the HTML: r1v (wslim5.py) and variants from wr1.py; the "front" frames for the overview are built here."""
 import html
 import os
 import sys
@@ -54,7 +54,7 @@ EXTRA = """
 
 
 def front(key):
-    """Вид спереди отдельным кадром для обзора."""
+    """Front view as a separate frame for the overview."""
     p = Image.open(os.path.join(IMG, key + '.png')).convert('RGB')
     w, h = p.width // 2, p.height
     cut = int(w * 0.13)

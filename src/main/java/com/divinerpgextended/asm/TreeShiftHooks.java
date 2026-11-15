@@ -7,14 +7,14 @@ import net.minecraft.world.World;
 import net.minecraft.world.gen.feature.WorldGenerator;
 
 /**
- * Вызовы из заселения сумеречных миров ({@link TreeShiftTransformer}): та же точка со сдвигом +8 по X и Z (внутрь
- * области, которую заселяет этот чанк), высота - та же относительно поверхности, но на новом месте.
+ * Calls from twilight world population ({@link TreeShiftTransformer}): the same point shifted by +8 in X and Z (into the
+ * area that this chunk populates), the height is the same relative to the surface, but at the new place.
  */
 public class TreeShiftHooks {
 
-    /** Сколько заселений сумеречных миров сейчас идёт (на сервере в его потоке). */
+    /** How many twilight world populations are in progress now (on the server in its thread). */
     public static int populating;
-    /** Для замера: сколько заселений началось. */
+    /** For measurement: how many populations started. */
     public static int begins;
 
     public static void begin() {
@@ -28,7 +28,7 @@ public class TreeShiftHooks {
 
     public static boolean tree(WorldGenerator g, World w, Random r, int x, int y, int z) {
         int nx = x + 8, nz = z + 8;
-        if (com.divinerpgextended.world.twilight.WorldGenNests.templeIsland(w, nx, nz)) return false; // не на храме Скайтерна
+        if (com.divinerpgextended.world.twilight.WorldGenNests.templeIsland(w, nx, nz)) return false; // not on the Skythern temple
         return g.generate(w, r, nx, y - w.getHeightValue(x, z) + w.getHeightValue(nx, nz), nz);
     }
 

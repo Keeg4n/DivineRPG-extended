@@ -5,10 +5,10 @@ import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.IIcon;
 
-/** Вызовы из BlockLiquid ({@link WaterTransformer}); только клиент (иконки бывают только там). */
+/** Calls from BlockLiquid ({@link WaterTransformer}); client only (icons exist only there). */
 public final class WaterHooks {
 
-    /** Золотая вода Эдема: стоячая и текущая (регистрирует {@link com.divinerpgextended.client.EdenWater}). */
+    /** Golden Eden water: still and flowing (registered by {@link com.divinerpgextended.client.EdenWater}). */
     public static IIcon still, flow;
 
     private WaterHooks() {}

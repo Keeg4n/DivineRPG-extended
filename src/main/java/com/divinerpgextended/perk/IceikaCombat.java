@@ -20,14 +20,14 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Снаряжение Iceika в бою.
+ * Iceika gear in combat.
  * <ul>
- * <li>Санта в Iceika: поверх её собственных -80% режет урон от существ ещё на 40% (итого ~-88%) - её долго фармить,
- * она должна держать удар.</li>
- * <li>Мертвецы, поднятые боссами Трона: Snowslash бьёт их втрое, ледяные пушки - вчетверо (разбивают в осколки).</li>
- * <li>Фроссивенс (лечащий меч): лечит не чаще раза в 2 секунды (чаще - лечение отменяется), в сете Frozen или
- * Санты - на половину здоровья. Каждое лечение студит кровь: копится переохлаждение (замедление, потом
- * слабость и урон), ледяные сеты копят его медленнее, но не до нуля. Спадает само.</li>
+ * <li>Santa in Iceika: on top of her own -80% cuts creature damage by another 40% (about -88% in total) - she takes long to farm,
+ * so she has to take a hit.</li>
+ * <li>The dead raised by Throne bosses: Snowslash hits them three times as hard, ice cannons four times (shatter them into shards).</li>
+ * <li>Frossivence (a healing sword): heals no more often than once per 2 seconds (more often - the healing is cancelled), in a Frozen or
+ * Santa set - for half health. Each healing chills the blood: hypothermia accumulates (slowness, then
+ * weakness and damage), ice sets accumulate it more slowly, but not to zero. It fades on its own.</li>
  * </ul>
  */
 public class IceikaCombat {
@@ -46,7 +46,7 @@ public class IceikaCombat {
             EntityPlayer p = (EntityPlayer) event.entityLiving;
             if (attacker != null && attacker != p && ColdHandler.inIceika(p) && PerkEffects.wears(p, SANTA)) {
                 event.ammount *= 0.6F;
-                com.divinerpgextended.debug.Debug.note(p, "Санта в Айсике, бонус аддона поверх Divine: x0.6");
+                com.divinerpgextended.debug.Debug.note(p, "Santa in Iceika, addon bonus on top of Divine: x0.6");
             }
             return;
         }
@@ -55,24 +55,24 @@ public class IceikaCombat {
         Item melee = ThroneCombat.melee(event.source);
         if (melee == IceikaItems.snowSlash) {
             event.ammount *= 3.0F;
-            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Snowslash по приспешнику трона: x3");
+            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Snowslash on a throne minion: x3");
         } else if (ThroneCombat.vsMinion(melee) > 1.0F) {
             event.ammount *= ThroneCombat.vsMinion(melee);
-            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Ледяное оружие Трона по приспешнику: x2");
+            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Throne ice weapon on a minion: x2");
         }
         if (ThroneCombat.iceCannon(event.source)) {
             event.ammount *= 4.0F;
-            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Ледяная пушка по приспешнику трона: x4");
+            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Ice cannon on a throne minion: x4");
             FrostPowers.particles(event.entityLiving.worldObj, "snowshovel", event.entityLiving.posX,
                 event.entityLiving.posY + 1, event.entityLiving.posZ, 20, 0.4, 0.1);
         }
     }
 
     /**
-     * Фроссивенс: Divine лечит на каждый клик без перезарядки (в onItemRightClick, setHealth без события лечения). Клик
-     * в воздух чаще раза в 2 секунды не доходит до меча (useItem = DENY): раньше лечение отменялось в начале
-     * использования, а пока меч уже "в руке" (блок), повторные клики начала не вызывают - в бою с Колоссом лечение шло
-     * без перезарядки. Каждое настоящее лечение добавляет переохлаждение.
+     * Frossivence: Divine heals on every click with no cooldown (in onItemRightClick, setHealth without a heal event). A click
+     * into the air more often than once per 2 seconds does not reach the sword (useItem = DENY): before, the healing was cancelled at the start of
+     * use, but while the sword is already "in hand" (block), repeated clicks do not trigger the start - in the Colossus fight healing went
+     * without a cooldown. Each real healing adds hypothermia.
      */
     @SubscribeEvent
     public void onClick(net.minecraftforge.event.entity.player.PlayerInteractEvent event) {
@@ -84,15 +84,15 @@ public class IceikaCombat {
         long now = p.worldObj.getTotalWorldTime();
         if (now - d.getLong(HEAL_TICK) < COOLDOWN) {
             event.useItem = cpw.mods.fml.common.eventhandler.Event.Result.DENY;
-            com.divinerpgextended.debug.Debug.note(p, "Фроссивенс на перезарядке: лечения нет");
+            com.divinerpgextended.debug.Debug.note(p, "Frossivence on cooldown: no healing");
             return;
         }
-        if (p.getHealth() <= 0 || p.getHealth() >= 20) return; // Divine лечит только ниже 20 - перезарядку не тратим
+        if (p.getHealth() <= 0 || p.getHealth() >= 20) return; // Divine heals only below 20 - we do not spend the cooldown
         d.setLong(HEAL_TICK, now);
         boolean santa = PerkEffects.wears(p, SANTA), frozen = PerkEffects.wears(p, FROZEN);
         if ((santa || frozen) && p.getHealth() < p.getMaxHealth()) {
             p.heal(p.getMaxHealth() / 2);
-            com.divinerpgextended.debug.Debug.note(p, "Фроссивенс с ледяным сетом: лечение на половину здоровья");
+            com.divinerpgextended.debug.Debug.note(p, "Frossivence with the ice set: heals half health");
         }
         float chill = d.getFloat(CHILL) + 3.0F * (santa ? 0.4F : frozen ? 0.6F : 1.0F);
         if (d.getFloat(CHILL) < 7 && chill >= 7) p.addChatMessage(new ChatComponentTranslation("dre.chat.frossivence_chill"));
@@ -100,7 +100,7 @@ public class IceikaCombat {
         FrostPowers.particles(p.worldObj, "snowshovel", p.posX, p.posY + 1.2, p.posZ, 8, 0.4, 0.05);
     }
 
-    /** Раз в секунду обрабатываем переохлаждение. */
+    /** Once a second we process hypothermia. */
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent event) {
         EntityPlayer p = event.player;

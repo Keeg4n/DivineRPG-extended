@@ -12,9 +12,9 @@ import net.minecraft.item.ItemStack;
 import com.divinerpgextended.boss.AyeracoHorde.Hue;
 
 /**
- * Цвета брони Энда Divine против орды Айрако: каждая вещь цвета снимает с носителя ауру Айрако этого цвета и
- * усиливает удары по нему; обычная (чёрная) броня Энда - против фиолетового, серая - понемногу против всех (+10% за
- * вещь). Полный сет из любых цветов - способности брони ({@link EnderGear}).
+ * Divine End armor colors against the Ayeraco horde: each piece of a color removes the Ayeraco aura of that color from the wearer and
+ * strengthens hits against it; ordinary (black) End armor works against purple, gray works a little against all (+10% per
+ * piece). A full set of any colors gives the armor abilities ({@link EnderGear}).
  */
 public final class EnderColors {
 
@@ -35,14 +35,14 @@ public final class EnderColors {
             VanillaItemsArmor.grayEnderLegs, VanillaItemsArmor.grayEnderBoots));
         SWORDS = new java.util.HashSet<Item>(java.util.Arrays.asList(VanillaItemsWeapons.enderSword, VanillaItemsWeapons.blueEnderSword,
             VanillaItemsWeapons.grayEnderSword, VanillaItemsWeapons.greenEnderSword, VanillaItemsWeapons.redEnderSword, VanillaItemsWeapons.yellowEnderSword,
-            VanillaItemsWeapons.enderBow, net.divinerpg.utils.items.IceikaItems.enderice)); // и лук Энда, и ледяной меч Энда
+            VanillaItemsWeapons.enderBow, net.divinerpg.utils.items.IceikaItems.enderice)); // both the End bow and the End ice sword
     }
 
     private static void put(Hue h, Item... items) {
         for (Item i : items) if (i != null) HUES.put(i, h);
     }
 
-    /** Цвет вещи брони Энда (null - серая или не броня Энда). */
+    /** Color of an End armor piece (null - gray or not End armor). */
     public static Hue hue(Item i) {
         init();
         return HUES.get(i);
@@ -53,7 +53,7 @@ public final class EnderColors {
         return HUES.containsKey(i) || GRAY.contains(i);
     }
 
-    /** Надета ли хоть одна вещь брони Энда этого цвета. */
+    /** Whether at least one End armor piece of this color is worn. */
     public static boolean wears(EntityPlayer p, Hue h) {
         for (int i = 0; i < 4; i++) {
             ItemStack s = p.getCurrentArmor(i);
@@ -62,7 +62,7 @@ public final class EnderColors {
         return false;
     }
 
-    /** Сколько надето вещей брони Энда цвета h (null - серых). */
+    /** How many End armor pieces of color h are worn (null - gray ones). */
     public static int count(EntityPlayer p, Hue h) {
         init();
         int n = 0;
@@ -74,9 +74,9 @@ public final class EnderColors {
         return n;
     }
 
-    /** Полный сет брони Энда (цвета можно смешивать). */
+    /** A full End armor set (colors can be mixed). */
     public static boolean fullSet(EntityPlayer p) {
-        if (com.divinerpgextended.item.ArmorCore.worn(p) == com.divinerpgextended.item.ArmorCore.ENDER) return true; // ядро Энда в броне Странника
+        if (com.divinerpgextended.item.ArmorCore.worn(p) == com.divinerpgextended.item.ArmorCore.ENDER) return true; // End core in Wanderer armor
         for (int i = 0; i < 4; i++) {
             ItemStack s = p.getCurrentArmor(i);
             if (s == null || !ender(s.getItem())) return false;

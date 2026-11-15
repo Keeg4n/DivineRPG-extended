@@ -1,5 +1,5 @@
-"""Раунды 2+ концептов брони Странника (A4): обложка с уже выбранными обликами + по листу на ступень с новыми вариантами.
-Запуск: python wprint2.py <out.html> [модуль данных раунда, по умолчанию wprint_data]. Картинки ждёт в img/ рядом с HTML."""
+"""Rounds 2+ of the Wanderer armor concepts (A4): cover with the already chosen looks + one sheet per tier with new variants.
+Run: python wprint2.py <out.html> [round data module, default wprint_data]. Expects images in img/ next to the HTML."""
 import html
 import importlib
 import sys
@@ -8,7 +8,7 @@ OUT = sys.argv[1]
 d = importlib.import_module(sys.argv[2] if len(sys.argv) > 2 else 'wprint_data')
 CSS = importlib.import_module('wprint_data').CSS
 e = html.escape
-ROUND_IN = getattr(d, 'ROUND_IN', d.ROUND.lower())  # название раунда внутри фразы (имена собственные - с большой)
+ROUND_IN = getattr(d, 'ROUND_IN', d.ROUND.lower())  # round name inside a phrase (proper nouns - capitalized)
 
 parts = ['<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Облики брони Странника - %s</title>' % e(ROUND_IN),
          '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600&family=Pixelify+Sans:wght@700&display=block">',

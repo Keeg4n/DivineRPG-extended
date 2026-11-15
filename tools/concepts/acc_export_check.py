@@ -1,4 +1,4 @@
-"""Проверка выгрузки посадки: грани из wear/accessories.txt (собранные заново как в игре) против граней концепта."""
+"""Fit export check: faces from wear/accessories.txt (rebuilt as in the game) against the concept faces."""
 import os
 import sys
 
@@ -58,7 +58,7 @@ def rebuild(rows):
 
 
 def deviation(want, got):
-    """Наибольшее расхождение координат: грани сгруппированы по кости и цвету, координаты отсортированы (выгрузка округляет до 0.001)."""
+    """Largest coordinate mismatch: faces are grouped by bone and color, coordinates are sorted (the export rounds to 0.001)."""
     def groups(quads):
         g = {}
         for bone, q, col, n in quads:
@@ -72,12 +72,12 @@ def deviation(want, got):
 
 LOOKS = {'r1': 'r1v', 'r2': 'r2s', 'r3': 'r3v', 'r4': 'r4v', 'r5': 'r5v', 'r6': 'r6v', 'r7': 'r7z',
          'r1_shadow': 'r1t', 'r1_bedrock': 'r1k', 'r1_ender': 'r1o', 'r1_corrupted': 'r1r'}
-import acc_export as X  # noqa: E402  (только PICK и профиль без брони; функции записи подменяет у себя, поэтому импорт - после чтения)
+import acc_export as X  # noqa: E402  (only PICK and the no-armor profile; the write functions are replaced locally, so the import comes after reading)
 
 arms = {'bare': X.PROFILES[0][1], 'divine': X.PROFILES[1][1]}
 for look, k in LOOKS.items():
     arms[look] = dict(X.PROFILES)[look]
-# вернуть настоящие функции граней
+# restore the real face functions
 import importlib  # noqa: E402
 for m in ('acc_kit', 'acc_wear', 'acc_items1', 'acc_items2', 'acc_redo'):
     importlib.reload(sys.modules[m])
@@ -105,7 +105,7 @@ for n, (k, name, slot, vs) in enumerate(acc_items1.ITEMS, 1):
             print('РАСХОЖДЕНИЕ', k, prof, len(want), len(got), dev)
 print('проверено', total, 'расхождений больше 0.02 пикселя', bad, 'наибольшее', round(worst, 4))
 
-# контрольные суммы граней концепта по костям: автотест мода сверяет с ними геометрию, которую строит Java (WearData)
+# checksums of the concept faces per bone: the mod selftest compares them with the geometry built by Java (WearData)
 sums = ['# ключ профиль кость граней сумма_x сумма_y сумма_z (по всем вершинам граней концепта)']
 for n, (k, name, slot, vs) in enumerate(acc_items1.ITEMS, 1):
     pick = X.PICK.get(n)

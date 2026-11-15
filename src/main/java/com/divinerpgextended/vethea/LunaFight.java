@@ -23,14 +23,14 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Леди Луна - последний экзамен Ветеи, три фазы по здоровью вместо случайной защиты Divine:
+ * Lady Luna is the last exam of Vethea, three phases by health instead of Divine's random defense:
  * <ol>
- * <li>на земле: ранит только ближний бой (меч, когти, молот);</li>
- * <li>на крыльях летает по дурной траектории (как кори Эдема): ранят лук и посох, снаряды посоха сами наводятся на
- * неё;</li>
- * <li>взрывается: вокруг игроков вспыхивают лунные взрывы (сначала метка), ранит только пушка - клин клином.</li>
+ * <li>on the ground: hurt only by melee (sword, claws, maul);</li>
+ * <li>on wings she flies on an erratic trajectory (like the Eden cori): hurt by bow and staff, staff projectiles home in on
+ * her;</li>
+ * <li>explodes: lunar explosions flare around players (a mark first), hurt only by the cannon - fight fire with fire.</li>
  * </ol>
- * Каждому рядом при гибели - лунные осколки: на алтаре наполнения оружие из арксиана + осколки = её оружие.
+ * Everyone nearby gets Lunar Shards on her death: at the infusion altar an Arksiane weapon + shards = her weapon.
  */
 public class LunaFight {
 
@@ -38,13 +38,13 @@ public class LunaFight {
     static final String HOME = "dreLunaHome", MARKS = "dreLunaMarks";
     private static Method setType, setTimer;
 
-    /** Фаза 1..3 по доле здоровья (её видит и клиент - для крыльев). */
+    /** Phase 1..3 by health fraction (the client sees it too - for the wings). */
     public static int phase(EntityLadyLuna l) {
         float f = l.getHealth() / l.getMaxHealth();
         return f > 2F / 3 ? 1 : f > 1F / 3 ? 2 : 3;
     }
 
-    /** Ранит ли удар этим видом в этой фазе (чужое и без оружия - нет). */
+    /** Whether a hit of this kind hurts in this phase (foreign and bare-handed - no). */
     public static boolean hurts(int phase, WeaponKind k) {
         if (k == null) return false;
         switch (phase) {
@@ -54,7 +54,7 @@ public class LunaFight {
         }
     }
 
-    /** Случайную защиту Divine выключаем: тип 0, таймер далеко. */
+    /** We turn off Divine's random defense: type 0, timer far away. */
     private static void noDivineProtection(EntityLadyLuna l) {
         try {
             if (setType == null) {
@@ -82,14 +82,14 @@ public class LunaFight {
         if (ph == 3) blasts(l);
     }
 
-    // ---- фаза 2: полёт и самонаведение посоха
+    // ---- phase 2: flight and staff homing
 
     private void fly(EntityLadyLuna l, int[] home) {
         NBTTagCompound t = l.getEntityData();
         double wx = t.getDouble("dreWpX"), wy = t.getDouble("dreWpY"), wz = t.getDouble("dreWpZ");
         int cool = t.getInteger("dreWpCool") - 1;
         double dx = wx - l.posX, dy = wy - l.posY, dz = wz - l.posZ, d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (cool <= 0 || d < 1.5 || !t.hasKey("dreWpX")) { // как у кори: новая точка часто и резко
+        if (cool <= 0 || d < 1.5 || !t.hasKey("dreWpX")) { // like the cori: a new point often and sharply
             wx = home[0] + (l.getRNG().nextDouble() * 2 - 1) * 12;
             wy = home[1] + 4 + l.getRNG().nextDouble() * 7;
             wz = home[2] + (l.getRNG().nextDouble() * 2 - 1) * 12;
@@ -105,7 +105,7 @@ public class LunaFight {
         t.setInteger("dreWpCool", cool);
         l.getNavigator().clearPathEntity();
         l.motionX += dx / d * 0.12;
-        l.motionY += dy / d * 0.12 + 0.08; // гасит падение
+        l.motionY += dy / d * 0.12 + 0.08; // cancels the fall
         l.motionZ += dz / d * 0.12;
         double v = Math.sqrt(l.motionX * l.motionX + l.motionY * l.motionY + l.motionZ * l.motionZ);
         if (v > 0.7) {
@@ -141,13 +141,13 @@ public class LunaFight {
         }
     }
 
-    // ---- фаза 3: лунные взрывы
+    // ---- phase 3: lunar explosions
 
     private void blasts(EntityLadyLuna l) {
         NBTTagCompound t = l.getEntityData();
         WorldServer ws = (WorldServer) l.worldObj;
         List<double[]> marks = new ArrayList<double[]>();
-        int[] raw = t.getIntArray(MARKS); // x*8, y*8, z*8, тик взрыва
+        int[] raw = t.getIntArray(MARKS); // x*8, y*8, z*8, explosion tick
         for (int i = 0; i + 3 < raw.length; i += 4) marks.add(new double[] { raw[i] / 8.0, raw[i + 1] / 8.0, raw[i + 2] / 8.0, raw[i + 3] });
         for (Iterator<double[]> it = marks.iterator(); it.hasNext();) {
             double[] m = it.next();
@@ -156,7 +156,7 @@ public class LunaFight {
                 it.remove();
             } else if (l.ticksExisted % 3 == 0) ws.func_147487_a("witchMagic", m[0], m[1] + 0.3, m[2], 6, 0.6, 0.1, 0.6, 0);
         }
-        if (l.ticksExisted % 50 == 0) { // метка под каждым игроком рядом, взрыв через 1.5 с
+        if (l.ticksExisted % 50 == 0) { // a mark under every player nearby, explosion after 1.5 s
             for (Object o : l.worldObj.getEntitiesWithinAABB(EntityPlayer.class, l.boundingBox.expand(24, 12, 24)))
                 marks.add(new double[] { ((EntityPlayer) o).posX, ((EntityPlayer) o).boundingBox.minY, ((EntityPlayer) o).posZ, l.ticksExisted + 30 });
             l.worldObj.playSoundAtEntity(l, "mob.wither.shoot", 1.0F, 1.4F);
@@ -172,7 +172,7 @@ public class LunaFight {
         t.setIntArray(MARKS, out);
     }
 
-    /** Что ранит Луну, решает фаза; её же взрывы и всё прочее - нет. */
+    /** What hurts Luna is decided by the phase; her own explosions and everything else - no. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onAttack(LivingAttackEvent e) {
         if (!(e.entityLiving instanceof EntityLadyLuna) || e.entityLiving.worldObj.isRemote) return;
@@ -192,9 +192,9 @@ public class LunaFight {
             HiveTimer.give((EntityPlayer) o, DreamItem.stack(DreamItem.LUNAR_SHARD, SHARDS));
     }
 
-    // ---- Everlight сильнее маула
+    // ---- Everlight is stronger than the maul
 
-    /** Урон в подсказке Divine = урон материала + 5; Everlight - не меньше 50 и на 3 выше Каросова маула. */
+    /** Damage in the Divine tooltip = material damage + 5; Everlight - at least 50 and 3 higher than Karos's maul. */
     public static void buffEverlight() {
         Item ever = Infusion.vethea("everlight"), maul = Infusion.vethea("karosRockmaul");
         if (!(ever instanceof ItemSword)) return;
@@ -209,9 +209,9 @@ public class LunaFight {
             mat.set(ever, m);
             ReflectionHelper.setPrivateValue(ItemSword.class, (ItemSword) ever, 4.0F + want, "field_150934_a");
             ReflectionHelper.setPrivateValue(ItemSword.class, (ItemSword) ever, m, "field_150933_b");
-            com.divinerpgextended.DivineRPGExtended.LOG.info("Everlight: урон " + (want + 5) + " (маул " + (maulDmg + 5) + ")");
+            com.divinerpgextended.DivineRPGExtended.LOG.info("Everlight: damage " + (want + 5) + " (maul " + (maulDmg + 5) + ")");
         } catch (Throwable t) {
-            com.divinerpgextended.DivineRPGExtended.LOG.warn("Everlight: урон не поднят - " + t);
+            com.divinerpgextended.DivineRPGExtended.LOG.warn("Everlight: damage not raised - " + t);
         }
     }
 }

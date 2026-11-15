@@ -17,8 +17,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Яйцо призыва Странника. В сумеречном мире, в его родном биоме, - Странник этого мира со своими сделками; в любом другом
- * месте (обычный мир, чужой биом после ритуала Гайи и т.п.) - Странник без мира: в зелёной робе и без сделок.
+ * Wanderer spawn egg. In a twilight dimension, in its native biome - the Wanderer of that dimension with his trades; anywhere else
+ * (the Overworld, a foreign biome after the Gaia ritual, etc.) - a Wanderer without a dimension: in a green robe and without trades.
  */
 public class ItemWandererEgg extends Item {
 
@@ -31,7 +31,7 @@ public class ItemWandererEgg extends Item {
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
     }
 
-    /** Мир, чьего Странника тут можно призвать, или null: мир сумеречный и биом в точке - родной биом этого мира. */
+    /** The dimension whose Wanderer can be summoned here, or null: the dimension is twilight and the biome at the point is that dimension's native biome. */
     public static TwilightWorld homeAt(World w, int x, int z) {
         TwilightWorld tw = TwilightWorld.of(w.provider.dimensionId);
         if (tw == null) return null;
@@ -71,7 +71,7 @@ public class ItemWandererEgg extends Item {
         return pass > 0 ? overlay : itemIcon;
     }
 
-    /** Цвета яйца: плащ и кожа Странника. */
+    /** Egg colors: the Wanderer's cloak and skin. */
     @Override
     @SideOnly(Side.CLIENT)
     public int getColorFromItemStack(ItemStack s, int pass) {

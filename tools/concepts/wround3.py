@@ -1,7 +1,7 @@
-"""Третий раунд концептов брони Странника: попроще - латы и одежда в цветах мира, одна-две приметные детали, почти без свечения.
-Варианты Ж/З/И для R1 (из божественной брони), R4, R5, R7.
+"""Third round of Wanderer armor concepts: simpler - plate and clothes in the world's colors, one or two distinctive details, almost no glow.
+Variants Zh/Z/I for R1 (from Divine armor), R4, R5, R7.
 
-Запуск: python wround3.py [ключ ...]  (без ключей - все варианты раунда). Картинки - в wanderer_concepts рядом.
+Run: python wround3.py [key ...]  (without keys - all variants of the round). Images go to wanderer_concepts next to it.
 """
 import sys
 
@@ -20,7 +20,7 @@ def new(key, tier, line, title):
 
 
 def open_helm(paint, inf=0.9):
-    """Открытый шлем: верх, затылок и щёки, лицо видно."""
+    """Open helmet: top, back of the head and cheeks, the face is visible."""
     return ([box('head', -4 - inf, -8 - inf, -4 - inf, 8 + 2 * inf, inf + 2.1, 8 + 2 * inf, paint),
              box('head', -4 - inf, -5.9, 4.0, 8 + 2 * inf, 5.9, inf, paint)]
             + sym(box('head', -4 - inf, -5.9, -4 - inf, inf, 5.0, 8 + inf, paint)))
@@ -30,7 +30,7 @@ def tabard(paint, top=0.4, length=13.0, w=5.2):
     return [box('body', -w / 2, top, -3.4, w, length, 0.5, paint), box('body', -w / 2, top, 2.9, w, length, 0.5, paint)]
 
 
-# ---- R1 из божественной брони
+# ---- R1 from Divine armor
 @new('r1g', 1, 'Ж', 'Божественная броня начисто: золото, алый пояс, открытый шлем с камнем')
 def r1g():
     gold = P(DG, trim(0.4, DGD))
@@ -63,7 +63,7 @@ def r1i():
     return bs
 
 
-# ---- R4 Апалачия
+# ---- R4 Apalachia
 AP, APD, APL = '#c020d8', '#5a1078', '#f090ff'
 
 
@@ -99,7 +99,7 @@ def r4i():
     return bs
 
 
-# ---- R5 Небесный терн
+# ---- R5 Skythern
 SKY, SKYL, SKYD, BLUE = '#aeb2ba', '#eef0f4', '#6a6e78', '#8ab8ec'
 
 
@@ -131,7 +131,7 @@ def r5i():
     return bs
 
 
-# ---- R7 Галит
+# ---- R7 Halite
 HA, HAD, HAM, HAL, GOLDH = '#50e010', '#1e4a0a', '#3a8a10', '#c0ff80', '#e0b84a'
 
 

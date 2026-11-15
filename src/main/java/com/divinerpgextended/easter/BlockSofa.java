@@ -16,14 +16,14 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Диван с РПГ (DivineRPG - "диван РПГ"): пасхалка. Два блока, как кровать: мета - направление (0-3, куда смотрит сидящий)
- * и бит {@link #SECOND} у второй половины. Модель с РПГ-7 на подушках рисует первая половина ({@link TileSofa}). ПКМ -
- * сесть. Стоит в особом доме подземного города под храмом джунглей.
+ * Sofa with an RPG (DivineRPG - "Divan RPG"): an Easter egg. Two blocks, like a bed: metadata is the direction (0-3, where the sitter looks)
+ * and the {@link #SECOND} bit for the second half. The model with the RPG-7 on the cushions is drawn by the first half ({@link TileSofa}). Right-click -
+ * sit down. Stands in a special house of the underground city under the Jungle Temple.
  */
 public class BlockSofa extends BlockContainer {
 
     public static final int SECOND = 4;
-    /** Сдвиг ко второй половине по направлению: вправо от сидящего. */
+    /** Offset to the second half by direction: to the right of the sitter. */
     static final int[][] SIDE = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 } };
 
     public BlockSofa() {
@@ -36,12 +36,12 @@ public class BlockSofa extends BlockContainer {
         setBlockBounds(0, 0, 0, 1, 0.5625F, 1);
     }
 
-    /** Направление (куда смотрит сидящий) по углу поворота игрока, который ставит диван: к игроку лицом. */
+    /** Direction (where the sitter looks) by the rotation angle of the player placing the sofa: facing the player. */
     public static int facing(float yaw) {
         return (MathHelper.floor_double(yaw * 4.0F / 360.0F + 0.5D) + 2) & 3;
     }
 
-    /** Сдвиг ко второй половине для направления f. */
+    /** Offset to the second half for direction f. */
     public static int[] side(int f) {
         return SIDE[f & 3];
     }
@@ -51,7 +51,7 @@ public class BlockSofa extends BlockContainer {
         return new int[] { x + SIDE[f][0] * s, z + SIDE[f][1] * s };
     }
 
-    /** Поставить диван (две половины); false - не помещается. */
+    /** Place the sofa (two halves); false - does not fit. */
     public static boolean place(World w, int x, int y, int z, int facing) {
         int ox = x + SIDE[facing][0], oz = z + SIDE[facing][1];
         if (!w.isAirBlock(x, y, z) || !w.isAirBlock(ox, y, oz)) return false;
@@ -83,7 +83,7 @@ public class BlockSofa extends BlockContainer {
     @Override
     public void onNeighborBlockChange(World w, int x, int y, int z, net.minecraft.block.Block b) {
         int[] o = other(x, z, w.getBlockMetadata(x, y, z));
-        if (w.getBlock(o[0], y, o[1]) != this) w.setBlockToAir(x, y, z); // вторая половина сломана - и эта
+        if (w.getBlock(o[0], y, o[1]) != this) w.setBlockToAir(x, y, z); // the second half is broken - and this one too
     }
 
     @Override
@@ -103,7 +103,7 @@ public class BlockSofa extends BlockContainer {
 
     @Override
     public int getRenderType() {
-        return -1; // только модель
+        return -1; // the model only
     }
 
     @Override
@@ -114,10 +114,10 @@ public class BlockSofa extends BlockContainer {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister reg) {
-        blockIcon = reg.registerIcon("minecraft:wool_colored_red"); // частицы ломания
+        blockIcon = reg.registerIcon("minecraft:wool_colored_red"); // breaking particles
     }
 
-    /** Первая половина дивана: на ней рисуется модель. */
+    /** The first half of the sofa: the model is drawn on it. */
     public static class TileSofa extends TileEntity {
 
         @Override
@@ -132,7 +132,7 @@ public class BlockSofa extends BlockContainer {
         }
     }
 
-    /** Предмет дивана: ставит обе половины. */
+    /** The sofa item: places both halves. */
     public static class ItemSofa extends net.minecraft.item.ItemBlock {
 
         public ItemSofa(net.minecraft.block.Block b) {
@@ -140,7 +140,7 @@ public class BlockSofa extends BlockContainer {
             setTextureName("divinerpgextended:easter/sofa");
         }
 
-        /** Значок в инвентаре - свой (у блока только модель). */
+        /** The inventory icon is its own (the block has only a model). */
         @Override
         @SideOnly(Side.CLIENT)
         public int getSpriteNumber() {

@@ -8,7 +8,7 @@ import net.minecraft.command.WrongUsageException;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.EnumChatFormatting;
 
-/** /dredebug - отладка для себя: подробности в чат и журнал CSV в logs/dre-debug. */
+/** /dredebug - debugging for yourself: details in chat and a CSV log in logs/dre-debug. */
 public class CommandDreDebug extends CommandBase {
 
     @Override
@@ -50,7 +50,7 @@ public class CommandDreDebug extends CommandBase {
             Debug.ON.remove(p.getUniqueID());
             Debug.sendState(p, false);
             DebugEvents.cleanup();
-            Debug.chat(p, EnumChatFormatting.GRAY, "Отладка выключена.");
+            Debug.chat(p, EnumChatFormatting.GRAY, "Debug is off.");
             return;
         }
         if (op.equals("status")) {
@@ -70,13 +70,13 @@ public class CommandDreDebug extends CommandBase {
 
     private static void status(EntityPlayerMP p, Debug.Flags f) {
         if (f == null) {
-            Debug.chat(p, EnumChatFormatting.GRAY, "Отладка выключена. /dredebug on - включить.");
+            Debug.chat(p, EnumChatFormatting.GRAY, "Debug is off. /dredebug on - turn on.");
             return;
         }
-        Debug.chat(p, EnumChatFormatting.GOLD, "Отладка: чат " + (f.chat ? "вкл" : "выкл") + ", файл " + (f.file ? "вкл" : "выкл")
-            + ", бои мобов рядом " + (f.mobs ? "вкл" : "выкл"));
-        if (f.file) Debug.chat(p, EnumChatFormatting.GRAY, "Файл: " + Debug.log().file().getAbsolutePath()
-            + " (клавиши пишутся рядом, в файл -client.csv)");
+        Debug.chat(p, EnumChatFormatting.GOLD, "Debug: chat " + (f.chat ? "on" : "off") + ", file " + (f.file ? "on" : "off")
+            + ", nearby mob fights " + (f.mobs ? "on" : "off"));
+        if (f.file) Debug.chat(p, EnumChatFormatting.GRAY, "File: " + Debug.log().file().getAbsolutePath()
+            + " (keys are written alongside, to the -client.csv file)");
     }
 
     @Override

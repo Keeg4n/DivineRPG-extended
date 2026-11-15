@@ -14,27 +14,27 @@ import com.divinerpgextended.boss.Boss;
 import com.divinerpgextended.trinket.Trinket;
 
 /**
- * Правила арканы аддона. Сюда приходят все траты арканы из кода Divine (через
- * {@link com.divinerpgextended.asm.ArcanaUseTransformer}) с именем вызывающего класса:
+ * The addon's arcana rules. All arcana spends from Divine's code arrive here (via
+ * {@link com.divinerpgextended.asm.ArcanaUseTransformer}) with the name of the calling class:
  * <ul>
- * <li>цена и откат оружия - из таблицы {@link #SPECS} (оружие Divine без своей паузы стреляло каждый тик);</li>
- * <li>не хватило арканы - ничего не тратится и задержка восстановления не сбрасывается (у Divine сбрасывалась);</li>
- * <li>задержка после траты {@link #DELAY} тиков (Кристалл ясности - {@link #DELAY_CLARITY}, под зельем - нет);</li>
- * <li>ангельский сет тратит на полёт {@link #ANGELIC} от цены Divine;</li>
- * <li>полный сет Корма: выстрелы на 20% дешевле, +50 к запасу ({@link ArcanaHooks#max});</li>
- * <li>зелья арканы дают не мгновенную аркану, а эффект "Регенерация арканы" ({@link #buff}).</li>
+ * <li>weapon price and cooldown - from the {@link #SPECS} table (Divine weapons without their own pause fired every tick);</li>
+ * <li>not enough arcana - nothing is spent and the recovery delay is not reset (in Divine it was reset);</li>
+ * <li>delay after a spend {@link #DELAY} ticks (Crystal of Clarity - {@link #DELAY_CLARITY}, under a potion - none);</li>
+ * <li>the Angelic set spends {@link #ANGELIC} of Divine's price on flight;</li>
+ * <li>full Korma set: shots 20% cheaper, +50 to the supply ({@link ArcanaHooks#max});</li>
+ * <li>arcana potions give not instant arcana but the "Arcana Regeneration" effect ({@link #buff}).</li>
  * </ul>
- * Арканный урон растёт с этапом игрока ({@link #stage}): от x1.0 на входе в Аркану до x2.2 после Леди Луны.
+ * Arcane damage grows with the player's stage ({@link #stage}): from x1.0 on entering Arcana to x2.2 after Lady Luna.
  */
 public final class ArcanaRules {
 
     public static final int DELAY = 40, DELAY_CLARITY = 15;
-    /** Доля цены полёта ангельского сета: было 20 арканы/с, стало 6. */
+    /** Share of the Angelic set's flight price: it was 20 arcana/s, now 6. */
     public static final float ANGELIC = 0.3F, KORMA_DISCOUNT = 0.8F, KORMA_MAX = 50.0F;
-    /** Эффект зелья: длительность (тики) и множитель восстановления у слабого и сильного. */
+    /** Potion effect: duration (ticks) and the recovery multiplier for weak and strong. */
     public static final int BUFF_TICKS = 45 * 20, BUFF_TICKS_STRONG = 60 * 20;
 
-    /** Цена (меньше 0 - как у Divine) и откат в тиках. */
+    /** Price (less than 0 - as in Divine) and cooldown in ticks. */
     static final class Spec {
         final float cost;
         final int cooldown;
@@ -46,7 +46,7 @@ public final class ArcanaRules {
     }
 
     static final Map<String, Spec> SPECS = new HashMap<String, Spec>();
-    /** Посох звёздного света и Starlight - один класс Divine: различаем по их цене (25 и 5). */
+    /** Starlight staff and Starlight are one Divine class: we tell them apart by their price (25 and 5). */
     static final float STARLIGHT_STAFF = 15F, STARLIGHT = 4F;
     public static final float MAGE_STAFF = 8F;
     public static final int MAGE_STAFF_COOLDOWN = 10;
@@ -66,7 +66,7 @@ public final class ArcanaRules {
         SPECS.put("ItemReflector", new Spec(10, 6));
         SPECS.put("ItemStaffStarlight", new Spec(-1, 5));
         SPECS.put(ItemMageStaff.OWNER, new Spec(MAGE_STAFF, MAGE_STAFF_COOLDOWN));
-        SPECS.put("EnderBlink", new Spec(25, 8)); // пустотный шаг брони Энда: короткий откат - шаг за шагом на бегу
+        SPECS.put("EnderBlink", new Spec(25, 8)); // End armor void step: a short cooldown - step after step while running
     }
 
     private static final Map<String, Long> LAST_USE = new HashMap<String, Long>();
@@ -88,7 +88,7 @@ public final class ArcanaRules {
         return i < 0 ? owner : owner.substring(i + 1);
     }
 
-    /** Цена этой траты по правилам аддона (до скидки Кормы). */
+    /** The price of this spend by the addon's rules (before the Korma discount). */
     public static float cost(String owner, float divineCost) {
         String s = simple(owner);
         if ("EventArmorTick".equals(s)) return divineCost * ANGELIC;
@@ -97,7 +97,7 @@ public final class ArcanaRules {
         return sp != null && sp.cost >= 0 ? sp.cost : divineCost;
     }
 
-    /** Полный сет Кормы. */
+    /** Full Korma set. */
     public static boolean korma(EntityPlayer p) {
         if (p == null) return false;
         Item[] set = { ArcanaItems.kormaBoots, ArcanaItems.kormaLegs, ArcanaItems.kormaBody, ArcanaItems.kormaHelmet };
@@ -108,7 +108,7 @@ public final class ArcanaRules {
         return true;
     }
 
-    /** Полный сет Вемоса. */
+    /** Full Vemos set. */
     public static boolean vemos(EntityPlayer p) {
         if (p == null) return false;
         Item[] set = { ArcanaItems.vemosBoots, ArcanaItems.vemosLegs, ArcanaItems.vemosBody, ArcanaItems.vemosHelmet };
@@ -119,7 +119,7 @@ public final class ArcanaRules {
         return true;
     }
 
-    /** Трата арканы из кода Divine (вместо ArcanaHelper.useBar). */
+    /** Arcana spend from Divine's code (instead of ArcanaHelper.useBar). */
     public static boolean useBar(ArcanaHelper h, float divineCost, String owner) {
         if (h == null) return false;
         EntityPlayer p = player(h);
@@ -127,7 +127,7 @@ public final class ArcanaRules {
         boolean armor = "EventArmorTick".equals(s);
         float c = cost(owner, divineCost);
         if (!armor && korma(p)) c *= KORMA_DISCOUNT;
-        if (!armor) c *= ArcaneEffects.costFactor(p); // Собранность
+        if (!armor) c *= ArcaneEffects.costFactor(p); // Composure
         Spec sp = SPECS.get(s);
         String key = null;
         long now = 0;
@@ -137,9 +137,9 @@ public final class ArcanaRules {
             Long last = LAST_USE.get(key);
             if (last != null && now - last < sp.cooldown && now >= last) return false;
         }
-        if (h.getBarValue() < c) return false; // не хватило - задержку восстановления не трогаем
+        if (h.getBarValue() < c) return false; // not enough - we do not touch the recovery delay
         int was = h.regenDelay;
-        if (!h.useBar(c)) return false; // Divine ставит свою паузу 50 тиков - ниже заменяем
+        if (!h.useBar(c)) return false; // Divine sets its own pause of 50 ticks - we replace it below
         h.regenDelay = swordSpend(s) && swordFlow(p) ? was : delay(p);
         if (key != null) {
             if (LAST_USE.size() > 5000) LAST_USE.clear();
@@ -148,24 +148,24 @@ public final class ArcanaRules {
         return true;
     }
 
-    /** Трата мечей Арканы на удар: сабля и клинок (на клик), теневой меч (на попадание), арканный удар Storm Sword и меча Ливиции. */
+    /** Arcana sword spend per hit: the saber and blade (per click), the Shadow Sword (per impact), the arcane hit of Storm Sword and the Livicia Sword. */
     static boolean swordSpend(String s) {
         return "ItemArcaniumSaber".equals(s) || "ItemArcaniteBlade".equals(s) || "ItemShadowSword".equals(s) || "ArcaneEdge".equals(s);
     }
 
-    /** Полный сет Кормы или перк Поток арканы: удары мечей Арканы не останавливают восстановление арканы. */
+    /** Full Korma set or the Arcana Flow perk: Arcana sword hits do not stop arcana recovery. */
     public static boolean swordFlow(EntityPlayer p) {
         return p != null && (korma(p) || com.divinerpgextended.item.ArmorData.hasEquippedPerk(p, com.divinerpgextended.perk.Perk.ARCANA_FLOW));
     }
 
-    /** Задержка восстановления после траты. */
+    /** Recovery delay after a spend. */
     public static int delay(EntityPlayer p) {
         if (p == null || p.worldObj.isRemote) return DELAY;
         if (buffMult(p) > 0) return 0;
         return com.divinerpgextended.accessory.Accessories.wears(p, Trinket.CLARITY_CRYSTAL) ? DELAY_CLARITY : DELAY;
     }
 
-    /** Мгновенная аркана из кода Divine: у зелий - эффект "Регенерация арканы", остальное как было. */
+    /** Instant arcana from Divine's code: for potions - the "Arcana Regeneration" effect, the rest as before. */
     public static void forceRegen(ArcanaHelper h, float amount, String owner) {
         if (h == null) return;
         EntityPlayer p = player(h);
@@ -176,18 +176,18 @@ public final class ArcanaRules {
         h.forceRegen(amount);
     }
 
-    /** Эффект "Ясность" (зелья арканы): без задержки восстановления, восстановление x mult (2 или 3). */
+    /** The "Clarity" effect (arcana potions): no recovery delay, recovery x mult (2 or 3). */
     public static void buff(EntityPlayer p, int mult, int ticks) {
         ArcaneEffects.apply(p, ArcaneEffect.CLARITY, Math.max(1, mult - 1), ticks);
     }
 
-    /** Множитель восстановления под Ясностью или 0, если эффекта нет. */
+    /** Recovery multiplier under Clarity or 0 if there is no effect. */
     public static int buffMult(EntityPlayer p) {
         int l = ArcaneEffects.level(p, ArcaneEffect.CLARITY);
         return l == 0 ? 0 : l + 1;
     }
 
-    /** Боссы после входа в Аркану: каждый +8% к арканному урону игрока. */
+    /** Bosses after entering Arcana: each +8% to the player's arcane damage. */
     static final Boss[] STAGE = { Boss.CADILLION_EDEN, Boss.CADILLION_WILDWOOD, Boss.CADILLION_APALACHIA, Boss.CADILLION_SKYTHERN,
         Boss.TWILIGHT_DEMON, Boss.KAROT, Boss.ETERNAL_ARCHER, Boss.TWINS, Boss.SOUL_FIEND, Boss.VAMACHERON, Boss.DRAMIX,
         Boss.PARASECTA, Boss.WRECK, Boss.RAGLOK, Boss.LADY_LUNA };
@@ -196,13 +196,13 @@ public final class ArcanaRules {
     public static float stage(EntityPlayer p) {
         if (p == null) return 1.0F;
         int n = 0;
-        for (Boss b : STAGE) if (com.divinerpgextended.boss.ProgressSync.has(p, b)) n++; // на клиенте - по присланной маске
+        for (Boss b : STAGE) if (com.divinerpgextended.boss.ProgressSync.has(p, b)) n++; // on the client - by the mask sent over
         return 1.0F + PER_BOSS * n;
     }
 
-    // ---------------- защита арканой ----------------
+    // ---------------- defense by arcana ----------------
 
-    /** Доля входящего арканного урона, которую берёт на себя аркана, и цена в аркане за единицу урона. */
+    /** The share of incoming arcane damage that arcana takes, and the arcana price per unit of damage. */
     public static float shieldShare(EntityPlayer p) {
         float s = com.divinerpgextended.accessory.Accessories.wears(p, Trinket.ARCANE_WARD) ? 0.75F : 0.6F;
         return vemos(p) ? s + 0.1F : s;
@@ -212,7 +212,7 @@ public final class ArcanaRules {
         return com.divinerpgextended.accessory.Accessories.wears(p, Trinket.ARCANE_WARD) ? 1.0F : 2.0F;
     }
 
-    /** Списать с арканы часть арканного урона. @return урон, который дойдёт до здоровья */
+    /** Deduct part of the arcane damage from arcana. @return the damage that will reach health */
     public static float absorb(EntityPlayer p, float amount) {
         ArcanaHelper h = ArcanaHelper.getProperties(p);
         if (h == null || amount <= 0) return amount;
@@ -224,7 +224,7 @@ public final class ArcanaRules {
         return amount - took;
     }
 
-    /** Для автотеста. */
+    /** For the autotest. */
     public static void resetCooldowns() {
         LAST_USE.clear();
     }

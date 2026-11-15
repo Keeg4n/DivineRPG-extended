@@ -6,8 +6,8 @@ import net.minecraft.entity.Entity;
 import net.minecraft.util.MathHelper;
 
 /**
- * Странник: человек в капюшоне (слой поверх головы), плащ до колен, рюкзак со скаткой и посох из дерева мира с
- * навершием из камня мира в правой руке. Текстура 64x64: раскладка ModelBiped + детали в нижней половине.
+ * Wanderer: a hooded person (a layer over the head), a cloak to the knees, a backpack with a bedroll and a staff of world wood with a
+ * world stone head in the right hand. The 64x64 texture: ModelBiped layout + details in the lower half.
  */
 public class ModelWanderer extends ModelBiped {
 
@@ -36,9 +36,9 @@ public class ModelWanderer extends ModelBiped {
     @Override
     public void setRotationAngles(float swing, float amount, float age, float yaw, float pitch, float scale, Entity e) {
         super.setRotationAngles(swing, amount, age, yaw, pitch, scale, e);
-        // посох держит перед собой: рука почти не машет; плащ отлетает назад на ходу
+        // holds the staff in front: the arm barely swings; the cloak flies back while walking
         bipedRightArm.rotateAngleX = -0.35F + MathHelper.cos(swing * 0.6662F) * 0.25F * amount;
-        // плащ крепится к телу, а пак и скатка поверх него - плащ отклоняется за рюкзак
+        // the cloak is attached to the body, and the pack and bedroll are on top of it - the cloak deflects behind the backpack
         cloak.rotateAngleX = 0.12F + amount * 0.6F;
     }
 }

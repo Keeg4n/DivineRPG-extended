@@ -12,38 +12,38 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Вид из вагонетки Апалачии: на стене и потолке картинка наклоняется вокруг оси взгляда так, чтобы "верх" вагонетки
- * был вверху экрана, а сам взгляд остаётся настоящим (раньше поворачивался весь мир, и на потолке игра считала взгляд
- * "вверх" взглядом "вниз" - удары и клики уходили не туда). Мышь поворачивается на тот же угол ({@link #angles}).
- * Перевёрнутый в воде мечтаний (ноги в озере в потолке Ветеи) видит картинку вверх ногами, камера - в голове, а не в пятках.
+ * View from the Apalachia Cart: on a wall and ceiling the picture tilts around the look axis so that the cart's "top"
+ * is at the top of the screen, while the look itself stays real (previously the whole world was rotated, and on the ceiling the game took the look
+ * "up" for the look "down" - hits and clicks went the wrong way). The mouse is rotated by the same angle ({@link #angles}).
+ * Someone inverted in Dream Water (feet in a lake in the Vethea ceiling) sees the picture upside down, the camera is in the head, not in the heels.
  */
 @SideOnly(Side.CLIENT)
 public class CameraTilt {
 
-    /** Последний крен (градусы): когда смотрим вдоль "верха" вагонетки, крен не определён - держим прежний. */
+    /** The last roll (degrees): when looking along the cart's "top", the roll is undefined - keep the previous one. */
     private static double last;
 
     private static EntitySkyCart cart(Entity v) {
         return v != null && v.ridingEntity instanceof EntitySkyCart ? (EntitySkyCart) v.ridingEntity : null;
     }
 
-    /** В начале EntityRenderer.orientCamera: крен вокруг оси взгляда. */
+    /** At the start of EntityRenderer.orientCamera: roll around the look axis. */
     public static void apply(float pt) {
         Entity v = Minecraft.getMinecraft().renderViewEntity;
         EntitySkyCart c = cart(v);
         if (c == null) {
-            // в воде мечтаний (висячие озёра Ветеи) верх и низ поменялись: картинка вверх ногами
+            // in Dream Water (Vethea's hanging lakes) up and down are swapped: the picture is upside down
             last = v != null && com.divinerpgextended.block.BlockDreamWater.inverted(v) ? 180 : 0;
             if (last != 0) {
                 GL11.glRotated(last, 0, 0, 1);
-                // игра держит камеру (и точку, вокруг которой ходит камера от третьего лица) на высоте глаз от низа хитбокса -
-                // у перевёрнутого там пятки, в воде; опускаем её к голове: сдвиг мира вверх, переведённый в оси камеры
-                // (дальше идут повороты по наклону взгляда; вид спереди развёрнут на 180 - знак по оси взгляда другой)
+                // the game keeps the camera (and the point the third-person camera orbits) at eye height from the bottom of the hitbox -
+                // for an inverted one the heels are there, in the water; we lower it to the head: a world shift upward, converted into camera axes
+                // (the rotations by the look tilt follow; the front view is turned 180 - the sign along the look axis differs)
                 double pitch = Math.toRadians(v.prevRotationPitch + (v.rotationPitch - v.prevRotationPitch) * pt), s = DreamWaterView.HEAD_DROP;
                 int front = Minecraft.getMinecraft().gameSettings.thirdPersonView == 2 ? -1 : 1;
                 GL11.glTranslated(0, s * Math.cos(pitch), front * s * Math.sin(pitch));
-                // от третьего лица игра отодвинула камеру от точки в пятках до первой стены; опущенная к голове, она
-                // уходила под пол (вид сквозь землю на пещеры) - подвигаем ближе, как если бы стену искали от головы
+                // in third person the game pushed the camera away from the point in the heels to the first wall; lowered to the head, it
+                // went under the floor (a view through the ground into caves) - move it closer, as if the wall were searched from the head
                 if (Minecraft.getMinecraft().gameSettings.thirdPersonView > 0) {
                     double x = v.prevPosX + (v.posX - v.prevPosX) * pt, z = v.prevPosZ + (v.posZ - v.prevPosZ) * pt;
                     double y = v.prevPosY + (v.posY - v.prevPosY) * pt - (v.yOffset - 1.62F);
@@ -60,7 +60,7 @@ public class CameraTilt {
         if (Math.abs(last) > 0.01) GL11.glRotated(last, 0, 0, 1);
     }
 
-    /** Как далеко игра отодвинет камеру третьего лица от точки (x, y, z), пока не упрётся в блок (как EntityRenderer.orientCamera). */
+    /** How far the game pushes the third-person camera from the point (x, y, z) until it hits a block (as in EntityRenderer.orientCamera). */
     static double clip(Entity v, double x, double y, double z) {
         double d = 4.0D;
         float yaw = v.rotationYaw, pitch = v.rotationPitch;
@@ -80,7 +80,7 @@ public class CameraTilt {
         return d;
     }
 
-    /** Вагонетка сменила плоскость (пол - стена - потолок): взгляд седока поворачивается вместе с ней. */
+    /** The cart changed plane (floor - wall - ceiling): the rider's look turns together with it. */
     public static class Follow {
 
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
@@ -100,7 +100,7 @@ public class CameraTilt {
         }
     }
 
-    /** Вместо Entity.setAngles в EntityRenderer.updateCameraAndRender: сдвиг мыши - в осях наклонённого экрана. */
+    /** Instead of Entity.setAngles in EntityRenderer.updateCameraAndRender: the mouse movement is in the axes of the tilted screen. */
     public static void angles(Entity e, float dx, float dy) {
         if (Math.abs(last) > 0.01 && (cart(e) != null || last == 180)) {
             float[] m = SkyCartView.mouse(dx, dy, last);

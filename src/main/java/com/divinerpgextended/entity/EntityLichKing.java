@@ -26,12 +26,12 @@ import com.divinerpgextended.Config;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Король-лич: спрыгивает с плеча павшего Ледяного Колосса.
+ * Lich King: jumps down from the shoulder of the fallen Frost Colossus.
  * <p>
- * Морозный клинок в руке (урон - только из конфига), Фроссивенс в запасе: каждые 6 секунд лечится на 4% здоровья,
- * если его не бить правильно. Icine Sword (x2.2), Icicle Bane (x2) и Enderice (x1.6, ещё и запрещает телепорт)
- * и любой огонь срывают лечение на 10 секунд. Телепорт за спину, ледяная пушка (очередь сосулек), с замахом -
- * Воющий буран и ледяная тюрьма, мертвецы. Bluefire оглушает, Snowstorm срывает замах и смущает мертвецов.
+ * A Frost Blade in hand (damage only from the config), Frossivens in reserve: every 6 seconds it heals 4% of health
+ * unless it is hit the right way. Icine Sword (x2.2), Icicle Bane (x2) and Enderice (x1.6, also forbids teleport)
+ * and any fire interrupt the healing for 10 seconds. Teleport behind the back, ice cannon (a volley of icicles), with a wind-up -
+ * Howling Blizzard and ice prison, the dead. Bluefire stuns, Snowstorm breaks the wind-up and confuses the dead.
  */
 public class EntityLichKing extends EntityMob implements IBossDisplayData {
 
@@ -60,7 +60,7 @@ public class EntityLichKing extends EntityMob implements IBossDisplayData {
         getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(Config.lichHealth);
         getEntityAttribute(SharedMonsterAttributes.attackDamage).setBaseValue(Config.lichDamage);
         getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.32D);
-        getEntityAttribute(SharedMonsterAttributes.followRange).setBaseValue(160.0D); // видит всю арену
+        getEntityAttribute(SharedMonsterAttributes.followRange).setBaseValue(160.0D); // sees the whole arena
         getEntityAttribute(SharedMonsterAttributes.knockbackResistance).setBaseValue(0.8D);
     }
 
@@ -102,7 +102,7 @@ public class EntityLichKing extends EntityMob implements IBossDisplayData {
         return 0.6F;
     }
 
-    /** Удар клинком: урон только из конфига (клинок в руке - для вида, его урон не прибавляется). */
+    /** Blade strike: damage only from the config (the blade in hand is for looks, its damage is not added). */
     @Override
     public boolean attackEntityAsMob(Entity e) {
         if (stunLeft > 0) return false;
@@ -169,7 +169,7 @@ public class EntityLichKing extends EntityMob implements IBossDisplayData {
         if (target == null && worldObj.getClosestPlayerToEntity(this, 160) == null) return;
         boolean enraged = getHealth() / getMaxHealth() <= 0.5F;
 
-        // ярость: телепортируется на пилоны и колонны арены и закидывает снегом сверху
+        // rage: teleports to the pylons and columns of the arena and pelts with snow from above
         if (perchLeft > 0) {
             perchLeft--;
             getNavigator().clearPathEntity();
@@ -181,7 +181,7 @@ public class EntityLichKing extends EntityMob implements IBossDisplayData {
                 worldObj.spawnEntityInWorld(c);
                 worldObj.playSoundAtEntity(this, "random.bow", 1.0F, 0.6F);
             }
-            // опору разбили - падает
+            // the support was broken - it falls
             if (worldObj.isAirBlock(MathHelper.floor_double(posX), MathHelper.floor_double(posY) - 1,
                 MathHelper.floor_double(posZ))) perchLeft = 0;
             return;
@@ -191,7 +191,7 @@ public class EntityLichKing extends EntityMob implements IBossDisplayData {
             perchTimer = 300;
         }
 
-        // Фроссивенс: лечится, если его не бьют правильным оружием или огнём
+        // Frossivens: heals if it is not hit with the right weapon or fire
         if (--healTimer <= 0) {
             if (healBlocked <= 0 && getHealth() < getMaxHealth()) {
                 heal(getMaxHealth() * 0.04F);
@@ -205,7 +205,7 @@ public class EntityLichKing extends EntityMob implements IBossDisplayData {
             if (blinkBlocked <= 0) blink(target);
             blinkTimer = enraged ? 140 : 200;
         }
-        // ледяная пушка: очередь из четырёх сосулек
+        // ice cannon: a volley of four icicles
         if (burst > 0 && ticksExisted % 4 == 0 && target != null) {
             EntityIcicle shard = new EntityIcicle(worldObj, this, EntityIcicle.ICICLE);
             double dx = target.posX - posX, dy = target.posY + target.getEyeHeight() - shard.posY, dz = target.posZ - posZ;
@@ -253,8 +253,8 @@ public class EntityLichKing extends EntityMob implements IBossDisplayData {
     }
 
     /**
-     * Перелёт на возвышение арены: верх пилона, уступ колонны, ступень винтовой лестницы, спинка трона - любая
-     * твёрдая опора на 5-30 блоков выше цели в 6-40 блоках от неё, над которой есть место встать.
+     * Jump to an elevation of the arena: the top of a pylon, a ledge of a column, a step of the spiral staircase, the back of the throne - any
+     * solid support 5-30 blocks above the target, 6-40 blocks from it, with room to stand above it.
      */
     private void perch(EntityLivingBase target) {
         int ty = MathHelper.floor_double(target.posY);
@@ -276,7 +276,7 @@ public class EntityLichKing extends EntityMob implements IBossDisplayData {
         }
     }
 
-    /** Телепорт за спину цели. */
+    /** Teleport behind the target's back. */
     private void blink(EntityLivingBase target) {
         double yaw = Math.toRadians(target.rotationYaw);
         double x = target.posX + Math.sin(yaw) * 2.5, z = target.posZ - Math.cos(yaw) * 2.5, y = target.posY;
@@ -298,5 +298,5 @@ public class EntityLichKing extends EntityMob implements IBossDisplayData {
     }
 
     @Override
-    protected void dropEquipment(boolean byPlayer, int looting) {} // клинок не роняет
+    protected void dropEquipment(boolean byPlayer, int looting) {} // does not drop the blade
 }

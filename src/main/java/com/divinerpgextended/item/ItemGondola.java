@@ -15,7 +15,7 @@ import net.minecraft.world.World;
 
 import com.divinerpgextended.entity.EntityGondola;
 
-/** Ладья Харона: ставится на воду или Лету, как лодка (покупается у Харона за души Мортума). */
+/** Charon's Barge: placed on water or Lethe, like a boat (bought from Charon for Mortum souls). */
 public class ItemGondola extends Item {
 
     public ItemGondola() {

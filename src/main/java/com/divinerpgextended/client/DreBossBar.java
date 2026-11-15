@@ -19,9 +19,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Полоска здоровья наших боссов как у Divine: текстура 182x20 на каждого босса, сверху цветная полоса с узорами
- * и вписанным именем, снизу та же серая. Рисуется серая целиком и поверх цветная по доле здоровья. Ванильную
- * полоску наши боссы не показывают.
+ * The health bar of our bosses like Divine's: a 182x20 texture for each boss, a colored strip on top with patterns
+ * and the name written in, the same gray one below. The gray one is drawn in full and the colored one over it by health fraction. Our bosses do not
+ * show the vanilla bar.
  */
 @SideOnly(Side.CLIENT)
 public class DreBossBar extends Gui {
@@ -30,7 +30,7 @@ public class DreBossBar extends Gui {
     private static long shownAt = -1000;
     private static String theme;
 
-    /** Вызывается рендером босса каждый кадр, пока босс виден. */
+    /** Called by the boss renderer every frame while the boss is visible. */
     public static void show(EntityLiving e) {
         String t = themeOf(e);
         if (t == null) return;
@@ -65,9 +65,9 @@ public class DreBossBar extends Gui {
         GL11.glEnable(GL11.GL_BLEND);
         mc.getTextureManager()
             .bindTexture(new ResourceLocation("divinerpgextended", "textures/gui/bossbar_" + theme + ".png"));
-        drawTexturedModalRect(x, y, 0, 10, len, 10); // серая полоса (потерянное здоровье)
+        drawTexturedModalRect(x, y, 0, 10, len, 10); // gray strip (lost health)
         int fill = (int) (Math.max(0, Math.min(1, health)) * len);
-        if (fill > 0) drawTexturedModalRect(x, y, 0, 0, fill, 10); // цветная по здоровью, имя вписано в текстуру
+        if (fill > 0) drawTexturedModalRect(x, y, 0, 0, fill, 10); // colored by health, the name is written into the texture
         GL11.glColor4f(1, 1, 1, 1);
     }
 }

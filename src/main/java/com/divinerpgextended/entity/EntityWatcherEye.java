@@ -13,19 +13,19 @@ import net.minecraft.world.World;
 import com.divinerpgextended.boss.WatcherHunt;
 
 /**
- * Око-прислужник Смотрителя: маленький летающий глаз. Летит к бойцу в логове сквозь блоки - достаёт и за колонной, где
- * прячутся от взгляда босса, - и кусает вплотную. Живёт, пока жив его Смотритель (без хозяина рассеивается), без добычи и опыта, в мире не сохраняется.
- * Вид - уменьшенный Смотритель Divine с багровым оттенком.
+ * The Watcher's Servant Eye: a small flying eye. Flies to a fighter in the lair through blocks - reaches even behind a column, where
+ * they hide from the boss's gaze - and bites up close. Lives while its Watcher lives (without its master it disperses), no loot or experience, is not saved in the world.
+ * Looks like a shrunken Divine Watcher with a crimson tint.
  */
 public class EntityWatcherEye extends EntityFlying implements IMob {
 
     public static final float BITE = 4F;
     public static final double SPEED = 0.38;
     public static final int BITE_EVERY = 20;
-    /** Хозяин - только в памяти: после перезагрузки мира прислужник без хозяина и рассеивается. */
+    /** The master is in memory only: after a world reload the servant has no master and disperses. */
     private Entity owner;
     private int cooldown, orphan;
-    /** Укусов за жизнь (для проверок). */
+    /** Bites per lifetime (for checks). */
     public int bites;
 
     public EntityWatcherEye(World w) {
@@ -46,7 +46,7 @@ public class EntityWatcherEye extends EntityFlying implements IMob {
 
     @Override
     public void onUpdate() {
-        noClip = true; // сквозь блоки
+        noClip = true; // through blocks
         super.onUpdate();
     }
 
@@ -84,7 +84,7 @@ public class EntityWatcherEye extends EntityFlying implements IMob {
             tx = t.posX;
             ty = t.posY + t.getEyeHeight() * 0.6;
             tz = t.posZ;
-        } else { // некого - вьётся у хозяина
+        } else { // no one to attack - circles around the master
             double a = ticksExisted * 0.08 + getEntityId();
             tx = owner.posX + Math.cos(a) * 4;
             ty = owner.posY + owner.height * 0.5;
@@ -105,7 +105,7 @@ public class EntityWatcherEye extends EntityFlying implements IMob {
             cooldown = BITE_EVERY;
             bites++;
             t.attackEntityFrom(DamageSource.causeMobDamage(this), BITE);
-            motionX -= dx / d * 0.5; // отскок после укуса
+            motionX -= dx / d * 0.5; // bounce back after a bite
             motionZ -= dz / d * 0.5;
             worldObj.playSoundAtEntity(this, "mob.slime.attack", 0.6F, 1.6F);
         }
@@ -151,7 +151,7 @@ public class EntityWatcherEye extends EntityFlying implements IMob {
         return false;
     }
 
-    /** Не сохраняется: прислужник живёт только при хозяине. */
+    /** Not saved: the servant lives only with its master. */
     @Override
     public boolean writeToNBTOptional(NBTTagCompound t) {
         return false;

@@ -12,22 +12,22 @@ import java.util.Map;
 import javax.imageio.ImageIO;
 
 /**
- * Текстуры, сделанные из текстур DivineRPG (перекраски и переделки), в jar не лежат: лицензия DivineRPG не разрешает
- * переносить её ресурсы в другие проекты. Вместо картинок - таблицы {@link #FILE}: из какой текстуры установленного
- * DivineRPG собрать нашу, какой цвет на какой заменить и какие отдельные пиксели нарисовать своими. Клиент собирает их при
- * запуске ({@link com.divinerpgextended.client.DerivedTexturePack}).
+ * Textures made from DivineRPG textures (recolors and rework) are not in the jar: the DivineRPG license does not allow
+ * moving its resources into other projects. Instead of images there are {@link #FILE} tables: from which texture of the installed
+ * DivineRPG to build ours, which color to replace with which, and which individual pixels to draw ourselves. The client builds them at
+ * startup ({@link com.divinerpgextended.client.DerivedTexturePack}).
  * <p>
- * Таблицы точные для DivineRPG 1.4.2.3. В другой версии (1.4.1.5 из сборки Magic) часть текстур перерисована: тогда
- * исходник не совпадает по md5, и берётся запасной исходник (если указан) или тот же, перекрашенный в нашу палитру по
- * яркости ({@link #recolor}): самый тёмный пиксель - в самый тёмный наш цвет и так далее.
+ * The tables are exact for DivineRPG 1.4.2.3. In another version (1.4.1.5 from the Magic modpack) some textures are redrawn: then the
+ * source does not match by md5, and a fallback source is used (if given) or the same one, recolored to our palette
+ * by brightness ({@link #recolor}): the darkest pixel to our darkest color and so on.
  */
 public final class DerivedTextures {
 
     public static final String FILE = "/assets/divinerpgextended/derived_textures.txt";
 
     /**
-     * Рецепт: выход (домен:путь), исходники Divine (пути в jar: основной и запасные), md5 точного результата и основного
-     * исходника, замены цветов и пикселей (ARGB), наша палитра по яркости (цвет и число пикселей).
+     * Recipe: output (domain:path), Divine sources (paths in the jar: main and fallbacks), md5 of the exact result and of the main
+     * source, color and pixel replacements (ARGB), our palette by brightness (color and pixel count).
      */
     public static final class Recipe {
         public final String out, md5, srcMd5;
@@ -43,14 +43,14 @@ public final class DerivedTextures {
         }
     }
 
-    /** Как собрана последняя текстура: точно, перекраской основного исходника или запасного (для автотеста). */
+    /** How the last texture was built: exactly, by recoloring the main source or a fallback (for the selftest). */
     public static String lastWay = "";
 
     private static Map<String, Recipe> recipes;
 
     private DerivedTextures() {}
 
-    /** Все рецепты по выходу "домен:путь". */
+    /** All recipes by output "domain:path". */
     public static synchronized Map<String, Recipe> recipes() {
         if (recipes != null) return recipes;
         Map<String, Recipe> m = new LinkedHashMap<String, Recipe>();
@@ -77,7 +77,7 @@ public final class DerivedTextures {
                     m.put(rc.out, rc);
                 }
             } catch (IOException ex) {
-                com.divinerpgextended.DivineRPGExtended.LOG.warn("Не прочитаны рецепты текстур: " + ex);
+                com.divinerpgextended.DivineRPGExtended.LOG.warn("Could not read texture recipes: " + ex);
             } finally {
                 try {
                     in.close();
@@ -95,7 +95,7 @@ public final class DerivedTextures {
         }
     }
 
-    /** Текстура из jar DivineRPG (null - нет такой). */
+    /** A texture from the DivineRPG jar (null - there is none). */
     static BufferedImage source(String path) throws IOException {
         InputStream in = DerivedTextures.class.getResourceAsStream("/" + path);
         if (in == null) {
@@ -111,31 +111,31 @@ public final class DerivedTextures {
     }
 
     /**
-     * Собрать текстуру по рецепту; null - ни одного исходника нет. Основной исходник тот же, что в таблице, - точная сборка;
-     * иначе перекраска по палитре запасного исходника (первого найденного), а нет запасных - основного.
+     * Build a texture by recipe; null - no source exists. If the main source is the same as in the table, it is an exact build;
+     * otherwise a recolor by palette of the fallback source (the first one found), and if there are no fallbacks - of the main one.
      */
     public static BufferedImage build(Recipe r) throws IOException {
         BufferedImage main = source(r.src[0]);
         if (main != null && md5(main).equals(r.srcMd5)) {
-            lastWay = "точно";
+            lastWay = "exact";
             return exact(main, r);
         }
         for (int k = 1; k < r.src.length; k++) {
             BufferedImage alt = source(r.src[k]);
             if (alt != null) {
-                lastWay = "запасной исходник";
+                lastWay = "fallback source";
                 return recolor(alt, r);
             }
         }
         if (main == null) return null;
-        lastWay = "перекраска";
+        lastWay = "recolor";
         return recolor(main, r);
     }
 
     /**
-     * Наша палитра на чужую версию текстуры: пиксели по яркости раскладываются по нашим цветам в тех же долях. Цветные и серые
-     * пиксели раскладываются раздельно (цветные - по цветным нашим, серые - по серым), если и там, и там их заметная доля: иначе
-     * у руды на камне вкрапления смешались бы с камнем (руда джунглей на Divine 1.4.1.5 теряла зелень).
+     * Our palette applied to another version of the texture: pixels are distributed by brightness among our colors in the same proportions. Colored and gray
+     * pixels are distributed separately (colored ones among our colored, gray among our gray) if both have a noticeable share: otherwise
+     * in an ore on stone the specks would blend with the stone (the jungle ore on Divine 1.4.1.5 lost its green).
      */
     static BufferedImage recolor(BufferedImage s, Recipe r) {
         int w = s.getWidth(), h = s.getHeight();
@@ -172,13 +172,13 @@ public final class DerivedTextures {
         return image(out, w, h);
     }
 
-    /** Цветной пиксель: заметная насыщенность и не почти чёрный. */
+    /** A colored pixel: noticeable saturation and not almost black. */
     public static boolean colored(int c) {
         int rr = c >> 16 & 255, gg = c >> 8 & 255, bb = c & 255, mx = Math.max(rr, Math.max(gg, bb)), mn = Math.min(rr, Math.min(gg, bb));
         return mx >= 40 && (mx - mn) / (double) mx >= 0.3;
     }
 
-    /** Разложить пиксели op по яркости на цвета палитры pal (номера в рецепте) в долях их весов. */
+    /** Distribute the pixels op by brightness among the colors of palette pal (indices in the recipe) in proportion to their weights. */
     private static void rank(final int[] px, java.util.List<Integer> op, Recipe r, java.util.List<Integer> pal, int[] out) {
         if (op.isEmpty() || pal.isEmpty()) return;
         java.util.Collections.sort(op, new java.util.Comparator<Integer>() {
@@ -221,7 +221,7 @@ public final class DerivedTextures {
         return out;
     }
 
-    /** Точная сборка: замена цветов и своих пикселей. Прозрачные пиксели остаются прозрачными. */
+    /** Exact build: replacing colors and our own pixels. Transparent pixels stay transparent. */
     static BufferedImage exact(BufferedImage s, Recipe r) {
         int w = s.getWidth(), h = s.getHeight();
         int[] px = s.getRGB(0, 0, w, h, null, 0, w);
@@ -238,7 +238,7 @@ public final class DerivedTextures {
         return image(px, w, h);
     }
 
-    /** md5 пикселей ARGB (как в рецепте): совпал - собрано точно как задумано. */
+    /** md5 of ARGB pixels (as in the recipe): a match means it was built exactly as intended. */
     public static String md5(BufferedImage img) {
         try {
             int w = img.getWidth(), h = img.getHeight();

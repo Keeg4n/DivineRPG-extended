@@ -12,42 +12,42 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 
 /**
- * Большая постройка, заданная функцией "что стоит в столбце (dx, dz) от центра" - как Ледяной Трон. Каждый чанк при
- * заселении достраивает свой кусок прямо в хранилище чанка (без цепной генерации и пересчёта света на каждый блок),
- * а потом из соседних готовых кусков убирает то, что туда положило заселение Divine (деревья, цветы) поверх чертежа.
+ * A large structure defined by the function "what stands in the column (dx, dz) from the center" - like the Frozen Throne. Each chunk, when
+ * populated, builds its piece directly in the chunk storage (without chain generation and without recalculating light for every block),
+ * and then removes from neighboring finished pieces what Divine population placed there (trees, flowers) over the blueprint.
  */
 public abstract class ColumnStructure {
 
-    /** Код "столбец здесь не трогаем" и "воздух". */
+    /** The code "do not touch the column here" and "air". */
     public static final int KEEP = -1, AIR = 0;
     /**
-     * Фундамент: с этой высоты вниз, пока под ним пусто (воздух, жидкость, растения), кладётся {@link #foundation()} - до
-     * {@link #FOUNDATION_DEPTH} блоков. Постройка стоит на земле, а не висит над пещерой.
+     * Foundation: from this height downward, while it is empty below (air, liquid, plants), {@link #foundation()} is laid - up to
+     * {@link #FOUNDATION_DEPTH} blocks. The structure stands on the ground and does not hang over a cave.
      */
     public static final int FOUNDATION = -2, FOUNDATION_DEPTH = 48;
 
-    /** Чем заполнять фундамент. */
+    /** What to fill the foundation with. */
     protected Block foundation() {
         return Blocks.stone;
     }
 
-    /** Блок и мета по коду (коды > 0 - свои у каждой постройки). */
+    /** Block and meta by code (codes > 0 are specific to each structure). */
     protected abstract Block block(int code, int meta);
 
-    /** Заполнить col[y * 2] = код, col[y * 2 + 1] = мета; false - столбец не входит в постройку. */
+    /** Fill col[y * 2] = code, col[y * 2 + 1] = meta; false - the column is not part of the structure. */
     protected abstract boolean column(int dx, int dz, int[] col);
 
-    /** Мета блока по коду (лампы Divine - один блок на много метаданных). */
+    /** Block meta by code (Divine lamps are one block with many metadata values). */
     protected int metaOf(int code, int meta) {
         return meta;
     }
 
-    /** Блоки, после которых нужно пересчитать свет (светятся). */
+    /** Blocks after which light must be recalculated (they glow). */
     protected boolean lit(Block b) {
         return b.getLightValue() > 0;
     }
 
-    /** Столбец чертежа снаружи (для проверок и запечатывания): то же, что {@link #column}. */
+    /** The blueprint column from outside (for checks and sealing): the same as {@link #column}. */
     public boolean columnAt(int dx, int dz, int[] col) {
         return column(dx, dz, col);
     }
@@ -73,11 +73,11 @@ public abstract class ColumnStructure {
         return (h ^ h >>> 15) & 0x7fffffff;
     }
 
-    /** Достроить кусок постройки с центром (cx, cz) в области заселения [x0, x0 + 16) x [z0, z0 + 16). */
+    /** Finish a piece of the structure with center (cx, cz) in the population area [x0, x0 + 16) x [z0, z0 + 16). */
     public void buildSlice(World w, int cx, int cz, int x0, int z0) {
         Set<Chunk> touched = new HashSet<Chunk>();
         List<int[]> lights = new ArrayList<int[]>();
-        // что поменяли в хранилище чанка напрямую - клиент не узнает сам (чанк мог уже уйти игроку): помечаем к отправке
+        // what was changed directly in the chunk storage - the client won't find out on its own (the chunk may have already gone to the player): mark for sending
         List<int[]> changed = new ArrayList<int[]>();
         int[] col = new int[256 * 2];
         for (int x = x0; x < x0 + 16; x++) {
@@ -121,8 +121,8 @@ public abstract class ColumnStructure {
         }
         for (Chunk ch : touched) {
             ch.generateSkylightMap();
-            // свет по столбцам не знает соседей: под большой постройкой над пустотой остаётся чёрный столб. Пусть
-            // сервер досчитает свет как для обычного острова, до отправки чанка игроку - иначе это делает клиент
+            // per-column light doesn't know the neighbors: under a big structure above the void a black column remains. Let
+            // the server finish the light as for a normal island, before the chunk is sent to the player - otherwise the client does it
             ch.isLightPopulated = false;
             ch.setChunkModified();
         }
@@ -132,24 +132,24 @@ public abstract class ColumnStructure {
     }
 
     /**
-     * Сказать игрокам, видящим эти чанки, про блоки, записанные мимо мира: без этого уже отправленный клиенту соседний
-     * чанк остаётся старым кусками (дыры и "стекло" до первого обновления рядом). Больше 64 блоков в чанке - игра сама
-     * перешлёт изменённые секции целиком.
+     * Tell the players who see these chunks about blocks written around the world: without this a neighboring chunk already sent to the client
+     * stays old in pieces (holes and "glass" until the first update nearby). More than 64 blocks in a chunk - the game itself
+     * resends the changed sections whole.
      */
     static void resend(World w, List<int[]> changed) {
         if (!(w instanceof net.minecraft.world.WorldServer) || changed.isEmpty()) return;
         net.minecraft.server.management.PlayerManager pm = ((net.minecraft.world.WorldServer) w).getPlayerManager();
-        if (pm == null) return; // мир ещё создаётся (поиск точки спавна): игроков нет, рассылать некому
+        if (pm == null) return; // the world is still being created (searching for the spawn point): there are no players, nobody to send to
         for (int[] c : changed) pm.markBlockForUpdate(c[0], c[1], c[2]);
     }
 
     /**
-     * Блоки с данными (статуи, сундуки) - ставятся через мир, а не в хранилище чанка: только те, что попадают в область
-     * заселения [x0, x0 + 16) x [z0, z0 + 16) (см. {@link #place}).
+     * Blocks with data (statues, chests) - placed through the world, not into the chunk storage: only those that fall within the population
+     * area [x0, x0 + 16) x [z0, z0 + 16) (see {@link #place}).
      */
     protected void decorate(World w, int cx, int cz, int x0, int z0) {}
 
-    /** Поставить блок с данными, если (cx + dx, cz + dz) в области заселения; true - поставлен. */
+    /** Place a block with data if (cx + dx, cz + dz) is in the population area; true - placed. */
     protected static boolean place(World w, int cx, int cz, int x0, int z0, int dx, int y, int dz, Block b, int meta) {
         int x = cx + dx, z = cz + dz;
         if (x < x0 || x >= x0 + 16 || z < z0 || z >= z0 + 16) return false;
@@ -158,16 +158,16 @@ public abstract class ColumnStructure {
     }
 
     /**
-     * Вернуть по чертежу твёрдые блоки готовых соседних кусков, которые испортила чужая генерация после постройки (озёра
-     * лавы и крови вырезают воздух и заливают жидкость, огонь, природный камень поверх) - в пределах yFrom..yTo. Меняется
-     * только воздух, жидкость, огонь и природные блоки (то, что ставит генерация мира); блоки с данными не трогаем.
+     * Restore, according to the blueprint, solid blocks of finished neighboring pieces that foreign generation spoiled after construction (lakes
+     * of lava and blood carve out air and flood liquid, fire, natural stone on top) - within yFrom..yTo. Only air, liquid, fire
+     * and natural blocks are replaced (what world generation places); blocks with data are not touched.
      */
     public void restore(World w, int cx, int cz, int xFrom, int zFrom, int size, int yFrom, int yTo, Block... natural) {
         int[] col = new int[256 * 2];
         for (int x = xFrom; x < xFrom + size; x++) {
             for (int z = zFrom; z < zFrom + size; z++) {
                 if (!w.getChunkProvider().chunkExists(x >> 4, z >> 4)) continue;
-                int ax = (x - 8) >> 4, az = (z - 8) >> 4; // кусок, к которому относится столбец, уже построен
+                int ax = (x - 8) >> 4, az = (z - 8) >> 4; // the piece the column belongs to is already built
                 if (!w.getChunkProvider().chunkExists(ax, az) || !w.getChunkFromChunkCoords(ax, az).isTerrainPopulated) continue;
                 for (int i = 0; i < col.length; i += 2) col[i] = KEEP;
                 if (!column(x - cx, z - cz, col)) continue;
@@ -187,21 +187,21 @@ public abstract class ColumnStructure {
     }
 
     /**
-     * Убрать из готовых соседних кусков то, что туда положило заселение Divine поверх воздуха чертежа (в пределах
-     * yFrom..yTo). Неготовые и незагруженные чанки не трогаем.
+     * Remove from finished neighboring pieces what Divine population placed over the air of the blueprint (within
+     * yFrom..yTo). Unfinished and unloaded chunks are not touched.
      */
     public void clean(World w, int cx, int cz, int xFrom, int zFrom, int size, int yFrom, int yTo) {
         int[] col = new int[256 * 2];
         for (int x = xFrom; x < xFrom + size; x++) {
             for (int z = zFrom; z < zFrom + size; z++) {
                 if (!w.getChunkProvider().chunkExists(x >> 4, z >> 4)) continue;
-                int ax = (x - 8) >> 4, az = (z - 8) >> 4; // кусок, к которому относится столбец, уже построен
+                int ax = (x - 8) >> 4, az = (z - 8) >> 4; // the piece the column belongs to is already built
                 if (!w.getChunkProvider().chunkExists(ax, az) || !w.getChunkFromChunkCoords(ax, az).isTerrainPopulated) continue;
                 for (int i = 0; i < col.length; i += 2) col[i] = KEEP;
                 if (!column(x - cx, z - cz, col)) continue;
                 for (int y = yFrom; y <= yTo; y++) {
                     if (col[y * 2] != AIR || w.isAirBlock(x, y, z)) continue;
-                    if (w.getBlock(x, y, z).hasTileEntity(w.getBlockMetadata(x, y, z)) || w.getBlock(x, y, z) == com.divinerpgextended.registry.ModBlocks.arenaAltar) continue; // сундуки и алтари постройки ({@link #decorate})
+                    if (w.getBlock(x, y, z).hasTileEntity(w.getBlockMetadata(x, y, z)) || w.getBlock(x, y, z) == com.divinerpgextended.registry.ModBlocks.arenaAltar) continue; // chests and altars of the structure ({@link #decorate})
                     w.removeTileEntity(x, y, z);
                     w.setBlock(x, y, z, Blocks.air, 0, 2);
                 }

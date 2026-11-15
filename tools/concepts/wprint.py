@@ -1,4 +1,4 @@
-"""Печатная версия галереи концептов брони Странника (A4 альбом): обложка + по листу на ступень. Пишет print.html рядом с img/."""
+"""Print version of the Wanderer armor concept gallery (A4 landscape): cover + one sheet per tier. Writes print.html next to img/."""
 import html
 import sys
 

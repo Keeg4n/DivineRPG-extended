@@ -12,13 +12,13 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Завеса пузырей на входе в нору краба: прозрачная воздушная плёнка. Вода через неё не течёт (как через дверь), а
- * игрок и мобы проходят насквозь. Сломать нельзя, чтобы нору не затопило.
+ * Bubble Curtain at the entrance to a crab burrow: a transparent air film. Water does not flow through it (as through a door), and
+ * the player and mobs pass right through. It cannot be broken, so the burrow is not flooded.
  */
 public class BlockBubbleCurtain extends Block {
 
     public BlockBubbleCurtain() {
-        // Материал "камень" не даёт воде растечься в этот блок; столкновений при этом нет
+        // The "stone" material keeps water from spreading into this block; there are no collisions
         super(Material.rock);
         setBlockUnbreakable();
         setResistance(6000000.0F);

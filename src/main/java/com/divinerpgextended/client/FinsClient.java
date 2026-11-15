@@ -12,8 +12,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Ласты (с Лиоплевродона): в воде плывёшь быстрее (лишний толчок в сторону движения), рывок вперёд по клавише бега - раз в
- * {@link #DASH_COOLDOWN} тиков. Движение игрока считает клиент, поэтому всё здесь.
+ * Fins (from the Liopleurodon): you swim faster in water (an extra push in the direction of movement), a forward dash on the sprint key - once every
+ * {@link #DASH_COOLDOWN} ticks. The client calculates player movement, so everything is here.
  */
 @SideOnly(Side.CLIENT)
 public class FinsClient {

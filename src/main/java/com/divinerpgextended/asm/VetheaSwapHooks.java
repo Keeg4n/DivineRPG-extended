@@ -5,12 +5,12 @@ import net.minecraft.item.Item;
 import net.minecraft.nbt.NBTTagList;
 
 /**
- * Вызовы из кровати кошмаров и портала Ветеи ({@link VetheaSwapTransformer}). Пока {@link #blocked}, инвентарь не
- * сохраняется в копию Divine, не очищается и не подменяется: сохранённые копии остаются пустыми.
+ * Calls from the Nightmare Bed and the Vethea portal ({@link VetheaSwapTransformer}). While {@link #blocked}, the inventory is not
+ * saved into the Divine copy, not cleared and not swapped: the saved copies stay empty.
  */
 public class VetheaSwapHooks {
 
-    /** Ставит {@link com.divinerpgextended.vethea.VetheaStash#disableDivineSwap()}. */
+    /** Sets {@link com.divinerpgextended.vethea.VetheaStash#disableDivineSwap()}. */
     public static volatile boolean blocked;
 
     public static NBTTagList write(InventoryPlayer inv, NBTTagList list) {

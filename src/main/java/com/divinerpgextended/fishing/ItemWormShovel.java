@@ -16,7 +16,7 @@ import com.divinerpgextended.registry.ModItems;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
-/** Червекопалка: железная лопата, с которой из земли и травы иногда выкапываются черви (другие лопаты червей не дают). */
+/** Worm Shovel: an iron shovel with which worms are sometimes dug from soil and grass (other shovels give no worms). */
 public class ItemWormShovel extends ItemSpade {
 
     public ItemWormShovel() {

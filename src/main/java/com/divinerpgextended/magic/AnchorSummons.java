@@ -21,40 +21,40 @@ import cpw.mods.fml.common.eventhandler.Event;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Призывы на аркане: слизневый меч зовёт слизня, крабовый якорь (с Карцинуса) - краба, циклопический жезл - око, якорь
- * лиоплевродона (с Лиоплевродона) - акулу; ПКМ - только призыв (броска у якорей и выстрела у жезла нет, меч бьёт как раньше).
- * Как призрак кости призрака ({@link ArcaneSummons}): держатся, пока хозяин платит арканой ({@link Kind#upkeep} в секунду за
- * каждого), бьют то, что бьёт хозяин (или того, кто напал на хозяина), а сами - ближайшего врага в своём радиусе агра
- * ({@link Kind#aggro}); ранят их только чужие игроки там, где можно PvP; не сохраняются; одновременно не больше {@link #cap} каждого вида (полный сет Кормы или
- * Венец арканы R8 - на одного больше), лишний - самый старый. Лестница призывов: слизень - краб - око - акула - призрак.
+ * Summons on arcana: the Slime Sword calls a slime, the Crab Anchor (from Carcinus) - a crab, the Cyclops Wand - an eye, the Liopleurodon
+ * Anchor (from the Liopleurodon) - a shark; right click - summon only (the anchors have no throw and the wand has no shot, the sword hits as before).
+ * Like the ghost from the ghost bone ({@link ArcaneSummons}): they stay while the owner pays in arcana ({@link Kind#upkeep} per second for
+ * each), hit what the owner hits (or whoever attacked the owner), and on their own - the nearest enemy within their aggro radius
+ * ({@link Kind#aggro}); only other players hurt them, where PvP is allowed; they are not saved; no more than {@link #cap} of each kind at once (a full Korma set or
+ * the R8 arcana Crown - one more), the extra one is the oldest. Summon ladder: slime - crab - eye - shark - ghost.
  * <p>
- * С 0.99.120: призывы одного хозяина - только одного вида (позвал краба - остальные, и призраки тоже, уходят); ПКМ по своему
- * призыву или удар свистком - убрать; свисток зовёт их к хозяину; наземные (слизень, краб) толкаются друг с другом и при
- * переносе к хозяину встают кольцом.
+ * Since 0.99.120: one owner's summons are of one kind only (call a crab - the rest, ghosts too, leave); right click on your own
+ * summon or a hit with the whistle - dismiss it; the whistle calls them to the owner; ground ones (slime, crab) push each other and when
+ * carried to the owner stand in a ring.
  * <p>
- * С 0.99.121 плата одна на всех призывов хозяина раз в секунду ({@link #pay}): {@link #UPKEEP} за каждого, обычной тратой
- * арканы - с паузой восстановления (пока призывы живы, аркана сама не восстанавливается), со скидкой Кормы и Собранности.
- * Без улучшений два призыва на 200 арканы живут 10 секунд; дольше - Корма (дешевле, запас больше), кристалл ясности (пауза
- * короче), задания Ваттикуса (запас больше), Венец арканы R8 (восстановление вдвое быстрее), зелья арканы (Ясность: без паузы).
+ * Since 0.99.121 there is one payment for all of the owner's summons once a second ({@link #pay}): {@link #UPKEEP} for each, as an ordinary arcana
+ * spend - with a recovery pause (while summons live, arcana does not regenerate on its own), with the Korma and Composure discount.
+ * Without upgrades two summons on 200 arcana live 10 seconds; longer with Korma (cheaper, bigger supply), Crystal of Clarity (shorter
+ * pause), Vatticus's tasks (bigger supply), the R8 arcana Crown (regeneration twice as fast), arcana potions (Clarity: no pause).
  */
 public class AnchorSummons {
 
-    /** Цена призыва в аркане за секунду - у всех одна (и у призрака). */
+    /** Summon price in arcana per second - the same for all (the ghost too). */
     public static final float UPKEEP = 10F;
 
     public enum Kind {
-        /** Слизень слизневого меча: прыгает по земле, агр ближе всех. */
+        /** Slime of the Slime Sword: hops along the ground, the shortest aggro. */
         SLIME(UPKEEP, 2, 3F, 6),
-        /** Бегает по земле. */
+        /** Runs on the ground. */
         CRAB(UPKEEP, 2, 4F, 8),
-        /** Око циклопического жезла: спутник над головой, бьёт слабее всех, но отбрасывает врага. */
+        /** Eye of the Cyclops Wand: a companion overhead, hits weakest of all but knocks the enemy back. */
         EYE(UPKEEP, 2, 2F, 10),
-        /** Летает, как призрак. */
+        /** Flies, like the ghost. */
         SHARK(UPKEEP, 2, 8F, 12);
 
         public final float upkeep, damage;
         public final int cap;
-        /** Радиус агра (блоки от хозяина): сам бросается на врагов в нём; цель хозяина дальше - не преследует. */
+        /** Aggro radius (blocks from the owner): it rushes at enemies within it on its own; it does not chase the owner's target farther away. */
         public final double aggro;
 
         Kind(float upkeep, int cap, float damage, double aggro) {
@@ -65,26 +65,26 @@ public class AnchorSummons {
         }
     }
 
-    /** Призыв на аркане хозяина: какой он вид. */
+    /** An owner's arcana summon: what kind it is. */
     public interface Summon {
 
         Kind kind();
 
-        /** Хозяин или null (на клиенте - всегда null). */
+        /** The owner or null (on the client - always null). */
         EntityPlayer owner();
     }
 
-    /** Призыватель: полный сет Кормы или Венец арканы R8 - каждого призыва на одного больше. */
+    /** Summoner: a full Korma set or the R8 arcana Crown - one more of each summon. */
     public static boolean summoner(EntityPlayer p) {
         return p != null && (ArcanaRules.korma(p) || com.divinerpgextended.item.ArmorData.equippedCrown(p) == com.divinerpgextended.item.ArmorCrown.ARCANA);
     }
 
-    /** Сколько призывов вида держит игрок. */
+    /** How many summons of a kind the player holds. */
     public static int cap(EntityPlayer p, Kind k) {
         return k.cap + (summoner(p) ? 1 : 0);
     }
 
-    /** Убрать призыв (ПКМ хозяина, свисток): искры и звук. */
+    /** Dismiss a summon (owner right click, whistle): sparks and sound. */
     public static void dismiss(Entity e) {
         if (e.worldObj instanceof net.minecraft.world.WorldServer)
             ((net.minecraft.world.WorldServer) e.worldObj).func_147487_a("witchMagic", e.posX, e.posY + e.height / 2, e.posZ, 16, e.width * 0.4, e.height * 0.4, e.width * 0.4, 0.05);
@@ -92,13 +92,13 @@ public class AnchorSummons {
         e.setDead();
     }
 
-    /** Куда встать призыву при переносе к хозяину: кольцом, чтобы не стоять друг в друге. */
+    /** Where a summon stands when carried to the owner: in a ring, so they do not stand inside each other. */
     static double[] near(EntityPlayer o, int index) {
         double a = index * 2.4 + 0.6;
         return new double[] { o.posX + Math.cos(a) * 1.3, o.posY, o.posZ + Math.sin(a) * 1.3 };
     }
 
-    /** Отброс удара ока (скорость, блоки за тик): боссам - {@link #EYE_PUSH_BOSS} от него. */
+    /** Knockback of the eye's hit (speed, blocks per tick): for bosses - {@link #EYE_PUSH_BOSS} of it. */
     public static final double EYE_PUSH = 0.9, EYE_PUSH_BOSS = 0.25;
 
     public static final int MEMORY = 200, LEASH = 48;
@@ -140,10 +140,10 @@ public class AnchorSummons {
         LIVE.remove(p.getUniqueID());
     }
 
-    /** Призвать у хозяина. */
+    /** Summon at the owner. */
     public static EntityLiving summon(EntityPlayer p, Kind k) {
         List<EntityLiving> l = of(p);
-        // призывы одного хозяина - одного вида: другие виды и призраки уходят
+        // one owner's summons are of one kind: other kinds and ghosts leave
         for (EntityLiving o : new ArrayList<EntityLiving>(l)) if (kind(o) != k) {
             dismiss(o);
             l.remove(o);
@@ -179,28 +179,28 @@ public class AnchorSummons {
         return e;
     }
 
-    /** Цель призывов хозяина (или null). */
+    /** The target of the owner's summons (or null). */
     static Entity target(EntityPlayer p) {
         Object[] t = TARGET.get(p.getUniqueID());
         if (t == null) return null;
         Entity e = (Entity) t[0];
         if (e.isDead || !(e instanceof EntityLivingBase) || ((EntityLivingBase) e).getHealth() <= 0 || e.worldObj != p.worldObj
             || p.worldObj.getTotalWorldTime() - (Long) t[1] > MEMORY || e.getDistanceSqToEntity(p) > 24 * 24
-            || e instanceof EntityPlayer && com.divinerpgextended.perk.Protection.spare(p, e)) { // игрок ушёл в приват без PvP
+            || e instanceof EntityPlayer && com.divinerpgextended.perk.Protection.spare(p, e)) { // the player went into a no-PvP claim
             TARGET.remove(p.getUniqueID());
             return null;
         }
         return e;
     }
 
-    /** Призыв или призрак этого хозяина. */
+    /** A summon or ghost of this owner. */
     public static boolean own(EntityPlayer p, Entity t) {
         return t instanceof Summon && ((Summon) t).owner() == p || t instanceof EntityArcaneWraith && ((EntityArcaneWraith) t).owner() == p;
     }
 
     /**
-     * Удар по призыву, который проходит: от чужого игрока (или его призывов), где можно PvP. Остальное призыв не ранит -
-     * мобы, огонь, падение и сам хозяин.
+     * A hit on a summon that goes through: from another player (or their summons), where PvP is allowed. Nothing else hurts the summon -
+     * mobs, fire, falling and the owner himself.
      */
     public static boolean rivalHit(EntityPlayer owner, net.minecraft.util.DamageSource s) {
         Entity by = s.getEntity();
@@ -208,8 +208,8 @@ public class AnchorSummons {
     }
 
     /**
-     * Цель призыва: цель хозяина, если она в радиусе агра r от хозяина, иначе свой враг в этом радиусе (ищется раз в
-     * {@link Aim#SCAN} тиков). Держит один призыв - у каждого своя.
+     * The summon's target: the owner's target, if it is within the aggro radius r of the owner, otherwise its own enemy in that radius (searched once every
+     * {@link Aim#SCAN} ticks). Held by one summon - each has its own.
      */
     public static final class Aim {
 
@@ -229,8 +229,8 @@ public class AnchorSummons {
     }
 
     /**
-     * Ближайший к хозяину враг в радиусе r, которого хозяин видит: монстры, кроме призывов, приручённых, манекена и
-     * нейтральных, пока те не злы (свинозомби, эндермены - иначе призыв поднимал бы на хозяина всю стаю).
+     * The enemy nearest to the owner within radius r that the owner sees: monsters, except summons, tamed ones, the dummy and
+     * neutral ones, while they are not angry (zombie pigmen, endermen - otherwise a summon would raise the whole pack against the owner).
      */
     public static EntityLivingBase foe(EntityPlayer o, double r) {
         EntityLivingBase best = null;
@@ -252,14 +252,14 @@ public class AnchorSummons {
     }
 
     public static void mark(EntityPlayer p, Entity t) {
-        if (t == p || own(p, t)) return; // чужие призывы - можно (PvP)
+        if (t == p || own(p, t)) return; // other people's summons - allowed (PvP)
         TARGET.put(p.getUniqueID(), new Object[] { t, p.worldObj.getTotalWorldTime() });
     }
 
     /**
-     * Плата за секунду жизни всех призывов хозяина сразу ({@link #UPKEEP} за каждого) - обычной тратой арканы: включает паузу
-     * восстановления, со скидкой Кормы и Собранности. Одна трата на всех, иначе каждая заново сбрасывала бы паузу. Не хватило -
-     * false (ничего не тратится).
+     * Payment for a second of life of all the owner's summons at once ({@link #UPKEEP} for each) - an ordinary arcana spend: includes the recovery
+     * pause, with the Korma and Composure discount. One spend for all, otherwise each would reset the pause anew. Not enough -
+     * false (nothing is spent).
      */
     public static boolean pay(EntityPlayer o, int count) {
         if (o.capabilities.isCreativeMode || count <= 0) return true;
@@ -267,12 +267,12 @@ public class AnchorSummons {
         return h != null && ArcanaRules.useBar(h, UPKEEP * count, "Summon");
     }
 
-    /** Удар призыва: урон вида, растёт со стадией (как у призрака). */
+    /** Summon's hit: the kind's damage, grows with the stage (like the ghost's). */
     static float damage(EntityPlayer o, Kind k) {
         return k.damage * ArcanaRules.stage(o);
     }
 
-    /** Подсказка призывных якорей. */
+    /** Tooltip of the summoning anchors. */
     @SubscribeEvent
     public void onTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent e) {
         Kind k = e.itemStack == null ? null : kind(e.itemStack.getItem());
@@ -284,8 +284,8 @@ public class AnchorSummons {
     }
 
     /**
-     * ПКМ призывным якорем: призыв вместо броска. Меч и жезл зовут только кликом в воздух (клик по блоку тоже приходит
-     * в воздух, если блок ничего не сделал): иначе сундук открывался бы вместе с призывом.
+     * Right click with a summoning anchor: summon instead of a throw. The sword and wand summon only by a click in the air (a click on a block also arrives
+     * as in the air if the block did nothing): otherwise a chest would open together with the summon.
      */
     @SubscribeEvent
     public void onInteract(PlayerInteractEvent e) {
@@ -295,27 +295,27 @@ public class AnchorSummons {
         Kind k = held == null ? null : kind(held.getItem());
         if (k == null) return;
         if ((k == Kind.SLIME || k == Kind.EYE) && e.action != PlayerInteractEvent.Action.RIGHT_CLICK_AIR) return;
-        if (e.useItem == Event.Result.DENY) return; // вещь уже запрещена раньше (кошмар Ветеи, приваты)
+        if (e.useItem == Event.Result.DENY) return; // the item is already forbidden earlier (Vethea nightmare, claims)
         e.useItem = Event.Result.DENY;
         if (p.worldObj.isRemote) return;
         long now = p.worldObj.getTotalWorldTime();
-        String key = "dreAnchorSummon" + (k == Kind.CRAB ? "" : k.name()); // у каждого вида свой: слизень и око подряд - оба
+        String key = "dreAnchorSummon" + (k == Kind.CRAB ? "" : k.name()); // each kind has its own: slime and eye in a row - both
         if (p.getEntityData().hasKey(key) && now - p.getEntityData().getLong(key) < 10 && now >= p.getEntityData().getLong(key))
-            return; // двойной пакет от одного клика
+            return; // a double packet from one click
         p.getEntityData().setLong(key, now);
         summon(p, k);
     }
 
-    /** Хозяин бьёт - призывы туда же. */
+    /** The owner hits - the summons go to the same target. */
     @SubscribeEvent
     public void onAttack(LivingAttackEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
         Entity a = e.source.getEntity();
         if (a instanceof EntityPlayer && LIVE.containsKey(a.getUniqueID())
-            && (!(e.entityLiving instanceof EntityPlayer) || !com.divinerpgextended.perk.Protection.spare(a, e.entityLiving))) mark((EntityPlayer) a, e.entityLiving); // игрока - где можно PvP
+            && (!(e.entityLiving instanceof EntityPlayer) || !com.divinerpgextended.perk.Protection.spare(a, e.entityLiving))) mark((EntityPlayer) a, e.entityLiving); // a player - where PvP is allowed
     }
 
-    /** На хозяина нацелились - призывы на этого врага (если хозяин сам никого не бьёт). */
+    /** The owner has been targeted - the summons go at this enemy (if the owner is not hitting anyone himself). */
     @SubscribeEvent
     public void onTarget(LivingSetAttackTargetEvent e) {
         if (!(e.target instanceof EntityPlayer) || !(e.entityLiving instanceof EntityLiving) || e.entityLiving.worldObj.isRemote) return;

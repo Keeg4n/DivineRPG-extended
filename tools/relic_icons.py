@@ -1,11 +1,11 @@
-"""Значки вещей из реликвариев миров (16x16, своя рисовка) и посадка Солнечного нимба на теле.
+"""Icons of items from the world reliquaries (16x16, custom art) and the fit of the Sun Halo on the body.
 
-Запуск в WSL: python3 tools/relic_icons.py [папка_превью]
-Пишет textures/items/: storm_bow_standby/_pulling_0..2, tomahawk, cloud_staff, soul_harvest, trinket_sun_halo, а с 0.99.113
-вещи Лиоплевродона: tsunami_standby/_pulling_0..2, blood_bait, trinket_lio_fins, anchor_crab, anchor_lio (последние два
-DerivedTexturePack подставляет вместо текстур якорей Divine). В wear/accessories.txt дописывает (заменяет) блоки "a sun_halo" -
-золотое кольцо над головой на высоте от короны лича - и "a lio_fins" - ласты под подошвой, ширина ноги от крылышек айеракО, в
-каждом профиле брони. acc_export.py перезаписывает accessories.txt - он вызывает append_halo() в конце.
+Run in WSL: python3 tools/relic_icons.py [preview_folder]
+Writes textures/items/: storm_bow_standby/_pulling_0..2, tomahawk, cloud_staff, soul_harvest, trinket_sun_halo, and since 0.99.113
+the Liopleurodon items: tsunami_standby/_pulling_0..2, blood_bait, trinket_lio_fins, anchor_crab, anchor_lio (the last two are
+substituted by DerivedTexturePack for the Divine anchor textures). In wear/accessories.txt it appends (replaces) the blocks "a sun_halo" -
+a golden ring above the head at the height of the Lich Crown - and "a lio_fins" - fins under the sole, leg width taken from the Ayeraco wings, in
+each armor profile. acc_export.py overwrites accessories.txt - it calls append_halo() at the end.
 """
 import math
 import os
@@ -34,7 +34,7 @@ def put(g, x, y, c):
 
 
 def outline(g, col=OUTLINE):
-    """Тёмный контур вокруг закрашенного (по 4 соседям), как у ванильных значков."""
+    """Dark outline around the painted area (by 4 neighbors), like the vanilla icons."""
     add = []
     for y in range(16):
         for x in range(16):
@@ -66,17 +66,17 @@ def line(g, x0, y0, x1, y1, c):
         put(g, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, c)
 
 
-# ---------------------------------------------------------------- Грозовой лук (Дикий лес)
+# ---------------------------------------------------------------- Storm Bow (Wildwood)
 
 STORM = dict(dark='1f3a6a', mid='3f6fc0', light='7fb6ff', tip='cfe3ff', grip='ffd84a', string='e8e8f0', shaft='8a6238', head='4a96ff',
              flet='e8e8f0', spark='ffd84a')
-# Цунами (Лиоплевродон): глубокая вода, пенные концы, рукоять из зуба, бирюзовый наконечник
+# Tsunami (Liopleurodon): deep water, foam tips, a grip made from a tooth, a turquoise arrowhead
 TSUNAMI = dict(dark='0a2c5c', mid='1f7fb0', light='5fd0e8', tip='f0fcff', grip='e8e2c8', string='c8f0ff', shaft='6b4a2a', head='3fd8c8',
                flet='f0fcff', spark='ffffff')
 
 
 def bow(pull, pal=None):
-    """pull: None - покой, 0..2 - натяжение. Как у ванильного лука: дуга выгнута к левому верхнему углу, тетива по диагонали."""
+    """pull: None - at rest, 0..2 - draw. Like the vanilla bow: the arc curves toward the top left corner, the string runs along the diagonal."""
     g = blank()
     c = dict((k, hexc(v)) for k, v in (pal or STORM).items())
     dark, mid, light, tip, grip, string = c['dark'], c['mid'], c['light'], c['tip'], c['grip'], c['string']
@@ -87,7 +87,7 @@ def bow(pull, pal=None):
         x = (1 - t) ** 2 * a[0] + 2 * (1 - t) * t * ctrl[0] + t * t * b[0]
         y = (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * ctrl[1] + t * t * b[1]
         pts.append((x, y, t))
-    for x, y, t in pts:  # внешняя кромка темнее, внутренняя светлее
+    for x, y, t in pts:  # outer edge darker, inner edge lighter
         put(g, x - 0.6, y - 0.6, dark)
     for x, y, t in pts:
         put(g, x, y, tip if t < 0.08 or t > 0.92 else (grip if 0.45 < t < 0.55 else (light if int(t * 20) % 3 == 0 else mid)))
@@ -98,7 +98,7 @@ def bow(pull, pal=None):
         p = (7.5 + d / math.sqrt(2) * 1.4, 7.5 + d / math.sqrt(2) * 1.4)
         line(g, a[0], a[1], p[0], p[1], string)
         line(g, p[0], p[1], b[0], b[1], string)
-        # стрела Дикого леса: древко к левому верхнему, синий наконечник с искрой
+        # Wildwood arrow: shaft toward the top left, blue arrowhead with a spark
         shaft, head, flet = c['shaft'], c['head'], c['flet']
         line(g, p[0] - 1, p[1] - 1, p[0] - 9 + d * 0.3, p[1] - 9 + d * 0.3, shaft)
         hx, hy = p[0] - 9 + d * 0.3, p[1] - 9 + d * 0.3
@@ -111,12 +111,12 @@ def bow(pull, pal=None):
     return image(outline(g))
 
 
-# ---------------------------------------------------------------- Томагавк (Апалачия)
+# ---------------------------------------------------------------- Tomahawk (Apalachia)
 
 def tomahawk():
     g = blank()
     wood, wood2, bind = hexc('6b4a2a'), hexc('8a6238'), hexc('d8c08a')
-    for t in range(9):  # топорище с левого нижнего к правому верхнему
+    for t in range(9):  # haft from the lower left to the upper right
         x, y = 3 + t, 13 - t
         put(g, x, y, wood2 if t % 2 else wood)
         put(g, x + 1, y, wood)
@@ -125,8 +125,8 @@ def tomahawk():
     for y in range(16):
         for x in range(16):
             dx, dy = x - cx, y - cy
-            u = (dx - dy) / math.sqrt(2)  # вдоль топорища
-            v = (-dx - dy) / math.sqrt(2)  # к лезвию (влево-вверх)
+            u = (dx - dy) / math.sqrt(2)  # along the haft
+            v = (-dx - dy) / math.sqrt(2)  # toward the blade (left-up)
             if 0 <= v <= 6.2 and abs(u) <= 1.3 + v * 0.62:
                 g[y][x] = edge if v > 5.1 else (mid if v > 1.6 else dark)
             elif -2.2 <= v < 0 and abs(u) <= 1.1:
@@ -134,12 +134,12 @@ def tomahawk():
     put(g, 11, 6, bind)
     put(g, 12, 6, bind)
     put(g, 13, 5, bind)
-    put(g, 6, 11, hexc('c060ff'))  # перо-оберег на шнурке
+    put(g, 6, 11, hexc('c060ff'))  # charm feather on a cord
     put(g, 5, 11, hexc('f0e6ff'))
     return image(outline(g))
 
 
-# ---------------------------------------------------------------- Посох облаков (Небесный терн)
+# ---------------------------------------------------------------- Cloud Staff (Skythern)
 
 def cloud_staff():
     g = blank()
@@ -158,33 +158,33 @@ def cloud_staff():
     return image(outline(g, hexc('46506a')))
 
 
-# ---------------------------------------------------------------- Жатва душ (Мортум)
+# ---------------------------------------------------------------- Soul Harvest (Mortum)
 
 def soul_harvest():
     g = blank()
     spine, mid, edge = hexc('3a1418'), hexc('8a2a34'), hexc('ff6a74')
-    for t in range(10):  # широкий клинок с левого нижнего к правому верхнему: обух снизу-слева, лезвие сверху-справа
+    for t in range(10):  # wide blade from the lower left to the upper right: the spine at the bottom left, the edge at the top right
         cx, cy = 4 + t, 10 - t
         put(g, cx, cy + 1, spine)
         put(g, cx, cy, mid)
         if t < 9:
             put(g, cx + 1, cy + 1, mid)
             put(g, cx + 1, cy, edge)
-    for x, y in ((14, 1), (15, 2), (15, 3), (14, 4)):  # крюк жатвы у острия
+    for x, y in ((14, 1), (15, 2), (15, 3), (14, 4)):  # harvest hook at the point
         put(g, x, y, mid)
     put(g, 15, 4, edge)
     bone, grip, pom = hexc('e8e0c8'), hexc('2a1a1a'), hexc('d43a4a')
-    for k in (-2, -1, 0, 1, 2):  # гарда поперёк клинка
+    for k in (-2, -1, 0, 1, 2):  # guard across the blade
         put(g, 3 + k, 11 + k, bone)
     put(g, 2, 12, grip)
     put(g, 1, 13, grip)
     put(g, 0, 14, pom)
-    put(g, 9, 3, hexc('ff9aa2', 200))  # души
+    put(g, 9, 3, hexc('ff9aa2', 200))  # souls
     put(g, 12, 8, hexc('ff9aa2', 200))
     return image(outline(g))
 
 
-# ---------------------------------------------------------------- Солнечный нимб (Эдем)
+# ---------------------------------------------------------------- Sun Halo (Eden)
 
 def sun_halo():
     g = blank()
@@ -196,16 +196,16 @@ def sun_halo():
             ei = ((x - cx) / (rx - 1.9)) ** 2 + ((y - cy) / (ry - 1.4)) ** 2
             if e <= 1.0 and ei > 1.0:
                 g[y][x] = light if y < cy - 1 else (gold if y <= cy + 1 else dark)
-    for x, y0, h in ((7, 1, 3), (8, 1, 3), (3, 3, 2), (12, 3, 2)):  # лучи над кольцом
+    for x, y0, h in ((7, 1, 3), (8, 1, 3), (3, 3, 2), (12, 3, 2)):  # rays above the ring
         for y in range(y0, y0 + h):
             put(g, x, y, gold if y > y0 else light)
     return image(outline(g, hexc('5c3a0e')))
 
 
-# ---------------------------------------------------------------- посадка нимба
+# ---------------------------------------------------------------- halo fit
 
 def halo_block(acc_text):
-    """Блок 'a sun_halo': по профилям из короны лича (её обод - первая коробка профиля) - кольцо выше на 3.4 пикселя."""
+    """Block 'a sun_halo': per profile from the Lich Crown (its rim is the first box of the profile) - the ring is 3.4 pixels higher."""
     out, cur, prof, done = ['a sun_halo'], None, None, set()
     for ln in acc_text.split('\n'):
         if ln.startswith('a '):
@@ -237,8 +237,8 @@ def halo_block(acc_text):
 
 
 def fins_block(acc_text):
-    """Блок 'a lio_fins': ласты под подошвой обеих ног, носок вперёд (-z). Половина ширины ноги в профиле - из крылышек айеракО
-    (их спрайт стоит на 0.25 снаружи ноги); подошва опускается вместе с броней, но не больше чем на пиксель."""
+    """Block 'a lio_fins': fins under the sole of both legs, toe forward (-z). Half the leg width in the profile is from the Ayeraco wings
+    (their sprite stands 0.25 outside the leg); the sole drops together with the armor, but by no more than a pixel."""
     out, cur, prof, done = ['a lio_fins'], None, None, set()
     edge, main, rib = '0a2c5c', '1c5c9c', '5cb0f4'
 
@@ -260,7 +260,7 @@ def fins_block(acc_text):
             sole = 12 + min(h - 2, 1.0)
             out.append('p %s' % prof)
             for leg in ('rightLeg', 'leftLeg'):
-                # пластина под стопой с выносом вперёд, раструб у носка, две светлые прожилки сверху
+                # a plate under the foot extending forward, a flare at the toe, two light veins on top
                 out.append('c %s %s %s %s %s 0.4 %s %s' % (leg, fm(-h + 0.2), fm(sole - 0.4), fm(-h - 3.0), fm(2 * h - 0.4), fm(2 * h + 2.4), main))
                 out.append('c %s %s %s %s %s 0.3 2 %s' % (leg, fm(-h - 0.6), fm(sole - 0.35), fm(-h - 4.2), fm(2 * h + 1.2), edge))
                 for rx in (-h * 0.45, h * 0.45 - 0.5):
@@ -270,7 +270,7 @@ def fins_block(acc_text):
 
 
 def append_halo(path=os.path.join(RES, 'wear/accessories.txt')):
-    """Свои посадки не из концептов: нимб и ласты (старые блоки заменяются)."""
+    """Own fits not from the concepts: halo and fins (old blocks are replaced)."""
     text = open(path, encoding='utf-8').read()
     lines, skip = [], False
     for ln in text.rstrip('\n').split('\n'):
@@ -283,16 +283,16 @@ def append_halo(path=os.path.join(RES, 'wear/accessories.txt')):
     open(path, 'w', encoding='utf-8', newline='\n').write('\n'.join(lines) + '\n')
 
 
-# ---------------------------------------------------------------- рыбалка миров (0.99.112)
+# ---------------------------------------------------------------- world fishing (0.99.112)
 
 def sun_lure():
-    """Солнечная блесна: золотая ложка-лепесток по диагонали, колечко сверху слева, крючок снизу справа."""
+    """Sun Lure: a golden spoon-petal on the diagonal, a small ring at the top left, a hook at the bottom right."""
     g = blank()
     dark, gold, light = hexc('b8801c'), hexc('f6c43a'), hexc('fff0a0')
     cx, cy = 8.0, 8.0
     for y in range(16):
         for x in range(16):
-            u = ((x - cx) + (y - cy)) / math.sqrt(2)  # вдоль ложки (к правому нижнему)
+            u = ((x - cx) + (y - cy)) / math.sqrt(2)  # along the spoon (toward the lower right)
             v = ((x - cx) - (y - cy)) / math.sqrt(2)
             if (u / 4.6) ** 2 + (v / 2.6) ** 2 <= 1.0:
                 g[y][x] = light if v < -0.9 else (gold if v < 0.9 else dark)
@@ -307,7 +307,7 @@ def sun_lure():
 
 
 def wandering_soul():
-    """Блуждающая душа: бледный огонёк-капля с хвостом, внутри алое ядро."""
+    """Wandering Soul: a pale drop-shaped wisp with a tail, a scarlet core inside."""
     g = blank()
     pale, mid, core = hexc('f4d6d8'), hexc('e08a92'), hexc('c02a3a')
     for y in range(16):
@@ -327,7 +327,7 @@ def wandering_soul():
 
 
 def crate_cloud():
-    """Ящик облачного пруда: ящик Небесного терна, высветленный к белому с голубым."""
+    """Cloud Pond Crate: the Skythern crate, lightened toward white with light blue."""
     src = Image.open(os.path.join(RES, 'textures/items/crate_skythern.png')).convert('RGBA')
     out = Image.new('RGBA', src.size)
     for y in range(src.height):
@@ -335,13 +335,13 @@ def crate_cloud():
             r, gg, b, a = src.getpixel((x, y))
             if a == 0:
                 continue
-            lum = (r * 0.299 + gg * 0.587 + b * 0.114) / 255.0  # яркость дерева - в оттенки облака (бело-голубые)
+            lum = (r * 0.299 + gg * 0.587 + b * 0.114) / 255.0  # brightness of the wood - into cloud shades (white-blue)
             k = 0.55 + lum * 0.6
             out.putpixel((x, y), (min(255, int(200 * k)), min(255, int(218 * k)), min(255, int(245 * k)), a))
     return out
 
 
-# ---------------------------------------------------------------- Лиоплевродон (0.99.113)
+# ---------------------------------------------------------------- Liopleurodon (0.99.113)
 
 def pixmap(g, x0, y0, rows, pal):
     for y, row in enumerate(rows):
@@ -351,14 +351,14 @@ def pixmap(g, x0, y0, rows, pal):
 
 
 def blood_bait():
-    """Кровавая наживка: кусок сырого мяса, насаженный на серебряный крючок, капли крови снизу."""
+    """Bloody Bait: a piece of raw meat impaled on a silver hook, drops of blood at the bottom."""
     g = blank()
     dark, red, light, fat = hexc('6a0c14'), hexc('c0242c'), hexc('ec5a5a'), hexc('f4c0b0')
     steel, shine = hexc('a8b0bc'), hexc('eef2f8')
-    for y in range(1, 12):  # цевьё крючка (под мясом его не видно - проткнуто)
+    for y in range(1, 12):  # hook shank (not visible under the meat - pierced through)
         put(g, 11, y, steel)
     put(g, 11, 0, shine)
-    for x, y in ((11, 12), (10, 13), (9, 13), (8, 12), (8, 11)):  # изгиб и жало
+    for x, y in ((11, 12), (10, 13), (9, 13), (8, 12), (8, 11)):  # bend and barb
         put(g, x, y, steel)
     put(g, 9, 11, shine)
     for y in range(16):
@@ -366,7 +366,7 @@ def blood_bait():
             dx, dy = x - 7.5, y - 6.5
             if (dx * 0.8 + dy * 0.45) ** 2 / 16.0 + (dy * 0.8 - dx * 0.45) ** 2 / 9.0 <= 1.0:
                 g[y][x] = light if dy < -1.5 and dx < 1 else (dark if dy > 2.0 or dx > 3.0 else red)
-    for x, y in ((6, 6), (7, 7), (9, 5), (10, 6)):  # прожилки жира
+    for x, y in ((6, 6), (7, 7), (9, 5), (10, 6)):  # fat veins
         put(g, x, y, fat)
     drop = hexc('8a0c18')
     for x, y in ((5, 12), (5, 13), (7, 14)):
@@ -390,7 +390,7 @@ FIN = ['.aaaaa.',
 
 
 def lio_fins():
-    """Ласты лиоплевродона: пара лопастей носком вверх (тёмно-синие, светлые прожилки), у пятки ремешок с пряжкой."""
+    """Liopleurodon Fins: a pair of blades with the toe up (dark blue, light veins), a strap with a buckle at the heel."""
     g = blank()
     pal = {'a': hexc('1c5c9c'), 'b': hexc('2a80d8'), 'c': hexc('8fd0ff'), 'd': hexc('3a3040'), 'e': hexc('e8e2c8')}
     pixmap(g, 1, 3, FIN, pal)
@@ -399,32 +399,32 @@ def lio_fins():
 
 
 def anchor(pal):
-    """Якорь стоймя: кольцо, шток с поперечиной, дуга лап со сходящимися лапами-зубьями по краям."""
+    """Anchor upright: a ring, a shank with a crossbar, an arc of arms with converging tooth-like flukes at the edges."""
     g = blank()
     dark, mid, light, acc = (hexc(v) for v in pal)
-    for x, y in ((6, 0), (7, 0), (8, 0), (9, 0), (5, 1), (10, 1), (5, 2), (10, 2), (6, 3), (9, 3)):  # кольцо
+    for x, y in ((6, 0), (7, 0), (8, 0), (9, 0), (5, 1), (10, 1), (5, 2), (10, 2), (6, 3), (9, 3)):  # ring
         put(g, x, y, light if y < 2 else mid)
-    for y in range(3, 14):  # шток 2 пикселя
+    for y in range(3, 14):  # shank 2 pixels
         put(g, 7, y, light)
         put(g, 8, y, mid)
-    for x in range(3, 13):  # поперечина
+    for x in range(3, 13):  # crossbar
         put(g, x, 4, mid)
         put(g, x, 5, dark)
     put(g, 2, 4, acc)
     put(g, 13, 4, acc)
-    for i in range(41):  # дуга лап
+    for i in range(41):  # arc of arms
         t = i / 40.0
         a = math.pi * (0.08 + 0.84 * t)
         x, y = 7.5 - math.cos(a) * 5.8, 8.6 + math.sin(a) * 5.0
         put(g, x, y, mid if 0.25 < t < 0.75 else dark)
         put(g, x, y - 1, light if 0.3 < t < 0.7 else mid)
-    for x, y in ((1, 8), (2, 8), (1, 9), (14, 8), (13, 8), (14, 9), (2, 7), (13, 7)):  # лапы
+    for x, y in ((1, 8), (2, 8), (1, 9), (14, 8), (13, 8), (14, 9), (2, 7), (13, 7)):  # flukes
         put(g, x, y, acc)
     return image(outline(g))
 
 
 def cyclops_bait():
-    """Глазок циклопа: кусочек глаза - белок в красных прожилках, жёлтая радужка, чёрный зрачок, снизу крючок."""
+    """Cyclops Eye Bait: a piece of an eye - white with red veins, a yellow iris, a black pupil, a hook at the bottom."""
     g = blank()
     white, vein, iris, iris_d, pupil = hexc('f0ece0'), hexc('c83a3a'), hexc('f0c030'), hexc('b07a10'), hexc('141008')
     for y in range(16):
@@ -459,7 +459,7 @@ def main():
     for name, im in icons.items():
         im.save(os.path.join(items, name + '.png'))
     append_halo()
-    if len(sys.argv) > 1:  # превью: значки x12 на тёмном фоне
+    if len(sys.argv) > 1:  # preview: icons x12 on a dark background
         sheet = Image.new('RGBA', (len(icons) * 200 + 20, 220), (34, 32, 44, 255))
         for i, (name, im) in enumerate(icons.items()):
             big = im.resize((192, 192), Image.NEAREST)

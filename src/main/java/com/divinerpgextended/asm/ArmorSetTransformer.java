@@ -13,11 +13,11 @@ import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 /**
- * В Divine EventArmorFullSet держит броню игрока в общих полях одного объекта, а пишут в них три обработчика урона
- * (и один из них - ещё и на клиенте). В одиночной игре клиент и сервер перетирают поля друг другу, в PvP бонус
- * атакующего считается по броне жертвы: свойства сетов срабатывают не всегда и не по тому игроку. Тела этих трёх
- * обработчиков делаем пустыми, а сами свойства (с теми же числами) считает {@link com.divinerpgextended.perk.ArmorSets}.
- * Признак успешной правки - поле dre_patched в классе. При любой ошибке класс остаётся как был.
+ * In Divine EventArmorFullSet keeps the player's armor in shared fields of a single object, and three damage handlers write to them
+ * (and one of them also on the client). In singleplayer the client and server overwrite each other's fields, in PvP the attacker's bonus
+ * is computed from the victim's armor: set properties fire not always and not on the right player. We make the bodies of these three
+ * handlers empty, and the properties themselves (with the same numbers) are computed by {@link com.divinerpgextended.perk.ArmorSets}.
+ * The mark of a successful patch is the dre_patched field in the class. On any error the class stays as it was.
  */
 public class ArmorSetTransformer implements IClassTransformer, Opcodes {
 
@@ -45,16 +45,16 @@ public class ArmorSetTransformer implements IClassTransformer, Opcodes {
                 patched++;
             }
             if (patched != 3) {
-                LOG.warn("Сеты брони Divine: найдено обработчиков {} из 3 - оставляю класс без изменений", patched);
+                LOG.warn("Divine armor sets: found {} of 3 handlers - leaving class unchanged", patched);
                 return bytes;
             }
             node.fields.add(new FieldNode(ACC_PUBLIC | ACC_STATIC | ACC_FINAL, "dre_patched", "Z", null, Integer.valueOf(1)));
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Сеты брони Divine: свойства сетов считает аддон (EventArmorFullSet)");
+            LOG.info("Divine armor sets: set properties are computed by the addon (EventArmorFullSet)");
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Сеты брони Divine: не удалось исправить, класс без изменений", t);
+            LOG.error("Divine armor sets: could not fix, class unchanged", t);
             return bytes;
         }
     }

@@ -9,7 +9,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
-/** Бестиарий: ПКМ - открыть книгу (прогресс приходит с сервера). Продаёт торговец скотом. */
+/** Bestiary: right click - open the book (progress comes from the server). Sold by the Livestock Merchant. */
 public class ItemBestiary extends Item {
 
     public ItemBestiary() {

@@ -13,11 +13,11 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Алтари боссов (и запертые сундуки) неразрушимы, но в сборках есть инструменты, которые ломают и неразрушимое (пробуждённая ихорная кирка
- * Thaumic Tinkerer и подобные). Сломанный алтарь ничего не роняет (сам блок), а если инструмент всё же отдал его предметом -
- * предмет на земле не появляется, а из инвентаря игрока в выживании исчезает. В творческом режиме алтари можно носить и ставить.
- * Здесь же раз в 5 секунд ставится алтарь орды в гнездовьях Айрако, где его ещё нет, и засыпаются пустоты под полом старых
- * арен Мортума ({@link com.divinerpgextended.world.twilight.MortumArenas#heal}).
+ * Boss altars (and locked chests) are indestructible, but modpacks have tools that break even the indestructible (the awakened Ichor Pickaxe of
+ * Thaumic Tinkerer and similar). A broken altar drops nothing (the block itself), and if the tool did hand it over as an item -
+ * the item does not appear on the ground, and in a survival player's inventory it vanishes. In creative mode altars can be carried and placed.
+ * Here, every 5 seconds, the horde altar is also placed in Ayeraco aeries where it is missing, and gaps under the floor of old
+ * Mortum arenas are filled ({@link com.divinerpgextended.world.twilight.MortumArenas#heal}).
  */
 public class AltarGuard {
 
@@ -29,7 +29,7 @@ public class AltarGuard {
         return s != null && s.getItem() != null && altar(Block.getBlockFromItem(s.getItem()));
     }
 
-    /** Убрать алтари из инвентаря игрока. Сколько стопок убрано. */
+    /** Remove altars from a player's inventory. How many stacks were removed. */
     public static int sweep(EntityPlayer p) {
         int n = 0;
         ItemStack[] inv = p.inventory.mainInventory;
@@ -54,7 +54,7 @@ public class AltarGuard {
         if (!p.capabilities.isCreativeMode) sweep(p);
         if (p.ticksExisted % 100 == 0) {
             com.divinerpgextended.world.WorldGenOuterLairs.keepAyeracoAltar(p);
-            com.divinerpgextended.world.twilight.MortumArenas.heal(p); // и пустоты под старыми аренами Мортума
+            com.divinerpgextended.world.twilight.MortumArenas.heal(p); // and gaps under old Mortum arenas
         }
     }
 }

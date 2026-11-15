@@ -9,14 +9,14 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.DamageSource;
 
 /**
- * Вид ветейского оружия, которым нанесён удар. Снаряды узнаются по классу (имена у Divine разных версий совпадают),
- * ближний бой - по оружию в руке. Чужое (не ветейское) оружие - null.
+ * The kind of Vethean weapon that dealt the hit. Projectiles are recognized by class (Divine's names are the same across versions),
+ * melee - by the weapon in hand. A foreign (non-Vethean) weapon - null.
  */
 public enum WeaponKind {
 
     SWORD, CLAW, HAMMER, BOW, DISK, STAFF, CANNON;
 
-    /** Группа для ролей шлемов: 0 ближний бой (шлем), 1 дальний (маска), 2 аркана (капюшон). */
+    /** Group for helmet roles: 0 melee (helmet), 1 ranged (mask), 2 arcana (hood). */
     public int group() {
         return this == SWORD || this == CLAW || this == HAMMER ? 0 : this == STAFF ? 2 : 1;
     }
@@ -47,7 +47,7 @@ public enum WeaponKind {
         return null;
     }
 
-    /** Ветейское оружие в руке. */
+    /** A Vethean weapon in hand. */
     public static WeaponKind ofItem(ItemStack s) {
         if (s == null || !Nightmare.vethean(s)) return null;
         Item i = s.getItem();

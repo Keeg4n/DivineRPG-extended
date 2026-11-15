@@ -1,6 +1,6 @@
-"""Значки шахтёрских ящиков: ящик пещер + две кучки руды своего яруса на крышке (плоские 16x16).
+"""Miner's crate icons: the Caves Crate + two piles of ore of its tier on the lid (flat 16x16).
 
-python3 tools/concepts/mine_crates.py [папка превью]
+python3 tools/concepts/mine_crates.py [preview folder]
 """
 import os
 import sys
@@ -10,7 +10,7 @@ from PIL import Image
 ROOT = os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'main', 'resources', 'assets', 'divinerpgextended', 'textures', 'items')
 BASE = os.path.join(ROOT, 'crate_cave.png')
 
-# руда: (светлая крапина, тёмная крапина)
+# ore: (light fleck, dark fleck)
 ORES = {
     'coal': ((70, 70, 70), (24, 24, 24)),
     'iron': ((226, 192, 170), (175, 142, 119)),
@@ -24,7 +24,7 @@ STONE_LIGHT, STONE, STONE_DARK = (150, 150, 150), (122, 122, 122), (90, 90, 90)
 
 
 def heap(px, x, ore):
-    """Кучка руды на крышке: два ряда над краем ящика, камень с крапинами."""
+    """A pile of ore on the lid: two rows above the crate edge, stone with flecks."""
     light, dark = ORES[ore]
     px[x + 1, 1] = STONE_LIGHT + (255,)
     px[x + 2, 1] = light + (255,)

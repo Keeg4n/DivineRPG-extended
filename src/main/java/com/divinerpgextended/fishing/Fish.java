@@ -2,7 +2,7 @@ package com.divinerpgextended.fishing;
 
 import net.minecraft.potion.Potion;
 
-/** Рыба мода: где ловится, сытость, эффект при поедании, квестовая ли (задания Леорны), форма и цвет иконки. */
+/** The mod's fish: where it is caught, satiety, effect when eaten, whether it is a quest one (Leorna's tasks), icon shape and color. */
 public enum Fish {
 
     SEA_BASS(Zone.OCEAN, 4, 0.4F, null, 0, 0, false, "cod", 0x5A7FA8),
@@ -29,18 +29,18 @@ public enum Fish {
     SKYTHERN_FLYER(Zone.SKYTHERN, 6, 0.6F, Potion.moveSpeed, 1200, 0, false, "salmon", 0xE8F0F8),
     MORTUM_EEL(Zone.MORTUM, 7, 0.7F, Potion.nightVision, 1200, 0, false, "cod", 0x4A2A2A),
     DREAM_CARP(Zone.DREAM, 8, 1.0F, null, 0, 0, false, "clownfish", 0x50E0B0),
-    // с 0.99.112 (только в конец: номер - мета предмета): редкие рыбы миров для Леорны, облачные, золотая рыбка
+    // since 0.99.112 (only at the end: the number is the item meta): rare dimension fish for Leorna, cloud ones, the golden fish
     SUN_PERCH(Zone.EDEN, 5, 0.5F, Potion.digSpeed, 600, 0, true, "clownfish", 0xFFB830),
-    /** Только в ливень Дикого леса. */
+    /** Only in the Wildwood downpour. */
     STORM_CATFISH(Zone.WILDWOOD, 6, 0.6F, Potion.moveSpeed, 600, 1, true, "cod", 0x40547C),
     AMETHYST_PIKE(Zone.APALACHIA, 5, 0.5F, null, 0, 0, true, "salmon", 0x9650D2),
     CLOUDFIN(Zone.CLOUD, 5, 0.5F, Potion.jump, 1200, 0, false, "salmon", 0xF0F6FF),
     CLOUD_JELLY(Zone.CLOUD, 3, 0.3F, Potion.field_76443_y, 1, 0, true, "pufferfish", 0xE6F0FF),
     BONE_FISH(Zone.MORTUM, 4, 0.4F, null, 0, 0, true, "cod", 0xDCD2BE),
-    /** Золотая рыбка: в любом сумеречном мире 1 из 1000 поклёвок (ничем не увеличивается), съесть - +1 сердце навсегда, всего до 5. */
+    /** Golden Fish: in any twilight dimension 1 in 1000 bites (not boosted by anything), eat it - +1 heart permanently, up to 5 in total. */
     GOLDEN_FISH(Zone.EDEN, 2, 0.2F, null, 0, 0, false, "clownfish", 0xFFD84A),
-    // с 0.99.115
-    /** Пещерный удильщик: только в пещерах и только на Глазок циклопа ({@link FishingLoot#cave}), для Леорны. Ночное зрение на 3 мин. */
+    // since 0.99.115
+    /** Cave Angler: only in caves and only on Cyclops Eye Bait ({@link FishingLoot#cave}), for Leorna. Night vision for 3 min. */
     CAVE_ANGLER(Zone.CAVE, 4, 0.4F, Potion.nightVision, 3600, 0, true, "cod", 0x2E3A50);
 
     public final Zone zone;

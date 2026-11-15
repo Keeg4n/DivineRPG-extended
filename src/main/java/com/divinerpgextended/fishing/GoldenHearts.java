@@ -14,8 +14,8 @@ import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Золотая рыбка: съел - навсегда +1 сердце (+2 к здоровью), всего до {@link #MAX}. Счёт хранится в постоянных данных игрока
- * (переживает смерть), прибавка ставится модификатором здоровья при каждом входе в мир.
+ * Golden Fish: eat it - permanently +1 heart (+2 health), up to {@link #MAX} in total. The count is stored in the player's persistent data
+ * (survives death), the bonus is applied by a health modifier on every world join.
  */
 public class GoldenHearts {
 
@@ -33,7 +33,7 @@ public class GoldenHearts {
         return data(p).getInteger(KEY);
     }
 
-    /** Поставить прибавку здоровья по счёту. */
+    /** Apply the health bonus by the count. */
     public static void apply(EntityPlayer p) {
         IAttributeInstance hp = p.getEntityAttribute(SharedMonsterAttributes.maxHealth);
         AttributeModifier old = hp.getModifier(ID);
@@ -43,7 +43,7 @@ public class GoldenHearts {
         if (n > 0) hp.applyModifier(new AttributeModifier(ID, "dre golden fish", n * 2.0, 0));
     }
 
-    /** Съели золотую рыбку. */
+    /** A golden fish was eaten. */
     public static void eat(EntityPlayer p) {
         int n = hearts(p);
         if (n >= MAX) {

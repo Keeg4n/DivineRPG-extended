@@ -5,10 +5,10 @@ import java.util.Random;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.feature.WorldGenerator;
 
-/** Вызовы генераторов из заселения Iceika ({@link IceikaThroneTransformer}): внутри Ледяного Трона - не ставить. */
+/** Generator calls from Iceika population ({@link IceikaThroneTransformer}): inside the Frozen Throne - do not place. */
 public class IceikaThroneHooks {
 
-    /** Для замера и автотеста: сколько вызовов пропущено. */
+    /** For measurement and the selftest: how many calls were skipped. */
     public static int skipped;
 
     public static boolean set(World w, int x, int y, int z, net.minecraft.block.Block b, int meta, int flags) {

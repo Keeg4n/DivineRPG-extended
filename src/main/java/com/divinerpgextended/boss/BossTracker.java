@@ -18,7 +18,7 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
-/** Засчитывает босса всем игрокам, которые нанесли ему урон, а не только добившему. */
+/** Counts the boss for all players who dealt damage to it, not just the one who finished it. */
 public class BossTracker {
 
     private final Map<EntityLivingBase, Set<UUID>> attackers = new WeakHashMap<EntityLivingBase, Set<UUID>>();
@@ -47,7 +47,7 @@ public class BossTracker {
         if (ids == null) ids = new HashSet<UUID>();
         Entity killer = event.source.getEntity();
         if (killer instanceof EntityPlayer) ids.add(((EntityPlayer) killer).getUniqueID());
-        if (boss == Boss.TWINS) { // брат ещё жив - победы нет; бившие этого брата засчитаются вместе с последним
+        if (boss == Boss.TWINS) { // the brother is still alive - no victory; those who hit this brother are counted together with the last one
             EntityLivingBase brother = MortumArenaBosses.brother(event.entityLiving, 64);
             if (brother != null) {
                 Set<UUID> rest = attackers.get(brother);
@@ -57,7 +57,7 @@ public class BossTracker {
             }
         }
 
-        // этап: в обычном мире, Аду и Крае не дошедший до босса не получает ни доли, ни победы; не дошёл никто - ничего не падает
+        // stage: in the Overworld, the Nether and the End, a player who has not reached the boss gets neither a share nor a victory; if nobody reached it - nothing drops
         boolean anyReady = ids.isEmpty();
         for (Object o : MinecraftServer.getServer().getConfigurationManager().playerEntityList) {
             EntityPlayerMP player = (EntityPlayerMP) o;
@@ -72,7 +72,7 @@ public class BossTracker {
             }
         }
         if (!anyReady && com.divinerpgextended.Config.lowRankNoDrops) ProgressSpawns.markNoDrops(event.entityLiving);
-        if (boss == null) return; // Айрако: победа не пишется
+        if (boss == null) return; // Ayeraco: the victory is not recorded
 
         for (Object o : MinecraftServer.getServer()
             .getConfigurationManager().playerEntityList) {
@@ -81,7 +81,7 @@ public class BossTracker {
             if (ids.contains(player.getUniqueID())) {
                 com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.forBoss(boss), event.entityLiving);
                 com.divinerpgextended.trinket.AccessorySources.reward(player, com.divinerpgextended.trinket.AccessorySources.extraForBoss(boss), event.entityLiving);
-                BossDrops.reward(player, boss, event.entityLiving); // лук Цунами, якоря-призывы
+                BossDrops.reward(player, boss, event.entityLiving); // Tsunami Bow, summoning anchors
             }
             int rankWas = ProgressSpawns.rank(player);
             if (ids.contains(player.getUniqueID()) && BossProgress.grant(player, boss)) {
@@ -104,7 +104,7 @@ public class BossTracker {
         }
     }
 
-    /** Что изменилось в мире после первой победы: атмосферная строка и мрачный звук (если для босса она есть). */
+    /** What changed in the world after the first victory: an atmospheric line and an ominous sound (if the boss has one). */
     private static void lore(EntityPlayerMP player, Boss boss) {
         String key = "dre.lore." + boss.name().toLowerCase();
         if (!net.minecraft.util.StatCollector.canTranslate(key)) return;

@@ -7,13 +7,13 @@ import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 /**
- * Очки откровения Thaumcraft в шлеме Divine или Странника. Шлем в них встраивают на Наковальне Странника ({@link Sockets}), а Таум и
- * другие моды сборки узнают шлем с очками по интерфейсу вещи: его добавляет {@link com.divinerpgextended.asm.GogglesTransformer},
- * методы которого вызывают {@link #reveal} и {@link #discount}. Без Таума ничего из этого не работает и не загружается.
+ * Thaumcraft Goggles of Revealing in a Divine or Wanderer helmet. The helmet is fitted with them at the Wanderer Anvil ({@link Sockets}), and Thaum and
+ * other mods of the modpack recognize a helmet with goggles by the item interface: it is added by {@link com.divinerpgextended.asm.GogglesTransformer},
+ * whose methods call {@link #reveal} and {@link #discount}. Without Thaum none of this works or loads.
  */
 public final class Goggles {
 
-    /** Скидка на визу, как у самих очков. */
+    /** Discount on vis, like the goggles themselves. */
     public static final int VIS_DISCOUNT = 5;
 
     private static Boolean thaumcraft;
@@ -21,7 +21,7 @@ public final class Goggles {
 
     private Goggles() {}
 
-    /** Очки из Таума (null - его нет). Поиск только по реестру: своих полей Таума здесь нет. */
+    /** Goggles from Thaum (null - it is absent). Lookup only through the registry: there are no Thaum fields of its own here. */
     public static Item item() {
         if (thaumcraft == null) thaumcraft = Loader.isModLoaded("Thaumcraft");
         if (!thaumcraft) return null;
@@ -37,7 +37,7 @@ public final class Goggles {
         return s != null && available() && s.getItem() == item;
     }
 
-    /** Встроены ли очки в эту часть брони: спрашивают на каждом кадре, поэтому читаем NBT без создания вещей. */
+    /** Whether the goggles are built into this armor part: asked every frame, so we read NBT without creating items. */
     public static boolean reveal(ItemStack armor) {
         return available() && Sockets.has(armor, item);
     }

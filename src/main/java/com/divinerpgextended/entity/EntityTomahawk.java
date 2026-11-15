@@ -22,13 +22,13 @@ import com.divinerpgextended.item.ItemTomahawk;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Брошенный томагавк ({@link ItemTomahawk}). Летит прямо до {@link #RANGE} блоков; в цели бьёт уроном удара и сворачивает к
- * ближайшей следующей (не дальше {@link #CHAIN} блоков), всего до {@link #TARGETS} целей; упёршись в блок, долетев или исчерпав цели -
- * возвращается к бросившему сквозь стены. Первая цель дальше {@link #STUN_RANGE} блоков от бросившего оглушается на
- * {@link #STUN_TICKS} тиков (замедление X и слабость). Игроков бьёт только при включённом PvP, питомцев бросившего не бьёт.
- * Не сохраняется: после перезагрузки мира исчезает, а метка броска на предмете снимается по времени.
+ * A thrown Tomahawk ({@link ItemTomahawk}). Flies straight for up to {@link #RANGE} blocks; on a target it hits with melee damage and turns to the
+ * nearest next one (no farther than {@link #CHAIN} blocks), up to {@link #TARGETS} targets in all; upon hitting a block, reaching its range or running out of targets -
+ * returns to the thrower through walls. The first target farther than {@link #STUN_RANGE} blocks from the thrower is stunned for
+ * {@link #STUN_TICKS} ticks (slowness X and weakness). Hits players only with PvP enabled, does not hit the thrower's pets.
+ * Is not saved: it disappears after a world reload, and the throw marker on the item is removed by time.
  * <p>
- * Так же летают диски Ветеи ({@link com.divinerpgextended.vethea.DiskThrow}): предмет и урон броска - свои, рисуется диск.
+ * Vethea discs ({@link com.divinerpgextended.vethea.DiskThrow}) fly the same way: the item and the throw damage are their own, a disc is rendered.
  */
 public class EntityTomahawk extends Entity {
 
@@ -36,14 +36,14 @@ public class EntityTomahawk extends Entity {
     public static final int TARGETS = 3, STUN_TICKS = 50, LIFE = 200;
 
     private EntityPlayer owner;
-    /** Урон броска по цели. */
+    /** Throw damage to the target. */
     private float damage;
-    /** Что брошено (рисуется оно же; клиент узнаёт через DataWatcher). */
+    /** What was thrown (the same is rendered; the client learns it via DataWatcher). */
     static final int ITEM = 10;
     private final Set<Integer> hit = new HashSet<Integer>();
     private boolean back;
     private double flown;
-    /** Для самопроверки: сколько целей задето, оглушена ли первая. */
+    /** For the selftest: how many targets were hit, whether the first was stunned. */
     public int hits;
     public boolean stunned;
 
@@ -75,13 +75,13 @@ public class EntityTomahawk extends Entity {
         return owner;
     }
 
-    /** Брошенный предмет (томагавк или диск). */
+    /** The thrown item (a tomahawk or a disc). */
     public ItemStack item() {
         ItemStack s = dataWatcher.getWatchableObjectItemStack(ITEM);
         return s != null ? s : new ItemStack(ModItems.tomahawk);
     }
 
-    /** Брошен диск Ветеи. */
+    /** A Vethea disc was thrown. */
     public boolean disk() {
         return item().getItem() != ModItems.tomahawk;
     }
@@ -142,7 +142,7 @@ public class EntityTomahawk extends Entity {
         if (flown >= RANGE) back = true;
     }
 
-    /** Цель годится: живая, не бросивший, ещё не задета, не его питомец или призыв, игрок - только где можно PvP. */
+    /** The target is valid: alive, not the thrower, not yet hit, not the thrower's pet or summon, a player only where PvP is allowed. */
     private boolean valid(EntityLivingBase e) {
         if (e == owner || e.isDead || e.getHealth() <= 0 || hit.contains(e.getEntityId())) return false;
         if (e instanceof EntityTameable && ((EntityTameable) e).getOwner() == owner || com.divinerpgextended.magic.AnchorSummons.own(owner, e)) return false;
@@ -167,7 +167,7 @@ public class EntityTomahawk extends Entity {
             back = true;
             return;
         }
-        // к ближайшей следующей цели
+        // to the nearest next target
         EntityLivingBase next = null;
         double best = CHAIN * CHAIN;
         List<?> near = worldObj.getEntitiesWithinAABB(EntityLivingBase.class, t.boundingBox.expand(CHAIN, CHAIN / 2, CHAIN));
@@ -192,7 +192,7 @@ public class EntityTomahawk extends Entity {
         flown = 0;
     }
 
-    /** Вернулся (или пропал): снять метку броска с брошенного предмета у бросившего. */
+    /** Returned (or vanished): remove the throw marker from the thrown item on the thrower. */
     private void finish() {
         setDead();
         if (owner == null) return;
@@ -200,13 +200,13 @@ public class EntityTomahawk extends Entity {
         for (ItemStack s : owner.inventory.mainInventory) {
             if (s == null || s.getItem() != it || !s.hasTagCompound() || !s.getTagCompound().hasKey(ItemTomahawk.OUT)) continue;
             ItemTomahawk.setOut(s, 0);
-            if (s.getTagCompound().hasNoTags()) s.setTagCompound(null); // диск снова складывается с такими же
+            if (s.getTagCompound().hasNoTags()) s.setTagCompound(null); // the disc stacks with identical ones again
         }
     }
 
     @Override
     protected void readEntityFromNBT(NBTTagCompound t) {
-        setDead(); // не переживает перезагрузку
+        setDead(); // does not survive a reload
     }
 
     @Override

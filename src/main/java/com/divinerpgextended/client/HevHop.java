@@ -11,17 +11,17 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Банихоп в полном костюме H.E.V.: прыжок спиной (назад + Shift) задаёт скорость назад от взгляда, и пока игрок в воздухе
- * и держит назад + Shift, скорость не гаснет. Новый прыжок не позже {@link #CHAIN} тиков после приземления умножает её
- * на {@link #GAIN} (до {@link #MAX}); опоздал, упёрся в стену, отпустил клавиши - всё с начала. Направление - от взгляда,
- * поэтому рулят мышью. Движение игрока считает клиент, сервер его принимает - поэтому только здесь.
+ * Bunny hop in the full H.E.V. suit: a backward jump (back + Shift) sets the speed backward from the look, and while the player is in the air
+ * and holds back + Shift, the speed does not fade. A new jump no later than {@link #CHAIN} ticks after landing multiplies it
+ * by {@link #GAIN} (up to {@link #MAX}); if late, hit a wall, or released the keys - everything starts over. The direction is from the look,
+ * so you steer with the mouse. The client calculates player movement and the server accepts it - so it is only here.
  */
 @SideOnly(Side.CLIENT)
 public class HevHop {
 
-    /** Скорость первого прыжка (как бег), прибавка за прыжок в цепочке и предел, блоков за тик. */
+    /** Speed of the first jump (like sprinting), the gain per jump in the chain and the limit, blocks per tick. */
     public static final double START = 0.30, GAIN = 1.15, MAX = 0.90;
-    /** Сколько тиков на земле прощается между прыжками цепочки. */
+    /** How many ticks on the ground are forgiven between jumps of the chain. */
     public static final int CHAIN = 2;
 
     private double speed;
@@ -45,11 +45,11 @@ public class HevHop {
                 airborne = false;
                 grounded = 0;
             }
-            if (++grounded > CHAIN) speed = 0; // замешкался на земле - цепочка оборвалась
+            if (++grounded > CHAIN) speed = 0; // hesitated on the ground - the chain broke
             return;
         }
         if (!airborne) {
-            if (p.motionY <= 0) return; // упал с края, а не прыгнул
+            if (p.motionY <= 0) return; // fell off an edge instead of jumping
             airborne = true;
             speed = speed > 0 ? Math.min(MAX, speed * GAIN) : START;
         }
@@ -58,7 +58,7 @@ public class HevHop {
             return;
         }
         double yaw = Math.toRadians(p.rotationYaw);
-        p.motionX = Math.sin(yaw) * speed; // назад от взгляда
+        p.motionX = Math.sin(yaw) * speed; // backward from the look
         p.motionZ = -Math.cos(yaw) * speed;
     }
 
@@ -68,7 +68,7 @@ public class HevHop {
         grounded = 0;
     }
 
-    /** Текущая скорость цепочки (для самопроверки и отладки). */
+    /** The current chain speed (for selftest and debugging). */
     public double speed() {
         return speed;
     }

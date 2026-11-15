@@ -17,13 +17,13 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Вода Эдема золотая: у Divine её цвет - почти чёрный множитель на синей текстуре, а умножением синей текстуры золото
- * не получить. В Эдеме вода берёт свою (золотую) текстуру: в начало BlockLiquid.getIcon и BlockLiquid.getLiquidIcon
- * (только на клиенте) - вызов {@link WaterHooks}; null - как было.
+ * Eden water is golden: in Divine its color is an almost black multiplier over a blue texture, and gold cannot be
+ * obtained by multiplying a blue texture. In Eden the water takes its own (golden) texture: at the start of BlockLiquid.getIcon and BlockLiquid.getLiquidIcon
+ * (client only) - a {@link WaterHooks} call; null - as before.
  * <p>
- * И течение: ванильная вода по материалу считала своей любую жидкость с материалом воды, и источник воды мечтаний держал
- * её потоки. В начало BlockLiquid.func_149804_e / getEffectiveFlowDecay: жидкость другого мода ({@link FluidHooks#foreign})
- * - не своя (-1).
+ * And the flow: vanilla water by material considered any liquid with the water material its own, and a Dream Water source held
+ * its flows. At the start of BlockLiquid.func_149804_e / getEffectiveFlowDecay: a liquid of another mod ({@link FluidHooks#foreign})
+ * is not its own (-1).
  */
 public class WaterTransformer implements IClassTransformer, Opcodes {
 
@@ -39,7 +39,7 @@ public class WaterTransformer implements IClassTransformer, Opcodes {
             int n = 0;
             for (MethodNode m : node.methods) {
                 InsnList l = new InsnList();
-                // имена: игра (класс ещё не переименован: alw, a/e, rf, ahb, ahl), SRG и разработка
+                // names: game (the class is not renamed yet: alw, a/e, rf, ahb, ahl), SRG and development
                 if (("a".equals(m.name) && "(II)Lrf;".equals(m.desc)) || (("func_149691_a".equals(m.name) || "getIcon".equals(m.name)) && ("(II)" + ICON).equals(m.desc))) {
                     l.add(new VarInsnNode(ALOAD, 0));
                     l.add(new VarInsnNode(ILOAD, 1));
@@ -76,10 +76,10 @@ public class WaterTransformer implements IClassTransformer, Opcodes {
             if (n == 0) return bytes;
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Вода: BlockLiquid - {} правок (золотая вода Эдема, течение мимо чужих жидкостей)", n);
+            LOG.info("Water: BlockLiquid - {} edits (Eden golden water, flow past foreign liquids)", n);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Вода Эдема: не удалось исправить BlockLiquid, класс без изменений", t);
+            LOG.error("Eden water: could not fix BlockLiquid, class unchanged", t);
             return bytes;
         }
     }

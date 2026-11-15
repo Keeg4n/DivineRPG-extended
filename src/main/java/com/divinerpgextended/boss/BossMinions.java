@@ -15,21 +15,21 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Приспешники, которых босс зовёт в бою: без лута и опыта, умирают вместе с боссом. Хозяин записан в приспешнике
- * (UUID босса): босс умер, пропал или выгрузился - приспешник через несколько секунд погибает сам.
+ * Minions that a boss summons in battle: no loot and no experience, they die together with the boss. The owner is recorded in the minion
+ * (the boss UUID): if the boss died, vanished or unloaded, the minion dies on its own after a few seconds.
  * <p>
- * Боссы аддона метят своих сами ({@link #mark}). Собственные призывы боссов Divine (Король скорчеров, Карот, Сумеречный
- * демон, боссы Ветеи и т.д.) ловим так: моб, появившийся во время хода живого босса Divine рядом с ним (между его
- * LivingUpdateEvent и ходом следующего существа), - его приспешник. Мобы спавнеров, следующий облик босса и другие
- * боссы - не в счёт.
+ * The addon bosses mark their own minions ({@link #mark}). Divine bosses' own summons (King of Scorchers, Karot, Twilight
+ * Demon, the Vethea bosses, etc.) are caught like this: a mob that appeared during the turn of a living Divine boss near it (between its
+ * LivingUpdateEvent and the turn of the next creature) is its minion. Spawner mobs, the next form of a boss and other
+ * bosses do not count.
  */
 public class BossMinions {
 
     public static final String OWNER = "dreBossOwner";
-    /** Как далеко ищем хозяина и приспешников. */
+    /** How far we search for the owner and minions. */
     private static final double RANGE = 96;
 
-    /** Пометить приспешника босса (звать до spawnEntityInWorld). */
+    /** Mark a boss minion (call before spawnEntityInWorld). */
     public static void mark(Entity minion, Entity boss) {
         minion.getEntityData().setString(OWNER, boss.getUniqueID().toString());
         if (minion instanceof EntityLiving) noXp((EntityLiving) minion);
@@ -39,7 +39,7 @@ public class BossMinions {
         return e != null && e.getEntityData().hasKey(OWNER);
     }
 
-    /** Живые приспешники этого босса рядом с ним. */
+    /** Living minions of this boss near it. */
     public static int count(Entity boss) {
         String id = boss.getUniqueID().toString();
         int n = 0;
@@ -56,7 +56,7 @@ public class BossMinions {
         } catch (Throwable ignored) {}
     }
 
-    /** Босс Divine, чей ход идёт сейчас (null - ход не босса). */
+    /** The Divine boss whose turn is in progress now (null - not a boss turn). */
     private static EntityLivingBase turn;
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -72,25 +72,25 @@ public class BossMinions {
         if (b == null || e.world.isRemote || b.worldObj != e.world || !(e.entity instanceof EntityLiving) || e.entity == b
             || e.entity instanceof net.minecraft.entity.boss.IBossDisplayData || e.entity instanceof net.minecraft.entity.player.EntityPlayer
             || isMinion(e.entity) || b.getHealth() <= 0 || e.entity.getDistanceSqToEntity(b) > 32 * 32) return;
-        for (StackTraceElement f : new Throwable().getStackTrace()) // спавнер рядом с ареной - не приспешник
+        for (StackTraceElement f : new Throwable().getStackTrace()) // a spawner near the arena is not a minion
             if (f.getClassName().contains("MobSpawnerBaseLogic") || f.getClassName().contains("TileEntityMobSpawner")) return;
         mark(e.entity, b);
     }
 
-    /** Свои: приспешники одного хозяина или хозяин и его приспешник. */
+    /** Allies: minions of the same owner, or the owner and its minion. */
     public static boolean allies(Entity a, Entity b) {
         if (a == null || b == null || a == b || !isMinion(a) && !isMinion(b)) return false;
         String oa = a.getEntityData().getString(OWNER), ob = b.getEntityData().getString(OWNER);
         return !oa.isEmpty() && oa.equals(ob) || oa.equals(b.getUniqueID().toString()) || ob.equals(a.getUniqueID().toString());
     }
 
-    /** Свои своих не ранят (шальной выстрел приспешника по приспешнику) - и не мстят за это друг другу. */
+    /** Allies do not hurt each other (a stray minion shot at another minion) - and do not retaliate for it. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onAttack(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
         if (!e.entityLiving.worldObj.isRemote && allies(e.entityLiving, e.source.getEntity())) e.setCanceled(true);
     }
 
-    /** Цель - свой: сбросить. */
+    /** The target is an ally: reset. */
     @SubscribeEvent
     public void onTarget(net.minecraftforge.event.entity.living.LivingSetAttackTargetEvent e) {
         if (e.entityLiving.worldObj.isRemote || !allies(e.entityLiving, e.target)) return;
@@ -110,7 +110,7 @@ public class BossMinions {
         EntityLivingBase v = e.entityLiving;
         if (v.worldObj.isRemote) return;
         if (isMinion(v)) {
-            // опыт падает, пока недавно бил игрок, - убираем отметку удара
+            // experience drops while a player has hit it recently - remove the hit mark
             try {
                 ReflectionHelper.setPrivateValue(EntityLivingBase.class, v, 0, "recentlyHit", "field_70718_bc");
             } catch (Throwable ignored) {}
@@ -123,7 +123,7 @@ public class BossMinions {
         for (EntityLivingBase m : l) if (m != v && m.isEntityAlive() && id.equals(m.getEntityData().getString(OWNER))) kill(m);
     }
 
-    /** Раз в 5 секунд приспешник ищет хозяина: нет рядом живого - погибает. */
+    /** Every 5 seconds a minion looks for its owner: if there is no living one nearby, it dies. */
     @SubscribeEvent
     public void onUpdate(LivingEvent.LivingUpdateEvent e) {
         EntityLivingBase m = e.entityLiving;

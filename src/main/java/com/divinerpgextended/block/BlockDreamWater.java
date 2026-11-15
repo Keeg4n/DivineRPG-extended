@@ -21,18 +21,18 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Вода мечтаний - перевёрнутая вода озёр в потолке этажей Ветеи: течёт вверх (плотность меньше нуля), гладь смотрит
- * вниз. Для игры это вода (материал воды): в ней плавают, тонут и рыбачат. Между двумя источниками под опорой рождается
- * новый (бесконечная, как вода).
+ * Dream Water is the inverted water of the lakes in the ceiling of Vethea floors: flows upward (density below zero), the surface faces
+ * down. For the game it is water (water material): you swim, sink and fish in it. Between two sources under a support a new one is born
+ * (infinite, like water).
  * <p>
- * Кто коснулся её верхом хитбокса, тот сразу перевёрнут ({@link #inverted}): висит вверх ногами, ноги в воде, голова в
- * воздухе - у глади держится сам, тут и рыбачат (поплавок закидывается вверх, в озеро). Экран перевёрнут, клавиши - как в обычной воде по экрану: Shift -
- * нырнуть глубже (в мире вверх), пробел - всплыть к глади (вниз), пробел у глади - вынырнуть и упасть. В глубине тянет к
- * дну озера (вверх).
+ * Whoever touches it with the top of the hitbox is immediately inverted ({@link #inverted}): hangs upside down, feet in the water, head in the
+ * air - holds at the surface by itself, and fishing happens here (the bobber is cast up, into the lake). The screen is inverted, keys work as in ordinary water by the screen: Shift -
+ * dive deeper (up in the world), space - rise to the surface (down), space at the surface - surface and fall. In the depth you are pulled to
+ * the lake bottom (up).
  */
 public class BlockDreamWater extends BlockFluidClassic {
 
-    /** С какой глубины (сверху хитбокса) игрок перевёрнут; на какой держится у глади; где начинается глубина. */
+    /** From what depth (from the top of the hitbox) the player is inverted; at what depth he holds at the surface; where the depth begins. */
     public static final double FLIP = 0.01, HOLD = 0.6, DEEP = 1.3;
 
     @SideOnly(Side.CLIENT)
@@ -53,7 +53,7 @@ public class BlockDreamWater extends BlockFluidClassic {
         int sources = 0;
         for (int[] d : new int[][] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } })
             if (isSource(w, x + d[0], y, z + d[1])) sources++;
-        // опора - сверху: вода течёт вверх
+        // the support is on top: the water flows up
         if (sources >= 2 && (w.getBlock(x, y + 1, z).getMaterial().isSolid() || isSource(w, x, y + 1, z))) w.setBlock(x, y, z, this, 0, 3);
     }
 
@@ -61,7 +61,7 @@ public class BlockDreamWater extends BlockFluidClassic {
         return w.getBlock(x, y, z) instanceof BlockDreamWater && w.getBlockMetadata(x, y, z) == 0;
     }
 
-    /** На сколько верх хитбокса ушёл в воду мечтаний (по столбцу середины); 0 - не в ней. */
+    /** How far the top of the hitbox went into Dream Water (by the middle column); 0 - not in it. */
     public static double depth(Entity e) {
         int x = MathHelper.floor_double(e.posX), z = MathHelper.floor_double(e.posZ);
         int y0 = MathHelper.floor_double(e.boundingBox.minY), y1 = MathHelper.floor_double(e.boundingBox.maxY);
@@ -73,36 +73,36 @@ public class BlockDreamWater extends BlockFluidClassic {
         return depth(e) > 0;
     }
 
-    /** Перевёрнут: ноги (верх хитбокса) в воде мечтаний. */
+    /** Inverted: feet (top of the hitbox) in Dream Water. */
     public static boolean inverted(Entity e) {
         return depth(e) >= FLIP;
     }
 
-    /** Голова перевёрнутого (низ хитбокса) в воде - тонет. У мелких мобов голова - нижняя четверть хитбокса. */
+    /** The inverted one's head (bottom of the hitbox) is in water - drowning. For small mobs the head is the bottom quarter of the hitbox. */
     public static boolean headUnder(EntityLivingBase e) {
         return e.worldObj.getBlock(MathHelper.floor_double(e.posX), MathHelper.floor_double(e.boundingBox.minY + Math.min(0.2, e.height * 0.25)),
             MathHelper.floor_double(e.posZ)) instanceof BlockDreamWater;
     }
 
-    /** На какой глубине держится у глади: игрок - {@link #HOLD}, мелкий моб - на треть роста (иначе голова под водой и тонет). */
+    /** At what depth he holds at the surface: a player - {@link #HOLD}, a small mob - a third of the height (otherwise the head is underwater and he drowns). */
     public static double hold(EntityLivingBase e) {
         return e instanceof EntityPlayer ? HOLD : Math.min(HOLD, e.height * 0.35);
     }
 
     /**
-     * Не живое (выпавшие вещи, опыт): в воде мечтаний тонет по-своему - уходит вверх, к дну озера, и там лежит. Вызывается
-     * каждый тик на сервере и на клиенте (движение вещей считают обе стороны).
+     * Non-living (dropped items, experience): sinks in its own way in Dream Water - goes up, to the lake bottom, and lies there. Called
+     * every tick on the server and on the client (both sides compute item movement).
      */
     public static void sinkLoose(World w) {
         if (w == null) return;
-        // по копии и только в загруженных чанках: чтение блока на краю догружало чанк, его сущности вставали в список
-        // посреди обхода - сервер падал (ConcurrentModificationException, полёт к острову Энда)
+        // over a copy and only in loaded chunks: reading a block at the edge loaded the chunk further, its entities got into the list
+        // in the middle of iteration - the server crashed (ConcurrentModificationException, flight to the End island)
         for (Object o : w.loadedEntityList.toArray()) {
             if (!(o instanceof net.minecraft.entity.item.EntityItem) && !(o instanceof net.minecraft.entity.item.EntityXPOrb)) continue;
             Entity e = (Entity) o;
             int ex = MathHelper.floor_double(e.posX), ez = MathHelper.floor_double(e.posZ);
             if (!w.checkChunksExist(ex - 1, 0, ez - 1, ex + 1, 0, ez + 1) || !inside(e)) continue;
-            e.motionY += 0.04 + 0.02; // гасит тяжесть (0.04) и тянет вверх, к дну озера
+            e.motionY += 0.04 + 0.02; // cancels gravity (0.04) and pulls up, to the lake bottom
             e.motionY = Math.min(0.12, e.motionY);
             e.fallDistance = 0;
         }
@@ -125,7 +125,7 @@ public class BlockDreamWater extends BlockFluidClassic {
         }
     }
 
-    /** Перевёрнутое плавание (на обеих сторонах: движение игрока считает клиент). */
+    /** Inverted swimming (on both sides: the client computes player movement). */
     public static class Swim {
 
         private static java.lang.reflect.Field jumping, floating;
@@ -139,7 +139,7 @@ public class BlockDreamWater extends BlockFluidClassic {
             }
         }
 
-        /** Сервер считает висящего у глади "летающим" и через 4 с выкидывает - сбрасываем его счётчик. */
+        /** The server considers one hanging at the surface "flying" and kicks after 4 s - we reset his counter. */
         static void notFlying(EntityPlayerMP p) {
             if (p.playerNetServerHandler == null) return;
             try {
@@ -148,7 +148,7 @@ public class BlockDreamWater extends BlockFluidClassic {
             } catch (Throwable ignored) {}
         }
 
-        /** Отпустил пробел у глади: следующее нажатие выкидывает из озера. */
+        /** Released space at the surface: the next press throws him out of the lake. */
         private static final java.util.Map<EntityLivingBase, Boolean> ARMED = new java.util.WeakHashMap<EntityLivingBase, Boolean>();
 
         @SubscribeEvent
@@ -163,28 +163,28 @@ public class BlockDreamWater extends BlockFluidClassic {
             e.fallDistance = 0;
             if (!e.worldObj.isRemote && e instanceof EntityPlayerMP) {
                 notFlying((EntityPlayerMP) e);
-                if (!headUnder(e)) e.setAir(300); // голова в воздухе (игра считает глаза у верха хитбокса - в воде)
+                if (!headUnder(e)) e.setAir(300); // head in the air (the game counts the eyes at the top of the hitbox - in the water)
             } else if (!e.worldObj.isRemote && !headUnder(e)) {
-                e.setAir(300); // и моб: висит вверх ногами, голова в воздухе - не тонет
+                e.setAir(300); // and the mob: hangs upside down, head in the air - does not drown
             }
-            // как в обычной воде, но по перевёрнутому экрану: пробел - к глади (в мире вниз), Shift - глубже (вверх)
-            // мобы в воде всё время "прыгают" (ИИ плавания) - для них клавиш нет: просто висят у глади
+            // as in ordinary water, but by the inverted screen: space - to the surface (down in the world), Shift - deeper (up)
+            // mobs in water constantly "jump" (swimming AI) - they have no keys: they just hang at the surface
             boolean player = e instanceof EntityPlayer, surface = player && jumping(e), dive = player && e.isSneaking();
-            if (!player) { // моб всплывает к глади из любой глубины (как в обычной воде) и висит головой в воздухе
+            if (!player) { // a mob floats to the surface from any depth (as in ordinary water) and hangs with its head in the air
                 if (d >= FLIP || e.motionY > 0) e.motionY = Math.max(-0.3, (hold(e) - d) * 0.3 + 0.02);
                 return;
             }
-            if (d >= DEEP) { // в глубине тянет к дну озера (вверх), как в обычной воде ко дну
-                e.motionY += 0.04; // вода тянет вниз на 0.02, прыжок воды поднимает на 0.04 - итог вверх
+            if (d >= DEEP) { // in the depth you are pulled to the lake bottom (up), as in ordinary water to the bottom
+                e.motionY += 0.04; // water pulls down by 0.02, the water jump lifts by 0.04 - the net is up
                 if (surface) e.motionY -= 0.10;
                 if (dive) e.motionY += 0.03;
                 e.motionY = Math.max(-0.3, Math.min(0.3, e.motionY));
-                if (surface) ARMED.remove(e); // всплыл с зажатым пробелом - у глади держится, а не вываливается
-            } else if (d >= FLIP || e.motionY > 0) { // у глади: держится ногами в воде
+                if (surface) ARMED.remove(e); // surfaced with space held - holds at the surface instead of falling out
+            } else if (d >= FLIP || e.motionY > 0) { // at the surface: holds with feet in the water
                 if (!surface) ARMED.put(e, Boolean.TRUE);
-                if (surface && ARMED.containsKey(e)) e.motionY = -0.35; // пробел у глади - вынырнуть: падает из озера
+                if (surface && ARMED.containsKey(e)) e.motionY = -0.35; // space at the surface - surface: falls out of the lake
                 else if (dive) e.motionY = 0.12;
-                else e.motionY = (HOLD - d) * 0.3 + 0.02; // пружинит к глубине HOLD (+0.02 гасит тягу воды вниз)
+                else e.motionY = (HOLD - d) * 0.3 + 0.02; // springs to depth HOLD (+0.02 cancels the water's downward pull)
             }
         }
     }

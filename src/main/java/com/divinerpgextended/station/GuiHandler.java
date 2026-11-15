@@ -17,7 +17,7 @@ public class GuiHandler implements IGuiHandler {
             return new ContainerWandererAnvil(player.inventory, (TileWandererAnvil) te);
         }
         if (id == ACCESSORIES) {
-            // админ (/dreinv) смотрит чужие - иначе свои
+            // admin (/dreinv) views other players' - otherwise their own
             com.divinerpgextended.accessory.Accessories target = com.divinerpgextended.accessory.CommandDreInv.takePending(player);
             return new com.divinerpgextended.accessory.ContainerAccessories(player,
                 target != null ? target : com.divinerpgextended.accessory.Accessories.of(player));

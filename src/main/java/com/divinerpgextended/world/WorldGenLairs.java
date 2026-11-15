@@ -26,63 +26,63 @@ import com.divinerpgextended.registry.ModBlocks;
 import cpw.mods.fml.common.IWorldGenerator;
 
 /**
- * Генерация логов ранних боссов в обычном мире:
+ * Generation of early boss lairs in the overworld:
  * <ul>
- * <li>логово Карцинуса у песчаного берега (материка или острова): воронка у кромки воды, длинный косой лаз в
- * затопленный лабиринт нор под берегом и дном, за завесой пузырей - сухой грот с алтарём Карцинуса;</li>
- * <li>ледяная пещера под заснеженным биомом: вход через иглу, петляющие ходы с Глаконами и Фростами, зал с
- * алтарём Снежного Глакона.</li>
+ * <li>the Carcinus lair at a sandy shore (of a continent or island): a funnel at the water's edge, a long slanting shaft into a
+ * flooded labyrinth of burrows under the shore and seabed, behind a bubble curtain - a dry grotto with the Carcinus Altar;</li>
+ * <li>an ice cave under a snowy biome: an entrance through an igloo, winding passages with Glacons and Frosts, a hall with the
+ * Snow Glacon Altar.</li>
  * </ul>
  */
 public class WorldGenLairs implements IWorldGenerator {
 
-    /** Лабиринт нор: сетка узлов N x N с шагом STEP (около 42 блоков в поперечнике). */
+    /** Burrow labyrinth: a grid of N x N nodes with step STEP (about 42 blocks across). */
     private static final int N = 11, STEP = 7;
 
     @Override
     public void generate(Random rand, int chunkX, int chunkZ, World world, IChunkProvider gen, IChunkProvider prov) {
         if (world.provider.dimensionId != 0) return;
-        // места логов - из сида мира по карте биомов ({@link LairSites}): карта логова знает их заранее
+        // lair sites - from the world seed by the biome map ({@link LairSites}): the lair map knows them in advance
         int[] crab = LairSites.siteInChunk(world, LairSites.CARCINUS, chunkX, chunkZ);
         if (crab != null) {
-            if (crabLair(world, rand, crab[0], crab[1])) DivineRPGExtended.LOG.info("Логово Карцинуса: " + crab[0] + " " + crab[1]);
-            else LairData.get(world).fail(LairData.CARCINUS, crab[0], crab[1]); // рельеф не подошёл - карта это место пропустит
+            if (crabLair(world, rand, crab[0], crab[1])) DivineRPGExtended.LOG.info("Carcinus lair: " + crab[0] + " " + crab[1]);
+            else LairData.get(world).fail(LairData.CARCINUS, crab[0], crab[1]); // the terrain did not fit - the map will skip this site
         }
         int[] snow = LairSites.siteInChunk(world, LairSites.SNOW, chunkX, chunkZ);
         if (snow != null) {
-            if (snowDungeon(world, rand, snow[0], snow[1]) != null) DivineRPGExtended.LOG.info("Ледяной купол Глакона, вход: " + snow[0] + " " + snow[1]);
+            if (snowDungeon(world, rand, snow[0], snow[1]) != null) DivineRPGExtended.LOG.info("Glacon ice dome, entrance: " + snow[0] + " " + snow[1]);
             else LairData.get(world).fail(LairData.SNOW, snow[0], snow[1]);
         }
     }
 
-    // ---------------------------------------------------------------- логово Карцинуса
+    // ---------------------------------------------------------------- Carcinus lair
 
     private static boolean isWater(World w, int x, int y, int z) {
         return w.getBlock(x, y, z)
             .getMaterial() == Material.water;
     }
 
-    /** Верхний твёрдый блок дна под водой. */
+    /** The top solid block of the bottom under water. */
     private static int seabed(World w, int x, int z) {
         int y = 62;
         while (y > 5 && isWater(w, x, y, z)) y--;
         return y;
     }
 
-    /** Соседи на расстоянии 3: где-то рядом с точкой входа должна быть суша. */
+    /** Neighbors at distance 3: there must be land somewhere near the entrance point. */
     private static final int[][] SHORE = { { 3, 0 }, { -3, 0 }, { 0, 3 }, { 0, -3 }, { 2, 2 }, { -2, -2 }, { 2, -2 },
         { -2, 2 } };
 
     /**
-     * Крабья нора у берега: у самой кромки воды неровная воронка, от неё наискось вниз уходит длинный лаз в
-     * затопленный лабиринт нор на высоте 30-40 под берегом и морским дном.
-     * Ходы кривые, разной ширины, с петлями, тупиковыми карманами и расширениями - будто их рыл сам краб. Стены,
-     * пол и потолок - блоки норы: если их сломать, проход засыпает песком. Под полом спрятаны гнёзда норных крабов, на
-     * потолке светятся лампы кракена и аква-лампы. На востоке за завесой пузырей - сухой грот с алтарём призыва Карцинуса.
+     * A crab burrow at the shore: at the very water's edge an uneven funnel, from it a long shaft goes diagonally down into a
+     * flooded burrow labyrinth at height 30-40 under the shore and seabed.
+     * The passages are crooked, of different widths, with loops, dead-end pockets and widenings - as if the crab itself dug them. The walls,
+     * floor and ceiling are burrow blocks: if broken, the passage is filled with sand. Under the floor are hidden Burrow Crab Nests, on the
+     * ceiling glow Kraken lamps and aqua lamps. In the east behind a bubble curtain is a dry grotto with the Carcinus summoning altar.
      */
     private boolean crabLair(World world, Random rand, int cx, int cz) {
-        // вход: вода на уровне моря у самой суши (кромка пляжа). Кандидатов несколько: лабиринт уходит от входа на
-        // восток, и над ним нужна толща дна - у резкого обрыва (океаны Biomes O' Plenty) первый вход может не подойти
+        // entrance: sea-level water right at land (the beach edge). Several candidates: the labyrinth goes from the entrance
+        // east, and a thickness of bottom is needed above it - at a sharp drop (Biomes O' Plenty oceans) the first entrance may not fit
         int span = (N - 1) * STEP;
         int ex = 0, ez = 0, ym = 0, entrances = 0, bestBed = -1;
         for (int t = 0; t < 160 && entrances < 12 && ym == 0; t++) {
@@ -94,7 +94,7 @@ public class WorldGenLairs implements IWorldGenerator {
             }
             if (!shore) continue;
             entrances++;
-            // самое глубокое дно над будущими ходами; ходы опускаются под него, но не ниже 20
+            // the deepest bottom above the future passages; the passages sink under it, but not below 20
             int bed = 62;
             for (int xx = x - 4; xx <= x + 95 + 2 * DEN_R + 4 && bed >= 26; xx += 4) {
                 for (int zz = z - (N / 2) * STEP - 8; zz <= z + (N / 2) * STEP + 11; zz += 4) bed = Math.min(bed, seabed(world, xx, zz));
@@ -103,22 +103,22 @@ public class WorldGenLairs implements IWorldGenerator {
             if (bed - 6 >= 20) {
                 ex = x;
                 ez = z;
-                ym = Math.min(34, bed - 6); // стены норы держат воду: над ходами не меньше 6 блоков дна
+                ym = Math.min(34, bed - 6); // the burrow walls hold water: at least 6 blocks of bottom above the passages
             }
         }
         if (ym == 0) {
-            DivineRPGExtended.LOG.info("Логово Карцинуса не встало у " + cx + " " + cz + ": входов у кромки воды " + entrances
-                + (entrances > 0 ? ", дно над ходами слишком глубоко (лучшее " + bestBed + ")" : ""));
+            DivineRPGExtended.LOG.info("Carcinus lair did not generate at " + cx + " " + cz + ": entrances at the waterline " + entrances
+                + (entrances > 0 ? ", bed above the tunnels too deep (best " + bestBed + ")" : ""));
             return false;
         }
 
-        int x0 = ex + 20, z0 = ez - (N / 2) * STEP; // узел (0, 0); вход в 20 блоках западнее первого узла
-        int gx0 = x0 + span + 5, gcx = gx0 + DEN_R, gcz = z0 + (N / 2) * STEP; // стена грота и его центр
+        int x0 = ex + 20, z0 = ez - (N / 2) * STEP; // node (0, 0); the entrance is 20 blocks west of the first node
+        int gx0 = x0 + span + 5, gcx = gx0 + DEN_R, gcz = z0 + (N / 2) * STEP; // the grotto wall and its center
         int ax0 = ex - 10, ax1 = gcx + DEN_R + 2, az0 = z0 - 8, az1 = z0 + span + 8;
 
         Carver c = new Carver(ax0, ym - 8, az0, ax1 - ax0 + 1, 72 - (ym - 8), az1 - az0 + 1, gx0 - 1);
 
-        // узлы со сдвигом, чтобы ходы не шли по линейке
+        // nodes with a shift so that the passages do not run along a ruler
         double[][][] node = new double[N][N][];
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
@@ -129,7 +129,7 @@ public class WorldGenLairs implements IWorldGenerator {
         double[] exit = node[N - 1][N / 2] = new double[] { x0 + span + 0.5, ym + 0.5, gcz + 0.5 };
         double[] start = node[0][N / 2];
 
-        // остов лабиринта "рекурсивным возвратом" + несколько петель, чтобы было где запутаться
+        // the labyrinth skeleton by "recursive backtracker" + a few loops so there is somewhere to get lost
         List<int[]> edges = mazeEdges(rand, N, N, 0, N / 2);
         int[][] dirs = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
         for (int n = 0; n < 6; n++) {
@@ -141,7 +141,7 @@ public class WorldGenLairs implements IWorldGenerator {
         }
         for (int[] e : edges) c.line(node[e[0]][e[1]], node[e[2]][e[3]], rand, true);
 
-        // расширения-ямы и тупиковые карманы (в части карманов - сундуки)
+        // pit widenings and dead-end pockets (some pockets have chests)
         for (int n = 0; n < 7; n++) {
             double[] p = node[1 + rand.nextInt(N - 2)][rand.nextInt(N)];
             c.blob(p[0], p[1] + 0.5, p[2], 2.8 + rand.nextDouble(), 1.9);
@@ -156,15 +156,15 @@ public class WorldGenLairs implements IWorldGenerator {
             pockets.add(q);
         }
 
-        // ход к гроту: заканчивается у восточной стены, дальше завеса пузырей
+        // the passage to the grotto: ends at the east wall, then the bubble curtain
         c.line(exit, new double[] { gx0 - 0.5, ym + 0.5, gcz + 0.5 }, rand, false);
         for (int y = ym - 1; y <= ym + 1; y++) c.add(gx0 - 1, y, gcz);
 
-        // косой лаз от воронки на дне к первому узлу
+        // a slanting shaft from the funnel on the bottom to the first node
         int ey = seabed(world, ex, ez);
         c.line(new double[] { ex + 0.5, ey + 1.5, ez + 0.5 }, start, rand, false);
 
-        // заливаем ходы водой и обкладываем блоками норы (над дном - открытая вода, её не трогаем)
+        // flood the passages with water and line them with burrow blocks (above the bottom is open water, we do not touch it)
         for (int[] p : c.cells) set(world, p[0], p[1], p[2], Blocks.water);
         for (int[] p : c.cells) {
             for (int dx = -1; dx <= 1; dx++) for (int dy = -1; dy <= 1; dy++) for (int dz = -1; dz <= 1; dz++) {
@@ -178,12 +178,12 @@ public class WorldGenLairs implements IWorldGenerator {
             }
         }
 
-        // воронка вокруг лаза и неровный вал из песка и песчаника
+        // a funnel around the shaft and an uneven rampart of sand and sandstone
         double r0 = 3.2 + rand.nextDouble() * 1.5;
         for (int dx = -8; dx <= 8; dx++) {
             for (int dz = -8; dz <= 8; dz++) {
                 int x = ex + dx, z = ez + dz, top = seabed(world, x, z);
-                if (!isWater(world, x, 62, z)) continue; // только под водой, не на пляже
+                if (!isWater(world, x, 62, z)) continue; // only underwater, not on the beach
                 double dist = Math.sqrt(dx * dx + dz * dz), r = r0 + (rand.nextDouble() - 0.5) * 1.6;
                 if (dist < r) {
                     int depth = dist < r * 0.5 ? 2 : 1;
@@ -199,7 +199,7 @@ public class WorldGenLairs implements IWorldGenerator {
             }
         }
 
-        // лампы кракена и аква-лампы в потолке
+        // Kraken lamps and aqua lamps in the ceiling
         List<int[]> lamps = new ArrayList<int[]>();
         for (int[] p : c.path) {
             if (rand.nextInt(6) != 0 || near(lamps, p, 7)) continue;
@@ -210,7 +210,7 @@ public class WorldGenLairs implements IWorldGenerator {
             lamps.add(p);
         }
 
-        // гнёзда акул под полом по всему лабиринту, но не у самого входа
+        // shark nests under the floor throughout the labyrinth, but not right at the entrance
         List<int[]> path = new ArrayList<int[]>(c.path);
         Collections.shuffle(path, rand);
         List<int[]> nests = new ArrayList<int[]>();
@@ -225,7 +225,7 @@ public class WorldGenLairs implements IWorldGenerator {
             nests.add(p);
         }
 
-        // сундуки в концах тупиковых карманов, на полу
+        // chests at the ends of dead-end pockets, on the floor
         for (int n = 0; n < 7 && n < pockets.size(); n++) {
             double[] q = pockets.get(n);
             int x = MathHelper.floor_double(q[0]), z = MathHelper.floor_double(q[2]), y = MathHelper.floor_double(q[1]);
@@ -234,7 +234,7 @@ public class WorldGenLairs implements IWorldGenerator {
             LairLoot.chest(world, rand, x, y, z, false);
         }
 
-        // сухой грот краба за восточной стеной: зал радиусом DEN_R под низким куполом, пол вровень с ходами
+        // the crab's dry grotto behind the east wall: a hall of radius DEN_R under a low dome, the floor flush with the passages
         int yd = ym - 2;
         for (int dx = -DEN_R - 1; dx <= DEN_R + 1; dx++) {
             for (int dz = -DEN_R - 1; dz <= DEN_R + 1; dz++) {
@@ -254,16 +254,16 @@ public class WorldGenLairs implements IWorldGenerator {
         for (int[] g : new int[][] { { -3, -3 }, { -3, 3 }, { 3, -3 }, { 3, 3 }, { -8, 0 }, { 8, 0 }, { 0, -8 }, { 0, 8 },
             { -6, -6 }, { -6, 6 }, { 6, -6 }, { 6, 6 } }) {
             int y = 1;
-            while (inDen(g[0], y, g[1])) y++; // свод над этой точкой
+            while (inDen(g[0], y, g[1])) y++; // the vault above this point
             lamp(world, rand, gcx + g[0], yd + y, gcz + g[1]);
         }
-        // завеса пузырей держит воду: вода лабиринта стоит прямо перед ней, а пройти можно насквозь
+        // the bubble curtain holds the water: the labyrinth water stands right in front of it, and you can walk straight through
         set(world, gx0, yd + 1, gcz, ModBlocks.bubbleCurtain);
         set(world, gx0, yd + 2, gcz, ModBlocks.bubbleCurtain);
-        set(world, gcx, yd + 1, gcz, ModBlocks.carcinusAltar); // призыв: крабовые клешни, их роняют норные крабы
+        set(world, gcx, yd + 1, gcz, ModBlocks.carcinusAltar); // summoning: crab claws, dropped by Burrow Crabs
 
         LairData.get(world)
-            .add(LairData.CARCINUS, ex, ey + 1, ez); // воронка на дне
+            .add(LairData.CARCINUS, ex, ey + 1, ez); // funnel on the bottom
         return true;
     }
 
@@ -275,7 +275,7 @@ public class WorldGenLairs implements IWorldGenerator {
         return false;
     }
 
-    /** Лампа кракена или аква-лампа Divine. */
+    /** A Kraken lamp or a Divine aqua lamp. */
     private static void lamp(World world, Random rand, int x, int y, int z) {
         if (rand.nextBoolean()) world.setBlock(x, y, z, VanillaBlocks.lamp2, 2, 2);
         else world.setBlock(x, y, z, VanillaBlocks.lamp1, 0, 2);
@@ -284,10 +284,10 @@ public class WorldGenLairs implements IWorldGenerator {
     private static final int[][] NEIGHBORS = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 },
         { 0, 0, -1 } };
 
-    /** Радиус грота-арены Карцинуса (был 6 - вдвое теснее). */
+    /** Radius of the Carcinus arena grotto (was 6 - twice as cramped). */
     static final int DEN_R = 12;
 
-    /** Пустота норы краба: круглый зал радиусом {@link #DEN_R}, высота 4 и купол сверху (dy - от пола). */
+    /** The crab burrow void: a round hall of radius {@link #DEN_R}, height 4 and a dome on top (dy - from the floor). */
     static boolean inDen(int dx, int dy, int dz) {
         double r = Math.sqrt(dx * dx + dz * dz) / DEN_R;
         if (r >= 1.0 || dy < 1) return false;
@@ -301,7 +301,7 @@ public class WorldGenLairs implements IWorldGenerator {
         world.setBlock(x, y, z, ModBlocks.burrow, meta, 2);
     }
 
-    /** Остов лабиринта "рекурсивным возвратом" по сетке узлов cols x rows от (si, sj): рёбра {i1, j1, i2, j2}. */
+    /** Labyrinth skeleton by "recursive backtracker" on a grid of cols x rows nodes from (si, sj): edges {i1, j1, i2, j2}. */
     static List<int[]> mazeEdges(Random rand, int cols, int rows, int si, int sj) {
         List<int[]> edges = new ArrayList<int[]>();
         boolean[][] seen = new boolean[cols][rows];
@@ -328,7 +328,7 @@ public class WorldGenLairs implements IWorldGenerator {
         return edges;
     }
 
-    /** Вырезает кривые ходы в объёме: набор "выкопанных" блоков и точки по оси ходов. */
+    /** Cuts crooked passages in the volume: a set of "dug out" blocks and points along the passage axis. */
     static final class Carver {
 
         final int bx, by, bz, sx, sy, sz, maxX;
@@ -368,7 +368,7 @@ public class WorldGenLairs implements IWorldGenerator {
             cells.add(new int[] { x, y, z });
         }
 
-        /** Эллипсоид с горизонтальным радиусом rh и вертикальным rv. */
+        /** An ellipsoid with horizontal radius rh and vertical radius rv. */
         void blob(double px, double py, double pz, double rh, double rv) {
             for (int x = (int) Math.floor(px - rh); x <= (int) Math.ceil(px + rh); x++) {
                 for (int y = (int) Math.floor(py - rv); y <= (int) Math.ceil(py + rv); y++) {
@@ -380,12 +380,12 @@ public class WorldGenLairs implements IWorldGenerator {
             }
         }
 
-        /** Кривой ход от a к b: изгиб через сдвинутую середину, ширина и высота гуляют по дороге. */
+        /** A crooked passage from a to b: bending through a shifted midpoint, width and height wander along the way. */
         void line(double[] a, double[] b, Random rand, boolean record) {
             line(a, b, rand, record, 1.3, 2.3, 1.1, 1.7);
         }
 
-        /** То же с заданными пределами горизонтального (rh) и вертикального (rv) радиуса. */
+        /** The same with given limits of horizontal (rh) and vertical (rv) radius. */
         void line(double[] a, double[] b, Random rand, boolean record, double rhMin, double rhMax, double rvMin,
             double rvMax) {
             double mx = (a[0] + b[0]) / 2 + (rand.nextDouble() - 0.5) * 5;
@@ -410,11 +410,11 @@ public class WorldGenLairs implements IWorldGenerator {
         }
     }
 
-    // ---------------------------------------------------------------- ледяная пещера
+    // ---------------------------------------------------------------- ice cave
 
     /**
-     * Вход в ледяной купол Снежного Глакона ({@link LairDomes.Glacon}): иглу на поверхности, из него вниз - шахта 3x3 с
-     * винтовой лестницей до тоннеля в купол (низ шахты и тоннель строит сам купол). @return {x, пол иглу, z} или null - место не подошло
+     * The entrance to the Snow Glacon ice dome ({@link LairDomes.Glacon}): an igloo on the surface, from it down a 3x3 shaft with a
+     * spiral staircase to the tunnel into the dome (the shaft bottom and the tunnel are built by the dome itself). @return {x, igloo floor, z} or null - the place did not fit
      */
     public int[] buildSnowDungeon(World world, Random rand, int cx, int cz) {
         return snowDungeon(world, rand, cx, cz);
@@ -423,9 +423,9 @@ public class WorldGenLairs implements IWorldGenerator {
     private int[] snowDungeon(World world, Random rand, int cx, int cz) {
         int surface = world.getTopSolidOrLiquidBlock(cx, cz);
         if (surface < LairDomes.G_FL + 24 || world.getBlock(cx, surface - 1, cz).getMaterial().isLiquid()) return null;
-        int g = surface - 1; // земля, на которой стоит иглу
+        int g = surface - 1; // the ground the igloo stands on
         igloo(world, new Carver(cx, 0, cz, 0, 0, 0, Integer.MAX_VALUE), cx, g, cz);
-        // шахта: ступени по кольцу 3x3 (как в куполе: на высоте y - клетка RING[y & 7]), стены из льда и мёрзлого камня
+        // shaft: steps along the 3x3 ring (as in the dome: at height y - cell RING[y & 7]), walls of ice and frozen stone
         for (int y = LairDomes.G_FL + 9; y <= g; y++) for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) {
             int x = cx + dx, z = cz + dz;
             if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
@@ -435,11 +435,11 @@ public class WorldGenLairs implements IWorldGenerator {
         }
         snowCover(world, rand, cx, cz);
         LairData.get(world)
-            .add(LairData.SNOW, cx - 7, g + 1, cz); // вход в иглу
+            .add(LairData.SNOW, cx - 7, g + 1, cz); // the igloo entrance
         return new int[] { cx, g, cz };
     }
 
-    /** Стена пещеры: пятна пакового льда и мёрзлого камня; пол чаще каменный. */
+    /** Cave wall: patches of packed ice and frozen stone; the floor is more often stone. */
     private static Block iceShell(int x, int y, int z, boolean floor) {
         int h = ((x >> 1) * 734287) ^ ((y >> 1) * 912271) ^ ((z >> 1) * 438289);
         int v = (h >>> 8) % 10;
@@ -447,7 +447,7 @@ public class WorldGenLairs implements IWorldGenerator {
         return v < 7 ? Blocks.packed_ice : IceikaBlocks.frozenStone;
     }
 
-    /** Колонна от пола до потолка: толстая у основания и у свода, тонкая посередине. */
+    /** A column from floor to ceiling: thick at the base and at the vault, thin in the middle. */
     private static void pillar(World world, Carver c, int x, int yMid, int z, Random rand) {
         if (!c.has(x, yMid, z)) return;
         int lo = yMid, hi = yMid;
@@ -464,11 +464,11 @@ public class WorldGenLairs implements IWorldGenerator {
         }
     }
 
-    /** Иглу из снежных блоков с входом-туннелем на запад; в полу - яма спуска в пещеру. */
-    /** Радиус снега вокруг иглу, если снег там сам не лежит (холодный, но не снежный биом). */
+    /** An igloo of snow blocks with an entrance tunnel to the west; in the floor - a pit descending into the cave. */
+    /** Radius of snow around the igloo if snow does not lie there on its own (a cold but not snowy biome). */
     static final int SNOW_COVER = 18;
 
-    /** Снег вокруг иглу: слой снега на земле и листве, вода - лёд; к краю реже. */
+    /** Snow around the igloo: a layer of snow on the ground and leaves, water - ice; sparser toward the edge. */
     static void snowCover(World w, Random r, int cx, int cz) {
         if (Biomes.snowsAt(w.getBiomeGenForCoords(cx, cz), cx, cz)) return;
         for (int dx = -SNOW_COVER; dx <= SNOW_COVER; dx++) for (int dz = -SNOW_COVER; dz <= SNOW_COVER; dz++) {
@@ -488,7 +488,7 @@ public class WorldGenLairs implements IWorldGenerator {
                 double r = Math.sqrt(dx * dx + dz * dz);
                 boolean tunnel = dx <= -4 && Math.abs(dz) <= 1;
                 if (r > 5.5 && !(tunnel && dx >= -8)) continue;
-                // фундамент: пол и всё пустое под ним до земли
+                // foundation: the floor and everything empty under it down to the ground
                 for (int y = g; y > g - 6; y--) {
                     if (c.has(x, y, z)) break;
                     if (y < g && world.getBlock(x, y, z)
@@ -496,13 +496,13 @@ public class WorldGenLairs implements IWorldGenerator {
                         .isSolid()) break;
                     set(world, x, y, z, Blocks.snow);
                 }
-                // купол: снаружи 5, внутри 4
+                // dome: 5 outside, 4 inside
                 for (int dy = 1; dy <= 7; dy++) {
                     if (c.has(x, g + dy, z)) continue;
                     double d = Math.sqrt(dx * dx + dz * dz + dy * dy);
                     Block b = d < 4.0 ? Blocks.air : d < 5.0 ? Blocks.snow : Blocks.air;
                     if (tunnel && r >= 3.5) {
-                        // туннель входа: 1 x 2 внутри, стены и крыша из снега
+                        // entrance tunnel: 1 x 2 inside, walls and roof of snow
                         boolean inside = dz == 0 && dy <= 2;
                         b = inside ? Blocks.air : dy <= 3 && dx >= -7 ? Blocks.snow : Blocks.air;
                     }
@@ -512,13 +512,13 @@ public class WorldGenLairs implements IWorldGenerator {
         }
     }
 
-    // ---------------------------------------------------------------- общее
+    // ---------------------------------------------------------------- common
 
     static void set(World world, int x, int y, int z, Block b) {
         world.setBlock(x, y, z, b, 0, 2);
     }
 
-    /** Сколько шагов по воздуху до лампы допустимо: свет лампы 15, через 5 шагов ещё 10, с запасом на снег и колонны - монстры не спавнятся (нужно 7 и ниже). */
+    /** How many steps through air to a lamp are allowed: lamp light 15, after 5 steps still 10, with margin for snow and columns - monsters do not spawn (7 and below needed). */
     static final int LIGHT_STEPS = 5;
 
     private static long key(int x, int y, int z) {
@@ -530,9 +530,9 @@ public class WorldGenLairs implements IWorldGenerator {
     }
 
     /**
-     * Осветить пещеру целиком: поиск в ширину по воздуху пещеры от светящихся блоков; где до света дальше
-     * {@link #LIGHT_STEPS} шагов - ледяная лампа в потолок над этим местом. Шаги по воздуху, а не по прямой: свет
-     * огибает углы так же.
+     * Light the whole cave: breadth-first search through cave air from glowing blocks; where the light is farther than
+     * {@link #LIGHT_STEPS} steps - an ice lamp in the ceiling above that spot. Steps through air, not in a straight line: light
+     * bends around corners the same way.
      */
     static int lightUp(World world, Carver c, int maxY) {
         java.util.Map<Long, Integer> dist = new java.util.HashMap<Long, Integer>();
@@ -554,7 +554,7 @@ public class WorldGenLairs implements IWorldGenerator {
             if (p[1] >= maxY || !clear(world, p[0], p[1], p[2])) continue;
             Integer d = dist.get(key(p[0], p[1], p[2]));
             if (d != null && d <= LIGHT_STEPS) continue;
-            // лампа в потолок; у входа потолок - уже поверхность, тогда в пол или в стену рядом
+            // a lamp in the ceiling; at the entrance the ceiling is already the surface, then in the floor or a wall nearby
             int[] lamp = null, s0 = null;
             int y = p[1];
             while (c.has(p[0], y + 1, p[2]) && y + 1 < maxY) y++;
@@ -567,7 +567,7 @@ public class WorldGenLairs implements IWorldGenerator {
                     if (o[1] > 0 || c.has(x, yy, z) || !world.getBlock(x, yy, z).isOpaqueCube()) continue;
                     lamp = new int[] { x, yy, z };
                     s0 = p;
-                    if (o[1] < 0) break; // пол лучше стены
+                    if (o[1] < 0) break; // floor is better than wall
                 }
             }
             if (lamp == null) continue;
@@ -578,7 +578,7 @@ public class WorldGenLairs implements IWorldGenerator {
             q.add(s0);
             spread(world, c, dist, q, maxY, nb);
         }
-        // сверка с настоящим светом мира: расчёт шагов и свет игры могут разойтись (снег, колонны, сосульки)
+        // check against the world's real light: the step computation and the game's light may diverge (snow, columns, icicles)
         for (int round = 0; round < 6; round++) {
             int fixed = 0;
             for (int[] p : c.cells) {
@@ -595,11 +595,11 @@ public class WorldGenLairs implements IWorldGenerator {
         return added;
     }
 
-    /** Куда поставить лампу для места p: в потолок над ним, а если потолок - уже поверхность, в пол или стену рядом. */
+    /** Where to place a lamp for spot p: in the ceiling above it, and if the ceiling is already the surface, in the floor or a wall nearby. */
     private static int[] lampSpot(World world, Carver c, int[] p, int maxY, int[][] nb) {
         int y = p[1];
         while (c.has(p[0], y + 1, p[2]) && y + 1 < maxY && clear(world, p[0], y + 1, p[2])) y++;
-        // потолок - только ниже поверхности (maxY - 3 = земля под иглу), выше - пол или стена
+        // ceiling - only below the surface (maxY - 3 = the ground under the igloo), above - floor or wall
         if (y + 1 < maxY - 3 && y - p[1] <= 4 && world.getBlock(p[0], y + 1, p[2]).isOpaqueCube()) return new int[] { p[0], y + 1, p[2] };
         int[] best = null;
         for (int[] o : nb) {
@@ -627,7 +627,7 @@ public class WorldGenLairs implements IWorldGenerator {
         }
     }
 
-    /** Спавнер логова ({@link com.divinerpgextended.block.BlockLairSpawner}): ставит мобов при любом свете. */
+    /** The lair spawner ({@link com.divinerpgextended.block.BlockLairSpawner}): spawns mobs in any light. */
     static void lairSpawner(World world, int x, int y, int z, String entity) {
         world.setBlock(x, y, z, com.divinerpgextended.registry.ModBlocks.lairSpawner, 0, 2);
         TileEntityMobSpawner te = (TileEntityMobSpawner) world.getTileEntity(x, y, z);

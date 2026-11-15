@@ -15,28 +15,28 @@ import com.divinerpgextended.boss.BossProgress;
 import com.divinerpgextended.trinket.Trinket;
 
 /**
- * Аксессуары игрока. Работают встроенными в надетую броню ({@link Sockets}); здесь же - старые слоты аксессуаров и
- * боеприпасов (до 0.99.67): в них больше ничего не кладётся и ничего не работает, вещи из них только забирают -
- * вкладка видна, пока там что-то лежит. Хранятся в постоянных данных игрока.
+ * Player accessories. They work built into the worn armor ({@link Sockets}); here are also the old accessory and ammo slots (before 0.99.67): nothing
+ * is put into them anymore and nothing works, items can only be taken out of them -
+ * the tab is visible while something lies there. Stored in the player's persistent data.
  * <p>
- * Защита от дюпа: на сервере один объект на игрока (по UUID), и он привязан к текущей сущности игрока. После смерти
- * или перезахода сущность новая - объект пересоздаётся из её данных, а старый становится недействительным, и все
- * окна на нём (у игрока или у админа) закрываются.
+ * Dupe protection: on the server there is one object per player (by UUID), and it is bound to the player's current entity. After death
+ * or rejoin the entity is new - the object is recreated from its data, and the old one becomes invalid, and all
+ * windows on it (the player's or an admin's) are closed.
  */
 public class Accessories implements IInventory {
 
     public static final int SIZE = 6, BASE = 2;
-    /** Слоты боеприпасов идут после аксессуаров: SIZE .. TOTAL - 1. */
+    /** Ammo slots come after the accessories: SIZE .. TOTAL - 1. */
     public static final int AMMO = 9, TOTAL = SIZE + AMMO;
-    /** Боссы, каждый из которых открывает второе гнездо в своей части брони Странника ({@link Sockets#SECOND}). */
+    /** Bosses, each of which opens the second socket in its part of the Wanderer armor ({@link Sockets#SECOND}). */
     public static final Boss[] UNLOCKS = { Boss.LICH_KING, Boss.WATCHER, Boss.TWILIGHT_DEMON, Boss.KAROT };
     public static final String TAG = "dre_accessories";
     private static final Map<UUID, Accessories> LIVE = new HashMap<UUID, Accessories>();
 
-    /** Владелец (null - снимок из файла оффлайн-игрока, только чтение). */
+    /** Owner (null - a snapshot from an offline player's file, read only). */
     final EntityPlayer player;
     private final ItemStack[] stacks = new ItemStack[TOTAL];
-    /** Сколько слотов открыто (на клиенте приходит с сервера при открытии окна). */
+    /** How many slots are open (on the client it comes from the server when the window opens). */
     public int unlocked;
     public final boolean readOnly;
 
@@ -56,7 +56,7 @@ public class Accessories implements IInventory {
         return n;
     }
 
-    /** Серверный объект игрока. Если сущность сменилась (смерть, перезаход) - читается заново из её данных. */
+    /** Server player object. If the entity changed (death, rejoin) - it is read again from its data. */
     public static Accessories of(EntityPlayer p) {
         Accessories a = LIVE.get(p.getUniqueID());
         if (a == null || a.player != p) {
@@ -68,20 +68,20 @@ public class Accessories implements IInventory {
         return a;
     }
 
-    /** Только для просмотра: снимок из данных оффлайн-игрока. */
+    /** View only: a snapshot from offline player data. */
     public static Accessories snapshot(NBTTagList list, int unlocked) {
         Accessories a = new Accessories(null, unlocked, true);
         a.load(list);
         return a;
     }
 
-    /** Окна на этом объекте ещё имеют смысл: игрок тот же, жив и в сети. */
+    /** Windows on this object still make sense: the player is the same, alive and online. */
     public boolean valid() {
-        if (player == null || player.worldObj.isRemote) return true; // снимок для просмотра или клиентская копия окна
+        if (player == null || player.worldObj.isRemote) return true; // snapshot for viewing or the client copy of the window
         return !player.isDead && LIVE.get(player.getUniqueID()) == this;
     }
 
-    /** Встроен ли такой аксессуар в надетую броню. В Ветее работают только ветейские. */
+    /** Whether such an accessory is built into the worn armor. In Vethea only the Vethean ones work. */
     public static boolean wears(EntityPlayer p, Trinket t) {
         if (p == null || p.worldObj.isRemote) return false;
         if (!t.vethean() && com.divinerpgextended.Config.vetheaNightmare
@@ -89,21 +89,21 @@ public class Accessories implements IInventory {
         return Sockets.wears(p, t);
     }
 
-    /** Клиент: в старых слотах своего игрока что-то лежит (присылает сервер, {@link com.divinerpgextended.perk.RangedRoles.QuiverSync}). */
+    /** Client: something lies in the old slots of its own player (sent by the server, {@link com.divinerpgextended.perk.RangedRoles.QuiverSync}). */
     public static boolean clientLeftovers;
 
-    /** В старых слотах что-то осталось (вкладка видна, пока не заберут). */
+    /** Something is left in the old slots (the tab is visible until it is taken out). */
     public boolean leftovers() {
         for (ItemStack s : stacks) if (s != null) return true;
         return false;
     }
 
-    /** Вещи Divine, которые носятся в слоте аксессуаров (а не работают из инвентаря): Пояс хейвы, Шахтёрский амулет. */
+    /** Divine items worn in the accessory slot (rather than working from the inventory): Heiva Belt, Miner's Amulet. */
     public static boolean divineAccessory(ItemStack s) {
         return s != null && (s.getItem() == net.divinerpg.utils.items.VetheaItems.heivaBelt || s.getItem() == net.divinerpg.utils.items.VetheaItems.minersAmulet);
     }
 
-    /** Встроена ли вещь Divine-аксессуар в надетую броню. */
+    /** Whether a Divine accessory item is built into the worn armor. */
     public static boolean wearsItem(EntityPlayer p, net.minecraft.item.Item item) {
         if (p == null || p.worldObj.isRemote) return false;
         return Sockets.wearsItem(p, item);
@@ -136,7 +136,7 @@ public class Accessories implements IInventory {
         persisted(player).setTag(TAG, list);
     }
 
-    /** В старые слоты ничего не кладётся - только забрать то, что осталось. */
+    /** Nothing is put into the old slots - only take what is left. */
     public boolean canPlace(int slot, ItemStack s) {
         return false;
     }
@@ -155,7 +155,7 @@ public class Accessories implements IInventory {
     public ItemStack decrStackSize(int i, int n) {
         if (readOnly || stacks[i] == null) return null;
         ItemStack s;
-        if (i >= SIZE && stacks[i].stackSize > n) { // боеприпасы - часть стака
+        if (i >= SIZE && stacks[i].stackSize > n) { // ammo - part of the stack
             s = stacks[i].splitStack(n);
         } else {
             s = stacks[i];
@@ -188,7 +188,7 @@ public class Accessories implements IInventory {
 
     @Override
     public int getInventoryStackLimit() {
-        return 64; // у аксессуаров слот сам ограничивает до 1
+        return 64; // for accessories the slot itself limits to 1
     }
 
     @Override

@@ -1,10 +1,10 @@
-"""Модель Наковальни Странника. В игре с 0.99.108 - вариант А "Простая" (выбор 10.11, низкополигональная в стиле моделей Divine:
-6 коробок, тексель на единицу, атлас 64x64): тёмное железо, реалмитовые пояса полосами в текстуре, рог, камни-гнёзда спереди и
-сзади. Прежняя подробная модель (19 коробок, молот на рабочей поверхности) - build_detailed().
+"""Model of the Wanderer Anvil. In the game since 0.99.108 - variant A "Simple" (chosen on 10.11, low-poly in the style of Divine models:
+6 boxes, one texel per unit, 64x64 atlas): dark iron, realmite bands as stripes in the texture, horn, socket stones at the front and
+back. The previous detailed model (19 boxes, hammer on the work surface) is build_detailed().
 
-Координаты: y вниз, пол блока y=24, верх блока y=8, x и z от -8 до 8, лицо (камень) смотрит в -Z, рог - в -X.
-Пишет .mesh и .png в ресурсы мода (аргумент - корень репозитория) и превью в папку скрипта.
-Группы меша: anvil/body (обычный свет) и anvil/glow (камни, полная яркость).
+Coordinates: y down, block floor y=24, block top y=8, x and z from -8 to 8, the face (stone) looks toward -Z, the horn toward -X.
+Writes .mesh and .png into the mod resources (the argument is the repository root) and a preview into the script folder.
+Mesh groups: anvil/body (normal light) and anvil/glow (stones, full brightness).
 """
 import math
 import os
@@ -70,7 +70,7 @@ def trim(w, color, faces='all'):
 
 
 def scratches(color, amount=0.35):
-    """Царапины на рабочей поверхности: тонкие косые штрихи."""
+    """Scratches on the work surface: thin slanted strokes."""
     c = mk.rgb(color)
 
     def d(p, face, box):
@@ -87,42 +87,42 @@ def B(x0, y0, z0, x1, y1, z1, paint, bone='body', rot=(0, 0, 0), pivot=None, k=6
 
 
 def build_detailed():
-    """Прежняя модель (до 0.99.108): 19 коробок, атлас 512, молот на рабочей поверхности."""
+    """Previous model (before 0.99.108): 19 boxes, 512 atlas, hammer on the work surface."""
     iron = P(IRON, noise=0.07)
     cop = P(COP, trim(0.3, COPD))
     bs = [
-        B(-5.5, 22.5, -5.0, 7.5, 24.0, 5.0, P(IRON_D, noise=0.08)),                      # плита
-        B(-4.5, 20.5, -4.0, 6.5, 22.5, 4.0, iron),                                     # ступня
-        B(-4.7, 20.6, -4.2, 6.7, 21.2, 4.2, cop),                                      # пояс ступни
-        B(-1.5, 12.5, -2.8, 4.5, 20.5, 2.8, iron),                                     # шея
-        B(-1.8, 13.4, -3.1, 4.8, 14.2, 3.1, cop),                                      # пояса шеи
+        B(-5.5, 22.5, -5.0, 7.5, 24.0, 5.0, P(IRON_D, noise=0.08)),                      # slab
+        B(-4.5, 20.5, -4.0, 6.5, 22.5, 4.0, iron),                                     # foot
+        B(-4.7, 20.6, -4.2, 6.7, 21.2, 4.2, cop),                                      # foot band
+        B(-1.5, 12.5, -2.8, 4.5, 20.5, 2.8, iron),                                     # neck
+        B(-1.8, 13.4, -3.1, 4.8, 14.2, 3.1, cop),                                      # neck bands
         B(-1.8, 18.6, -3.1, 4.8, 19.4, 3.1, cop),
-        B(0.2, 15.0, -3.4, 2.8, 17.8, -2.8, P(BRASS, trim(0.25, '#8a6a20'))),          # оправа камня спереди
-        B(0.2, 15.0, 2.8, 2.8, 17.8, 3.4, P(BRASS, trim(0.25, '#8a6a20'))),            # и сзади
-        B(-3.5, 10.8, -3.8, 6.5, 12.5, 3.8, iron),                                     # плечи
+        B(0.2, 15.0, -3.4, 2.8, 17.8, -2.8, P(BRASS, trim(0.25, '#8a6a20'))),          # stone setting at the front
+        B(0.2, 15.0, 2.8, 2.8, 17.8, 3.4, P(BRASS, trim(0.25, '#8a6a20'))),            # and at the back
+        B(-3.5, 10.8, -3.8, 6.5, 12.5, 3.8, iron),                                     # shoulders
         B(-3.5, 8.2, -4.4, 7.6, 10.8, 4.4, P(IRON, rect(('up',), -1, 99, -1, 99, STEEL), scratches('#6e737c'),
-                                              rect(('up',), 8.6, 9.8, 3.6, 5.2, '#15161a'), noise=0.06)),  # рабочая поверхность
-        B(-3.7, 10.0, -4.6, 7.8, 10.8, 4.6, cop),                                      # пояс под поверхностью
-        B(-5.6, 8.2, -3.0, -3.5, 10.4, 3.0, P(IRON, rect(('up',), -1, 99, -1, 99, STEEL))),  # рог
+                                              rect(('up',), 8.6, 9.8, 3.6, 5.2, '#15161a'), noise=0.06)),  # work surface
+        B(-3.7, 10.0, -4.6, 7.8, 10.8, 4.6, cop),                                      # band under the surface
+        B(-5.6, 8.2, -3.0, -3.5, 10.4, 3.0, P(IRON, rect(('up',), -1, 99, -1, 99, STEEL))),  # horn
         B(-7.0, 8.4, -2.0, -5.6, 9.9, 2.0, P(IRON, rect(('up',), -1, 99, -1, 99, STEEL))),
         B(-8.0, 8.7, -1.1, -7.0, 9.6, 1.1, P(IRON, rect(('up',), -1, 99, -1, 99, STEEL))),
-        # камни-гнёзда (светятся)
+        # socket stones (glow)
         B(0.6, 15.4, -3.7, 2.4, 17.4, -3.3, P(GEM, rect(('north',), 0.2, 0.8, 0.2, 0.8, GEM_L), bevel=0.15), bone='glow'),
         B(0.6, 15.4, 3.3, 2.4, 17.4, 3.7, P(GEM, rect(('south',), 0.2, 0.8, 0.2, 0.8, GEM_L), bevel=0.15), bone='glow'),
     ]
-    # молот на рабочей поверхности, чуть наискось
+    # hammer on the work surface, slightly slanted
     piv = (2.6, 7.6, 0.4)
     rot = (0, 24, 0)
     bs += [
         B(-0.6, 7.25, 0.0, 6.6, 8.0, 0.75, P(WOOD, rect(('north', 'south', 'up', 'down'), 4.6, 7.2, -1, 99, LEATHER), bevel=0.12),
-          rot=rot, pivot=piv),                                                          # рукоять с обмоткой
-        B(-2.6, 6.2, -0.75, -0.6, 8.2, 1.5, P(IRON_D, rect(('up', 'north', 'south'), -1, 99, -1, 0.5, STEEL)), rot=rot, pivot=piv),  # боёк
-        B(-1.95, 6.0, -0.95, -1.25, 8.2, 1.7, cop, rot=rot, pivot=piv),                # реалмитовое кольцо
+          rot=rot, pivot=piv),                                                          # handle with wrapping
+        B(-2.6, 6.2, -0.75, -0.6, 8.2, 1.5, P(IRON_D, rect(('up', 'north', 'south'), -1, 99, -1, 0.5, STEEL)), rot=rot, pivot=piv),  # head
+        B(-1.95, 6.0, -0.95, -1.25, 8.2, 1.7, cop, rot=rot, pivot=piv),                # realmite ring
     ]
     return mk.Model('wanderer_anvil', bs, atlas_width=512)
 
 
-# ------------------------------------------------------------------ вариант А (в игре): пиксельная заливка как у Divine
+# ------------------------------------------------------------------ variant A (in game): pixel fill like Divine
 
 LP_IRON, LP_IRON_D, LP_STEEL, LP_COP, LP_GEM = '#454852', '#2e3037', '#9aa1ad', '#c8642c', '#b27cff'
 FACES = ('north', 'south', 'east', 'west', 'up', 'down')
@@ -135,7 +135,7 @@ def _texel(face):
 
 
 def px(base, *decals, border=0.68, noise=0.11, top=1.10, seed=0):
-    """Плоский цвет, редкий дизеринг в два тона, тёмная рамка в тексель."""
+    """Flat color, sparse two-tone dithering, dark one-texel border."""
     b = mk.rgb(base)
 
     def paint(p, face, box):
@@ -157,7 +157,7 @@ def px(base, *decals, border=0.68, noise=0.11, top=1.10, seed=0):
 
 
 def rows(faces, vs, color, keep_edge=True, mul=1.0):
-    """Полоса по строкам текселей (v=0 - верх грани)."""
+    """Stripe by texel rows (v=0 is the top of the face)."""
     c = mk.rgb(color) * mul
 
     def d(col, iu, iv, face, edge):
@@ -170,7 +170,7 @@ def rows(faces, vs, color, keep_edge=True, mul=1.0):
 
 
 def cells(faces, u0, u1, v0, v1, color):
-    """Прямоугольник в текселях включительно; отрицательные индексы - от правого/нижнего края."""
+    """Rectangle in texels, inclusive; negative indices count from the right/bottom edge."""
     c = mk.rgb(color)
 
     def d(col, iu, iv, face, edge):
@@ -188,22 +188,22 @@ def LB(x0, y0, z0, x1, y1, z1, paint, bone='body'):
 
 
 def build():
-    """Вариант А "Простая": ванильный силуэт наковальни, реалмит - полосами в текстуре, камень спереди и сзади."""
+    """Variant A "Simple": vanilla anvil silhouette, realmite as stripes in the texture, stone at the front and back."""
     top = px(LP_IRON, cells(('up',), 1, -2, 1, -2, LP_STEEL), rows(SIDES, [3], LP_COP))
     neck = px(LP_IRON, rows(SIDES, [1, 5], LP_COP))
     gem = px(LP_GEM, cells(FACES, 0, 0, 0, 0, '#f0e4ff'), border=0.8, noise=0.0)
     bs = [
-        LB(-6, 21, -5, 6, 24, 5, px(LP_IRON_D, rows(SIDES, [0], LP_COP))),    # ступня
-        LB(-3, 14, -3, 3, 21, 3, neck),                                       # шея
-        LB(-5, 9, -4, 7, 14, 4, top),                                         # рабочая часть
-        LB(-8, 9, -2, -5, 12, 2, px(LP_IRON, cells(('up',), 0, -1, 0, -1, LP_STEEL))),  # рог
-        LB(-1, 16, -3.5, 1, 19, -3, gem, bone='glow'),                        # камень спереди (светится)
-        LB(-1, 16, 3, 1, 19, 3.5, gem, bone='glow'),                          # и сзади
+        LB(-6, 21, -5, 6, 24, 5, px(LP_IRON_D, rows(SIDES, [0], LP_COP))),    # foot
+        LB(-3, 14, -3, 3, 21, 3, neck),                                       # neck
+        LB(-5, 9, -4, 7, 14, 4, top),                                         # working part
+        LB(-8, 9, -2, -5, 12, 2, px(LP_IRON, cells(('up',), 0, -1, 0, -1, LP_STEEL))),  # horn
+        LB(-1, 16, -3.5, 1, 19, -3, gem, bone='glow'),                        # stone at the front (glows)
+        LB(-1, 16, 3, 1, 19, 3.5, gem, bone='glow'),                          # and at the back
     ]
     return mk.Model('wanderer_anvil', bs, atlas_width=64)
 
 
-# ------------------------------------------------------------------ превью
+# ------------------------------------------------------------------ preview
 
 def render(tris, tex, W, H, scale, center, yaw, pitch):
     img = np.zeros((H, W, 3))

@@ -29,12 +29,12 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Погода сумеречных миров, как вьюга Iceika: затишье, предупреждение, само событие; состояние в сохранении мира.
+ * Weather of the twilight dimensions, like the Iceika blizzard: stillness, warning, the event itself; state is stored in the world save.
  * <ul>
- * <li>Дикий лес, ливень: под открытым небом замедление, мобы понемногу лечатся. Сет леса лечит под дождём так же, как в воде,
- * водная броня и броня Странника с Дикого леса и выше не мокнут, морское оружие и водная броня бьют сильнее ({@link SeaWeapons}).</li>
- * <li>Апалачия, камнепад: с неба падают глыбы ({@link EntityRockfall}); сет Апалачии от них защищён ещё со времён Divine, крыша
- * спасает всех. Големы каменные: не отлетают, молоты и булавы бьют их сильнее.</li>
+ * <li>Wildwood, downpour: under open sky slowness, mobs heal slowly. The forest set heals in the rain the same way as in water,
+ * Aquastrive armor and Wanderer armor from Wildwood and up do not get wet, sea weapons and Aquastrive armor hit harder ({@link SeaWeapons}).</li>
+ * <li>Apalachia, rockfall: boulders fall from the sky ({@link EntityRockfall}); the Apalachia set has been protected from them since Divine, a roof
+ * saves everyone. Golems are stone: they are not knocked back, mauls and maces hit them harder.</li>
  * </ul>
  */
 public class WorldWeather extends WorldSavedData {
@@ -68,32 +68,32 @@ public class WorldWeather extends WorldSavedData {
         return w.provider.dimensionId == ConfigurationHelper.apalachia;
     }
 
-    /** Идёт ли ливень в этом мире. */
+    /** Whether a downpour is going on in this world. */
     public static boolean rain(World w) {
         return wild(w) && Config.wildwoodRain && get(w).phase == ACTIVE;
     }
 
-    /** Идёт ли камнепад в этом мире. */
+    /** Whether a rockfall is going on in this world. */
     public static boolean quake(World w) {
         return apalachia(w) && Config.apalachiaRockfall && get(w).phase == ACTIVE;
     }
 
-    /** Ливень: 15-25 минут затишья. Камнепад: 10-15. */
+    /** Downpour: 15-25 minutes of stillness. Rockfall: 10-15. */
     private static int calmTicks(World w) {
         return wild(w) ? 18000 + w.rand.nextInt(12001) : 12000 + w.rand.nextInt(6001);
     }
 
-    /** Ливень 2-3 минуты, камнепад минута. */
+    /** Downpour 2-3 minutes, rockfall one minute. */
     private static int activeTicks(World w) {
         return wild(w) ? 2400 + w.rand.nextInt(1201) : 1200;
     }
 
-    /** Открытое небо над головой. */
+    /** Open sky overhead. */
     public static boolean open(net.minecraft.entity.Entity e) {
         return e.worldObj.canBlockSeeTheSky(MathHelper.floor_double(e.posX), MathHelper.floor_double(e.posY) + 1, MathHelper.floor_double(e.posZ));
     }
 
-    /** Секунда ливня для игрока. */
+    /** One second of downpour for a player. */
     public static void rainStep(EntityPlayer p) {
         if (p.capabilities.isCreativeMode || !open(p)) return;
         if (HomeArmor.wears(p, TwilightWorld.WILDWOOD, false)) {
@@ -104,7 +104,7 @@ public class WorldWeather extends WorldSavedData {
         p.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 40, 0, true));
     }
 
-    /** Секунда ливня для мобов: лечатся те, кого он мочит. */
+    /** One second of downpour for mobs: those it soaks are healed. */
     public static void rainMobs(World w) {
         for (Object o : w.loadedEntityList) {
             if (!(o instanceof EntityLiving) || !(o instanceof IMob) || o instanceof IBossDisplayData) continue;
@@ -113,7 +113,7 @@ public class WorldWeather extends WorldSavedData {
         }
     }
 
-    /** Секунда камнепада: глыба вблизи и глыба подальше от каждого игрока. Над пустотой глыбы не падают. */
+    /** One second of rockfall: a boulder nearby and a boulder farther away from each player. Boulders do not fall over the void. */
     public static int rockStep(World w) {
         int made = 0;
         for (Object o : w.playerEntities) {
@@ -130,7 +130,7 @@ public class WorldWeather extends WorldSavedData {
         return made;
     }
 
-    /** Смена фаз и действие события, раз в секунду. */
+    /** Phase changes and the event's effect, once per second. */
     public void second(World w) {
         boolean on = wild(w) ? Config.wildwoodRain : Config.apalachiaRockfall;
         if (!on) return;
@@ -187,7 +187,7 @@ public class WorldWeather extends WorldSavedData {
             get(w).second(w);
         }
 
-        /** Каменная кожа големов Апалачии: не отлетают. Дальше атрибут хранится в самом мобе. */
+        /** Stone Skin of Apalachia golems: they are not knocked back. Further the attribute is stored in the mob itself. */
         @SubscribeEvent
         public void onJoin(EntityJoinWorldEvent e) {
             if (!e.world.isRemote && e.entity instanceof net.divinerpg.entities.twilight.EntityApalachiaGolem)

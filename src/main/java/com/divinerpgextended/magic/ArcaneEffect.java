@@ -7,47 +7,47 @@ import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 
 /**
- * Эффекты арканных зелий (варятся на арканной стойке, {@link TileArcaneBrewer}). Номер в списке - метаданные зелья:
- * новые добавлять только в конец. Сильное (светопыль) - второй уровень, длинное (редстоун) - вдвое дольше, общее (порох) -
- * действует и на игроков в 8 блоках.
+ * Effects of arcane potions (brewed on the Arcane Brewing Stand, {@link TileArcaneBrewer}). The number in the list is the potion metadata:
+ * add new ones only at the end. Strong (glowstone dust) - second level, long (redstone) - twice as long, shared (gunpowder) -
+ * also affects players within 8 blocks.
  */
 public enum ArcaneEffect {
 
-    /** Без задержки восстановления арканы, восстановление x2 (сильное x3). */
+    /** No arcana recovery delay, recovery x2 (strong x3). */
     CLARITY(0xB57BFF, 45),
-    /** Арканный урон +20% (+35%). */
+    /** Arcane damage +20% (+35%). */
     SORCERY(0x7A3CFF, 240),
-    /** Выстрелы арканного оружия дешевле на 25% (40%). */
+    /** Arcane weapon shots are 25% cheaper (40%). */
     COMPOSURE(0x3FD2C8, 240),
-    /** Входящий арканный урон -30% (-45%). */
+    /** Incoming arcane damage -30% (-45%). */
     CHARM_WARD(0xC8C8FF, 240),
-    /** Удары вблизи по тебе -15% (-25%). */
+    /** Melee hits on you -15% (-25%). */
     STONE_SKIN(0x8A8A8A, 240),
-    /** Снаряды по тебе -35% (-50%). */
+    /** Projectiles on you -35% (-50%). */
     DEFLECTION(0xE8E0B0, 240),
-    /** Весь урон по тебе -10% (-15%). */
+    /** All damage to you -10% (-15%). */
     FORTITUDE(0x8B3A3A, 240),
-    /** 30% (45%) урона ближнего боя возвращается атакующему. */
+    /** 30% (45%) of melee damage is returned to the attacker. */
     BRAMBLE_HIDE(0x4F7A28, 240),
-    /** Холод Айсики не копится. */
+    /** Iceika cold does not build up. */
     INNER_HEAT(0xFF7A1A, 240),
-    /** Удары вблизи +15% (+25%). */
+    /** Melee hits +15% (+25%). */
     BATTLE_FERVOR(0xD01818, 240),
-    /** Снаряды +15% (+25%), 20% (30%) шанс вернуть стрелу. */
+    /** Projectiles +15% (+25%), 20% (30%) chance to return the arrow. */
     STEADY_HAND(0x6FA8DC, 240),
-    /** Арканное оружие возвращает 5% (8%) нанесённого урона арканой. */
+    /** Arcane weapons return 5% (8%) of the damage dealt as arcana. */
     ARCANE_HUNGER(0x9B1FA8, 240),
-    /** Убрано (путь домой). */
+    /** Removed (way home). */
     WAY_HOME(0x5DE8B0, 0),
-    /** Убрано (зов битвы). */
+    /** Removed (call to arms). */
     CALL_TO_ARMS(0x6B1010, 300),
-    /** Убрано (затишье). */
+    /** Removed (stillness). */
     STILLNESS(0xCFF5FF, 300),
-    /** Клюёт быстрее, редкая рыба чаще. */
+    /** Bites faster, rare fish more often. */
     FISHERS_FORTUNE(0x2E7DD8, 300);
 
     public final int color;
-    /** Длительность в секундах (0 - действует сразу). */
+    /** Duration in seconds (0 - acts at once). */
     public final int seconds;
 
     ArcaneEffect(int color, int seconds) {
@@ -63,12 +63,12 @@ public enum ArcaneEffect {
         return seconds == 0;
     }
 
-    /** Есть ли у зелья сильная версия (у мгновенного возврата и у тепла - нет). */
+    /** Whether the potion has a strong version (the instant return and warmth do not). */
     public boolean leveled() {
         return !instant() && this != INNER_HEAT;
     }
 
-    /** Ингредиент, из которого на стойке варится это зелье (склянка воды + он). */
+    /** The ingredient from which this potion is brewed on the stand (a water bottle + it). */
     public Item ingredient() {
         switch (this) {
             case CLARITY: return ArcanaItems.aquamarine;
@@ -90,7 +90,7 @@ public enum ArcaneEffect {
         }
     }
 
-    /** Убранные зелья (0.99.30): не варятся, не видны, выпитые - пустые. Номера остаются за ними - метаданные не сдвигаются. */
+    /** Removed potions (0.99.30): not brewed, not visible, drunk ones are empty. Their numbers stay reserved - metadata does not shift. */
     public boolean removed() {
         return this == WAY_HOME || this == CALL_TO_ARMS || this == STILLNESS;
     }

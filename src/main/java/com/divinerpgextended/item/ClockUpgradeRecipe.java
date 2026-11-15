@@ -8,8 +8,8 @@ import net.minecraft.world.World;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Часы Странника уровня N + шестерня времени N-го мира (Eden для I, Wildwood для II, ...) = часы уровня N+1.
- * Бесформенный рецепт в верстаке.
+ * Wanderer's Clock of level N + the time gear of the N-th dimension (Eden for I, Wildwood for II, ...) = clock of level N+1.
+ * A shapeless recipe in the crafting table.
  */
 public class ClockUpgradeRecipe implements IRecipe {
 

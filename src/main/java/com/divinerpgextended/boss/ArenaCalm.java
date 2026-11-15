@@ -18,18 +18,18 @@ import cpw.mods.fml.common.eventhandler.Event;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Покой арены: пока на арене логова (у босса есть привязь {@link LairSummons#home}) идёт бой, обычные мобы там не
- * спавнятся, а при вызове уже стоящие разбегаются - мешать должны подручные босса, а не случайная толпа рощи. В бою
- * ковёр не работает (кроме арены Повелителя ветров в сете Скайтерна - к тотемам иначе не подняться).
+ * Arena calm: while a fight is going on in a lair arena (the boss has a leash {@link LairSummons#home}), ordinary mobs do not
+ * spawn there, and on summon the ones already standing scatter - the boss's minions should get in the way, not a random crowd of the grove. In a fight
+ * the carpet does not work (except in the Wind Lord arena in the Skythern set - otherwise the totems cannot be reached).
  */
 public class ArenaCalm {
 
-    /** Активные арены: босс -> {измерение, x, y, z, радиус, ветер (1 - арена Повелителя ветров)} и когда отмечен. */
+    /** Active arenas: boss -> {dimension, x, y, z, radius, wind (1 - Wind Lord arena)} and when it was marked. */
     private static final Map<Integer, long[]> ARENAS = new ConcurrentHashMap<Integer, long[]>();
-    /** Запас вокруг арены, где тоже тихо. */
+    /** Margin around the arena where it is quiet too. */
     public static final int MARGIN = 8;
 
-    /** Босс с привязью жив и дерётся: отметить арену (зовётся из привязи раз в секунду). */
+    /** A boss with a leash is alive and fighting: mark the arena (called from the leash once per second). */
     public static void mark(Entity boss, int[] home) {
         long wind = boss instanceof com.divinerpgextended.entity.EntityWindLord ? 1 : 0;
         ARENAS.put(boss.getEntityId(), new long[] { boss.dimension, home[0], home[1], home[2], home[3], wind, boss.worldObj.getTotalWorldTime() });
@@ -39,7 +39,7 @@ public class ArenaCalm {
         long now = w.getTotalWorldTime();
         for (Iterator<long[]> it = ARENAS.values().iterator(); it.hasNext();) {
             long[] a = it.next();
-            if (now - a[6] > 60 || now < a[6]) { // босс пропал (убит, выгружен) - арена свободна
+            if (now - a[6] > 60 || now < a[6]) { // the boss is gone (killed, unloaded) - the arena is free
                 it.remove();
                 continue;
             }
@@ -54,7 +54,7 @@ public class ArenaCalm {
         return arenaAt(p.worldObj, p.posX, p.posY, p.posZ) != null;
     }
 
-    /** Ковёр в бою запрещён; на арене Повелителя ветров - можно в сете Скайтерна. */
+    /** Carpet is forbidden in a fight; in the Wind Lord arena - allowed in the Skythern set. */
     public static boolean carpetBlocked(EntityPlayer p) {
         long[] a = arenaAt(p.worldObj, p.posX, p.posY, p.posZ);
         return a != null && !(a[5] == 1 && com.divinerpgextended.trinket.DoubleJump.skyMaster(p));
@@ -66,7 +66,7 @@ public class ArenaCalm {
         if (arenaAt(e.world, e.x, e.y, e.z) != null) e.setResult(Event.Result.DENY);
     }
 
-    /** Вызов босса: обычные враждебные мобы на арене разбегаются (исчезают с дымом), кроме подручных и боссов. */
+    /** Boss summon: ordinary hostile mobs in the arena scatter (vanish with smoke), except minions and bosses. */
     public static int clear(World w, int cx, int cy, int cz, int r) {
         int n = 0;
         int rr = r + MARGIN;

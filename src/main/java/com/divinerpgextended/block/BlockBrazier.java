@@ -18,8 +18,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Жаровня Ледяного Трона: зажжённая (мета 1) светит и греет, как огонь. Боссы во второй фазе гасят жаровни; снова
- * зажечь - огнивом или огненным зарядом.
+ * Frozen Throne Brazier: lit (meta 1) it gives light and warmth, like fire. Bosses in the second phase put out the braziers; to
+ * light again - flint and steel or a fire charge.
  */
 public class BlockBrazier extends Block {
 
@@ -74,7 +74,7 @@ public class BlockBrazier extends Block {
         return true;
     }
 
-    /** Погасить (боссом): шипение и клуб пара. */
+    /** Put out (by a boss): hissing and a puff of steam. */
     public static void extinguish(World world, int x, int y, int z) {
         world.setBlockMetadataWithNotify(x, y, z, 0, 3);
         world.playSoundEffect(x + 0.5, y + 1, z + 0.5, "random.fizz", 1.5F, 0.6F);

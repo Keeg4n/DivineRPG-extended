@@ -4,15 +4,15 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 
 /**
- * Максимум арканы Divine (в Divine зашито 200). Вызывается из кода Divine после {@link ArcanaTransformer}: на сервере -
- * по игроку (200 + 25 за каждое задание Лорда Ваттикуса), на клиенте - значение, присланное сервером.
+ * Divine arcana maximum (hardcoded 200 in Divine). Called from Divine code after {@link ArcanaTransformer}: on the server -
+ * per player (200 + 25 for each Lord Vatticus quest), on the client - the value sent by the server.
  */
 public final class ArcanaHooks {
 
     public static final float BASE = 200.0F, PER_TASK = 25.0F;
     public static final String TASKS = "dre_vatticus_tasks";
 
-    /** Клиентская копия максимума (приходит с сервера). */
+    /** Client copy of the maximum (comes from the server). */
     public static float clientMax = BASE;
 
     private ArcanaHooks() {}
@@ -24,7 +24,7 @@ public final class ArcanaHooks {
     }
 
     public static float max(EntityPlayer p) {
-        // полный сет Кормы - +50 к запасу
+        // full Korma set - +50 to the reserve
         return BASE + PER_TASK * tasks(p) + (com.divinerpgextended.magic.ArcanaRules.korma(p) ? com.divinerpgextended.magic.ArcanaRules.KORMA_MAX : 0);
     }
 
@@ -32,7 +32,7 @@ public final class ArcanaHooks {
         return clientMax;
     }
 
-    /** Полоска Divine рисуется шириной 12.5 * (аркана / 25): подменяем 25 на max / 8, чтобы полная = 100 пикселей. */
+    /** The Divine bar is drawn with a width of 12.5 * (arcana / 25): we replace 25 with max / 8 so that full = 100 pixels. */
     public static float clientScale() {
         return clientMax / 8.0F;
     }

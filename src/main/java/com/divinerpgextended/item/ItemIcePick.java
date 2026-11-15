@@ -22,16 +22,16 @@ import com.divinerpgextended.registry.ModBlocks;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Кирки Iceika. Снежная кирка (из ледяных камней Фростов) копает мёрзлую породу (камень, землю, снег, лёд)
- * примерно вдвое быстрее алмазной, по одному блоку. Кирка инея (из слитков инея) - мгновенно и квадратом 3x3, сидя -
- * по одному блоку. Стены данжей, сундуки и спавнеры не трогают. Вне Iceika - обычные крепкие кирки.
+ * Iceika pickaxes. The Snow Pickaxe (from the Frosts' ice stones) digs frozen rock (stone, dirt, snow, ice)
+ * about twice as fast as a diamond one, one block at a time. The Rime Pickaxe (from Rime Ingots) - instantly and in a 3x3 square, sneaking -
+ * one block at a time. Dungeon walls, chests and spawners are not touched. Outside Iceika - regular sturdy pickaxes.
  */
 public class ItemIcePick extends ItemPickaxe {
 
     private static final ToolMaterial SNOW = EnumHelper.addToolMaterial("DRE_ICE_PICK", 2, 1000, 6.0F, 2.0F, 14);
     private static final ToolMaterial RIME = EnumHelper.addToolMaterial("DRE_RIME_PICK", 3, 2500, 8.0F, 3.0F, 16);
 
-    /** true - кирка инея (мгновенно, 3x3), false - снежная кирка (быстрее, по блоку). */
+    /** true - Rime Pickaxe (instant, 3x3), false - Snow Pickaxe (faster, one block). */
     private final boolean rime;
 
     public ItemIcePick(boolean rime) {
@@ -50,19 +50,19 @@ public class ItemIcePick extends ItemPickaxe {
         return world != null && world.provider.dimensionId == ConfigurationHelper.iceika;
     }
 
-    /** Мёрзлая порода Iceika, которую ледоруб копает быстро и квадратом. */
+    /** Iceika frozen rock that the ice pick digs quickly and in a square. */
     public static boolean isIcyRock(Block b) {
         return b == IceikaBlocks.frozenStone || b == IceikaBlocks.frozenDirt || b == IceikaBlocks.frozenGrass
             || b == Blocks.snow || b == Blocks.snow_layer || b == Blocks.ice || b == Blocks.packed_ice
             || b == Blocks.stone || b == Blocks.dirt || b == Blocks.gravel || b == ModBlocks.frostIce;
     }
 
-    /** Что кирка инея ломает квадратом 3x3: мёрзлая порода и руда инея. */
+    /** What the Rime Pickaxe breaks in a 3x3 square: frozen rock and rime ore. */
     public static boolean square(Block b) {
         return isIcyRock(b) || b == ModBlocks.rimeOre;
     }
 
-    /** Скорость в Iceika: в getDigSpeed мир не передаётся, поэтому через событие. */
+    /** Speed in Iceika: getDigSpeed is not passed the world, so via an event. */
     public static class Handler {
 
         @SubscribeEvent
@@ -79,7 +79,7 @@ public class ItemIcePick extends ItemPickaxe {
         return isIcyRock(block) || super.canHarvestBlock(block, stack);
     }
 
-    /** Идёт ломание соседей (оно само вызывает onBlockDestroyed - не уходим в рекурсию). */
+    /** Breaking of neighbors is in progress (it calls onBlockDestroyed itself - we do not recurse). */
     private static boolean breaking;
 
     @Override
@@ -91,7 +91,7 @@ public class ItemIcePick extends ItemPickaxe {
         if (player.isSneaking() || breaking || !(player instanceof net.minecraft.entity.player.EntityPlayerMP)) return r;
         breaking = true;
         try {
-        // плоскость 3x3 поперёк взгляда: смотрим вверх/вниз - горизонтальная, иначе вертикальная стенка
+        // the 3x3 plane across the view: looking up/down - horizontal, otherwise a vertical wall
         boolean vertical = Math.abs(player.rotationPitch) > 50;
         double yaw = Math.toRadians(player.rotationYaw);
         boolean alongX = Math.abs(Math.sin(yaw)) > Math.abs(Math.cos(yaw));
@@ -115,8 +115,8 @@ public class ItemIcePick extends ItemPickaxe {
                 int bx = x + dx, by = y + dy, bz = z + dz;
                 Block other = world.getBlock(bx, by, bz);
                 if (!square(other) || other.getBlockHardness(world, bx, by, bz) < 0) continue;
-                if (stack.stackSize <= 0) return r; // кирка сломалась
-                // как обычный удар игрока: приваты и плагины видят ломание и могут запретить его
+                if (stack.stackSize <= 0) return r; // the pickaxe broke
+                // like a regular player hit: claims and plugins see the breaking and can forbid it
                 ((net.minecraft.entity.player.EntityPlayerMP) player).theItemInWorldManager.tryHarvestBlock(bx, by, bz);
             }
         }

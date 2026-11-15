@@ -15,8 +15,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Простой предмет с вариантами по метаданным: имя item.dre.&lt;name&gt;.&lt;key&gt;, значок &lt;name&gt;_&lt;key&gt;, подсказка
- * dre.tooltip.&lt;name&gt;.&lt;key&gt; (или общая dre.tooltip.&lt;name&gt;).
+ * A simple item with variants by metadata: name item.dre.&lt;name&gt;.&lt;key&gt;, icon &lt;name&gt;_&lt;key&gt;, tooltip
+ * dre.tooltip.&lt;name&gt;.&lt;key&gt; (or the shared dre.tooltip.&lt;name&gt;).
  */
 public class ItemMeta extends Item {
 

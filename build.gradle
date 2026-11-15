@@ -34,9 +34,9 @@ minecraft {
 }
 
 dependencies {
-    // Оригинальный DivineRPG: нужен только при компиляции (мод ставится рядом в игре)
+    // Original DivineRPG: only needed to compile (in game the mod is installed alongside)
     compileOnly files("libs/DivineRPG-1.4.2.3.jar")
-    // NEI (GTNH) и CodeChickenCore: только для компиляции интеграции, в игре NEI ставится отдельно
+    // NEI (GTNH) and CodeChickenCore: only to compile the integration, in game NEI is installed separately
     compileOnly files("libs/NotEnoughItems-2.8.160-GTNH.jar", "libs/CodeChickenCore-1.4.22.jar")
     // you may put jars on which you depend on in ./libs
     // or you may define them like so..
@@ -110,7 +110,7 @@ publishing {
     }
 }
 
-// coremod: чинит воронки у "бесконечных" печей Divine (см. com.divinerpgextended.asm)
+// coremod: fixes hoppers on the "infinite" Divine furnaces (see com.divinerpgextended.asm)
 jar {
     manifest {
         attributes 'FMLCorePlugin': 'com.divinerpgextended.asm.DreCorePlugin',

@@ -11,8 +11,8 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
 /**
- * Глыба земли, которую Древний голем вырывает из острова и швыряет: летит дугой, при падении разбивается - урон и
- * отброс всем в {@link #RADIUS} блоках. Блоков не ставит; мшистые камни (укрытия капища) рядом с местом удара крошит.
+ * A boulder of earth that the Ancient Golem tears out of the island and hurls: flies in an arc, shatters on landing - damage and
+ * knockback to everyone within {@link #RADIUS} blocks. Places no blocks; it crumbles the mossy stones (shrine covers) near the point of impact.
  */
 public class EntityBoulder extends EntityThrowable {
 
@@ -55,11 +55,11 @@ public class EntityBoulder extends EntityThrowable {
             p.motionY += 0.3;
             p.velocityChanged = true;
         }
-        // глыба крошит мшистые камни-укрытия капища
+        // the boulder crumbles the mossy cover stones of the shrine
         int bx = (int) Math.floor(posX), by = (int) Math.floor(posY), bz = (int) Math.floor(posZ);
         for (int x = bx - 1; x <= bx + 1; x++) for (int y = by - 1; y <= by + 2; y++) for (int z = bz - 1; z <= bz + 1; z++) {
             if (worldObj.getBlock(x, y, z) != net.minecraft.init.Blocks.mossy_cobblestone) continue;
-            worldObj.func_147480_a(x, y, z, false); // разрушить без выпадения, с частицами
+            worldObj.func_147480_a(x, y, z, false); // destroy without a drop, with particles
         }
         setDead();
     }

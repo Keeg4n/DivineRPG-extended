@@ -10,8 +10,8 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
 /**
- * Краб крабового якоря ({@link AnchorSummons}): бегает по земле за хозяином (отстал на 16 блоков - появляется рядом), бьёт
- * клешнями цель хозяина арканным уроном, держится на аркане хозяина. Не ранится, не сохраняется.
+ * Crab of the Crab Anchor ({@link AnchorSummons}): runs on the ground after the owner (fell behind by 16 blocks - appears nearby), hits
+ * the owner's target with claws for arcane damage, lives on the owner's arcana. Cannot be hurt, is not saved.
  */
 public class EntitySummonCrab extends EntityCreature implements AnchorSummons.Summon {
 
@@ -39,7 +39,7 @@ public class EntitySummonCrab extends EntityCreature implements AnchorSummons.Su
         return AnchorSummons.Kind.CRAB;
     }
 
-    /** Удар по цели (урон уже прошёл): звук своего вида. */
+    /** Hit on the target (damage already went through): the sound of its own kind. */
     protected void onHit(EntityLivingBase t, EntityPlayer o) {
         worldObj.playSoundAtEntity(this, "mob.silverfish.hit", 0.5F, 0.6F);
     }
@@ -53,7 +53,7 @@ public class EntitySummonCrab extends EntityCreature implements AnchorSummons.Su
 
     @Override
     protected boolean isAIEnabled() {
-        return true; // навигатор пути работает только с новым ИИ
+        return true; // the path navigator works only with the new AI
     }
 
     @Override
@@ -65,7 +65,7 @@ public class EntitySummonCrab extends EntityCreature implements AnchorSummons.Su
             setDead();
             return;
         }
-        // платит первый в списке хозяина - за всех сразу
+        // the first in the owner's list pays - for all at once
         if (++life % 20 == 0 && AnchorSummons.index(this, o) == 0 && !AnchorSummons.pay(o, AnchorSummons.of(o).size())) {
             AnchorSummons.dismissAll(o);
             return;
@@ -81,7 +81,7 @@ public class EntitySummonCrab extends EntityCreature implements AnchorSummons.Su
             }
             faceEntity(t, 30F, 30F);
         } else if (getDistanceSqToEntity(o) > 16 * 16) {
-            double[] at = AnchorSummons.near(o, AnchorSummons.index(this, o)); // кольцом вокруг хозяина, а не друг в друге
+            double[] at = AnchorSummons.near(o, AnchorSummons.index(this, o)); // in a ring around the owner, not inside each other
             setPosition(at[0], at[1], at[2]);
         } else if (getDistanceSqToEntity(o) > 3 * 3) {
             getNavigator().tryMoveToEntityLiving(o, 1.1D);
@@ -94,7 +94,7 @@ public class EntitySummonCrab extends EntityCreature implements AnchorSummons.Su
             setDead();
             return true;
         }
-        if (AnchorSummons.rivalHit(owner(), s)) return super.attackEntityFrom(s, a); // чужой игрок, где можно PvP
+        if (AnchorSummons.rivalHit(owner(), s)) return super.attackEntityFrom(s, a); // another player, where PvP is allowed
         return false;
     }
 
@@ -108,7 +108,7 @@ public class EntitySummonCrab extends EntityCreature implements AnchorSummons.Su
         return false;
     }
 
-    /** Толкается только с другими призывами: не стоит в них и не толкает хозяина. */
+    /** Pushes only with other summons: does not stand in them and does not push the owner. */
     @Override
     protected void collideWithEntity(Entity e) {
         if (e instanceof AnchorSummons.Summon) super.collideWithEntity(e);
@@ -119,7 +119,7 @@ public class EntitySummonCrab extends EntityCreature implements AnchorSummons.Su
         return true;
     }
 
-    /** ПКМ хозяина - убрать; клик не уходит в предмет в руке (якорь не зовёт нового). */
+    /** Owner right click - dismiss; the click does not go to the item in hand (the anchor does not summon a new one). */
     @Override
     public boolean interact(EntityPlayer p) {
         if (!worldObj.isRemote && owner() == p) AnchorSummons.dismiss(this);

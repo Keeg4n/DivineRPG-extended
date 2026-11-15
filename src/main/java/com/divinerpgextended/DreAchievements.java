@@ -38,9 +38,9 @@ import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Ачивки аддона - на одной странице с ачивками Divine (правее их дерева): главная ветка - путь по боссам, боковые -
- * Наковальня, рыбалка, торговцы Арканы, Джек. Ачивка выдаётся вместе со всеми родителями (иначе Minecraft её не даст),
- * а уже сделанное до появления ачивок засчитывается при входе и раз в 5 секунд.
+ * Addon achievements - on the same page as the Divine achievements (to the right of their tree): the main branch is the path through the bosses, the side ones are
+ * the Anvil, fishing, Arcana merchants, Jack. An achievement is granted together with all its parents (otherwise Minecraft will not give it),
+ * and what was already done before the achievements appeared is counted on join and every 5 seconds.
  */
 public final class DreAchievements {
 
@@ -74,10 +74,10 @@ public final class DreAchievements {
     }
 
     public static void register() {
-        // Страница Divine занимает столбцы 0-9, наш блок - столбцы 11-21. Minecraft рисует связь уголком: по строке ребёнка
-        // до столбца родителя и вверх по столбцу родителя. Поэтому дети одного родителя стоят "гребёнкой" - правее и
-        // каждый на своей строке, чтобы линии не шли под чужими иконками. Длинных связей с деревом Divine нет.
-        // главная ветка: путь по боссам
+        // The Divine page takes columns 0-9, our block takes columns 11-21. Minecraft draws a link as a corner: along the child's row
+        // to the parent's column and up along the parent's column. So children of one parent stand in a "comb" - further right and
+        // each on its own row, so that lines do not run under other people's icons. There are no long links to the Divine tree.
+        // main branch: path through the bosses
         crab = a("crab", 11, 0, s(VanillaItemsOther.crabClaw), null, false);
         carcinus = a("carcinus", 13, 0, s(ModItems.deepShell), crab, false);
         snowGlacon = a("snow_glacon", 15, 0, s(IceikaItems.snowGlobe), carcinus, false);
@@ -87,31 +87,31 @@ public final class DreAchievements {
         frostbite = a("frostbite", 13, 2, s(IceikaItems.iceShards), snowGlacon, false);
         rime = a("rime", 17, 2, s(ModItems.rimeIngot), snowGlacon, false);
         lockedPortal = a("locked_portal", 21, 2, s(Item.getItemFromBlock(ArcanaBlocks.arcanaPortalFrame)), null, false);
-        // сумеречные миры
+        // twilight worlds
         eden = a("eden", 11, 4, s(TwilightItemsOther.edenSoul), null, false);
         wildwood = a("wildwood", 13, 4, s(TwilightItemsOther.wildwoodSoul), eden, false);
         apalachia = a("apalachia", 15, 4, s(TwilightItemsOther.apalachiaSoul), wildwood, false);
         skythern = a("skythern", 17, 4, s(TwilightItemsOther.skythernSoul), apalachia, false);
         twilightDemon = a("twilight_demon", 19, 4, s(TwilightItemsOther.mortumSoul), skythern, false);
         karot = a("karot", 21, 4, s(TwilightItemsOther.mortumGem), twilightDemon, true);
-        // Наковальня Странника
+        // Wanderer Anvil
         anvil = a("anvil", 11, 6, s(Item.getItemFromBlock(ModBlocks.wandererAnvil)), null, false);
         perk = a("perk", 13, 6, s(ModItems.wanderer[1]), anvil, false);
         temper = a("temper", 15, 6, s(TwilightItemsOther.edenGem), perk, true);
-        // Джек о'Мэн и аксессуары
+        // Jack O Man and accessories
         jackTrade = a("jack_trade", 17, 6, s(VanillaItemsOther.shadowCoins), null, false);
         headHunter = a("head_hunter", 19, 6, s(ModItems.trinket, 0), jackTrade, false);
         allSlots = a("all_slots", 21, 6, s(ModItems.trinket, 4), headHunter, true);
-        // рыбалка
+        // fishing
         fishFirst = a("fish_first", 11, 8, s(Items.fishing_rod), null, false);
         fishCrate = a("fish_crate", 13, 8, s(ModItems.crate), fishFirst, false);
         fishQuest = a("fish_quest", 13, 10, s(ModItems.fish, 2), fishFirst, false);
         goldenRod = a("golden_rod", 15, 10, s(ModItems.rods[Rod.GOLDEN.ordinal()]), fishQuest, true);
         relic = a("relic", 13, 12, s(ModItems.nightmareDrill), fishFirst, true);
-        // питомцы
+        // pets
         petTrainer = a("pet_trainer", 17, 8, s(Items.lead), null, false);
         petCarrier = a("pet_carrier", 19, 8, s(ModItems.petCarrier), petTrainer, false);
-        // торговцы Арканы
+        // Arcana merchants
         memoryCrystal = a("memory_crystal", 11, 14, s(ModItems.memoryCrystal), null, false);
         reforge = a("reforge", 13, 14, s(Items.iron_sword), memoryCrystal, false);
         dullReforge = a("dull_reforge", 15, 14, s(Items.stone_sword), reforge, false);
@@ -121,11 +121,11 @@ public final class DreAchievements {
         research = a("research", 13, 20, s(ArcanaItems.wizardBook), memoryCrystal, false);
         furnaceModule = a("furnace_module", 13, 22, s(ModItems.furnaceModule), memoryCrystal, false);
 
-        // всё на одну страницу с ачивками Divine
+        // everything on one page with the Divine achievements
         DivineRPGAchievements.page.getAchievements().addAll(ALL);
     }
 
-    /** Выдать ачивку (сначала все её родители - Minecraft не даёт ачивку без родителя). */
+    /** Grant an achievement (all its parents first - Minecraft does not give an achievement without its parent). */
     public static void give(EntityPlayer p, Achievement a) {
         if (a == null || p == null || p.worldObj.isRemote || !(p instanceof EntityPlayerMP)) return;
         EntityPlayerMP mp = (EntityPlayerMP) p;
@@ -151,7 +151,7 @@ public final class DreAchievements {
         }
     }
 
-    /** Обработчик: краб, проверка уже сделанного при входе и раз в 5 секунд. */
+    /** Handler: crab, check of what was already done on join and every 5 seconds. */
     public static class Handler {
 
         @SubscribeEvent
@@ -162,7 +162,7 @@ public final class DreAchievements {
             }
         }
 
-        /** Окоченел: обморожение от холода Айсики. */
+        /** Numbed: frostbite from the cold of Iceika. */
         @SubscribeEvent
         public void onHurt(net.minecraftforge.event.entity.living.LivingHurtEvent e) {
             if (e.entityLiving instanceof EntityPlayer && e.source == com.divinerpgextended.cold.ColdHandler.FROSTBITE) {
@@ -180,7 +180,7 @@ public final class DreAchievements {
             if (e.phase == TickEvent.Phase.END && !e.player.worldObj.isRemote && e.player.ticksExisted % 100 == 0) check(e.player);
         }
 
-        /** Всё, что можно узнать по сохранённому прогрессу. */
+        /** Everything that can be learned from the saved progress. */
         private static void check(EntityPlayer p) {
             for (Boss b : Boss.values()) if (BossProgress.has(p, b)) give(p, forBoss(b));
             if (p.dimension == ConfigurationHelper.arcana) give(p, DivineRPGAchievements.whatLiesWithin);

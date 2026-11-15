@@ -16,13 +16,13 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 /**
- * Детальная модель пасхалки из ресурсов ({@code models/easter/*.mesh}, собирает ~/mc/tools/easter_build.py вместе с атласом):
- * группы "часть + кость" из четырёхугольников с нормалями. Каждая группа рисуется списком отображения OpenGL.
+ * A detailed Easter egg model from resources ({@code models/easter/*.mesh}, built by ~/mc/tools/easter_build.py together with the atlas):
+ * "part + bone" groups of quadrilaterals with normals. Each group is drawn with an OpenGL display list.
  */
 public final class EasterMesh {
 
     final ResourceLocation file;
-    final Map<String, float[]> groups = new HashMap<String, float[]>(); // "часть/кость" -> по 23 числа на четырёхугольник
+    final Map<String, float[]> groups = new HashMap<String, float[]>(); // "part/bone" -> 23 numbers per quadrilateral
     final Map<String, Integer> lists = new HashMap<String, Integer>();
     boolean loaded;
 
@@ -30,7 +30,7 @@ public final class EasterMesh {
         file = new ResourceLocation("divinerpgextended", "models/easter/" + name + ".mesh");
     }
 
-    /** Модель не из пасхалок: путь к .mesh целиком. */
+    /** A model not from the Easter eggs: the full path to the .mesh. */
     public EasterMesh(ResourceLocation file) {
         this.file = file;
     }
@@ -62,7 +62,7 @@ public final class EasterMesh {
                 groups.put(e.getKey(), a);
             }
         } catch (Exception e) {
-            org.apache.logging.log4j.LogManager.getLogger("divinerpgextended").warn("Модель " + file + " не загружена: " + e);
+            org.apache.logging.log4j.LogManager.getLogger("divinerpgextended").warn("Model " + file + " not loaded: " + e);
         }
     }
 
@@ -71,7 +71,7 @@ public final class EasterMesh {
         return groups.containsKey(piece + "/" + bone);
     }
 
-    /** Нарисовать группу; scale - размер единицы модели (0.0625 у брони, 1/16 у предмета). */
+    /** Draw a group; scale - the size of a model unit (0.0625 for armor, 1/16 for an item). */
     public void render(String piece, String bone, float scale) {
         load();
         String key = piece + "/" + bone + "@" + scale;
@@ -97,7 +97,7 @@ public final class EasterMesh {
         GL11.glCallList(list);
     }
 
-    /** Число четырёхугольников группы (для проверки). */
+    /** Number of quadrilaterals in the group (for checking). */
     public int quads(String piece, String bone) {
         load();
         float[] q = groups.get(piece + "/" + bone);

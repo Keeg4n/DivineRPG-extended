@@ -11,14 +11,14 @@ import codechicken.nei.ItemSorter;
 import com.divinerpgextended.DreTab;
 
 /**
- * Порядок предметов аддона в списке NEI. Сам NEI сортирует внутри мода по номеру предмета, а номера раздаются по порядку
- * добавления в аддон, поэтому новые вещи оказывались вперемешку. Здесь своя ступень сортировки сразу за "по модам":
- * предметы аддона идут по вкладкам творческого режима (основное, снаряжение, аксессуары, рыбалка, аркана, боссы), внутри
- * вкладки - по имени, так что родственные вещи стоят рядом. Номера предметов не меняются, поэтому это работает и в уже
- * созданных мирах. Ступень видна в настройках сортировки NEI.
+ * Order of addon items in the NEI list. NEI itself sorts inside a mod by item id, and ids are handed out in the order
+ * items were added to the addon, so new items ended up mixed together. Here is our own sort tier right after "by mod":
+ * addon items go by creative tabs (main, gear, accessories, fishing, arcana, bosses), within a
+ * tab - by name, so related items stand next to each other. Item ids do not change, so this works in already
+ * created worlds too. The tier is visible in the NEI sort settings.
  * <p>
- * NEI (и классический, и GTNH) ставит новую ступень в самый конец - после сортировки по номеру и повреждению, где она уже
- * ничего не решает. Поэтому при каждой загрузке списка она переставляется сразу за "по модам".
+ * NEI (both classic and GTNH) puts a new tier at the very end - after sorting by id and damage, where it no longer
+ * decides anything. So on every list load it is moved to right after "by mod".
  */
 final class NeiSort {
 
@@ -28,7 +28,7 @@ final class NeiSort {
 
     private NeiSort() {}
 
-    /** Ключ сортировки: номер вкладки и имя; null - не предмет аддона. */
+    /** Sort key: tab number and name; null - not an addon item. */
     static String key(ItemStack s) {
         if (s == null || s.getItem() == null) return null;
         String n = Item.itemRegistry.getNameForObject(s.getItem());
@@ -42,8 +42,8 @@ final class NeiSort {
     }
 
     /**
-     * Броня - полными сетами: сначала весь первый сет (шлем, нагрудник, поножи, ботинки), потом следующий. У брони Странника сет -
-     * ступень, ядро и Венец (R1 с каждым ядром, потом R2-R7, потом R8 с каждым Венцом), у прочей - имя без названия части.
+     * Armor goes in full sets: first the whole first set (helmet, chestplate, leggings, boots), then the next. For Wanderer armor a set is
+     * a tier, core and Crown (R1 with each core, then R2-R7, then R8 with each Crown), for the rest - the name without the part name.
      */
     static String armor(ItemStack s, String name) {
         int slot = ((net.minecraft.item.ItemArmor) s.getItem()).armorType;
@@ -55,7 +55,7 @@ final class NeiSort {
         return name.replaceAll("(Helmet|Hat|Chestplate|Chest|Vest|Body|Leggings|Legs|Pants|Boots)$", "") + "#" + slot;
     }
 
-    /** Предметы аддона между собой; с чужими - поровну (их уже развела ступень "по модам"). */
+    /** Addon items among themselves; with foreign ones - equal (the "by mod" tier has already separated them). */
     static final Comparator<ItemStack> CMP = (a, b) -> {
         String ka = key(a), kb = key(b);
         return ka == null || kb == null ? 0 : ka.compareTo(kb);
@@ -67,7 +67,7 @@ final class NeiSort {
         place();
     }
 
-    /** Поставить ступень сразу за сортировкой по модам (NEI перечитывает список из своих настроек). */
+    /** Put the tier right after sorting by mod (NEI rereads the list from its settings). */
     static void place() {
         ItemSorter.SortEntry e = ItemSorter.find(NAME);
         if (e == null) return;
@@ -78,7 +78,7 @@ final class NeiSort {
         ItemSorter.list = l;
     }
 
-    /** Место ступени в списке сортировки NEI (для самопроверки): номер и номер ступени "по модам". */
+    /** Position of the tier in the NEI sort list (for the selftest): its index and the index of the "by mod" tier. */
     static int[] position() {
         return new int[] { ItemSorter.list.indexOf(ItemSorter.find(NAME)), ItemSorter.list.indexOf(ItemSorter.find("nei.itemsort.mod")) };
     }

@@ -10,12 +10,12 @@ import com.divinerpgextended.item.ArmorData;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Урон ступенчатых боссов зависит от брони игрока: в броне требуемой ступени (или лучше) бой честный, а за каждую
- * ступень ниже урон умножается на underTierMultiplier. Работает до расчёта брони.
+ * Tiered boss damage depends on the player's armor: in armor of the required tier (or better) the fight is fair, and for each
+ * tier below the damage is multiplied by underTierMultiplier. Applied before the armor calculation.
  */
 public class BossDamage {
 
-    /** Требуемая ступень брони против босса или -1, если босс не ступенчатый. */
+    /** Armor tier required against the boss, or -1 if the boss is not tiered. */
     public static int requiredTier(Boss boss) {
         if (boss == null) return -1;
         switch (boss) {
@@ -28,14 +28,14 @@ public class BossDamage {
             }
             case TWILIGHT_DEMON:
                 return Config.twilightDemonRequiredTier;
-            case KAROT: // Карот - зеркало: силу задаёт снаряжение игрока, а не ступень брони
+            case KAROT: // Karot is a mirror: his strength is set by the player's gear, not by the armor tier
                 return -1;
             default:
                 return -1;
         }
     }
 
-    /** Сырой урон великого кадиллиона: чтобы в броне требуемой ступени удар снимал cadillionHit здоровья. */
+    /** Raw damage of the Great Cadillion: so that in armor of the required tier a hit takes off cadillionHit health. */
     public static float cadillionRawDamage(int variant) {
         int v = Math.min(variant, Config.cadillionHit.length - 1);
         int req = Config.cadillionRequiredTier[Math.min(variant, Config.cadillionRequiredTier.length - 1)];
@@ -53,6 +53,6 @@ public class BossDamage {
         int have = ArmorData.effectiveTier((EntityPlayer) event.entityLiving);
         if (have >= req) return;
         event.ammount *= (float) Math.pow(Config.underTierMultiplier, req - have);
-        com.divinerpgextended.debug.Debug.note(event.entityLiving, "Броня ступени " + have + " ниже нужной " + req + ": урон босса x" + Math.pow(Config.underTierMultiplier, req - have));
+        com.divinerpgextended.debug.Debug.note(event.entityLiving, "Armor of tier " + have + " is below the required " + req + ": boss damage x" + Math.pow(Config.underTierMultiplier, req - have));
     }
 }

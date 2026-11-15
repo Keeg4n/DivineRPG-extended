@@ -12,9 +12,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Временный лёд боссов Ледяного Трона. Мета 0 - ледяной шип из волны или дорожки шипов (тает за 1.5 секунды),
- * мета 1 - стенка ледяной тюрьмы: крепкая (Ледоруб ломает мгновенно, обычной киркой долго), тает сама за 8 секунд.
- * Ничего не роняет.
+ * Temporary ice of the Frozen Throne bosses. Meta 0 is an ice spike from a wave or a spike trail (melts in 1.5 seconds),
+ * meta 1 is a wall of the ice prison: sturdy (the Ice Pick breaks it instantly, an ordinary pickaxe slowly), melts by itself in 8 seconds.
+ * Drops nothing.
  */
 public class BlockFrostIce extends Block {
 
@@ -58,11 +58,11 @@ public class BlockFrostIce extends Block {
         return 0;
     }
 
-    /** Ставит временный лёд только в воздух, чтобы не портить постройки. */
+    /** Places temporary ice only into air, so as not to spoil structures. */
     public static boolean place(World world, Block block, int x, int y, int z, int meta) {
         if (!world.isAirBlock(x, y, z)) return false;
         world.setBlock(x, y, z, block, meta, 3);
-        world.scheduleBlockUpdate(x, y, z, block, meta == PRISON ? 160 : 30); // растает сам
+        world.scheduleBlockUpdate(x, y, z, block, meta == PRISON ? 160 : 30); // will melt by itself
         return true;
     }
 }

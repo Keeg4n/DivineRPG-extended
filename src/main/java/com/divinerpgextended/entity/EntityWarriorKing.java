@@ -17,21 +17,21 @@ import com.divinerpgextended.Config;
 import com.divinerpgextended.world.CadillionWorld;
 
 /**
- * Король-воин Апалачии, страж рощи - босс-эскалация: три встречи подряд. Упав, он не умирает, а встаёт на колено
- * (неуязвим, {@link #KNEEL} тиков) и поднимается сильнее:
+ * Warrior King of Apalachia, the grove guardian - an escalation boss: three encounters in a row. When he falls he does not die but kneels
+ * (invulnerable, {@link #KNEEL} ticks) and rises stronger:
  * <ol>
- * <li>дуэль: клинок, выпад к цели и прыжок за спину с ударом;</li>
- * <li>+ ударная волна: замах, потом кольцо отбрасывает всех рядом далеко в сторону - с острова можно слететь
- * (Каменная стена, сет Апалачии, держит на месте); прыжок ввысь - зависает над целью, на земле метка, потом обрушивается
- * туда (успей отойти);</li>
- * <li>+ свита: големы и кадиллионы Апалачии.</li>
+ * <li>duel: blade, lunge at the target and a jump behind the back with a strike;</li>
+ * <li>+ shockwave: wind-up, then a ring throws everyone nearby far aside - you can be blown off the island
+ * (Stone Wall, the Apalachia set, holds you in place); high jump - hovers over the target, a marker on the ground, then crashes down
+ * there (get away in time);</li>
+ * <li>+ retinue: Apalachia golems and cadillions.</li>
  * </ol>
- * Трофеи - только после третьей победы. На священной горе каждая следующая встреча начинается ярусом выше на кургане.
+ * Trophies - only after the third victory. On the sacred mountain each following encounter starts a tier higher on the mound.
  */
 public class EntityWarriorKing extends EntityGroveGuardian {
 
     public static final int ROUNDS = 3, KNEEL = 100;
-    /** Здоровье и урон по встречам (доля от силы стража мира). */
+    /** Health and damage per encounter (a share of the world guardian's strength). */
     public static final float[] HEALTH = { 0.5F, 0.75F, 1.0F }, DAMAGE = { 1.0F, 1.2F, 1.4F };
     public static final float SCALE = 2.2F;
     private static final int DW_ROUND = 21, DW_KNEEL = 22;
@@ -40,7 +40,7 @@ public class EntityWarriorKing extends EntityGroveGuardian {
     private int behindTimer = 120, slamTimer = 200, slamState, slamHold;
     private boolean behindLeap;
     private double markX, markY, markZ;
-    /** Прыжок ввысь: подъём, зависание, удар. */
+    /** High jump: rise, hover, strike. */
     public static final int SLAM_UP = 1, SLAM_HOLD = 2, SLAM_DOWN = 3, HOLD_TICKS = 30;
     public static final double SLAM_R = 3.5;
 
@@ -48,7 +48,7 @@ public class EntityWarriorKing extends EntityGroveGuardian {
         super(world);
         setSize(1.4F, 4.2F);
         tasks.addTask(2, new EntityAIAttackOnCollide(this, EntityPlayer.class, 1.0D, false));
-        // клинок только для вида: пустой список модификаторов - урон клинка к урону Короля не прибавляется
+        // the blade is for looks only: an empty modifier list - the blade's damage is not added to the King's damage
         ItemStack blade = new ItemStack(net.divinerpg.utils.items.TwilightItemsWeapons.apalachiaBlade);
         blade.setTagCompound(new NBTTagCompound());
         blade.getTagCompound().setTag("AttributeModifiers", new net.minecraft.nbt.NBTTagList());
@@ -74,7 +74,7 @@ public class EntityWarriorKing extends EntityGroveGuardian {
         getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.32D);
     }
 
-    /** Номер встречи: 0, 1, 2. */
+    /** Encounter number: 0, 1, 2. */
     public int round() {
         return dataWatcher.getWatchableObjectByte(DW_ROUND);
     }
@@ -83,7 +83,7 @@ public class EntityWarriorKing extends EntityGroveGuardian {
         return slamState;
     }
 
-    /** Сколько ещё стоит на колене (0 - сражается). */
+    /** How much longer he stays kneeling (0 - fighting). */
     public int kneeling() {
         return dataWatcher.getWatchableObjectInt(DW_KNEEL);
     }
@@ -100,7 +100,7 @@ public class EntityWarriorKing extends EntityGroveGuardian {
         setHealth(getMaxHealth());
     }
 
-    /** Замах волны сейчас (слайсер его сбивает). */
+    /** Wave wind-up right now (the slicer interrupts it). */
     public boolean windingUp() {
         return windup >= 0;
     }
@@ -109,14 +109,14 @@ public class EntityWarriorKing extends EntityGroveGuardian {
     public boolean attackEntityFrom(DamageSource src, float amount) {
         if (kneeling() > 0 && src != DamageSource.outOfWorld) return false;
         if (windup >= 0 && com.divinerpgextended.perk.RangedRoles.kind(src.getSourceOfDamage()) == com.divinerpgextended.perk.RangedRoles.SLICER) {
-            windup = -1; // замах сбит - волны не будет
+            windup = -1; // wind-up interrupted - no wave
             worldObj.playSoundAtEntity(this, "random.anvil_land", 1.0F, 1.8F);
-            com.divinerpgextended.debug.Debug.noteNear(this, 40, "Король: замах сбит слайсером");
+            com.divinerpgextended.debug.Debug.noteNear(this, 40, "King: swing interrupted by the slicer");
         }
         return super.attackEntityFrom(src, amount);
     }
 
-    /** Смертельный удар до последней встречи - встаёт на колено вместо смерти. */
+    /** A lethal blow before the last encounter - he kneels instead of dying. */
     @Override
     public void setHealth(float hp) {
         if (hp <= 0 && !worldObj.isRemote && round() < ROUNDS - 1 && dataWatcher != null) {
@@ -127,7 +127,7 @@ public class EntityWarriorKing extends EntityGroveGuardian {
             slamState = 0;
             behindLeap = false;
             worldObj.playSoundAtEntity(this, "random.anvil_land", 1.5F, 0.4F);
-            com.divinerpgextended.debug.Debug.note(this, "Король-воин: колено после встречи " + (round() + 1));
+            com.divinerpgextended.debug.Debug.note(this, "Warrior King: step after encounter " + (round() + 1));
             return;
         }
         super.setHealth(hp);
@@ -160,12 +160,12 @@ public class EntityWarriorKing extends EntityGroveGuardian {
             slamTick(ws, t);
             return;
         }
-        if (behindLeap && onGround && motionY <= 0) { // приземлился за спиной - сразу удар
+        if (behindLeap && onGround && motionY <= 0) { // landed behind the back - strike right away
             behindLeap = false;
             sweep(3.5, 1.0F, 0.4);
         }
         if (t == null) return;
-        if (windup >= 0) { // замах перед волной: стоит, клинок вверх
+        if (windup >= 0) { // wind-up before the wave: stands, blade up
             motionX = motionZ = 0;
             getNavigator().clearPathEntity();
             ws.func_147487_a("crit", posX, posY + height, posZ, 4, 0.3, 0.3, 0.3, 0.1);
@@ -204,16 +204,16 @@ public class EntityWarriorKing extends EntityGroveGuardian {
     }
 
     /**
-     * На священной горе новая встреча начинается на вершине кургана: прыжок к костровищу (рядом с ним, не в огонь).
-     * Высота - по настоящей поверхности, и только туда, где король целиком помещается (раньше вторая встреча ставила его
-     * на высоту нижнего яруса в 3 блоках от центра - внутрь вершины).
+     * On the sacred mountain a new encounter starts on the top of the mound: a jump to the fire pit (next to it, not into the fire).
+     * Height - by the real surface, and only where the king fits entirely (before, the second encounter placed him
+     * at the height of the lower tier 3 blocks from the center - inside the summit).
      */
     private void climbTier() {
         int[] home = com.divinerpgextended.boss.LairSummons.home(this);
         int[] tierH = com.divinerpgextended.world.twilight.WorldGenNests.TIER_H;
         if (home == null || round() >= tierH.length) return;
         int tx = home[0] + 4, tz = home[2];
-        if (worldObj.isAirBlock(tx, home[1] + tierH[1] - 1, tz)) return; // не курган - ярусов нет
+        if (worldObj.isAirBlock(tx, home[1] + tierH[1] - 1, tz)) return; // not a mound - no tiers
         int y = home[1] + tierH[tierH.length - 1] + 12;
         while (y > home[1] && worldObj.isAirBlock(tx, y - 1, tz)) y--;
         for (int k = 0; k < 8; k++, y++) {
@@ -225,7 +225,7 @@ public class EntityWarriorKing extends EntityGroveGuardian {
         worldObj.playSoundAtEntity(this, "mob.enderdragon.wings", 2.0F, 0.8F);
     }
 
-    /** Прыжок за спину цели: дугой через неё, при приземлении - круговой удар клинком. */
+    /** Jump behind the target's back: in an arc over it, on landing - a circular blade strike. */
     private void leapBehind(EntityLivingBase t) {
         net.minecraft.util.Vec3 look = t.getLookVec();
         double lx = look.xCoord, lz = look.zCoord, ll = Math.max(0.01, Math.sqrt(lx * lx + lz * lz));
@@ -239,7 +239,7 @@ public class EntityWarriorKing extends EntityGroveGuardian {
         worldObj.playSoundAtEntity(this, "mob.enderdragon.wings", 1.5F, 1.5F);
     }
 
-    /** Удар по всем вокруг (после прыжков). */
+    /** Strike at everyone around (after the jumps). */
     private void sweep(double r, float mult, double up) {
         swingItem();
         float dmg = (float) getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue() * mult;
@@ -255,7 +255,7 @@ public class EntityWarriorKing extends EntityGroveGuardian {
         worldObj.playSoundAtEntity(this, "mob.irongolem.hit", 2.0F, 0.6F);
     }
 
-    /** Прыжок ввысь: на вершине зависает и отмечает место цели, потом падает туда. */
+    /** High jump: at the peak it hovers and marks the target's spot, then falls there. */
     private void slamTick(WorldServer ws, EntityLivingBase t) {
         getNavigator().clearPathEntity();
         switch (slamState) {
@@ -276,7 +276,7 @@ public class EntityWarriorKing extends EntityGroveGuardian {
                 return;
             case SLAM_HOLD:
                 motionX = motionZ = 0;
-                motionY = 0.08; // висит
+                motionY = 0.08; // hanging
                 for (int i = 0; i < 12; i++) {
                     double a = Math.PI * 2 * i / 12 + slamHold * 0.1;
                     ws.func_147487_a("reddust", markX + Math.cos(a) * SLAM_R, markY + 0.2, markZ + Math.sin(a) * SLAM_R, 1, 0, 0, 0, 0);
@@ -297,7 +297,7 @@ public class EntityWarriorKing extends EntityGroveGuardian {
         }
     }
 
-    /** Выпад: прыжок к цели. */
+    /** Lunge: a jump to the target. */
     private void dash(EntityLivingBase t) {
         dashTimer = 120 + rand.nextInt(40);
         double dx = t.posX - posX, dz = t.posZ - posZ, d = Math.sqrt(dx * dx + dz * dz);
@@ -308,7 +308,7 @@ public class EntityWarriorKing extends EntityGroveGuardian {
         worldObj.playSoundAtEntity(this, "mob.enderdragon.wings", 1.5F, 1.3F);
     }
 
-    /** Ударная волна: всех в 9 блоках бьёт и отбрасывает прочь (Каменная стена держит). */
+    /** Shockwave: hits everyone within 9 blocks and throws them away (Stone Wall holds you). */
     private void wave() {
         WorldServer ws = (WorldServer) worldObj;
         worldObj.playSoundAtEntity(this, "random.explode", 2.0F, 0.7F);

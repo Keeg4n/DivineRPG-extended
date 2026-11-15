@@ -6,9 +6,9 @@ import codechicken.nei.api.IConfigureNEI;
 import com.divinerpgextended.Tags;
 
 /**
- * Подключение к NEI (NEI сам находит классы NEI*Config): вкладки рыбалки, ящиков и торговцев. Работает и на классическом
- * NEI (ChickenBones 1.0.5), и на NEI из GTNH: всё, чего нет в классическом (катализаторы, описания вкладок), - в
- * {@link NeiGtnh}, этот класс загружается только при NEI из GTNH.
+ * NEI hookup (NEI finds the NEI*Config classes itself): fishing, crate and merchant tabs. Works on both classic
+ * NEI (ChickenBones 1.0.5) and NEI from GTNH: everything classic lacks (catalysts, tab descriptions) lives in
+ * {@link NeiGtnh}, this class is loaded only with NEI from GTNH.
  */
 public class NEIDivineRPGExtendedConfig implements IConfigureNEI {
 
@@ -34,7 +34,7 @@ public class NEIDivineRPGExtendedConfig implements IConfigureNEI {
         AnvilHandler anvil = new AnvilHandler();
         API.registerRecipeHandler(anvil);
         API.registerUsageHandler(anvil);
-        // служебные блоки рельсов (ставятся предметами-рельсами) и убранные рельсы Divine
+        // service rail blocks (placed by rail items) and the removed Divine rails
         for (net.minecraft.block.Block b : new net.minecraft.block.Block[] { com.divinerpgextended.registry.ModBlocks.skyRail,
             com.divinerpgextended.registry.ModBlocks.apalachiaRail, com.divinerpgextended.registry.ModBlocks.skyBoostRail,
             com.divinerpgextended.registry.ModBlocks.letheFlowing, com.divinerpgextended.registry.ModBlocks.dreamCarrots,
@@ -45,13 +45,13 @@ public class NEIDivineRPGExtendedConfig implements IConfigureNEI {
         try {
             NeiSort.install();
         } catch (Throwable t) {
-            com.divinerpgextended.DivineRPGExtended.LOG.warn("NEI: порядок предметов аддона не подключён - " + t);
+            com.divinerpgextended.DivineRPGExtended.LOG.warn("NEI: addon item order not connected - " + t);
         }
         if (!Nei.gtnh()) return;
         try {
             NeiGtnh.setup(fishing, brewing);
         } catch (Throwable t) {
-            com.divinerpgextended.DivineRPGExtended.LOG.warn("NEI: катализаторы и описания вкладок не подключены - " + t);
+            com.divinerpgextended.DivineRPGExtended.LOG.warn("NEI: catalysts and tab descriptions not connected - " + t);
         }
     }
 

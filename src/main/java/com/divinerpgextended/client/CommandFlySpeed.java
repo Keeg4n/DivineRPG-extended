@@ -11,8 +11,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Клиентская команда /dreflyspeed N: скорость полёта в N раз выше обычной (1-10), без числа - обычная. Полёт
- * считается на клиенте, поэтому работает и на сервере; сбрасывается при смене режима игры или мира.
+ * Client command /dreflyspeed N: flight speed N times higher than normal (1-10), without a number - normal. Flight
+ * is calculated on the client, so it works on a server too; it resets when the game mode or world changes.
  */
 @SideOnly(Side.CLIENT)
 public class CommandFlySpeed extends CommandBase {

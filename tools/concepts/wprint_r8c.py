@@ -1,5 +1,5 @@
-"""Лист R8, третий раунд Призрака (A4): глубокий капюшон, три формы выреза. Рядом Г как было.
-Запуск: python wprint_r8c.py <out.html>. Картинки ждёт в img/ рядом с HTML: r8a, r8d, r8g..r8i (wr8.py)."""
+"""R8 sheet, third round of the Wraith (A4): deep hood, three cutout shapes. G as it was next to them.
+Run: python wprint_r8c.py <out.html>. Expects images in img/ next to the HTML: r8a, r8d, r8g..r8i (wr8.py)."""
 import html
 import os
 import sys

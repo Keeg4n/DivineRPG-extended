@@ -16,36 +16,36 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
 /**
- * Манекен для битья. Копия игрока, который его поставил (или сделал копию себя: присесть + ПКМ): скин, надетая броня,
- * аксессуары, эффекты зелий и аркана на момент копии. Удар по нему считается так, как если бы били этого игрока
- * ({@link DummyGhost}), над головой - урон последнего удара и урон в секунду. В руках ничего нет.
+ * Training Dummy. A copy of the player who placed it (or made a copy of themselves: sneak + right-click): skin, worn armor,
+ * accessories, potion effects and arcana at the moment of the copy. A hit on it is counted as if this player were being hit
+ * ({@link DummyGhost}), above the head are the last hit's damage and damage per second. Nothing in its hands.
  * <p>
- * Без дюпов и выгоды: снять с него ничего нельзя (броня - только вид), он не умирает и ничего не роняет (ни вещей, ни
- * опыта); здоровье, аркана, сытость и поглощение бьющего игрока после удара возвращаются как были (никакой вампиризм не
- * лечит о манекен). Убрать может только поставивший: присесть и ударить - предмет возвращается один раз.
+ * No dupes and no gain: nothing can be taken from it (the armor is only a look), it does not die and drops nothing (neither items nor
+ * experience); the hitting player's health, arcana, saturation and absorption return to what they were after the hit (no vampirism
+ * heals off the dummy). Only the one who placed it can remove it: sneak and hit - the item is returned once.
  * <p>
- * Как у игрока, после удара полсекунды неуязвим (больший удар за это время засчитывается разницей), питомцы бьющего
- * игрока бьют манекен вместе с ним. На сервере - не больше {@link DummyLimit#MAX} манекенов.
+ * As with a player, it is invulnerable for half a second after a hit (a bigger hit during that time is counted by the difference), the hitting
+ * player's pets hit the dummy together with them. On the server - no more than {@link DummyLimit#MAX} dummies.
  */
 public class EntityTrainingDummy extends EntityLiving {
 
     private static final int DW_NAME = 20, DW_LAST = 21, DW_DPS = 22, DW_UUID = 23, DW_ARC = 24, DW_ARC_SPENT = 25;
-    /** Урон от окружения и эффектов: манекен его не показывает. */
+    /** Damage from the environment and effects: the dummy does not show it. */
     private static final java.util.Set<String> ENVIRONMENT = new java.util.HashSet<String>(java.util.Arrays.asList("inFire", "onFire", "lava", "cactus",
         "fall", "drown", "inWall", "starve", "wither", "magic", "anvil", "fallingBlock"));
-    /** Окно для урона в секунду. */
+    /** Window for damage per second. */
     static final int WINDOW = 100;
 
     private UUID placer;
     private NBTTagCompound snap = new NBTTagCompound();
-    /** Аркана манекена: со снимка игрока, тратится щитом, восстанавливается как у игрока Divine (+1 за тик после паузы, до 200). */
+    /** The dummy's arcana: from the player snapshot, spent by the ward, regenerates like a Divine player's (+1 per tick after a pause, up to 200). */
     float arcana = -1;
     int arcanaDelay;
     public static final float ARCANA_MAX = 200F, ARCANA_REGEN = 1F;
     private DummyGhost ghost;
     private final ArrayDeque<long[]> hits = new ArrayDeque<long[]>();
     private boolean removed, listed;
-    /** Питомцы, натравленные на манекен, и когда их хозяин бил последним. */
+    /** Pets sent at the dummy, and when their owner last hit. */
     private final java.util.Set<Integer> pets = new java.util.HashSet<Integer>();
     private long ownerHit;
 
@@ -67,7 +67,7 @@ public class EntityTrainingDummy extends EntityLiving {
         dataWatcher.addObject(DW_ARC_SPENT, Float.valueOf(0));
     }
 
-    /** Аркана копии (как у игрока при копии) и сколько её снял щит арканы последним ударом. */
+    /** The copy's arcana (as the player's at the time of the copy) and how much of it the arcane ward removed with the last hit. */
     public float arcana() {
         return dataWatcher.getWatchableObjectFloat(DW_ARC);
     }
@@ -76,7 +76,7 @@ public class EntityTrainingDummy extends EntityLiving {
         return dataWatcher.getWatchableObjectFloat(DW_ARC_SPENT);
     }
 
-    /** UUID того, чья это копия (для скина и модели как у живого игрока); пусто у манекенов до 0.99.30. */
+    /** UUID of the one this is a copy of (for the skin and model like a live player); empty for dummies from before 0.99.30. */
     public String skinId() {
         return dataWatcher.getWatchableObjectString(DW_UUID);
     }
@@ -103,7 +103,7 @@ public class EntityTrainingDummy extends EntityLiving {
         return placer;
     }
 
-    /** Стать копией игрока (снимок надетого, данных, эффектов и арканы). */
+    /** Become a copy of the player (a snapshot of what is worn, data, effects and arcana). */
     public void copy(EntityPlayer p) {
         snap = DummyGhost.snapshot(p);
         ghost = null;
@@ -114,7 +114,7 @@ public class EntityTrainingDummy extends EntityLiving {
         dataWatcher.updateObject(DW_UUID, p.getUniqueID().toString());
         for (int i = 0; i < 4; i++) {
             ItemStack a = p.inventory.armorInventory[i];
-            setCurrentItemOrArmor(i + 1, a == null ? null : a.copy()); // только вид: слотов у манекена нет
+            setCurrentItemOrArmor(i + 1, a == null ? null : a.copy()); // only a look: the dummy has no slots
         }
         setCurrentItemOrArmor(0, null);
         resetStats();
@@ -144,7 +144,7 @@ public class EntityTrainingDummy extends EntityLiving {
         return ghost;
     }
 
-    /** Состояние бьющего игрока: после удара по манекену возвращается как было. */
+    /** State of the hitting player: after a hit on the dummy it returns to what it was. */
     static final class Guard {
         final EntityPlayer p;
         final float health, absorb, sat, arcana;
@@ -165,12 +165,12 @@ public class EntityTrainingDummy extends EntityLiving {
             if (p.isDead) return;
             p.setHealth(health);
             p.setAbsorptionAmount(absorb);
-            try { // у FoodStats нет серверных сеттеров
+            try { // FoodStats has no server setters
                 cpw.mods.fml.relauncher.ReflectionHelper.setPrivateValue(net.minecraft.util.FoodStats.class, p.getFoodStats(), food, "foodLevel", "field_75127_a");
                 cpw.mods.fml.relauncher.ReflectionHelper.setPrivateValue(net.minecraft.util.FoodStats.class, p.getFoodStats(), sat, "foodSaturationLevel", "field_75125_b");
             } catch (Throwable ignored) {}
             net.divinerpg.utils.events.ArcanaHelper h = net.divinerpg.utils.events.ArcanaHelper.getProperties(p);
-            if (h != null && h.getBarValue() > arcana) h.setBarValue(arcana); // трата арканы на выстрел остаётся, прибыль - нет
+            if (h != null && h.getBarValue() > arcana) h.setBarValue(arcana); // the arcana spent on a shot stays spent, the gain does not
         }
     }
 
@@ -182,15 +182,15 @@ public class EntityTrainingDummy extends EntityLiving {
             return true;
         }
         Entity attacker = s.getEntity();
-        // огонь, лава, кактус, падение - не в счёт; взрывы (бомбы, метеоры, пушки модов: у взрыва в 1.7.10 нет атакующего) и
-        // прочий урон оружия без атакующего - в счёт
+        // fire, lava, cactus, falling do not count; explosions (bombs, meteors, mod cannons: an explosion in 1.7.10 has no attacker) and
+        // other weapon damage without an attacker count
         if (attacker == null && !s.isExplosion() && ENVIRONMENT.contains(s.damageType)) return false;
-        // присел и ударил рукой - забрать: решает удар самого игрока ({@link Pickup}), а не урон - иначе манекен забирал
-        // удар питомца (или призрака) "от имени" присевшего хозяина
+        // sneaked and hit with a hand - take it: decided by the player's own hit ({@link Pickup}), not by damage - otherwise the dummy was picked up
+        // a hit by a pet (or a ghost) "on behalf of" the sneaking owner
         if (attacker instanceof EntityPlayer && ((EntityPlayer) attacker).isSneaking() && s.getSourceOfDamage() == attacker) return false;
         DummyGhost g = ghost();
         if (g == null) return false;
-        // неуязвимость после удара - как у игрока: за полсекунды засчитывается только то, на сколько новый удар сильнее
+        // invulnerability after a hit is like a player's: within half a second only how much stronger the new hit is counts
         float counted = amount;
         if (hurtResistantTime > maxHurtResistantTime / 2F) {
             if (amount <= lastDamage) return false;
@@ -216,7 +216,7 @@ public class EntityTrainingDummy extends EntityLiving {
         dataWatcher.updateObject(DW_ARC, Float.valueOf(arcana));
         dataWatcher.updateObject(DW_ARC_SPENT, Float.valueOf(g.arcanaSpent));
         if (attacker instanceof EntityPlayer) callPets((EntityPlayer) attacker);
-        worldObj.setEntityState(this, (byte) 2); // вздрогнуть
+        worldObj.setEntityState(this, (byte) 2); // flinch
         playSound("dig.cloth", 0.8F, 1.0F);
         return true;
     }
@@ -232,27 +232,27 @@ public class EntityTrainingDummy extends EntityLiving {
         dataWatcher.updateObject(DW_DPS, Float.valueOf(sum * 20F / span));
     }
 
-    /** Питомцы игрока рядом (не сидящие) бьют манекен, пока бьёт хозяин. */
+    /** The player's pets nearby (not sitting) hit the dummy while the owner hits. */
     void callPets(EntityPlayer p) {
         ownerHit = worldObj.getTotalWorldTime();
         for (Object o : worldObj.getEntitiesWithinAABB(net.minecraft.entity.passive.EntityTameable.class, boundingBox.expand(24, 12, 24))) {
             net.minecraft.entity.passive.EntityTameable t = (net.minecraft.entity.passive.EntityTameable) o;
             if (!t.isTamed() || t.isSitting() || !owns(p, t)) continue;
-            t.setAttackTarget(this); // новый ИИ
-            t.setTarget(this); // старый ИИ
+            t.setAttackTarget(this); // new AI
+            t.setTarget(this); // old AI
             pets.add(t.getEntityId());
         }
-        com.divinerpgextended.magic.ArcaneSummons.mark(p, this); // призраки кости призрака (удар по манекену не проходит через событие атаки)
-        com.divinerpgextended.magic.AnchorSummons.mark(p, this); // слизни, крабы, око, акулы
+        com.divinerpgextended.magic.ArcaneSummons.mark(p, this); // ghosts of the ghost bone (a hit on the dummy does not go through the attack event)
+        com.divinerpgextended.magic.AnchorSummons.mark(p, this); // slimes, crabs, the eye, sharks
     }
 
-    /** Divine пишет в поле владельца имя игрока, ваниль - UUID. */
+    /** Divine writes the player name into the owner field, vanilla writes the UUID. */
     private static boolean owns(EntityPlayer p, net.minecraft.entity.passive.EntityTameable t) {
         String n = t.func_152113_b();
         return n != null && (n.equals(p.getUniqueID().toString()) || n.equals(p.getCommandSenderName()) || n.equals(p.getDisplayName()));
     }
 
-    /** Хозяин перестал бить - питомцы отстают. */
+    /** The owner stopped hitting - the pets fall behind. */
     private void releasePets() {
         for (Integer id : pets) {
             Entity e = worldObj.getEntityByID(id);
@@ -273,7 +273,7 @@ public class EntityTrainingDummy extends EntityLiving {
         }
     }
 
-    /** Убрать манекен: предмет возвращается один раз. */
+    /** Remove the dummy: the item is returned once. */
     void pickUp(EntityPlayer p) {
         if (removed || isDead) return;
         removed = true;
@@ -282,7 +282,7 @@ public class EntityTrainingDummy extends EntityLiving {
         if (!p.inventory.addItemStackToInventory(it)) entityDropItem(it, 0.5F);
     }
 
-    /** Забрать манекен: игрок присел и сам ударил его (событие удара игрока, а не урон). */
+    /** Pick up the dummy: the player sneaked and hit it himself (the player's hit event, not damage). */
     public static class Pickup {
 
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
@@ -308,7 +308,7 @@ public class EntityTrainingDummy extends EntityLiving {
         return true;
     }
 
-    // неподвижный, не умирает, ничего не роняет
+    // motionless, does not die, drops nothing
 
     @Override
     public void onLivingUpdate() {
@@ -323,7 +323,7 @@ public class EntityTrainingDummy extends EntityLiving {
         }
         if (!worldObj.isRemote && !hits.isEmpty() && worldObj.getTotalWorldTime() - hits.peekLast()[0] > WINDOW) resetStats();
         if (!worldObj.isRemote && !pets.isEmpty() && worldObj.getTotalWorldTime() - ownerHit > WINDOW) releasePets();
-        if (!worldObj.isRemote && !listed && !isDead) { // стоявшие до 0.99.33 - в счёт при первом тике
+        if (!worldObj.isRemote && !listed && !isDead) { // those placed before 0.99.33 are counted on the first tick
             listed = true;
             DummyLimit.get().add(getUniqueID());
         }
@@ -334,14 +334,14 @@ public class EntityTrainingDummy extends EntityLiving {
         return false;
     }
 
-    /** Старый ИИ в воде "прыгает" (всплывает), а флаг прыжка потом не сбрасывается - и на суше манекен скачет дальше. */
+    /** The old AI "jumps" in water (floats up), and the jump flag is not reset afterwards - and on land the dummy keeps jumping. */
     @Override
     protected void updateEntityActionState() {
         super.updateEntityActionState();
         isJumping = false;
     }
 
-    // вода манекена не трогает: течение не сносит, не тонет (урон от утопления сбивал бы счёт ударов)
+    // water does not affect the dummy: the current does not carry it, it does not drown (drowning damage would throw off the hit count)
 
     @Override
     public boolean isPushedByWater() {
@@ -372,7 +372,7 @@ public class EntityTrainingDummy extends EntityLiving {
         return false;
     }
 
-    /** Даже /kill: просто исчезает - без событий смерти, добычи, опыта и засчитанных убийств. */
+    /** Even /kill: it just disappears - without death events, loot, experience and counted kills. */
     @Override
     public void onDeath(DamageSource s) {
         removed = true;
@@ -441,7 +441,7 @@ public class EntityTrainingDummy extends EntityLiving {
         ghost = null;
     }
 
-    /** Для проверки снимка (автотест). */
+    /** For snapshot checking (selftest). */
     NBTTagList snapshotArmor() {
         return snap.getTagList("Armor", 10);
     }

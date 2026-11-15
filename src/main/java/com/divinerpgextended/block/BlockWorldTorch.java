@@ -12,15 +12,15 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Факел сумеречного мира: палка мира с пылью мира, светит ярче обычного и искрит цветом мира. Адский факел - из стержня
- * ифрита, факелы Iceika и Ветеи - из ледяных осколков и серого жемчуга. Монстров Divine гонит только в своём мире
+ * Twilight world torch: a world stick with world dust, brighter than ordinary and sparking in the world's color. The Nether Torch is made from a blaze
+ * rod, Iceika and Vethea torches from ice shards and gray pearl. It repels Divine monsters only in its own world
  * ({@link com.divinerpgextended.boss.TorchWards}).
  */
 public class BlockWorldTorch extends BlockTorch {
 
-    /** Мир факела (null - не сумеречный: ад, Iceika, Ветея - см. {@link #key}). */
+    /** Torch world (null - not twilight: Nether, Iceika, Vethea - see {@link #key}). */
     public final TwilightWorld world;
-    /** Ключ факела: мир сумерек, "nether", "iceika" или "vethea" (текстура, название, частицы). */
+    /** Torch key: twilight world, "nether", "iceika" or "vethea" (texture, name, particles). */
     public final String key;
     private final float r, g, b;
 
@@ -28,12 +28,12 @@ public class BlockWorldTorch extends BlockTorch {
         this(world, world.key(), color);
     }
 
-    /** Адский факел. */
+    /** Nether Torch. */
     public BlockWorldTorch(int color) {
         this(null, "nether", color);
     }
 
-    /** Факел другого мира Divine: "iceika" или "vethea". */
+    /** Torch of another Divine world: "iceika" or "vethea". */
     public BlockWorldTorch(String key, int color) {
         this(null, key, color);
     }
@@ -52,7 +52,7 @@ public class BlockWorldTorch extends BlockTorch {
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
     }
 
-    /** Измерение, где факел гонит монстров. */
+    /** Dimension where the torch repels monsters. */
     public int dimension() {
         if (world != null) return world.dimension();
         if ("iceika".equals(key)) return net.divinerpg.utils.config.ConfigurationHelper.iceika;
@@ -66,7 +66,7 @@ public class BlockWorldTorch extends BlockTorch {
         blockIcon = reg.registerIcon(getTextureName());
     }
 
-    /** Частицы мира над головкой факела (как у ванильного, со сдвигом к стене): {@link com.divinerpgextended.client.TorchFX}. */
+    /** World particles above the torch head (like the vanilla one, shifted toward the wall): {@link com.divinerpgextended.client.TorchFX}. */
     @Override
     @SideOnly(Side.CLIENT)
     public void randomDisplayTick(World w, int x, int y, int z, Random rand) {

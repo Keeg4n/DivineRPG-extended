@@ -23,8 +23,8 @@ import com.divinerpgextended.registry.ModItems;
 import com.divinerpgextended.world.CadillionWorld;
 
 /**
- * Страж заповедной рощи сумеречного мира (кроме Эдема - там Великий кадиллион): общее у всех - сила по миру (как у
- * кадиллиона этого мира), бой только с поляны рощи, трофеи (шестерня времени, сердце стража, души) и подручные.
+ * Guardian of the sacred grove of a twilight dimension (except Eden - there it is the Great Cadillion): what they share - strength by dimension (like
+ * the Cadillion of that dimension), combat only from the grove glade, trophies (time gear, guardian heart, souls) and minions.
  */
 public abstract class EntityGroveGuardian extends EntityMob implements IBossDisplayData {
 
@@ -41,7 +41,7 @@ public abstract class EntityGroveGuardian extends EntityMob implements IBossDisp
         targetTasks.addTask(2, new EntityAINearestAttackableTarget(this, EntityPlayer.class, 0, false));
     }
 
-    /** Мир этого стража. */
+    /** This guardian's dimension. */
     public abstract CadillionWorld world();
 
     @Override
@@ -72,7 +72,7 @@ public abstract class EntityGroveGuardian extends EntityMob implements IBossDisp
         return StatCollector.translateToLocal("dre.entity.guardian." + world().key());
     }
 
-    /** Атакующий стоит вне поляны рощи (стреляет издалека) - урона нет. */
+    /** The attacker stands outside the grove glade (shooting from afar) - no damage. */
     public boolean outOfLair(Entity attacker) {
         int[] home = com.divinerpgextended.boss.LairSummons.home(this);
         if (home == null || !(attacker instanceof EntityPlayer)) return false;
@@ -90,7 +90,7 @@ public abstract class EntityGroveGuardian extends EntityMob implements IBossDisp
         return super.attackEntityFrom(src, amount);
     }
 
-    /** Свои живые подручные (по метке). */
+    /** Its own living minions (by marker). */
     public int addsAlive() {
         int n = 0;
         for (Object o : worldObj.getEntitiesWithinAABB(EntityLiving.class, boundingBox.expand(40, 24, 40))) {
@@ -99,13 +99,13 @@ public abstract class EntityGroveGuardian extends EntityMob implements IBossDisp
         return n;
     }
 
-    /** Позвать подручного рядом с собой (с меткой), null - не нашлось места. */
+    /** Call a minion next to itself (with a marker), null - no room found. */
     public EntityLiving summon(Class<? extends EntityLiving> kind, double radius) {
         double a = rand.nextDouble() * Math.PI * 2;
         return summonAt(kind, posX + Math.cos(a) * radius, posY + 0.5, posZ + Math.sin(a) * radius);
     }
 
-    /** Позвать подручного в точку (с меткой), null - не нашлось места. */
+    /** Call a minion to a point (with a marker), null - no room found. */
     public EntityLiving summonAt(Class<? extends EntityLiving> kind, double x, double y, double z) {
         try {
             EntityLiving m = kind.getConstructor(World.class).newInstance(worldObj);
@@ -125,11 +125,11 @@ public abstract class EntityGroveGuardian extends EntityMob implements IBossDisp
     @Override
     protected void dropFewItems(boolean byPlayer, int looting) {
         entityDropItem(new ItemStack(ModItems.timeGear, 1, world().ordinal()), 0.5F);
-        entityDropItem(new ItemStack(ModItems.guardianHeart, 1, world().ordinal()), 0.5F); // камни врат в следующий мир
+        entityDropItem(new ItemStack(ModItems.guardianHeart, 1, world().ordinal()), 0.5F); // gate stones to the next dimension
         entityDropItem(new ItemStack(world().soul(), 4 + rand.nextInt(5 + looting)), 0.5F);
     }
 
-    /** Страж нужного мира для алтаря рощи и Зова: Эдем - Великий кадиллион, Дикий лес - Древний голем, Апалачия - Король-воин, Скайтерн - Повелитель ветров. */
+    /** The guardian of the needed dimension for the grove altar and the Call: Eden - Great Cadillion, Wildwood - Ancient Golem, Apalachia - Warrior King, Skythern - Wind Lord. */
     public static EntityLiving create(World world, CadillionWorld w) {
         if (w == CadillionWorld.WILDWOOD) return new EntityAncientGolem(world);
         if (w == CadillionWorld.APALACHIA) return new EntityWarriorKing(world);

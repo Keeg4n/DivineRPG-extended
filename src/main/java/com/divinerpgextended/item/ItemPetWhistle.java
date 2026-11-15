@@ -27,18 +27,18 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Свисток питомцев (питомцы Divine, аддона, призраки кости призрака и призывы на аркане: слизень, краб, око, акула).
+ * Pet Whistle (pets of Divine, of the addon, ghosts from the ghost bone and summons on arcana: slime, crab, eye, shark).
  * <ul>
- * <li>ПКМ - все твои питомцы в загруженной части мира (кроме сидящих) прыгают к тебе и бросают цель.</li>
- * <li>Удар свистком по своему питомцу - он уходит. Кто был из яйца (гризли, фиракрикс, сеймер, голем омоложения, паратику),
- * возвращается яйцом, и в яйце он сам ({@link #PET}: имя, здоровье, дрессировка) - из такого яйца выходит он же. Призрак
- * рассеивается, прочие приручённые просто уходят.</li>
+ * <li>Right click - all your pets in the loaded part of the world (except sitting ones) jump to you and drop their target.</li>
+ * <li>Hitting your pet with the whistle - it leaves. One that came from an egg (Grizzle, Fyracryx, Seimer, Golem Of Rejuv, Paratiku)
+ * returns as an egg, and in the egg it is itself ({@link #PET}: name, health, training) - the same one hatches from such an egg. A ghost
+ * disperses, other tamed ones simply leave.</li>
  * </ul>
- * Питомцы одного хозяина друг друга не трогают ({@link Events}): не берут в цель и не ранят, даже если хозяин задел одного.
+ * Pets of one owner do not touch each other ({@link Events}): they do not target and do not hurt each other, even if the owner hit one.
  */
 public class ItemPetWhistle extends Item {
 
-    /** Сохранённый в яйце питомец. */
+    /** The pet saved in the egg. */
     public static final String PET = "DrePet";
     public static final int COOLDOWN = 40;
     private static final String USED = "dreWhistleAt";
@@ -63,7 +63,7 @@ public class ItemPetWhistle extends Item {
         return s;
     }
 
-    /** Позвать: питомцы хозяина к нему, без целей. @return сколько пришло */
+    /** Call: the owner's pets to them, without targets. @return how many came */
     public static int call(EntityPlayer p) {
         int n = 0;
         com.divinerpgextended.magic.ArcaneSummons.forget(p);
@@ -80,14 +80,14 @@ public class ItemPetWhistle extends Item {
         return n;
     }
 
-    /** Бросить цель. */
+    /** Drop the target. */
     static void calm(Entity e) {
         if (e instanceof EntityLiving) ((EntityLiving) e).setAttackTarget(null);
         if (e instanceof EntityCreature) ((EntityCreature) e).setTarget(null);
         if (e instanceof net.minecraft.entity.EntityLivingBase) ((net.minecraft.entity.EntityLivingBase) e).setRevengeTarget(null);
     }
 
-    /** Питомцы игрока в его мире (загруженные). */
+    /** The player's pets in their world (loaded ones). */
     public static List<Entity> pets(EntityPlayer p) {
         List<Entity> out = new ArrayList<Entity>();
         for (Object o : p.worldObj.loadedEntityList.toArray()) {
@@ -97,7 +97,7 @@ public class ItemPetWhistle extends Item {
         return out;
     }
 
-    /** Питомец Divine или аддона (приручённый), призрак кости призрака или призыв на аркане. */
+    /** A Divine or addon pet (tamed), a ghost from the ghost bone or an arcana summon. */
     public static boolean pet(Entity e) {
         if (e instanceof com.divinerpgextended.magic.EntityArcaneWraith || e instanceof com.divinerpgextended.magic.AnchorSummons.Summon) return true;
         if (!(e instanceof EntityTameable) || !((EntityTameable) e).isTamed()) return false;
@@ -106,7 +106,7 @@ public class ItemPetWhistle extends Item {
     }
 
     /**
-     * Хозяин питомца или null. Divine записывает владельцем имя игрока, ванильные - UUID; призрак знает хозяина сам.
+     * The pet's owner or null. Divine records the player's name as the owner, vanilla ones - a UUID; a ghost knows its owner itself.
      */
     public static EntityPlayer owner(Entity e) {
         if (e instanceof com.divinerpgextended.magic.EntityArcaneWraith) return ((com.divinerpgextended.magic.EntityArcaneWraith) e).owner();
@@ -121,21 +121,21 @@ public class ItemPetWhistle extends Item {
         return e.worldObj.getPlayerEntityByName(s);
     }
 
-    /** Строка хозяина (для сравнения, когда хозяин не в сети). */
+    /** The owner string (for comparison when the owner is offline). */
     static String ownerKey(Entity e) {
         EntityPlayer p = owner(e);
         if (p != null) return p.getUniqueID().toString();
         return e instanceof EntityTameable ? ((EntityTameable) e).func_152113_b() : null;
     }
 
-    /** Оба - питомцы одного хозяина. */
+    /** Both are pets of one owner. */
     public static boolean kin(Entity a, Entity b) {
         if (a == null || b == null || a == b || !pet(a) || !pet(b)) return false;
         String ka = ownerKey(a), kb = ownerKey(b);
         return ka != null && ka.equals(kb);
     }
 
-    /** Яйцо, из которого вышел питомец (null - не из яйца). */
+    /** The egg the pet came from (null - not from an egg). */
     public static ItemStack eggOf(Entity e) {
         if (e instanceof net.divinerpg.entities.vanilla.EntityGrizzle)
             return new ItemStack(net.divinerpg.utils.items.VanillaItemsOther.grizzleEgg, 1, ((net.divinerpg.entities.vanilla.EntityGrizzle) e).getColor());
@@ -146,7 +146,7 @@ public class ItemPetWhistle extends Item {
         return null;
     }
 
-    /** Отпустить питомца свистком: яйцо (с ним самим внутри) - хозяину, призрак рассеивается, прочие уходят. */
+    /** Release a pet with the whistle: the egg (with it inside) goes to the owner, a ghost disperses, others leave. */
     public static ItemStack dismiss(EntityPlayer p, Entity e) {
         ItemStack egg = eggOf(e);
         if (egg != null) {
@@ -173,7 +173,7 @@ public class ItemPetWhistle extends Item {
 
     public static class Events {
 
-        /** Яйцо с питомцем: кто внутри. */
+        /** An egg with a pet: who is inside. */
         @SubscribeEvent
         public void onTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent e) {
             if (e.itemStack == null || !e.itemStack.hasTagCompound() || !e.itemStack.getTagCompound().hasKey(PET)) return;
@@ -181,7 +181,7 @@ public class ItemPetWhistle extends Item {
                 + StatCollector.translateToLocalFormatted("dre.tooltip.egg_pet", e.itemStack.getTagCompound().getString("DrePetName")));
         }
 
-        /** Удар свистком по своему питомцу - отпустить. */
+        /** Hitting your pet with the whistle - release it. */
         @SubscribeEvent(priority = EventPriority.HIGH)
         public void onAttack(AttackEntityEvent e) {
             ItemStack held = e.entityPlayer.getHeldItem();
@@ -195,14 +195,14 @@ public class ItemPetWhistle extends Item {
             dismiss(e.entityPlayer, e.target);
         }
 
-        /** Питомцы одного хозяина не берут друг друга в цель. */
+        /** Pets of one owner do not target each other. */
         @SubscribeEvent
         public void onTarget(LivingSetAttackTargetEvent e) {
             if (e.target == null || e.entityLiving.worldObj.isRemote || !kin(e.entityLiving, e.target)) return;
             calm(e.entityLiving);
         }
 
-        /** ...и не ранят. */
+        /** ...and do not hurt each other. */
         @SubscribeEvent(priority = EventPriority.HIGH)
         public void onHurt(LivingAttackEvent e) {
             if (e.entityLiving.worldObj.isRemote) return;
@@ -213,7 +213,7 @@ public class ItemPetWhistle extends Item {
             }
         }
 
-        /** Яйцо с питомцем внутри: выходит он сам, а не новый (вместо призыва Divine). */
+        /** An egg with a pet inside: that same pet hatches, not a new one (instead of Divine's summon). */
         @SubscribeEvent(priority = EventPriority.HIGH)
         public void onUseEgg(PlayerInteractEvent e) {
             if (e.action != PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK) return;

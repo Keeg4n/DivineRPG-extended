@@ -8,8 +8,8 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.util.ForgeDirection;
 
 /**
- * Форма навесного рельса, как у напольного: два направления, куда он соединён (прямой или поворот), держится, пока
- * рельс стоит; и было ли на нём питание (для стрелки). a < 0 - форма не задана (старые рельсы): соединения по соседям.
+ * Overhead rail shape, like a floor one: two directions where it is connected (straight or a turn), holds as long as
+ * the rail stands; and whether it had power (for the switch). a < 0 - shape not set (old rails): connections by neighbors.
  */
 public class TileSkyRail extends TileEntity {
 

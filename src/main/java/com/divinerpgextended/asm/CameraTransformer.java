@@ -15,12 +15,12 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Камера в вагонетке Апалачии: в Forge 1.7.10 нет события настройки камеры, поэтому в начало
- * EntityRenderer.orientCamera (до поворота по взгляду игрока) добавляем вызов {@link CameraHooks#orient} - крен картинки
- * вокруг оси взгляда на стене и потолке, а вызовы player.setAngles в updateCameraAndRender (мышь) идут через
- * {@link CameraHooks#angles} - сдвиг мыши в осях наклонённого экрана. Имена: h / b (игра), func_78467_g / func_78480_b
- * или orientCamera / updateCameraAndRender (разработка); setAngles - c, func_70082_c, setAngles. При любой ошибке класс
- * остаётся как был.
+ * Camera in the Apalachia Cart: Forge 1.7.10 has no camera setup event, so at the start of
+ * EntityRenderer.orientCamera (before the rotation by the player's view) we add a call to {@link CameraHooks#orient} - roll of the picture
+ * around the view axis on a wall and ceiling, and the player.setAngles calls in updateCameraAndRender (mouse) go through
+ * {@link CameraHooks#angles} - mouse shift in the axes of the tilted screen. Names: h / b (game), func_78467_g / func_78480_b
+ * or orientCamera / updateCameraAndRender (development); setAngles - c, func_70082_c, setAngles. On any error the class
+ * stays as it was.
  */
 public class CameraTransformer implements IClassTransformer, Opcodes {
 
@@ -57,15 +57,15 @@ public class CameraTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (orient != 1) {
-                LOG.warn("Камера вагонетки: найдено методов {} из 1 - оставляю класс без изменений", orient);
+                LOG.warn("Minecart camera: found {} of 1 methods - leaving class unchanged", orient);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Камера вагонетки: крен вида в вагонетке Апалачии подключён (EntityRenderer), мышь - {} вызовов", mouse);
+            LOG.info("Minecart camera: view roll in the Apalachia minecart hooked (EntityRenderer), mouse - {} calls", mouse);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Камера вагонетки: не удалось подключить, класс без изменений", t);
+            LOG.error("Minecart camera: could not hook, class unchanged", t);
             return bytes;
         }
     }

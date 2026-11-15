@@ -20,20 +20,20 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Клиент: перевёрнутый в воде мечтаний ({@link BlockDreamWater#inverted}). Картинка вверх ногами - в {@link CameraTilt};
- * здесь глаза переезжают вниз хитбокса (голова перевёрнутого внизу, в воздухе; камеру туда же опускает CameraTilt), стрейф меняется местами (экран зеркален
- * по горизонтали), а сам игрок и другие перевёрнутые рисуются вверх ногами.
+ * Client: someone inverted in Dream Water ({@link BlockDreamWater#inverted}). The upside-down picture is in {@link CameraTilt};
+ * here the eyes move to the bottom of the hitbox (the head of the inverted one is at the bottom, in the air; CameraTilt lowers the camera there too), strafe is swapped (the screen is mirrored
+ * horizontally), and the player himself and other inverted ones are drawn upside down.
  */
 @SideOnly(Side.CLIENT)
 public class DreamWaterView {
 
-    /** Высота глаз над низом хитбокса у перевёрнутого и обычная. */
+    /** Eye height above the bottom of the hitbox for the inverted one and the normal one. */
     public static final float EYES_INVERTED = 0.18F, EYES = 1.62F;
 
-    /** На сколько камеру перевёрнутого опускать от пяток к голове (игра держит её на высоте глаз от низа хитбокса). */
+    /** How much to lower the inverted one's camera from the heels to the head (the game keeps it at eye height from the bottom of the hitbox). */
     public static final double HEAD_DROP = EYES - EYES_INVERTED;
 
-    /** Ввод с клавиатуры: при перевороте влево и вправо меняются. */
+    /** Keyboard input: when flipped, left and right are swapped. */
     static class FlipInput extends MovementInput {
 
         final MovementInput base;
@@ -54,7 +54,7 @@ public class DreamWaterView {
         }
     }
 
-    /** Глаза у низа или у верха хитбокса: хитбокс не двигается, двигается только точка взгляда. */
+    /** Eyes at the bottom or the top of the hitbox: the hitbox does not move, only the look point moves. */
     static void eyes(EntityPlayer p, float h) {
         float d = h - p.yOffset;
         p.yOffset = h;
@@ -75,26 +75,26 @@ public class DreamWaterView {
         if (inv && !moved && Math.abs(p.yOffset - EYES) < 0.01F) {
             eyes(p, EYES_INVERTED);
             moved = true;
-        } else if (!inv && moved) { // возвращаем, только если двигали сами (Morph и др. меняют глаза по-своему)
+        } else if (!inv && moved) { // restore only if we moved them ourselves (Morph and others change the eyes in their own way)
             eyes(p, EYES);
             moved = false;
         }
     }
 
-    /** Глаза перенесены этим классом. */
+    /** The eyes were moved by this class. */
     private static boolean moved;
 
     private final Set<EntityLivingBase> flipped = new HashSet<EntityLivingBase>();
 
-    /** Настоящие повороты головы на время рисования: {yawHead, prevYawHead, pitch, prevPitch}. */
+    /** The real head rotations for the duration of drawing: {yawHead, prevYawHead, pitch, prevPitch}. */
     private final java.util.Map<EntityLivingBase, float[]> head = new java.util.HashMap<EntityLivingBase, float[]>();
 
     /**
-     * Перевёрнутый (игрок и любое существо) рисуется вверх ногами: поворот на 180 градусов вокруг оси взгляда через
-     * середину хитбокса. Такой поворот зеркалит повороты головы (повернул голову влево - модель вправо), поэтому на время
-     * рисования поворот головы относительно тела и наклон берутся с обратным знаком: голова смотрит туда же, куда игрок.
+     * An inverted one (a player and any creature) is drawn upside down: a 180 degree rotation around the look axis through
+     * the middle of the hitbox. Such a rotation mirrors head turns (turned the head left - the model goes right), so for the duration of
+     * drawing the head turn relative to the body and the pitch are taken with the opposite sign: the head looks where the player looks.
      */
-    /** Доля тика текущего кадра: поворот тела между тиками сглаживается, как у самой модели (иначе ось переворота шла рывками). */
+    /** Fraction of the tick of the current frame: the body rotation between ticks is smoothed, as in the model itself (otherwise the flip axis moved in jerks). */
     private static float frame;
 
     @SubscribeEvent
@@ -102,7 +102,7 @@ public class DreamWaterView {
         if (e.phase == TickEvent.Phase.START) frame = e.renderTickTime;
     }
 
-    /** Ось переворота существа на этот кадр: {x, середина по высоте, z, поворот тела в радианах}. */
+    /** The creature's flip axis for this frame: {x, middle of the height, z, body rotation in radians}. */
     private final java.util.Map<EntityLivingBase, double[]> axis = new java.util.HashMap<EntityLivingBase, double[]>();
 
     private static void flip(double[] a) {
@@ -127,26 +127,26 @@ public class DreamWaterView {
         m.prevRotationPitch = -m.prevRotationPitch;
     }
 
-    /** Ник над головой рисуется без переворота: иначе он висел зеркально и не поворачивался к камере. */
+    /** The nickname over the head is drawn without the flip: otherwise it hung mirrored and did not turn toward the camera. */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onNamePre(RenderLivingEvent.Specials.Pre e) {
         if (flipped.contains(e.entity) && axis.containsKey(e.entity) && unflipped.add(e.entity)) GL11.glPopMatrix();
     }
 
-    /** Ник рисуется: переворот снят и ещё не возвращён. */
+    /** The nickname is being drawn: the flip is removed and not yet restored. */
     private final Set<EntityLivingBase> unflipped = new HashSet<EntityLivingBase>();
 
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public void onNamePost(RenderLivingEvent.Specials.Post e) {
         double[] a = unflipped.remove(e.entity) ? axis.get(e.entity) : null;
-        if (a != null) flip(a); // снова, чтобы onPost снял ровно один уровень
+        if (a != null) flip(a); // again, so that onPost removes exactly one level
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public void onPost(RenderLivingEvent.Post e) {
         if (!flipped.remove(e.entity)) return;
         axis.remove(e.entity);
-        if (!unflipped.remove(e.entity)) GL11.glPopMatrix(); // ник отменили после снятия переворота - снимать уже нечего
+        if (!unflipped.remove(e.entity)) GL11.glPopMatrix(); // the nickname was cancelled after the flip was removed - nothing left to remove
         float[] h = head.remove(e.entity);
         if (h == null) return;
         e.entity.rotationYawHead = h[0];

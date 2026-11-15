@@ -37,18 +37,18 @@ import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import cpw.mods.fml.relauncher.Side;
 
 /**
- * Холод Iceika. Шкала 0-100 растёт от нуля до полного замерзания примерно за 4 минуты (в воде вдвое быстрее, в
- * сете Frozen вдвое медленнее). Пороги: 25 - замедление, 50 - сильнее и медленнее копаешь, 75 - слабость и голод,
- * 100 - игрок примерзает: не может двигаться и получает урон, пока не согреется. Огонь, лава или горящая печь в
- * радиусе 4 блоков греют, а 5 секунд у огня дают "Согрет" на минуту. Горячая еда снимает часть холода. Сет Санты
- * полностью защищает и отогревает.
+ * Iceika cold. The 0-100 scale grows from zero to full freezing in about 4 minutes (twice as fast in water, twice as slow in the
+ * Frozen set). Thresholds: 25 - slowness, 50 - stronger and you mine slower, 75 - weakness and hunger,
+ * 100 - the player freezes to the ground: cannot move and takes damage until warmed up. Fire, lava or a burning furnace within a
+ * radius of 4 blocks warm you, and 5 seconds by the fire give "Warmed" for a minute. Hot food removes part of the cold. The Santa set
+ * fully protects and warms.
  */
 public class ColdHandler {
 
     public static final SimpleNetworkWrapper NET = NetworkRegistry.INSTANCE.newSimpleChannel("dre_cold");
 
     private static final String KEY = "dreCold", WARM = "dreWarm", HEAT = "dreHeat", SENT = "dreColdSent";
-    public static final float RATE = 100F / 240F; // в секунду
+    public static final float RATE = 100F / 240F; // per second
     private static final int WARM_SECONDS = 60, HEAT_SECONDS = 5;
     public static final DamageSource FROSTBITE = new DamageSource("dre.frostbite").setDamageBypassesArmor();
 
@@ -87,7 +87,7 @@ public class ColdHandler {
         return w.provider.dimensionId == ConfigurationHelper.iceika;
     }
 
-    /** Огонь, лава или горящая печь рядом. */
+    /** Fire, lava or a burning furnace nearby. */
     private static boolean nearHeat(EntityPlayer p) {
         int px = (int) Math.floor(p.posX), py = (int) Math.floor(p.posY), pz = (int) Math.floor(p.posZ);
         for (int x = px - 4; x <= px + 4; x++) for (int y = py - 2; y <= py + 2; y++) for (int z = pz - 4; z <= pz + 4; z++) {
@@ -108,7 +108,7 @@ public class ColdHandler {
         boolean blizzard = storm != null && storm.phase == Blizzard.STORM && Blizzard.exposed(p)
             && !p.capabilities.isCreativeMode;
         if (blizzard && p.ticksExisted % 5 == 0) {
-            // ветер сносит
+            // the wind sweeps away
             p.addVelocity(storm.windX * 0.06, 0, storm.windZ * 0.06);
             p.velocityChanged = true;
         }
@@ -126,7 +126,7 @@ public class ColdHandler {
             heat = nearHeat ? heat + 1 : 0;
             if (heat >= HEAT_SECONDS) warm = WARM_SECONDS;
             if (PerkEffects.wears(p, SANTA) || ArmorData.hasEquippedPerk(p, Perk.WARMTH)
-                || com.divinerpgextended.magic.ArcaneEffects.warm(p)) cold -= 3; // Санта, "Тепло" и зелье Внутреннего жара отогревают
+                || com.divinerpgextended.magic.ArcaneEffects.warm(p)) cold -= 3; // Santa, "Warmth" and the Inner Heat potion warm up
             else if (nearHeat) cold -= 4;
             else if (warm > 0) cold -= 1;
             else {
@@ -153,7 +153,7 @@ public class ColdHandler {
 
     private static void sync(EntityPlayer p, NBTTagCompound d, float cold, int warm) {
         if (!(p instanceof EntityPlayerMP)) return;
-        // в Iceika шлём каждую секунду (там же фаза вьюги), вне её - только пока холод не сошёл на нет
+        // in Iceika we send every second (the blizzard phase is there too), outside it - only until the cold has faded to nothing
         float sent = d.getFloat(SENT);
         if (!inIceika(p) && Math.abs(sent - cold) < 0.01F && p.ticksExisted % 100 != 0) return;
         d.setFloat(SENT, cold);
@@ -168,7 +168,7 @@ public class ColdHandler {
 
     private static void applyEffects(EntityPlayer p, float cold) {
         if (cold >= 100) {
-            // примёрз: стоит на месте, не прыгает, урон раз в 2 секунды
+            // frozen to the ground: stands still, does not jump, damage once every 2 seconds
             effect(p, Potion.moveSlowdown, 6);
             effect(p, Potion.jump, 128);
             effect(p, Potion.digSlowdown, 2);
@@ -186,7 +186,7 @@ public class ColdHandler {
         }
     }
 
-    /** Добавить холод (способности боссов). Не действует в творческом режиме. */
+    /** Add cold (boss abilities). Does not work in creative mode. */
     public static void addCold(EntityPlayer p, float amount) {
         if (p.capabilities.isCreativeMode) return;
         NBTTagCompound d = data(p);
@@ -195,7 +195,7 @@ public class ColdHandler {
         sync(p, d, cold, d.getInteger(WARM));
     }
 
-    /** Горячая еда снимает часть холода. */
+    /** Hot food removes part of the cold. */
     @SubscribeEvent
     public void onEat(PlayerUseItemEvent.Finish event) {
         EntityPlayer p = event.entityPlayer;
@@ -208,7 +208,7 @@ public class ColdHandler {
         sync(p, d, cold, d.getInteger(WARM));
     }
 
-    /** Сет Frozen в Iceika: -10% урона от местных мобов. */
+    /** The Frozen set in Iceika: -10% damage from local mobs. */
     @SubscribeEvent
     public void onHurt(LivingHurtEvent event) {
         if (!(event.entityLiving instanceof EntityPlayer) || !inIceika(event.entityLiving)) return;
@@ -218,7 +218,7 @@ public class ColdHandler {
             .startsWith("net.divinerpg.entities.iceika")) return;
         if (PerkEffects.wears((EntityPlayer) event.entityLiving, FROZEN)) {
             event.ammount *= 0.9F;
-            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Сет Frozen: от мобов Айсики x0.9");
+            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Frozen set: x0.9 from Iceika mobs");
         }
     }
 }

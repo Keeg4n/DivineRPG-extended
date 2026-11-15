@@ -10,13 +10,13 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 
 /**
- * Наковальня Странника в мире: место для модели и проверки расстояния. Вещей не хранит - рабочие слоты у каждого окна
- * свои ({@link AnvilWork}). До 0.99.69 вещи лежали в самом блоке: такие вещи отдаются первому, кто откроет наковальню,
- * или выпадают, если её сломать.
+ * Wanderer Anvil in the world: a place for the model and distance checks. Stores no items - work slots belong to each window
+ * ({@link AnvilWork}). Before 0.99.69 items lay in the block itself: such items are handed to whoever first opens the anvil,
+ * or drop if it is broken.
  */
 public class TileWandererAnvil extends TileEntity {
 
-    /** Вещи, оставшиеся в блоке со старых версий. */
+    /** Items left in the block from old versions. */
     private final List<ItemStack> legacy = new ArrayList<ItemStack>();
 
     @Override
@@ -29,7 +29,7 @@ public class TileWandererAnvil extends TileEntity {
             && player.getDistanceSq(xCoord + 0.5, yCoord + 0.5, zCoord + 0.5) <= 64;
     }
 
-    /** Забрать старые вещи из блока (сначала из блока, потом их кто-то получает). */
+    /** Take the old items out of the block (first from the block, then someone receives them). */
     List<ItemStack> takeLegacy() {
         List<ItemStack> out = new ArrayList<ItemStack>(legacy);
         if (!legacy.isEmpty()) {
@@ -39,11 +39,11 @@ public class TileWandererAnvil extends TileEntity {
         return out;
     }
 
-    /** Отдать старые вещи тому, кто открывает наковальню (сервер). */
+    /** Hand the old items to whoever opens the anvil (server). */
     public void releaseLegacy(EntityPlayer p) {
         List<ItemStack> out = takeLegacy();
         for (ItemStack s : out) AnvilWork.give(p, s);
-        if (!out.isEmpty()) com.divinerpgextended.audit.Audit.log(p, "Anvil", "выданы вещи, лежавшие в наковальне со старой версии: " + out.size());
+        if (!out.isEmpty()) com.divinerpgextended.audit.Audit.log(p, "Anvil", "returned items that were left in the anvil from an old version: " + out.size());
     }
 
     @Override

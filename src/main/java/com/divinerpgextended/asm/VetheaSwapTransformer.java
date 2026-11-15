@@ -13,10 +13,10 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 /**
- * Кровать кошмаров и портал Ветеи в Divine при переходе сохраняют инвентарь в NBT, очищают его и загружают второй.
- * В 1.4.2.3 это выключается настройкой vetheaInventory, а в 1.4.1.5 (сборки серверов) настройки нет и обмен идёт
- * всегда. Вызовы сохранения, очистки и загрузки инвентаря в этих двух классах перенаправляем в
- * {@link VetheaSwapHooks}: пока кошмар Ветеи включён, обмена нет ни в одной версии Divine.
+ * The Nightmare Bed and the Vethea portal in Divine save the inventory to NBT on transition, clear it and load a second one.
+ * In 1.4.2.3 this is turned off by the vetheaInventory setting, and in 1.4.1.5 (server modpacks) there is no setting and the swap always
+ * happens. Calls that save, clear and load the inventory in these two classes are redirected to
+ * {@link VetheaSwapHooks}: while the Vethea nightmare is on, there is no swap in any Divine version.
  */
 public class VetheaSwapTransformer implements IClassTransformer, Opcodes {
 
@@ -49,15 +49,15 @@ public class VetheaSwapTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (patched == 0) {
-                LOG.warn("Инвентарь Ветеи: в {} нет обмена инвентаря - класс без изменений", transformedName);
+                LOG.warn("Vethea inventory: no inventory swap in {} - class unchanged", transformedName);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Инвентарь Ветеи: {} - обмен инвентаря под контролем аддона ({} вызовов)", transformedName, patched);
+            LOG.info("Vethea inventory: {} - inventory swap is controlled by the addon ({} calls)", transformedName, patched);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Инвентарь Ветеи: не удалось исправить " + transformedName + ", класс без изменений", t);
+            LOG.error("Vethea inventory: could not fix " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }

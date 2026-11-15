@@ -18,7 +18,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Подсказки оружия обычного мира ({@link EarlyWeapons}); устаревшие строки Divine (выстрел жезла, яд Серенады смерти) убираются. */
+/** Overworld weapon tooltips ({@link EarlyWeapons}); outdated Divine lines (the wand shot, the Serenade of Death poison) are removed. */
 @SideOnly(Side.CLIENT)
 public class EarlyWeaponsTooltip {
 
@@ -34,7 +34,7 @@ public class EarlyWeaponsTooltip {
         return String.format("%.2f", f).replaceAll("0$", "");
     }
 
-    /** Убрать строки, которые пишет сам предмет Divine (первые n; n < 0 - все). */
+    /** Remove the lines written by the Divine item itself (the first n; n < 0 - all). */
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static void strip(ItemTooltipEvent e, int n) {
         List info = new ArrayList();

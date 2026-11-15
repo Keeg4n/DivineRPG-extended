@@ -15,12 +15,12 @@ import net.minecraft.world.gen.ChunkProviderServer;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Телепорт порталов Divine (сумеречные миры и выход из них). Divine ищет парный портал перебором 257x257 блоков на всю
- * высоту мира (около 17 млн обращений к миру) и создаёт телепорт заново на каждый вход - кэш пуст, перебор каждый раз,
- * а заодно генерирует все 289 чанков вокруг. Здесь тот же поиск (ближайший блок портала, нижний в столбе, тот же
- * радиус), но по массивам чанков с пропуском пустых секций и только в уже существующих чанках: в несгенерированном
- * портала быть не может. Найденное место кладём в кэш Divine и отдаём его же коду - расстановка игрока прежняя.
- * Подменяется в BlockModPortal ({@link PortalTransformer}).
+ * Teleport of Divine portals (twilight worlds and exit from them). Divine looks for the paired portal by brute force over 257x257 blocks across the whole
+ * world height (about 17 million world accesses) and creates the teleporter anew on every entry - the cache is empty, brute force every time,
+ * and along the way it generates all 289 chunks around. Here is the same search (nearest portal block, the lowest in the column, the same
+ * radius), but over chunk arrays skipping empty sections and only in already existing chunks: there cannot be a
+ * portal in an ungenerated one. The found spot is put into Divine's cache and handed to its own code - the player is placed as before.
+ * Substituted in BlockModPortal ({@link PortalTransformer}).
  */
 public class FastTeleporter extends DivineTeleporter {
 
@@ -39,7 +39,7 @@ public class FastTeleporter extends DivineTeleporter {
             try {
                 found = find(entity, ex, ez);
             } catch (Throwable t) {
-                return super.placeInExistingPortal(entity, x, y, z, rotation); // что-то не так - поиск Divine
+                return super.placeInExistingPortal(entity, x, y, z, rotation); // something is wrong - Divine's search
             }
             if (found == null) return false;
             field_85191_c.add(key, this.new PortalPosition(found[0], found[1], found[2], field_85192_a.getTotalWorldTime()));
@@ -48,13 +48,13 @@ public class FastTeleporter extends DivineTeleporter {
         return super.placeInExistingPortal(entity, x, y, z, rotation);
     }
 
-    /** Как далеко искать остров под новый портал в мирах островов. */
+    /** How far to look for an island for a new portal in island worlds. */
     static final int ISLAND_SEARCH = 112;
 
     /**
-     * Новый портал на этой стороне: его рамку (и площадку) отмечаем - добытая, она ничего не роняет ({@link PortalFrames}).
-     * В мирах островов Divine ищет землю лишь в 16 блоках и над пустотой строит портал с площадкой в небе - сначала
-     * переносим точку на ближайший ровный участок острова.
+     * A new portal on this side: its frame (and platform) is marked - when mined, it drops nothing ({@link PortalFrames}).
+     * In island worlds Divine looks for ground only within 16 blocks and over the void builds the portal with a platform in the sky - first
+     * we move the point to the nearest flat area of an island.
      */
     @Override
     public boolean makePortal(Entity entity) {
@@ -71,15 +71,15 @@ public class FastTeleporter extends DivineTeleporter {
     }
 
     /**
-     * Ближайший ровный участок острова (5 x 5, перепад не больше 1, под ним не меньше 3 блоков земли) в радиусе
-     * {@link #ISLAND_SEARCH}: {x, y земли, z}; null - нет (тогда как у Divine). Под самой точкой входа остров есть - она же.
+     * The nearest flat area of an island (5 x 5, height difference no more than 1, at least 3 blocks of ground under it) within the radius
+     * {@link #ISLAND_SEARCH}: {x, ground y, z}; null - none (then as in Divine). Under the entry point itself there is an island - that is it.
      */
     int[] island(com.divinerpgextended.world.twilight.TwilightWorld tw, int x0, int z0) {
         for (int r = 0; r <= ISLAND_SEARCH; r += 4) {
             int[] best = null;
             double bd = Double.MAX_VALUE;
             for (int dx = -r; dx <= r; dx += 4) for (int dz = -r; dz <= r; dz += 4) {
-                if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue; // только кольцо радиуса r
+                if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue; // only the ring of radius r
                 int x = x0 + dx, z = z0 + dz;
                 int y = flat(tw, x, z);
                 if (y < 0) continue;
@@ -94,7 +94,7 @@ public class FastTeleporter extends DivineTeleporter {
         return null;
     }
 
-    /** Высота ровной земли 5 x 5 вокруг (x, z) или -1. */
+    /** Height of flat 5 x 5 ground around (x, z) or -1. */
     private int flat(com.divinerpgextended.world.twilight.TwilightWorld tw, int x, int z) {
         int lo = 999, hi = -1;
         for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) {
@@ -109,7 +109,7 @@ public class FastTeleporter extends DivineTeleporter {
         return hi;
     }
 
-    /** Ближайший блок портала (нижний в своём столбе) в квадрате радиуса 128, как у Divine; null - нет. */
+    /** The nearest portal block (the lowest in its column) in a square of radius 128, as in Divine; null - none. */
     int[] find(Entity entity, int ex, int ez) {
         ChunkProviderServer cps = field_85192_a.theChunkProviderServer;
         IChunkLoader loader = ReflectionHelper.getPrivateValue(ChunkProviderServer.class, cps, "currentChunkLoader", "field_73247_e");
@@ -132,7 +132,7 @@ public class FastTeleporter extends DivineTeleporter {
                                 if (s.getBlockByExtId(lx, ly, lz) != portal) continue;
                                 int bz = (cz << 4) + lz, by = s.getYLocation() + ly;
                                 if (Math.abs(bz - ez) > RADIUS) continue;
-                                if (by > 0 && c.getBlock(lx, by - 1, lz) == portal) continue; // не нижний в столбе
+                                if (by > 0 && c.getBlock(lx, by - 1, lz) == portal) continue; // not the lowest in the column
                                 double dx = bx + 0.5 - entity.posX, dy = by + 0.5 - entity.posY, dz = bz + 0.5 - entity.posZ;
                                 double d = dx * dx + dy * dy + dz * dz;
                                 if (best < 0 || d < best) {

@@ -1,4 +1,4 @@
-"""Лист выбора значков дропа мобов: python3 mob_drops_build.py <папка>; картинки в <папка>/img, рядом concepts.html для печати в PDF."""
+"""Mob drop icon selection sheet: python3 mob_drops_build.py <folder>; images go to <folder>/img, with concepts.html next to them for printing to PDF."""
 import html
 import os
 import sys

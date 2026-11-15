@@ -11,9 +11,9 @@ import cpw.mods.fml.common.eventhandler.Event;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Таинственные часы Divine призывают Древнюю сущность правым кликом по любому блоку. Теперь - только на алтаре
- * Древней гробницы под пирамидой пустыни (его клик обрабатывает сам алтарь); в остальных местах часы не
- * срабатывают и подсказывают, где искать гробницу.
+ * Divine's Mysterious Clock summons the Ancient Entity by right-clicking any block. Now - only on the Ancient
+ * Tomb Altar under the desert pyramid (the altar itself handles its click); elsewhere the clock does not
+ * work and hints where to look for the tomb.
  */
 public class ClockGuard {
 

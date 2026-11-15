@@ -33,11 +33,11 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Военный генерал. Присесть и ПКМ:
+ * War General. Sneak and right click:
  * <ul>
- * <li>со статуей босса Divine в руке - отдать её в Зал славы: каждая разная статуя навсегда +1 сердце (12 статуй);</li>
- * <li>без статуи - приказ на охоту (взять, узнать прогресс, сдать). Выполненные приказы повышают звание, за
- * каждое звание Генерал дарит вещь из своего арсенала.</li>
+ * <li>with a Divine boss statue in hand - give it to the Hall of Fame: each different statue gives +1 heart permanently (12 statues);</li>
+ * <li>without a statue - a hunting order (take, check progress, turn in). Completed orders raise the rank, and for
+ * each rank the General gives an item from his arsenal.</li>
  * </ul>
  */
 public class WarGeneral {
@@ -46,7 +46,7 @@ public class WarGeneral {
     private static final UUID HEARTS = UUID.fromString("6f3e2a7c-5b1d-4e9a-9c2f-7d8e1a4b3c21");
     private static final String SAVED_HP = "dreSavedHp", RESTORE_HP = "dreRestoreHp";
 
-    // ---------------- Зал славы ----------------
+    // ---------------- Hall of Fame ----------------
 
     private static Block[] statues() {
         return new Block[] { VanillaBlocks.ancientEntityStatue, VanillaBlocks.watcherStatue, VanillaBlocks.kosStatue,
@@ -62,12 +62,12 @@ public class WarGeneral {
         return -1;
     }
 
-    // ---------------- Приказы ----------------
+    // ---------------- Orders ----------------
 
-    /** Приказ: кого бить (по имени класса или по миру), сколько, после какого босса доступен. */
+    /** Order: whom to hit (by class name or by world), how many, after which boss it is available. */
     private enum Order {
         ICE_BEASTS(15, Boss.CARCINUS, null, "Glacon", "Frost"),
-        SEA_PATROL(10, Boss.CARCINUS, null, "Shark", "Whale"), // лиоплевродон с 0.99.113 - босс, не патрульная цель
+        SEA_PATROL(10, Boss.CARCINUS, null, "Shark", "Whale"), // Liopleurodon has been a boss since 0.99.113, not a patrol target
         HELLFIRE(20, Boss.CARCINUS, null, "Wildfire", "HellSpider"),
         ICEIKA(25, Boss.SNOW_GLACON, "iceika"),
         SCORCHERS(15, Boss.LICH_KING, null, "Scorcher"),
@@ -124,7 +124,7 @@ public class WarGeneral {
         }
     }
 
-    /** Звания по числу выполненных приказов и подарок за каждое. */
+    /** Ranks by the number of completed orders and a gift for each. */
     private static final int[] RANK_AT = { 0, 3, 7, 12, 20, 30 };
 
     private static int rank(int done) {
@@ -144,7 +144,7 @@ public class WarGeneral {
         }
     }
 
-    // ---------------- Данные игрока ----------------
+    // ---------------- Player data ----------------
 
     private static NBTTagCompound data(EntityPlayer p) {
         NBTTagCompound d = p.getEntityData();
@@ -222,7 +222,7 @@ public class WarGeneral {
                 String.valueOf(prog), String.valueOf(o.count));
             return;
         }
-        // сдача приказа
+        // turning in an order
         int before = rank(g.getInteger("done"));
         int done = g.getInteger("done") + 1;
         g.setInteger("done", done);
@@ -246,7 +246,7 @@ public class WarGeneral {
         }
     }
 
-    /** Новый приказ: из открытых, чаще - последние по прогрессу (чтобы звали дальше, а не назад). */
+    /** New order: from the open ones, more often the latest by progress (so that it calls further on, not back). */
     private static Order pick(EntityPlayer p) {
         List<Order> open = new ArrayList<Order>();
         for (Order o : Order.values()) if (o.open(p)) open.add(o);
@@ -261,7 +261,7 @@ public class WarGeneral {
         return open.get(open.size() - 1);
     }
 
-    /** Счёт убийств для текущего приказа. */
+    /** Kill count for the current order. */
     @SubscribeEvent
     public void onDeath(LivingDeathEvent e) {
         if (e.entityLiving.worldObj.isRemote || !(e.source.getEntity() instanceof EntityPlayer)) return;
@@ -278,17 +278,17 @@ public class WarGeneral {
         else if (prog % 5 == 0) say(p, EnumChatFormatting.GRAY, "dre.general.order_tick", String.valueOf(prog), String.valueOf(o.count));
     }
 
-    // ---------------- Сердца ----------------
+    // ---------------- Hearts ----------------
 
 
-    /** +2 здоровья за каждую отданную статую - модификатором, который держим на игроке (после смерти тоже). */
+    /** +2 health for each statue given - as a modifier that we keep on the player (after death too). */
     public static void applyHearts(EntityPlayer p) {
         applyHearts(p, false);
     }
 
     /**
-     * force - снять и поставить заново, даже если не изменилось: так максимум здоровья заново уходит клиенту. Нужно после
-     * входа, возрождения и смены мира - клиент тогда создаёт персонажа заново со стандартными 20.
+     * force - remove and set again even if unchanged: this way the max health is sent to the client again. Needed after
+     * join, respawn and world change - the client then creates the character anew with the standard 20.
      */
     public static void applyHearts(EntityPlayer p, boolean force) {
         IAttributeInstance hp = p.getEntityAttribute(SharedMonsterAttributes.maxHealth);
@@ -296,7 +296,7 @@ public class WarGeneral {
         AttributeModifier cur = hp.getModifier(HEARTS);
         if (!force && cur != null && cur.getAmount() == want) return;
         if (cur != null) hp.removeModifier(cur);
-        if (want > 0) hp.applyModifier(new AttributeModifier(HEARTS, "Зал славы", want, 0).setSaved(false));
+        if (want > 0) hp.applyModifier(new AttributeModifier(HEARTS, "Hall of Fame", want, 0).setSaved(false));
         if (p.getHealth() > p.getMaxHealth()) p.setHealth(p.getMaxHealth());
     }
 
@@ -304,8 +304,8 @@ public class WarGeneral {
     public void onPlayerTick(TickEvent.PlayerTickEvent e) {
         if (e.phase != TickEvent.Phase.END || e.player.worldObj.isRemote || e.player.ticksExisted % 40 != 0) return;
         applyHearts(e.player);
-        // восстановление здоровья после входа - не сразу: другие моды (контейнеры сердец Tinkers' Construct) навешивают
-        // свой максимум чуть позже, иначе их сердца срезало бы
+        // restoring health after join - not at once: other mods (Tinkers' Construct heart canisters) attach
+        // their own maximum a bit later, otherwise their hearts would be cut off
         NBTTagCompound d = e.player.getEntityData();
         if (d.hasKey(RESTORE_HP)) {
             float saved = d.getFloat(RESTORE_HP);
@@ -314,7 +314,7 @@ public class WarGeneral {
         }
     }
 
-    /** Модификатор не сохраняется в файл игрока: при выходе запоминаем здоровье, иначе при входе его обрежет до 20. */
+    /** The modifier is not saved to the player file: on leaving we remember the health, otherwise on join it will be cut to 20. */
     @SubscribeEvent
     public void onLogout(cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent e) {
         e.player.getEntityData().setFloat(SAVED_HP, e.player.getHealth());

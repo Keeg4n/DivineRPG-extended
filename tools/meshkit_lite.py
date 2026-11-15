@@ -1,7 +1,7 @@
-"""Урезанная копия ~/mc/tools/meshkit.py (нет на ноутбуке): коробки -> атлас + .mesh для EasterMesh + программный рендер превью.
+"""A trimmed copy of ~/mc/tools/meshkit.py (not present on the laptop): boxes -> atlas + .mesh for EasterMesh + software preview rendering.
 
-Координаты как у моделей Minecraft: единица = 1/16 блока, y вниз. Формат .mesh: "p <часть> <кость>", затем
-"q nx ny nz  x y z u v  x y z u v ..." - четырёхугольник; порядок вершин - как у ModelBox (отсечение граней как в ванили).
+Coordinates as in Minecraft models: one unit = 1/16 of a block, y down. The .mesh format: "p <piece> <bone>", then
+"q nx ny nz  x y z u v  x y z u v ..." - a quadrilateral; vertex order as in ModelBox (face culling as in vanilla).
 """
 import math
 
@@ -119,7 +119,7 @@ class Model:
 
     def save(self, png, mesh):
         img = self.img.copy()
-        img[..., 3] = 255  # в игре свечение - отдельная группа меша, альфа не нужна
+        img[..., 3] = 255  # in the game the glow is a separate mesh group, alpha is not needed
         Image.fromarray(img, 'RGBA').save(png)
         groups = {}
         for q in self.quads():

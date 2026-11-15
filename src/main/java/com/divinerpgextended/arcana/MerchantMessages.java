@@ -9,7 +9,7 @@ import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 
-/** Сеть Кристалла памяти: сервер открывает окно с портретами, клиент просит позвать торговца. */
+/** Memory Crystal network: the server opens a window with portraits, the client asks to summon a merchant. */
 public final class MerchantMessages {
 
     private MerchantMessages() {}
@@ -20,7 +20,7 @@ public final class MerchantMessages {
         ColdHandler.NET.registerMessage(ArcanaMaxHandler.class, ArcanaMax.class, 3, Side.CLIENT);
     }
 
-    /** Сервер -> клиент: максимум арканы игрока (задания Ваттикуса поднимают его выше 200). */
+    /** Server -> client: the player's maximum arcana (Vatticus quests raise it above 200). */
     public static class ArcanaMax implements IMessage {
 
         public float max;
@@ -51,7 +51,7 @@ public final class MerchantMessages {
         }
     }
 
-    /** Сервер -> клиент: кого игрок встретил и кто уже доступен по прогрессу. */
+    /** Server -> client: whom the player has met and who is already available by progress. */
     public static class Open implements IMessage {
 
         public int met, unlocked;
@@ -85,7 +85,7 @@ public final class MerchantMessages {
         }
     }
 
-    /** Клиент -> сервер: позвать торговца с этим номером. */
+    /** Client -> server: summon the merchant with this number. */
     public static class Summon implements IMessage {
 
         public int index;

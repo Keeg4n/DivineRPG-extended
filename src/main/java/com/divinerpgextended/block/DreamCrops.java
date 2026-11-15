@@ -27,15 +27,15 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Грядка мечтаний: морковь мечтаний сажается на пашню и ведёт себя как ванильная (пашня пересохла или вытоптана - ломается;
- * урожай растёт с Удачей), арбуз мечтаний - из семечек:
- * стебель, рядом вырастает блок арбуза, с него падают дольки (с Шёлковым касанием - сам блок).
+ * Dream bed: Dream Carrots are planted on farmland and behave like vanilla ones (farmland dried out or trampled - breaks;
+ * the crop grows with Fortune), Dream Melon comes from seeds:
+ * a stem, a melon block grows next to it, slices drop from it (with Silk Touch - the block itself).
  */
 public final class DreamCrops {
 
     private DreamCrops() {}
 
-    /** Морковь мечтаний на грядке: 4 стадии, как у моркови; созревшая - 1-4 моркови (+1 бросок за уровень Удачи). */
+    /** Dream Carrots on a bed: 4 stages, like carrots; ripe - 1-4 carrots (+1 roll per level of Fortune). */
     public static class Carrot extends BlockCarrot {
 
         @SideOnly(Side.CLIENT)
@@ -47,8 +47,8 @@ public final class DreamCrops {
         }
 
         /**
-         * Посадка (как у ванильной моркови): Forge узнаёт посадки по ссылке на ванильный блок, наш считал "травой" - и земля
-         * его держала: пересохшая или вытоптанная пашня не ломала морковь.
+         * Planting (like a vanilla carrot): Forge recognizes plantings by a reference to a vanilla block, ours counted as "grass" - and the ground
+         * held it: dried out or trampled farmland did not break the carrot.
          */
         @Override
         public net.minecraftforge.common.EnumPlantType getPlantType(net.minecraft.world.IBlockAccess w, int x, int y, int z) {
@@ -56,12 +56,12 @@ public final class DreamCrops {
         }
 
         @Override
-        protected Item func_149866_i() { // семя
+        protected Item func_149866_i() { // seed
             return VetheaItems.dreamCarrot;
         }
 
         @Override
-        protected Item func_149865_P() { // урожай
+        protected Item func_149865_P() { // crop
             return VetheaItems.dreamCarrot;
         }
 
@@ -89,7 +89,7 @@ public final class DreamCrops {
         }
     }
 
-    /** Блок арбуза мечтаний: 3-7 долек (с Удачей больше, не больше 9). */
+    /** Dream Melon block: 3-7 slices (more with Fortune, no more than 9). */
     public static class Melon extends BlockMelon {
 
         @SideOnly(Side.CLIENT)
@@ -122,7 +122,7 @@ public final class DreamCrops {
         }
     }
 
-    /** Стебель арбуза мечтаний: растёт и плодоносит, как арбузный; ломается в свои семечки. */
+    /** Dream Melon stem: grows and bears fruit like a melon one; breaks into its seeds. */
     public static class Stem extends BlockStem {
 
         public Stem(Block fruit) {
@@ -133,7 +133,7 @@ public final class DreamCrops {
             setBlockTextureName("melon_stem");
         }
 
-        /** Посадка, как стебель ванильного арбуза (см. Carrot.getPlantType). */
+        /** Planting, like a vanilla melon stem (see Carrot.getPlantType). */
         @Override
         public net.minecraftforge.common.EnumPlantType getPlantType(net.minecraft.world.IBlockAccess w, int x, int y, int z) {
             return net.minecraftforge.common.EnumPlantType.Crop;
@@ -152,7 +152,7 @@ public final class DreamCrops {
             return ModItems.dreamMelonSeeds;
         }
 
-        /** Бирюзовый, как ботва моркови мечтаний (у ванильного - от зелёного к жёлтому). */
+        /** Turquoise, like the Dream Carrot tops (the vanilla one goes from green to yellow). */
         @Override
         @SideOnly(Side.CLIENT)
         public int getRenderColor(int meta) {
@@ -167,7 +167,7 @@ public final class DreamCrops {
         }
     }
 
-    /** Морковь мечтаний - еда Divine без посадки: сажаем кликом по пашне и не даём в тот же клик её съесть. */
+    /** Dream Carrots are Divine food without planting: we plant on a click on farmland and do not let it be eaten with the same click. */
     public static class Planting {
 
         private static final String TICK = "dreDreamPlant";

@@ -18,7 +18,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Подсказки гнёзд брони и заряда оружия; счётчик заряда справа от хотбара, пока оружие в руке. */
+/** Tooltips of armor sockets and weapon charge; a charge counter to the right of the hotbar while a weapon is in hand. */
 @SideOnly(Side.CLIENT)
 public class SocketTooltip {
 
@@ -66,7 +66,7 @@ public class SocketTooltip {
         return Math.round(f * 100);
     }
 
-    /** Справа от хотбара: заряжено / вместимость у оружия в руке. */
+    /** To the right of the hotbar: loaded / capacity for the weapon in hand. */
     @SubscribeEvent
     public void onOverlay(RenderGameOverlayEvent.Post e) {
         if (e.type != RenderGameOverlayEvent.ElementType.HOTBAR) return;

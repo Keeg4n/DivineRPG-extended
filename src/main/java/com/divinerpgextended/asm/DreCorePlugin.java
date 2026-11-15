@@ -5,15 +5,15 @@ import java.util.Map;
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
 
 /**
- * Coremod аддона: чинит "бесконечные" печи Divine (угольная печь Iceika и печи Molten, Oceanfire, Whitefire,
- * Demon), чтобы с ними работали воронки и трубы ({@link FurnaceTransformer}), и снимает зашитый максимум арканы 200
- * ({@link ArcanaTransformer}), чинит свойства полных сетов брони ({@link ArmorSetTransformer}), выключает обмен
- * инвентаря Ветеи и в Divine без настройки vetheaInventory ({@link VetheaSwapTransformer}), ускоряет поиск парного
- * портала в сумеречных мирах ({@link PortalTransformer}), ставит их деревья внутрь заселяемой области
- * ({@link TreeShiftTransformer}) и отмечает время их заселения (для пересылки чанков целиком), наклоняет вид в вагонетке
- * Апалачии ({@link CameraTransformer}), не даёт Айрако без братьев ронять сохранение ({@link AyeracoTransformer}), не пускает заселение Iceika в Ледяной Трон, даёт боссам Divine статус босса ({@link BossStatusTransformer})
- * ({@link IceikaThroneTransformer}), не даёт генерации Ветеи создавать соседние чанки по цепочке ({@link VetheaGenTransformer}), чинит выбор биома ритуалом Гайи Blood Magic ({@link BiomeRitualTransformer}), ведёт алтарь наполнения, Лхейву и Шахтёрский амулет Ветеи ({@link VetheaTransformer}), красит воду Эдема в золото ({@link WaterTransformer}), пускает траты арканы через правила аддона ({@link ArcanaUseTransformer}), не даёт Morph выкидывать из мира на моделях Divine ({@link MorphModelTransformer}), выбирает вид моба для спавна из разрешённых по рангу ({@link SpawnTransformer}), даёт лукам и стрелкам стрелять зарядом из самого оружия ({@link AmmoTransformer}), прячет от чужих копателей настоящую прочность защищённых блоков ({@link MiningGuardTransformer}), пускает чужую площадную ломку через событие ломки ({@link AreaBreakTransformer}), глушит чужие аксессуары Baubles ({@link BaublesTransformer}) и тик чужой брони ({@link ArmorTickTransformer}) во сне; до загрузки
- * модов разводит ID биомов Divine с Biomes O Plenty ({@link BiomeIdGuard}).
+ * Addon coremod: fixes the "infinite" Divine furnaces (Iceika coal furnace and the Molten, Oceanfire, Whitefire,
+ * Demon furnaces) so that hoppers and pipes work with them ({@link FurnaceTransformer}), and removes the hardcoded arcana maximum of 200
+ * ({@link ArcanaTransformer}), fixes full armor set properties ({@link ArmorSetTransformer}), turns off the Vethea inventory
+ * swap in Divine without the vetheaInventory setting ({@link VetheaSwapTransformer}), speeds up the search for the paired
+ * portal in the twilight worlds ({@link PortalTransformer}), places their trees inside the populated area
+ * ({@link TreeShiftTransformer}) and marks the time of their population (for resending chunks whole), tilts the view in the Apalachia
+ * Cart ({@link CameraTransformer}), keeps Ayeraco without siblings from crashing the save ({@link AyeracoTransformer}), keeps Iceika population out of the Frozen Throne, gives Divine bosses boss status ({@link BossStatusTransformer})
+ * ({@link IceikaThroneTransformer}), keeps Vethea generation from creating neighboring chunks in a chain ({@link VetheaGenTransformer}), fixes biome selection by the Blood Magic Gaia ritual ({@link BiomeRitualTransformer}), drives the infusion altar, L Heiva and the Vethea Miner's Amulet ({@link VetheaTransformer}), paints Eden water gold ({@link WaterTransformer}), routes arcana spending through the addon rules ({@link ArcanaUseTransformer}), keeps Morph from throwing the player out of the world on Divine models ({@link MorphModelTransformer}), chooses the mob kind for spawning from those allowed by rank ({@link SpawnTransformer}), lets bows and shooters fire with ammo loaded in the weapon itself ({@link AmmoTransformer}), hides the real durability of protected blocks from other mods' miners ({@link MiningGuardTransformer}), routes other mods' area breaking through the break event ({@link AreaBreakTransformer}), silences other mods' Baubles accessories ({@link BaublesTransformer}) and the tick of other mods' armor ({@link ArmorTickTransformer}) in the dream; before
+ * mods load it separates Divine biome IDs from Biomes O Plenty ({@link BiomeIdGuard}).
  */
 @IFMLLoadingPlugin.MCVersion("1.7.10")
 @IFMLLoadingPlugin.Name("DivineRPG Extended Core")
@@ -46,7 +46,7 @@ public class DreCorePlugin implements IFMLLoadingPlugin {
 
     @Override
     public void injectData(Map<String, Object> data) {
-        // до загрузки модов: ID биомов Divine не должны совпадать с биомами других модов (Biomes O Plenty)
+        // before mods load: Divine biome IDs must not coincide with biomes of other mods (Biomes O Plenty)
         Object dir = data.get("mcLocation");
         if (dir instanceof java.io.File) BiomeIdGuard.run((java.io.File) dir);
     }

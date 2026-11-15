@@ -18,8 +18,8 @@ import com.divinerpgextended.cold.ColdHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Маленькая кнопка-звёздочка старых слотов аксессуаров в правом нижнем углу рамки с моделькой игрока (обычный инвентарь
- * и вкладка инвентаря в творческом). Видна, только пока в старых слотах что-то осталось
+ * A small star button for the old accessory slots in the lower right corner of the frame with the player model (the regular inventory
+ * and the inventory tab in creative). Visible only while something is left in the old slots
  * ({@link com.divinerpgextended.accessory.Accessories#clientLeftovers}).
  */
 public class AccessoryButton {
@@ -27,7 +27,7 @@ public class AccessoryButton {
     private static final int ID = 2401, SIZE = 10;
     private static final ResourceLocation STAR = new ResourceLocation("divinerpgextended", "textures/gui/accessories_star.png");
 
-    /** Кнопка рисует только рамку ванильной кнопки и звезду поверх. */
+    /** The button draws only the vanilla button frame and a star on top. */
     private static class StarButton extends GuiButton {
 
         StarButton(int x, int y) {
@@ -36,14 +36,14 @@ public class AccessoryButton {
 
         @Override
         public void drawButton(Minecraft mc, int mx, int my) {
-            // место - по окну прямо сейчас: NEI двигает инвентарь (эффекты зелий) уже во время отрисовки - кнопка прыгала
+            // position by the window right now: NEI moves the inventory (potion effects) already during rendering - the button jumped
             if (mc.currentScreen != null) place(this, mc.currentScreen);
             if (!visible) return;
             field_146123_n = mx >= xPosition && my >= yPosition && mx < xPosition + width && my < yPosition + height;
             mc.getTextureManager().bindTexture(buttonTextures);
             GL11.glColor4f(1, 1, 1, 1);
             int v = 46 + getHoverState(field_146123_n) * 20;
-            // ванильная кнопка 200x20 - берём левый и правый края, чтобы получилась маленькая квадратная
+            // the vanilla button is 200x20 - take the left and right edges to get a small square one
             drawTexturedModalRect(xPosition, yPosition, 0, v, width / 2, height);
             drawTexturedModalRect(xPosition + width / 2, yPosition, 200 - width / 2, v, width / 2, height);
             drawTexturedModalRect(xPosition, yPosition + height - 2, 0, v + 18, width / 2, 2);
@@ -68,8 +68,8 @@ public class AccessoryButton {
     }
 
     /**
-     * По настоящим координатам окна: с эффектами зелий ванильный инвентарь сдвигается вправо, а NEI после
-     * инициализации возвращает его на место (эффекты выносит на свою панель) - поэтому пересчёт перед каждой отрисовкой.
+     * By the real window coordinates: with potion effects the vanilla inventory shifts to the right, and NEI after
+     * initialization puts it back (it moves the effects to its own panel) - so it is recalculated before every draw.
      */
     private static void place(StarButton button, net.minecraft.client.gui.GuiScreen gui) {
         if (!com.divinerpgextended.accessory.Accessories.clientLeftovers || !(gui instanceof GuiInventory || gui instanceof GuiContainerCreative)) {
@@ -81,7 +81,7 @@ public class AccessoryButton {
             c, "guiLeft", "field_147003_i");
         int top = cpw.mods.fml.relauncher.ReflectionHelper.getPrivateValue(net.minecraft.client.gui.inventory.GuiContainer.class,
             c, "guiTop", "field_147009_r");
-        // правый нижний угол рамки с моделькой: в обычном инвентаре рамка 26..77 x 8..78, в творческом 27..61 x 5..50
+        // lower right corner of the frame with the model: in the regular inventory the frame is 26..77 x 8..78, in creative 27..61 x 5..50
         if (gui instanceof GuiInventory) {
             button.visible = true;
             button.xPosition = left + 77 - SIZE - 1;
@@ -105,7 +105,7 @@ public class AccessoryButton {
         e.setCanceled(true);
     }
 
-    /** Подсказка "Аксессуары" при наведении. */
+    /** The "Accessories" tooltip on hover. */
     @SubscribeEvent
     public void onDraw(GuiScreenEvent.DrawScreenEvent.Post e) {
         if (button == null || !button.visible || !(e.gui instanceof GuiInventory || e.gui instanceof GuiContainerCreative)) return;

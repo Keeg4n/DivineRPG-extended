@@ -1,4 +1,4 @@
-"""Алтари призыва боссов: грани 16x16 из настоящих ванильных текстур и своего узора, рендер куба."""
+"""Boss summoning altars: 16x16 faces made from real vanilla textures and a custom pattern, cube render."""
 import numpy as np
 from PIL import Image
 
@@ -11,7 +11,7 @@ K = '#1a1320'
 
 
 def paste(base, tex, x0, y0, x1, y1):
-    """Участок чужой текстуры на то же место (включительно)."""
+    """A region of a foreign texture copied to the same place (inclusive)."""
     out = base.copy()
     out[y0:y1 + 1, x0:x1 + 1] = tex[y0:y1 + 1, x0:x1 + 1]
     return out
@@ -49,7 +49,7 @@ def checker(a, b, step=4):
 
 
 def mask(base, tex, m):
-    """Узор формой m вырезан из чужой текстуры: трещины, руны."""
+    """The pattern with shape m is cut out of a foreign texture: cracks, runes."""
     out = base.copy()
     for x, y in m:
         if 0 <= x < 16 and 0 <= y < 16:
@@ -58,7 +58,7 @@ def mask(base, tex, m):
 
 
 def over(base, tex):
-    """Текстура с прозрачностью поверх (лианы)."""
+    """A texture with transparency on top (vines)."""
     out = base.copy()
     m = tex[..., 3] > 128
     out[m] = tex[m]
@@ -66,7 +66,7 @@ def over(base, tex):
 
 
 def draw(base, fn):
-    """Свой узор поверх."""
+    """A custom pattern on top."""
     c = Ic()
     fn(c)
     out = base.copy()
@@ -76,7 +76,7 @@ def draw(base, fn):
 
 
 def drip(base, tex, depth=4, seed=(5, 3, 6, 4, 2, 5, 3, 4, 6, 3, 5, 2, 4, 6, 3, 5)):
-    """Шапка сверху с неровным краем, как снег или трава на блоке."""
+    """A cap on top with an uneven edge, like snow or grass on a block."""
     out = base.copy()
     for x in range(16):
         for y in range(min(seed[x], depth + 2)):
@@ -84,7 +84,7 @@ def drip(base, tex, depth=4, seed=(5, 3, 6, 4, 2, 5, 3, 4, 6, 3, 5, 2, 4, 6, 3, 
     return out
 
 
-# узоры
+# patterns
 claw = lambda c: (c.f(POLY((3, 13), (6, 13), (8, 10), (6, 8), (3, 10)), ORG), c.f(POLY((7, 10), (11, 10), (13, 8), (13, 10), (11, 12), (7, 12)), ORG), c.f(POLY((5, 8), (4, 5), (7, 3), (11, 3), (13, 5), (10, 5), (8, 5), (8, 8)), ORG))
 flake = lambda c: (c.c(LINE(8, 3, 8, 12), '#f4fcff'), c.c(LINE(3, 8, 12, 8), '#f4fcff'), c.c(LINE(5, 5, 10, 10), '#c2e6fa'), c.c(LINE(5, 10, 10, 5), '#c2e6fa'))
 crown = lambda c: (c.f(POLY((3, 12), (3, 6), (5.5, 9), (8, 4), (10.5, 9), (13, 6), (13, 12)), SILV), c.d(CYAN[3], 5, 11, 8, 11, 10, 11))
@@ -133,7 +133,7 @@ ALTARS = [
 
 
 def block_render(side, top, size=250):
-    """Куб в три четверти: тот же растеризатор, что у брони."""
+    """Cube in three-quarter view: the same rasterizer as for the armor."""
     atlas = np.zeros((16, 32, 4), np.uint8)
     atlas[:, :16] = side
     atlas[:, 16:] = top

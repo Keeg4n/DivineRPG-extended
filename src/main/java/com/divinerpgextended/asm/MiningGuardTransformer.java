@@ -13,15 +13,15 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 /**
- * Ломка игроком берёт настоящую прочность защищённых блоков ({@link com.divinerpgextended.perk.MiningGuard}): в
- * ForgeHooks.blockStrength чтение Block.getBlockHardness заменяется вызовом MiningGuard.real. Это единственное чтение
- * прочности в методе; других вызовов с такими аргументами там нет, поэтому имя не сверяется (оно разное в среде и в игре).
+ * Breaking by a player takes the real durability of protected blocks ({@link com.divinerpgextended.perk.MiningGuard}): in
+ * ForgeHooks.blockStrength the Block.getBlockHardness read is replaced with a MiningGuard.real call. This is the only read of
+ * durability in the method; there are no other calls with such arguments there, so the name is not checked (it differs between the environment and the game).
  */
 public class MiningGuardTransformer implements IClassTransformer, Opcodes {
 
     private static final String TARGET = "net.minecraftforge.common.ForgeHooks";
     private static final Logger LOG = LogManager.getLogger("divinerpgextended-core");
-    /** Поправка встала: проверяет самопроверка. */
+    /** The patch is in place: checked by the selftest. */
     public static boolean patched;
 
     @Override
@@ -45,16 +45,16 @@ public class MiningGuardTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (count != 1) {
-                LOG.error("Защита блоков: в blockStrength найдено чтений прочности {} вместо одного, класс без изменений", count);
+                LOG.error("Block protection: found {} strength reads in blockStrength instead of one, class unchanged", count);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
             patched = true;
-            LOG.info("Защита блоков: ломка игроком берёт настоящую прочность");
+            LOG.info("Block protection: breaking by a player takes the real strength");
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Защита блоков: не удалось изменить ForgeHooks, класс без изменений", t);
+            LOG.error("Block protection: could not modify ForgeHooks, class unchanged", t);
             return bytes;
         }
     }

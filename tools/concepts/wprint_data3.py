@@ -1,4 +1,4 @@
-"""Тексты третьего раунда концептов брони Странника: попроще, варианты Ж, З, И."""
+"""Texts of the third round of Wanderer armor concepts: simpler, variants Zh, Z, I."""
 from wprint_data import PICKED, TOC
 
 ROUND = 'Третий раунд'

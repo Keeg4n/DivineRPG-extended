@@ -14,8 +14,8 @@ import com.divinerpgextended.entity.EntityLichKing;
 import com.divinerpgextended.entity.EntitySnowGlacon;
 
 /**
- * Боссы (и "хозяева" биомов), убийство которых открывает улучшения. Порядок не менять: прогресс игрока хранится
- * битами по номеру. Новые боссы добавлять только в конец.
+ * Bosses (and biome "masters") whose kill unlocks upgrades. Do not change the order: player progress is stored
+ * as bits by number. Add new bosses only at the end.
  */
 public enum Boss {
 
@@ -24,9 +24,9 @@ public enum Boss {
     KING_OF_SCORCHERS(EntityKingOfScorchers.class, -1),
     JUNGLE_DRAMCRYX(EntityJungleDramcryx.class, -1),
     CADILLION_EDEN(EntityGreatCadillion.class, 0),
-    CADILLION_WILDWOOD(com.divinerpgextended.entity.EntityAncientGolem.class, -1), // страж рощи Дикого леса - Древний голем
-    CADILLION_APALACHIA(com.divinerpgextended.entity.EntityWarriorKing.class, -1), // страж рощи Апалачии - Король-воин
-    CADILLION_SKYTHERN(com.divinerpgextended.entity.EntityWindLord.class, -1), // страж рощи Скайтерна - Повелитель ветров
+    CADILLION_WILDWOOD(com.divinerpgextended.entity.EntityAncientGolem.class, -1), // Wildwood grove guardian - Ancient Golem
+    CADILLION_APALACHIA(com.divinerpgextended.entity.EntityWarriorKing.class, -1), // Apalachia grove guardian - Warrior King
+    CADILLION_SKYTHERN(com.divinerpgextended.entity.EntityWindLord.class, -1), // Skythern grove guardian - Wind Lord
     TWILIGHT_DEMON(EntityTwilightDemon.class, -1),
     KAROT(EntityKarot.class, -1),
     CARCINUS(EntityCarcinus.class, -1),
@@ -34,23 +34,23 @@ public enum Boss {
     LICH_KING(EntityLichKing.class, -1),
     DRAMIX(net.divinerpg.entities.arcana.EntityDramix.class, -1),
     PARASECTA(net.divinerpg.entities.arcana.EntityParasecta.class, -1),
-    // боссы арен Мортума (ворота Ветеи); близнецы - одной победой: засчитываются, когда пал последний из двоих
+    // Mortum arena bosses (Vethea gate); twins count as one victory: counted when the last of the two has fallen
     ETERNAL_ARCHER(net.divinerpg.entities.twilight.EntityEternalArcher.class, -1),
     TWINS(net.divinerpg.entities.twilight.EntityDensos.class, -1),
     SOUL_FIEND(net.divinerpg.entities.twilight.EntitySoulFiend.class, -1),
     VAMACHERON(net.divinerpg.entities.twilight.EntityVamacheron.class, -1),
-    /** Босс логова под храмом джунглей. */
+    /** Boss of the lair under the jungle temple. */
     JUNGLE_KING(com.divinerpgextended.entity.EntityAncientDramcryx.class, -1),
-    // три последних босса Ветеи (4 этаж); очередь Раглок - Крушитель - Луна держит снаряжение
-    // ({@link com.divinerpgextended.vethea.VetheaCombat#gate}): Крушителя ранит только гелиозис с Раглока, Луну - арксиан с Крушителя
+    // the last three Vethea bosses (floor 4); the Raglok - Wreck - Luna queue holds the gear
+    // ({@link com.divinerpgextended.vethea.VetheaCombat#gate}): Wreck is hurt only by heliosis from Raglok, Luna - by arksiane from Wreck
     WRECK(net.divinerpg.entities.vethea.EntityWreck.class, -1),
     RAGLOK(net.divinerpg.entities.vethea.EntityRaglok.class, -1),
     LADY_LUNA(net.divinerpg.entities.vethea.EntityLadyLuna.class, -1),
-    /** Рыбий босс океана (необязательный, между Апалачией и Небесным терном). */
+    /** Ocean fish boss (optional, between Apalachia and Skythern). */
     LIOPLEURODON(com.divinerpgextended.entity.EntityLiopleurodonBoss.class, -1);
 
     private final Class<? extends Entity> entityClass;
-    /** Для великого кадиллиона - номер мира, иначе -1. */
+    /** For the Great Cadillion - the world number, otherwise -1. */
     private final int variant;
 
     Boss(Class<? extends Entity> entityClass, int variant) {

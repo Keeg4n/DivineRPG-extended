@@ -47,17 +47,17 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Звуки Half-Life для пасхалок - прямо из установленных у игрока Half-Life и Half-Life 2 ({@link HalfLifeMount}): свой
- * набор ресурсов отдаёт их файлы как {@code divinerpgextended:sounds/hev/hl1/...wav}, события {@code hev.*} собираются в коде
- * после каждой перезагрузки ресурсов (WAV играет кодек WAV из Minecraft). Нет игр - звуки Minecraft.
+ * Half-Life sounds for the Easter eggs - straight from the player's installed Half-Life and Half-Life 2 ({@link HalfLifeMount}): its own
+ * resource pack serves their files as {@code divinerpgextended:sounds/hev/hl1/...wav}, the {@code hev.*} events are assembled in code
+ * after every resource reload (the WAV is played by Minecraft's WAV codec). No games - Minecraft sounds.
  * <ul>
- * <li>Полный костюм H.E.V.: шаги по поверхности (Half-Life 2), боль и падение, смерть - писк монитора, в воде - плеск; начал
- * бежать - звук костюма из Half-Life 2; голос костюма (вход в систему, морфин, переломы, критическое здоровье) - по его
- * сообщению в чате.</li>
- * <li>Монтировка: каждый взмах - по мобу, по блоку или по воздуху, как в Half-Life. РПГ-7: выстрел.</li>
+ * <li>Full H.E.V. suit: footsteps by surface (Half-Life 2), pain and fall, death - a monitor flatline, in water - a splash; when you start
+ * to run - the suit sound from Half-Life 2; the suit voice (login, morphine, fractures, critical health) - by its
+ * chat message.</li>
+ * <li>Crowbar: every swing - at a mob, at a block or at the air, as in Half-Life. RPG-7: the shot.</li>
  * </ul>
- * Шаги, боль и смерть других игроков в костюме тоже заменяются, рывок и взмахи монтировкой других игроков слышны рядом с ними.
- * Но файлы - только из своих игр: у кого Half-Life не установлена, тот слышит обычные звуки.
+ * Footsteps, pain and death of other players in the suit are replaced too, the dash and crowbar swings of other players are audible near them.
+ * But the files come only from your own games: whoever does not have Half-Life installed hears the ordinary sounds.
  */
 public final class HevSounds {
 
@@ -89,26 +89,26 @@ public final class HevSounds {
         VOICE.put("dre.hev.health_critical", "hev.health_critical");
     }
 
-    /** Собранные события (есть хоть один файл). */
+    /** The assembled events (at least one file exists). */
     static final Set<String> READY = Collections.synchronizedSet(new HashSet<String>());
 
     public static boolean have(String event) {
         return READY.contains(event);
     }
 
-    /** До первой загрузки ресурсов: кодек WAV и набор ресурсов с файлами игр Valve. */
+    /** Before the first resource load: the WAV codec and the resource pack with the Valve game files. */
     @SuppressWarnings("unchecked")
     public static void addPack(File gameDir) {
         try {
             paulscode.sound.SoundSystemConfig.setCodec("wav", paulscode.sound.codecs.CodecWav.class);
         } catch (Throwable t) {
-            LOG.warn("H.E.V.: кодек WAV не подключён: " + t);
+            LOG.warn("H.E.V.: WAV codec not hooked: " + t);
         }
         try {
             List<IResourcePack> packs = ReflectionHelper.getPrivateValue(Minecraft.class, Minecraft.getMinecraft(), "defaultResourcePacks", "field_110449_ao");
             packs.add(new Pack());
         } catch (Throwable t) {
-            LOG.warn("H.E.V.: набор звуков не подключён: " + t);
+            LOG.warn("H.E.V.: sound set not hooked: " + t);
         }
     }
 
@@ -116,11 +116,11 @@ public final class HevSounds {
         Events e = new Events();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(e);
         FMLCommonHandler.instance().bus().register(e);
-        // после SoundHandler: он при перезагрузке чистит реестр звуков, мы дописываем свои события
+        // after SoundHandler: it clears the sound registry on reload, we add our events
         ((IReloadableResourceManager) Minecraft.getMinecraft().getResourceManager()).registerReloadListener(new Registrar());
     }
 
-    /** Файлы игр Valve как ресурсы мода: {@code divinerpgextended:sounds/hev/hl1/player/pl_pain2.wav}. */
+    /** Valve game files as mod resources: {@code divinerpgextended:sounds/hev/hl1/player/pl_pain2.wav}. */
     static class Pack implements IResourcePack {
 
         static String name(ResourceLocation r) {
@@ -164,7 +164,7 @@ public final class HevSounds {
         }
     }
 
-    /** Один файл события. */
+    /** One event file. */
     static class Entry implements ISoundEventAccessor {
 
         final SoundPoolEntry entry;
@@ -184,7 +184,7 @@ public final class HevSounds {
         }
     }
 
-    /** После каждой перезагрузки ресурсов: события hev.* из найденных файлов. */
+    /** After every resource reload: the hev.* events from the files found. */
     static class Registrar implements IResourceManagerReloadListener {
 
         @Override
@@ -194,7 +194,7 @@ public final class HevSounds {
             try {
                 reg = ReflectionHelper.getPrivateValue(SoundHandler.class, Minecraft.getMinecraft().getSoundHandler(), "sndRegistry", "field_147697_e");
             } catch (Throwable t) {
-                LOG.warn("H.E.V.: реестр звуков недоступен: " + t);
+                LOG.warn("H.E.V.: sound registry unavailable: " + t);
                 return;
             }
             int files = 0;
@@ -212,7 +212,7 @@ public final class HevSounds {
                 READY.add(e.getKey());
                 files += n;
             }
-            LOG.info("H.E.V.: звуки из игр Valve - событий " + READY.size() + "/" + HalfLifeMount.EVENTS.size() + ", файлов " + files + " (Half-Life: "
+            LOG.info("H.E.V.: sounds from Valve games - events " + READY.size() + "/" + HalfLifeMount.EVENTS.size() + ", files " + files + " (Half-Life: "
                 + HalfLifeMount.halfLife() + ", Half-Life 2: " + HalfLifeMount.halfLife2() + ")");
         }
     }
@@ -222,7 +222,7 @@ public final class HevSounds {
         Minecraft.getMinecraft().getSoundHandler().playSound(new PositionedSoundRecord(new ResourceLocation(DOMAIN, event), volume, 1.0F, (float) x, (float) y, (float) z));
     }
 
-    /** Звук у самого игрока (голос костюма, рывок, взмах мимо): без затухания, не остаётся на месте, где прозвучал. */
+    /** A sound at the player himself (suit voice, dash, a missed swing): no attenuation, does not stay in the place where it sounded. */
     static class Self extends net.minecraft.client.audio.PositionedSound {
 
         Self(String event, float volume) {
@@ -237,7 +237,7 @@ public final class HevSounds {
         if (have(event)) Minecraft.getMinecraft().getSoundHandler().playSound(new Self(event, volume));
     }
 
-    /** Игрок, у ног которого прозвучал звук (шаги и боль). */
+    /** The player at whose feet the sound played (footsteps and pain). */
     static EntityPlayer near(ISound s) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.theWorld == null) return null;
@@ -260,7 +260,7 @@ public final class HevSounds {
 
         boolean sprinting, swinging;
         int lastSwing;
-        /** Другие игроки рядом: {бежал, махал, прошлый шаг взмаха}. */
+        /** Other players nearby: {ran, swung, previous swing step}. */
         final Map<Integer, int[]> others = new HashMap<Integer, int[]>();
 
         @SubscribeEvent
@@ -280,7 +280,7 @@ public final class HevSounds {
             e.result = new PositionedSoundRecord(new ResourceLocation(DOMAIN, to), vol, 1.0F, e.sound.getXPosF(), e.sound.getYPosF(), e.sound.getZPosF());
         }
 
-        /** Голос костюма: сообщение костюма в чате. */
+        /** Suit voice: the suit's chat message. */
         @SubscribeEvent
         public void onChat(ClientChatReceivedEvent e) {
             if (!(e.message instanceof ChatComponentTranslation)) return;
@@ -289,9 +289,9 @@ public final class HevSounds {
             if (to != null && p != null) playSelf(to, 1.0F);
         }
 
-        /** Другие игроки в 32 блоках: рывок в костюме и взмахи монтировкой - звук у них. */
+        /** Other players within 32 blocks: a dash in the suit and crowbar swings - the sound is at them. */
         void others(Minecraft mc, EntityPlayer self) {
-            if (mc.theWorld == null) { // вход в мир и выход: игрок уже есть, мира ещё (или уже) нет
+            if (mc.theWorld == null) { // entering and leaving the world: the player exists, the world does not yet (or no longer)
                 others.clear();
                 return;
             }
@@ -313,7 +313,7 @@ public final class HevSounds {
             others.keySet().retainAll(seen);
         }
 
-        /** Свой игрок: рывок в костюме и взмахи монтировкой. */
+        /** Own player: a dash in the suit and crowbar swings. */
         @SubscribeEvent
         public void onTick(TickEvent.ClientTickEvent e) {
             Minecraft mc = Minecraft.getMinecraft();
@@ -323,7 +323,7 @@ public final class HevSounds {
             boolean run = p.isSprinting();
             if (run && !sprinting && Easter.fullHev(p)) playSelf("hev.sprint", 0.7F);
             sprinting = run;
-            // новый взмах: начался или пошёл заново (зажатая кнопка по блоку)
+            // a new swing: started or started again (a button held on a block)
             boolean swing = p.isSwingInProgress;
             boolean fresh = swing && (!swinging || p.swingProgressInt < lastSwing);
             swinging = swing;

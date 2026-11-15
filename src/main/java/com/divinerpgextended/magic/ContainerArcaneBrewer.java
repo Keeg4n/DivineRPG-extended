@@ -10,7 +10,7 @@ import net.minecraft.item.ItemStack;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Окно арканной стойки: три склянки, ингредиент, топливо (как у ванильной стойки, плюс слот арканиума слева). */
+/** Arcane stand window: three bottles, an ingredient, fuel (like a vanilla stand, plus an arcanium slot on the left). */
 public class ContainerArcaneBrewer extends Container {
 
     public final TileArcaneBrewer tile;

@@ -22,47 +22,47 @@ import com.divinerpgextended.registry.ModItems;
 import com.divinerpgextended.world.ArmorTier;
 
 /**
- * Правила Наковальни Странника. Слоты: 0-3 броня, 4-7 донор (части в любом порядке), 8 топливо.
+ * Rules of the Wanderer Anvil. Slots: 0-3 armor, 4-7 donor (parts in any order), 8 fuel.
  * <ul>
- * <li>финальный сет обычного мира (без донора) -> броня Странника R1 с ядром этого сета ({@link ArmorCore}), топливо - плата сета, босс не нужен;</li>
- * <li>сет Странника + финальный сет в доноре + плата этого сета в топливе -> новое ядро (тот же сет с другим топливом - обычный перк, если есть);</li>
- * <li>сет Странника R(n) + сет брони мира следующей ступени -> R(n+1) (закалка R2-R7);</li>
- * <li>сет Странника R7 + сет свойства Венца (Ангельский, Вемос, Корма) + Дух вселенной -> R8 с этим Венцом (за Леди Луну); на R8 тот
- * же сет с арлемитом - смена Венца ({@link com.divinerpgextended.item.ArmorCrown});</li>
- * <li>сет Странника + донорский сет перка -> перк в свободный слот;</li>
- * <li>любые части брони с гнёздами + аксессуары в доноре -> аксессуары встроены ({@link Sockets}), цена - уровни опыта;
- * клик по занятому гнезду - аксессуар выходит в свободный слот донора (бесплатно);</li>
- * <li>части Странника, донор и топливо пусты -> снять привязку (только владелец; чужая - {@link Status#FOREIGN});</li>
- * <li>заряженное оружие в слоте топлива, остальное пусто -> разрядить в инвентарь ({@link Ammo#unload}).</li>
+ * <li>final overworld set (no donor) -> Wanderer armor R1 with this set's core ({@link ArmorCore}), fuel is the set's plate, no boss needed;</li>
+ * <li>Wanderer set + final set in the donor + this set's plate in the fuel -> new core (the same set with other fuel is a regular perk, if any);</li>
+ * <li>Wanderer set R(n) + armor set of the next world tier -> R(n+1) (tempering R2-R7);</li>
+ * <li>Wanderer set R7 + Crown property set (Angelic, Vemos, Korma) + Spirit of the Universe -> R8 with this Crown (for Lady Luna); on R8 the same
+ * set with arlemite changes the Crown ({@link com.divinerpgextended.item.ArmorCrown});</li>
+ * <li>Wanderer set + perk donor set -> perk into a free slot;</li>
+ * <li>any armor parts with sockets + accessories in the donor -> accessories are embedded ({@link Sockets}), the price is experience levels;
+ * a click on an occupied socket - the accessory comes out into a free donor slot (free);</li>
+ * <li>Wanderer parts, donor and fuel empty -> remove the binding (owner only; someone else's - {@link Status#FOREIGN});</li>
+ * <li>loaded weapon in the fuel slot, the rest empty -> unload into the inventory ({@link Ammo#unload}).</li>
  * </ul>
- * Донорская броня с аксессуарами не принимается: её съедает улучшение - сначала вынуть.
+ * Donor armor with accessories is not accepted: the upgrade would consume it - take them out first.
  * <p>
- * Окно разделено на вкладки ({@link #UPGRADE}, {@link #SOCKETS}, {@link #UNLOAD}): каждая смотрит только на свои
- * слоты. {@link #AUTO} - без вкладки, по содержимому (так считают тесты).
+ * The window is split into tabs ({@link #UPGRADE}, {@link #SOCKETS}, {@link #UNLOAD}): each looks only at its own
+ * slots. {@link #AUTO} - no tab, by contents (this is how the tests count).
  */
 public final class AnvilLogic {
 
     public static final int ARMOR = 0, DONOR = 4, FUEL = 8, SIZE = 9;
-    /** Вкладки окна; AUTO - по содержимому. */
+    /** Window tabs; AUTO - by contents. */
     public static final int AUTO = -1, UPGRADE = 0, SOCKETS = 1, UNLOAD = 2, MODES = 3;
 
     public enum Status {
         EMPTY, NEED_ARMOR, BAD_ARMOR, NEED_DONOR, BAD_DONOR, PERK_PRESENT, NO_SLOT, NEED_BOSS, NEED_FUEL,
         READY_UPGRADE, READY_PERK, MAX_TIER,
-        // аксессуары и заряд (новые - только в конец: номер уходит клиенту)
+        // accessories and loaded ammo (new ones - only at the end: the number goes to the client)
         READY_SOCKET, NEED_LEVELS, SOCKET_PART, SOCKET_FULL, SOCKET_SAME, SOCKETS, DONOR_SOCKETS, READY_UNLOAD, UNLOAD_EMPTY,
         UNLOAD_FULL,
-        // пустые вкладки и броня без гнёзд
+        // empty tabs and armor without sockets
         EMPTY_SOCKETS, EMPTY_UNLOAD, NO_SOCKETS,
-        // переход в Странника без донора
+        // transition to Wanderer without a donor
         DONOR_UNNEEDED,
-        // смена ядра
+        // core change
         READY_CORE,
-        // привязка: снять со своей брони; броня чужая
+        // binding: remove from own armor; the armor is someone else's
         READY_UNBIND, FOREIGN,
-        // ядро уже такое, плата камнями за смену ядра, донор-Странник только R1
+        // the core is already that one, payment in stones for a core change, Wanderer donor is only R1
         CORE_SAME, CORE_FUEL, CORE_R1_ONLY,
-        // Венец R8: закалка R7 -> R8, смена Венца, Венец такой же, сет Венца на ступени ниже R7
+        // Crown R8: tempering R7 -> R8, Crown change, same Crown, Crown set at a tier below R7
         READY_R8, READY_CROWN, CROWN_SAME, CROWN_R8_ONLY
     }
 
@@ -70,15 +70,15 @@ public final class AnvilLogic {
 
         public final Status status;
         /**
-         * NEED_BOSS - номер босса, NEED_FUEL - сколько нужно, READY_UPGRADE - целевая ступень, READY_PERK и
-         * PERK_PRESENT - номер перка, READY_CORE и CORE_SAME - номер ядра, CORE_FUEL - сколько камней нужно.
+         * NEED_BOSS - boss number, NEED_FUEL - how much is needed, READY_UPGRADE - target tier, READY_PERK and
+         * PERK_PRESENT - perk number, READY_CORE and CORE_SAME - core number, CORE_FUEL - how many stones are needed.
          */
         public final int param;
-        /** Какое топливо нужно для текущей операции (или null). */
+        /** What fuel the current operation needs (or null). */
         public final Item fuel;
-        /** Подтип топлива (-1 - любой). */
+        /** Fuel subtype (-1 - any). */
         public int fuelMeta = -1;
-        /** Встраивание: куда встанет аксессуар каждого донора - по 3 бита (слот брони + 1, 0 - никуда). */
+        /** Embedding: where each donor's accessory goes - 3 bits each (armor slot + 1, 0 - nowhere). */
         public int targets;
 
         Result(Status status, int param, Item fuel) {
@@ -105,9 +105,9 @@ public final class AnvilLogic {
     private AnvilLogic() {}
 
     /**
-     * Части брони из четырёх слотов, разложенные по типу: [0] шлем, [1] нагрудник, [2] поножи, [3] ботинки. Игрок
-     * может класть части в любом порядке. Если два слота заняты частями одного типа, место остаётся пустым и
-     * интерфейс попросит полный сет.
+     * Armor parts from the four slots, arranged by type: [0] helmet, [1] chestplate, [2] leggings, [3] boots. The player
+     * can place parts in any order. If two slots hold parts of the same type, the place stays empty and the
+     * interface will ask for a full set.
      */
     private static Item[] items(IInventory inv, int from) {
         Item[] out = new Item[4];
@@ -153,7 +153,7 @@ public final class AnvilLogic {
         return s != null && s.getItem() == fuel && (meta < 0 || s.getItemDamage() == meta) ? s.stackSize : 0;
     }
 
-    /** Плата за закалку в R8: Дух вселенной. */
+    /** Payment for tempering to R8: Spirit of the Universe. */
     public static ItemStack r8Fuel() {
         return com.divinerpgextended.halite.Halite.spirit(com.divinerpgextended.halite.Halite.Spirit.UNIVERSE);
     }
@@ -162,7 +162,7 @@ public final class AnvilLogic {
         return boss != null && Config.requireBossUnlocks && !BossProgress.has(player, boss);
     }
 
-    /** Куда встанет каждый аксессуар из донора: target[слот донора] - слот брони (-1 - пусто); fail - почему нельзя. */
+    /** Where each donor accessory goes: target[donor slot] - armor slot (-1 - empty); fail - why it is impossible. */
     static final class Plan {
 
         final int[] target = { -1, -1, -1, -1 };
@@ -170,7 +170,7 @@ public final class AnvilLogic {
         Result fail;
     }
 
-    /** Порядок причин отказа: показываем самую конкретную. */
+    /** Order of refusal reasons: we show the most specific one. */
     private static int rank(Sockets.Fit f) {
         return f == Sockets.Fit.SAME ? 3 : f == Sockets.Fit.BOSS ? 2 : f == Sockets.Fit.FULL ? 1 : 0;
     }
@@ -205,7 +205,7 @@ public final class AnvilLogic {
         return pl;
     }
 
-    /** Вкладка гнёзд: броня в слотах брони, аксессуары в донорах. */
+    /** Sockets tab: armor in the armor slots, accessories in the donors. */
     private static Result sockets(IInventory inv, EntityPlayer player) {
         boolean acc = false;
         for (int d = 0; d < 4; d++) {
@@ -224,7 +224,7 @@ public final class AnvilLogic {
         if (!acc) return new Result(!any ? Status.EMPTY_SOCKETS : socketable ? Status.SOCKETS : Status.NO_SOCKETS, 0);
         Plan pl = plan(inv, player);
         if (pl.fail != null) {
-            // нужная часть лежит, но без гнёзд (ванильная или чужая) - сказать про это, а не "положите часть"
+            // the needed part is there but without sockets (vanilla or foreign) - say so, rather than "place a part"
             if (pl.fail.status == Status.SOCKET_PART) {
                 int parts = Sockets.parts(inv.getStackInSlot(DONOR + pl.fail.param));
                 for (int a = 0; a < 4; a++) {
@@ -241,7 +241,7 @@ public final class AnvilLogic {
         return r;
     }
 
-    /** Вкладка разрядки: только оружие в слоте топлива. */
+    /** Unload tab: only a weapon in the fuel slot. */
     private static Result unload(IInventory inv, EntityPlayer player) {
         ItemStack w = inv.getStackInSlot(FUEL);
         if (w == null || Ammo.of(w) == null) return new Result(Status.EMPTY_UNLOAD, 0);
@@ -256,7 +256,7 @@ public final class AnvilLogic {
         return true;
     }
 
-    /** Снятие привязки: сверху только части Странника (хоть одна привязана), донор и топливо пусты. Иначе null. */
+    /** Removing the binding: only Wanderer parts on top (at least one bound), donor and fuel empty. Otherwise null. */
     private static Result unbind(IInventory inv, EntityPlayer player) {
         if (!emptySlots(inv, DONOR) || inv.getStackInSlot(FUEL) != null) return null;
         int bound = 0, foreign = -1;
@@ -279,7 +279,7 @@ public final class AnvilLogic {
     public static Result evaluate(IInventory inv, EntityPlayer player, int mode) {
         if (mode == SOCKETS) return sockets(inv, player);
         if (mode == UNLOAD) return unload(inv, player);
-        // аксессуары в доноре - встраивание в любые части брони с гнёздами
+        // accessories in the donor - embedding into any armor parts with sockets
         boolean accDonor = false, armorDonor = false;
         for (int d = 0; d < 4; d++) {
             ItemStack s = inv.getStackInSlot(DONOR + d);
@@ -288,10 +288,10 @@ public final class AnvilLogic {
             else armorDonor = true;
         }
         if (accDonor) return mode == AUTO && !armorDonor ? sockets(inv, player) : new Result(Status.BAD_DONOR, 0);
-        // заряженное оружие одно в слоте топлива - разрядить
+        // a loaded weapon alone in the fuel slot - unload
         ItemStack fuelStack = inv.getStackInSlot(FUEL);
         if (mode == AUTO && fuelStack != null && Ammo.of(fuelStack) != null && emptySlots(inv, ARMOR) && emptySlots(inv, DONOR)) return unload(inv, player);
-        // донорская броня с аксессуарами: улучшение её съест - сначала вынуть
+        // donor armor with accessories: the upgrade will consume it - take them out first
         for (int d = 0; d < 4; d++) if (Sockets.count(inv.getStackInSlot(DONOR + d)) > 0) return new Result(Status.DONOR_SOCKETS, d);
 
         Item[] armor = items(inv, ARMOR);
@@ -299,14 +299,14 @@ public final class AnvilLogic {
         if (allNull(armor) && allNull(donor)) return new Result(Status.EMPTY, 0);
         Result bind = unbind(inv, player);
         if (bind != null) return bind;
-        // только броня с гнёздами (не сет для улучшения) - подсказка про гнёзда
+        // only armor with sockets (not a set for upgrading) - hint about sockets
         ArmorCore forge = ArmorCore.ofSet(armor);
         boolean setFlow = forge != null || !anyNull(armor) && wanderers(armor);
         if (mode == AUTO && allNull(donor) && !setFlow) {
             for (int a = 0; a < 4; a++) if (Sockets.socketable(inv.getStackInSlot(ARMOR + a))) return new Result(Status.SOCKETS, 0);
         }
 
-        // -> R1: финальный сет сам становится бронёй Странника (он и так равен ступени R1 - босс и донор не нужны)
+        // -> R1: the final set itself becomes Wanderer armor (it already equals tier R1 - no boss and donor needed)
         if (forge != null) {
             if (!emptySlots(inv, DONOR)) return new Result(Status.DONOR_UNNEEDED, 0);
             Item fuel = forge.fuel();
@@ -315,7 +315,7 @@ public final class AnvilLogic {
             return new Result(Status.READY_UPGRADE, 1, fuel);
         }
 
-        // Дальше - только полный одинаковый сет Странника
+        // Further - only a full identical Wanderer set
         if (anyNull(armor)) return new Result(Status.NEED_ARMOR, 0);
         for (Item a : armor) if (!(a instanceof ItemWandererArmor)) return new Result(Status.BAD_ARMOR, 0);
         ItemStack first = inv.getStackInSlot(ARMOR);
@@ -330,7 +330,7 @@ public final class AnvilLogic {
         }
         if (anyNull(donor)) return new Result(Status.NEED_DONOR, 0);
 
-        // Венец R8: сет свойства Венца (Ангельский, Вемос, Корма) - закалка R7 в R8 за Леди Луну и Дух вселенной, на R8 - смена Венца
+        // Crown R8: Crown property set (Angelic, Vemos, Korma) - tempering R7 into R8 for Lady Luna and Spirit of the Universe, on R8 - Crown change
         com.divinerpgextended.item.ArmorCrown wantCrown = com.divinerpgextended.item.ArmorCrown.ofSet(donor);
         if (wantCrown != null) {
             if (tier == 7) {
@@ -350,7 +350,7 @@ public final class AnvilLogic {
             return new Result(Status.CROWN_R8_ONLY, wantCrown.ordinal());
         }
 
-        // Закалка мирами: сет брони следующего мира в доноре
+        // World tempering: next world's armor set in the donor
         ArmorTier next = ArmorTier.next(tier);
         if (next != null && same(donor, next.donorSet())) {
             if (bossMissing(player, next.boss)) return new Result(Status.NEED_BOSS, next.boss.ordinal());
@@ -359,19 +359,19 @@ public final class AnvilLogic {
             if (fuelCount(inv, fuel) < need) return new Result(Status.NEED_FUEL, need, fuel);
             return new Result(Status.READY_UPGRADE, next.tier, fuel);
         }
-        // Смена ядра донором R1 Странника: ядро переходит, донор расходуется, топливо не нужно - за ядро уже заплатили при ковке
+        // Core change by a Wanderer R1 donor: the core transfers, the donor is consumed, no fuel needed - the core was already paid for at forging
         if (wanderers(donor)) {
             ArmorCore given = ArmorData.core(inv.getStackInSlot(DONOR));
             for (int i = 0; i < 4; i++) {
                 ItemStack s = inv.getStackInSlot(DONOR + i);
-                if (!ArmorData.owns(s, player)) return new Result(Status.FOREIGN, DONOR + i); // чужой R1 не сжечь ради ядра
+                if (!ArmorData.owns(s, player)) return new Result(Status.FOREIGN, DONOR + i); // someone else's R1 cannot be burned for the core
                 if (ArmorData.tier(s) != 1) return new Result(Status.CORE_R1_ONLY, 0);
                 if (ArmorData.core(s) != given) return new Result(Status.BAD_DONOR, 0);
             }
             if (given == core) return new Result(Status.CORE_SAME, core.ordinal());
             return new Result(Status.READY_CORE, given.ordinal());
         }
-        // Смена ядра финальным сетом - за его плату. Арлемит в топливе вместо неё - перк этого же сета (у божественной перка нет)
+        // Core change by a final set - for its plate. Arlemite in the fuel instead - a perk of the same set (Divine armor has no perk)
         ArmorCore wanted = ArmorCore.ofSet(donor);
         ItemStack fuelNow = inv.getStackInSlot(FUEL);
         if (wanted != null && (wanted == ArmorCore.DIVINE || fuelNow == null || fuelNow.getItem() != VanillaItemsOther.arlemiteIngot)) {
@@ -380,14 +380,14 @@ public final class AnvilLogic {
                 return new Result(wanted == ArmorCore.DIVINE ? Status.NEED_FUEL : Status.CORE_FUEL, wanted.fuelCount(), wanted.fuel());
             return new Result(Status.READY_CORE, wanted.ordinal(), wanted.fuel());
         }
-        // Донор - сет другого мира: подсказать, что ступень не та
+        // The donor is a set of another world: hint that the tier is wrong
         for (ArmorTier t : ArmorTier.values()) {
             if (same(donor, t.donorSet())) {
                 return new Result(t.tier <= tier ? Status.MAX_TIER : Status.BAD_DONOR, t.tier);
             }
         }
 
-        // Установка перка
+        // Installing a perk
         Perk perk = Perk.byDonor(donor);
         if (perk == null) return new Result(Status.BAD_DONOR, 0);
         if (perks.contains(perk)) return new Result(Status.PERK_PRESENT, perk.ordinal());
@@ -400,8 +400,8 @@ public final class AnvilLogic {
     }
 
     /**
-     * Вынуть аксессуар из гнезда index части в слоте брони armorSlot - в первый свободный слот донора (нет такого - не
-     * вынимается). Бесплатно. Только сервер.
+     * Take an accessory out of socket index of the part in armor slot armorSlot - into the first free donor slot (none - it is not
+     * taken out). Free. Server only.
      */
     public static boolean extract(IInventory inv, EntityPlayer player, int armorSlot, int index) {
         if (armorSlot < 0 || armorSlot > 3) return false;
@@ -409,17 +409,17 @@ public final class AnvilLogic {
         if (!Sockets.socketable(armor) || index < 0 || index >= Sockets.count(armor)) return false;
         for (int d = 0; d < 4; d++) {
             if (inv.getStackInSlot(DONOR + d) != null) continue;
-            ItemStack acc = Sockets.extract(armor, index); // сначала из брони
+            ItemStack acc = Sockets.extract(armor, index); // first from the armor
             if (acc == null) return false;
-            inv.setInventorySlotContents(DONOR + d, acc); // потом в донора
+            inv.setInventorySlotContents(DONOR + d, acc); // then into the donor
             inv.markDirty();
-            com.divinerpgextended.audit.Audit.log(player, "Sockets", "вынут " + acc.getDisplayName() + " из " + armor.getDisplayName());
+            com.divinerpgextended.audit.Audit.log(player, "Sockets", "removed " + acc.getDisplayName() + " from " + armor.getDisplayName());
             return true;
         }
         return false;
     }
 
-    /** Выполняет улучшение, если всё готово. Вызывается только на сервере. */
+    /** Performs the upgrade if everything is ready. Called only on the server. */
     public static boolean execute(IInventory inv, EntityPlayer player) {
         return execute(inv, player, AUTO);
     }
@@ -432,7 +432,7 @@ public final class AnvilLogic {
                 ItemStack s = inv.getStackInSlot(ARMOR + i);
                 if (s == null || ArmorData.owner(s) == null) continue;
                 ArmorData.unbind(s);
-                com.divinerpgextended.audit.Audit.log(player, "Wanderer", "снята привязка " + s.getDisplayName());
+                com.divinerpgextended.audit.Audit.log(player, "Wanderer", "binding removed " + s.getDisplayName());
             }
             inv.markDirty();
             return true;
@@ -442,9 +442,9 @@ public final class AnvilLogic {
             for (int d = 0; d < 4; d++) {
                 if (pl.target[d] < 0) continue;
                 ItemStack armor = inv.getStackInSlot(ARMOR + pl.target[d]), acc = inv.getStackInSlot(DONOR + d);
-                inv.setInventorySlotContents(DONOR + d, null); // сначала из донора
-                Sockets.insert(armor, acc); // потом в броню
-                com.divinerpgextended.audit.Audit.log(player, "Sockets", "встроен " + acc.getDisplayName() + " в " + armor.getDisplayName());
+                inv.setInventorySlotContents(DONOR + d, null); // first from the donor
+                Sockets.insert(armor, acc); // then into the armor
+                com.divinerpgextended.audit.Audit.log(player, "Sockets", "inserted " + acc.getDisplayName() + " into " + armor.getDisplayName());
             }
             if (!player.capabilities.isCreativeMode) player.addExperienceLevel(-pl.levels);
             inv.markDirty();
@@ -453,12 +453,12 @@ public final class AnvilLogic {
         if (r.status == Status.READY_UNLOAD) {
             ItemStack w = inv.getStackInSlot(FUEL);
             int n = Ammo.unload(player, w);
-            com.divinerpgextended.audit.Audit.log(player, "Ammo", "разряжено " + n + " из " + w.getDisplayName());
+            com.divinerpgextended.audit.Audit.log(player, "Ammo", "unloaded " + n + " from " + w.getDisplayName());
             inv.markDirty();
             return n > 0;
         }
         if (r.status == Status.READY_UPGRADE && r.param == 1) {
-            // аксессуары частей сета переходят в части Странника того же типа
+            // accessories of the set parts move to Wanderer parts of the same type
             ArmorCore forged = ArmorCore.ofSet(items(inv, ARMOR));
             ItemStack[] old = new ItemStack[4];
             for (int i = 0; i < 4; i++) {
@@ -490,7 +490,7 @@ public final class AnvilLogic {
         } else if (r.status == Status.READY_CORE) {
             ArmorCore wanted = ArmorCore.values()[r.param];
             for (int i = 0; i < 4; i++) ArmorData.setCore(inv.getStackInSlot(ARMOR + i), wanted);
-            if (r.fuel != null) inv.decrStackSize(FUEL, wanted.fuelCount()); // донор-Странник: без платы
+            if (r.fuel != null) inv.decrStackSize(FUEL, wanted.fuelCount()); // Wanderer donor: no payment
         } else {
             Perk perk = Perk.values()[r.param];
             for (int i = 0; i < 4; i++) {

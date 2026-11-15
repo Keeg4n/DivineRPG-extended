@@ -7,8 +7,8 @@ import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Снаряжение с мобов Divine (лук инферно с Wildfire и т.п.) падает целым: игра роняет снаряжение моба со случайным износом,
- * а у Divine это редкое оружие, которое иначе не достать.
+ * Gear from Divine mobs (the inferno bow from Wildfire, etc.) drops whole: the game drops a mob's gear with random wear,
+ * but in Divine this is rare weaponry that cannot be obtained otherwise.
  */
 public class WholeGear {
 
@@ -17,7 +17,7 @@ public class WholeGear {
         if (e.entityLiving.worldObj.isRemote || !e.entityLiving.getClass().getName().startsWith("net.divinerpg.")) return;
         for (EntityItem ei : e.drops) {
             ItemStack s = ei.getEntityItem();
-            // без подтипов урон предмета - только износ (у "неломаемых" луков Divine прочность 0, а износ игра ставила всё равно)
+            // without subtypes the item damage is only wear (Divine's "unbreakable" bows have durability 0, and the game set wear anyway)
             if (s != null && !s.getHasSubtypes() && s.getItemDamage() > 0) s.setItemDamage(0);
         }
     }

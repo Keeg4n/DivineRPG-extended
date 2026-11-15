@@ -18,20 +18,20 @@ import com.divinerpgextended.Config;
 import cpw.mods.fml.common.IWorldGenerator;
 
 /**
- * Мелкие постройки сумеречных миров - ставятся при заселении чанка внутри его области (+8 от угла и в пределах
- * загруженных при заселении чанков), чтобы не тянуть генерацию соседей.
+ * Small structures of the twilight dimensions - placed when a chunk is populated, inside its area (+8 from the corner and within the
+ * chunks loaded for population), so as not to pull in generation of neighbors.
  * <ul>
- * <li>Руины на вершине острова: площадка из камня и досок мира, обломки колонн и стен, сундук с добычей, стража из
- * мобов мира.</li>
- * <li>Подземелье в толще крупного острова: каменная комната со спавнером моба мира и сундуком, лестница наверх и
- * коридор к краю острова, если край рядом.</li>
- * <li>Мортум - мир мёртвых ({@link MortumWorld}): вместо руин склепы, вместо мостов - река Лета с пристанями Харона,
- * по дну пещеры черепа и надгробия.</li>
+ * <li>Ruins on top of an island: a platform of world stone and planks, fragments of columns and walls, a chest with loot, guards made of
+ * world mobs.</li>
+ * <li>A dungeon in the thickness of a large island: a stone room with a world mob spawner and a chest, a staircase up and a
+ * corridor to the island edge if the edge is near.</li>
+ * <li>Mortum is the world of the dead ({@link MortumWorld}): instead of ruins there are crypts, instead of bridges - the river Lethe with Charon's piers,
+ * and skulls and gravestones on the cave floor.</li>
  * </ul>
  */
 public class WorldGenTwilightFeatures implements IWorldGenerator {
 
-    /** Для замеров и автотеста: сколько построено с запуска. */
+    /** For measurements and selftest: how much has been built since launch. */
     public static int ruins, dungeons, bridges, camps, ponds;
 
     @Override
@@ -39,10 +39,10 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         TwilightWorld tw = TwilightWorld.of(world.provider.dimensionId);
         if (tw == null) return;
         int x0 = chunkX * 16 + 8, z0 = chunkZ * 16 + 8;
-        // своё зерно на чанк: постройки не зависят от порядка генерации
+        // own seed per chunk: structures do not depend on the generation order
         Random r = new Random(world.getSeed() ^ chunkX * 341873128712L ^ chunkZ * 132897987541L ^ 0x7A1L);
         boolean mortum = tw == TwilightWorld.MORTUM;
-        if (mortum) { // река течёт и мимо арен (на самих аренах её нет)
+        if (mortum) { // the river also flows past the arenas (there is none on the arenas themselves)
             int river = MortumWorld.lethe(world, tw, x0, z0);
             if (river > 4) MortumWorld.dock(world, r, tw, x0, z0);
             MortumWorld.bridges(world, tw, x0, z0);
@@ -50,10 +50,10 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         }
         if (nearLair(world, x0 + 8, z0 + 8)) return;
         boolean built = false;
-        // острова неровные и дырявые: каждой постройке - четыре места в области заселения
+        // islands are uneven and full of holes: each structure gets four places in the population area
         int[][] spots = { { 0, 0 }, { 7, 0 }, { 0, 7 }, { 7, 7 } };
         if (mortum) MortumWorld.bones(world, r, tw, x0, z0);
-        // в Апалачии постройки чаще (острова там редкие и тонкие - построек было мало)
+        // in Apalachia structures are more frequent (islands there are rare and thin - there were few structures)
         int boost = tw == TwilightWorld.APALACHIA ? Math.max(1, Config.apalachiaStructureBoost) : 1;
         if (Config.twilightRuinsRarity > 0 && r.nextInt(Math.max(1, Config.twilightRuinsRarity / boost)) == 0) {
             if (mortum) for (int[] o : spots) built = built || MortumWorld.crypt(world, r, tw, x0 + o[0], z0 + o[1]);
@@ -63,18 +63,18 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         } else if (Config.twilightDungeonRarity > 0 && r.nextInt(Math.max(1, Config.twilightDungeonRarity / boost)) == 0) {
             for (int[] o : spots) if (!built && (built = dungeon(world, r, tw, x0 + o[0], z0 + o[1], x0 + 23))) dungeons++;
         }
-        // пруд для рыбалки: причал, ива, кувшинки (в Мортуме вместо них - Лета с пристанями)
+        // fishing pond: a pier, a willow, lily pads (in Mortum Lethe with piers is there instead of them)
         if (!built && !mortum && Config.twilightPondRarity > 0 && r.nextInt(Math.max(1, Config.twilightPondRarity / boost)) == 0) {
             for (int[] o : new int[][] { { 0, 0 }, { 8, 0 }, { 0, 8 }, { 8, 8 } }) if (!built && (built = pond(world, r, tw, x0 + o[0], z0 + o[1]))) ponds++;
         }
-        // мосты: у построек - всегда пробуем (мост издалека подсказывает, что рядом что-то есть), в остальных местах редко
-        // в Мортуме мостов нет: пещера мёртвых, деревянный мост там чужой
+        // bridges: near structures - we always try (a bridge hints from afar that something is nearby), elsewhere rarely
+        // there are no bridges in Mortum: a cave of the dead, a wooden bridge is foreign there
         if (tw != TwilightWorld.MORTUM && Config.twilightBridgeRarity > 0 && (built || r.nextInt(Config.twilightBridgeRarity) == 0)) {
             if (bridge(world, r, tw, x0, z0)) bridges++;
         }
     }
 
-    /** Рядом с гнездом или кругом не строим (они висят выше, но тень и проходы под ними оставим чистыми). */
+    /** We don't build near a nest or circle (they hang higher, but we keep the shadow and passages under them clear). */
     static boolean nearLair(World w, int x, int z) {
         int[] c = WorldGenNests.nearest(w.getSeed(), w.provider.dimensionId, x, z);
         if (c == null) return false;
@@ -82,16 +82,16 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         return Math.abs(c[0] - x) < d && Math.abs(c[2] - z) < d;
     }
 
-    // ---------------------------------------------------------------- поверхность
+    // ---------------------------------------------------------------- surface
 
-    /** Блок земли острова (не листва, не бревно, не растения). */
+    /** An island dirt block (not leaves, not logs, not plants). */
     static boolean ground(TwilightWorld tw, Block b) {
         return b == tw.grass() || b == tw.dirt() || b == TwilightBlocks.twilightStone;
     }
 
-    /** Верхний блок земли острова в столбце или -1. */
+    /** The top dirt block of the island in a column, or -1. */
     public static int surface(World w, TwilightWorld tw, int x, int z) {
-        // Мортум - пещера под бедроковым потолком (как Ад): земля - только та, над которой воздух, начиная ниже потолка
+        // Mortum is a cave under a bedrock ceiling (like the Nether): ground is only that which has air above it, starting below the ceiling
         boolean cave = tw == TwilightWorld.MORTUM;
         for (int y = cave ? 118 : 135; y > 4; y--) {
             Block b = w.getBlock(x, y, z);
@@ -100,9 +100,9 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         return -1;
     }
 
-    // ---------------------------------------------------------------- площадка в рельефе
+    // ---------------------------------------------------------------- platform in the terrain
 
-    /** Высота площадки: середина по участку (не самая высокая точка - иначе постройка стоит на земляном постаменте). */
+    /** Platform height: the middle over the area (not the highest point - otherwise the structure stands on a dirt pedestal). */
     static int middle(World w, TwilightWorld tw, int x, int z, int wd, int dp) {
         int[] hs = new int[wd * dp];
         int n = 0;
@@ -112,9 +112,9 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
     }
 
     /**
-     * Вписать площадку wd x dp с углом (x, z) на высоте base: внутри засыпать ямы и срезать бугры до base, вокруг на margin
-     * блоков - откос к живому рельефу (раньше были отвесные земляные стенки и вырезанные ящиком склоны). Обрывы (разница
-     * больше 6), пустота у края острова и земля под деревьями не трогаются.
+     * Fit a wd x dp platform with corner (x, z) at height base: inside, fill pits and cut bumps down to base, around it for margin
+     * blocks - a slope to the live terrain (before there were sheer dirt walls and slopes cut out like a box). Cliffs (difference
+     * greater than 6), the void at the island edge and the ground under trees are not touched.
      */
     public static void fit(World w, TwilightWorld tw, int x, int z, int wd, int dp, int base, int margin) {
         for (int i = -margin; i < wd + margin; i++) for (int k = -margin; k < dp + margin; k++) {
@@ -125,7 +125,7 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
             if (target == s0) continue;
             Block over = w.getBlock(px, s0 + 1, pz);
             if (target < s0 && dist > 0 && !(over.isAir(w, px, s0 + 1, pz) || over.getMaterial().isReplaceable() || over.getMaterial() == net.minecraft.block.material.Material.plants))
-                continue; // на бугре вокруг дерево или постройка - срезать нельзя
+                continue; // there is a tree or structure around on the bump - it must not be cut
             if (target > s0) {
                 for (int y = s0; y <= target; y++) w.setBlock(px, y, pz, y == target ? tw.grass() : tw.dirt(), 0, 2);
             } else {
@@ -135,9 +135,9 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         }
     }
 
-    // ---------------------------------------------------------------- руины
+    // ---------------------------------------------------------------- ruins
 
-    /** Руины 9 x 9 с углом в (x, z); false - место не подошло (неровно или не остров). */
+    /** Ruins 9 x 9 with corner at (x, z); false - the place did not fit (uneven or not an island). */
     public static boolean ruin(World w, Random r, TwilightWorld tw, int x, int z) {
         int lo = 999, hi = -1;
         for (int i = 0; i < 9; i++) for (int k = 0; k < 9; k++) {
@@ -155,16 +155,16 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
             int roll = r.nextInt(10);
             if (roll < 6) w.setBlock(x + i, base, z + k, stone, 0, 2);
             else if (roll < 9) w.setBlock(x + i, base, z + k, planks, 0, 2);
-            // остальное - трава мира: пол разрушен
+            // the rest is world grass: the floor is destroyed
         }
-        // колонны по углам: часть обломана
+        // columns in the corners: some are broken off
         int[][] corners = { { 1, 1 }, { 7, 1 }, { 1, 7 }, { 7, 7 } };
         for (int[] c : corners) {
             int h = 2 + r.nextInt(5);
             for (int y = 1; y <= h; y++) w.setBlock(x + c[0], base + y, z + c[1], stone, 0, 2);
             if (h >= 5) w.setBlock(x + c[0], base + h + 1, z + c[1], gem, 0, 2);
         }
-        // обломки стен по краям
+        // wall fragments along the edges
         for (int i = 0; i < 9; i++) {
             for (int side = 0; side < 4; side++) {
                 int px = side < 2 ? i : side == 2 ? 0 : 8, pz = side < 2 ? (side == 0 ? 0 : 8) : i;
@@ -175,22 +175,22 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         }
         w.setBlock(x + 4, base, z + 2, tw.lamp(), tw.lampMeta(), 2);
         chest(w, r, x + 4, base + 1, z + 4, TwilightLoot.ruins(tw), 5 + r.nextInt(3));
-        if (tw == TwilightWorld.APALACHIA) sealIn(w, x + 4, base + 1, z + 4, tw); // острова Апалачии тонкие, подземелий мало - печать и в руинах
-        Reliquaries.inRuin(w, tw, x, base, z); // реликварий мира - с шансом и гарантией участка
-        // стража
+        if (tw == TwilightWorld.APALACHIA) sealIn(w, x + 4, base + 1, z + 4, tw); // Apalachia islands are thin, dungeons are few - the seal is in the ruins too
+        Reliquaries.inRuin(w, tw, x, base, z); // the world's reliquary - with a chance and a guarantee per area
+        // guards
         int guards = 2 + r.nextInt(2);
         for (int i = 0; i < guards; i++) spawn(w, r, tw, x + 2 + r.nextInt(5), base + 1, z + 2 + r.nextInt(5));
         return true;
     }
 
-    // ---------------------------------------------------------------- подземелье
+    // ---------------------------------------------------------------- dungeon
 
-    /** Комната 9 x 9 внутри острова с углом в (x, z); false - остров тонкий. */
+    /** A 9 x 9 room inside the island with corner at (x, z); false - the island is thin. */
     public static boolean dungeon(World w, Random r, TwilightWorld tw, int x, int z, int maxX) {
         int top = surface(w, tw, x + 4, z + 4);
         if (top < 20) return false;
         int floor = top - 10;
-        // толщина: под всей комнатой должен быть камень (не висеть в пустоте)
+        // thickness: there must be stone under the whole room (not hanging in the void)
         for (int i = 0; i < 9; i += 4) for (int k = 0; k < 9; k += 4) {
             for (int y = floor - 1; y <= top - 4; y++) if (w.isAirBlock(x + i, y, z + k)) return false;
         }
@@ -204,7 +204,7 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         }
         w.setBlock(x + 1, floor + 4, z + 1, tw.lamp(), tw.lampMeta(), 2);
         w.setBlock(x + 7, floor + 4, z + 7, tw.lamp(), tw.lampMeta(), 2);
-        // спавнер моба мира (если включены в конфиге)
+        // spawner of a world mob (if enabled in the config)
         if (com.divinerpgextended.Config.dungeonSpawners) w.setBlock(x + 4, floor, z + 4, Blocks.mob_spawner, 0, 2);
         if (w.getTileEntity(x + 4, floor, z + 4) instanceof TileEntityMobSpawner) {
             Class<? extends EntityLiving>[] mobs = tw.mobs();
@@ -213,7 +213,7 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         }
         chest(w, r, x + 7, floor, z + 1, TwilightLoot.dungeon(tw), 6 + r.nextInt(3));
         sealIn(w, x + 7, floor, z + 1, tw);
-        // лестница наверх в углу: шахта до поверхности
+        // staircase up in the corner: a shaft to the surface
         for (int y = floor; y <= top + 1; y++) {
             w.setBlock(x + 1, y, z + 7, Blocks.air, 0, 2);
             if (y > floor + 4) {
@@ -222,28 +222,28 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
                 w.setBlock(x + 1, y, z + 8, stone, 0, 2);
             }
             w.setBlock(x + 1, y, z + 6, stone, 0, 2);
-            w.setBlock(x + 1, y, z + 7, Blocks.ladder, 3, 2); // лестница на северной стенке шахты
+            w.setBlock(x + 1, y, z + 7, Blocks.ladder, 3, 2); // ladder on the north wall of the shaft
         }
         w.setBlock(x + 1, top + 1, z + 7, Blocks.air, 0, 2);
-        // коридор к краю острова, если край в пределах области заселения
+        // corridor to the island edge, if the edge is within the population area
         corridor(w, x, z, floor, maxX);
         return true;
     }
 
-    /** Коридор 2 блока высотой из восточной стены комнаты, пока не выйдет в пустоту (не дальше maxX и 11 блоков). */
+    /** A corridor 2 blocks high from the east wall of the room, until it comes out into the void (no farther than maxX and 11 blocks). */
     private static void corridor(World w, int x, int z, int floor, int maxX) {
         int cz = z + 4;
         for (int i = 9; i <= 19 && x + i <= maxX; i++) {
             boolean open = w.isAirBlock(x + i, floor, cz) && w.isAirBlock(x + i, floor + 1, cz);
-            if (open && i > 9) return; // вышли к краю
+            if (open && i > 9) return; // reached the edge
             w.setBlock(x + i - 1, floor, cz, Blocks.air, 0, 2);
             w.setBlock(x + i - 1, floor + 1, cz, Blocks.air, 0, 2);
         }
     }
 
-    // ---------------------------------------------------------------- лагерь
+    // ---------------------------------------------------------------- camp
 
-    /** Цвет шерсти палатки: у каждого мира свой. */
+    /** Tent wool color: each world has its own. */
     private static int wool(TwilightWorld tw) {
         switch (tw) {
             case EDEN: return 4;
@@ -255,9 +255,9 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
     }
 
     /**
-     * Лагерь странника 8 x 8 с углом в (x, z): палатка-шалаш из шерсти цвета мира с сундуком, горящий костёр (жаровня)
-     * с брёвнами-сиденьями, у костра Странник-торговец. Присесть и ПКМ по костру - точка возрождения в этом мире. Площадка на
-     * средней высоте участка с откосом вокруг ({@link #fit}).
+     * Wanderer camp 8 x 8 with corner at (x, z): a lean-to tent of wool in the world's color with a chest, a burning campfire (brazier)
+     * with log seats, and a Wanderer merchant by the fire. Sit down and right-click the campfire - a respawn point in this world. The platform is at the
+     * average height of the area with a slope around ({@link #fit}).
      */
     public static boolean camp(World w, Random r, TwilightWorld tw, int x, int z) {
         int lo = 999, hi = -1;
@@ -272,7 +272,7 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         fit(w, tw, x, z, 8, 8, base, 3);
         for (int i = 0; i < 8; i++) for (int k = 0; k < 8; k++)
             for (int y = base + 1; y <= base + 5; y++) if (!w.isAirBlock(x + i, y, z + k)) w.setBlock(x + i, y, z + k, Blocks.air, 0, 2);
-        // шалаш вдоль X: x..x+3, поперёк z+1..z+5 (высоты 1-2-3-2-1), задняя стенка закрыта
+        // lean-to along X: x..x+3, across z+1..z+5 (heights 1-2-3-2-1), the back wall is closed
         int c = wool(tw);
         int[] roof = { 1, 2, 3, 2, 1 };
         for (int i = 0; i < 4; i++) for (int k = 0; k < 5; k++) {
@@ -280,12 +280,12 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
             if (i == 0) for (int y = 1; y < roof[k]; y++) w.setBlock(x, base + y, z + 1 + k, Blocks.wool, c, 2);
         }
         chest(w, r, x + 1, base + 1, z + 3, TwilightLoot.ruins(tw), 3 + r.nextInt(3));
-        if (tw == TwilightWorld.APALACHIA) sealIn(w, x + 1, base + 1, z + 3, tw); // острова Апалачии тонкие, подземелий мало - печать и в руинах
-        // костёр с сиденьями
+        if (tw == TwilightWorld.APALACHIA) sealIn(w, x + 1, base + 1, z + 3, tw); // Apalachia islands are thin, dungeons are few - the seal is in the ruins too
+        // campfire with seats
         w.setBlock(x + 6, base, z + 3, com.divinerpgextended.registry.ModBlocks.brazier, 1, 2);
         w.setBlock(x + 6, base + 1, z + 1, tw.log(), 8, 2);
         w.setBlock(x + 6, base + 1, z + 5, tw.log(), 8, 2);
-        // Странник
+        // Wanderer
         com.divinerpgextended.entity.EntityWanderer t = new com.divinerpgextended.entity.EntityWanderer(w);
         t.setHome(tw);
         t.setLocationAndAngles(x + 5.5, base + 1, z + 3.5, 90, 0);
@@ -293,12 +293,12 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         return true;
     }
 
-    // ---------------------------------------------------------------- пруд
+    // ---------------------------------------------------------------- pond
 
     /**
-     * Пруд для рыбалки 15 x 15 с углом в (x, z): овальная вода глубиной до 3 с кувшинками, причал из досок мира в 2
-     * блока шириной с восточного берега, ива из дерева мира на западном берегу (крона со свисающими прядями).
-     * false - место не подошло (неровно, мало земли под водой).
+     * Fishing pond 15 x 15 with corner at (x, z): oval water up to 3 deep with lily pads, a pier of world planks 2
+     * blocks wide from the east shore, a willow of world wood on the west shore (a crown with hanging strands).
+     * false - the place did not fit (uneven, too little ground under the water).
      */
     public static boolean pond(World w, Random r, TwilightWorld tw, int x, int z) {
         int lo = 999, hi = -1;
@@ -310,9 +310,9 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         }
         if (hi - lo > 2) return false;
         int base = lo;
-        for (int i = 0; i < 15; i += 2) for (int k = 0; k < 15; k += 2) // под дном - земля острова, не пустота
+        for (int i = 0; i < 15; i += 2) for (int k = 0; k < 15; k += 2) // under the bottom - island dirt, not void
             for (int y = base - 4; y < base; y++) if (w.isAirBlock(x + i, y, z + k)) return false;
-        // выровнять площадку, по краям - откос к рельефу
+        // level the platform, a slope to the terrain along the edges
         fit(w, tw, x, z, 15, 15, base, 2);
         for (int i = 0; i < 15; i++) for (int k = 0; k < 15; k++) {
             for (int y = base + 1; y <= base + 6; y++) if (!w.isAirBlock(x + i, y, z + k)) w.setBlock(x + i, y, z + k, Blocks.air, 0, 2);
@@ -327,21 +327,21 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
             w.setBlock(x + i, base - depth, z + k, tw.dirt(), 0, 2);
             if (r.nextInt(5) == 0) w.setBlock(x + i, base + 1, z + k, Blocks.waterlily, 0, 2);
         }
-        // причал: с восточного берега 5 блоков над водой, на конце - столбы до дна
+        // pier: from the east shore 5 blocks above the water, at the end - posts down to the bottom
         Block planks = tw.planks();
         for (int i = cx + rx; i >= cx + rx - 4; i--) for (int k = cz; k <= cz + 1; k++) {
             w.setBlock(x + i, base + 1, z + k, planks, 0, 2);
             if (i == cx + rx - 4) for (int y = base; y >= base - 3 && !w.getBlock(x + i, y, z + k).isOpaqueCube(); y--) w.setBlock(x + i, y, z + k, tw.log(), 0, 2);
         }
-        // ива на западном берегу
+        // willow on the west shore
         int tx = x + cx - rx - 2, tz = z + cz, top = base + 5;
         for (int y = base + 1; y <= top; y++) w.setBlock(tx, y, tz, tw.log(), 0, 2);
         for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) for (int dy = 0; dy <= 1; dy++) {
             int rr = dx * dx + dz * dz;
             if (rr > (dy == 0 ? 10 : 5) || dx == 0 && dz == 0 && dy == 0) continue;
             int lx = tx + dx, ly = top + dy, lz = tz + dz;
-            if (w.isAirBlock(lx, ly, lz)) w.setBlock(lx, ly, lz, tw.leaves(), 4, 2); // 4 - не опадают
-            // пряди по краю кроны свисают к земле
+            if (w.isAirBlock(lx, ly, lz)) w.setBlock(lx, ly, lz, tw.leaves(), 4, 2); // 4 - do not decay
+            // strands along the edge of the crown hang down to the ground
             if (dy == 0 && rr >= 5 && r.nextInt(3) != 0) {
                 int len = 1 + r.nextInt(3);
                 for (int y = ly - 1; y >= ly - len && y > base; y--) if (w.isAirBlock(lx, y, lz)) w.setBlock(lx, y, lz, tw.leaves(), 4, 2);
@@ -351,19 +351,19 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         return true;
     }
 
-    // ---------------------------------------------------------------- мост
+    // ---------------------------------------------------------------- bridge
 
-    /** Пролёт между краями островов: от 4 до 14 блоков пустоты, края на высоте с разницей не больше 4. */
+    /** A span between island edges: from 4 to 14 blocks of void, edges at heights differing by no more than 4. */
     private static final int MIN_GAP = 4, MAX_GAP = 14;
 
     /**
-     * Мост поперёк пропасти по линии через середину области заселения (вдоль X или Z - что найдётся). Всё, что
-     * ставим, лежит в [x0 - 8, x0 + 24) - в чанках, загруженных для заселения.
+     * A bridge across a chasm along a line through the middle of the population area (along X or Z - whichever is found). Everything
+     * we place lies in [x0 - 8, x0 + 24) - in the chunks loaded for population.
      */
     public static boolean bridge(World w, Random r, TwilightWorld tw, int x0, int z0) {
         boolean alongX = r.nextBoolean();
         for (int attempt = 0; attempt < 2; attempt++, alongX = !alongX) {
-            int p = (alongX ? z0 : x0) + 8; // поперечная координата линии
+            int p = (alongX ? z0 : x0) + 8; // cross coordinate of the line
             int from = (alongX ? x0 : z0) - 6, to = (alongX ? x0 : z0) + 21;
             int[] s = new int[to - from + 1];
             for (int i = 0; i < s.length; i++) s[i] = alongX ? surface(w, tw, from + i, p) : surface(w, tw, p, from + i);
@@ -382,7 +382,7 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         return false;
     }
 
-    /** Провисающий мост шириной 3 с перилами от (a, ya) до (b, yb); каждый четвёртый с провалом посередине. */
+    /** A sagging bridge of width 3 with railings from (a, ya) to (b, yb); every fourth one has a gap in the middle. */
     private static void span(World w, Random r, TwilightWorld tw, boolean alongX, int p, int a, int ya, int b, int yb) {
         int len = b - a;
         double sag = len / 6.0;
@@ -406,9 +406,9 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
         }
     }
 
-    // ---------------------------------------------------------------- общее
+    // ---------------------------------------------------------------- common
 
-    /** В сундуке подземелья (а в Апалачии - и руин) всегда печать святилища мира (кроме Мортума - там вызывают кристаллами). */
+    /** The dungeon chest (and in Apalachia the ruins too) always holds the world's sanctum seal (except Mortum - there it is summoned with crystals). */
     static void sealIn(World w, int x, int y, int z, TwilightWorld tw) {
         if (tw == TwilightWorld.MORTUM || !(w.getTileEntity(x, y, z) instanceof TileEntityChest)) return;
         TileEntityChest c = (TileEntityChest) w.getTileEntity(x, y, z);
@@ -430,14 +430,14 @@ public class WorldGenTwilightFeatures implements IWorldGenerator {
     }
 
     static void spawn(World w, Random r, TwilightWorld tw, int x, int y, int z) {
-        Class<? extends EntityLiving>[] mobs = tw.surfaceMobs(); // стража стоит под открытым небом
+        Class<? extends EntityLiving>[] mobs = tw.surfaceMobs(); // guards stand under the open sky
         try {
             EntityLiving m = mobs[r.nextInt(mobs.length)].getConstructor(World.class).newInstance(w);
             m.setLocationAndAngles(x + 0.5, y, z + 0.5, r.nextFloat() * 360, 0);
-            m.func_110163_bv(); // стража не исчезает
+            m.func_110163_bv(); // guards do not despawn
             w.spawnEntityInWorld(m);
         } catch (Exception ignored) {
-            // у моба нет конструктора (World) - без стражи
+            // the mob has no (World) constructor - no guards
         }
     }
 }

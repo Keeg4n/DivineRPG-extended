@@ -19,24 +19,24 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent;
 
 /**
- * Во сне до прохождения чужие вещи не срабатывают:
+ * In the dream before completion foreign items do not work:
  * <ul>
- * <li>ПКМ (в воздух, по блоку, по существу) чужой вещью ничего не делает, кроме строительства, еды, зелий и луков
- * ({@link Nightmare#usable}); сундуки и двери открываются как обычно;</li>
- * <li>чужой инструмент ломает только блок, который игрок начал ломать: площадь (молоты, экскаваторы, лесорубы,
- * Крушитель Терры, фокусы) не идёт.</li>
+ * <li>right-click (in the air, on a block, on an entity) with a foreign item does nothing, except building, food, potions and bows
+ * ({@link Nightmare#usable}); chests and doors open as usual;</li>
+ * <li>a foreign tool breaks only the block the player started breaking: area (hammers, excavators, lumber axes,
+ * Terra Shatterer, foci) does not apply.</li>
  * </ul>
- * Работает и на клиенте (рывки и прыжки вещей считает клиент), прохождение он знает из
+ * Works on the client too (item dashes and jumps are computed by the client), it knows completion from
  * {@link com.divinerpgextended.boss.ProgressSync}.
  */
 public class NightmareHands {
 
     private static final Map<Class<?>, Boolean> USE_FIRST = new HashMap<Class<?>, Boolean>(), ON_ENTITY = new HashMap<Class<?>, Boolean>(),
         ON_HIT = new HashMap<Class<?>, Boolean>();
-    /** Блок, который игрок начал ломать (клик по блоку): его чужой инструмент сломать может, остальное - нет. */
+    /** The block the player started breaking (click on a block): a foreign tool can break it, nothing else. */
     private static final Map<UUID, int[]> DIGGING = new HashMap<UUID, int[]>();
 
-    /** Переопределяет ли вещь (или её предки до Item) метод с одним из имён. */
+    /** Whether the item (or its ancestors up to Item) overrides a method with one of the names. */
     private static boolean overrides(Item i, Map<Class<?>, Boolean> cache, String... names) {
         Boolean b = cache.get(i.getClass());
         if (b != null) return b;
@@ -46,7 +46,7 @@ public class NightmareHands {
             try {
                 ms = c.getDeclaredMethods();
             } catch (Throwable t) {
-                r = true; // в сигнатурах клиентские классы - считаем, что переопределяет
+                r = true; // the signatures contain client classes - assume it overrides
                 break;
             }
             for (Method m : ms) for (String n : names) if (n.equals(m.getName())) {
@@ -68,12 +68,12 @@ public class NightmareHands {
         if (!Nightmare.active(p)) return;
         ItemStack h = p.getHeldItem();
         if (Nightmare.usable(h)) return;
-        e.useItem = Event.Result.DENY; // onItemUse и onItemRightClick
-        // onItemUseFirst вызывается и при отказе - его останавливает только отмена (тогда и блок не откроется)
+        e.useItem = Event.Result.DENY; // onItemUse and onItemRightClick
+        // onItemUseFirst is called even on denial - only cancelling stops it (then the block will not open either)
         boolean air = e.action == PlayerInteractEvent.Action.RIGHT_CLICK_AIR;
         if (air || overrides(h.getItem(), USE_FIRST, "onItemUseFirst")) e.setCanceled(true);
         if (air && !p.worldObj.isRemote) Nightmare.hint(p, "use");
-        com.divinerpgextended.debug.Debug.note(p, "Кошмар: ПКМ чужой вещью не срабатывает (" + Item.itemRegistry.getNameForObject(h.getItem()) + ")");
+        com.divinerpgextended.debug.Debug.note(p, "Nightmare: right click with a foreign item does nothing (" + Item.itemRegistry.getNameForObject(h.getItem()) + ")");
     }
 
     @SubscribeEvent(priority = EventPriority.HIGH)
@@ -87,8 +87,8 @@ public class NightmareHands {
     }
 
     /**
-     * Удар чужим оружием по мобу сна останавливается ещё до удара: моб лечится на силу удара, а свойства оружия при
-     * ударе (особые эффекты Divine, молнии, эффекты Tinkers при попадании, перки аддона) не срабатывают.
+     * A hit by a foreign weapon on a dream mob is stopped before the hit: the mob heals by the hit strength, and the weapon's properties on
+     * hit (Divine special effects, lightning, Tinkers on-hit effects, addon perks) do not trigger.
      */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onMelee(net.minecraftforge.event.entity.player.AttackEntityEvent e) {
@@ -105,7 +105,7 @@ public class NightmareHands {
         Nightmare.soothe(p, t, f);
     }
 
-    /** Чужой инструмент во сне ломает только начатый блок: лишние блоки площади отменяются. */
+    /** A foreign tool in the dream breaks only the started block: extra area blocks are cancelled. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onBreak(BlockEvent.BreakEvent e) {
         EntityPlayer p = e.getPlayer();

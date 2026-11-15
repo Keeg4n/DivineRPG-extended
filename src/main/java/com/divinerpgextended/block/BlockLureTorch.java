@@ -23,9 +23,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Водный факел зова: потушен - просто стоит; арканиум правой кнопкой - горит {@link #MAX_TICKS} (8 минут; ещё арканиум -
- * снова на полные 8 минут), и пока горит, в {@link #RADIUS} блоках вокруг чаще появляются мобы Divine этого биома (не больше
- * {@link #CAP} рядом). Вместо дыма - пузыри. Горящий - отдельный блок со счётчиком ({@link Tile}); догорел - снова потушен.
+ * Water Lure Torch: extinguished - it just stands; Arcanium with right click - burns for {@link #MAX_TICKS} (8 minutes; more Arcanium -
+ * again for a full 8 minutes), and while it burns, Divine mobs of this biome appear more often within {@link #RADIUS} blocks (no more than
+ * {@link #CAP} nearby). Bubbles instead of smoke. The burning one is a separate block with a counter ({@link Tile}); burned out - extinguished again.
  */
 public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
 
@@ -69,7 +69,7 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
         return lit ? new Tile() : null;
     }
 
-    /** Арканиум: зажечь или подлить горения; клик по горящему без арканиума - сколько ещё гореть. */
+    /** Arcanium: light or add burning time; a click on a burning one without Arcanium - how much longer it will burn. */
     @Override
     public boolean onBlockActivated(World w, int x, int y, int z, EntityPlayer p, int side, float hx, float hy, float hz) {
         ItemStack held = p.getHeldItem();
@@ -85,7 +85,7 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
         if (!(te instanceof Tile)) return true;
         Tile t = (Tile) te;
         long now = w.getTotalWorldTime();
-        if (t.until - now >= MAX_TICKS) return true; // уже горит на полную - арканиум не тратим
+        if (t.until - now >= MAX_TICKS) return true; // already burning at full - do not spend Arcanium
         t.until = now + MAX_TICKS;
         t.markDirty();
         if (!p.capabilities.isCreativeMode && --held.stackSize <= 0) p.inventory.setInventorySlotContents(p.inventory.currentItem, null);
@@ -94,7 +94,7 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
         return true;
     }
 
-    /** Сколько ещё гореть, в тиках (0 - не горит). */
+    /** How much longer to burn, in ticks (0 - not burning). */
     public static long left(World w, int x, int y, int z) {
         TileEntity te = w.getTileEntity(x, y, z);
         return te instanceof Tile ? Math.max(0, ((Tile) te).until - w.getTotalWorldTime()) : 0;
@@ -105,7 +105,7 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
         p.addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.lure_left", String.format("%d:%02d", sec / 60, sec % 60)));
     }
 
-    /** Пузыри над головкой (только горящий). */
+    /** Bubbles above the head (burning only). */
     @Override
     @SideOnly(Side.CLIENT)
     public void randomDisplayTick(World w, int x, int y, int z, Random r) {
@@ -119,7 +119,7 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
         com.divinerpgextended.client.TorchFX.bubbles(w, px, py, pz, r);
     }
 
-    /** Горящий факел: до какого тика горит; зовёт мобов Divine. */
+    /** Burning torch: until which tick it burns; calls Divine mobs. */
     public static class Tile extends TileEntity {
 
         public long until;
@@ -128,11 +128,11 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
         public void updateEntity() {
             if (worldObj.isRemote) return;
             long now = worldObj.getTotalWorldTime();
-            if (now >= until) { // догорел
+            if (now >= until) { // burned out
                 worldObj.setBlock(xCoord, yCoord, zCoord, ModBlocks.lureTorch, worldObj.getBlockMetadata(xCoord, yCoord, zCoord), 3);
                 return;
             }
-            // звать некому показывать: без игрока в 48 блоках не зовём (и не трогаем окрестные чанки)
+            // nobody to show to: without a player within 48 blocks we do not call (and do not touch nearby chunks)
             if (now % EVERY == 0 && worldObj.getClosestPlayer(xCoord + 0.5, yCoord + 0.5, zCoord + 0.5, 48) != null) lure(worldObj, xCoord, yCoord, zCoord, worldObj.rand);
         }
 
@@ -149,7 +149,7 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
         }
     }
 
-    /** Мобы Divine рядом (для предела). */
+    /** Divine mobs nearby (for the limit). */
     static int divineNear(World w, int x, int y, int z) {
         int n = 0;
         for (Object o : w.getEntitiesWithinAABB(EntityLiving.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 32, y - 16, z - 32, x + 32, y + 16, z + 32)))
@@ -157,12 +157,12 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
         return n;
     }
 
-    /** Одна попытка зова: моб Divine из списков этого биома (монстр, а если их нет - любой) в случайном месте вокруг. */
+    /** One call attempt: a Divine mob from this biome's lists (a monster, and if there are none - any) at a random spot around. */
     @SuppressWarnings("unchecked")
     public static EntityLiving lure(World w, int x, int y, int z, Random r) {
         if (divineNear(w, x, y, z) >= CAP) return null;
         int sx = x + r.nextInt(2 * RADIUS + 1) - RADIUS, sz = z + r.nextInt(2 * RADIUS + 1) - RADIUS;
-        if (!w.blockExists(sx, y, sz)) return null; // место в выгруженном чанке - пропуск, не грузим
+        if (!w.blockExists(sx, y, sz)) return null; // a spot in an unloaded chunk - skip, we do not load
         BiomeGenBase b = w.getBiomeGenForCoords(sx, sz);
         List<BiomeGenBase.SpawnListEntry> pool = new ArrayList<BiomeGenBase.SpawnListEntry>();
         for (EnumCreatureType t : new EnumCreatureType[] { EnumCreatureType.monster, EnumCreatureType.creature, EnumCreatureType.waterCreature })
@@ -180,7 +180,7 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
                 EntityLiving m = (EntityLiving) pick.entityClass.getConstructor(World.class).newInstance(w);
                 m.setLocationAndAngles(sx + 0.5, sy, sz + 0.5, r.nextFloat() * 360, 0);
                 if (!m.getCanSpawnHere()) continue;
-                // ранги: моба не по сюжету рядом стоящих игроков факел не зовёт (как и естественный спавн)
+                // ranks: the torch does not call a mob that is out of story order for the players standing nearby (like natural spawn)
                 if (com.divinerpgextended.boss.ProgressSpawns.denied(w, m, m.posX, m.posZ)) return null;
                 w.spawnEntityInWorld(m);
                 m.onSpawnWithEgg(null);

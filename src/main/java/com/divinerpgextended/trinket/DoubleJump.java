@@ -34,43 +34,43 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Движение в воздухе от аксессуаров. Движение игрока считает клиент, поэтому прыгает и парит он сам; сервер сверяет,
- * что вещь надета и запас не исчерпан, и только тогда снимает наказания (высоту падения, кик за полёт). Что доступно,
- * сервер сообщает клиенту (при изменении и раз в 5 секунд).
+ * Movement in the air from accessories. The client computes player movement, so it jumps and hovers by itself; the server checks
+ * that the item is worn and the reserve is not exhausted, and only then lifts the penalties (fall height, flight kick). What is available is
+ * reported by the server to the client (on change and every 5 seconds).
  * <ul>
- * <li>Крыло Айрако: прыжок в воздухе, в Сумеречных мирах - два.</li>
- * <li>Ковёр-самолёт (только в Сумеречных мирах): прыжок зажат в воздухе - высота держится, летишь по горизонтали.
- * Запас по миру: Эдем и Вайлдвуд 10 с, Апалачия 8, Скайтерн 5, Мортум 3; без предела после Сумеречного демона;
- * копится только на земле. Кончился - пока пробел зажат, ковёр медленно опускает (планирование) без урона. Под ногами
- * виден ковёр (и другим игрокам). Высота падения считается от ковра.</li>
+ * <li>Ayeraco Wing: a jump in the air, in the Twilight dimensions - two.</li>
+ * <li>Flying Carpet (only in the Twilight dimensions): jump held in the air - height holds, you fly horizontally.
+ * Reserve per world: Eden and Wildwood 10 s, Apalachia 8, Skythern 5, Mortum 3; unlimited after the Twilight Demon;
+ * accumulates only on the ground. When it runs out, while space is held the carpet slowly lowers you (gliding) without damage. The carpet is
+ * visible underfoot (to other players too). Fall height is counted from the carpet.</li>
  * </ul>
  */
 public class DoubleJump {
 
-    /** Ковёр без предела по времени. */
+    /** A carpet with no time limit. */
     public static final int UNLIMITED = -1;
-    /** Скорость планирования на ковре после конца запаса (блоков за тик вниз). */
+    /** Glide speed on the carpet after the reserve ends (blocks per tick downward). */
     static final double GLIDE = -0.1;
 
     private static class State {
 
-        /** Прыжков с последнего касания земли. */
+        /** Jumps since last touching the ground. */
         int used;
-        /** Сколько тиков ковра и крыльев сна осталось до земли. */
+        /** How many ticks of carpet and dream wings remain until the ground. */
         int carpetLeft, wingLeft;
-        /** Что ушло клиенту в последний раз. */
+        /** What was last sent to the client. */
         int sentJumps = -2, sentCarpet = -2, sentWing = -2;
-        /** Для отладки: тиков подряд парит на ковре, тиков взлёта на крыльях. */
+        /** For debugging: consecutive ticks hovering on the carpet, ticks of wing takeoff. */
         int hoverRun, wingRun;
         double lastY;
-        /** Ковёр под ногами показан игрокам рядом. */
+        /** The carpet underfoot is shown to nearby players. */
         boolean carpetShown;
     }
 
     private static final Map<UUID, State> STATE = new HashMap<UUID, State>();
-    /** Клиент: прыжков в воздухе, тиков ковра и крыльев сна (присылает сервер). */
+    /** Client: jumps in the air, carpet ticks and dream wing ticks (sent by the server). */
     static int clientAllowed, clientCarpet, clientWing;
-    /** Запас взлёта крыльев сна по ступеням (тиков; скорость подъёма до 0.6 блока за тик - хватает на этаж в 48). */
+    /** Dream wing takeoff reserve by tier (ticks; climb speed up to 0.6 block per tick - enough for a 48-block floor). */
     private static final int[] WING_TICKS = { 0, 85, 100, 120 };
 
     public static void register() {
@@ -89,28 +89,28 @@ public class DoubleJump {
         return twilight(p.dimension) ? 2 : 1;
     }
 
-    /** Запас ковра в тиках: 0 - не работает, {@link #UNLIMITED} - без предела. */
+    /** Carpet reserve in ticks: 0 - does not work, {@link #UNLIMITED} - unlimited. */
     public static int carpetTicks(EntityPlayer p) {
         if (!Accessories.wears(p, Trinket.MAGIC_CARPET) || p.dimension == ConfigurationHelper.vethea) return 0;
-        if (!p.worldObj.isRemote && com.divinerpgextended.boss.ArenaCalm.carpetBlocked(p)) return 0; // в бою с боссом ковёр не летает
+        if (!p.worldObj.isRemote && com.divinerpgextended.boss.ArenaCalm.carpetBlocked(p)) return 0; // the carpet does not fly during a boss fight
         boolean demon = BossProgress.has(p, Boss.TWILIGHT_DEMON);
-        // вне сумеречных миров ковёр еле держит (3 с), пока не пройдены сумеречные миры (Демон сумерек) - тогда 10 с
+        // outside the twilight worlds the carpet barely holds (3 s) until the twilight worlds are completed (Twilight Demon) - then 10 s
         if (!twilight(p.dimension)) return demon ? OUTSIDE_FREE : OUTSIDE;
         if (demon) return UNLIMITED;
-        // по миру: в первых трёх пропасти между островами - там ковёр нужнее всего; в Скайтерне важнее высота,
-        // в Мортуме пропастей почти нет
+        // per world: in the first three there are gaps between islands - the carpet is needed most there; in Skythern height matters more,
+        // in Mortum there are almost no gaps
         int d = p.dimension;
         int t = d == ConfigurationHelper.eden || d == ConfigurationHelper.wildwood ? 200 : d == ConfigurationHelper.apalachia ? 160
             : d == ConfigurationHelper.skythern ? 100 : 60;
-        return skyMaster(p) ? t * 2 : t; // Хозяин ветров: запас вдвое
+        return skyMaster(p) ? t * 2 : t; // Wind Master: double reserve
     }
 
-    /** Полный сет Скайтерна (Хозяин ветров): ковёр летает вверх-вниз по взгляду. */
+    /** Full Skythern set (Wind Master): the carpet flies up and down by gaze. */
     public static boolean skyMaster(EntityPlayer p) {
         return com.divinerpgextended.perk.HomeArmor.wears(p, com.divinerpgextended.world.twilight.TwilightWorld.SKYTHERN, false);
     }
 
-    /** Вертикальная скорость ковра Хозяина ветров: взгляд вверх-вниз при движении вперёд, присед - вниз. */
+    /** Vertical speed of the Wind Master carpet: gaze up/down while moving forward, sneaking - down. */
     public static double skyLift(EntityPlayer p, boolean forward, boolean sneak) {
         if (sneak) return -SKY_SPEED;
         if (!forward || Math.abs(p.rotationPitch) < 15) return 0;
@@ -119,16 +119,16 @@ public class DoubleJump {
 
     static final double SKY_SPEED = 0.3;
 
-    /** Ковёр вне сумеречных миров (тиков): до победы над Демоном сумерек и после. */
+    /** The carpet outside the twilight worlds (ticks): before defeating the Twilight Demon and after. */
     public static final int OUTSIDE = 60, OUTSIDE_FREE = 200;
 
-    /** Запас взлёта крыльев сна, тиков: в Ветее всегда, в остальных мирах - когда Ветея пройдена (Леди Луна). */
+    /** Dream wing takeoff reserve, ticks: always in Vethea, in other worlds - when Vethea is completed (Lady Luna). */
     public static int wingTicks(EntityPlayer p) {
         if (p.dimension != ConfigurationHelper.vethea && !com.divinerpgextended.vethea.VetheaFloors.dreamDone(p)) return 0;
         return WING_TICKS[com.divinerpgextended.vethea.VetheaFloors.wingTier(p)];
     }
 
-    /** Касается опоры: прыжки, ковёр и крылья восстанавливаются. */
+    /** Touches support: jumps, carpet and wings are restored. */
     private static boolean grounded(EntityPlayer p) {
         return p.onGround || p.isInWater() || p.handleLavaMovement() || p.isOnLadder() || p.capabilities.isFlying
             || p.ridingEntity != null;
@@ -147,8 +147,8 @@ public class DoubleJump {
         State s = state(p);
         double dy = p.posY - s.lastY;
         s.lastY = p.posY;
-        // клиент шлёт пакет движения каждый тик, сервер в воздухе считает их в счётчике полёта (мы его обнуляем каждый
-        // тик парения). Пакетов с прошлого тика не было - клиент завис (фриз): запас ковра и крыльев не тратим
+        // the client sends a movement packet every tick, in the air the server counts them in the flight counter (we reset it every
+        // hover tick). No packets since the last tick - the client hung (freeze): carpet and wing reserve is not spent
         int packets = ReflectionHelper.<Integer, NetHandlerPlayServer>getPrivateValue(NetHandlerPlayServer.class, p.playerNetServerHandler,
             "floatingTickCount", "field_147365_f");
         boolean moved = packets > 0;
@@ -159,16 +159,16 @@ public class DoubleJump {
             s.carpetLeft = carpet;
             s.wingLeft = wing;
         } else if (wing > 0 && s.wingLeft > 0 && dy > -0.03) {
-            // взлёт на крыльях сна: не запрещённый полёт
+            // dream wing takeoff: not forbidden flight
             rising = true;
             if (moved) s.wingLeft = Math.min(s.wingLeft, wing) - 1;
             ReflectionHelper.setPrivateValue(NetHandlerPlayServer.class, p.playerNetServerHandler, 0, "floatingTickCount",
                 "field_147365_f");
-            if (s.wingLeft == 0) com.divinerpgextended.debug.Debug.note(p, "Крылья сна: запас взлёта кончился на y " + (int) p.posY);
+            if (s.wingLeft == 0) com.divinerpgextended.debug.Debug.note(p, "Dream Wings: flight reserve ran out at y " + (int) p.posY);
         } else if (carpet != 0 && (carpet == UNLIMITED || s.carpetLeft > 0)
             && (skyMaster(p) ? dy < SKY_SPEED + 0.05 && dy > -SKY_SPEED - 0.05 : dy < 0.05 && dy > -0.1)) {
-            // парит на ковре: сервер не должен принимать это за запрещённый полёт; высота падения считается от ковра,
-            // а не от места, откуда начал падать до него
+            // hovering on the carpet: the server must not take this for forbidden flight; fall height is counted from the carpet,
+            // not from the place where the fall began before it
             hovering = true;
             if (carpet != UNLIMITED && moved) s.carpetLeft = Math.min(s.carpetLeft, carpet) - 1;
             p.fallDistance = 0;
@@ -177,26 +177,26 @@ public class DoubleJump {
             if (p.ticksExisted % 4 == 0) {
                 ((WorldServer) p.worldObj).func_147487_a("cloud", p.posX, p.boundingBox.minY, p.posZ, 2, 0.3, 0.02, 0.3, 0.01);
             }
-            if (s.carpetLeft == 0 && carpet != UNLIMITED) com.divinerpgextended.debug.Debug.note(p, "Ковёр: запас кончился, дальше планирование");
+            if (s.carpetLeft == 0 && carpet != UNLIMITED) com.divinerpgextended.debug.Debug.note(p, "Carpet: reserve ran out, gliding from now on");
         } else if (carpet != 0 && dy <= -0.03 && dy >= -0.2) {
-            // ковёр медленно опускает (около 2 блоков в секунду) - падение не копится. Остаток запаса не проверяем:
-            // после фризов клиент мог истратить запас раньше сервера, и планирование тогда не засчитывалось бы
+            // the carpet slowly lowers (about 2 blocks per second) - the fall does not accumulate. The remaining reserve is not checked:
+            // after freezes the client may have spent the reserve before the server, and gliding would then not count
             gliding = true;
             p.fallDistance = 0;
         }
-        // ковёр под ногами видят все рядом: при смене состояния и раз в секунду, пока парит (для подошедших позже)
+        // the carpet underfoot is seen by everyone nearby: on state change and once a second while hovering (for those who came later)
         boolean onCarpet = hovering && s.hoverRun >= 1 || gliding;
         if (onCarpet != s.carpetShown || onCarpet && p.ticksExisted % 20 == 0) {
             s.carpetShown = onCarpet;
             ColdHandler.NET.sendToAllAround(new CarpetState(p.getEntityId(), onCarpet),
                 new cpw.mods.fml.common.network.NetworkRegistry.TargetPoint(p.dimension, p.posX, p.posY, p.posZ, 96));
         }
-        // отладка: начало парения (5 тиков подряд, чтобы не путать с верхней точкой прыжка) и взлёта
+        // debug: start of hovering (5 ticks in a row, so as not to confuse with the top of a jump) and takeoff
         s.hoverRun = hovering ? s.hoverRun + 1 : 0;
         s.wingRun = rising ? s.wingRun + 1 : 0;
-        if (s.hoverRun == 5) com.divinerpgextended.debug.Debug.note(p, "Ковёр: парение, запас "
-            + (carpet == UNLIMITED ? "без предела" : s.carpetLeft / 20.0 + " с из " + carpet / 20.0));
-        if (s.wingRun == 3) com.divinerpgextended.debug.Debug.note(p, "Крылья сна: взлёт с y " + (int) p.posY + ", запас " + (s.wingLeft + 3) + " тиков");
+        if (s.hoverRun == 5) com.divinerpgextended.debug.Debug.note(p, "Carpet: hovering, reserve "
+            + (carpet == UNLIMITED ? "unlimited" : s.carpetLeft / 20.0 + " s of " + carpet / 20.0));
+        if (s.wingRun == 3) com.divinerpgextended.debug.Debug.note(p, "Dream Wings: takeoff from y " + (int) p.posY + ", reserve " + (s.wingLeft + 3) + " ticks");
         if (p.ticksExisted % 10 != 0) return;
         int a = allowed(p);
         if (a != s.sentJumps || carpet != s.sentCarpet || wing != s.sentWing || p.ticksExisted % 100 == 0) {
@@ -212,7 +212,7 @@ public class DoubleJump {
         STATE.remove(e.player.getUniqueID());
     }
 
-    // ---------------- Сообщения ----------------
+    // ---------------- Messages ----------------
 
     public static class Sync implements IMessage {
 
@@ -252,7 +252,7 @@ public class DoubleJump {
         }
     }
 
-    /** Кто сейчас стоит на ковре (для отрисовки ковра под ногами у других игроков). */
+    /** Who is currently standing on the carpet (for drawing the carpet underfoot for other players). */
     public static class CarpetState implements IMessage {
 
         int entity;
@@ -288,7 +288,7 @@ public class DoubleJump {
         }
     }
 
-    /** Клиент: id игроков на ковре -> когда пришло (без обновления 2 с - ковра нет). */
+    /** Client: ids of players on the carpet -> when it arrived (no update for 2 s - no carpet). */
     static final Map<Integer, Long> CARPETS = new java.util.concurrent.ConcurrentHashMap<Integer, Long>();
 
     public static class Jump implements IMessage {
@@ -307,30 +307,30 @@ public class DoubleJump {
             EntityPlayerMP p = ctx.getServerHandler().playerEntity;
             State s = state(p);
             if (s.used >= allowed(p)) {
-                com.divinerpgextended.debug.Debug.note(p, "Прыжок в воздухе отклонён сервером: " + s.used + "/" + allowed(p));
-                return null; // крыла нет или прыжки кончились - падение считается как обычно
+                com.divinerpgextended.debug.Debug.note(p, "Air jump rejected by the server: " + s.used + "/" + allowed(p));
+                return null; // no wing or jumps are used up - the fall is counted as usual
             }
             s.used++;
-            com.divinerpgextended.debug.Debug.note(p, "Крыло Айрако: прыжок в воздухе " + s.used + "/" + allowed(p));
+            com.divinerpgextended.debug.Debug.note(p, "Ayeraco Wing: air jump " + s.used + "/" + allowed(p));
             p.fallDistance = 0;
             p.worldObj.playSoundAtEntity(p, "mob.enderdragon.wings", 0.35F, 1.6F);
             return null;
         }
     }
 
-    // ---------------- Клиент ----------------
+    // ---------------- Client ----------------
 
     @SideOnly(Side.CLIENT)
     public static class Client {
 
         private int used, carpetLeft, wingLeft;
         private boolean wasDown, airborne;
-        /** В этом полёте уже встал на ковёр (для Хозяина ветров: дальше ковёр может и подниматься). */
+        /** In this flight the player already stood on the carpet (for Wind Master: after that the carpet can also rise). */
         private boolean carpetOn;
-        /** Кто сейчас стоит на ковре (по последнему кадру) - им не перебирать ногами. */
+        /** Who is currently standing on the carpet (by the last frame) - they do not move their legs. */
         private final java.util.Set<Integer> CARPET_NOW = new java.util.HashSet<Integer>();
 
-        /** На ковре стоят, а не бегут: гасим размах ног перед отрисовкой игрока. */
+        /** They stand on the carpet, not run: damp the leg swing before rendering the player. */
         @SubscribeEvent
         public void onRenderPlayer(net.minecraftforge.client.event.RenderPlayerEvent.Pre e) {
             if (!CARPET_NOW.contains(e.entityPlayer.getEntityId())) return;
@@ -338,12 +338,12 @@ public class DoubleJump {
             e.entityPlayer.prevLimbSwingAmount = 0;
         }
 
-        /** Тик, когда свой игрок последний раз держался на ковре (свой ковёр рисуем сразу, не ждём сервер). */
+        /** The tick when the own player last stayed on the carpet (the own carpet is drawn at once, without waiting for the server). */
         private int selfCarpet = -100;
 
         /**
-         * Ковёр под ногами: красная шерсть с золотой каймой, повёрнут по корпусу игрока и чуть колышется. Свой - по
-         * своему парению, чужие - по сообщениям сервера.
+         * The carpet underfoot: red wool with a golden border, rotated with the player's body and gently waving. Own - by
+         * own hovering, others - by server messages.
          */
         @SubscribeEvent
         public void onRenderWorld(net.minecraftforge.client.event.RenderWorldLastEvent e) {
@@ -354,7 +354,7 @@ public class DoubleJump {
                 EntityPlayer p = (EntityPlayer) o;
                 boolean on;
                 if (p == mc.thePlayer) {
-                    // после смены мира или перезахода тики игрока идут заново с нуля - старая отметка в будущем не считается
+                    // after a world change or rejoin the player's ticks restart from zero - an old mark in the future does not count
                     int d = p.ticksExisted - selfCarpet;
                     on = d >= 0 && d <= 1 && !grounded(p);
                 }
@@ -390,7 +390,7 @@ public class DoubleJump {
             org.lwjgl.opengl.GL11.glColor4f(1, 1, 1, 1);
             net.minecraft.client.renderer.Tessellator t = net.minecraft.client.renderer.Tessellator.instance;
             t.startDrawingQuads();
-            // полотно 1.0 x 1.5 (длинной стороной вдоль взгляда), разбито на полосы - по ним бежит волна
+            // a 1.0 x 1.5 canvas (long side along the gaze), split into strips - a wave runs along them
             double w = 0.5, l = 0.75, h = 0.05, b = 0.08;
             int n = 6;
             for (int i = 0; i < n; i++) {
@@ -400,7 +400,7 @@ public class DoubleJump {
                 strip(t, gold, -w, -w + b, z0, z1, y0, y1, h);
                 strip(t, gold, w - b, w, z0, z1, y0, y1, h);
             }
-            // золотые торцы спереди и сзади
+            // golden ends at the front and back
             double ye = Math.sin(wave) * 0.03, yf = Math.sin(wave + n * 0.9) * 0.03;
             strip(t, gold, -w, w, -l - b, -l, ye, ye, h);
             strip(t, gold, -w, w, l, l + b, yf, yf, h);
@@ -410,7 +410,7 @@ public class DoubleJump {
             org.lwjgl.opengl.GL11.glPopMatrix();
         }
 
-        /** Полоса ковра: верх, низ и боковые грани толщиной h; y0/y1 - высота на ближнем и дальнем краю. */
+        /** Carpet strip: top, bottom and side faces of thickness h; y0/y1 - height at the near and far edge. */
         private static void strip(net.minecraft.client.renderer.Tessellator t, net.minecraft.util.IIcon i, double x0, double x1,
             double z0, double z1, double y0, double y1, double h) {
             double u0 = i.getMinU(), u1 = i.getMaxU(), v0 = i.getMinV(), v1 = i.getMaxV();
@@ -441,11 +441,11 @@ public class DoubleJump {
                 clientAllowed = clientCarpet = clientWing = 0;
                 return;
             }
-            // запас ковра приходит с сервера раз в полсекунды - в Ветее ковра нет
+            // the carpet reserve arrives from the server twice a second - there is no carpet in Vethea
             if (p.dimension == ConfigurationHelper.vethea) clientCarpet = 0;
             boolean down = mc.gameSettings.keyBindJump.getIsKeyPressed();
-            // обычный прыжок с земли отрывает игрока в тот же тик, что и нажатие - прыжком в воздухе считается
-            // только нажатие, когда игрок был в воздухе уже на прошлом тике
+            // a normal jump from the ground lifts the player in the same tick as the press - a jump in the air counts
+            // only a press when the player was already in the air on the previous tick
             boolean wasAirborne = airborne;
             boolean pressed = down && !wasDown && wasAirborne;
             wasDown = down;
@@ -457,9 +457,9 @@ public class DoubleJump {
                 wingLeft = clientWing;
                 return;
             }
-            // в творческом двойной пробел включает полёт - не мешаем ему
+            // in creative, double space enables flight - we do not interfere
             if (mc.currentScreen != null || p.capabilities.allowFlying) return;
-            // крылья сна: прыжок зажат - тянет вверх, пока есть запас; зависнуть нельзя
+            // dream wings: jump held - pulls up while there is reserve; hovering is impossible
             if (clientWing > 0) {
                 if (down && wingLeft > 0) {
                     wingLeft--;
@@ -474,14 +474,14 @@ public class DoubleJump {
                 jump(p);
                 return;
             }
-            // ковёр, запас кончился: пробел зажат - медленно опускаем (около 2 блоков в секунду), падение не копится
+            // carpet, reserve ran out: space held - lower slowly (about 2 blocks per second), the fall does not accumulate
             if (down && p.motionY < 0 && clientCarpet > 0 && carpetLeft <= 0) {
                 p.motionY = Math.max(p.motionY, GLIDE);
                 p.fallDistance = 0;
                 selfCarpet = p.ticksExisted;
                 return;
             }
-            // ковёр: прыжок зажат, игрок уже не поднимается - держим высоту
+            // carpet: jump held, the player no longer rises - hold the height
             boolean sky = skyMaster(p);
             if (down && (p.motionY <= 0 || sky && carpetOn) && clientCarpet != 0 && (clientCarpet == UNLIMITED || carpetLeft > 0)) {
                 carpetOn = true;
@@ -509,10 +509,10 @@ public class DoubleJump {
             ColdHandler.NET.sendToServer(new Jump());
         }
 
-        /** Полоска запаса ковра или крыльев под прицелом, пока он тратится. */
+        /** Carpet or wing reserve bar under the crosshair while it is being spent. */
         @SubscribeEvent
         public void onOverlay(RenderGameOverlayEvent.Post e) {
-            // после всего интерфейса, а не после прицела: от второго и третьего лица после прицела рисовалась одна серая подложка
+            // after the whole interface, not after the crosshair: in third person a single gray backdrop was drawn after the crosshair
             if (e.type != RenderGameOverlayEvent.ElementType.ALL || !airborne) return;
             boolean wings = clientWing > 0;
             int max = wings ? clientWing : clientCarpet, left = wings ? wingLeft : carpetLeft;

@@ -12,9 +12,9 @@ import net.minecraft.world.World;
 import com.divinerpgextended.entity.EntityLairCrab;
 
 /**
- * Скрытое гнездо крабов под полом норы Карцинуса (снаружи выглядит как песок). Когда рядом игрок, выпускает норных
- * крабов на дно ходов вокруг, не больше двух на гнездо; иногда вылезает норный король крабов. Имя в реестре
- * осталось от акул (sharkNest), чтобы уже сгенерированные гнёзда не пропали.
+ * Hidden crab nest under the floor of the Carcinus burrow (looks like sand from outside). When a player is near, it releases burrow
+ * crabs onto the bottom of the passages around, no more than two per nest; sometimes a Burrow King Crab crawls out. The registry name
+ * remained from sharks (sharkNest), so that already generated nests do not vanish.
  */
 public class BlockSharkNest extends BlockContainer {
 
@@ -58,7 +58,7 @@ public class BlockSharkNest extends BlockContainer {
                 int x = xCoord + worldObj.rand.nextInt(13) - 6;
                 int y = yCoord + worldObj.rand.nextInt(4) + 1;
                 int z = zCoord + worldObj.rand.nextInt(13) - 6;
-                // дно хода: снизу твёрдо, сверху два блока воды
+                // passage bottom: solid below, two blocks of water above
                 if (!worldObj.getBlock(x, y - 1, z)
                     .getMaterial()
                     .isSolid()

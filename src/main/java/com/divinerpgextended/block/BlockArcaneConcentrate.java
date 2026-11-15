@@ -16,13 +16,13 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Арканный концентрат - жидкость фонтанных залов Арканы ({@link com.divinerpgextended.world.ArcanaFountain}). Для игры -
- * вода (в нём плавают и рыбачат), но рыба Арканы ловится только здесь и только на арканную удочку. Кто стоит в нём,
- * быстро восстанавливает аркану.
+ * Arcane Concentrate is the liquid of Arcana fountain halls ({@link com.divinerpgextended.world.ArcanaFountain}). For the game it is
+ * water (you swim and fish in it), but Arcana fish are caught only here and only with the Arcana fishing rod. Whoever stands in it
+ * quickly restores arcana.
  */
 public class BlockArcaneConcentrate extends BlockFluidClassic {
 
-    /** Сколько арканы в тик восстанавливает стоящему в концентрате. */
+    /** How much arcana per tick is restored to someone standing in the concentrate. */
     public static final float REGEN = 2.0F;
     private static java.lang.reflect.Method props, regen;
 
@@ -37,7 +37,7 @@ public class BlockArcaneConcentrate extends BlockFluidClassic {
         setLightOpacity(2);
     }
 
-    /** Точка в концентрате. */
+    /** A point in the concentrate. */
     public static boolean at(World w, double x, double y, double z) {
         return w.getBlock(MathHelper.floor_double(x), MathHelper.floor_double(y), MathHelper.floor_double(z)) instanceof BlockArcaneConcentrate;
     }

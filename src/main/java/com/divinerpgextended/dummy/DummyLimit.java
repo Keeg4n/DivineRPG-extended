@@ -12,9 +12,9 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldSavedData;
 
 /**
- * Манекенов на сервере - не больше {@link #MAX}: список стоящих (по всем мирам, в том числе в выгруженных чанках)
- * хранится вместе с основным миром. Манекен попадает в список, когда его ставят (или при первом тике - стоявшие до
- * 0.99.33), и уходит из него, когда его убирают.
+ * Dummies on the server - no more than {@link #MAX}: the list of standing ones (across all worlds, including unloaded chunks)
+ * is stored together with the main world. A dummy enters the list when it is placed (or on the first tick - those placed before
+ * 0.99.33), and leaves it when it is removed.
  */
 public class DummyLimit extends WorldSavedData {
 
@@ -53,7 +53,7 @@ public class DummyLimit extends WorldSavedData {
         if (placed.remove(id)) markDirty();
     }
 
-    /** Забыть все записи (для автотеста); вернуть - {@link #add}. */
+    /** Forget all records (for selftest); restore with {@link #add}. */
     public Set<UUID> clear() {
         Set<UUID> was = new LinkedHashSet<UUID>(placed);
         placed.clear();

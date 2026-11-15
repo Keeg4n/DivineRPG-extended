@@ -7,8 +7,8 @@ import net.minecraft.item.Item;
 import com.divinerpgextended.boss.Boss;
 
 /**
- * Малые перки минимальной версии. Донор - полный сет брони Divine (шлем, нагрудник, поножи, ботинки),
- * у перка может быть несколько подходящих сетов.
+ * Minor perks of the minimal version. The donor is a full Divine armor set (helmet, chestplate, leggings, boots),
+ * a perk may have several suitable sets.
  */
 public enum Perk {
 
@@ -38,62 +38,62 @@ public enum Perk {
         { VanillaItemsArmor.witherReaperHelmet, VanillaItemsArmor.witherReaperBody,
             VanillaItemsArmor.witherReaperLegs, VanillaItemsArmor.witherReaperBoots } }),
 
-    /** Копание под водой без замедления и обзор под водой. */
+    /** Digging underwater without slowdown and underwater vision. */
     AQUA_MINER(Boss.CARCINUS, new Item[][] {
         { VanillaItemsArmor.aquastriveHelmet, VanillaItemsArmor.aquastriveBody, VanillaItemsArmor.aquastriveLegs,
             VanillaItemsArmor.aquastriveBoots } }),
 
-    /** Замедляет враждебных мобов вокруг. */
+    /** Slows hostile mobs around. */
     COLD_AURA(Boss.SNOW_GLACON, new Item[][] {
         { VanillaItemsArmor.frozenHelmet, VanillaItemsArmor.frozenBody, VanillaItemsArmor.frozenLegs,
             VanillaItemsArmor.frozenBoots } }),
 
-    /** Тепло: холод Iceika не страшен (как в сете Санты). */
+    /** Warmth: Iceika cold is harmless (as in the Santa set). */
     WARMTH(Boss.LICH_KING, new Item[][] {
         { IceikaItems.santaCap, IceikaItems.santaTunic, IceikaItems.santaPants, IceikaItems.santaBoots } }),
 
-    /** Сытость (донор - сет скелета): голод тратится вдвое медленнее, от голода не умираешь, бегать можно и голодным ({@link Satiety}). */
+    /** Satiety (donor - the skeleton set): hunger drains twice as slowly, you do not die of hunger, you can run even when hungry ({@link Satiety}). */
     SATIETY(null, new Item[][] {
         { VanillaItemsArmor.skelemanHelmet, VanillaItemsArmor.skelemanBody, VanillaItemsArmor.skelemanLegs,
             VanillaItemsArmor.skelemanBoots } }),
 
-    /** Ночной жнец: +20% урона ночью (сет Jack o'Man). */
+    /** Night Reaper: +20% damage at night (Jack o'Man set). */
     NIGHT_REAPER(null, new Item[][] {
         { VanillaItemsArmor.jackOManHelmet, VanillaItemsArmor.jackOManBody, VanillaItemsArmor.jackOManLegs,
             VanillaItemsArmor.jackOManBoots } }),
 
-    /** Восстановление (сет Vemos): здоровье само растёт. С 0.99.114 - только Венец R8 ({@link com.divinerpgextended.item.ArmorCrown}). */
+    /** Regeneration (Vemos set): health grows by itself. Since 0.99.114 - only the R8 Crown ({@link com.divinerpgextended.item.ArmorCrown}). */
     REGENERATION(Boss.RAGLOK, new Item[][] {
         { net.divinerpg.utils.items.ArcanaItems.vemosHelmet, net.divinerpg.utils.items.ArcanaItems.vemosBody,
             net.divinerpg.utils.items.ArcanaItems.vemosLegs, net.divinerpg.utils.items.ArcanaItems.vemosBoots } }),
 
-    /** Поток арканы (сет Korma): аркана восстанавливается быстрее, арканный урон x2. С 0.99.114 - только Венец R8. */
+    /** Arcana Flow (Korma set): arcana regenerates faster, arcane damage x2. Since 0.99.114 - only the R8 Crown. */
     ARCANA_FLOW(Boss.WRECK, new Item[][] {
         { net.divinerpg.utils.items.ArcanaItems.kormaHelmet, net.divinerpg.utils.items.ArcanaItems.kormaBody,
             net.divinerpg.utils.items.ArcanaItems.kormaLegs, net.divinerpg.utils.items.ArcanaItems.kormaBoots } }),
 
-    /** Ангельский полёт (сет Angelic). Во сне (в Ветее) не работает. С 0.99.114 - только Венец R8. */
+    /** Angelic Flight (Angelic set). Does not work in the dream (in Vethea). Since 0.99.114 - only the R8 Crown. */
     ANGEL_FLIGHT(Boss.LADY_LUNA, new Item[][] {
         { VanillaItemsArmor.angelicHelmet, VanillaItemsArmor.angelicBody, VanillaItemsArmor.angelicLegs,
             VanillaItemsArmor.angelicBoots } }),
 
-    /** Лёгкий шаг (сет Тени): скорость x{@link PerkEffects#SWIFT_SPEED} и высокий шаг на блок вверх. */
+    /** Light Step (Shadow set): speed x{@link PerkEffects#SWIFT_SPEED} and a high step of one block up. */
     SWIFTNESS(null, new Item[][] {
         { VanillaItemsArmor.shadowHelmet, VanillaItemsArmor.shadowBody, VanillaItemsArmor.shadowLegs, VanillaItemsArmor.shadowBoots } }),
 
-    /** Рудокоп (сет Terran): Спешка II. */
+    /** Miner (Terran set): Haste II. */
     MINING_HASTE(null, new Item[][] {
         { VanillaItemsArmor.terranHelmet, VanillaItemsArmor.terranBody, VanillaItemsArmor.terranLegs, VanillaItemsArmor.terranBoots } }),
 
-    /** Меткость (сет порчи): снаряды сильнее. */
+    /** Marksman (corrupted set): projectiles are stronger. */
     MARKSMAN(null, new Item[][] {
         { VanillaItemsArmor.corruptedHelmet, VanillaItemsArmor.corruptedBody, VanillaItemsArmor.corruptedLegs, VanillaItemsArmor.corruptedBoots } }),
 
-    /** Отвод стрел (сет арлемита): снаряды слабее. */
+    /** Deflection (arlemite set): projectiles are weaker. */
     ARROW_GUARD(null, new Item[][] {
         { VanillaItemsArmor.arlemiteHelmet, VanillaItemsArmor.arlemiteBody, VanillaItemsArmor.arlemiteLegs, VanillaItemsArmor.arlemiteBoots } }),
 
-    /** Крепкая стойка (сет рупия любого цвета): удары мобов слабее. */
+    /** Firm stance (rupee set of any color): mob hits are weaker. */
     BLOW_GUARD(null, new Item[][] {
         { VanillaItemsArmor.rupeeHelmet, VanillaItemsArmor.rupeeBody, VanillaItemsArmor.rupeeLegs, VanillaItemsArmor.rupeeBoots },
         { VanillaItemsArmor.redRupeeHelmet, VanillaItemsArmor.redRupeeBody, VanillaItemsArmor.redRupeeLegs, VanillaItemsArmor.redRupeeBoots },
@@ -102,13 +102,13 @@ public enum Perk {
         { VanillaItemsArmor.yellowRupeeHelmet, VanillaItemsArmor.yellowRupeeBody, VanillaItemsArmor.yellowRupeeLegs, VanillaItemsArmor.yellowRupeeBoots },
         { VanillaItemsArmor.grayRupeeHelmet, VanillaItemsArmor.grayRupeeBody, VanillaItemsArmor.grayRupeeLegs, VanillaItemsArmor.grayRupeeBoots } }),
 
-    /** Мягкое приземление (сет элитного реалмита): без урона от падения. До 0.99.99 было встроено в любую ступень Странника. */
+    /** Soft landing (elite realmite set): no fall damage. Before 0.99.99 it was built into every Wanderer tier. */
     SOFT_LANDING(null, new Item[][] {
         { VanillaItemsArmor.eliteRealmiteHelmet, VanillaItemsArmor.eliteRealmiteBody, VanillaItemsArmor.eliteRealmiteLegs, VanillaItemsArmor.eliteRealmiteBoots } });
 
-    /** Босс, убийство которого открывает перк, или null. */
+    /** The boss whose kill unlocks the perk, or null. */
     public final Boss unlock;
-    /** Подходящие донорские сета: [вариант][шлем, нагрудник, поножи, ботинки]. */
+    /** Suitable donor sets: [variant][helmet, chestplate, leggings, boots]. */
     private final Item[][] donorSets;
 
     Perk(Boss unlock, Item[][] donorSets) {
@@ -116,7 +116,7 @@ public enum Perk {
         this.donorSets = donorSets;
     }
 
-    /** Свойство Венца R8, не малый перк: в слоты не ставится, со старой брони не действует. */
+    /** A property of the R8 Crown, not a minor perk: it cannot be put in slots, and does not work from old armor. */
     public boolean crown() {
         return this == REGENERATION || this == ARCANA_FLOW || this == ANGEL_FLIGHT;
     }
@@ -125,7 +125,7 @@ public enum Perk {
         return "dre.perk." + name().toLowerCase();
     }
 
-    /** Первый подходящий донорский сет [шлем, нагрудник, поножи, ботинки] (для NEI). */
+    /** The first suitable donor set [helmet, chestplate, leggings, boots] (for NEI). */
     public Item[] donorSet() {
         return donorSets[0];
     }

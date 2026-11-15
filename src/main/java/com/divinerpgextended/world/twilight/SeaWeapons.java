@@ -30,14 +30,14 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Морское оружие.
+ * Sea weapons.
  * <ul>
- * <li>Влага: в воде и под дождём морское оружие бьёт на {@link #WET_BONUS} сильнее, под ливнем Дикого леса так же и водная броня.</li>
- * <li>Гарпун: брошенный якорь тянет цель к игроку, не чаще раза в {@link #HARPOON_EVERY} тиков; удар этим якорем в руке в
- * ближайшие {@link #HARPOON_WINDOW} тиков сильнее в {@link #HARPOON_HIT} раза. Босса не тянет, а подтягивает игрока к нему. Дальность: крабовый 8,
- * акулий 12, гренландский 12 с оглушением на секунду, лиоплевродоновый 16 и до трёх целей; из воды в полтора раза дальше.</li>
+ * <li>Wetness: in water and in rain sea weapons hit {@link #WET_BONUS} harder, in the Wildwood downpour Aquastrive armor does too.</li>
+ * <li>Harpoon: a thrown anchor pulls the target to the player, no more than once per {@link #HARPOON_EVERY} ticks; a hit with this anchor in hand in the
+ * next {@link #HARPOON_WINDOW} ticks is stronger by a factor of {@link #HARPOON_HIT}. It does not pull a boss, but pulls the player toward it. Range: Crab 8,
+ * Shark 12, Bowhead 12 with a one-second stun, Liopleurodon 16 and up to three targets; from the water one and a half times farther.</li>
  * </ul>
- * Игроков гарпун тянет только при melee.pvp и не в привате.
+ * The harpoon pulls players only with melee.pvp and not in a protected region.
  */
 public class SeaWeapons {
 
@@ -48,7 +48,7 @@ public class SeaWeapons {
     private static final double[] RANGE = { 8, 12, 12, 16 };
     private static final double SWARM = 4, WATER_RANGE = 1.5;
     private static Set<Item> sea;
-    /** Рывок ждёт конца тика: сразу за уроном игра сама отбрасывает цель прочь. */
+    /** The dash waits for the end of the tick: right after damage the game itself knocks the target away. */
     private static final List<Object[]> PULLS = new ArrayList<Object[]>();
 
     private static Set<Item> sea() {
@@ -67,25 +67,25 @@ public class SeaWeapons {
         return i != null && sea().contains(i);
     }
 
-    /** Номер якоря (-1 - не якорь). */
+    /** Anchor number (-1 - not an anchor). */
     public static int anchor(Item i) {
-        // крабовый якорь и якорь лиоплевродона с 0.99.113 - призывы ({@link com.divinerpgextended.magic.AnchorSummons}), не гарпуны
+        // the Crab anchor and the Liopleurodon anchor since 0.99.113 are summons ({@link com.divinerpgextended.magic.AnchorSummons}), not harpoons
         return i == null ? -1 : i == VanillaItemsWeapons.sharkAnchor ? 1 : i == VanillaItemsWeapons.bowheadAnchor ? 2 : -1;
     }
 
-    /** Дальность гарпуна этого якоря без поправки на воду (для подсказки). */
+    /** Harpoon range of this anchor without the water adjustment (for the tooltip). */
     public static int range(int anchor) {
         return (int) RANGE[anchor];
     }
 
-    /** Игрок мокрый: в воде или под дождём. В сумеречных мирах небо своё: там считается только ливень. */
+    /** The player is wet: in water or in rain. In twilight dimensions the sky is its own: only the downpour counts there. */
     public static boolean wet(EntityPlayer p) {
         if (p.isInWater()) return true;
         if (TwilightWorld.of(p.dimension) == null) return p.isWet();
         return WorldWeather.rain(p.worldObj) && WorldWeather.open(p);
     }
 
-    /** Снаряд, выпущенный морским оружием, помнит это: пока он летит, игрок мог сменить предмет в руке. */
+    /** A projectile fired by a sea weapon remembers this: while it flies, the player could have changed the held item. */
     public static void tagShot(Entity shot) {
         if (!(shot instanceof EntityThrowable) || !(((EntityThrowable) shot).getThrower() instanceof EntityPlayer)) return;
         ItemStack held = ((EntityThrowable) shot).getThrower().getHeldItem();
@@ -121,7 +121,7 @@ public class SeaWeapons {
     }
 
     private static boolean pullable(EntityPlayer p, EntityLivingBase t) {
-        if (t instanceof EntityPlayer && Protection.spare(p, t)) return false; // игрока - только где можно PvP
+        if (t instanceof EntityPlayer && Protection.spare(p, t)) return false; // a player - only where PvP is allowed
         return t.getEntityAttribute(SharedMonsterAttributes.knockbackResistance).getAttributeValue() < 1.0;
     }
 
@@ -152,8 +152,8 @@ public class SeaWeapons {
     }
 
     /**
-     * Аттрактор Divine ({@link com.divinerpgextended.asm.AttractorTransformer}): тянет к бросившему как в Divine, но игрока - только где
-     * можно PvP, и толчок игроку доходит до клиента (у Divine игроков не тянуло).
+     * Divine attractor ({@link com.divinerpgextended.asm.AttractorTransformer}): pulls toward the thrower as in Divine, but a player - only where
+     * PvP is allowed, and the push reaches the player's client (in Divine players were not pulled).
      */
     public static void attract(Entity t, double x, double y, double z, net.minecraft.entity.projectile.EntityThrowable a) {
         if (t instanceof EntityPlayer) {
@@ -166,7 +166,7 @@ public class SeaWeapons {
         t.addVelocity(x, y, z);
     }
 
-    /** Дёрнуть всех, кого зацепили: скорость рассчитана на остановку рядом с тем, к кому тянет. */
+    /** Yank everyone who was hooked: the speed is calculated to stop next to the one it pulls toward. */
     public static void flushPulls() {
         for (Object[] pull : PULLS) {
             Entity who = (Entity) pull[0], to = (Entity) pull[1];

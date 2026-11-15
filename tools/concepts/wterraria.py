@@ -1,7 +1,7 @@
-"""Концепты брони Странника в духе Террарии: R1 - освящённая, R4 (Апалачия) - орихалковая, R7 (Галит) - хлорофитовая.
-У каждой ступени одно тело и три головы, как в Террарии: шлем - ближний бой, маска - дальний, капюшон - аркана.
+"""Wanderer armor concepts in the spirit of Terraria: R1 - hallowed, R4 (Apalachia) - orichalcum, R7 (Halite) - chlorophyte.
+Each tier has one body and three heads, as in Terraria: helmet - melee, mask - ranged, hood - arcane.
 
-Запуск: python3 wterraria.py [ключ ...]  (без ключей - все). Картинки - в wanderer_concepts рядом.
+Run: python3 wterraria.py [key ...]  (without keys - all). Images go to wanderer_concepts next to it.
 """
 import math
 import sys
@@ -29,12 +29,12 @@ def ellipse_mask(wd, ht):
 
 
 def blade(bone, start, L, wd, paint, rx=0.0, ry=0.0, rz=0.0, t=0.5):
-    """Плоский лист/перо длиной L от точки start вверх (-y)."""
+    """Flat leaf/feather of length L from point start upward (-y)."""
     sx, sy, sz = start
     return box(bone, sx - wd / 2, sy - L, sz - t / 2, wd, L, t, paint, rot=(rx, ry, rz), pivot=(sx, sy, sz))
 
 
-# ======================================================================== R1 освящённая
+# ======================================================================== R1 hallowed
 HG, HGD, HGL, HS, HSD, HDK, HDK2, HR, HRD, GEMR = ('#f0c41c', '#a87808', '#fff3a0', '#c8c8dc', '#8686a0', '#1c1c26', '#2c2c3a',
                                                   '#a01434', '#5c0a1e', '#ff3048')
 
@@ -55,7 +55,7 @@ def hallowed_body():
 
 
 def hallowed_wings(y=-5.6, x=-5.0):
-    """Золотые крылышки по бокам головы: три пера назад-вверх."""
+    """Golden little wings on the sides of the head: three feathers going back and up."""
     wing = P(HG, trim(0.25, HGD), rect('all', -1, 99, -1, 1.0, HGL))
     wd = P(HGD, trim(0.25, '#6a4a04'), rect('all', -1, 99, -1, 1.0, HG))
     return sym(blade('head', (x, y, -0.4), 6.0, 1.8, wing, rz=-28, rx=30), blade('head', (x, y + 0.8, 0.8), 5.0, 1.6, wd, rz=-40, rx=40),
@@ -86,7 +86,7 @@ def r1tk():
     return bs + hallowed_wings(-7.0, -5.6)
 
 
-# ======================================================================== R4 орихалковая (Апалачия)
+# ======================================================================== R4 orichalcum (Apalachia)
 OM, OP, OL, OPU, OD = '#e030d4', '#f590f0', '#c49ad8', '#9a3aa0', '#300a30'
 
 
@@ -140,7 +140,7 @@ def r4tk():
     return bs
 
 
-# ======================================================================== R7 хлорофитовая (Галит)
+# ======================================================================== R7 chlorophyte (Halite)
 CG, CGB, CGL, CGD, CGO, CM, CMD = '#22a818', '#9ef000', '#a8d870', '#0e4a0c', '#063006', '#727272', '#3e3e3e'
 
 

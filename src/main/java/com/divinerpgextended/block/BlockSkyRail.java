@@ -11,10 +11,10 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
 /**
- * Навесные рельсы Апалачии: ставятся рельсами Апалачии ({@link com.divinerpgextended.item.ItemApalachiaRails}) на стену или потолок, на пол - обычные
- * рельсы Divine; у стены пол переходит в стену горкой ({@link SkyTrack#corner}) (мета 0-5 - грань опоры: 0 снизу, 1 сверху, 2-5 -
- * север, юг, запад, восток; бит 8 - поперёк). По ним ездит вагонетка Апалачии ({@link com.divinerpgextended.entity.EntitySkyCart})
- * и сама поворачивает на стыках, так что можно замкнуть кольцо пол - стена - потолок - стена.
+ * Apalachia overhead rails: placed with Apalachia Rails ({@link com.divinerpgextended.item.ItemApalachiaRails}) on a wall or ceiling, on the floor - ordinary
+ * Divine rails; at a wall the floor turns into the wall with a ramp ({@link SkyTrack#corner}) (meta 0-5 - the support face: 0 bottom, 1 top, 2-5 -
+ * north, south, west, east; bit 8 - across). The Apalachia Cart ({@link com.divinerpgextended.entity.EntitySkyCart}) rides on them
+ * and turns by itself at joints, so you can close a loop floor - wall - ceiling - wall.
  */
 public class BlockSkyRail extends Block {
 
@@ -30,8 +30,8 @@ public class BlockSkyRail extends Block {
     }
 
     /**
-     * Куда рельс соединён (направления в плоскости его грани): соседние рельсы в плоскости и, если сосед стоит на
-     * перпендикулярной грани (рельс на полу, а над ним - на стене), - в сторону опоры того соседа.
+     * Where the rail is connected (directions in the plane of its face): neighboring rails in the plane and, if the neighbor stands on a
+     * perpendicular face (a rail on the floor with one on a wall above it), toward that neighbor's support.
      */
     public static ForgeDirection[] links(IBlockAccess w, int x, int y, int z) {
         TileSkyRail t = tile(w, x, y, z);
@@ -44,7 +44,7 @@ public class BlockSkyRail extends Block {
         return te instanceof TileSkyRail ? (TileSkyRail) te : null;
     }
 
-    /** Соединено ли в сторону d: форма есть - только её два направления; нет (старый рельс) - всё, что рядом. */
+    /** Whether it is connected toward d: if there is a shape - only its two directions; if not (an old rail) - everything nearby. */
     public static boolean linked(IBlockAccess w, int x, int y, int z, ForgeDirection d) {
         TileSkyRail t = tile(w, x, y, z);
         if (t == null || !t.hasShape()) return true;
@@ -52,7 +52,7 @@ public class BlockSkyRail extends Block {
         return s[0] == d || s[1] == d;
     }
 
-    /** Куда можно соединиться: соседи в плоскости, рельс на соседней грани за ребром, рельс на стене над внутренним углом. */
+    /** Where it can connect: neighbors in the plane, a rail on the adjacent face behind the edge, a rail on a wall above an inner corner. */
     static java.util.List<ForgeDirection> candidates(IBlockAccess w, int x, int y, int z) {
         ForgeDirection n = support(w.getBlockMetadata(x, y, z));
         java.util.List<ForgeDirection> out = new java.util.ArrayList<ForgeDirection>();
@@ -69,7 +69,7 @@ public class BlockSkyRail extends Block {
         return out;
     }
 
-    /** Форма для нового рельса, как у напольного: прямо между двумя соседями напротив, иначе поворот между двумя, иначе прямо. */
+    /** Shape for a new rail, like a floor one: straight between two opposite neighbors, otherwise a turn between two, otherwise straight. */
     static ForgeDirection[] pick(java.util.List<ForgeDirection> c, ForgeDirection axis) {
         for (ForgeDirection d : c) if (c.contains(d.getOpposite())) return new ForgeDirection[] { d, d.getOpposite() };
         if (c.size() >= 2) return new ForgeDirection[] { c.get(0), c.get(1) };
@@ -78,8 +78,8 @@ public class BlockSkyRail extends Block {
     }
 
     /**
-     * Рядом поставили рельс: как у ванильного - одинокий рельс (оба конца свободны) разворачивается к новому соседу прямо,
-     * у рельса с одним соседом свободный конец поворачивается к новому; занятые концы держатся, убранный сосед формы не меняет.
+     * A rail was placed nearby: as with the vanilla one - a lone rail (both ends free) turns straight toward the new neighbor,
+     * a rail with one neighbor turns its free end toward the new one; occupied ends hold, a removed neighbor does not change the shape.
      */
     static void relink(World w, int x, int y, int z, TileSkyRail t, java.util.List<ForgeDirection> c) {
         ForgeDirection[] s = t.shape();
@@ -89,33 +89,33 @@ public class BlockSkyRail extends Block {
         ForgeDirection best = null;
         for (ForgeDirection d : c) {
             if (d == s[0] || d == s[1]) continue;
-            if (best == null || d == keep.getOpposite()) best = d; // прямо - лучше, чем поворот
+            if (best == null || d == keep.getOpposite()) best = d; // straight is better than a turn
         }
         if (best == null) return;
         if (free0 && free1) t.set(best, best.getOpposite());
         else t.set(keep, best);
     }
 
-    /** Стрелка: на развилке сигнал перекидывает один конец на противоположную ветку (прямо - поворот - прямо). */
+    /** Switch: at a fork the signal throws one end to the opposite branch (straight - turn - straight). */
     static void toggle(TileSkyRail t, java.util.List<ForgeDirection> c) {
         ForgeDirection[] s = t.shape();
         for (int i = 0; i < 2; i++) {
             ForgeDirection end = s[i], other = s[1 - i];
-            if (other == end.getOpposite()) { // прямой: один конец - на боковую ветку
+            if (other == end.getOpposite()) { // straight: one end goes to a side branch
                 for (ForgeDirection d : c) if (d != end && d != other && d != end.getOpposite() && d.getOpposite() != other) {
                     t.set(other, d);
                     return;
                 }
                 continue;
             }
-            if (c.contains(end.getOpposite()) && end.getOpposite() != other) { // поворот: конец - на другую сторону
+            if (c.contains(end.getOpposite()) && end.getOpposite() != other) { // turn: the end goes to the other side
                 t.set(other, end.getOpposite());
                 return;
             }
         }
     }
 
-    /** Соединения по соседям (старые рельсы без сохранённой формы). */
+    /** Connections by neighbors (old rails without a saved shape). */
     static ForgeDirection[] dynamicLinks(IBlockAccess w, int x, int y, int z) {
         ForgeDirection n = support(w.getBlockMetadata(x, y, z));
         java.util.List<ForgeDirection> out = new java.util.ArrayList<ForgeDirection>();
@@ -129,7 +129,7 @@ public class BlockSkyRail extends Block {
             ForgeDirection s2 = support(w.getBlockMetadata(ax, ay, az));
             if (s2 != n && s2 != away && !out.contains(s2)) out.add(s2);
         }
-        // если прямой ряд, первым - тот, что дал ось; для поворота - два перпендикулярных
+        // if it is a straight row, the one that gave the axis goes first; for a turn - two perpendicular ones
         if (out.size() > 2) {
             for (int i = 0; i < out.size(); i++) for (int j = i + 1; j < out.size(); j++) if (out.get(i) == out.get(j).getOpposite())
                 return new ForgeDirection[] { out.get(i), out.get(j) };
@@ -137,7 +137,7 @@ public class BlockSkyRail extends Block {
         return out.toArray(new ForgeDirection[out.size()]);
     }
 
-    /** Ось по метаданным, когда соседей нет: бит "поперёк" и грань опоры. */
+    /** Axis by metadata when there are no neighbors: the "across" bit and the support face. */
     public static ForgeDirection defaultAxis(int meta) {
         ForgeDirection n = support(meta);
         boolean ac = across(meta);
@@ -164,7 +164,7 @@ public class BlockSkyRail extends Block {
         setBlockTextureName("divinerpg:apalachiaRails");
     }
 
-    /** Грань опоры (ForgeDirection, куда смотрит опора от рельса). */
+    /** Support face (ForgeDirection, where the support looks from the rail). */
     public static ForgeDirection support(int meta) {
         return ForgeDirection.getOrientation(meta & 7);
     }
@@ -225,7 +225,7 @@ public class BlockSkyRail extends Block {
         return ForgeDirection.getOrientation(side).getOpposite().ordinal();
     }
 
-    /** Направление по взгляду игрока: на полу и потолке - вдоль или поперёк, на стене - вертикально или вдоль стены. */
+    /** Direction by the player's view: on the floor and ceiling - along or across, on a wall - vertical or along the wall. */
     @Override
     public void onBlockPlacedBy(World w, int x, int y, int z, EntityLivingBase p, ItemStack s) {
         int meta = w.getBlockMetadata(x, y, z) & 7;
@@ -233,9 +233,9 @@ public class BlockSkyRail extends Block {
         boolean acrossBit;
         if (sup == ForgeDirection.DOWN || sup == ForgeDirection.UP) {
             int facing = MathHelper.floor_double(p.rotationYaw * 4.0F / 360.0F + 0.5D) & 3;
-            acrossBit = facing == 1 || facing == 3; // смотрит вдоль X
+            acrossBit = facing == 1 || facing == 3; // looks along X
         } else {
-            acrossBit = Math.abs(p.rotationPitch) < 35; // смотрит прямо - рельс вдоль стены, вверх-вниз - вертикальный
+            acrossBit = Math.abs(p.rotationPitch) < 35; // looks straight - the rail runs along the wall, up-down - vertical
         }
         w.setBlockMetadataWithNotify(x, y, z, meta | (acrossBit ? 8 : 0), 2);
         TileSkyRail t = tile(w, x, y, z);
@@ -246,7 +246,7 @@ public class BlockSkyRail extends Block {
         }
     }
 
-    /** Рельс на стене над напольным рельсом у её подножия: тот становится горкой (навесным рельсом на полу). */
+    /** A rail on a wall above a floor rail at its foot: the latter becomes a ramp (an overhead rail on the floor). */
     @Override
     public void onBlockAdded(World w, int x, int y, int z) {
         if (w.isRemote || support(w.getBlockMetadata(x, y, z)).offsetY != 0) return;
@@ -286,18 +286,18 @@ public class BlockSkyRail extends Block {
         return 0;
     }
 
-    /** Ломается в рельсы Апалачии: из них же и ставится. */
+    /** Breaks into Apalachia Rails: it is placed from them too. */
     @Override
     public net.minecraft.item.Item getItemDropped(int meta, java.util.Random r, int fortune) {
         return com.divinerpgextended.registry.ModItems.apalachiaRails;
     }
 
-    /** Путь вагонетки Апалачии: навесной рельс или любой напольный. */
+    /** Apalachia Cart track: an overhead rail or any floor one. */
     public static boolean track(Block b) {
         return b instanceof BlockSkyRail || SkyTrack.floor(b);
     }
 
-    /** Запомнить нынешнюю форму старого рельса (без сохранённой): дальше он держит поворот и работает стрелкой, как новые. */
+    /** Remember the current shape of an old rail (one without a saved shape): from then on it holds the turn and works as a switch, like new ones. */
     public static boolean adopt(World w, int x, int y, int z) {
         if (!(w.getBlock(x, y, z) instanceof BlockSkyRail)) return false;
         TileSkyRail t = tile(w, x, y, z);
@@ -309,8 +309,8 @@ public class BlockSkyRail extends Block {
     }
 
     /**
-     * Рельсы, поставленные до 0.99.13 (без сохранённой формы), при загрузке чанка запоминают свою нынешнюю форму - на
-     * следующем тике, когда соседние чанки уже на месте.
+     * Rails placed before 0.99.13 (without a saved shape) remember their current shape on chunk load - on the
+     * next tick, when the neighboring chunks are already in place.
      */
     public static class Adopt {
 
@@ -335,7 +335,7 @@ public class BlockSkyRail extends Block {
                 Object[] q = queue.poll();
                 World w = (World) q[0];
                 int x = (Integer) q[1], y = (Integer) q[2], z = (Integer) q[3];
-                // связи смотрят соседей: без загруженных соседних чанков не трогаем (загрузятся - рельса встанет в очередь снова)
+                // links look at neighbors: without loaded neighboring chunks we do not touch (once loaded - the rail is queued again)
                 if (w.checkChunksExist(x - 1, y - 1, z - 1, x + 1, y + 1, z + 1)) adopt(w, x, y, z);
             }
         }

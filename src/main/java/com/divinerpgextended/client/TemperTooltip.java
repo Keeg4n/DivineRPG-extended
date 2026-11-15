@@ -11,8 +11,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Закалённая вещь сумеречного мира (броня и луки Divine) - строка "Закалено" в подсказке. Отдельный публичный класс:
- * шина событий Forge вызывает обработчики только у публичных классов.
+ * A tempered Twilight world item (Divine armor and bows) - the "Tempered" line in the tooltip. A separate public class:
+ * the Forge event bus calls handlers only on public classes.
  */
 @SideOnly(Side.CLIENT)
 public class TemperTooltip {

@@ -1,5 +1,5 @@
-"""Лист концептов R8 (A4): ступень за прохождение Ветеи, три облика на выбор; рядом R7 как в игре для сравнения.
-Запуск: python wprint_r8.py <out.html>. Картинки ждёт в img/ рядом с HTML: r8a..r8c (wr8.py) и r7z (wslim5.py)."""
+"""Sheet of R8 concepts (A4): the tier for completing Vethea, three looks to choose from; R7 as in the game next to them for comparison.
+Run: python wprint_r8.py <out.html>. Expects images in img/ next to the HTML: r8a..r8c (wr8.py) and r7z (wslim5.py)."""
 import html
 import os
 import sys
@@ -50,7 +50,7 @@ EXTRA = """
 
 
 def front(key):
-    """Вид спереди отдельным кадром для обзора."""
+    """Front view as a separate frame for the overview."""
     p = Image.open(os.path.join(IMG, key + '.png')).convert('RGB')
     w, h = p.width // 2, p.height
     cut = int(w * 0.13)

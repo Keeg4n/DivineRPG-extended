@@ -2,14 +2,14 @@ package com.divinerpgextended.asm;
 
 import net.minecraft.world.biome.BiomeGenBase;
 
-/** Вызовы из слоёв мутаций генерации обычного мира ({@link BiomeMutationTransformer}). */
+/** Calls from the mutation layers of Overworld generation ({@link BiomeMutationTransformer}). */
 public final class BiomeHooks {
 
     private BiomeHooks() {}
 
     /**
-     * Биом по номеру для слоя мутаций: номера до 128 - как есть; на месте мутации (128+) - только ванильная мутация
-     * (класс Minecraft или BiomeGenMutated), чужой биом мода - null, и слой оставит исходный биом.
+     * Biome by number for the mutation layer: numbers below 128 - as is; in place of a mutation (128+) - only a vanilla mutation
+     * (a Minecraft or BiomeGenMutated class), another mod's biome - null, and the layer will keep the original biome.
      */
     public static BiomeGenBase mutation(int id) {
         BiomeGenBase b = BiomeGenBase.getBiome(id);

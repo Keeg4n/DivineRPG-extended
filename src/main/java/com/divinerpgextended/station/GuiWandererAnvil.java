@@ -28,10 +28,10 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Интерфейс Наковальни Странника. Фон рисуется прямоугольниками, без своей текстуры. Сверху - вкладки (улучшение,
- * гнёзда, разрядка) и кнопка справки "?": справка - панель поверх окна, по страницам, текст переносится по ширине.
- * Во вкладке гнёзд под каждой частью брони - её гнёзда (картинки, не слоты): занятое - клик вынимает аксессуар в
- * свободный слот аксессуаров; гнездо, куда встанет аксессуар из нижнего ряда, подсвечено.
+ * Wanderer Anvil interface. The background is drawn with rectangles, no texture of its own. On top are tabs (upgrade,
+ * sockets, unload) and a help button "?": help is a panel over the window, in pages, text wrapped to width.
+ * In the sockets tab under each armor part are its sockets (pictures, not slots): an occupied one - a click takes the accessory out into a
+ * free accessory slot; the socket where an accessory from the bottom row will go is highlighted.
  */
 @SideOnly(Side.CLIENT)
 public class GuiWandererAnvil extends GuiContainer {
@@ -43,7 +43,7 @@ public class GuiWandererAnvil extends GuiContainer {
     private final ContainerWandererAnvil container;
     private GuiButton action;
     private final int[] tabX = new int[AnvilLogic.MODES], tabW = new int[AnvilLogic.MODES];
-    /** Открытая страница справки (-1 - закрыта) и её строки, уже перенесённые по ширине. */
+    /** The open help page (-1 - closed) and its lines, already wrapped to width. */
     private int helpPage = -1, helpPerPage;
     private List<String> helpLines;
 
@@ -60,7 +60,7 @@ public class GuiWandererAnvil extends GuiContainer {
         super.initGui();
         action = new GuiButton(0, 0, 0, 68, 20, "");
         buttonList.add(action);
-        // вкладки во всю ширину до "?": поля у надписей - сколько остаётся
+        // tabs across the full width up to "?": label margins - whatever is left
         int[] text = new int[AnvilLogic.MODES];
         int sum = 0;
         for (int m = 0; m < AnvilLogic.MODES; m++) sum += text[m] = fontRendererObj.getStringWidth(t(TAB_KEYS[m]));
@@ -86,7 +86,7 @@ public class GuiWandererAnvil extends GuiContainer {
         placeButton();
     }
 
-    /** Главная кнопка: своя надпись и место во вкладке; доступна, только когда всё готово. */
+    /** Main button: its own label and place in the tab; available only when everything is ready. */
     private void placeButton() {
         if (action == null) return;
         int m = container.mode;
@@ -164,7 +164,7 @@ public class GuiWandererAnvil extends GuiContainer {
             case DONOR_SOCKETS:
                 return StatCollector.translateToLocalFormatted(key, donorName());
             case FOREIGN: {
-                ItemStack a = station(AnvilLogic.ARMOR + Math.max(0, Math.min(AnvilLogic.DONOR + 3, container.param))); // часть сверху или донор
+                ItemStack a = station(AnvilLogic.ARMOR + Math.max(0, Math.min(AnvilLogic.DONOR + 3, container.param))); // a part on top or a donor
                 String who = a == null ? null : com.divinerpgextended.item.ArmorData.ownerName(a);
                 return StatCollector.translateToLocalFormatted(key, who == null || who.isEmpty() ? "?" : who);
             }
@@ -175,7 +175,7 @@ public class GuiWandererAnvil extends GuiContainer {
         }
     }
 
-    // ---- вкладки и справка ----
+    // ---- tabs and help ----
 
     private int tabAt(int mx, int my) {
         int rx = mx - guiLeft, ry = my - guiTop;
@@ -193,7 +193,7 @@ public class GuiWandererAnvil extends GuiContainer {
         mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("gui.button.press"), 1.0F));
     }
 
-    /** Абзацы справки вкладки ("" - пустая строка между разделами). */
+    /** Tab help paragraphs ("" - an empty line between sections). */
     private static List<String> helpText(int mode) {
         List<String> out = new ArrayList<String>();
         if (mode == AnvilLogic.UPGRADE) {
@@ -216,7 +216,7 @@ public class GuiWandererAnvil extends GuiContainer {
             out.add("");
             out.add("§6" + t("dre.gui.donor_hint"));
             for (Perk p : Perk.values()) {
-                if (p.crown()) continue; // свойства Венца - выше
+                if (p.crown()) continue; // Crown properties - above
                 String boss = p.unlock == null ? "" : " §8(" + t(p.unlock.langKey()) + ")";
                 out.add("§7" + t(p.langKey()) + ": §f" + t("dre.donor." + p.name().toLowerCase()) + boss);
             }
@@ -274,8 +274,8 @@ public class GuiWandererAnvil extends GuiContainer {
     protected void keyTyped(char c, int key) {
         if (helpPage >= 0) {
             if (key == 1 || key == mc.gameSettings.keyBindInventory.getKeyCode()) helpPage = -1;
-            else if (key == 205 || key == 57) helpPage = Math.min(helpPage + 1, helpPages() - 1); // вправо, пробел
-            else if (key == 203) helpPage = Math.max(helpPage - 1, 0); // влево
+            else if (key == 205 || key == 57) helpPage = Math.min(helpPage + 1, helpPages() - 1); // right, space
+            else if (key == 203) helpPage = Math.max(helpPage - 1, 0); // left
             return;
         }
         super.keyTyped(c, key);
@@ -291,9 +291,9 @@ public class GuiWandererAnvil extends GuiContainer {
         super.handleMouseInput();
     }
 
-    // ---- гнёзда ----
+    // ---- sockets ----
 
-    /** Гнездо под мышью: {слот брони, номер гнезда} или null. */
+    /** The socket under the mouse: {armor slot, socket number} or null. */
     private int[] socketAt(int mx, int my) {
         if (container.mode != AnvilLogic.SOCKETS) return null;
         int rx = mx - guiLeft, ry = my - guiTop;
@@ -308,13 +308,13 @@ public class GuiWandererAnvil extends GuiContainer {
         return null;
     }
 
-    /** Второе гнездо брони Странника закрыто для этого игрока (босс части не побеждён). */
+    /** The second socket of Wanderer armor is closed for this player (the part's boss is not defeated). */
     private boolean locked(ItemStack armor, int k) {
         return k >= 1 && armor.getItem() instanceof com.divinerpgextended.item.ItemWandererArmor
             && (container.bossMask & Sockets.SECOND[Sockets.type(armor)].bit()) == 0;
     }
 
-    /** Куда встанет аксессуар каждого слота аксессуаров: {слот брони, номер гнезда} или null. */
+    /** Where the accessory of each accessory slot will go: {armor slot, socket number} or null. */
     private int[][] planned() {
         int[][] out = new int[4][];
         int[] used = new int[4];
@@ -329,7 +329,7 @@ public class GuiWandererAnvil extends GuiContainer {
     @Override
     protected void mouseClicked(int mx, int my, int button) {
         if (helpPage >= 0) {
-            // ЛКМ - дальше (на последней странице - закрыть), ПКМ - закрыть
+            // LMB - next (on the last page - close), RMB - close
             helpPage = button == 0 && helpPage + 1 < helpPages() ? helpPage + 1 : -1;
             return;
         }
@@ -359,11 +359,11 @@ public class GuiWandererAnvil extends GuiContainer {
         super.mouseClicked(mx, my, button);
     }
 
-    /** Подсказки: справка, гнёзда - что внутри, что встанет, как вынуть, что закрыто. */
+    /** Tooltips: help, sockets - what is inside, what will go in, how to take out, what is closed. */
     @Override
     public void drawScreen(int mx, int my, float partial) {
         if (helpPage >= 0) {
-            super.drawScreen(-1000, -1000, partial); // без подсветки слотов и подсказок под справкой
+            super.drawScreen(-1000, -1000, partial); // no slot highlighting or tooltips under the help
             drawHelp();
             return;
         }
@@ -447,7 +447,7 @@ public class GuiWandererAnvil extends GuiContainer {
         for (int i = 0; i < lines.size() && i < 4; i++) fontRendererObj.drawString(lines.get(i), 8, ContainerWandererAnvil.STATUS_Y + i * 9, color);
     }
 
-    /** Аксессуары в гнёздах; те, что встанут по кнопке, - бледные в золотой рамке; закрытые гнёзда - крестик. */
+    /** Accessories in sockets; those that will go in on the button are pale in a golden frame; closed sockets - a cross. */
     private void drawSocketItems() {
         int[][] plan = planned();
         RenderHelper.enableGUIStandardItemLighting();
@@ -471,7 +471,7 @@ public class GuiWandererAnvil extends GuiContainer {
         for (int d = 0; d < 4; d++) {
             if (plan[d] == null || plan[d][1] > 1) continue;
             int x = 8 + plan[d][0] * 18, y = ContainerWandererAnvil.SOCKET_Y + plan[d][1] * 18;
-            drawRect(x, y, x + 16, y + 16, 0x70D8C8F0); // бледнее встроенных
+            drawRect(x, y, x + 16, y + 16, 0x70D8C8F0); // paler than the embedded ones
             drawRect(x - 1, y - 1, x + 17, y, 0xFFE0A030);
             drawRect(x - 1, y + 16, x + 17, y + 17, 0xFFE0A030);
             drawRect(x - 1, y, x, y + 16, 0xFFE0A030);
@@ -492,7 +492,7 @@ public class GuiWandererAnvil extends GuiContainer {
         int l = guiLeft, t = guiTop, mode = container.mode;
         drawRect(l, t, l + xSize, t + ySize, 0xFF555555);
         drawRect(l + 1, t + 1, l + xSize - 1, t + ySize - 1, 0xFFC6C6C6);
-        // вкладки: линия под ними, неактивные - темнее, активная - одно целое с окном
+        // tabs: a line under them, inactive ones are darker, the active one is one piece with the window
         int line = t + TAB_Y + TAB_H;
         drawRect(l + 4, line, l + xSize - 4, line + 1, 0xFF555555);
         int hover = helpPage < 0 ? tabAt(mx, my) : -1;
@@ -512,14 +512,14 @@ public class GuiWandererAnvil extends GuiContainer {
 
         for (Object o : inventorySlots.inventorySlots) {
             Slot slot = (Slot) o;
-            if (slot.xDisplayPosition < 0) continue; // скрыт во вкладке
+            if (slot.xDisplayPosition < 0) continue; // hidden in the tab
             int x = l + slot.xDisplayPosition, y = t + slot.yDisplayPosition;
             drawRect(x - 1, y - 1, x + 17, y + 17, 0xFF373737);
             drawRect(x, y, x + 17, y + 17, 0xFFFFFFFF);
             drawRect(x, y, x + 16, y + 16, 0xFF8B8B8B);
         }
         if (mode != AnvilLogic.SOCKETS) return;
-        // гнёзда - фиолетовые ячейки под частью брони (закрытое второе гнездо Странника - тёмное)
+        // sockets - purple cells under the armor part (the closed second Wanderer socket is dark)
         for (int a = 0; a < 4; a++) {
             ItemStack armor = station(AnvilLogic.ARMOR + a);
             if (!Sockets.socketable(armor)) continue;

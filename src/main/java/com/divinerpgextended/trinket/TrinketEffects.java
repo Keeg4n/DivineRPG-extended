@@ -35,10 +35,10 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
-/** Эффекты аксессуаров. Работают только надетые в слоты аксессуаров (в рюкзаке - нет). */
+/** Accessory effects. Work only when worn in accessory slots (not in the backpack). */
 public class TrinketEffects {
 
-    /** Солнечный нимб: сколько лечит и как часто (тики). */
+    /** Sun Halo: how much it heals and how often (ticks). */
     public static final float SUN_HALO_HEAL = 1.0F;
     public static final int SUN_HALO_TICKS = 40;
 
@@ -49,7 +49,7 @@ public class TrinketEffects {
         return com.divinerpgextended.accessory.Accessories.wears(p, t);
     }
 
-    // ---------------- До урона: уклонение и иммунитеты ----------------
+    // ---------------- Before damage: evasion and immunities ----------------
 
     @SubscribeEvent
     public void onAttack(LivingAttackEvent e) {
@@ -57,87 +57,87 @@ public class TrinketEffects {
         EntityPlayer p = (EntityPlayer) e.entityLiving;
         if (e.source.isFireDamage() && wears(p, Trinket.BLUE_FLAME)) {
             e.setCanceled(true);
-            com.divinerpgextended.debug.Debug.note(p, "Синее пламя: огонь не ранит");
+            com.divinerpgextended.debug.Debug.note(p, "Blue Flame: fire does not hurt");
             return;
         }
-        // Древний оберег: 8% шанс увернуться от любого удара (кроме падения в пустоту)
+        // Ancient Charm: 8% chance to dodge any hit (except falling into the void)
         if (e.source != DamageSource.outOfWorld && wears(p, Trinket.ANCIENT_CHARM) && p.worldObj.rand.nextFloat() < 0.08F) {
             e.setCanceled(true);
             p.worldObj.playSoundAtEntity(p, "random.bow", 0.4F, 1.8F);
-            com.divinerpgextended.debug.Debug.note(p, "Древний оберег: уворот");
+            com.divinerpgextended.debug.Debug.note(p, "Ancient Charm: dodge");
         }
     }
 
-    // ---------------- Урон ----------------
+    // ---------------- Damage ----------------
 
     @SubscribeEvent
     public void onHurt(LivingHurtEvent e) {
         Entity src = e.source.getEntity();
         boolean melee = src != null && e.source.getSourceOfDamage() == src && !e.source.isProjectile();
-        // бонусы аксессуаров - только против мобов: по игрокам бьёт лишь обычный урон (приваты с запретом PvP не обойти)
+        // accessory bonuses apply only against mobs: players take only normal damage (PvP-disabled protected regions cannot be bypassed)
         if (src instanceof EntityPlayer && !src.worldObj.isRemote && !(e.entityLiving instanceof EntityPlayer) && !com.divinerpgextended.perk.Protection.spare(src, e.entityLiving)) {
             EntityPlayer p = (EntityPlayer) src;
             if (e.source.isProjectile() && wears(p, Trinket.BONE_RING)) {
                 e.ammount *= 1.2F;
-                com.divinerpgextended.debug.Debug.note(p, "Кольцо костяного стрелка: стрелы x1.2");
+                com.divinerpgextended.debug.Debug.note(p, "Bone Archer Ring: arrows x1.2");
             }
             if (melee && wears(p, Trinket.WITHER_RING) && p.worldObj.rand.nextFloat() < 0.2F) {
                 e.entityLiving.addPotionEffect(new PotionEffect(Potion.wither.id, 60, 1));
-                com.divinerpgextended.debug.Debug.note(p, "Кольцо иссушения: иссушение цели");
+                com.divinerpgextended.debug.Debug.note(p, "Wither Ring: wither on target");
             }
             if (!p.worldObj.isDaytime() && wears(p, Trinket.JACK_AMULET)) {
                 e.ammount *= 1.15F;
-                com.divinerpgextended.debug.Debug.note(p, "Тыквенный амулет: ночью x1.15");
+                com.divinerpgextended.debug.Debug.note(p, "Pumpkin Amulet: at night x1.15");
             }
             if (melee && wears(p, Trinket.PARASECTA_STING)) {
                 e.entityLiving.addPotionEffect(new PotionEffect(Potion.poison.id, 60, 0));
-                com.divinerpgextended.debug.Debug.note(p, "Жало Парасекты: яд цели");
+                com.divinerpgextended.debug.Debug.note(p, "Parasecta Sting: poison on target");
             }
             if (melee && wears(p, Trinket.ETERNAL_ICE_RING) && p.worldObj.rand.nextFloat() < 0.1F) {
                 e.entityLiving.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 20, 4));
                 e.entityLiving.addPotionEffect(new PotionEffect(Potion.digSlowdown.id, 20, 2));
-                com.divinerpgextended.debug.Debug.note(p, "Кольцо вечного льда: заморозка цели");
+                com.divinerpgextended.debug.Debug.note(p, "Ring of Eternal Ice: freeze on target");
             }
             if (melee && WeaponOrigin.of(p.getCurrentEquippedItem()) != null && wears(p, Trinket.MASTER_SCABBARD)) {
                 e.ammount *= 1.1F;
-                com.divinerpgextended.debug.Debug.note(p, "Ножны мастера: меч Divine x1.1");
+                com.divinerpgextended.debug.Debug.note(p, "Master Scabbard: Divine sword x1.1");
             }
             if (e.entityLiving instanceof IBossDisplayData && wears(p, Trinket.VALOR_MEDAL)) {
                 e.ammount *= 1.1F;
-                com.divinerpgextended.debug.Debug.note(p, "Медаль за отвагу: по боссу x1.1");
+                com.divinerpgextended.debug.Debug.note(p, "Medal of Valor: against boss x1.1");
             }
         }
         if (e.entityLiving instanceof EntityPlayer && !e.entityLiving.worldObj.isRemote) {
             EntityPlayer v = (EntityPlayer) e.entityLiving;
             if (e.source.isExplosion() && wears(v, Trinket.BLAST_BELT)) {
                 e.ammount *= 0.25F;
-                com.divinerpgextended.debug.Debug.note(v, "Пояс укротителя криперов: взрыв x0.25");
+                com.divinerpgextended.debug.Debug.note(v, "Creeper Tamer Belt: explosion x0.25");
             }
             if (!e.source.isUnblockable() && wears(v, Trinket.COLOSSUS_PAULDRON)) {
-                e.ammount *= 0.88F; // как +3 брони
-                com.divinerpgextended.debug.Debug.note(v, "Наплечник Колосса: x0.88");
+                e.ammount *= 0.88F; // like +3 armor
+                com.divinerpgextended.debug.Debug.note(v, "Colossus Pauldron: x0.88");
             }
             if (src != null && src.getClass().getName().startsWith("net.divinerpg.entities.arcana") && wears(v, Trinket.DUNGEON_LAMP)) {
                 e.ammount *= 0.85F;
-                com.divinerpgextended.debug.Debug.note(v, "Лампа подземелий: моб Арканы x0.85");
+                com.divinerpgextended.debug.Debug.note(v, "Dungeon Lamp: Arcana mob x0.85");
             }
-            // Панцирь Карцинуса: 15% - удар ближнего боя отражается обратно (шипы не отражаются, чтобы не было пинг-понга)
+            // Carcinus Shell: 15% - a melee hit is reflected back (thorns are not reflected, to avoid ping-pong)
             if (melee && src instanceof EntityLivingBase && !(src instanceof EntityPlayer) && !"thorns".equals(e.source.damageType)
                 && wears(v, Trinket.CARCINUS_SHELL)
                 && v.worldObj.rand.nextFloat() < 0.15F) {
                 src.attackEntityFrom(DamageSource.causeThornsDamage(v), e.ammount);
                 e.ammount = 0;
-                com.divinerpgextended.debug.Debug.note(v, "Панцирь Карцинуса: удар отражён");
+                com.divinerpgextended.debug.Debug.note(v, "Carcinus Shell: hit reflected");
             }
         }
     }
 
-    /** Спасёт ли Анх фараона от смерти прямо сейчас (надет и не на перезарядке). */
+    /** Whether Pharaoh's Ankh will save from death right now (worn and not on cooldown). */
     public static boolean ankhReady(EntityPlayer p) {
         return wears(p, Trinket.PHARAOH_ANKH) && p.worldObj.getTotalWorldTime() >= p.getEntityData().getLong(ANKH_CD);
     }
 
-    /** Анх фараона: раз в 10 минут вместо смерти - половина здоровья. */
+    /** Pharaoh's Ankh: once per 10 minutes, instead of death - half health. */
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onDeath(LivingDeathEvent e) {
         if (!(e.entityLiving instanceof EntityPlayer) || e.entityLiving.worldObj.isRemote || e.source == DamageSource.outOfWorld) return;
@@ -146,7 +146,7 @@ public class TrinketEffects {
         if (!wears(p, Trinket.PHARAOH_ANKH) || now < p.getEntityData().getLong(ANKH_CD)) return;
         e.setCanceled(true);
         p.setHealth(p.getMaxHealth() / 2);
-        com.divinerpgextended.debug.Debug.note(p, "Анх фараона: спас от смерти");
+        com.divinerpgextended.debug.Debug.note(p, "Pharaoh's Ankh: saved from death");
         p.getEntityData().setLong(ANKH_CD, now + 12000);
         p.worldObj.playSoundAtEntity(p, "mob.zombie.unfect", 1.0F, 1.2F);
         ChatComponentTranslation c = new ChatComponentTranslation("dre.chat.ankh");
@@ -154,7 +154,7 @@ public class TrinketEffects {
         p.addChatMessage(c);
     }
 
-    /** Костяное кольцо: 25% шанс, что стрела вернётся. */
+    /** Bone ring: 25% chance that the arrow returns. */
     @SubscribeEvent
     public void onLoose(ArrowLooseEvent e) {
         EntityPlayer p = e.entityPlayer;
@@ -162,7 +162,7 @@ public class TrinketEffects {
         if (p.worldObj.rand.nextFloat() < 0.25F) p.inventory.addItemStackToInventory(new ItemStack(Items.arrow));
     }
 
-    /** Амулет Джека: ночью враги не замечают носителя дальше 8 блоков. */
+    /** Jack's amulet: at night enemies do not notice the wearer beyond 8 blocks. */
     @SubscribeEvent
     public void onTarget(LivingSetAttackTargetEvent e) {
         if (!(e.target instanceof EntityPlayer) || !(e.entityLiving instanceof EntityLiving) || e.entityLiving.worldObj.isRemote) return;
@@ -171,7 +171,7 @@ public class TrinketEffects {
         ((EntityLiving) e.entityLiving).setAttackTarget(null);
     }
 
-    // ---------------- Постоянные эффекты ----------------
+    // ---------------- Constant effects ----------------
 
     private static void keep(EntityPlayer p, Potion potion, int amp) {
         PotionEffect cur = p.getActivePotionEffect(potion);
@@ -194,7 +194,7 @@ public class TrinketEffects {
             long now = p.worldObj.getTotalWorldTime();
             if (p.getHealth() < p.getMaxHealth() * 0.3F && now >= p.getEntityData().getLong(DEAD_CD)) {
                 p.addPotionEffect(new PotionEffect(Potion.regeneration.id, 100, 1));
-                com.divinerpgextended.debug.Debug.note(p, "Амулет мертвеца: регенерация II");
+                com.divinerpgextended.debug.Debug.note(p, "Dead Man's Amulet: Regeneration II");
                 p.getEntityData().setLong(DEAD_CD, now + 600);
             }
         }
@@ -209,24 +209,24 @@ public class TrinketEffects {
             p.extinguish();
         }
         if (wears(p, Trinket.PARASECTA_STING)) clear(p, Potion.poison);
-        // Солнечный нимб: днём (в Эдеме солнце не заходит) под открытым небом - пол-сердца раз в 2 с
+        // Sun Halo: by day (the sun never sets in Eden) under open sky - half a heart every 2 s
         if (p.ticksExisted % SUN_HALO_TICKS == 0 && p.getHealth() < p.getMaxHealth() && wears(p, Trinket.SUN_HALO)
             && (p.dimension == ConfigurationHelper.eden || p.worldObj.isDaytime()) && com.divinerpgextended.world.twilight.WorldWeather.open(p)) p.heal(SUN_HALO_HEAL);
         if (p.ticksExisted % 600 == 0 && wears(p, Trinket.LICH_CROWN) && !p.isPotionActive(Potion.field_76444_x)) {
-            p.addPotionEffect(new PotionEffect(Potion.field_76444_x.id, 600, 1, true)); // поглощение: щит на 4 сердца
-            com.divinerpgextended.debug.Debug.note(p, "Корона лича: щит на 4 сердца");
+            p.addPotionEffect(new PotionEffect(Potion.field_76444_x.id, 600, 1, true)); // absorption: a shield of 4 hearts
+            com.divinerpgextended.debug.Debug.note(p, "Lich Crown: shield for 4 hearts");
         }
         if (wears(p, Trinket.DEEP_SHELL) && p.isInsideOfMaterial(Material.water)) {
-            p.setAir(Math.min(300, p.getAir() + 5)); // воздух уходит вдвое медленнее
+            p.setAir(Math.min(300, p.getAir() + 5)); // air runs out twice as slowly
             keep(p, Potion.nightVision, 0);
         }
         if (wears(p, Trinket.DUNGEON_LAMP) && p.dimension == ConfigurationHelper.arcana) keep(p, Potion.nightVision, 0);
         if (wears(p, Trinket.DRAMIX_SEAL)) {
             ArcanaHelper h = ArcanaHelper.getProperties(p);
-            if (h != null && h.regenDelay == 0) h.forceRegen(10.0F); // ещё столько же, сколько Divine восстанавливает за 10 тиков
+            if (h != null && h.regenDelay == 0) h.forceRegen(10.0F); // as much again as Divine restores in 10 ticks
         }
         pauldron(p, wears(p, Trinket.COLOSSUS_PAULDRON));
-        // старая Бездонная сумка приманок (работала из рюкзака) превращается в аксессуар - Ящик для снастей
+        // the old Bottomless Bait Bag (worked from the backpack) turns into an accessory - Tackle Box
         for (int i = 0; i < p.inventory.mainInventory.length; i++) {
             ItemStack s = p.inventory.mainInventory[i];
             if (s != null && s.getItem() == ModItems.baitBag) {
@@ -235,15 +235,15 @@ public class TrinketEffects {
         }
     }
 
-    /** Наплечник Колосса: почти не отбрасывает (модификатор держим, пока надет). */
+    /** Colossus Pauldron: almost no knockback (the modifier is held while worn). */
     private static void pauldron(EntityPlayer p, boolean on) {
         IAttributeInstance kb = p.getEntityAttribute(SharedMonsterAttributes.knockbackResistance);
         AttributeModifier cur = kb.getModifier(PAULDRON);
-        if (on && cur == null) kb.applyModifier(new AttributeModifier(PAULDRON, "Наплечник Колосса", 0.8, 0).setSaved(false));
+        if (on && cur == null) kb.applyModifier(new AttributeModifier(PAULDRON, "Colossus Pauldron", 0.8, 0).setSaved(false));
         else if (!on && cur != null) kb.removeModifier(cur);
     }
 
-    /** Карманный магнит: предметы в 6 блоках летят к игроку. */
+    /** Pocket Magnet: items within 6 blocks fly to the player. */
     private static void magnet(EntityPlayer p) {
         @SuppressWarnings("unchecked")
         List<EntityItem> items = p.worldObj.getEntitiesWithinAABB(EntityItem.class, p.boundingBox.expand(6, 3, 6));

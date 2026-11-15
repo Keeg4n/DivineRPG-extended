@@ -13,8 +13,8 @@ import cpw.mods.fml.common.eventhandler.Event;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Ведро Леты. У Леты материал "вода", и обычное ведро набирало из реки Мортума простую воду: ведро из источника Леты
- * теперь становится ведром Леты ({@link Fill}), а оно ставит текучую Лету (течёт, как вода). В словаре жидкостей Forge - контейнер Леты.
+ * Lethe Bucket. Lethe has the "water" material, and a regular bucket scooped plain water from the Mortum river: a bucket from a Lethe source
+ * now becomes a Lethe Bucket ({@link Fill}), which places flowing Lethe (it flows like water). In the Forge fluid dictionary - a Lethe container.
  */
 public class ItemLetheBucket extends ItemBucket {
 
@@ -27,7 +27,7 @@ public class ItemLetheBucket extends ItemBucket {
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
     }
 
-    /** Пустое ведро по источнику Леты - ведро Леты (раньше ванильная логика делала из неё воду). */
+    /** An empty bucket on a Lethe source becomes a Lethe Bucket (before, the vanilla logic made water out of it). */
     public static class Fill {
 
         @SubscribeEvent
@@ -35,7 +35,7 @@ public class ItemLetheBucket extends ItemBucket {
             if (e.world.isRemote || e.current == null || e.current.getItem() != Items.bucket || e.target == null
                 || e.target.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) return;
             int x = e.target.blockX, y = e.target.blockY, z = e.target.blockZ;
-            // Лета и вода мечтаний: обе - материал воды, ванильное ведро набрало бы простую воду
+            // Lethe and dream water: both have the water material, a vanilla bucket would scoop plain water
             Item full = com.divinerpgextended.block.BlockLethe.isSource(e.world, x, y, z) ? com.divinerpgextended.registry.ModItems.letheBucket
                 : com.divinerpgextended.block.BlockDreamWater.isSource(e.world, x, y, z) ? com.divinerpgextended.registry.ModItems.dreamWaterBucket : null;
             if (full == null || !e.entityPlayer.canPlayerEdit(x, y, z, e.target.sideHit, e.current)) return;

@@ -13,12 +13,12 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Покраска части брони Странника в верстаке: часть + красители, цвета смешиваются как у кожаной брони (и с уже нанесённым).
- * Только облик: ступень, ядро, перки, гнёзда и владелец не меняются. Отмывается правым кликом по котлу с водой ({@link Wash}).
+ * Dyeing a Wanderer armor piece in the crafting table: piece + dyes, colors mix like leather armor (and with the one already applied).
+ * Look only: the tier, core, perks, sockets and owner do not change. Washed off with a right click on a cauldron with water ({@link Wash}).
  */
 public class RecipeWandererDye implements IRecipe {
 
-    /** [часть, краситель...] или null, если в сетке что-то лишнее. */
+    /** [piece, dye...] or null if there is anything extra in the grid. */
     private static java.util.List<ItemStack> find(InventoryCrafting inv) {
         ItemStack armor = null;
         java.util.List<ItemStack> out = new java.util.ArrayList<ItemStack>();
@@ -48,7 +48,7 @@ public class RecipeWandererDye implements IRecipe {
         if (f == null) return null;
         ItemStack out = f.get(0).copy();
         out.stackSize = 1;
-        // как RecipesArmorDyes: среднее по цветам, яркость - средняя из максимумов
+        // like RecipesArmorDyes: the average of the colors, brightness is the average of the maxima
         int[] sum = new int[3];
         int bright = 0, n = 0, old = ArmorData.color(out);
         if (old >= 0) {
@@ -87,7 +87,7 @@ public class RecipeWandererDye implements IRecipe {
         return null;
     }
 
-    /** Котёл с водой отмывает крашеную часть и тратит треть воды, как у кожаной брони. */
+    /** A cauldron with water washes a dyed piece and uses up a third of the water, as with leather armor. */
     public static class Wash {
 
         @SubscribeEvent

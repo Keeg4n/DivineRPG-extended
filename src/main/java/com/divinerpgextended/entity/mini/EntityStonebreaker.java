@@ -12,12 +12,12 @@ import com.divinerpgextended.perk.MeleeRoles;
 import com.divinerpgextended.world.twilight.TwilightWorld;
 
 /**
- * Камнелом, Апалачия: каменная кожа держит {@link #SKIN_GUARD} урона. Снимают её на {@link #BARE} тиков удар молотом или булавой и глыба,
- * упавшая на него самого: он сам вызывает глыбы на цель, поэтому ей выгодно стоять рядом с ним и вовремя отойти.
+ * Stonebreaker, Apalachia: stone skin holds {@link #SKIN_GUARD} damage. It is stripped for {@link #BARE} ticks by a hit from a maul or mace and by a boulder
+ * that fell on him himself: he calls boulders onto the target himself, so it pays to stand next to him and step away in time.
  */
 public class EntityStonebreaker extends EntityMiniBoss {
 
-    public static final double HEALTH = 300; // голем Апалачии 250 x1.2, страж 500
+    public static final double HEALTH = 300; // Apalachia golem 250 x1.2, guardian 500
     public static final float SKIN_GUARD = 0.7F;
     public static final int BARE = 200, CALL_EVERY = 200;
     private static final int DW_BARE = 20;
@@ -68,7 +68,7 @@ public class EntityStonebreaker extends EntityMiniBoss {
         return dataWatcher.getWatchableObjectByte(DW_BARE) == 0;
     }
 
-    /** Содрать кожу: удар молотом или глыба. */
+    /** Strip the skin: a maul hit or a boulder. */
     public void breakSkin() {
         if (skin()) {
             worldObj.playSoundAtEntity(this, "random.anvil_break", 1.5F, 0.6F);
@@ -78,7 +78,7 @@ public class EntityStonebreaker extends EntityMiniBoss {
         dataWatcher.updateObject(DW_BARE, Byte.valueOf((byte) 1));
     }
 
-    /** С кожей модель темнее: видно, что удары не проходят. */
+    /** With the skin the model is darker: you can see the blows do not land. */
     @Override
     public float shade() {
         return skin() ? 0.55F : 1F;
@@ -91,7 +91,7 @@ public class EntityStonebreaker extends EntityMiniBoss {
         return super.attackEntityFrom(src, skin() ? amount * (1 - SKIN_GUARD) : amount);
     }
 
-    /** Вызвать три глыбы на цель. Сколько упадёт. */
+    /** Call three boulders onto the target. How many will fall. */
     public int callRocks(EntityPlayer t) {
         int made = 0;
         for (int i = 0; i < 3; i++) {

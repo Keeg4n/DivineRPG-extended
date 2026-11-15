@@ -1,5 +1,5 @@
-"""Пятый раунд концептов брони Странника (A4): что изменилось по замечаниям, было и стало по ступеням, выбор варианта R7; R2 без изменений.
-Запуск: python wprint_slim5.py <out.html>. Картинки ждёт в img/ рядом с HTML: r1s..r7s из четвёртого раунда, r1v, r3v, r4v, r5v, r6v, r7x, r7y."""
+"""Fifth round of Wanderer armor concepts (A4): what changed after the remarks, before and after per tier, choice of the R7 variant; R2 unchanged.
+Run: python wprint_slim5.py <out.html>. Expects images in img/ next to the HTML: r1s..r7s from the fourth round, r1v, r3v, r4v, r5v, r6v, r7x, r7y."""
 import html
 import sys
 

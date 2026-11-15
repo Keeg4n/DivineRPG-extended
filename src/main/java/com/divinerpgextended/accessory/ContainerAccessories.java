@@ -6,9 +6,9 @@ import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 
 /**
- * Окно старых слотов (до 0.99.67): 6 слотов аксессуаров и 9 боеприпасов - только забрать, положить нельзя; ниже инвентарь
- * смотрящего. Смотреть может и сам игрок, и админ (/dreinv); в режиме просмотра слоты не трогаются. Окно закрывается,
- * как только объект аксессуаров устарел (смерть или перезаход владельца) - чтобы нельзя было вынуть вещь из старой копии.
+ * Window of the old slots (before 0.99.67): 6 accessory slots and 9 ammo slots - take only, putting in is not allowed; below is the viewer's
+ * inventory. Both the player and an admin (/dreinv) can view; in view mode the slots are not touched. The window closes
+ * as soon as the accessories object is stale (death or rejoin of the owner) - so that an item cannot be taken out of an old copy.
  */
 public class ContainerAccessories extends Container {
 
@@ -40,7 +40,7 @@ public class ContainerAccessories extends Container {
         }
     }
 
-    /** Слот боеприпасов: только то, что тратит оружие, стаком. */
+    /** Ammo slot: only what the weapon consumes, as a stack. */
     private static class AmmoSlot extends Slot {
 
         final Accessories acc;
@@ -61,10 +61,10 @@ public class ContainerAccessories extends Container {
         }
     }
 
-    /** Любое перекладывание в слотах аксессуаров - в журнал аудита: кто, у кого, что было и что стало. */
+    /** Any moving of items in the accessory slots goes to the audit log: who, whose, what it was and what it became. */
     @Override
     public ItemStack slotClick(int slot, int button, int mode, EntityPlayer p) {
-        // обмен с хотбаром цифрой: ванильный не проверяет, подходит ли вещь в чужой слот
+        // swap with the hotbar by number key: vanilla does not check whether the item fits into someone else's slot
         if (mode == 2 && slot >= 0 && slot < Accessories.TOTAL && button >= 0 && button < 9) {
             ItemStack hot = p.inventory.getStackInSlot(button);
             if (hot != null && !((Slot) inventorySlots.get(slot)).isItemValid(hot)) return null;
@@ -77,7 +77,7 @@ public class ContainerAccessories extends Container {
                 String now = name(acc.getStackInSlot(i));
                 if (!now.equals(before[i])) {
                     String owner = acc.player != null ? acc.player.getCommandSenderName() : "?";
-                    com.divinerpgextended.audit.Audit.log(p, "Accessory", (acc.player == p ? "" : "у " + owner + " ") + (i < Accessories.SIZE ? "слот " + (i + 1) : "боеприпасы " + (i - Accessories.SIZE + 1)) + ": " + before[i]
+                    com.divinerpgextended.audit.Audit.log(p, "Accessory", (acc.player == p ? "" : "for " + owner + " ") + (i < Accessories.SIZE ? "slot " + (i + 1) : "ammo " + (i - Accessories.SIZE + 1)) + ": " + before[i]
                         + " > " + now);
                 }
             }
@@ -86,7 +86,7 @@ public class ContainerAccessories extends Container {
     }
 
     private static String name(ItemStack s) {
-        return s == null ? "пусто" : s.getDisplayName() + (s.stackSize > 1 ? " x" + s.stackSize : "");
+        return s == null ? "empty" : s.getDisplayName() + (s.stackSize > 1 ? " x" + s.stackSize : "");
     }
 
     public ContainerAccessories(EntityPlayer viewer, Accessories acc) {
@@ -104,7 +104,7 @@ public class ContainerAccessories extends Container {
         return acc.valid();
     }
 
-    /** Shift-клик: из старых слотов - в инвентарь; обратно ничего не кладётся. */
+    /** Shift-click: from the old slots - to the inventory; nothing is put back. */
     @Override
     public ItemStack transferStackInSlot(EntityPlayer p, int index) {
         if (acc.readOnly || !acc.valid() || index >= Accessories.TOTAL) return null;

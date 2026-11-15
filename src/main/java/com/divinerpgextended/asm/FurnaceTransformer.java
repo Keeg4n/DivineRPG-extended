@@ -15,11 +15,11 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * В Divine у "бесконечных" печей (TileEntityInfiniteFurnace: угольная печь Iceika, Molten, Oceanfire, Whitefire,
- * Demon) всего два слота - вход (0) и результат (1), но сторонняя логика списана с ванильной печи: сбоку доступных
- * слотов нет вовсе, а забирать из слота 1 снизу разрешено только ведро (у ванильной печи слот 1 - топливо). Поэтому
- * воронки и трубы с ними не работают. Заменяем тела двух методов на вызовы {@link FurnaceHooks}. При любой ошибке
- * класс остаётся как был.
+ * In Divine the "infinite" furnaces (TileEntityInfiniteFurnace: Iceika coal furnace, Molten, Oceanfire, Whitefire,
+ * Demon) have only two slots - input (0) and result (1), but the side logic is copied from the vanilla furnace: from the side there are
+ * no accessible slots at all, and taking from slot 1 from below is allowed only for a bucket (in the vanilla furnace slot 1 is fuel). So
+ * hoppers and pipes do not work with them. We replace the bodies of two methods with calls to {@link FurnaceHooks}. On any error the
+ * class stays as it was.
  */
 public class FurnaceTransformer implements IClassTransformer, Opcodes {
 
@@ -41,7 +41,7 @@ public class FurnaceTransformer implements IClassTransformer, Opcodes {
                     && "(ILnet/minecraft/item/ItemStack;I)Z".equals(m.desc);
                 if (!slots && !extract) continue;
                 InsnList body = new InsnList();
-                body.add(new VarInsnNode(ILOAD, 1)); // сторона или номер слота
+                body.add(new VarInsnNode(ILOAD, 1)); // side or slot number
                 if (slots) {
                     body.add(new MethodInsnNode(INVOKESTATIC, HOOKS, "slots", "(I)[I", false));
                     body.add(new InsnNode(ARETURN));
@@ -58,15 +58,15 @@ public class FurnaceTransformer implements IClassTransformer, Opcodes {
                 patched++;
             }
             if (patched != 2) {
-                LOG.warn("Печи Divine: найдено методов для исправления {} из 2 - оставляю класс без изменений", patched);
+                LOG.warn("Divine furnaces: found {} of 2 methods to fix - leaving class unchanged", patched);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Печи Divine: воронки и трубы починены (TileEntityInfiniteFurnace)");
+            LOG.info("Divine furnaces: hoppers and pipes fixed (TileEntityInfiniteFurnace)");
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Печи Divine: не удалось исправить, класс без изменений", t);
+            LOG.error("Divine furnaces: could not fix, class unchanged", t);
             return bytes;
         }
     }

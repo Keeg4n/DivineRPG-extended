@@ -13,7 +13,7 @@ import org.lwjgl.opengl.GL11;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Король-лич: гуманоид ростом ~2.4 блока с морозным клинком Divine в руке и полоской здоровья босса. */
+/** Lich King: a humanoid about 2.4 blocks tall with Divine's frost blade in hand and a boss health bar. */
 @SideOnly(Side.CLIENT)
 public class RenderLichKing extends RenderBiped {
 
@@ -23,7 +23,7 @@ public class RenderLichKing extends RenderBiped {
 
     @Override
     public void doRender(EntityLiving entity, double x, double y, double z, float yaw, float partial) {
-        if (entity instanceof IBossDisplayData) DreBossBar.show(entity); // полоска в стиле Divine
+        if (entity instanceof IBossDisplayData) DreBossBar.show(entity); // bar in the Divine style
         super.doRender(entity, x, y, z, yaw, partial);
     }
 

@@ -37,11 +37,11 @@ public final class ModBlocks {
     public static Block jungleOre, jungleAltar;
     public static Block ayeracoAltar;
     public static Block trapFloor;
-    /** Запертые сундуки Арканы и реликварии миров (вид - мета). */
+    /** Locked Arcana chests and world reliquaries (kind - meta). */
     public static Block lockedChest;
-    /** Факелы сумеречных миров по номеру TwilightWorld. */
+    /** Twilight world torches by TwilightWorld index. */
     public static final Block[] worldTorch = new Block[5];
-    /** Камни врат по номеру CadillionWorld: рамка портала в следующий мир. */
+    /** Gate stones by CadillionWorld index: the portal frame to the next world. */
     public static final Block[] gateStone = new Block[4];
     public static Block windTotem;
     public static Block cloud;
@@ -50,11 +50,11 @@ public final class ModBlocks {
     public static net.minecraftforge.fluids.Fluid arcaneFluid;
     public static net.minecraftforge.fluids.Fluid dreamWaterFluid;
     public static net.minecraftforge.fluids.Fluid letheFluid;
-    /** Лампы сумеречных миров по номеру TwilightWorld; [EDEN] пусто - у Эдема лампа Divine. */
+    /** Twilight world lamps by TwilightWorld index; [EDEN] is empty - Eden uses Divine's lamp. */
     public static final Block[] worldLamp = new Block[5];
-    /** Доски дерева Ветеи (по {@link com.divinerpgextended.block.BlockVetheaPlanks.Wood}). */
+    /** Planks of Vethea wood (by {@link com.divinerpgextended.block.BlockVetheaPlanks.Wood}). */
     public static final Block[] vetheaPlanks = new Block[4];
-    private static final int[] TORCH_COLOR = { 0xFFD23F, 0x7FC4E6, 0xFF4FD8, 0xA8DCFF, 0xE01010 }; // искры под эмблемы: солнце, луна, разлом, небо, кровь
+    private static final int[] TORCH_COLOR = { 0xFFD23F, 0x7FC4E6, 0xFF4FD8, 0xA8DCFF, 0xE01010 }; // sparks for the emblems: sun, moon, rift, sky, blood
 
     private ModBlocks() {}
 
@@ -116,7 +116,7 @@ public final class ModBlocks {
         for (com.divinerpgextended.block.BlockVetheaPlanks.Wood w : com.divinerpgextended.block.BlockVetheaPlanks.Wood.values()) {
             vetheaPlanks[w.ordinal()] = new com.divinerpgextended.block.BlockVetheaPlanks(w);
             GameRegistry.registerBlock(vetheaPlanks[w.ordinal()], "vetheaPlanks_" + w.key());
-            net.minecraft.init.Blocks.fire.setFireInfo(vetheaPlanks[w.ordinal()], 5, 20); // горят как доски (после регистрации - нужен id)
+            net.minecraft.init.Blocks.fire.setFireInfo(vetheaPlanks[w.ordinal()], 5, 20); // burn like planks (after registration - the id is needed)
             net.minecraftforge.oredict.OreDictionary.registerOre("plankWood", vetheaPlanks[w.ordinal()]);
             GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(vetheaPlanks[w.ordinal()], 4), w.log());
         }
@@ -129,10 +129,10 @@ public final class ModBlocks {
         letheFluid = new net.minecraftforge.fluids.Fluid("dre_lethe").setLuminosity(4).setDensity(1100).setViscosity(1600);
         net.minecraftforge.fluids.FluidRegistry.registerFluid(letheFluid);
         letheFluid = net.minecraftforge.fluids.FluidRegistry.getFluid("dre_lethe");
-        lethe = new com.divinerpgextended.block.BlockLethe(letheFluid, true); // с 0.99.111 река течёт, как Лета из ведра (оба блока остаются ради старых миров)
+        lethe = new com.divinerpgextended.block.BlockLethe(letheFluid, true); // since 0.99.111 the river flows like Lethe from a bucket (both blocks stay for old worlds)
         GameRegistry.registerBlock(lethe, "lethe");
         if (letheFluid.getBlock() == null) letheFluid.setBlock(lethe);
-        letheFlowing = new com.divinerpgextended.block.BlockLethe(letheFluid, true); // из ведра - течёт
+        letheFlowing = new com.divinerpgextended.block.BlockLethe(letheFluid, true); // from a bucket - it flows
         GameRegistry.registerBlock(letheFlowing, "letheFlowing");
         ModItems.letheBucket = new com.divinerpgextended.item.ItemLetheBucket();
         GameRegistry.registerItem(ModItems.letheBucket, "letheBucket");
@@ -140,10 +140,10 @@ public final class ModBlocks {
             new net.minecraft.item.ItemStack(net.minecraft.init.Items.bucket));
         netherTorch = new com.divinerpgextended.block.BlockWorldTorch(0xFF6A1A);
         GameRegistry.registerBlock(netherTorch, "worldTorch_nether");
-        for (int coal = 0; coal < 2; coal++) // уголь или древесный уголь над стержнем ифрита (вместо палки)
+        for (int coal = 0; coal < 2; coal++) // coal or charcoal above a blaze rod (instead of a stick)
             GameRegistry.addRecipe(new net.minecraft.item.ItemStack(netherTorch, 4), "C", "B", 'C', new net.minecraft.item.ItemStack(net.minecraft.init.Items.coal, 1, coal),
                 'B', net.minecraft.init.Items.blaze_rod);
-        // факелы Iceika (ледяные осколки на морозной палке) и Ветеи (серый жемчуг на палке): по 4
+        // Iceika torches (ice shards on a frozen stick) and Vethea torches (gray pearl on a stick): 4 each
         iceikaTorch = new com.divinerpgextended.block.BlockWorldTorch("iceika", 0x9FE0FF);
         GameRegistry.registerBlock(iceikaTorch, "worldTorch_iceika");
         GameRegistry.addRecipe(new net.minecraft.item.ItemStack(iceikaTorch, 4), "C", "S", 'C', net.divinerpg.utils.items.IceikaItems.iceShards, 'S',
@@ -152,13 +152,13 @@ public final class ModBlocks {
         GameRegistry.registerBlock(vetheaTorch, "worldTorch_vethea");
         GameRegistry.addRecipe(new net.minecraft.item.ItemStack(vetheaTorch, 4), "C", "S", 'C', net.divinerpg.utils.items.VetheaItems.dirtyPearls, 'S',
             net.minecraft.init.Items.stick);
-        // арканный концентрат: жидкость фонтанных залов Арканы
+        // arcane concentrate: the liquid of the Arcana fountain halls
         arcaneFluid = new net.minecraftforge.fluids.Fluid("dre_arcane").setLuminosity(9);
         net.minecraftforge.fluids.FluidRegistry.registerFluid(arcaneFluid);
         arcaneFluid = net.minecraftforge.fluids.FluidRegistry.getFluid("dre_arcane");
         arcaneConcentrate = new com.divinerpgextended.block.BlockArcaneConcentrate(arcaneFluid);
         GameRegistry.registerBlock(arcaneConcentrate, "arcaneConcentrate");
-        // водный факел зова: водный слиток над водным стержнем ифрита, 1 штука; горит на арканиуме
+        // Water Lure Torch: a water ingot above a water blaze rod, 1 piece; burns on arcanium
         sofa = new com.divinerpgextended.easter.BlockSofa();
         GameRegistry.registerBlock(sofa, com.divinerpgextended.easter.BlockSofa.ItemSofa.class, "sofa");
         GameRegistry.registerTileEntity(com.divinerpgextended.easter.BlockSofa.TileSofa.class, "dreSofa");
@@ -167,7 +167,7 @@ public final class ModBlocks {
         lureTorchLit = new com.divinerpgextended.block.BlockLureTorch(true);
         GameRegistry.registerBlock(lureTorchLit, "lureTorchLit");
         GameRegistry.registerTileEntity(com.divinerpgextended.block.BlockLureTorch.Tile.class, "dreLureTorch");
-        // арканная стойка зельеварения (продаёт Ваттикус)
+        // Arcane Brewing Stand (sold by Vatticus)
         arcaneBrewer = new com.divinerpgextended.magic.BlockArcaneBrewer();
         GameRegistry.registerBlock(arcaneBrewer, "arcaneBrewer");
         GameRegistry.registerTileEntity(com.divinerpgextended.magic.TileArcaneBrewer.class, "dreArcaneBrewer");
@@ -184,7 +184,7 @@ public final class ModBlocks {
         GameRegistry.registerItem(ModItems.dreamMelonSeeds, "dreamMelonSeeds");
         GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(ModItems.dreamMelonSeeds), net.divinerpg.utils.items.VetheaItems.dreamMelon);
         GameRegistry.addRecipe(new net.minecraft.item.ItemStack(dreamMelon), "MMM", "MMM", "MMM", 'M', net.divinerpg.utils.items.VetheaItems.dreamMelon);
-        // вода мечтаний: плотность меньше нуля - течёт вверх
+        // dream water: density below zero - flows upward
         dreamWaterFluid = new net.minecraftforge.fluids.Fluid("dre_dreamwater").setLuminosity(6).setDensity(-1000).setViscosity(1000);
         net.minecraftforge.fluids.FluidRegistry.registerFluid(dreamWaterFluid);
         dreamWaterFluid = net.minecraftforge.fluids.FluidRegistry.getFluid("dre_dreamwater");

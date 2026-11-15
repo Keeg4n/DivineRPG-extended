@@ -16,9 +16,9 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent;
 
 /**
- * Костёр лагеря странников как точка возрождения в сумеречном мире (кровать там не работает: миры не позволяют
- * возрождаться). Присесть и ПКМ по горящей жаровне в сумеречном мире - запомнить; после смерти игрок появляется у
- * неё, пока она стоит и горит. Новая кровать в обычном мире костёр не отменяет - сбросить можно у самого костра ещё раз.
+ * The camp campfire of wanderers as a respawn point in a twilight dimension (a bed does not work there: the dimensions do not allow
+ * respawning). Sneak and right-click a burning brazier in a twilight dimension - to remember it; after death the player appears at
+ * it while it stands and burns. A new bed in the overworld does not cancel the campfire - it can be reset at the campfire itself again.
  */
 public class Campfire {
 
@@ -43,8 +43,8 @@ public class Campfire {
             ps.setIntArray(KEY, here);
             p.addChatMessage(new ChatComponentTranslation("dre.chat.campfire_set"));
         }
-        com.divinerpgextended.audit.Audit.log(p, "Campfire", ps.hasKey(KEY) ? "точка возрождения у костра " + java.util.Arrays.toString(here)
-            : "точка возрождения у костра сброшена");
+        com.divinerpgextended.audit.Audit.log(p, "Campfire", ps.hasKey(KEY) ? "respawn point at campfire " + java.util.Arrays.toString(here)
+            : "respawn point at campfire reset");
         e.setCanceled(true);
     }
 
@@ -54,7 +54,7 @@ public class Campfire {
         return d.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
     }
 
-    /** Возрождение: если костёр запомнен, стоит и горит - перенести к нему. */
+    /** Respawn: if a campfire is remembered, stands and burns - move to it. */
     @SubscribeEvent
     public void onRespawn(PlayerEvent.PlayerRespawnEvent e) {
         if (!(e.player instanceof EntityPlayerMP) || e.player.worldObj.isRemote) return;
@@ -88,7 +88,7 @@ public class Campfire {
         return true;
     }
 
-    /** Для автотеста: запомненный костёр или null. */
+    /** For selftest: the remembered campfire or null. */
     public static int[] get(EntityPlayer p) {
         int[] c = persisted(p).getIntArray(KEY);
         return c.length == 4 ? c : null;

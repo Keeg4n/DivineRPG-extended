@@ -11,7 +11,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
-/** Справочник рыбака (награда Леорны): ПКМ - зона под ногами, сила снасти, рыба дня и прогресс заданий. */
+/** Fisherman's Guide (Leorna's reward): right click - the zone underfoot, tackle power, fish of the day and task progress. */
 public class ItemFishGuide extends Item {
 
     public ItemFishGuide() {

@@ -8,10 +8,10 @@ import net.minecraftforge.event.world.ChunkDataEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Чанки Эдема и Вайлдвуда, сохранённые версией 0.44.0 (она выключала там небесный свет), записаны без небесного света
- * (а пересохранённые 0.44.1 - с нулевым) и после возврата неба грузятся чёрными. Признак: в самой верхней секции нет
- * ни одного блока с небесным светом - в мире с небом над островами так не бывает. При загрузке такого чанка считаем небесный свет заново сверху вниз и отдаём
- * досчёт по горизонтали серверу; чанк сохранится уже со светом.
+ * Eden and Wildwood chunks saved by version 0.44.0 (it disabled sky light there) are written without sky light
+ * (and those resaved by 0.44.1 - with zero) and after the sky returned load black. The sign: the topmost section has
+ * no block with sky light at all - in a world with sky above the islands this does not happen. On loading such a chunk we recompute sky light top to bottom and hand
+ * the horizontal spread to the server; the chunk then saves with light.
  */
 public class SkyRepair {
 
@@ -28,7 +28,7 @@ public class SkyRepair {
         e.getChunk().setChunkModified();
     }
 
-    /** Верхняя секция без небесного света вовсе (нет массива или он весь нулевой). */
+    /** The top section with no sky light at all (no array or it is all zero). */
     public static boolean dark(NBTTagList sections) {
         NBTTagCompound top = null;
         for (int i = 0; i < sections.tagCount(); i++) {

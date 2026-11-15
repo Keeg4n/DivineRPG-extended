@@ -17,20 +17,20 @@ import com.divinerpgextended.registry.ModBlocks;
 import com.divinerpgextended.world.CadillionWorld;
 
 /**
- * Повелитель ветров Скайтерна, страж рощи - босс-пазл. Сам неуязвим: парит над поляной, сдувает порывами, стреляет
- * и зовёт подмогу на пол арены. Вокруг на разной высоте ({@link #HEIGHTS}) появляются 4 ветряных тотема на облачных
- * площадках (в храме ветров - на постаментах с лестницей).
- * Тотем заряжается {@link #CHARGE} тиков, пока игрок стоит рядом (правый клик - начать): Повелитель бьёт порывами
- * именно его. Заряженный тотем бьёт Повелителя молнией на четверть здоровья. После четвёртого у него остаётся 1 здоровья:
- * он опускается на землю, ветер стихает, и добить его можно чем угодно (так победа засчитывается бившим). До высоких
- * тотемов удобно добраться ковром Хозяина ветров (сет Скайтерна).
+ * Skythern Wind Lord, the grove guardian - a puzzle boss. Itself invulnerable: it hovers over the glade, blows you away with gusts, shoots
+ * and calls help to the arena floor. Around, at different heights ({@link #HEIGHTS}), 4 Wind Totems appear on cloud
+ * platforms (in the wind temple - on pedestals with a staircase).
+ * A totem charges for {@link #CHARGE} ticks while a player stands next to it (right click - start): the Lord hits
+ * exactly that one with gusts. A charged totem strikes the Lord with lightning for a quarter of his health. After the fourth he is left with 1 health:
+ * he descends to the ground, the wind dies down, and he can be finished off with anything (so the victory is credited to those who hit him). The high
+ * totems are easy to reach with the Wind Master's carpet (Skythern set).
  */
 public class EntityWindLord extends EntityGroveGuardian {
 
     public static final int[] HEIGHTS = { 6, 12, 18, 24 };
     public static final int TOTEM_R = 15, CHARGE = 60, HOVER = 12, MAX_ADDS = 5;
     public static final float SCALE = 2.5F;
-    /** Свой урон: только от молнии тотема. */
+    /** Its own damage: only from the totem's lightning. */
     public static final DamageSource TOTEM = new DamageSource("dreWindTotem").setDamageBypassesArmor();
 
     private int cx, cy, cz;
@@ -39,7 +39,7 @@ public class EntityWindLord extends EntityGroveGuardian {
     private EntityPlayer charger;
     private int gustTimer = 100, shotTimer = 50, fiendTimer = 200;
     private double orbit;
-    /** Все тотемы горят: сбит на землю, уязвим для всего. */
+    /** All totems are lit: knocked to the ground, vulnerable to everything. */
     private boolean grounded;
 
     public EntityWindLord(World world) {
@@ -58,7 +58,7 @@ public class EntityWindLord extends EntityGroveGuardian {
         getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.3D);
     }
 
-    /** Центр арены: привязь рощи или место появления. */
+    /** Arena center: the grove tether or the spawn point. */
     private void center() {
         int[] home = com.divinerpgextended.boss.LairSummons.home(this);
         if (home != null) {
@@ -77,7 +77,7 @@ public class EntityWindLord extends EntityGroveGuardian {
         return new int[] { cx + (int) Math.round(Math.cos(a) * TOTEM_R), cy + HEIGHTS[i], cz + (int) Math.round(Math.sin(a) * TOTEM_R) };
     }
 
-    /** Поставить тотемы на облачных площадках 3x3 (над ними пусто). */
+    /** Place totems on the 3x3 cloud platforms (empty above them). */
     public void placeTotems() {
         center();
         for (int i = 0; i < 4; i++) {
@@ -108,11 +108,11 @@ public class EntityWindLord extends EntityGroveGuardian {
         }
     }
 
-    /** Заряд тотемов от слайсеров издалека: копится попаданиями, тает со временем. */
+    /** Totem charge from slicers at a distance: accumulates with hits, decays over time. */
     private final float[] remote = new float[4];
     public static final float REMOTE_HIT = 12, REMOTE_DECAY = 0.5F;
 
-    /** Слайсер попал в тотем: подзарядка; набралось CHARGE - тотем загорается. */
+    /** A slicer hit the totem: recharge; when CHARGE is reached - the totem lights up. */
     public void remoteCharge(int x, int y, int z) {
         for (int i = 0; i < 4; i++) {
             int[] t = totem(i);
@@ -131,7 +131,7 @@ public class EntityWindLord extends EntityGroveGuardian {
         return remote[i];
     }
 
-    /** Игрок начал заряжать тотем (клик по нему). Повторный клик по тому же тотему отсчёт не сбрасывает. */
+    /** A player began charging the totem (click on it). A repeated click on the same totem does not reset the countdown. */
     public void startCharge(int x, int y, int z, EntityPlayer p) {
         if (charging() && chargeX == x && chargeY == y && chargeZ == z) {
             charger = p;
@@ -159,7 +159,7 @@ public class EntityWindLord extends EntityGroveGuardian {
         if (!worldObj.isRemote && src.getEntity() instanceof net.minecraft.entity.player.EntityPlayer) fighters.add(src.getEntity().getUniqueID());
         if (src == TOTEM || src == DamageSource.outOfWorld || grounded) return super.attackEntityFrom(src, amount);
         if (!worldObj.isRemote && src.getEntity() instanceof EntityPlayer) {
-            // неуязвим: удар расходится ветром
+            // invulnerable: the hit is dispersed by the wind
             ((WorldServer) worldObj).func_147487_a("cloud", posX, posY + height * 0.5, posZ, 10, 0.5, 0.8, 0.5, 0.05);
             worldObj.playSoundAtEntity(this, "mob.enderdragon.wings", 0.6F, 1.8F);
         }
@@ -168,7 +168,7 @@ public class EntityWindLord extends EntityGroveGuardian {
 
     @Override
     public void onLivingUpdate() {
-        if (grounded) { // сбит: стоит на земле, ни ветра, ни стрел, ни подмоги
+        if (grounded) { // knocked down: stands on the ground, no wind, no arrows, no help
             super.onLivingUpdate();
             fallDistance = 0;
             motionX *= 0.5;
@@ -177,13 +177,13 @@ public class EntityWindLord extends EntityGroveGuardian {
                 ((WorldServer) worldObj).func_147487_a("cloud", posX, posY + 0.5, posZ, 4, 0.6, 0.2, 0.6, 0.01);
             return;
         }
-        motionY = motionY * 0.6 + 0.08; // парит: гасим гравитацию
+        motionY = motionY * 0.6 + 0.08; // hovers: cancel gravity
         super.onLivingUpdate();
         fallDistance = 0;
         if (worldObj.isRemote) return;
         if (!placed) placeTotems();
         WorldServer ws = (WorldServer) worldObj;
-        // кружит над поляной на высоте HOVER
+        // circles over the glade at height HOVER
         orbit += 0.01;
         double tx = cx + 0.5 + Math.cos(orbit) * 6, tz = cz + 0.5 + Math.sin(orbit) * 6, ty = cy + HOVER;
         motionX += (tx - posX) * 0.02;
@@ -208,7 +208,7 @@ public class EntityWindLord extends EntityGroveGuardian {
             shoot(t);
         }
         if (--fiendTimer <= 0) {
-            // снизу - ближний бой: големы и изверги Скайтерна на полу арены, до MAX_ADDS
+            // from below - melee: Skythern golems and fiends on the arena floor, up to MAX_ADDS
             fiendTimer = 300;
             for (int i = 0; i < 3 && addsAlive() < MAX_ADDS; i++) {
                 double a = rand.nextDouble() * Math.PI * 2, d = 4 + rand.nextDouble() * 8;
@@ -223,7 +223,7 @@ public class EntityWindLord extends EntityGroveGuardian {
         boolean near = charger != null && charger.isEntityAlive() && charger.worldObj == worldObj
             && charger.getDistanceSq(chargeX + 0.5, chargeY + 0.5, chargeZ + 0.5) < 3.0 * 3.0;
         if (!near || worldObj.getBlock(chargeX, chargeY, chargeZ) != ModBlocks.windTotem) {
-            chargeTime = -1; // сдуло - начинать сначала
+            chargeTime = -1; // blown away - start over
             worldObj.playSoundEffect(chargeX + 0.5, chargeY + 1, chargeZ + 0.5, "random.fizz", 0.5F, 1.2F);
             return;
         }
@@ -235,14 +235,14 @@ public class EntityWindLord extends EntityGroveGuardian {
         lightTotem(chargeX, chargeY, chargeZ);
     }
 
-    /** Тотем загорелся: молния в Повелителя на четверть здоровья (четвёртый - добивает). */
+    /** The totem lit up: lightning at the Lord for a quarter of his health (the fourth one finishes him off). */
     private void lightTotem(int x, int y, int z) {
         worldObj.setBlockMetadataWithNotify(x, y, z, 1, 3);
-        // молния бьёт в Повелителя: вспышка и гром для всех, урон - своим источником
+        // lightning strikes the Lord: flash and thunder for everyone, damage - with its own source
         worldObj.addWeatherEffect(new EntityLightningBolt(worldObj, posX, posY, posZ));
         int lit = litTotems();
-        hurtResistantTime = 0; // молния тотема проходит всегда
-        if (lit >= 4) { // последний тотем: 1 здоровья, падает на землю - добивают чем угодно
+        hurtResistantTime = 0; // the totem's lightning always goes through
+        if (lit >= 4) { // the last totem: 1 health, falls to the ground - finish him off with anything
             if (getHealth() > 1) super.attackEntityFrom(TOTEM, getHealth() - 1);
             grounded = true;
             motionY = -0.5;
@@ -250,10 +250,10 @@ public class EntityWindLord extends EntityGroveGuardian {
             worldObj.playSoundAtEntity(this, "mob.enderdragon.growl", 2.0F, 0.6F);
             FrostPowers.tell(this, "dre.chat.wind_lord_grounded");
         } else super.attackEntityFrom(TOTEM, getMaxHealth() * 0.25F);
-        com.divinerpgextended.debug.Debug.note(this, "Повелитель ветров: тотем заряжен, всего " + lit);
+        com.divinerpgextended.debug.Debug.note(this, "Wind Lord: totem charged, total " + lit);
     }
 
-    /** Порыв: сдувает цель и всех рядом с ней прочь от Повелителя (Каменная стена держит). */
+    /** Gust: blows the target and everyone near it away from the Lord (Stone Wall holds you). */
     private void gust(EntityLivingBase t) {
         worldObj.playSoundAtEntity(t, "mob.enderdragon.wings", 2.0F, 0.7F);
         @SuppressWarnings("unchecked")
@@ -269,7 +269,7 @@ public class EntityWindLord extends EntityGroveGuardian {
         }
     }
 
-    /** Ветряная стрела по цели. */
+    /** Wind arrow at the target. */
     private void shoot(EntityLivingBase t) {
         EntityArrow a = new EntityArrow(worldObj, this, t, 1.8F, 4.0F);
         a.setDamage(getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue() * 0.25);
@@ -277,9 +277,9 @@ public class EntityWindLord extends EntityGroveGuardian {
         worldObj.playSoundAtEntity(this, "random.bow", 1.0F, 0.6F);
     }
 
-    /** Кто бил Повелителя (им - звук победы). */
+    /** Who hit the Lord (they get the victory sound). */
     private final java.util.Set<java.util.UUID> fighters = new java.util.HashSet<java.util.UUID>();
-    /** Звук победы: голос гибели дракона клиент играет на весь мир, поэтому шлём его только бившим. */
+    /** Victory sound: the client plays the dragon death voice for the whole world, so we send it only to those who hit. */
     public static final String VICTORY = "mob.enderdragon.end";
 
     @Override
@@ -295,7 +295,7 @@ public class EntityWindLord extends EntityGroveGuardian {
         }
     }
 
-    /** Сколько игроков услышат звук победы (для самопроверки). */
+    /** How many players will hear the victory sound (for the selftest). */
     public int fighterCount() {
         return fighters.size();
     }
@@ -315,7 +315,7 @@ public class EntityWindLord extends EntityGroveGuardian {
 
     @Override
     protected String getDeathSound() {
-        return "mob.blaze.death"; // голос дракона - только победителям (onDeath)
+        return "mob.blaze.death"; // the dragon voice - only for the winners (onDeath)
     }
 
     @Override

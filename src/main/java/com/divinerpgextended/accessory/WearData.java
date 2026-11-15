@@ -11,13 +11,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Посадка аксессуаров на теле (tools/concepts/acc_export.py -> {@link #FILE}): для каждого аксессуара и профиля брони - детали
- * на костях ModelBiped в пикселях модели (y вниз). Коробка (c) - цветной куб, возможно повёрнутый вокруг точки; плоский
- * значок (f) - спрайт 16x16 с толщиной, пиксели одного цвета подряд сливаются в полоску (как в концептах). Здесь только
- * данные и геометрия (без OpenGL): рисует {@link com.divinerpgextended.client.AccessoryWear}.
+ * Accessory placement on the body (tools/concepts/acc_export.py -> {@link #FILE}): for each accessory and armor profile - parts
+ * on the ModelBiped bones in model pixels (y down). A box (c) is a colored cube, possibly rotated around a point; a flat
+ * icon (f) is a 16x16 sprite with thickness, pixels of one color in a row merge into a strip (as in the concepts). Here only
+ * data and geometry (no OpenGL): drawn by {@link com.divinerpgextended.client.AccessoryWear}.
  * <p>
- * Профили: bare (без брони), divine (любая не-Странника броня), r1..r7 и r1_shadow/r1_bedrock/r1_ender/r1_corrupted (облики
- * брони Странника): посадка считается от поверхности брони, на тонкой броне Странника вещь садится ближе к телу.
+ * Profiles: bare (no armor), divine (any non-Wanderer armor), r1..r7 and r1_shadow/r1_bedrock/r1_ender/r1_corrupted (looks of
+ * Wanderer armor): placement is computed from the armor surface, on the thin Wanderer armor the item sits closer to the body.
  */
 public final class WearData {
 
@@ -25,7 +25,7 @@ public final class WearData {
     public static final String[] BONES = { "head", "body", "rightArm", "leftArm", "rightLeg", "leftLeg" };
     private static final String DIGITS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    /** Грани одной кости: по 4 вершины (x, y, z), нормаль и цвет (r, g, b 0..1) на грань. */
+    /** Faces of one bone: 4 vertices each (x, y, z), a normal and a color (r, g, b 0..1) per face. */
     public static final class Mesh {
         public final List<float[]> quads = new ArrayList<float[]>();
 
@@ -48,13 +48,13 @@ public final class WearData {
 
     private WearData() {}
 
-    /** ключ аксессуара -> профиль -> кость -> грани. */
+    /** accessory key -> profile -> bone -> faces. */
     public static synchronized Map<String, Map<String, Map<String, Mesh>>> all() {
         if (data == null) data = load();
         return data;
     }
 
-    /** Грани аксессуара на кости для профиля (запасной профиль - divine); null - нет. */
+    /** Faces of an accessory on a bone for a profile (fallback profile - divine); null - none. */
     public static Mesh mesh(String key, String profile, String bone) {
         Map<String, Map<String, Mesh>> a = all().get(key);
         if (a == null) return null;
@@ -78,7 +78,7 @@ public final class WearData {
                 else rows.add(f);
             }
         } catch (IOException ex) {
-            com.divinerpgextended.DivineRPGExtended.LOG.warn("Посадка аксессуаров не прочитана: " + ex);
+            com.divinerpgextended.DivineRPGExtended.LOG.warn("Accessory fit not read: " + ex);
         } finally {
             try {
                 in.close();
@@ -103,7 +103,7 @@ public final class WearData {
         return out;
     }
 
-    /** Спрайт: палитра AARRGGBB и 256 знаков-индексов ('.' - прозрачно) -> ARGB (0 - прозрачно). */
+    /** Sprite: AARRGGBB palette and 256 index characters ('.' - transparent) -> ARGB (0 - transparent). */
     static int[] sprite(String pal, String idx) {
         String[] p = pal.split(",");
         int[] c = new int[p.length];
@@ -124,7 +124,7 @@ public final class WearData {
         return new float[] { ((rgb >> 16) & 255) / 255F, ((rgb >> 8) & 255) / 255F, (rgb & 255) / 255F };
     }
 
-    /** Поворот как у ModelRenderer (и meshkit.rot_matrix): v' = Rz * Ry * Rx * v, градусы. */
+    /** Rotation like ModelRenderer (and meshkit.rot_matrix): v' = Rz * Ry * Rx * v, degrees. */
     static double[][] rot(double rx, double ry, double rz) {
         double a = Math.toRadians(rx), b = Math.toRadians(ry), c = Math.toRadians(rz);
         double[][] X = { { 1, 0, 0 }, { 0, Math.cos(a), -Math.sin(a) }, { 0, Math.sin(a), Math.cos(a) } };
@@ -146,7 +146,7 @@ public final class WearData {
             m[2][0] * v[0] + m[2][1] * v[1] + m[2][2] * v[2] };
     }
 
-    /** c кость x y z w h d RRGGBB [rx ry rz px py pz] - те же 6 граней, что acc_kit.cube. */
+    /** c bone x y z w h d RRGGBB [rx ry rz px py pz] - the same 6 faces as acc_kit.cube. */
     static void cube(Mesh m, String[] f) {
         double x = d(f[2]), y = d(f[3]), z = d(f[4]), x2 = x + d(f[5]), y2 = y + d(f[6]), z2 = z + d(f[7]);
         float[] col = color(Integer.parseInt(f[8], 16));
@@ -171,7 +171,7 @@ public final class WearData {
         }
     }
 
-    /** f кость ox oy oz uxx uxy uxz uyx uyy uyz спрайт px t - плоский значок с толщиной, как acc_kit.flat. */
+    /** f bone ox oy oz uxx uxy uxz uyx uyy uyz sprite px t - a flat icon with thickness, like acc_kit.flat. */
     static void flat(Mesh m, String[] f, int[] sp) {
         if (sp == null) return;
         double[] o = { d(f[2]), d(f[3]), d(f[4]) }, ux = { d(f[5]), d(f[6]), d(f[7]) }, uy = { d(f[8]), d(f[9]), d(f[10]) };

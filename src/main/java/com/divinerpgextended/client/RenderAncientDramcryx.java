@@ -13,12 +13,12 @@ import com.divinerpgextended.entity.EntityAncientDramcryx;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Древний драмкрикс: модель и текстура драмкрикса джунглей из Divine, втрое крупнее и замшелый; оглушённый темнеет. */
+/** Ancient Dramcryx: the model and texture of the Jungle Dramcryx from Divine, three times larger and mossy; darkens when stunned. */
 @SideOnly(Side.CLIENT)
 public class RenderAncientDramcryx extends RenderLiving {
 
     private static final ResourceLocation TEX = new ResourceLocation("divinerpg", "textures/mobs/jungleDramcryx.png");
-    /** Корона между ушами: отличить от обычных драмкриксов джунглей. */
+    /** A crown between the ears: to tell it from ordinary Jungle Dramcryxes. */
     private static final BossCrown CROWN = new BossCrown("WolfHead", 2F, -3F, 0F, 5F, 0x5AD05A);
 
     public RenderAncientDramcryx() {
@@ -27,7 +27,7 @@ public class RenderAncientDramcryx extends RenderLiving {
 
     @Override
     public void doRender(EntityLiving e, double x, double y, double z, float yaw, float partial) {
-        DreBossBar.show(e); // полоска как у боссов Divine, не ванильная
+        DreBossBar.show(e); // a bar like Divine bosses', not the vanilla one
         super.doRender(e, x, y, z, yaw, partial);
     }
 
@@ -42,7 +42,7 @@ public class RenderAncientDramcryx extends RenderLiving {
         float s = EntityAncientDramcryx.SCALE;
         GL11.glScalef(s, s, s);
         float k = ((EntityAncientDramcryx) e).stunned() ? 0.6F : 1.0F;
-        GL11.glColor4f(0.75F * k, 0.95F * k, 0.55F * k, 1.0F); // мох и старость
+        GL11.glColor4f(0.75F * k, 0.95F * k, 0.55F * k, 1.0F); // moss and age
     }
 
     @Override

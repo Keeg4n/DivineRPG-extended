@@ -19,7 +19,7 @@ import com.divinerpgextended.cold.ColdHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Рыба мода (мета = номер в {@link Fish}): еда с эффектами; квестовые нужны для заданий Леорны. */
+/** The mod's fish (meta = number in {@link Fish}): food with effects; quest ones are needed for Leorna's tasks. */
 public class ItemDreFish extends ItemFood {
 
     @SideOnly(Side.CLIENT)
@@ -43,7 +43,7 @@ public class ItemDreFish extends ItemFood {
         return "item.dre.fish." + fish(s).key();
     }
 
-    /** Позолоченная (золотой улов Эдема): "... в позолоте", блестит, съесть - ещё и Спешка. */
+    /** Gilded (Eden's golden catch): "... in gilding", shines, eating also gives Haste. */
     @Override
     public String getItemStackDisplayName(ItemStack s) {
         String name = super.getItemStackDisplayName(s);
@@ -57,16 +57,16 @@ public class ItemDreFish extends ItemFood {
     }
 
     @Override
-    public int func_150905_g(ItemStack s) { // сытость
+    public int func_150905_g(ItemStack s) { // satiety
         return fish(s).food;
     }
 
     @Override
-    public float func_150906_h(ItemStack s) { // насыщение
+    public float func_150906_h(ItemStack s) { // saturation
         return fish(s).saturation;
     }
 
-    /** Золотую рыбку можно съесть и сытым - ради сердца. */
+    /** The Golden Fish can be eaten even when full - for the heart. */
     @Override
     public ItemStack onItemRightClick(ItemStack s, World w, EntityPlayer p) {
         if (fish(s) == Fish.GOLDEN_FISH) {
@@ -81,8 +81,8 @@ public class ItemDreFish extends ItemFood {
         Fish f = fish(s);
         if (w.isRemote) return;
         if (f.effect != null) p.addPotionEffect(new PotionEffect(f.effect.id, f.duration, f.amplifier));
-        if (f == Fish.SNOW_BURBOT) ColdHandler.addCold(p, -40); // согревает в Iceika
-        if (FishingLoot.gilded(s)) p.addPotionEffect(new PotionEffect(net.minecraft.potion.Potion.digSpeed.id, 1200, 1)); // позолоченная - Спешка II
+        if (f == Fish.SNOW_BURBOT) ColdHandler.addCold(p, -40); // warms in Iceika
+        if (FishingLoot.gilded(s)) p.addPotionEffect(new PotionEffect(net.minecraft.potion.Potion.digSpeed.id, 1200, 1)); // gilded - Haste II
         if (f == Fish.GOLDEN_FISH) GoldenHearts.eat(p);
     }
 

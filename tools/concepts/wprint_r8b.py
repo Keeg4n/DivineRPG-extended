@@ -1,5 +1,5 @@
-"""Лист R8, второй раунд Призрака (A4): тело и ленты как у А, капюшон цвета брони, три лица. Рядом А как было.
-Запуск: python wprint_r8b.py <out.html>. Картинки ждёт в img/ рядом с HTML: r8a, r8d..r8f (wr8.py)."""
+"""R8 sheet, second round of the Wraith (A4): body and ribbons as in A, hood in the armor color, three faces. A as it was next to them.
+Run: python wprint_r8b.py <out.html>. Expects images in img/ next to the HTML: r8a, r8d..r8f (wr8.py)."""
 import html
 import os
 import sys

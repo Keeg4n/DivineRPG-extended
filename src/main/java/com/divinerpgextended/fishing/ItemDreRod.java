@@ -15,7 +15,7 @@ import net.minecraft.world.World;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Удочка мода: забрасывает {@link EntityDreHook} со своей силой и особенностью. */
+/** The mod's rod: casts {@link EntityDreHook} with its own power and trait. */
 public class ItemDreRod extends ItemFishingRod {
 
     public final Rod rod;

@@ -4,7 +4,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 
-/** Невидимое сиденье дивана: игрок сидит на нём, встал (или диван сломан) - сиденье исчезает. */
+/** An invisible sofa seat: the player sits on it, stood up (or the sofa is broken) - the seat disappears. */
 public class EntitySeat extends Entity {
 
     public EntitySeat(World w) {
@@ -41,6 +41,6 @@ public class EntitySeat extends Entity {
 
     @Override
     public boolean writeToNBTOptional(NBTTagCompound t) {
-        return false; // не сохраняется: после перезахода игрок стоит
+        return false; // not saved: after relogging the player is standing
     }
 }

@@ -7,16 +7,16 @@ import com.divinerpgextended.boss.Boss;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Халит и духи миров. Готовый халит с боссов Мортума не падает: с каждого - осколки (на землю), а каждому участнику боя
- * трофей босса (открывает свои халитовые вещи) и частичка души. Частички - в духов миров, духи - в Дух вселенной, он - в
- * Кровать кошмаров (вход в Ветею).
+ * Halite and the dimension spirits. Finished halite does not drop from the Mortum bosses: each drops shards (on the ground), and each participant of the fight gets
+ * the boss trophy (unlocks its own halite items) and a soul spark. Sparks make dimension spirits, spirits make the Spirit of the Universe, which makes the
+ * Nightmare Bed (the entrance to Vethea).
  * <ul>
- * <li>Слиток = 4 осколка + душа Мортума; вещи - слитки + трофей нужного босса ({@link HaliteRecipes}).</li>
- * <li>Дух сумерек - три частички от трёх разных боссов Мортума ({@link RecipeTwilightSpirit}).</li>
- * <li>Дух Арканы - Драмикс и Парасекта, мира - Древняя сущность (и босс джунглей, когда появится), Ада - Король Скорчеров,
- * Края - последний из стаи Айрако.</li>
+ * <li>Ingot = 4 shards + Mortum soul; items - ingots + the trophy of the needed boss ({@link HaliteRecipes}).</li>
+ * <li>Twilight Spirit - three sparks from three different Mortum bosses ({@link RecipeTwilightSpirit}).</li>
+ * <li>Arcana Spirit - Dramix and Parasecta, World Spirit - Ancient Entity (and the jungle boss, when it appears), Nether Spirit - King of Scorchers,
+ * End Spirit - the last of the Ayeraco pack.</li>
  * </ul>
- * Номера в перечислениях - метаданные предметов: новые только в конец.
+ * The numbers in the enums are item metadata: new ones only at the end.
  */
 public final class Halite {
 
@@ -28,7 +28,7 @@ public final class Halite {
         }
     }
 
-    /** Трофеи боссов Мортума. */
+    /** Mortum boss trophies. */
     public enum Trophy {
         DEMON, ARCHER, TWINS, FIEND, VAMACHERON, KAROT;
 
@@ -37,7 +37,7 @@ public final class Halite {
         }
     }
 
-    /** Частички душ: шесть боссов Мортума, дальше - боссы других миров. */
+    /** Soul sparks: six Mortum bosses, then bosses of other dimensions. */
     public enum Spark {
         DEMON, ARCHER, TWINS, FIEND, VAMACHERON, KAROT, DRAMIX, PARASECTA, ANCIENT_ENTITY, JUNGLE, SCORCHERS, AYERACO;
 
@@ -84,7 +84,7 @@ public final class Halite {
         return new ItemStack(ModItems.worldSpirit, 1, s.ordinal());
     }
 
-    /** Трофей босса Мортума (null - не он). */
+    /** Mortum boss trophy (null - not that one). */
     public static Trophy trophyOf(Boss b) {
         switch (b) {
             case TWILIGHT_DEMON: return Trophy.DEMON;
@@ -97,7 +97,7 @@ public final class Halite {
         }
     }
 
-    /** Частичка души за босса (null - за него не даётся; Айрако - отдельно, за последнего из стаи). */
+    /** Soul spark for a boss (null - none is given for it; Ayeraco - separately, for the last of the pack). */
     public static Spark sparkOf(Boss b) {
         Trophy t = trophyOf(b);
         if (t != null) return Spark.values()[t.ordinal()];
@@ -111,11 +111,11 @@ public final class Halite {
         }
     }
 
-    /** Радиус, в котором игроки получают свою долю добычи босса. */
+    /** The radius within which players get their share of the boss loot. */
     public static final double SHARE_R = 48;
     public static final String OWNER = "dreOwner";
 
-    /** Пометить добычу: поднять её может только этот игрок. */
+    /** Mark the loot: only this player can pick it up. */
     public static ItemStack own(ItemStack s, EntityPlayer p) {
         if (!s.hasTagCompound()) s.setTagCompound(new net.minecraft.nbt.NBTTagCompound());
         net.minecraft.nbt.NBTTagCompound o = new net.minecraft.nbt.NBTTagCompound();
@@ -125,7 +125,7 @@ public final class Halite {
         return s;
     }
 
-    /** Чья добыча (null - ничья). */
+    /** Whose loot (null - nobody's). */
     public static String owner(ItemStack s) {
         return s != null && s.hasTagCompound() && s.getTagCompound().hasKey(OWNER) ? s.getTagCompound().getCompoundTag(OWNER).getString("id") : null;
     }
@@ -134,7 +134,7 @@ public final class Halite {
         return s != null && s.hasTagCompound() && s.getTagCompound().hasKey(OWNER) ? s.getTagCompound().getCompoundTag(OWNER).getString("name") : null;
     }
 
-    /** Доля одного игрока с босса: осколки (если Мортум), трофей, частичка - помеченные его именем. */
+    /** One player's share from a boss: shards (if Mortum), trophy, spark - marked with their name. */
     public static java.util.List<ItemStack> share(EntityPlayer p, Boss b, java.util.Random r) {
         java.util.List<ItemStack> l = new java.util.ArrayList<ItemStack>();
         Trophy t = trophyOf(b);

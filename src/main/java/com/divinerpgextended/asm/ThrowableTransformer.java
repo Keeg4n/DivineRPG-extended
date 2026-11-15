@@ -20,9 +20,9 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Собранные стопки метательного оружия ({@link com.divinerpgextended.perk.ThrowStack}): броски Divine (ItemThrowable - сюрикены
- * и слайсеры, ItemVileStorm) списывают штуку как stack.stackSize-- - заменяем на {@link ThrowHooks#consume}, а пределом
- * стопки становится {@link ThrowHooks#limit} (собранная стопка не сливается с другими).
+ * Assembled stacks of throwing weapons ({@link com.divinerpgextended.perk.ThrowStack}): Divine throws (ItemThrowable - shurikens
+ * and slicers, ItemVileStorm) deduct one as stack.stackSize-- - we replace it with {@link ThrowHooks#consume}, and the stack
+ * limit becomes {@link ThrowHooks#limit} (an assembled stack does not merge with others).
  */
 public class ThrowableTransformer implements IClassTransformer, Opcodes {
 
@@ -64,7 +64,7 @@ public class ThrowableTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (n == 0) {
-                LOG.warn("Метательное: в {} не нашлось списания броска - собранные стопки не работают", transformedName);
+                LOG.warn("Throwables: no throw deduction found in {} - assembled stacks do not work", transformedName);
                 return bytes;
             }
             if (!limit) {
@@ -79,10 +79,10 @@ public class ThrowableTransformer implements IClassTransformer, Opcodes {
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Метательное: {} бросает из собранной стопки ({} мест)", transformedName, n);
+            LOG.info("Throwables: {} throws from an assembled stack ({} places)", transformedName, n);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Метательное: не удалось подключиться к " + transformedName + ", класс без изменений", t);
+            LOG.error("Throwables: could not hook into " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }

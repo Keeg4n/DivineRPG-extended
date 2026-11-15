@@ -53,15 +53,15 @@ import cpw.mods.fml.common.eventhandler.Event;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Полное покрытие Ветеи: каждая чужая вещь сборки (оружие, инструменты, вещи с ПКМ, баублы, броня) в комнате Ветеи - до
- * прохождения (кошмар действует) и после победы над всеми боссами Ветеи. Что меряем: урон мобу Ветеи, сломанные и
- * поставленные блоки, сдвиг игрока (телепорты, рывки), призванных существ, новые эффекты, полёт, атрибуты, лечение.
- * До прохождения чужое не должно работать (лечение моба - задуманный "наоборот"); всё, что сработало, - утечка.
- * Плюс площадные инструменты (связанная кирка Blood Magic и подобные) в привате обычного мира: ломать там нельзя ничего.
+ * Full Vethea coverage: every foreign item of the modpack (weapons, tools, right-click items, baubles, armor) in a Vethea room - before
+ * completion (the nightmare is in effect) and after defeating all Vethea bosses. What we measure: damage to a Vethea mob, broken and
+ * placed blocks, player displacement (teleports, dashes), summoned creatures, new effects, flight, attributes, healing.
+ * Before completion foreign items must not work (healing a mob is the intended "inverse"); anything that worked is a leak.
+ * Plus area tools (Blood Magic bound pickaxe and the like) in a protected region of the overworld: they must not break anything there.
  * <p>
- * Игрок настоящий (не FakePlayer): Blood Magic и другие моды молчат для фальшивых игроков. Вещам выдаются ресурсы: LP
- * Blood Magic, вис палочкам Таумкрафта (фокусы - на палочке), творческий планшет маны Ботании, стрелы; инструменты
- * Tinkers собираются из железа. Не входит в обычный прогон: только фильтром "покрытие Ветеи". Отчёт - logs/dre-vethea-cover.tsv.
+ * The player is real (not a FakePlayer): Blood Magic and other mods stay silent for fake players. Items are given resources: Blood Magic
+ * LP, Thaumcraft wand vis (foci go on the wand), Botania creative mana tablet, arrows; Tinkers
+ * tools are assembled from iron. Not part of the normal run: only via the "Vethea coverage" filter. Report: logs/dre-vethea-cover.tsv.
  */
 final class VetheaCoverage {
 
@@ -70,7 +70,7 @@ final class VetheaCoverage {
         return false;
     }
 
-    /** Настоящий игрок для проверки: ничего не пишет в чат, не умирает и не уходит в другие миры. */
+    /** A real player for the check: writes nothing to chat, does not die and does not go to other worlds. */
     static class RealPlayer extends EntityPlayerMP {
 
         RealPlayer(MinecraftServer s, WorldServer w, GameProfile gp) {
@@ -104,7 +104,7 @@ final class VetheaCoverage {
         public void addStat(net.minecraft.stats.StatBase s, int n) {}
     }
 
-    /** Кто ранил моба за время замера: тип урона, источник и сколько (для разбора утечек урона). */
+    /** Who hurt the mob during the measurement: damage type, source and amount (for analyzing damage leaks). */
     public static final class HurtLog {
 
         static Entity target;
@@ -118,7 +118,7 @@ final class VetheaCoverage {
             log.append(s.damageType).append(' ').append(String.format("%.1f", e.ammount));
             if (s.getEntity() != null) log.append(" от ").append(s.getEntity().getClass().getSimpleName());
             if (s.getSourceOfDamage() != null && s.getSourceOfDamage() != s.getEntity()) log.append(" через ").append(s.getSourceOfDamage().getClass().getSimpleName());
-            // кто нанёс: кадры за attackEntityFrom (сам вызов урона - в мобе и его предках)
+            // who dealt it: frames above attackEntityFrom (the damage call itself is in the mob and its ancestors)
             StackTraceElement[] st = new Throwable().getStackTrace();
             int k = 0;
             while (k < st.length && !st[k].getMethodName().equals("func_70097_a") && !st[k].getMethodName().equals("attackEntityFrom")) k++;
@@ -132,29 +132,29 @@ final class VetheaCoverage {
         }
     }
 
-    /** Что изменилось после действия. */
+    /** What changed after the action. */
     static final class Fx {
 
         int blocks, summons, shots;
-        /** Игрок погиб (полное здоровье после - не лечение). */
+        /** The player died (full health afterwards is not healing). */
         boolean died;
-        /** Мобы самой Ветеи, появившиеся сами (энты при рубке деревьев сна): не призыв вещи. */
+        /** Vethea's own mobs that appeared by themselves (ents when chopping dream trees): not an item summon. */
         String dream = "";
         float mob, heal, hurt = Float.NaN;
         double moved;
         boolean fly, attrs;
-        /** В какой мир унесло игрока (MIN_VALUE - остался в Ветее). */
+        /** Which world the player was carried to (MIN_VALUE - stayed in Vethea). */
         int world = Integer.MIN_VALUE;
         String attrWhy = "", hurtBy = "", who = "";
         List<String> effects = new ArrayList<String>();
         String error;
 
-        /** Сработало ли что-то (лечение моба - не в счёт: это и есть "наоборот"). */
+        /** Whether anything worked (healing the mob does not count: that is the "inverse"). */
         boolean any() {
             return blocks > 0 || other();
         }
 
-        /** Сработало что-то, кроме изменения блоков. */
+        /** Something worked besides block changes. */
         boolean other() {
             return mob < -0.01F || moved > 1.5 || summons > 0 || !effects.isEmpty() || fly || attrs || heal > 0.5F && !died || world != Integer.MIN_VALUE;
         }
@@ -190,11 +190,11 @@ final class VetheaCoverage {
     final List<String> leaks = new ArrayList<String>();
     int items, okCount, neutral, crashes, hung;
 
-    // отчёт пишется по ходу: при обрыве прогона сделанное остаётся; ход - в logs/dre-vethea-progress.txt
+    // the report is written as we go: if the run is cut off, what was done remains; progress - in logs/dre-vethea-progress.txt
     private java.io.Writer out;
     private java.io.PrintWriter prog;
     private final long t0 = System.currentTimeMillis();
-    /** Сторож: вещь думает дольше HANG_DUMP - стек в журнал хода, дольше HANG_KILL - действие прерывается. */
+    /** Watchdog: an item thinking longer than HANG_DUMP - stack goes to the progress log, longer than HANG_KILL - the action is aborted. */
     private static final long HANG_DUMP = 10000, HANG_KILL = 30000;
     private volatile Thread main;
     private volatile String current;
@@ -235,7 +235,7 @@ final class VetheaCoverage {
                 if (dt > HANG_KILL && guarded) {
                     log("прерываю: " + c);
                     stopMain();
-                    actStart = System.currentTimeMillis(); // следующий удар - не раньше чем через HANG_KILL
+                    actStart = System.currentTimeMillis(); // the next hit - no sooner than HANG_KILL later
                 }
             }
         }, "dre-vethea-watchdog");
@@ -245,17 +245,17 @@ final class VetheaCoverage {
 
     @SuppressWarnings("deprecation")
     private void stopMain() {
-        main.stop(); // ThreadDeath в потоке сервера ловит measure; зависшая вещь получает пометку "завис"
+        main.stop(); // ThreadDeath in the server thread is caught by measure; a hung item gets the mark "hung"
     }
 
     VetheaCoverage() {
         w = server.worldServerForDimension(ConfigurationHelper.vethea);
         x0 = 6000;
-        y0 = 30; // первый этаж: выше без прохождения не пускает страж этажей (сбросил бы игрока - ложный "сдвиг")
+        y0 = 30; // first floor: the floor guardian blocks going higher without completion (it would reset the player - a false "displacement")
         z0 = 6000;
     }
 
-    // ---------------------------------------------------------------- комната
+    // ---------------------------------------------------------------- room
 
     private static long key(int x, int y, int z) {
         return ((long) (x & 0xFFFFF) << 28) | ((long) (y & 0xFF) << 20) | (z & 0xFFFFF);
@@ -266,7 +266,7 @@ final class VetheaCoverage {
             for (int cz = (z0 - R - 16) >> 4; cz <= (z0 + R + 16) >> 4; cz++) w.theChunkProviderServer.loadChunk(cx, cz);
     }
 
-    /** Комната из камня снов: пол, стены, потолок; внутри - цели: блок перед игроком, столбик, дерево снов, земля снов. */
+    /** A room of dream stone: floor, walls, ceiling; inside are targets: a block in front of the player, a pillar, a dream tree, dream dirt. */
     private void build() {
         loadChunks();
         for (int x = x0 - R; x <= x0 + R; x++) for (int y = y0 - 1; y <= y0 + H; y++) for (int z = z0 - R; z <= z0 + R; z++) {
@@ -283,7 +283,7 @@ final class VetheaCoverage {
             template.put(key(x, y, z), new int[] { Block.getIdFromBlock(w.getBlock(x, y, z)), w.getBlockMetadata(x, y, z), x, y, z });
     }
 
-    /** Сколько блоков комнаты отличается от заготовки; restore - вернуть их. */
+    /** How many room blocks differ from the template; restore - put them back. */
     private int diff(boolean restore) {
         int n = 0;
         for (int[] t : template.values()) {
@@ -301,9 +301,9 @@ final class VetheaCoverage {
     private static Method onRemoved;
 
     /**
-     * Убрать мёртвые сущности из мира сразу. Проверка идёт внутри одного тика сервера, а мир вычищает мёртвых только на
-     * следующем: без уборки за сотни вещей копятся тысячи "убитых" мобов и снарядов, и молния, бьющая всех вокруг, с
-     * поиском приспешников на каждую смерть, думает квадратично долго.
+     * Remove dead entities from the world immediately. The check runs within a single server tick, and the world clears dead ones only on
+     * the next one: without cleanup, hundreds of items pile up thousands of "killed" mobs and projectiles, and lightning that hits everyone around, with a
+     * minion search on every death, takes quadratically long.
      */
     static void purge(WorldServer w) {
         List<Entity> dead = new ArrayList<Entity>();
@@ -329,7 +329,7 @@ final class VetheaCoverage {
         return AxisAlignedBB.getBoundingBox(x0 - R - 4, y0 - 4, z0 - R - 4, x0 + R + 5, y0 + H + 5, z0 + R + 5);
     }
 
-    // ---------------------------------------------------------------- игрок и моб
+    // ---------------------------------------------------------------- player and mob
 
     private RealPlayer makePlayer() {
         RealPlayer rp = new RealPlayer(server, w, new GameProfile(UUID.nameUUIDFromBytes("dre-vethea-cover".getBytes(StandardCharsets.UTF_8)), "TestDreamCover"));
@@ -352,14 +352,14 @@ final class VetheaCoverage {
         p.worldObj.removeEntity(p);
     }
 
-    /** Ступень прохождения: false - кошмар действует, true - все боссы Ветеи побеждены. */
+    /** Completion stage: false - the nightmare is in effect, true - all Vethea bosses are defeated. */
     private void progress(boolean done) {
         NBTTagCompound d = p.getEntityData();
         if (!d.hasKey(EntityPlayer.PERSISTED_NBT_TAG)) d.setTag(EntityPlayer.PERSISTED_NBT_TAG, new NBTTagCompound());
         d.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG).setInteger("dre_dream_done", done ? 0x7FFFFFFF : 0);
     }
 
-    /** Вещь унесла игрока в другой мир (кристалл телепортации и подобные мимо travelToDimension): вернуть в Ветею новым. */
+    /** The item carried the player to another world (teleport crystal and the like bypassing travelToDimension): return to Vethea as new. */
     private void bringBack() {
         if (p.worldObj == w && p.dimension == w.provider.dimensionId) return;
         log("игрок унесён в мир " + p.dimension + " (" + current + ") - возвращаю в Ветею");
@@ -395,7 +395,7 @@ final class VetheaCoverage {
         p.hurtResistantTime = 0;
         p.inventory.currentItem = 0;
         provision();
-        // тик: прибавки к атрибутам от вещей прошлого замера снимаются только тиком (иначе ложное "атрибуты" потом)
+        // tick: attribute bonuses from items of the previous measurement are removed only by a tick (otherwise a false "attributes" later)
         tickPlayer(1);
         p.setPositionAndUpdate(x0 + 0.5, y0, z0 + 0.5);
         p.setHealth(10);
@@ -418,9 +418,9 @@ final class VetheaCoverage {
         }
     }
 
-    // ---------------------------------------------------------------- ресурсы модов
+    // ---------------------------------------------------------------- mod resources
 
-    /** LP, планшет маны, стрелы - в инвентарь каждый раз (вещь в руке - слот 0). */
+    /** LP, mana tablet, arrows - into the inventory every time (the held item is slot 0). */
     private void provision() {
         try {
             Class<?> sn = Class.forName("WayofTime.alchemicalWizardry.api.soulNetwork.SoulNetworkHandler");
@@ -437,7 +437,7 @@ final class VetheaCoverage {
         p.inventory.mainInventory[7] = new ItemStack(Items.arrow, 64);
     }
 
-    /** Подготовить вещь: привязка и включение Blood Magic, вис палочке, фокус - на палочку. null - не умеем сделать. */
+    /** Prepare the item: Blood Magic binding and activation, vis for wands, focus on the wand. null - we cannot do it. */
     private ItemStack prepare(ItemStack s) {
         String cn = s.getItem().getClass().getName();
         try {
@@ -475,7 +475,7 @@ final class VetheaCoverage {
         }
     }
 
-    /** Инструмент Tinkers из железа (без частей он пустой). */
+    /** A Tinkers tool made of iron (without parts it is empty). */
     private ItemStack tinkers(Item i) {
         try {
             Class<?> tc = Class.forName("tconstruct.library.tools.ToolCore");
@@ -488,12 +488,12 @@ final class VetheaCoverage {
         }
     }
 
-    /** Баублы: Baubles читаем рефлексией (в сборке аддона его нет). */
+    /** Baubles: we read Baubles via reflection (it is not in the addon's build). */
     static final class IInventoryHolder {
 
         static net.minecraft.inventory.IInventory baubles(EntityPlayer p) {
             try {
-                // настоящий инвентарь (BaublesApi во сне отдаёт вид без чужих аксессуаров)
+                // the real inventory (BaublesApi in a dream returns a view without foreign accessories)
                 return (net.minecraft.inventory.IInventory) Class.forName("baubles.common.lib.PlayerHandler").getMethod("getPlayerBaubles", EntityPlayer.class).invoke(null, p);
             } catch (Throwable t) {
                 return null;
@@ -536,7 +536,7 @@ final class VetheaCoverage {
         }
     }
 
-    // ---------------------------------------------------------------- действия
+    // ---------------------------------------------------------------- actions
 
     private interface Act {
 
@@ -571,7 +571,7 @@ final class VetheaCoverage {
                 fx.error = t instanceof ThreadDeath ? "завис" : t.getClass().getSimpleName() + (t.getMessage() == null ? "" : ": " + t.getMessage());
                 if (t.getCause() != null) fx.error += " <- " + t.getCause();
             }
-            // новые сущности: снаряды и призывы - даём им 40 тиков
+            // new entities: projectiles and summons - give them 40 ticks
             List<Entity> fresh = new ArrayList<Entity>();
             for (Object o : w.getEntitiesWithinAABB(Entity.class, box())) {
                 Entity e = (Entity) o;
@@ -615,7 +615,7 @@ final class VetheaCoverage {
         fx.hurtBy = HurtLog.log.toString();
         HurtLog.target = null;
         fx.heal = p.getHealth() - hp0;
-        if (armor && fx.error == null) { // удар моба Ветеи по игроку в этой броне
+        if (armor && fx.error == null) { // a Vethea mob hits the player wearing this armor
             p.setHealth(20);
             p.hurtResistantTime = 0;
             float h = p.getHealth();
@@ -623,7 +623,7 @@ final class VetheaCoverage {
             fx.hurt = h - p.getHealth();
             p.setHealth(10);
         }
-        // уборка
+        // cleanup
         diff(true);
         for (Object o : w.getEntitiesWithinAABB(Entity.class, box())) if (o != p && o != mob) ((Entity) o).setDead();
         if (p.isUsingItem()) p.clearItemInUse();
@@ -659,14 +659,14 @@ final class VetheaCoverage {
         return measure(s, false, false, () -> dig(p, w, x, y, z));
     }
 
-    /** Ломка как у игрока: клик по блоку (сервер запоминает, что начали ломать), затем сама ломка. */
+    /** Breaking like a player: a click on the block (the server remembers that breaking started), then the breaking itself. */
     private static void dig(EntityPlayerMP p, WorldServer w, int x, int y, int z) {
         Block b = w.getBlock(x, y, z);
         p.theItemInWorldManager.onBlockClicked(x, y, z, 1);
         if (w.getBlock(x, y, z) == b) p.theItemInWorldManager.tryHarvestBlock(x, y, z);
     }
 
-    /** Во сколько раз вещь копает камень снов быстрее руки. */
+    /** How many times faster the item digs dream stone than a hand. */
     private float speed(ItemStack s) {
         resetPlayer();
         p.inventory.mainInventory[0] = null;
@@ -688,19 +688,19 @@ final class VetheaCoverage {
         return measure(s, bauble, !bauble, () -> tickPlayer(40));
     }
 
-    // ---------------------------------------------------------------- отбор вещей
+    // ---------------------------------------------------------------- item selection
 
     private static final String[] USE = { "onItemRightClick", "func_77659_a", "onItemUse", "func_77648_a", "onItemUseFirst", "onPlayerStoppedUsing", "func_77615_a",
         "onUsingTick" };
 
     private static boolean overrides(Item i) {
         for (Class<?> c = i.getClass(); c != null && c != Item.class && c != net.minecraft.item.ItemTool.class && c != ItemSword.class; c = c.getSuperclass()) {
-            if ("ItemMod".equals(c.getSimpleName())) continue; // общий класс Divine ловит ПКМ у всех своих (лечение - через healAmount)
+            if ("ItemMod".equals(c.getSimpleName())) continue; // the common Divine class catches right-click for all its items (healing - via healAmount)
             Method[] ms;
             try {
                 ms = c.getDeclaredMethods();
             } catch (Throwable t) {
-                return true; // в сигнатурах клиентские классы (на сервере их нет) - проверяем ПКМ на всякий случай
+                return true; // the signatures contain client classes (absent on the server) - check right-click just in case
             }
             for (Method m : ms) for (String u : USE) if (u.equals(m.getName())) return true;
         }
@@ -727,7 +727,7 @@ final class VetheaCoverage {
         }
     }
 
-    /** Варианты по мете: у вещей с подтипами - пока меняется имя (до 16). */
+    /** Variants by meta: for items with subtypes - while the name changes (up to 16). */
     private static List<ItemStack> variants(Item i) {
         List<ItemStack> out = new ArrayList<ItemStack>();
         out.add(new ItemStack(i, 1, 0));
@@ -745,7 +745,7 @@ final class VetheaCoverage {
         return out;
     }
 
-    // ---------------------------------------------------------------- прогон
+    // ---------------------------------------------------------------- run
 
     String run() throws Exception {
         File logs = server.getFile("logs");
@@ -755,11 +755,11 @@ final class VetheaCoverage {
         startWatchdog();
         HurtLog hurtLog = new HurtLog();
         MinecraftForge.EVENT_BUS.register(hurtLog);
-        // предел времени на вещи (минуты): дальше - только площадные в привате и итог
+        // time limit for items (minutes): after it - only area tools in the protected region and the summary
         long budget = Long.getLong("dre.cover.budget", 150) * 60000L;
         Map<String, Integer> byMod = new LinkedHashMap<String, Integer>();
         boolean cut = false;
-        // без естественной регенерации: иначе сытый игрок сам лечится и это выглядит как действие вещи
+        // no natural regeneration: otherwise a fed player heals on their own and it looks like the item's action
         net.minecraft.world.GameRules rules = server.worldServerForDimension(0).getGameRules();
         String regen = rules.getGameRuleStringValue("naturalRegeneration");
         rules.setOrCreateGameRule("naturalRegeneration", "false");
@@ -802,7 +802,7 @@ final class VetheaCoverage {
                 long a = System.currentTimeMillis();
                 try {
                     check(id, s, (Boolean) it[2], (Boolean) it[3], (Boolean) it[4], (Boolean) it[5], (Boolean) it[6], n, todo.size());
-                } catch (Throwable t) { // ThreadDeath между действиями или сбой самой проверки
+                } catch (Throwable t) { // ThreadDeath between actions or a failure of the check itself
                     crashes++;
                     emit(id + "\t" + s.getItemDamage() + "\t\t\t\tсбой проверки: " + t + "\n");
                     log("сбой проверки " + current + ": " + t);
@@ -823,7 +823,7 @@ final class VetheaCoverage {
             try {
                 dropPlayer();
                 if (mob != null) mob.setDead();
-                build(); // комнату - как была
+                build(); // the room - as it was
             } finally {
                 log("готово; долгие вещи (>2 с): " + slow);
                 out.close();
@@ -846,7 +846,7 @@ final class VetheaCoverage {
             name = id;
         }
         boolean axe = tl && (s.getItem() instanceof net.minecraft.item.ItemAxe || toolClass(s, "axe"));
-        // 0 удар, 1 ПКМ в воздух, 2 ПКМ по блоку, 3 копка камня сна, 4 рубка дерева сна, 5 ношение
+        // 0 hit, 1 right-click in the air, 2 right-click on a block, 3 dig dream stone, 4 chop dream tree, 5 wearing
         Fx[] pre = new Fx[6], post = new Fx[6];
         float[] spd = new float[2];
         for (int phase = 0; phase < 2; phase++) {
@@ -870,9 +870,9 @@ final class VetheaCoverage {
             if (pre[k] != null && pre[k].error != null || post[k] != null && post[k].error != null) crash = true;
             if (pre[k] == null) continue;
             boolean pa;
-            if (k == 3 || k == 4) pa = pre[k].blocks > 1 || pre[k].other(); // один блок под рукой ломается и чужим
+            if (k == 3 || k == 4) pa = pre[k].blocks > 1 || pre[k].other(); // the one block under the hand is broken even by a foreign item
             else if (k == 2 && pre[k].blocks > 0 && !pre[k].other() && com.divinerpgextended.vethea.Nightmare.placer(s.getItem())) {
-                pa = false; // строительство разрешено
+                pa = false; // building is allowed
                 places = true;
             } else pa = pre[k].any();
             if (pa) {
@@ -908,9 +908,9 @@ final class VetheaCoverage {
         }
     }
 
-    // ---------------------------------------------------------------- площадные инструменты в привате
+    // ---------------------------------------------------------------- area tools in a protected region
 
-    /** Комната в обычном мире внутри привата (симулятор отменяет ломку): площадные инструменты не должны ломать ничего. */
+    /** A room in the overworld inside a protected region (the simulator cancels breaking): area tools must not break anything. */
     private void boundEverywhere() {
         WorldServer ow = server.worldServerForDimension(0);
         int bx = ow.getSpawnPoint().posX + 700, by = 200, bz = ow.getSpawnPoint().posZ;
@@ -935,7 +935,7 @@ final class VetheaCoverage {
         RealPlayer keep = p;
         emit("\n# площадные инструменты и вещи с ПКМ в привате обычного мира: сколько блоков из каменного куба 9x9x9 сломано (должно быть 0)\n");
         try {
-            // площадные: связанные инструменты Blood Magic, молот/экскаватор/лесоруб Tinkers, Кирка Терры, стихийные Таумкрафта; алмазный топор - для Treecapitator
+            // area tools: Blood Magic bound tools, Tinkers hammer/excavator/lumber axe, Terra Shatterer, Thaumcraft elemental; diamond axe - for Treecapitator
             Set<String> area = new HashSet<String>(java.util.Arrays.asList("BoundPickaxe", "BoundAxe", "BoundShovel", "Hammer", "Excavator", "LumberAxe", "ItemTerraPick",
                 "ItemElementalPickaxe", "ItemElementalShovel", "ItemElementalAxe"));
             List<ItemStack> tools = new ArrayList<ItemStack>();
@@ -967,7 +967,7 @@ final class VetheaCoverage {
                             if (!ev.isCanceled() && ev.useItem != Event.Result.DENY) p.theItemInWorldManager.tryUseItem(p, ow, p.getHeldItem());
                         } else if (mode == 1) p.theItemInWorldManager.activateBlockOrUseItem(p, ow, p.getHeldItem(), bx, by - 1, bz + 2, 1, 0.5F, 1F, 0.5F);
                         else dig(p, ow, bx, by + 2, bz + 2);
-                        for (int t = 0; t < 30 && p.isUsingItem(); t++) tickPlayer(1); // удержание ПКМ: топор потока и подобные
+                        for (int t = 0; t < 30 && p.isUsingItem(); t++) tickPlayer(1); // holding right-click: the Axe of the Stream and the like
                         if (p.isUsingItem()) p.stopUsingItem();
                     } catch (Throwable ignored) {} finally {
                         guarded = false;

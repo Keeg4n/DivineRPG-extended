@@ -25,18 +25,18 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Бой в Ветее: зачем носить разное оружие.
+ * Combat in Vethea: why carry different weapons.
  * <ul>
- * <li>Слабости ({@link Config#vetheaWeakness}): у особых мобов свой вид оружия - им x2 урона, остальным x0.25 (бить можно
- * всем, но долго). Добитый своим видом роняет добычу дважды.</li>
- * <li>Ритм (Пояс хейвы в слоте аксессуаров): удар другим видом, чем прошлый, +15% урона, до +60%; 3 с без ударов -
- * сброс.</li>
- * <li>Роли шлемов полного ветейского сета: шлем - ближний бой, маска - дальний, капюшон - аркана, +5% урона своей
- * группе за ступень брони (1-5). Любой полный сет гасит взрывы: 20% + 10% за ступень.</li>
- * <li>В Ветее взрывы не уничтожают лежащие вещи (выпавший при смерти инвентарь).</li>
- * <li>Очередь последних боссов держит снаряжение ({@link #gate}): Крушителя всерьёз ранит оружие из гелиозиса (глыбы с
- * Раглока) и лучше, Леди Луну - из арксиана (глыбы с Крушителя) и лучше. Ступень ниже бьёт на {@link #GATE_PREV}, остальное
- * на {@link #GATE_LOW} - урон есть, но так босса почти не убить.</li>
+ * <li>Weaknesses ({@link Config#vetheaWeakness}): special mobs have their own weapon kind - x2 damage to them, x0.25 to the rest (everyone
+ * can be hit, but slowly). Finished off with their kind, they drop loot twice.</li>
+ * <li>Rhythm (Heiva Belt in the accessory slot): a hit of a different kind than the previous one, +15% damage, up to +60%; 3 s without hits -
+ * reset.</li>
+ * <li>Helmet roles of the full Vethean set: helmet - melee, mask - ranged, hood - arcana, +5% damage to its
+ * group per armor tier (1-5). Any full set dampens explosions: 20% + 10% per tier.</li>
+ * <li>In Vethea explosions do not destroy lying items (the inventory dropped on death).</li>
+ * <li>The queue of the last bosses holds gear ({@link #gate}): the Wreck is seriously hurt by a Heliosis weapon (boulders from
+ * Raglok) and better, Lady Luna - by Arksiane (boulders from the Wreck) and better. One tier lower hits for {@link #GATE_PREV}, the rest
+ * for {@link #GATE_LOW} - there is damage, but the boss can hardly be killed this way.</li>
  * </ul>
  */
 public class VetheaCombat {
@@ -47,7 +47,7 @@ public class VetheaCombat {
 
     private static Map<String, EnumSet<WeaponKind>> weak;
 
-    /** Слабости моба (null - обычный моб). */
+    /** Mob weaknesses (null - an ordinary mob). */
     public static synchronized EnumSet<WeaponKind> weakness(Entity e) {
         if (e instanceof com.divinerpgextended.entity.mini.EntitySleepwalker) return ((com.divinerpgextended.entity.mini.EntitySleepwalker) e).weak();
         if (weak == null) {
@@ -67,7 +67,7 @@ public class VetheaCombat {
         return weak.get(e.getClass().getSimpleName());
     }
 
-    // ---------------- Ритм ----------------
+    // ---------------- Rhythm ----------------
 
     static class Rhythm {
 
@@ -78,7 +78,7 @@ public class VetheaCombat {
 
     private static final Map<UUID, Rhythm> RHYTHM = new HashMap<UUID, Rhythm>();
 
-    /** Множитель ритма для удара kind (и запоминает удар). */
+    /** Rhythm multiplier for a hit of kind (and remembers the hit). */
     static float rhythm(EntityPlayer p, WeaponKind kind) {
         if (!Accessories.wearsItem(p, VetheaItems.heivaBelt)) return 1;
         Rhythm r = RHYTHM.get(p.getUniqueID());
@@ -99,7 +99,7 @@ public class VetheaCombat {
         return r == null || p.worldObj.getTotalWorldTime() - r.tick > RHYTHM_RESET ? 0 : r.stacks;
     }
 
-    // ---------------- Ветейская броня ----------------
+    // ---------------- Vethean armor ----------------
 
     private static final String[] TIERS = { "degraded", "finished", "glistening", "demonized", "tormented" };
     private static final String[] HEADS = { "Helmet", "Mask", "Hood" };
@@ -107,7 +107,7 @@ public class VetheaCombat {
 
     private static synchronized Item[][] sets() {
         if (sets != null) return sets;
-        // [ступень][0..2 шлем/маска/капюшон, 3 нагрудник, 4 поножи, 5 ботинки]
+        // [tier][0..2 helmet/mask/hood, 3 chestplate, 4 leggings, 5 boots]
         Item[][] s = new Item[TIERS.length][6];
         for (int t = 0; t < TIERS.length; t++) {
             for (int h = 0; h < 3; h++) s[t][h] = Infusion.vethea(TIERS[t] + HEADS[h]);
@@ -118,7 +118,7 @@ public class VetheaCombat {
         return sets = s;
     }
 
-    /** Полный ветейский сет: {ступень 1..5, голова 0 шлем / 1 маска / 2 капюшон} или null. */
+    /** Full Vethean set: {tier 1..5, head 0 helmet / 1 mask / 2 hood} or null. */
     public static int[] vetheanSet(EntityPlayer p) {
         Item[][] s = sets();
         ItemStack head = p.getCurrentArmor(3), body = p.getCurrentArmor(2), legs = p.getCurrentArmor(1), boots = p.getCurrentArmor(0);
@@ -130,19 +130,19 @@ public class VetheaCombat {
         return null;
     }
 
-    /** Доля взрыва, которую гасит полный сет ступени tier. */
+    /** The share of an explosion dampened by a full set of tier tier. */
     public static float blastGuard(int tier) {
         return 0.1F + 0.1F * tier;
     }
 
-    // ---------------- Материалы и очередь боссов ----------------
+    // ---------------- Materials and boss queue ----------------
 
-    /** Материалы ветейского оружия по силе (1..9); оружие Луны - 10. */
+    /** Vethean weapon materials by strength (1..9); the Luna weapon - 10. */
     private static final String[] MATERIALS = { "teaker", "amthirmis", "amthrimis", "darven", "cermile", "pardimal", "quadrotic", "karos", "heliosis", "arksiane" };
     private static final int[] RANK = { 1, 2, 2, 3, 4, 5, 6, 7, 8, 9 };
     public static final int HELIOSIS = 8, ARKSIANE = 9, LUNAR = 10;
 
-    /** Материал ветейского оружия (0 - не ветейское или без материала). */
+    /** Vethean weapon material (0 - not Vethean or without a material). */
     public static int material(ItemStack s) {
         if (s == null || WeaponKind.ofItem(s) == null) return 0;
         String u = String.valueOf(s.getItem().getUnlocalizedName()).toLowerCase();
@@ -151,7 +151,7 @@ public class VetheaCombat {
         return 0;
     }
 
-    /** Какой материал нужен, чтобы ранить босса (0 - любой). */
+    /** What material is needed to hurt the boss (0 - any). */
     public static int gate(Entity boss) {
         String n = boss.getClass().getSimpleName();
         return n.equals("EntityWreck") ? HELIOSIS : n.equals("EntityLadyLuna") ? ARKSIANE : 0;
@@ -159,7 +159,7 @@ public class VetheaCombat {
 
     public static final float GATE_PREV = 0.5F, GATE_LOW = 0.1F;
 
-    /** Не тем материалом босса почти не ранить: ступень ниже нужной - 0.5 за удар, остальное - 0.1. */
+    /** The wrong material barely hurts the boss: one tier below the needed one - 0.5 per hit, the rest - 0.1. */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onBossHurt(LivingHurtEvent e) {
         int need = gate(e.entityLiving);
@@ -171,18 +171,18 @@ public class VetheaCombat {
         Nightmare.hint(p, need == HELIOSIS ? "gate_heliosis" : "gate_arksiane");
     }
 
-    // ---------------- События ----------------
+    // ---------------- Events ----------------
 
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onHurt(LivingHurtEvent e) {
         EntityLivingBase target = e.entityLiving;
         if (target.worldObj.isRemote) return;
-        // взрыв по игроку в полном ветейском сете
+        // explosion on a player in a full Vethean set
         if (e.source.isExplosion() && target instanceof EntityPlayer) {
             int[] set = vetheanSet((EntityPlayer) target);
             if (set != null) {
                 e.ammount *= 1 - blastGuard(set[0]);
-                com.divinerpgextended.debug.Debug.note(target, "Ветейский сет " + set[0] + ": взрыв x" + String.format("%.2f", 1 - blastGuard(set[0])));
+                com.divinerpgextended.debug.Debug.note(target, "Vethea set " + set[0] + ": explosion x" + String.format("%.2f", 1 - blastGuard(set[0])));
             }
         }
         if (!(e.source.getEntity() instanceof EntityPlayer)) return;
@@ -201,12 +201,12 @@ public class VetheaCombat {
         }
         if (k != 1) {
             e.ammount *= k;
-            com.divinerpgextended.debug.Debug.note(p, "Ветея: " + (kind == null ? "чужое/без оружия" : kind.key()) + " x" + String.format("%.2f", k)
-                + (w != null ? " (слабость " + w + ")" : "") + ", ритм " + rhythmStacks(p));
+            com.divinerpgextended.debug.Debug.note(p, "Vethea: " + (kind == null ? "foreign weapon/no weapon" : kind.key()) + " x" + String.format("%.2f", k)
+                + (w != null ? " (weakness " + w + ")" : "") + ", rhythm " + rhythmStacks(p));
         }
     }
 
-    /** Добит своим видом оружия - добыча дважды. */
+    /** Finished off with their own weapon kind - loot twice. */
     @SubscribeEvent
     public void onDrops(LivingDropsEvent e) {
         EnumSet<WeaponKind> w = weakness(e.entityLiving);
@@ -222,10 +222,10 @@ public class VetheaCombat {
             EntityItem it = e.drops.get(i);
             e.drops.add(new EntityItem(it.worldObj, it.posX, it.posY, it.posZ, it.getEntityItem().copy()));
         }
-        com.divinerpgextended.debug.Debug.note(e.source.getEntity(), "Ветея: добит своим видом (" + kind.key() + ") - добыча x2");
+        com.divinerpgextended.debug.Debug.note(e.source.getEntity(), "Vethea: finished with its own kind (" + kind.key() + ") - loot x2");
     }
 
-    /** В Ветее взрыв не уничтожает лежащие вещи. */
+    /** In Vethea an explosion does not destroy lying items. */
     @SubscribeEvent
     public void onExplode(ExplosionEvent.Detonate e) {
         if (!Nightmare.inVetheaWorld(e.world)) return;

@@ -16,10 +16,10 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Косяки: иногда на воде недалеко от игрока появляется бурлящее пятно (брызги и рябь) на {@link #LIFE} тиков (минута). Поплавок
- * в пятне ({@link #RADIUS} блока) - клюёт в {@link #BITE} раза быстрее и в {@link #RARE} раза чаще редкое. Раз в 30 секунд у
- * каждого игрока шанс 1 из {@link #ODDS}, что рядом (8-20 блоков) на открытой воде появится косяк; в мире не больше
- * {@link #MAX} косяков сразу. Косяки не сохраняются (минута жизни).
+ * Schools: sometimes a bubbling spot (splashes and ripples) appears on the water not far from the player for {@link #LIFE} ticks (a minute). A bobber
+ * in the spot ({@link #RADIUS} blocks) - bites {@link #BITE} times faster and rare catches come {@link #RARE} times more often. Once every 30 seconds each
+ * player has a 1 in {@link #ODDS} chance that a school appears nearby (8-20 blocks) on open water; no more than
+ * {@link #MAX} schools in the world at once. Schools are not saved (a minute of life).
  */
 public class FishSchools {
 
@@ -43,7 +43,7 @@ public class FishSchools {
 
     private static final List<School> ACTIVE = new ArrayList<School>();
 
-    /** Поплавок в косяке. */
+    /** A bobber in a school. */
     public static synchronized boolean near(World w, double x, double y, double z) {
         long now = w.getTotalWorldTime();
         for (School s : ACTIVE)
@@ -52,7 +52,7 @@ public class FishSchools {
         return false;
     }
 
-    /** Поставить косяк (и для самопроверки). */
+    /** Place a school (also for the selftest). */
     public static synchronized void add(World w, double x, double y, double z) {
         ACTIVE.add(new School(w.provider.dimensionId, x, y, z, w.getTotalWorldTime() + LIFE));
     }
@@ -64,7 +64,7 @@ public class FishSchools {
         return n;
     }
 
-    /** Открытая вода у игрока: поверхность (вода, над ней воздух) в 8-20 блоках. null - не нашлось. */
+    /** Open water near the player: a surface (water with air above it) within 8-20 blocks. null - none found. */
     static double[] spot(EntityPlayer p) {
         World w = p.worldObj;
         for (int tries = 0; tries < 24; tries++) {
@@ -73,7 +73,7 @@ public class FishSchools {
             if (!w.blockExists(x, 64, z)) continue;
             for (int y = MathHelper.floor_double(p.posY) + 4; y >= MathHelper.floor_double(p.posY) - 10; y--) {
                 if (w.getBlock(x, y, z).getMaterial() != Material.water || !w.isAirBlock(x, y + 1, z)) continue;
-                if (w.getBlock(x, y - 1, z).getMaterial() != Material.water) break; // лужа в блок - не косяк
+                if (w.getBlock(x, y - 1, z).getMaterial() != Material.water) break; // a one-block puddle is not a school
                 return new double[] { x + 0.5, y + 0.9, z + 0.5 };
             }
         }

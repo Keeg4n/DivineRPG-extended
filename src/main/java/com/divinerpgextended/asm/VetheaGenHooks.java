@@ -5,13 +5,13 @@ import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 
 /**
- * Вызовы мира из генерации Ветеи ({@link VetheaGenTransformer}): блок в ещё не созданном чанке не ставится и читается как
- * воздух (иначе чанк создаётся и заселяется по цепочке), блоки ставятся без оповещения соседей (флаг 2: клиенту
- * отправляется, свет пересчитывается).
+ * World calls from Vethea generation ({@link VetheaGenTransformer}): a block in a not yet created chunk is not placed and is read as
+ * air (otherwise the chunk is created and populated in a chain), blocks are placed without notifying neighbors (flag 2: sent to the client,
+ * light is recomputed).
  */
 public final class VetheaGenHooks {
 
-    /** Для замеров: сколько обращений отсечено. */
+    /** For measurements: how many accesses were cut off. */
     public static long skipped;
 
     private VetheaGenHooks() {}
@@ -32,7 +32,7 @@ public final class VetheaGenHooks {
         return w.setBlock(x, y, z, b, meta, flags & ~1);
     }
 
-    /** Постройка: ставится целиком (и в соседних чанках, как раньше), но без оповещения соседей. */
+    /** Structure: placed whole (also in neighboring chunks, as before), but without notifying neighbors. */
     public static boolean build(World w, int x, int y, int z, Block b) {
         return w.setBlock(x, y, z, b, 0, 2);
     }

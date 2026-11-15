@@ -4,12 +4,12 @@ import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 
 /**
- * Доски из дерева Ветеи (у Divine у брёвен Ветеи досок нет): доска в 4 из бревна, в рудном словаре plankWood - из них
- * всё, что из досок (палки, верстак, сундук, деревянные инструменты).
+ * Planks from Vethea wood (Divine's Vethea logs have no planks): a plank in 4 from a log, in the ore dictionary as plankWood - from them
+ * everything made from planks (sticks, crafting table, chest, wooden tools).
  */
 public class BlockVetheaPlanks extends Block {
 
-    /** Дерево Ветеи: ключ текстуры и бревно Divine. */
+    /** Vethea wood: texture key and Divine log. */
     public enum Wood {
 
         DREAMWOOD, HYREWOOD, FIREWOOD, MINTWOOD;

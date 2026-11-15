@@ -8,9 +8,9 @@ import net.minecraft.world.World;
 import com.divinerpgextended.registry.ModBlocks;
 
 /**
- * Сердце норы из версий 0.3.x, где Карцинус вылезал сам. Теперь его призывают на алтаре (на сервере один
- * самопризывающийся босс на логово - плохая идея), поэтому старое сердце при первом тике превращается в пол норы
- * с алтарём Карцинуса сверху. Новые логова его уже не ставят.
+ * Burrow Heart from versions 0.3.x, where Carcinus came out by himself. Now he is summoned at the altar (one self-summoning boss per lair on a
+ * server is a bad idea), so the old heart turns on its first tick into the burrow floor
+ * with a Carcinus Altar on top. New lairs no longer place it.
  */
 public class BlockCarcinusHeart extends BlockContainer {
 

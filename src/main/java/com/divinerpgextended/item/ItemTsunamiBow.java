@@ -22,9 +22,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Цунами (с Лиоплевродона): лук, который выпускает веер из {@link #ARROWS} стрел (по {@link #SPREAD} градуса между ними) за
- * одну обычную стрелу; каждая бьёт как стрела лука Апалачии ({@link #DMG_MIN}-{@link #DMG_MAX}). Подобрать можно только
- * среднюю. Не ломается.
+ * Tsunami (from the Liopleurodon): a bow that looses a fan of {@link #ARROWS} arrows ({@link #SPREAD} degrees apart) for
+ * one regular arrow; each hits like an Apalachia bow arrow ({@link #DMG_MIN}-{@link #DMG_MAX}). Only the
+ * middle one can be picked up. Does not break.
  */
 public class ItemTsunamiBow extends ItemBow {
 
@@ -83,12 +83,12 @@ public class ItemTsunamiBow extends ItemBow {
             if (power > 0) a.setDamage(a.getDamage() + power * 0.5D + 0.5D);
             if (punch > 0) a.setKnockbackStrength(punch);
             if (flame) a.setFire(100);
-            a.canBePickedUp = infinite || yaw != 0 ? 2 : 1; // подобрать - только среднюю
+            a.canBePickedUp = infinite || yaw != 0 ? 2 : 1; // pick up - only the middle one
             w.spawnEntityInWorld(a);
         }
     }
 
-    /** Повернуть скорость стрелы вокруг вертикали. */
+    /** Rotate the arrow's velocity around the vertical. */
     static void turn(EntityArrow a, float deg) {
         double r = Math.toRadians(deg), c = Math.cos(r), sn = Math.sin(r);
         double mx = a.motionX * c - a.motionZ * sn, mz = a.motionX * sn + a.motionZ * c;

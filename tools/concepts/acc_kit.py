@@ -1,8 +1,8 @@
-"""Концепты аксессуаров, лута, алтарей и часов: значки 16x16 и вещи на модели брони.
+"""Concepts of accessories, loot, altars and the clock: 16x16 icons and items on the armor model.
 
-Значки - плоские пиксели (см. память проекта: рендер 3D-модели в значок отвергнут). Вещи на теле - как у фенечек Ботании: плоский значок с толщиной,
-раздутая полоса на торсе или маленькая модель из коробок на кости игрока. Съёмка - свой растеризатор: база (манекен и броня) считается один раз на кадр,
-поверх неё дорисовывается только вещь.
+Icons are flat pixels (see project memory: rendering a 3D model into an icon was rejected). Items on the body work like Botania's bracelets: a flat icon with thickness,
+a thickened strip on the torso, or a small box model on a player bone. Rendering uses our own rasterizer: the base (mannequin and armor) is computed once per frame,
+and only the item is drawn on top of it.
 """
 import io
 import math
@@ -26,7 +26,7 @@ def hexc(h):
     return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
 
 
-# ------------------------------------------------------------------ формы: множества пикселей
+# ------------------------------------------------------------------ shapes: sets of pixels
 
 def DISC(cx, cy, r):
     return {(x, y) for x in range(16) for y in range(16) if (x + .5 - cx) ** 2 + (y + .5 - cy) ** 2 <= r * r}
@@ -92,7 +92,7 @@ def DIAMOND(cx, cy, r):
 
 
 def HEART(cx, cy, s):
-    """Сердце: две доли и клин. s - полуширина."""
+    """Heart: two lobes and a wedge. s is the half-width."""
     r = s * .55
     top = cy - s * .35
     return DISC(cx - s * .48, top, r) | DISC(cx + s * .48, top, r) | POLY((cx - s, top + r * .1), (cx + s, top + r * .1), (cx, cy + s))
@@ -106,19 +106,19 @@ def GEAR(cx, cy, r, teeth=8, h=1.6):
     return out
 
 
-# ------------------------------------------------------------------ холст значка
+# ------------------------------------------------------------------ icon canvas
 
 OUTLINE = '#1a1320'
 
 
 class Ic:
-    """Значок 16x16. Цвет - hex; ramp - список от тёмного к светлому: свет слева сверху, градиент и фаска считаются сами."""
+    """16x16 icon. Color is hex; ramp is a list from dark to light: light from the top left, gradient and bevel are computed automatically."""
 
     def __init__(self):
         self.p = {}
 
     def f(self, m, ramp, grad=True):
-        """Залить форму по рампе."""
+        """Fill a shape using a ramp."""
         m = set(p for p in m if 0 <= p[0] < 16 and 0 <= p[1] < 16)
         if not m:
             return self
@@ -137,7 +137,7 @@ class Ic:
         return self
 
     def c(self, m, color):
-        """Одним цветом."""
+        """In a single color."""
         col = hexc(color)
         for p in m:
             if 0 <= p[0] < 16 and 0 <= p[1] < 16:
@@ -145,7 +145,7 @@ class Ic:
         return self
 
     def d(self, color, *xy):
-        """Точки: d('#fff', 3, 4, 5, 6) - пиксели (3,4) и (5,6)."""
+        """Points: d('#fff', 3, 4, 5, 6) - pixels (3,4) and (5,6)."""
         col = hexc(color)
         for i in range(0, len(xy), 2):
             self.p[(xy[i], xy[i + 1])] = col
@@ -160,7 +160,7 @@ class Ic:
         return self
 
     def a(self, x, y, rows, pal):
-        """Кусок пиксель-арта: rows - строки, символы по pal, точка и пробел - пропуск."""
+        """A piece of pixel art: rows are lines, characters by pal, dot and space mean skip."""
         for j, row in enumerate(rows):
             for i, ch in enumerate(row):
                 if ch in '. ':
@@ -186,7 +186,7 @@ class Ic:
 
 
 def icon(fn, outline=True):
-    """fn(Ic) -> готовый массив 16x16x4; контур снаружи силуэта добавляется сам."""
+    """fn(Ic) -> a ready 16x16x4 array; the outline outside the silhouette is added automatically."""
     c = Ic()
     fn(c)
     if outline:
@@ -195,7 +195,7 @@ def icon(fn, outline=True):
 
 
 def tint(rgba, ramp_from, ramp_to):
-    """Перекрасить значок: цвета из одной рампы в другую, остальное как есть (знаки охотника, сердца, шестерни по мирам)."""
+    """Recolor an icon: colors from one ramp to another, the rest unchanged (hunter marks, hearts, gears per world)."""
     a = rgba.copy()
     mp = {hexc(f): hexc(t) for f, t in zip(ramp_from, ramp_to)}
     for y in range(16):
@@ -210,7 +210,7 @@ def save_icon(rgba, path, zoom=8):
     Image.fromarray(rgba, 'RGBA').resize((16 * zoom, 16 * zoom), Image.NEAREST).save(path, optimize=True)
 
 
-# ------------------------------------------------------------------ текстуры игры
+# ------------------------------------------------------------------ game textures
 
 _jars = {}
 
@@ -221,12 +221,12 @@ def jar_png(jar, name):
 
 
 def block_tex(name):
-    """Ванильная текстура блока, 16x16 (у анимированных - первый кадр)."""
+    """Vanilla block texture, 16x16 (first frame for animated ones)."""
     im = jar_png(MC_JAR, 'assets/minecraft/textures/blocks/%s.png' % name)
     return np.asarray(im.crop((0, 0, 16, 16))).copy()
 
 
-# ------------------------------------------------------------------ геометрия вещей (сплошной цвет)
+# ------------------------------------------------------------------ item geometry (solid color)
 
 def _quad_n(q):
     n = np.cross(q[1] - q[0], q[2] - q[1])
@@ -235,7 +235,7 @@ def _quad_n(q):
 
 
 def cube(bone, x, y, z, w, h, d, color, rot=None, pivot=None):
-    """Коробка на кости: [(кость, 4 вершины, цвет, нормаль)]. rot - градусы вокруг pivot."""
+    """Box on a bone: [(bone, 4 vertices, color, normal)]. rot is in degrees around pivot."""
     col = np.array(hexc(color), float) / 255 if isinstance(color, str) else color
     x2, y2, z2 = x + w, y + h, z + d
     faces = [((x2, y, z2), (x2, y, z), (x2, y2, z), (x2, y2, z2), (1, 0, 0)), ((x, y, z), (x, y, z2), (x, y2, z2), (x, y2, z), (-1, 0, 0)),
@@ -255,7 +255,7 @@ def cube(bone, x, y, z, w, h, d, color, rot=None, pivot=None):
 
 
 def sym_x(parts):
-    """Зеркальная копия вещи: кости право <-> лево, x наоборот."""
+    """Mirrored copy of an item: right <-> left bones, x inverted."""
     out = []
     for bone, q, col, n in parts:
         qq = q.copy()
@@ -267,7 +267,7 @@ def sym_x(parts):
 
 
 def flat(bone, o, ux, uy, ic, px, t=.25):
-    """Плоский значок с толщиной (ItemRenderer.renderItemIn2D): o - центр, ux и uy - оси пикселя, px - размер пикселя в единицах модели."""
+    """Flat icon with thickness (ItemRenderer.renderItemIn2D): o is the center, ux and uy are the pixel axes, px is the pixel size in model units."""
     o, ux, uy = np.array(o, float), np.array(ux, float), np.array(uy, float)
     ux, uy = ux / np.linalg.norm(ux), uy / np.linalg.norm(uy)
     n = np.cross(ux, uy)
@@ -297,10 +297,10 @@ def flat(bone, o, ux, uy, ic, px, t=.25):
     return out
 
 
-# ------------------------------------------------------------------ съёмка
+# ------------------------------------------------------------------ rendering
 
 class Frame:
-    """Кадр: цвет и глубина; база считается один раз, вещи рисуются на копии."""
+    """Frame: color and depth; the base is computed once, items are drawn on a copy."""
 
     def __init__(self, W, H, scale, center, yaw, pitch, bg):
         self.W, self.H, self.scale = W, H, scale
@@ -385,10 +385,10 @@ class Frame:
         return im.resize((self.W // down, self.H // down), Image.LANCZOS)
 
 
-# ------------------------------------------------------------------ броня
+# ------------------------------------------------------------------ armor
 
 def tex_box(bone, x, y, z, w, h, d, u, v, inf, tw, th, mirror=False):
-    """Коробка ModelBox с настоящей раскладкой текстуры: [(кость, вершины, uv, нормаль)]."""
+    """ModelBox with the real texture layout: [(bone, vertices, uv, normal)]."""
     x1, y1, z1, x2, y2, z2 = x - inf, y - inf, z - inf, x + w + inf, y + h + inf, z + d + inf
     if mirror:
         x1, x2 = x2, x1
@@ -420,13 +420,13 @@ def to_tris(quads, pose):
 
 
 class Armor:
-    """Манекен и броня: слои (треугольники, текстура) и грубое описание поверхности для посадки вещей."""
+    """Mannequin and armor: layers (triangles, texture) and a rough surface description for fitting items."""
 
     def __init__(self, name, layers, surface):
         self.name, self.layers, self.surface = name, layers, surface
 
     def env(self, bone, y, xlim=(-99, 99), zlim=(-99, 99)):
-        """Огибающая кости на высоте y: (xmin, xmax, zmin, zmax) по граням, попавшим в пределы."""
+        """Bone envelope at height y: (xmin, xmax, zmin, zmax) over the faces within the limits."""
         xs, zs = [], []
         for b, lo, hi in self.surface:
             if b != bone or not (lo[1] - .01 <= y <= hi[1] + .01):
@@ -448,7 +448,7 @@ _arm = {}
 
 
 def divine_armor(pose):
-    """Стандартная броня Divine: родные текстуры divine_1 и divine_2 на ModelBiped (раздутие 1.0 и 0.5, как в игре)."""
+    """Standard Divine armor: native divine_1 and divine_2 textures on ModelBiped (inflation 1.0 and 0.5, as in the game)."""
     if 'divine' in _arm:
         return _arm['divine']
     import wconcepts as w
@@ -469,11 +469,11 @@ def divine_armor(pose):
 
 
 def wanderer_armor(pose, key='r1v'):
-    """Броня Странника первой ступени: те же коробки, что стоят в игре."""
+    """First-tier Wanderer armor: the same boxes as in the game."""
     if key in _arm:
         return _arm[key]
     import wconcepts as w
-    import wslim5  # noqa: F401 - регистрирует облики
+    import wslim5  # noqa: F401 - registers the looks
     fn = w.CONCEPTS[key][3]
     m = mk.Model(key, w.mannequin() + fn(), atlas_width=1024)
     surface = []
@@ -485,7 +485,7 @@ def wanderer_armor(pose, key='r1v'):
     return _arm[key]
 
 
-FRAMES = {  # (центр y, высота кадра в единицах)
+FRAMES = {  # (center y, frame height in units)
     'head': (-3.0, 21), 'chest': (4.0, 23), 'waist': (10.5, 22), 'hand': (7.5, 17, -7.0), 'handL': (7.5, 17, 7.0), 'feet': (19.0, 26), 'full': (8.0, 38), 'up': (3.0, 30),
 }
 VIEWS = {'front': (-28, 8), 'side': (-62, 8), 'rside': (58, 8), 'back': (152, 8), 'back2': (-152, 8), 'high': (-28, 30), 'hand': (-30, 8)}

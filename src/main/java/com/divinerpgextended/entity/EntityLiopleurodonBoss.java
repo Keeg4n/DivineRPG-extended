@@ -23,18 +23,18 @@ import com.divinerpgextended.Config;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Лиоплевродон, рыбий босс (по образцу Рыброна из Террарии): необязательный, между Апалачией и Небесным терном. Призывается на
- * Кровавую наживку в океане обычного мира ({@link com.divinerpgextended.fishing.EntityDreHook}). Плавает без тяжести, на суше
- * беспомощен.
+ * Liopleurodon, the fish boss (modeled on Duke Fishron from Terraria): optional, between Apalachia and Skythern. Summoned with
+ * Bloody Bait in the ocean of the Overworld ({@link com.divinerpgextended.fishing.EntityDreHook}). Swims without gravity, helpless
+ * on land.
  * <ul>
- * <li>Только в океане: ранить его можно, лишь стоя в воде, в лодке на воде или плывя над океаном; с берега и со столба удары не
- * проходят. Вне океана (сам вышел или выманили) или на суше он злится: урон x{@link #RAGE}.</li>
- * <li>Охота: кружит и раз в {@link #RAM_EVERY} тиков таранит с отбросом (ссаживает с лодки).</li>
- * <li>Водоворот (меньше 60%): тянет к себе и вниз всех рядом, зовёт мальков-акул (без добычи).</li>
- * <li>Бешенство (меньше 30%): выпрыгивает дугой и обрушивается рядом с игроком (удар по площади), тех, кто не в воде, поливает
- * струями.</li>
+ * <li>Only in the ocean: it can be hurt only while standing in water, in a boat on water or swimming over the ocean; blows from the shore and from a pillar do not
+ * land. Outside the ocean (it left on its own or was lured out) or on land it becomes enraged: damage x{@link #RAGE}.</li>
+ * <li>Hunt: circles and once per {@link #RAM_EVERY} ticks rams with knockback (knocks you off the boat).</li>
+ * <li>Whirlpool (below 60%): pulls everyone nearby toward it and down, calls shark pups (no loot).</li>
+ * <li>Frenzy (below 30%): leaps in an arc and crashes down next to the player (area hit), sprays jets at those who are not in
+ * water.</li>
  * </ul>
- * Добыча: череп, зубы, океанский ящик; лук Цунами, ласты и якорь лиоплевродона - каждому бившему
+ * Loot: skull, teeth, ocean crate; Tsunami bow, Liopleurodon Fins and Liopleurodon Anchor - for everyone who hit it
  * ({@link com.divinerpgextended.boss.BossDrops}).
  */
 public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayData {
@@ -45,7 +45,7 @@ public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayDat
     public static final double WHIRL_R = 10, SLAM_R = 6;
     private int ramTimer = 60, ramLeft, whirlTimer = 120, whirlLeft, leapTimer = 80, jetTimer = 40, biteCd, dryTicks;
     private boolean leaping;
-    /** Для самопроверки: сколько раз ранили не из океана (удар не прошёл). */
+    /** For the selftest: how many times it was hurt from outside the ocean (the hit did not land). */
     public int shoreBlocked;
 
     public EntityLiopleurodonBoss(World w) {
@@ -95,7 +95,7 @@ public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayDat
         return getHealth() / getMaxHealth();
     }
 
-    /** Над водой океана: в воде (или в лодке на воде) или в биоме океана не на земле. */
+    /** Over ocean water: in water (or in a boat on water) or in an ocean biome not on land. */
     public static boolean atSea(Entity e) {
         if (e.isInWater() || e.ridingEntity != null && e.ridingEntity.isInWater()) return true;
         return ocean(e) && !e.onGround;
@@ -105,7 +105,7 @@ public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayDat
         return com.divinerpgextended.world.Biomes.ocean(e.worldObj.getBiomeGenForCoords(MathHelper.floor_double(e.posX), MathHelper.floor_double(e.posZ)));
     }
 
-    /** В воде без тяжести, лёгкое сопротивление; на суше - как обычный моб (падает, ползёт). */
+    /** In water without gravity, light resistance; on land - like a regular mob (falls, crawls). */
     @Override
     public void moveEntityWithHeading(float strafe, float forward) {
         if (!isInWater()) {
@@ -145,12 +145,12 @@ public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayDat
         }
         float hp = health();
         if (wet) swim(t);
-        // укус вплотную
+        // point-blank bite
         if (biteCd <= 0 && getDistanceSqToEntity(t) < 3.4 * 3.4) {
             attackEntityAsMob(t);
             biteCd = 20;
         }
-        // таран
+        // ram
         if (ramLeft > 0) {
             ramLeft--;
             if (getDistanceSqToEntity(t) < 3.0 * 3.0) {
@@ -162,7 +162,7 @@ public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayDat
             ramLeft = 15;
             playSound("divinerpg:liopleurodon", 2.0F, 0.7F);
         }
-        // водоворот
+        // whirlpool
         if (hp < 0.6F) {
             if (whirlLeft > 0) {
                 whirlLeft--;
@@ -173,7 +173,7 @@ public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayDat
                 fry();
             }
         }
-        // бешенство: прыжок и струи по тем, кто не в воде
+        // frenzy: leap and jets at those not in water
         if (hp < 0.3F) {
             if (--leapTimer <= 0 && wet && getDistanceSqToEntity(t) < 24 * 24) {
                 leapTimer = LEAP_EVERY;
@@ -186,11 +186,11 @@ public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayDat
         }
     }
 
-    /** Плыть к цели (не выше поверхности воды); во время тарана - быстро. */
+    /** Swim toward the target (not above the water surface); during a ram - fast. */
     private void swim(EntityLivingBase t) {
         double tx = t.posX, ty = t.posY + t.height * 0.5, tz = t.posZ;
         int x = MathHelper.floor_double(posX), z = MathHelper.floor_double(posZ), y = MathHelper.floor_double(posY + height);
-        if (!worldObj.getBlock(x, y + 1, z).getMaterial().isLiquid()) ty = Math.min(ty, posY); // у поверхности - не выпрыгивать
+        if (!worldObj.getBlock(x, y + 1, z).getMaterial().isLiquid()) ty = Math.min(ty, posY); // at the surface - do not leap out
         double dx = tx - posX, dy = ty - (posY + height * 0.5), dz = tz - posZ, len = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (len < 0.01) return;
         double speed = (ramLeft > 0 ? 0.9 : 0.28) * (raging() ? 1.4 : 1.0);
@@ -204,7 +204,7 @@ public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayDat
         return raging() ? d * RAGE : d;
     }
 
-    /** Таран: урон, отброс, ссаживает с лодки. */
+    /** Ram: damage, knockback, knocks off the boat. */
     private void ram(EntityLivingBase t) {
         if (t.ridingEntity != null) t.mountEntity(null);
         t.hurtResistantTime = 0;
@@ -215,7 +215,7 @@ public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayDat
         playSound("random.explode", 0.6F, 1.4F);
     }
 
-    /** Водоворот: всех рядом тянет к пасти и вниз. */
+    /** Whirlpool: pulls everyone nearby toward the maw and down. */
     private void whirl() {
         @SuppressWarnings("unchecked")
         List<EntityPlayer> l = worldObj.getEntitiesWithinAABB(EntityPlayer.class, boundingBox.expand(WHIRL_R, WHIRL_R, WHIRL_R));
@@ -229,7 +229,7 @@ public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayDat
             ((WorldServer) worldObj).func_147487_a("bubble", posX, posY + 1, posZ, 30, WHIRL_R * 0.5, 1.0, WHIRL_R * 0.5, 0.1);
     }
 
-    /** Мальки: акулы Divine-приспешники (без добычи и опыта). */
+    /** Pups: Divine shark minions (no loot or experience). */
     private void fry() {
         if (com.divinerpgextended.boss.BossMinions.count(this) >= MAX_FRY) return;
         for (int i = 0; i < 3; i++) {
@@ -243,7 +243,7 @@ public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayDat
         playSound("divinerpg:liopleurodon", 2.5F, 0.5F);
     }
 
-    /** Прыжок дугой к цели. */
+    /** Leap in an arc toward the target. */
     private void leap(EntityLivingBase t) {
         double dx = t.posX - posX, dz = t.posZ - posZ, len = Math.max(0.5, Math.sqrt(dx * dx + dz * dz));
         double h = Math.min(1.0, len / 16);
@@ -255,7 +255,7 @@ public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayDat
         playSound("divinerpg:liopleurodon", 3.0F, 0.6F);
     }
 
-    /** Удар по площади при падении. */
+    /** Area hit on landing. */
     private void slam() {
         @SuppressWarnings("unchecked")
         List<EntityPlayer> l = worldObj.getEntitiesWithinAABB(EntityPlayer.class, boundingBox.expand(SLAM_R, SLAM_R, SLAM_R));
@@ -272,7 +272,7 @@ public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayDat
         playSound("random.explode", 1.2F, 0.6F);
     }
 
-    /** Струя воды в того, кто не в воде. */
+    /** Jet of water at one who is not in water. */
     private void jet(EntityLivingBase t) {
         EntityWaterJet j = new EntityWaterJet(worldObj, this, rage(JET_DAMAGE));
         double dx = t.posX - posX, dy = t.posY + t.getEyeHeight() * 0.5 - (posY + height * 0.8), dz = t.posZ - posZ;
@@ -290,7 +290,7 @@ public class EntityLiopleurodonBoss extends EntityMob implements IBossDisplayDat
         return hit;
     }
 
-    /** Ранить можно только из океана: с берега и со столбов в море удары и выстрелы не проходят. */
+    /** It can be hurt only from the ocean: blows and shots from the shore and from pillars in the sea do not land. */
     @Override
     public boolean attackEntityFrom(DamageSource s, float a) {
         Entity by = s.getEntity();

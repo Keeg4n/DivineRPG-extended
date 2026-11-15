@@ -5,18 +5,18 @@ import net.minecraft.item.ItemStack;
 
 import com.divinerpgextended.perk.Ammo;
 
-/** Вызов из RenderItem, исправленного {@link AmmoCountTransformer}: только клиент. */
+/** Called from RenderItem, patched by {@link AmmoCountTransformer}: client only. */
 public final class AmmoCountHooks {
 
     private AmmoCountHooks() {}
 
-    /** Текст поверх значка: переданный игрой (обычно null) или запас патронов оружия из своего инвентаря. */
+    /** Text over the icon: the one passed by the game (usually null) or the weapon's ammo reserve from its own inventory. */
     public static String text(String given, Object stack) {
         if (given != null || !(stack instanceof ItemStack)) return given;
         try {
             return Ammo.label(Minecraft.getMinecraft().thePlayer, (ItemStack) stack);
         } catch (Throwable t) {
-            return null; // отрисовка значка важнее цифры
+            return null; // drawing the icon is more important than the digit
         }
     }
 }

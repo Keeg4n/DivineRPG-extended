@@ -16,15 +16,15 @@ import net.minecraft.world.chunk.IChunkProvider;
 import cpw.mods.fml.common.IWorldGenerator;
 
 /**
- * Новогодняя ёлка Iceika - редкая находка (примерно одна на {@link #RARITY} чанков): ель из мёрзлого бревна и ломкой
- * листвы ярусами, две спирали гирлянд Divine (красные, зелёные, синие, жёлтые, фиолетовые), на макушке звезда (лампа
- * мастерской на золоте), вокруг - леденцовые трости и снег, под ёлкой - подарочные коробки Divine с подарками: сладости
- * Iceika всегда, редко - вещь из костюма Санты, снежный шар, "Звук колядок".
+ * The Iceika New Year tree is a rare find (about one per {@link #RARITY} chunks): a spruce of frozen log and brittle
+ * leaves in tiers, two spirals of Divine garlands (red, green, blue, yellow, purple), a star on top (a workshop lamp
+ * on gold), candy canes and snow around, and under the tree Divine gift boxes with presents: Iceika sweets
+ * always, rarely - a Santa suit item, a snow globe, "Sound of Carols".
  */
 public class IceikaXmasTree implements IWorldGenerator {
 
     public static final int RARITY = 400, HEIGHT = 15, BASE_R = 6, PRESENTS = 4;
-    /** Для автотеста и замеров. */
+    /** For the selftest and measurements. */
     public static int trees;
     private static final Block[] LIGHTS = { IceikaBlocks.redXmasLights, IceikaBlocks.greenXmasLights, IceikaBlocks.blueXmasLights,
         IceikaBlocks.yellowXmasLights, IceikaBlocks.purpleXmasLights };
@@ -34,13 +34,13 @@ public class IceikaXmasTree implements IWorldGenerator {
         if (world.provider.dimensionId != ConfigurationHelper.iceika) return;
         Random r = new Random(world.getSeed() ^ chunkX * 341873128712L ^ chunkZ * 132897987541L ^ 0x0C0FFEEL);
         if (r.nextInt(RARITY) != 0) return;
-        int x = chunkX * 16 + 16, z = chunkZ * 16 + 16; // середина области заселения: ёлка целиком в загруженных чанках
-        // расчистка вокруг ёлки (радиус BASE_R+2, высота HEIGHT+3) выгрызла бы стену купола Ледяного Трона
+        int x = chunkX * 16 + 16, z = chunkZ * 16 + 16; // the middle of the population area: the tree entirely within loaded chunks
+        // clearing around the tree (radius BASE_R+2, height HEIGHT+3) would gnaw out the wall of the Frozen Throne dome
         if (WorldGenThrone.near(world, x, z, BASE_R + 4)) return;
         if (build(world, r, x, z)) trees++;
     }
 
-    /** Верх снежной земли (мёрзлая трава/земля, снег поверх не считаем) или -1. */
+    /** Top of the snowy ground (frozen grass/dirt, snow on top is not counted) or -1. */
     static int ground(World w, int x, int z) {
         for (int y = 120; y > 30; y--) {
             Block b = w.getBlock(x, y, z);
@@ -49,7 +49,7 @@ public class IceikaXmasTree implements IWorldGenerator {
         return -1;
     }
 
-    /** Ёлка с центром в (x, z); false - место неровное или нет земли. */
+    /** A tree centered at (x, z); false - the place is uneven or there is no ground. */
     public static boolean build(World w, Random r, int x, int z) {
         int y0 = ground(w, x, z);
         if (y0 < 0) return false;
@@ -57,16 +57,16 @@ public class IceikaXmasTree implements IWorldGenerator {
             int g = ground(w, x + i, z + k);
             if (g < 0 || Math.abs(g - y0) > 2) return false;
         }
-        // площадка: снег поверх, выше - расчистить
+        // platform: snow on top, clear above
         for (int i = -BASE_R - 2; i <= BASE_R + 2; i++) for (int k = -BASE_R - 2; k <= BASE_R + 2; k++) {
             if (i * i + k * k > (BASE_R + 2) * (BASE_R + 2)) continue;
             for (int y = y0 + 1; y <= y0 + HEIGHT + 3; y++) if (!w.isAirBlock(x + i, y, z + k)) w.setBlock(x + i, y, z + k, Blocks.air, 0, 2);
             w.setBlock(x + i, y0, z + k, IceikaBlocks.frozenGrass, 0, 2);
             if (r.nextInt(3) != 0) w.setBlock(x + i, y0 + 1, z + k, Blocks.snow_layer, r.nextInt(2), 2);
         }
-        // ствол
+        // trunk
         for (int y = y0 + 1; y <= y0 + HEIGHT - 1; y++) w.setBlock(x, y, z, IceikaBlocks.frozenWood, 0, 2);
-        // ярусы: каждый ярус шире внизу, к верху конус сужается
+        // tiers: each tier is wider at the bottom, the cone narrows toward the top
         for (int l = 0; l < HEIGHT - 3; l++) {
             int y = y0 + 3 + l;
             double rad = (BASE_R + 0.4) * (1 - l / (double) (HEIGHT - 2)) - (l % 3) * 0.7;
@@ -75,10 +75,10 @@ public class IceikaXmasTree implements IWorldGenerator {
             }
         }
         w.setBlock(x, y0 + HEIGHT - 1, z, IceikaBlocks.brittleLeaves, 0, 2);
-        // звезда
+        // star
         w.setBlock(x, y0 + HEIGHT, z, Blocks.gold_block, 0, 2);
         w.setBlock(x, y0 + HEIGHT + 1, z, IceikaBlocks.workshopLamp, 0, 2);
-        // гирлянды: две спирали по внешнему краю ярусов
+        // garlands: two spirals along the outer edge of the tiers
         int lights = 0;
         for (int l = 0; l < HEIGHT - 4; l++) {
             int y = y0 + 3 + l;
@@ -87,7 +87,7 @@ public class IceikaXmasTree implements IWorldGenerator {
                 lights += light(w, x, y, z, ang, LIGHTS[(l + s * 2) % LIGHTS.length]) ? 1 : 0;
             }
         }
-        // подарки под ёлкой, трости вокруг
+        // presents under the tree, canes around
         int presents = 0;
         for (int i = 0; i < PRESENTS; i++) {
             double ang = i * Math.PI * 2 / PRESENTS + 0.4;
@@ -107,19 +107,19 @@ public class IceikaXmasTree implements IWorldGenerator {
     }
 
     /**
-     * Огонёк гирлянды на краю яруса под углом ang: ставится снаружи листвы и цепляется к ней (как лестница). Если в этой
-     * стороне листвы нет - пропуск.
+     * A garland light at the edge of a tier at angle ang: placed outside the leaves and clinging to them (like a ladder). If there are
+     * no leaves on that side - skip.
      */
     private static boolean light(World w, int x, int y, int z, double ang, Block light) {
         double c = Math.cos(ang), s = Math.sin(ang);
         for (int d = BASE_R + 1; d >= 1; d--) {
             int lx = x + (int) Math.round(c * d), lz = z + (int) Math.round(s * d);
             if (w.getBlock(lx, y, lz) != IceikaBlocks.brittleLeaves) continue;
-            // клетка снаружи - по главной оси направления
+            // the cell outside - along the main axis of the direction
             boolean alongX = Math.abs(c) >= Math.abs(s);
             int ox = alongX ? (c > 0 ? 1 : -1) : 0, oz = alongX ? 0 : (s > 0 ? 1 : -1);
             if (!w.isAirBlock(lx + ox, y, lz + oz)) return false;
-            // мета лестницы: 2 - держится за блок с юга (z+1), 3 - с севера, 4 - с востока (x+1), 5 - с запада
+            // ladder meta: 2 - holds to a block from the south (z+1), 3 - from the north, 4 - from the east (x+1), 5 - from the west
             int meta = ox < 0 ? 4 : ox > 0 ? 5 : oz < 0 ? 2 : 3;
             w.setBlock(lx + ox, y, lz + oz, light, meta, 2);
             return true;
@@ -127,7 +127,7 @@ public class IceikaXmasTree implements IWorldGenerator {
         return false;
     }
 
-    /** Подарок: сладости Iceika всегда, редко - вещь Санты, снежный шар или "Звук колядок". */
+    /** A present: Iceika sweets always, rarely - a Santa item, a snow globe or "Sound of Carols". */
     static void gifts(Random r, IInventory inv) {
         Item[] sweets = { IceikaItems.peppermints, IceikaItems.chocolateLog, IceikaItems.fruitCake, IceikaItems.eggNog, IceikaItems.snowCones, IceikaItems.winterberry };
         int slot = 0;

@@ -1,4 +1,4 @@
-"""Как вещи сидят на теле. Каждая функция: (броня, значок, параметры) -> детали. Посадка считается от поверхности брони: на широкой Divine и на тонкой броне Странника вещь лежит на своём месте."""
+"""How items sit on the body. Each function: (armor, icon, parameters) -> parts. The fit is computed from the armor surface: on wide Divine armor and on thin Wanderer armor the item lies in its proper place."""
 import math
 
 import numpy as np
@@ -7,7 +7,7 @@ from acc_kit import cube, flat, sym_x
 
 
 def head_env(a, y=-6.0):
-    """Сама коробка шлема на высоте y, без крылышек и шпилей: только большие грани."""
+    """The helmet box itself at height y, without wings and spikes: only the large faces."""
     xs, zs = [], []
     for b, lo, hi in a.surface:
         if b == 'head' and lo[1] - .01 <= y <= hi[1] + .01 and (hi[0] - lo[0] >= 6 or hi[2] - lo[2] >= 6):
@@ -35,7 +35,7 @@ def waist(a, y=10.0):
 
 
 def cord(bone, pts, color, t=.45):
-    """Шнур из коротких коробок по точкам."""
+    """A cord made of short boxes along the points."""
     out = []
     for (a, b) in zip(pts, pts[1:]):
         a, b = np.array(a, float), np.array(b, float)
@@ -47,7 +47,7 @@ def cord(bone, pts, color, t=.45):
 
 
 def neck_cord(a, y, color, t=.45):
-    """Шнур вокруг шеи и вниз на грудь до высоты y."""
+    """A cord around the neck and down the chest to height y."""
     z = chest_z(a, 1.0) - .25
     zb = max(back_z(a, 1.0), 2.2) + .2
     top = -.4
@@ -57,18 +57,18 @@ def neck_cord(a, y, color, t=.45):
 
 
 def pendant(a, ic, cord_c='#3a2a1c', y=3.2, px=.3, t=.3):
-    """Подвеска, как у Ботании: плоский значок на шнуре; при нагруднике отходит вперёд на толщину брони."""
+    """Pendant, like Botania: a flat icon on a cord; with a chestplate it stands out forward by the armor thickness."""
     z = chest_z(a, y + 2) - .35
     return neck_cord(a, y, cord_c) + flat('body', (0, y + 2.1, z), (1, 0, 0), (0, 1, 0), ic, px, t)
 
 
 def pin(a, ic, x=-1.9, y=3.0, px=.26, t=.25):
-    """Брошь или медаль на груди без шнура."""
+    """A brooch or medal on the chest without a cord."""
     return flat('body', (x, y, chest_z(a, y) - .2), (1, 0, 0), (0, 1, 0), ic, px, t)
 
 
 def ring(a, band, gem, side='R', big=False):
-    """Кольцо у кисти (у Ботании кольца не видны; здесь лента и камень на конце руки)."""
+    """Ring at the wrist (Botania rings are not visible; here a ribbon and a stone at the end of the arm)."""
     x0, x1, z0, z1 = (-3.0, 1.0, -2.0, 2.0) if a.name == 'Divine' else a.env('rightArm', 8.0)
     x0, x1, z0, z1 = x0 - .15, x1 + .15, z0 - .15, z1 + .15
     y = 8.2
@@ -79,13 +79,13 @@ def ring(a, band, gem, side='R', big=False):
 
 
 def spur(a, ic, px=.3):
-    """Вещь на предплечье снаружи: щит, жало."""
+    """An item on the outside of the forearm: shield, stinger."""
     x0 = a.env('rightArm', 6.0)[0]
     return flat('rightArm', (x0 - .25, 5.0, 0), (0, 0, 1), (0, 1, 0), ic, px, .3)
 
 
 def belt(a, c, trim, buckle, y=9.2, h=2.2, buckle_w=2.6):
-    """Пояс как у Ботании (полоса вокруг торса), поверх брони."""
+    """Belt like Botania's (a band around the torso), over the armor."""
     x0, x1, z0, z1 = waist(a, y + h / 2)
     x0, x1, z0, z1 = x0 - .25, x1 + .25, z0 - .25, z1 + .25
     out = cube('body', x0, y, z0, x1 - x0, h, z1 - z0, c)
@@ -100,32 +100,32 @@ def buckle_icon(a, ic, y=10.3, px=.22):
 
 
 def thin_belt(a):
-    """Тонкий ремешок, на котором висит вещь."""
+    """A thin strap that an item hangs from."""
     return belt(a, '#4a2c16', '#2a180c', '#9a6c38', y=9.7, h=.9, buckle_w=1.4)
 
 
 def hip_front(a):
-    """Точка спереди бедра: сбоку вещь спрятала бы опущенная рука."""
+    """A point at the front of the thigh: from the side the lowered arm would hide the item."""
     x0, x1, z0, z1 = waist(a, 10.5)
     return x0 + 1.5, min(z0, a.env('rightLeg', 1.0)[2]) - .35
 
 
 def hip(a, ic, side='R', px=.32, y=12.5, t=.45):
-    """Вещь на ремешке спереди бедра."""
+    """An item on a strap at the front of the thigh."""
     x, z = hip_front(a)
     out = flat('body', (x, y, z), (1, 0, 0), (0, 1, 0), ic, px, t)
     return thin_belt(a) + (sym_x(out) if side == 'L' else out)
 
 
 def back_icon(a, ic, px=.5, x=0.0, y=4.0, rz=0.0, lift=.6, t=.5):
-    """Вещь на спине: значок наискось (колчан, панцирь)."""
+    """An item on the back: the icon slanted (quiver, shell)."""
     ang = math.radians(rz)
     z = back_z(a, y) + lift
     return flat('body', (x, y, z), (-math.cos(ang), -math.sin(ang), 0), (-math.sin(ang), math.cos(ang), 0), ic, px, t)
 
 
 def wings(a, ic, px=.55, y=3.0, spread=28, gap=.4, lift=.5):
-    """Крылья как у тиары Ботании: два плоских значка за спиной, разведены; ic нарисован как правое крыло, корень у левого края значка."""
+    """Wings like Botania's tiara: two flat icons behind the back, spread apart; ic is drawn as the right wing, the root is at the left edge of the icon."""
     z = back_z(a, y) + lift
     out = []
     for s in (-1, 1):
@@ -138,38 +138,38 @@ def wings(a, ic, px=.55, y=3.0, spread=28, gap=.4, lift=.5):
 
 
 def boot_wing(a, ic, px=.34):
-    """Крылышки на сапогах, по одному снаружи каждой ноги."""
+    """Little wings on the boots, one on the outside of each leg."""
     x0 = a.env('rightLeg', 9.0)[0]
     out = flat('rightLeg', (x0 - .25, 8.8, 1.2), (0, 0, 1), (0, 1, 0), ic, px, .2)
     return out + sym_x(out)
 
 
 def float_at(a, ic, pos=(-8.5, -3.5, -1.5), px=.3, t=.5, face=(1, 0, -.2)):
-    """Вещь парит рядом с плечом, как планетка у Ботании."""
+    """The item hovers next to the shoulder, like Botania's planet."""
     ux = np.array(face, float)
     return flat('body', pos, ux, (0, 1, 0), ic, px, t)
 
 
 def on_head(a, ic, x=0.0, y=-7.0, px=.28, t=.3):
-    """Значок на лбу, спереди шлема."""
+    """An icon on the forehead, at the front of the helmet."""
     z = head_env(a, y)[2]
     return flat('head', (x, y, z - .2), (1, 0, 0), (0, 1, 0), ic, px, t)
 
 
 def above_head(a, ic, y=-3.0, px=.32, t=.4):
-    """Парит над головой."""
+    """Hovers above the head."""
     return flat('head', (0, head_top(a) + y, 0), (1, 0, 0), (0, 1, 0), ic, px, t)
 
 
 def side_head(a, ic, side='R', y=-4.0, px=.26, t=.3):
-    """Значок на виске."""
+    """An icon on the temple."""
     x0 = head_env(a, y)[0]
     out = flat('head', (x0 - .2, y, 0), (0, 0, 1), (0, 1, 0), ic, px, t)
     return sym_x(out) if side == 'L' else out
 
 
 def crown(a, c, tips, gems=None, h=1.2, spikes=2.2, y=None, n=3):
-    """Корона из коробок: обруч и зубцы по периметру."""
+    """Crown made of boxes: a hoop and points around the perimeter."""
     x0, x1, z0, z1 = head_env(a, -6.5)
     x0, x1, z0, z1 = x0 - .2, x1 + .2, z0 - .2, z1 + .2
     top = head_top(a) if y is None else y
@@ -190,7 +190,7 @@ def crown(a, c, tips, gems=None, h=1.2, spikes=2.2, y=None, n=3):
 
 
 def circlet(a, c, gem_ic=None, y=-6.2, px=.24):
-    """Тонкий обруч с камнем на лбу."""
+    """A thin hoop with a stone on the forehead."""
     x0, x1, z0, z1 = head_env(a, y)
     x0, x1, z0, z1 = x0 - .15, x1 + .15, z0 - .15, z1 + .15
     out = cube('head', x0, y - .4, z0, x1 - x0, .8, z1 - z0, c)
@@ -200,7 +200,7 @@ def circlet(a, c, gem_ic=None, y=-6.2, px=.24):
 
 
 def pauldron(a, c, trim, side='R', big=False, spikes=None):
-    """Наплечник из коробок поверх плеча."""
+    """A pauldron made of boxes over the shoulder."""
     x0, x1, z0, z1 = (-4.0, 2.0, -3.0, 3.0) if a.name == 'Divine' else a.env('rightArm', -.5)
     grow = .7 if big else .4
     x0, x1, z0, z1 = x0 - grow, (x0 + x1) / 2 + 1.2, z0 - grow * .6, z1 + grow * .6
@@ -217,12 +217,12 @@ def pauldron(a, c, trim, side='R', big=False, spikes=None):
 
 
 def scarf(a, c1, c2, tail=True, fat=False, fur=None):
-    """Шарф: воротник вокруг шеи и хвост на груди."""
+    """Scarf: a collar around the neck and a tail on the chest."""
     h = 2.3 if fat else 1.6
-    # не выше низа головы (y=0): у Странника шлем кончается выше подбородка, и воротник на его высоте прятала голова
+    # not above the bottom of the head (y=0): the Wanderer helmet ends above the chin, and the collar at its height was hidden by the head
     bottom = max([hi[1] for b, lo, hi in a.surface if b == 'head'] + [-1.7])
     top = max(-.1, bottom - .15)
-    # огибающая по всей высоте воротника: самая выступающая броня у шеи и на плечах
+    # envelope over the whole collar height: the most protruding armor at the neck and shoulders
     xs, z0s, z1s = [], [], []
     for k in range(int(h / .25) + 1):
         y = top + k * .25
@@ -241,24 +241,24 @@ def scarf(a, c1, c2, tail=True, fat=False, fur=None):
     if tail:
         for i in range(5):
             yy = top + h + i * 1.1
-            out += cube('body', -2.9, yy, min(chest_z(a, yy + .5) - .35, z0 + .1), 2.2, 1.1, .5, c1 if i % 2 == 0 else c2)  # поверх нагрудника
+            out += cube('body', -2.9, yy, min(chest_z(a, yy + .5) - .35, z0 + .1), 2.2, 1.1, .5, c1 if i % 2 == 0 else c2)  # over the chestplate
     return out
 
 
 def carpet(a, ic, px=.95, y=24.0, tilt=0.0):
-    """Ковёр под ногами: лежит плашмя, значок сверху."""
+    """Carpet under the feet: lies flat, icon on top."""
     return flat('body', (0, y, 0), (1, 0, 0), (0, 0, 1), ic, px, .45)
 
 
 def flame_feet(a, ic, px=.26):
-    """Огоньки у сапог, по одному на ногу, спереди."""
+    """Little lights at the boots, one per leg, at the front."""
     z = a.env('rightLeg', 10.5)[2]
     out = flat('rightLeg', (0, 9.8, z - .3), (1, 0, 0), (0, 1, 0), ic, px, .2)
     return out + sym_x(out)
 
 
 def strap(a, c, buckle=None, t=.9):
-    """Перевязь наискось через грудь и спину."""
+    """A bandolier slanted across the chest and back."""
     out = []
     z0 = chest_z(a, 5.0) - .15
     z1 = max(back_z(a, 5.0), 2.2) + .15
@@ -271,7 +271,7 @@ def strap(a, c, buckle=None, t=.9):
 
 
 def lantern(a, frame, fire, y=10.8, side='R', h=3.0):
-    """Фонарь из коробок спереди бедра."""
+    """Lantern made of boxes at the front of the thigh."""
     x, z = hip_front(a)
     z -= 1.1
     out = cube('body', x - .9, y, z - .9, 1.8, h, 1.8, fire)
@@ -283,7 +283,7 @@ def lantern(a, frame, fire, y=10.8, side='R', h=3.0):
 
 
 def box_at_hip(a, c, trim, side='R', w=2.4, h=2.8, d=4.2, y=10.6):
-    """Ящик или сумка спереди бедра."""
+    """A box or bag at the front of the thigh."""
     x, z = hip_front(a)
     span, deep = d * .8, w * .75
     out = cube('body', x - span / 2, y, z - deep, span, h, deep, c)
@@ -292,7 +292,7 @@ def box_at_hip(a, c, trim, side='R', w=2.4, h=2.8, d=4.2, y=10.6):
 
 
 def quiver(a, c, trim, feather, rz=22.0, n=3):
-    """Колчан на спине наискось: труба и оперение стрел."""
+    """Quiver on the back, slanted: the tube and the arrow fletching."""
     z = back_z(a, 5.0) + .2
     piv = (0, 5, z + 1.1)
     rot = (0, 0, rz)
@@ -306,7 +306,7 @@ def quiver(a, c, trim, feather, rz=22.0, n=3):
 
 
 def scabbard(a, c, trim, hilt, side='R', L=11.0, w=1.2):
-    """Ножны на бедре наискось, рукоять вверх."""
+    """Scabbard on the thigh, slanted, hilt up."""
     x = waist(a, 10.5)[0] - .8
     piv = (x, 9.0, 0)
     rot = (-38, 0, 0)
@@ -319,19 +319,19 @@ def scabbard(a, c, trim, hilt, side='R', L=11.0, w=1.2):
 
 
 def plate_back(a, ic, px=.62, y=4.5, lift=.45, t=.8):
-    """Панцирь на спине: крупный значок плашмя."""
+    """Shell on the back: a large icon lying flat."""
     return back_icon(a, ic, px=px, y=y, lift=lift, t=t)
 
 
 def halfwing(ic):
-    """Правая половина парных крыльев значка: корень у левого края, как ждёт wings()."""
+    """The right half of a paired-wings icon: root at the left edge, as wings() expects."""
     out = np.zeros_like(ic)
     out[:, :8] = ic[:, 8:]
     return out
 
 
 def side_plate(a, ic, side='R', px=.42):
-    """Плоский значок на наплечнике снаружи."""
+    """A flat icon on the outside of the pauldron."""
     x0 = (-4.0 if a.name == 'Divine' else a.env('rightArm', -.5)[0]) - 1.0
     out = flat('rightArm', (x0, -.2, 0), (0, 0, 1), (0, 1, 0), ic, px, .25)
     return sym_x(out) if side == 'L' else out

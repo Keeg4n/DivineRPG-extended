@@ -1,6 +1,6 @@
-"""Выбранные значки (12.11.2026) - в текстуры игры: материалы мобов сумеречных миров, лут с боссов, Часы Странника (вариант А).
+"""Chosen icons (12.11.2026) -> into the game textures: twilight world mob materials, boss loot, Wanderer's Clock (variant A).
 
-Запуск: python3 drop_export.py [превью.png] - пишет PNG 16x16 в src/main/resources/assets/divinerpgextended/textures/items и, если задано, превью "было/стало".
+Run: python3 drop_export.py [preview.png] - writes 16x16 PNGs into src/main/resources/assets/divinerpgextended/textures/items and, if given, a "before/after" preview.
 """
 import os
 import sys
@@ -16,14 +16,14 @@ from acc_pal import RED, ORG, PUMP  # noqa: E402
 
 TEX = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../src/main/resources/assets/divinerpgextended/textures/items')
 
-# материалы мобов: номер в листе - функция значка
+# mob materials: number in the sheet - icon function
 MOB = {'sun_feather': M.feather_flame, 'horn_shard': M.horn_spiral, 'greenfeet_root': M.root_gnarled, 'verek_fang': M.fang, 'moon_horn': M.moon_spiral,
        'moss_core': M.moss_rune, 'golem_heart': M.heart_cube, 'dusk_horn': M.dusk_stars, 'warrior_sigil': M.sigil_medal, 'sky_essence': M.essence_crystal,
        'sky_string': M.string_spool, 'cloud_core': M.cloud_cube, 'dark_horn': M.dark_cracked, 'demon_heart': M.demon_flame, 'soul_silk': M.silk_web}
 
 
 def deep_shell_red(c):
-    """Панцирь глубин, вариант Б в красных тонах (Карцинус - краб)."""
+    """Shell of the Deep, variant B in red tones (Carcinus is a crab)."""
     for x in (1.5, 6.5, 11.5):
         c.f(POLY((x, 6), (x + 3, 6), (x + 1.5, 0)), ORG)
     c.f(ELL(8, 10, 7.6, 5), RED)
@@ -40,27 +40,27 @@ def loot(key, j):
 
 
 WORLDS = ['eden', 'wildwood', 'apalachia', 'skythern']
-OUT = {}  # файл -> функция значка
+OUT = {}  # file -> icon function
 for key, fn in MOB.items():
     OUT['twilight_mat_%s' % key] = fn
 for n, w in enumerate(WORLDS):
-    OUT['guardian_heart_%s' % w] = loot('guardian_heart', 1)[n]  # 1Б
-    OUT['time_gear_%s' % w] = loot('time_gear', 0)[n]  # 2А
+    OUT['guardian_heart_%s' % w] = loot('guardian_heart', 1)[n]  # 1B
+    OUT['time_gear_%s' % w] = loot('time_gear', 0)[n]  # 2A
 OUT.update({
-    'mortumTrophy_demon': loot('trophy_demon', 0),  # 4А
-    'mortumTrophy_archer': loot('trophy_archer', 0),  # 5А
-    'mortumTrophy_twins': loot('trophy_twins', 0),  # 6А
-    'mortumTrophy_fiend': loot('trophy_fiend', 1),  # 7Б
-    'mortumTrophy_vamacheron': loot('trophy_vamacheron', 1),  # 8Б
-    'mortumTrophy_karot': loot('trophy_karot', 1),  # 9Б
-    'deep_shell': deep_shell_red,  # 10Б красный
-    'frozenHeart': loot('frozen_heart', 2),  # 11В
-    'throneShard': loot('throne_shard', 2),  # 12В
-    'watcherEye': loot('watcher_eye_loot', 0),  # 13А
-    'dreamItem_lunar_shard': loot('lunar_shard', 0),  # 15А
+    'mortumTrophy_demon': loot('trophy_demon', 0),  # 4A
+    'mortumTrophy_archer': loot('trophy_archer', 0),  # 5A
+    'mortumTrophy_twins': loot('trophy_twins', 0),  # 6A
+    'mortumTrophy_fiend': loot('trophy_fiend', 1),  # 7B
+    'mortumTrophy_vamacheron': loot('trophy_vamacheron', 1),  # 8B
+    'mortumTrophy_karot': loot('trophy_karot', 1),  # 9B
+    'deep_shell': deep_shell_red,  # 10B red
+    'frozenHeart': loot('frozen_heart', 2),  # 11V
+    'throneShard': loot('throne_shard', 2),  # 12V
+    'watcherEye': loot('watcher_eye_loot', 0),  # 13A
+    'dreamItem_lunar_shard': loot('lunar_shard', 0),  # 15A
 })
 for t in range(1, 6):
-    OUT['wanderer_clock_%d' % t] = L.clock_pocket(t)  # часы А
+    OUT['wanderer_clock_%d' % t] = L.clock_pocket(t)  # clock A
 
 for name, fn in OUT.items():
     Image.fromarray(K.icon(fn), 'RGBA').save(os.path.join(TEX, name + '.png'))

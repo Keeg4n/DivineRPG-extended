@@ -27,16 +27,16 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Поплавок рыбалки мода. Повторяет ванильный (полёт, покачивание, поклёвка, леска рисуется ванильным RenderFish), но:
- * сила рыбалки (удочка + приманка) сокращает ожидание и решает улов, улов берётся из таблиц зоны, умеет лаву (с
- * огненной приманкой или лавовой удочкой), тратит приманку из инвентаря. Работает с любой удочкой, включая ванильную.
+ * The mod's fishing bobber. Repeats the vanilla one (flight, bobbing, bite, the line is drawn by vanilla RenderFish), but:
+ * fishing power (rod + bait) shortens the wait and decides the catch, the catch comes from the zone tables, it can do lava (with
+ * fire bait or a lava rod), it consumes bait from the inventory. Works with any rod, including the vanilla one.
  */
 public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSpawnData {
 
     private Rod rod = Rod.VANILLA;
-    /** Огненная снасть: лавовая удочка или огненная приманка первой в инвентаре. Вода работает всегда. */
+    /** Fire tackle: a lava rod or fire bait first in the inventory. Water always works. */
     private boolean lavaOk;
-    /** Сейчас поплавок в лаве (и снасть это позволяет). */
+    /** The bobber is in lava right now (and the tackle allows it). */
     private boolean lava;
 
     private int xTile = -1, yTile = -1, zTile = -1;
@@ -111,7 +111,7 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
 
     @Override
     public void onUpdate() {
-        onEntityUpdate(); // базовое обновление Entity (ванильный onUpdate поплавка не вызываем)
+        onEntityUpdate(); // base Entity update (we do not call the bobber's vanilla onUpdate)
         if (interpSteps > 0) {
             double nx = posX + (interpX - posX) / interpSteps, ny = posY + (interpY - posY) / interpSteps,
                 nz = posZ + (interpZ - posZ) / interpSteps;
@@ -139,7 +139,7 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
                 }
                 field_146043_c = null;
             }
-            // в лаве без огненной снасти поплавок сгорает
+            // in lava without fire tackle the bobber burns up
             if (!lavaOk && worldObj.isAABBInMaterial(boundingBox, Material.lava)) {
                 playSound("random.fizz", 0.5F, 1.5F);
                 setDead();
@@ -216,7 +216,7 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
             if (worldObj.isAABBInMaterial(slice, liquid())) submerged += 1.0 / parts;
         }
         if (!worldObj.isRemote && submerged > 0) bite((WorldServer) worldObj);
-        // вода мечтаний (висячее озеро Ветеи) перевёрнута: у её глади (снизу) поплавок держится, всплывая вниз
+        // dream water (Vethea's hanging lake) is inverted: the bobber holds at its surface (from below), floating downward
         if (!lava && dreamWaterAbove()) motionY -= 0.04F * (submerged * 2.0 - 1.0);
         else motionY += 0.04F * (submerged * 2.0 - 1.0);
         if (submerged > 0) {
@@ -229,7 +229,7 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
         setPosition(posX, posY, posZ);
     }
 
-    /** Поплавок в воде мечтаний или вплотную под ней (висит вверх ногами - так и рисуется). */
+    /** The bobber is in dream water or right under it (hangs upside down - and is drawn that way). */
     public boolean dreamWaterAbove() {
         int x = MathHelper.floor_double(posX), z = MathHelper.floor_double(posZ);
         for (int y = MathHelper.floor_double(boundingBox.minY); y <= MathHelper.floor_double(boundingBox.maxY + 0.6); y++)
@@ -237,7 +237,7 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
         return false;
     }
 
-    /** Сила рыбалки сейчас: удочка + приманка + снаряжение рыбака (+ бонусы особенностей). */
+    /** Fishing power right now: rod + bait + angler gear (+ trait bonuses). */
     private int power(Bait bait, Zone zone) {
         return FishingGear.power(worldObj, field_146042_b, rod, bait, zone);
     }
@@ -251,18 +251,18 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
         return slot < 0 ? null : Bait.of(field_146042_b.inventory.mainInventory[slot].getItem());
     }
 
-    /** Сказано рыбаку, что вода мечтаний (арканный концентрат) не клюёт на эту удочку. */
+    /** The angler has been told that dream water (arcane concentrate) does not bite on this rod. */
     private boolean toldDream, toldArcane;
 
-    /** Поплавок в арканном концентрате. */
+    /** The bobber is in arcane concentrate. */
     public boolean arcane() {
         return com.divinerpgextended.block.BlockArcaneConcentrate.at(worldObj, posX, posY, posZ)
             || com.divinerpgextended.block.BlockArcaneConcentrate.at(worldObj, posX, posY - 0.5, posZ);
     }
 
-    /** Ванильная логика поклёвки, ожидание сокращено силой рыбалки. В воде мечтаний клюёт только на удочку Голода. */
+    /** Vanilla bite logic, the wait is shortened by fishing power. In dream water it bites only on the Fishing Rod of the Hunger. */
     private void bite(WorldServer ws) {
-        if (!lava && rod != Rod.ARCANA && arcane()) { // арканный концентрат клюёт только на арканную удочку
+        if (!lava && rod != Rod.ARCANA && arcane()) { // arcane concentrate bites only on the Arcana rod
             ticksCaughtDelay = ticksCatchableDelay = ticksCatchable = 0;
             if (!toldArcane && field_146042_b != null) {
                 toldArcane = true;
@@ -295,14 +295,14 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
         } else if (ticksCatchableDelay > 0) {
             ticksCatchableDelay -= k;
             if (ticksCatchableDelay <= 0) {
-                motionY += dreamWaterAbove() ? 0.2F : -0.2F; // рыба тянет поплавок в воду
+                motionY += dreamWaterAbove() ? 0.2F : -0.2F; // the fish pulls the bobber into the water
                 playSound(lava ? "liquid.lavapop" : "random.splash", 0.25F, 1.0F + (rand.nextFloat() - rand.nextFloat()) * 0.4F);
                 float fy = MathHelper.floor_double(boundingBox.minY);
                 ws.func_147487_a(bubble, posX, fy + 1.0F, posZ, (int) (1.0F + width * 20.0F), width, 0.0, width, 0.2F);
                 ws.func_147487_a(lava ? "smoke" : "wake", posX, fy + 1.0F, posZ, (int) (1.0F + width * 20.0F), width, 0.0,
                     width, 0.2F);
                 ticksCatchable = MathHelper.getRandomIntegerInRange(rand, 10, 30);
-                com.divinerpgextended.debug.Debug.note(field_146042_b, "Рыбалка: поклёвка, подсекать " + ticksCatchable + " тиков");
+                com.divinerpgextended.debug.Debug.note(field_146042_b, "Fishing: bite, strike within " + ticksCatchable + " ticks");
             } else {
                 fishApproachAngle = (float) (fishApproachAngle + rand.nextGaussian() * 4.0);
                 float a = fishApproachAngle * ((float) Math.PI / 180F);
@@ -334,18 +334,18 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
             Zone zone = Zone.at(worldObj, posX, posY, posZ, lava);
             int p = power(bait, zone);
             float mult = 60F / (60F + p) * rod.waitMultiplier() * (bait == null ? 1.0F : bait.waitMultiplier(zone))
-                * com.divinerpgextended.magic.ArcaneEffects.biteFactor(field_146042_b); // Рыбацкий фарт
-            if (FishSchools.near(worldObj, posX, posY, posZ)) mult /= FishSchools.BITE; // косяк: клюёт втрое быстрее
+                * com.divinerpgextended.magic.ArcaneEffects.biteFactor(field_146042_b); // Fisher's Fortune
+            if (FishSchools.near(worldObj, posX, posY, posZ)) mult /= FishSchools.BITE; // school: bites three times faster
             ticksCaughtDelay = (int) (MathHelper.getRandomIntegerInRange(rand, 100, 900) * mult);
             ticksCaughtDelay -= EnchantmentHelper.func_151387_h(field_146042_b) * 20 * 5;
             ticksCaughtDelay = Math.max(20, ticksCaughtDelay);
-            com.divinerpgextended.debug.Debug.note(field_146042_b, "Рыбалка: ждём ~" + ticksCaughtDelay / 20 + " с | зона " + zone + ", удочка " + rod + ", приманка "
-                + (bait == null ? "нет" : bait) + ", сила " + p + (lava ? ", лава" : ""));
+            com.divinerpgextended.debug.Debug.note(field_146042_b, "Fishing: waiting ~" + ticksCaughtDelay / 20 + " s | zone " + zone + ", rod " + rod + ", bait "
+                + (bait == null ? "none" : bait) + ", power " + p + (lava ? ", lava" : ""));
         }
         if (ticksCatchable > 0) motionY -= rand.nextFloat() * rand.nextFloat() * rand.nextFloat() * 0.2;
     }
 
-    /** Подсечка: улов из таблиц зоны, опыт, трата приманки. Возвращает урон удочке. */
+    /** Hook set: the catch from the zone tables, experience, bait spent. Returns the damage to the rod. */
     @Override
     public int func_146034_e() {
         if (worldObj.isRemote) return 0;
@@ -370,27 +370,27 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
             float rareMult = rod.rareMultiplier() * com.divinerpgextended.magic.ArcaneEffects.rareFactor(p) * (school ? FishSchools.RARE : 1F);
             StringBuilder caught = new StringBuilder();
             for (int i = 0; i < count; i++) {
-                // особые уловы: золотая рыбка (ничем не усиливается), Грозовой сом в ливень, утопленник Мортума
+                // special catches: golden fish (not boosted by anything), Storm Catfish in a downpour, Mortum's drowned
                 ItemStack loot = FishingLoot.golden(rand, zone);
                 if (loot == null) loot = FishingLoot.storm(rand, zone, com.divinerpgextended.item.ItemStormBow.storm(worldObj), bait != null, power, rareMult);
-                if (loot == null) loot = FishingLoot.cave(rand, zone, bait, rareMult); // Пещерный удильщик на Глазок циклопа
+                if (loot == null) loot = FishingLoot.cave(rand, zone, bait, rareMult); // Cave Angler on Cyclops Eye Bait
                 if (loot == null && zone == Zone.MORTUM && bait != null && rand.nextFloat() < DROWNED_CHANCE) {
                     drowned(p);
-                    caught.append(caught.length() == 0 ? "" : ", ").append("утопленник");
+                    caught.append(caught.length() == 0 ? "" : ", ").append("drowned");
                     continue;
                 }
-                if (loot == null) loot = FishingLoot.roll(rand, zone, power, bait != null, crate, rareMult, FishingLoot.caveTier(posY, power)); // ярус пещер - по высоте поплавка
-                FishingLoot.gild(rand, zone, bait, loot); // золотой улов Эдема
-                caught.append(caught.length() == 0 ? "" : ", ").append(loot == null ? "ничего" : loot.getDisplayName()
+                if (loot == null) loot = FishingLoot.roll(rand, zone, power, bait != null, crate, rareMult, FishingLoot.caveTier(posY, power)); // cave tier - by the bobber's height
+                FishingLoot.gild(rand, zone, bait, loot); // Eden's golden catch
+                caught.append(caught.length() == 0 ? "" : ", ").append(loot == null ? "nothing" : loot.getDisplayName()
                     + (loot.stackSize > 1 ? " x" + loot.stackSize : ""));
                 if (loot != null) toss(p, loot);
                 if (loot != null) com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.fishFirst);
             }
             ItemStack relic = bait == null ? null : FishingLoot.relic(rand, zone, power);
-            com.divinerpgextended.debug.Debug.note(p, "Рыбалка: улов " + caught + (relic != null ? " + РЕЛИКВИЯ " + relic.getDisplayName() : "") + " | зона " + zone
-                + (zone == Zone.CAVE ? " (ярус " + FishingLoot.caveTier(posY, power) + ", высота " + MathHelper.floor_double(posY) + ")" : "")
-                + ", удочка " + rod + ", приманка " + (bait == null ? "нет" : bait) + ", сила " + power + ", бонус ящика " + crate
-                + (count > 1 ? ", двойной улов" : ""));
+            com.divinerpgextended.debug.Debug.note(p, "Fishing: catch " + caught + (relic != null ? " + RELIC " + relic.getDisplayName() : "") + " | zone " + zone
+                + (zone == Zone.CAVE ? " (tier " + FishingLoot.caveTier(posY, power) + ", height " + MathHelper.floor_double(posY) + ")" : "")
+                + ", rod " + rod + ", bait " + (bait == null ? "none" : bait) + ", power " + power + ", crate bonus " + crate
+                + (count > 1 ? ", double catch" : ""));
             if (relic != null) {
                 toss(p, relic);
                 FishingGear.announceRelic(p, relic);
@@ -401,21 +401,21 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
                 && !(FishingGear.hasBaitBag(p) && rand.nextFloat() < FishingGear.BAG_SAVE)) {
                 p.inventory.decrStackSize(slot, 1);
                 p.inventoryContainer.detectAndSendChanges();
-                com.divinerpgextended.debug.Debug.note(p, "Рыбалка: приманка " + bait + " потрачена");
+                com.divinerpgextended.debug.Debug.note(p, "Fishing: bait " + bait + " used up");
             } else if (bait != null) {
-                com.divinerpgextended.debug.Debug.note(p, "Рыбалка: приманка " + bait + " сохранена" + (p.capabilities.isCreativeMode ? " (творческий)" : ""));
+                com.divinerpgextended.debug.Debug.note(p, "Fishing: bait " + bait + " kept" + (p.capabilities.isCreativeMode ? " (creative)" : ""));
             }
             dmg = 1;
         }
-        else if (!inGround) com.divinerpgextended.debug.Debug.note(p, "Рыбалка: подсечка мимо - поклёвки не было");
+        else if (!inGround) com.divinerpgextended.debug.Debug.note(p, "Fishing: strike missed - there was no bite");
         if (inGround) dmg = 2;
         setDead();
         return dmg;
     }
 
     /**
-     * Кровавая наживка в инвентаре и поклёвка в океане (не у берега) - вместо улова выныривает Лиоплевродон (если поблизости его
-     * ещё нет). Наживка тратится. true - призван.
+     * Bloody Bait in the inventory and a bite in the ocean (not near the shore) - instead of a catch, the Liopleurodon surfaces (if there is
+     * none nearby yet). The bait is spent. true - summoned.
      */
     public boolean summonLio(EntityPlayer p) {
         if (!com.divinerpgextended.Config.liopleurodonBoss || p == null || com.divinerpgextended.registry.ModItems.bloodBait == null) return false;
@@ -454,13 +454,13 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
         return true;
     }
 
-    /** Для самопроверки: сколько Лиоплевродонов призвано. */
+    /** For the selftest: how many Liopleurodons were summoned. */
     public static int lioSummoned;
 
-    /** Шанс, что в Мортуме вместо улова выныривает утопленник (моб Мортума). */
+    /** Chance that in Mortum a drowned one (a Mortum mob) surfaces instead of a catch. */
     public static final float DROWNED_CHANCE = 0.03F;
 
-    /** Утопленник Мортума выныривает у поплавка. */
+    /** Mortum's drowned one surfaces at the bobber. */
     private void drowned(EntityPlayer p) {
         Class<? extends net.minecraft.entity.EntityLiving>[] mobs = com.divinerpgextended.world.twilight.TwilightWorld.MORTUM.mobs();
         try {
@@ -480,8 +480,8 @@ public class EntityDreHook extends EntityFishHook implements IEntityAdditionalSp
     }
 
     private void toss(EntityPlayer p, ItemStack loot) {
-        if (lava || dreamWaterAbove()) { // из лавы улов сразу в руки (предмет в полёте над лавой сгорел бы); из озера в потолке - упал бы на пол
-            // в творческом игра молча удаляет то, чему нет места в инвентаре: кладём под ноги, подберёт сам
+        if (lava || dreamWaterAbove()) { // from lava the catch goes straight into the hands (an item flying over lava would burn up); from a lake in the ceiling - it would fall to the floor
+            // in creative the game silently deletes what has no room in the inventory: we put it at the feet, it will be picked up on its own
             if (p.capabilities.isCreativeMode || !p.inventory.addItemStackToInventory(loot)) {
                 EntityItem drop = new EntityItem(worldObj, p.posX, p.posY + 0.5, p.posZ, loot);
                 drop.delayBeforeCanPickup = 0;

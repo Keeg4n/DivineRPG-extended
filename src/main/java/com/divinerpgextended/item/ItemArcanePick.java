@@ -25,28 +25,28 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Арканитовая кирка: единственное, чем ломаются блоки и спавнеры подземелий Арканы (у Divine они неломаемые), и только разрушает их:
- * они не выпадают, а спавнеры можно перенести телепозером или набалдашником "Перемещение". Продаёт Генерал
- * войны тем, кто победил всех боссов Мортума ({@link #MORTUM}). Заряженная ({@link #charged}) копает 3x3 (присев - один
- * блок): Генерал меняет на неё обычную и {@link #CHARGE_PRICE} арканиума после всех боссов Divine ({@link #DIVINE}).
+ * Arcanite Pickaxe: the only thing that breaks the blocks and spawners of Arcana dungeons (in Divine they are unbreakable), and it only destroys them:
+ * they do not drop, and spawners can be moved with a teleposer or the "Relocation" pommel. Sold by the War
+ * General to those who defeated all Mortum bosses ({@link #MORTUM}). The charged one ({@link #charged}) digs 3x3 (sneaking - one
+ * block): the General exchanges a regular one and {@link #CHARGE_PRICE} arcanium for it after all Divine bosses ({@link #DIVINE}).
  */
 public class ItemArcanePick extends ItemPickaxe {
 
     public static final Item.ToolMaterial MATERIAL = EnumHelper.addToolMaterial("DRE_ARCANE", 3, 1561, 12F, 4F, 18);
     public static final int PRICE = 20, CHARGE_PRICE = 20;
-    /** Прочность блоков Арканы при ломке этой киркой. */
+    /** Hardness of Arcana blocks when broken with this pickaxe. */
     private static final float HARDNESS = 5.0F;
-    /** Боссы Мортума: после всех - кирка в продаже. */
+    /** Mortum bosses: after all of them the pickaxe goes on sale. */
     public static final Boss[] MORTUM = { Boss.TWILIGHT_DEMON, Boss.KAROT, Boss.ETERNAL_ARCHER, Boss.TWINS, Boss.SOUL_FIEND, Boss.VAMACHERON };
-    /** Все боссы Divine, которых ведёт аддон: после них - заряженная кирка. */
+    /** All Divine bosses that the addon tracks: after them the charged pickaxe. */
     public static final Boss[] DIVINE = { Boss.ANCIENT_ENTITY, Boss.WATCHER, Boss.KING_OF_SCORCHERS, Boss.TWILIGHT_DEMON, Boss.KAROT, Boss.ETERNAL_ARCHER,
         Boss.TWINS, Boss.SOUL_FIEND, Boss.VAMACHERON, Boss.DRAMIX, Boss.PARASECTA, Boss.WRECK, Boss.RAGLOK, Boss.LADY_LUNA };
-    /** Спавнеры Арканы (поля ArcanaBlocks). */
+    /** Arcana spawners (ArcanaBlocks fields). */
     private static final String[] SPAWNERS = { "dungenSpawnerPrisoner", "razorbackSpawner", "deathHoundSpawner", "deathcryxSpawner",
         "livingStatueSpawner", "roamerSpawner" };
     private static java.util.Set<Block> spawners;
 
-    /** Заряженная: копает 3x3. */
+    /** Charged: digs 3x3. */
     public final boolean charged;
     private boolean breaking;
 
@@ -83,8 +83,8 @@ public class ItemArcanePick extends ItemPickaxe {
     private static java.util.Set<Block> locked;
 
     /**
-     * Все неломаемые блоки Арканы (у Divine прочность бесконечная: кирпичи и камень подземелий, лампы, спавнеры...),
-     * кроме портала.
+     * All unbreakable Arcana blocks (in Divine their hardness is infinite: dungeon bricks and stone, lamps, spawners...),
+     * except the portal.
      */
     public static synchronized java.util.Set<Block> locked() {
         if (locked != null) return locked;
@@ -101,8 +101,8 @@ public class ItemArcanePick extends ItemPickaxe {
     }
 
     /**
-     * Неломаемые блоки Арканы ломаемы, но только этой киркой (BreakSpeed, BreakEvent). Их прочность остаётся бесконечной, как
-     * у Divine: чужие копатели и поршни их не берут; ломка игроком видит {@link #HARDNESS} ({@link com.divinerpgextended.perk.MiningGuard}).
+     * Unbreakable Arcana blocks are breakable, but only with this pickaxe (BreakSpeed, BreakEvent). Their hardness stays infinite, as
+     * in Divine: other diggers and pistons do not take them; the player's breaking sees {@link #HARDNESS} ({@link com.divinerpgextended.perk.MiningGuard}).
      */
     public static void makeBreakable() {
         for (Block b : locked()) {
@@ -127,7 +127,7 @@ public class ItemArcanePick extends ItemPickaxe {
         return charged ? EnumRarity.rare : super.getRarity(s);
     }
 
-    /** Заряженная ломает соседей 3x3 в плоскости, на которую смотрит игрок, обычным путём игрока (как кошмарный бур). */
+    /** The charged one breaks 3x3 neighbors in the plane the player is looking at, via the regular player path (like the Nightmare Drill). */
     @Override
     public boolean onBlockStartBreak(ItemStack s, int x, int y, int z, EntityPlayer p) {
         World w = p.worldObj;
@@ -155,7 +155,7 @@ public class ItemArcanePick extends ItemPickaxe {
                     Block nb = w.getBlock(nx, ny, nz);
                     if (nb.getMaterial() == Material.air || nb.getMaterial().isLiquid()) continue;
                     float h = com.divinerpgextended.perk.MiningGuard.real(nb, w, nx, ny, nz);
-                    if (h < 0 || h > center * 4 + 2) continue; // бедрок и портал не берёт, обсидиан вокруг камня не срывает
+                    if (h < 0 || h > center * 4 + 2) continue; // does not take bedrock and the portal, does not tear obsidian off around the stone
                     ((EntityPlayerMP) p).theItemInWorldManager.tryHarvestBlock(nx, ny, nz);
                 }
             }
@@ -187,7 +187,7 @@ public class ItemArcanePick extends ItemPickaxe {
             e.setCanceled(true);
         }
 
-        /** Блок Арканы из-под кирки не выпадает, с Шёлковым касанием тоже. Обычные блоки она добывает как все кирки. */
+        /** An Arcana block does not drop from under the pickaxe, even with Silk Touch. It mines regular blocks like all pickaxes. */
         @SubscribeEvent(priority = EventPriority.LOWEST)
         public void onDrops(BlockEvent.HarvestDropsEvent e) {
             if (e.harvester != null && locked().contains(e.block) && holds(e.harvester)) e.drops.clear();

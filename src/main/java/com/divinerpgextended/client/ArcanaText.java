@@ -15,14 +15,14 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Число поверх полоски арканы Divine: "сейчас/максимум". Полоска при любом максимуме одной длины (полная = 100 пикселей),
- * и без числа рост максимума от исследований Ваттикуса не виден.
+ * A number over the Divine arcana bar: "current/maximum". The bar has the same length at any maximum (full = 100 pixels),
+ * and without the number the growth of the maximum from Vatticus's research is not visible.
  */
 public class ArcanaText {
 
     /**
-     * Клиент Divine каждый тик сам прибавляет +1 наперёд, а сервер присылает точное значение - число прыгает на
-     * единицу. Показываем наибольшее за последние тики (трата видна с задержкой в пару тиков), не выше максимума.
+     * The Divine client adds +1 ahead on its own every tick, while the server sends the exact value - the number jumps by
+     * one. We show the largest over the last ticks (spending is visible with a delay of a couple of ticks), not above the maximum.
      */
     private final float[] last = new float[4];
     private int at;
@@ -35,7 +35,7 @@ public class ArcanaText {
 
     private float shown() {
         float v = Math.min(ArcanaRenderer.value, ArcanaHooks.clientMax());
-        // настоящая трата (больше 2) видна сразу; дрожание на единицу гасим
+        // real spending (more than 2) is visible at once; jitter of one is suppressed
         for (float x : last) if (x > v && x - v <= 2) v = x;
         return v;
     }

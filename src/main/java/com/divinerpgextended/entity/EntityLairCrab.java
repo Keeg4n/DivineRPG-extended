@@ -15,8 +15,8 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
 
 /**
- * Норный краб: живёт в норе Карцинуса и нападает сам, в отличие от нейтральных крабов Divine. Ходит по дну
- * затопленных ходов, не тонет, чует игрока сквозь стены лабиринта.
+ * Burrow Crab: lives in Carcinus's burrow and attacks on its own, unlike the neutral Divine crabs. Walks along the bottom of
+ * flooded passages, does not drown, senses the player through the maze walls.
  */
 public class EntityLairCrab extends EntityMob {
 
@@ -24,7 +24,7 @@ public class EntityLairCrab extends EntityMob {
         super(world);
         setSize(1.0F, 1.0F);
         experienceValue = 20;
-        getNavigator().setCanSwim(true); // путь через воду, но без всплытия: краб идёт по дну
+        getNavigator().setCanSwim(true); // path through water, but without surfacing: the crab walks along the bottom
         tasks.addTask(2, new EntityAIAttackOnCollide(this, EntityPlayer.class, 1.0D, false));
         tasks.addTask(5, new EntityAIWander(this, 0.8D));
         tasks.addTask(6, new EntityAIWatchClosest(this, EntityPlayer.class, 12.0F));
@@ -58,7 +58,7 @@ public class EntityLairCrab extends EntityMob {
         if (worldObj.isRemote) return;
         EntityLivingBase target = getAttackTarget();
         if (target == null) return;
-        // в воде путь часто не строится: тогда просто ползём к цели и подпрыгиваем на уступах
+        // in water the path often cannot be built: then we simply crawl toward the target and hop up ledges
         if (getNavigator().noPath()) getMoveHelper().setMoveTo(target.posX, target.posY, target.posZ, 1.0D);
         if (isCollidedHorizontally || (isInWater() && target.posY > posY + 1.0D)) getJumpHelper().setJumping();
     }
@@ -78,10 +78,10 @@ public class EntityLairCrab extends EntityMob {
         return Sounds.getSoundName(Sounds.crabHurt);
     }
 
-    /** Метка краба, которого позвал Карцинус в бою: с него ничего не падает (иначе бой - ферма клешней). */
+    /** Marker of a crab called by Carcinus in battle: nothing drops from it (otherwise the fight is a claw farm). */
     public static final String CARCINUS_ADD = "dreCarcinusAdd";
 
-    /** Позван Карцинусом - пустой. */
+    /** Called by Carcinus - empty. */
     public static boolean summoned(net.minecraft.entity.Entity e) {
         return e.getEntityData().getBoolean(CARCINUS_ADD);
     }
@@ -97,7 +97,7 @@ public class EntityLairCrab extends EntityMob {
         return summoned(this) ? 0 : super.getExperiencePoints(p);
     }
 
-    /** Норный король крабов: крупнее и злее, клешня падает всегда. */
+    /** Burrow King Crab: bigger and angrier, the claw always drops. */
     public static class King extends EntityLairCrab {
 
         public King(World world) {

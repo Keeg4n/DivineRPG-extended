@@ -1,8 +1,8 @@
-"""Таблица добычи сундуков и ящиков для правки: значки, количество, веса, шансы.
+"""Loot table of chests and crates for editing: icons, amount, weights, chances.
 
-Данные - из автотеста "Отладка / Дамп добычи сундуков и ящиков" (logs/dre-loot.json сервера). Обычные сундуки - веса как в коде,
-шансы считаются отсюда; сундуки Арканы, реликварии, подарки и ящики рыбалки - по 20000 прогонов самого кода.
-Запуск: python3 loot_sheet.py <dre-loot.json> <папка>; рядом с картинками - loot.html для печати в PDF.
+Data is from the selftest "Debug / Chest and crate loot dump" (the server's logs/dre-loot.json). Regular chests - weights as in the code,
+chances are computed here; Arcana chests, reliquaries, gifts and fishing crates - from 20000 runs of the code itself.
+Run: python3 loot_sheet.py <dre-loot.json> <folder>; loot.html for printing to PDF goes next to the images.
 """
 import html
 import io
@@ -26,7 +26,7 @@ TC = zipfile.ZipFile(HOME + '/mc/server-pack/mods/Thaumcraft-1.7.10-4.2.3.5.jar'
 TK = zipfile.ZipFile(HOME + '/mc/server-pack/mods/TConstruct-1.7.10-1.8.8.jar')
 e = html.escape
 
-# ------------------------------------------------------------------ названия
+# ------------------------------------------------------------------ names
 LANG = {}
 
 
@@ -39,8 +39,8 @@ def load_lang(text):
 
 load_lang(open(os.path.join(OURS, 'lang/ru_RU.lang'), encoding='utf-8').read())
 load_lang(DV.read('assets/divinerpg/lang/ru_RU.lang').decode('utf-8', 'replace'))
-load_lang(TC.read('assets/thaumcraft/lang/ru_RU.lang').decode('utf-8', 'replace'))  # руды Таумкрафта
-load_lang(TK.read('assets/tinker/lang/ru_RU.lang').decode('utf-8', 'replace'))  # руды Tinkers
+load_lang(TC.read('assets/thaumcraft/lang/ru_RU.lang').decode('utf-8', 'replace'))  # Thaumcraft ores
+load_lang(TK.read('assets/tinker/lang/ru_RU.lang').decode('utf-8', 'replace'))  # Tinkers ores
 idx = json.load(open(HOME + '/.gradle/caches/minecraft/assets/indexes/1.7.10.json'))
 h = idx['objects']['minecraft/lang/ru_RU.lang']['hash']
 load_lang(open(HOME + '/.gradle/caches/minecraft/assets/objects/%s/%s' % (h[:2], h), encoding='utf-8').read())
@@ -61,7 +61,7 @@ def name_of(it):
     return it['en']
 
 
-# ------------------------------------------------------------------ значки
+# ------------------------------------------------------------------ icons
 DYES = ['black', 'red', 'green', 'brown', 'blue', 'purple', 'cyan', 'silver', 'gray', 'pink', 'lime', 'yellow', 'light_blue', 'magenta', 'orange', 'white']
 
 
@@ -87,7 +87,7 @@ def first(domain, names, block):
             im = tex(domain, '%s/%s.png' % (folder, n))
             if im is not None:
                 w = im.size[0]
-                return im.crop((0, 0, w, w))  # анимация - первый кадр
+                return im.crop((0, 0, w, w))  # animation - first frame
     return None
 
 
@@ -116,7 +116,7 @@ def icon_of(it):
         base = first('minecraft', ['potion_bottle_drinkable'], False)
         base.alpha_composite(over)
         return base
-    if i == 'Thaumcraft:blockCustomOre':  # руды Таумкрафта: 0 киноварь, 1-6 камни с аспектами, 7 янтарь
+    if i == 'Thaumcraft:blockCustomOre':  # Thaumcraft ores: 0 cinnabar, 1-6 aspect stones, 7 amber
         if m == 0:
             return first('thaumcraft', ['cinnibar'], True)
         if m == 7:
@@ -125,7 +125,7 @@ def icon_of(it):
         base, over = first('thaumcraft', ['infusedorestone'], True), first('thaumcraft', ['infusedore'], True)
         base.alpha_composite(tint(over, aspect))
         return base
-    if i == 'TConstruct:SearedBrick':  # руды Tinkers: 3 медь, 4 олово, 5 алюминий
+    if i == 'TConstruct:SearedBrick':  # Tinkers ores: 3 copper, 4 tin, 5 aluminum
         return first('tinker', [{3: 'ore_copper', 4: 'ore_tin', 5: 'ore_aluminum'}.get(m, 'ore_copper')], True)
     key = it['unloc'].split('.')[-1]
     if i == 'divinerpgextended:fish':
@@ -155,7 +155,7 @@ for line in open(os.path.join(OURS, 'derived_textures.txt'), encoding='utf-8'):
 
 
 def derived(path):
-    """Текстура, которую аддон собирает при запуске из текстуры Divine: исходник и замена цветов."""
+    """A texture that the addon builds at startup from a Divine texture: the source and color replacement."""
     f = DERIVED.get('divinerpgextended:textures/' + path)
     if not f:
         return None
@@ -194,7 +194,7 @@ def icon_file(it):
     return ICONS[k]
 
 
-# ------------------------------------------------------------------ данные
+# ------------------------------------------------------------------ data
 txt = open(SRC, encoding='utf-8').read().strip()
 DATA = json.loads(re.sub(r',\s*\]$', ']', txt))
 FISH = next(t for t in DATA if t['kind'] == 'fish')['zones']
@@ -234,12 +234,12 @@ def fish_tier(zone, it):
                 return TIER_RU[tier], str(x['weight'])
     if it['id'].startswith('divinerpgextended:') and 'bait' in it['unloc'].lower():
         return 'приманка', '-'
-    if it.get('block') and zone in ('CAVE', 'HELL'):  # шахтёрские ящики: руда блоками
+    if it.get('block') and zone in ('CAVE', 'HELL'):  # miner's crates: ore in blocks
         return 'руда', '-'
     return 'снаряжение/приманка', '-'
 
 
-# ------------------------------------------------------------------ страницы
+# ------------------------------------------------------------------ pages
 CSS = """
 @page { size: A4 portrait; margin: 10mm 10mm 12mm; }
 * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -297,7 +297,7 @@ def section_sampled(t, title, note='', zone=None):
 
 
 def twilight_combined(kind):
-    """Руины или подземелья: веса одинаковые во всех мирах, свои у мира только предметы - строка на запись, по значку на мир."""
+    """Ruins or dungeons: weights are the same in all worlds, only the items are world-specific - a row per entry, an icon per world."""
     ts = [t for t in TABLES if t['group'] == 'Сумеречные миры' and t['name'].startswith(kind)]
     base = ts[0]
     rows, W = weighted_rows(base)
@@ -318,7 +318,7 @@ def twilight_combined(kind):
             % body, W, (a, b))
 
 
-# титул
+# title
 parts.append('<h1>Добыча сундуков и ящиков DivineRPG Extended</h1>')
 parts.append('<div class="box"><p><b>Что здесь.</b> Все сундуки, которые наполняет аддон, и ящики рыбалки: что в них лежит, сколько штук и с каким шансом. '
              'Числа сняты с игры автотестом, а не переписаны руками.</p>'
@@ -328,7 +328,7 @@ parts.append('<div class="box"><p><b>Что здесь.</b> Все сундук�
              'посчитаны по 20 000 открытиям.</p>'
              '<p><b>Как править:</b> напиши, например, "Нора Карцинуса: алмазы вес 2 -> 4, штук 1-2 -> 2-3" или "Ящик пещер: убрать изумруды".</p></div>')
 
-# логова и Айсика
+# lairs and Iceika
 parts.append('<h2>Логова, Айсика и гробница</h2>')
 for t in TABLES:
     if t['group'] == 'Логова и Айсика' and t['kind'] == 'weighted':
@@ -344,14 +344,14 @@ parts.append('<h3>Добавлено в ванильные сундуки</h3><p
                 icon_file({'id': 'divinerpg:strongArcanaPotion', 'meta': 0, 'icon': 'divinerpg:strongArcanaPotion', 'block': False, 'unloc': 'item.strongArcanaPotion', 'en': 'Strong Arcana Potion'}),
                 e(LANG.get('item.strongArcanaPotion.name', 'Сильное зелье арканы'))))
 
-# сумеречные миры
+# twilight worlds
 parts.append('<h2>Сумеречные миры: руины, подземелья, корабли, Мортум</h2>')
 tb, W, (a, b) = twilight_combined('Руины')
 parts.append('<h3>Руины (и сундук терновых кораблей)</h3><p class="note">Руины тянут %s раз (малые руины 3-5, корабль 4-6), сумма весов %d. Веса общие для всех миров, предметы - своего мира. В руинах Апалачии ещё всегда кладётся печать святилища.</p>%s' % (qty(a, b), W, tb))
 tb, W, (a, b) = twilight_combined('Подземелья')
 parts.append('<h3>Подземелья островов (и сундуки Мортума)</h3><p class="note">Тянут %s раз (в Мортуме 4-8), сумма весов %d. Кроме этого в каждом подземелье всегда лежит печать святилища мира (кроме Мортума).</p>%s' % (qty(a, b), W, tb))
 
-# Аркана и реликварии
+# Arcana and reliquaries
 parts.append('<h2>Сундуки Арканы и реликварии</h2><p class="note">Открываются ключом, добыча собирается кодом при открытии.</p>')
 for t in TABLES:
     if t['group'] == 'Сундуки Арканы':
@@ -360,19 +360,19 @@ for t in TABLES:
     if t['group'] == 'Реликварии':
         parts.append(section_sampled(t, LANG.get('tile.dre.lockedChest.%s.name' % t['name'].lower(), t['name']).replace('Вайлдвуда', 'Дикого леса')))
 
-# ящики рыбалки
+# fishing crates
 parts.append('<h2>Ящики рыбалки</h2><p class="note">Ящик даёт 4-7 вещей из необычного (3 из 4) и редкого (1 из 4) улова своей зоны, в 1 ящике из 8 - ещё одну очень редкую, всегда одну обычную рыбу, '
              'в половине ящиков - 2-4 приманки Арканы; в сумеречных мирах ещё 2% оружие или инструмент мира и 0.5% часть брони. Вес - внутри своей группы улова (общие таблицы улова и ящика). '
              'Шахтёрские ящики (пещеры по ярусам высоты поплавка и лава) - 5-8 стопок руды блоками своего яруса, в пещерах в 1 из 8 ещё алмаз, изумруд или рупий.</p>')
 for t in TABLES:
     if t['group'] == 'Рыболовные ящики':
         z = t['name']
-        if z.startswith('CAVE_'):  # шахтёрские ящики пещер по ярусам
+        if z.startswith('CAVE_'):  # miner's cave crates by tier
             parts.append(section_sampled(t, LANG.get('item.dre.crate.mine_%s.name' % z[5:].lower(), z), zone='CAVE'))
         else:
             parts.append(section_sampled(t, 'Ящик: ' + LANG.get('dre.zone.%s' % z.lower(), z).replace('Вайлдвуд', 'Дикий лес'), zone=z))
 
-# ------------------------------------------------------------------ предложение: шахтёрская рыбалка
+# ------------------------------------------------------------------ proposal: miner's fishing
 def ore(domain, tex, name):
     return {'id': '%s:%s' % (domain, tex), 'meta': 0, 'icon': '%s:%s' % (domain, tex), 'block': True, 'unloc': '', 'en': name}
 

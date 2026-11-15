@@ -5,19 +5,19 @@ import net.minecraft.client.model.ModelBiped;
 import net.minecraft.client.model.ModelRenderer;
 import net.minecraft.entity.Entity;
 
-/** Модели пасхалок: костюм и монтировка - детальные меши ({@link EasterMesh}), диван и граната - коробки (текстуры - ~/mc/tools/easter_tex.py). */
+/** Easter egg models: the suit and the crowbar are detailed meshes ({@link EasterMesh}), the sofa and the grenade are boxes (textures - ~/mc/tools/easter_tex.py). */
 public final class EasterModels {
 
     private EasterModels() {}
 
     /**
-     * Костюм H.E.V. из детальной модели ({@link EasterMesh}, ~/mc/tools/hev_model.py): поза - как у брони игрока (кости
-     * ModelBiped), на каждой кости - свои детали надетой части: шлем или очки, торс с руками, поножи с поясом, ботинки.
+     * The H.E.V. suit from a detailed model ({@link EasterMesh}, ~/mc/tools/hev_model.py): the pose is like the player's armor (ModelBiped
+     * bones), on each bone are the details of the worn part: helmet or goggles, torso with arms, leggings with a belt, boots.
      */
     public static class HevArmor extends ModelBiped {
 
         public static final EasterMesh MESH = new EasterMesh("hev");
-        /** Какая часть рисуется в этот проход брони: helmet, goggles, chest, legs, boots. */
+        /** Which part is drawn in this armor pass: helmet, goggles, chest, legs, boots. */
         public String piece = "chest";
 
         public HevArmor() {
@@ -45,8 +45,8 @@ public final class EasterModels {
     }
 
     /**
-     * Диван (текстура 128x64: бархат в строке 0, тёмное дерево ножек в строке 28). Два блока в ширину по X, спинка сзади
-     * (+Z), сидящий смотрит в -Z. Низ - y=24. РПГ-7 на подушках - отдельный меш ({@link EasterClient.SofaRenderer}).
+     * The sofa (128x64 texture: velvet in row 0, dark wood of the legs in row 28). Two blocks wide along X, the back behind
+     * (+Z), the sitter faces -Z. The bottom is y=24. The RPG-7 on the cushions is a separate mesh ({@link EasterClient.SofaRenderer}).
      */
     public static class Sofa extends ModelBase {
 
@@ -56,13 +56,13 @@ public final class EasterModels {
             textureWidth = 128;
             textureHeight = 64;
             frame = new ModelRenderer(this, 0, 0);
-            frame.addBox(-16F, 15F, -7F, 32, 6, 14);            // основание
-            add(frame, 0, 0, -13F, 12F, -7F, 13, 3, 11);      // подушки сиденья
+            frame.addBox(-16F, 15F, -7F, 32, 6, 14);            // base
+            add(frame, 0, 0, -13F, 12F, -7F, 13, 3, 11);      // seat cushions
             add(frame, 0, 0, 0F, 12F, -7F, 13, 3, 11);
-            add(frame, 0, 0, -16F, 2F, 4F, 32, 13, 4);         // спинка
-            add(frame, 0, 0, -13F, 4F, 2F, 13, 8, 2);          // подушки спинки
+            add(frame, 0, 0, -16F, 2F, 4F, 32, 13, 4);         // back
+            add(frame, 0, 0, -13F, 4F, 2F, 13, 8, 2);          // back cushions
             add(frame, 0, 0, 0F, 4F, 2F, 13, 8, 2);
-            add(frame, 0, 0, -16F, 8F, -7F, 3, 7, 15);         // подлокотники
+            add(frame, 0, 0, -16F, 8F, -7F, 3, 7, 15);         // armrests
             add(frame, 0, 0, 13F, 8F, -7F, 3, 7, 15);
             for (float[] l : new float[][] { { -15, -6 }, { 13, -6 }, { -15, 4 }, { 13, 4 } }) add(frame, 0, 28, l[0], 21F, l[1], 2, 3, 2);
         }

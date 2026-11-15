@@ -5,20 +5,20 @@ import net.minecraft.item.Item;
 import com.divinerpgextended.perk.Perk;
 
 /**
- * Венец брони Странника R8 (за Леди Луну): одно свойство на выбор. Выбирается донорским сетом, который раньше давал это
- * свойство перком: Ангельский - полёт, Вемос - восстановление, Корма - поток арканы. С 0.99.114 эти три перка больше не ставятся
- * в малые слоты, только Венцом. У каждого Венца свой облик R8 ({@link ItemWandererArmor#look}).
+ * Wanderer armor Crown R8 (for Lady Luna): one property of your choice. It is chosen by the donor set that used to give this
+ * property as a perk: Angelic - flight, Vemos - regeneration, Korma - Arcana Flow. Since 0.99.114 these three perks are no longer placed
+ * in the small slots, only by the Crown. Each Crown has its own R8 look ({@link ItemWandererArmor#look}).
  */
 public enum ArmorCrown {
 
-    /** Полёт как в творческом, без ограничений (кроме самой Ветеи). Облик - Призрак. */
+    /** Flight as in creative, without limits (except Vethea itself). Look - Wraith. */
     FLIGHT(Perk.ANGEL_FLIGHT),
-    /** Восстановление здоровья. Облик - Лунная. */
+    /** Health regeneration. Look - Lunar. */
     REGEN(Perk.REGENERATION),
-    /** Поток арканы: аркана восстанавливается быстрее, арканный урон x2. Облик - Сновидец. */
+    /** Arcana Flow: arcana regenerates faster, arcane damage x2. Look - Dreamer. */
     ARCANA(Perk.ARCANA_FLOW);
 
-    /** Перк, чьё действие даёт Венец. */
+    /** The perk whose effect the Crown gives. */
     public final Perk perk;
 
     ArmorCrown(Perk perk) {
@@ -34,7 +34,7 @@ public enum ArmorCrown {
         return null;
     }
 
-    /** Венец по донорскому сету [шлем, нагрудник, поножи, ботинки] или null. */
+    /** The Crown by donor set [helmet, chestplate, leggings, boots] or null. */
     public static ArmorCrown ofSet(Item[] donor) {
         Perk p = Perk.byDonor(donor);
         return p == null ? null : of(p);

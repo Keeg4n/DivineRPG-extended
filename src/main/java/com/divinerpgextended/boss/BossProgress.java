@@ -4,8 +4,8 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 
 /**
- * Какие боссы убиты игроком. Хранится в "постоянных" данных игрока (PlayerPersisted), которые Forge
- * переносит после смерти.
+ * Which bosses the player has killed. Stored in the player's "persisted" data (PlayerPersisted), which Forge
+ * carries over after death.
  */
 public final class BossProgress {
 
@@ -29,18 +29,18 @@ public final class BossProgress {
         return (mask(player) & boss.bit()) != 0;
     }
 
-    /** @return true, если босс засчитан впервые */
+    /** @return true if the boss was counted for the first time */
     public static boolean grant(EntityPlayer player, Boss boss) {
         int m = mask(player);
         if ((m & boss.bit()) != 0) return false;
         persisted(player).setInteger(KEY, m | boss.bit());
-        com.divinerpgextended.debug.Debug.note(player, "Босс засчитан: " + boss.name().toLowerCase());
+        com.divinerpgextended.debug.Debug.note(player, "Boss counted: " + boss.name().toLowerCase());
         return true;
     }
 
-    /** Снять отметку (для команды /dreboss). */
+    /** Remove the mark (for the /dreboss command). */
     public static void revoke(EntityPlayer player, Boss boss) {
         persisted(player).setInteger(KEY, mask(player) & ~boss.bit());
-        com.divinerpgextended.debug.Debug.note(player, "Босс снят: " + boss.name().toLowerCase());
+        com.divinerpgextended.debug.Debug.note(player, "Boss removed: " + boss.name().toLowerCase());
     }
 }

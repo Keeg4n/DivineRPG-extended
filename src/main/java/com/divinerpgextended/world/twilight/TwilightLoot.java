@@ -11,9 +11,9 @@ import com.divinerpgextended.item.ItemLairMap;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Сундуки построек сумеречных миров. Руины - то, что нужно на месте: души и осколки мира (Зов кадиллиона, карты),
- * камни мира, еда, изредка сам Зов и карта к логову. Подземелья в островах богаче: больше камней и душ, куски мира,
- * золотые яблоки, алмазы.
+ * Chests of twilight dimension structures. Ruins - what is needed on the spot: souls and shards of the world (Call of the Cadillion, maps),
+ * world stones, food, occasionally the Call itself and a map to the lair. Dungeons in islands are richer: more stones and souls, world pieces,
+ * golden apples, diamonds.
  */
 public final class TwilightLoot {
 
@@ -37,7 +37,7 @@ public final class TwilightLoot {
         }
     }
 
-    /** Карта к логову этого мира: гнездо или Демонический круг. */
+    /** The map to the lair of this world: a nest or the Demonic Circle. */
     private static WeightedRandomChestContent map(TwilightWorld w, int weight) {
         return e(ModItems.lairMap, w == TwilightWorld.MORTUM ? ItemLairMap.CIRCLE : ItemLairMap.NEST, 1, 1, weight);
     }

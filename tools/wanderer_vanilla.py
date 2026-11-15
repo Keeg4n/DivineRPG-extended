@@ -1,12 +1,12 @@
-"""Облики брони Странника как обычная броня Minecraft: две текстуры 64x32 на ступень (layer_1 - шлем, нагрудник, ботинки;
-layer_2 - поножи) для стандартной модели брони (ModelBiped 1.0 и 0.5) + превью персонажа в этой броне.
+"""Wanderer armor looks as regular Minecraft armor: two 64x32 textures per tier (layer_1 - helmet, chestplate, boots;
+layer_2 - leggings) for the standard armor model (ModelBiped 1.0 and 0.5) + a preview of the character in this armor.
 
-Текстура "запекается" с 3D-облика (tools/wanderer_armor.py): для каждого пикселя оболочки брони луч идёт снаружи внутрь по
-нормали грани и берёт цвет первой детали облика той же кости и части (4x4 луча на пиксель, усреднение; пиксель
-прозрачен, если покрыт меньше чем наполовину). Выступающие детали (рога, нимб, крылья) ложатся на грань проекцией.
-Раскладка UV - как у ModelBox (порядок вершин граней meshkit совпадает с TexturedQuad).
+The texture is "baked" from the 3D look (tools/wanderer_armor.py): for each pixel of the armor shell a ray goes from the outside in along
+the face normal and takes the color of the first part of the look with the same bone and piece (4x4 rays per pixel, averaged; the pixel is
+transparent if less than half is covered). Protruding details (horns, halo, wings) land on the face by projection.
+UV layout as in ModelBox (the vertex order of meshkit faces matches TexturedQuad).
 
-Запуск: python3 tools/wanderer_vanilla.py [ступень ...]. Пишет в tools/concepts/wanderer_concepts/vanilla.
+Run: python3 tools/wanderer_vanilla.py [tier ...]. Writes to tools/concepts/wanderer_concepts/vanilla.
 """
 import math
 import os
@@ -24,9 +24,9 @@ import wconcepts as w  # noqa: E402
 from wanderer_armor import TIERS, slot  # noqa: E402
 
 OUT = os.path.join(HERE, 'concepts', 'wanderer_concepts', 'vanilla')
-SS = 4  # лучей на пиксель по каждой оси
+SS = 4  # rays per pixel along each axis
 
-# (слой, кость, часть брони, смещение текстуры, размеры w h d, угол коробки ModelBiped, раздутие)
+# (layer, bone, armor part, texture offset, sizes w h d, ModelBiped box angle, inflation)
 REGIONS = [
     (1, 'head', 'helmet', (0, 0), (8, 8, 8), (-4, -8, -4), 1.0),
     (1, 'body', 'chest', (16, 16), (8, 12, 4), (-4, 0, -2), 1.0),
@@ -38,7 +38,7 @@ REGIONS = [
 
 
 def uv_rect(face, u, v, w_, h, d):
-    """Прямоугольник грани в текстуре (u1, v1, u2, v2) - как в ModelBox."""
+    """Face rectangle in the texture (u1, v1, u2, v2) - as in ModelBox."""
     return {
         'east': (u + d + w_, v + d, u + d + w_ + d, v + d + h),
         'west': (u, v + d, u + d, v + d + h),
@@ -50,7 +50,7 @@ def uv_rect(face, u, v, w_, h, d):
 
 
 def face_verts(size):
-    """Грани коробки размера size в её координатах: имя -> (verts(4,3), нормаль)."""
+    """Faces of a box of size size in its coordinates: name -> (verts(4,3), normal)."""
     b = mk.Box('x', 'body', 0, 0, 0, *size, None)
     return {n: (np.array(v, float), np.array(nn, float)) for n, v, nn, _ in b.faces()}
 
@@ -59,8 +59,8 @@ ENTER = {(0, True): 'west', (0, False): 'east', (1, True): 'up', (1, False): 'do
 
 
 def cast(model, boxes, O, D, tlim=np.inf):
-    """Первое попадание лучей O + t*D (координаты кости) в коробки облика не дальше tlim: цвета RGBA (N,4) и признак
-    попадания. tlim - поверхность тела под бронёй: глубже луч прошёл бы в вырез капюшона и взял его заднюю стенку."""
+    """First hit of rays O + t*D (bone coordinates) on the look's boxes no farther than tlim: RGBA colors (N,4) and a hit
+    flag. tlim is the body surface under the armor: deeper, the ray would pass into the hood cutout and take its back wall."""
     N = len(O)
     best_t = np.full(N, float(tlim))
     col = np.zeros((N, 4))
@@ -106,7 +106,7 @@ def cast(model, boxes, O, D, tlim=np.inf):
             px = (f.x + np.floor(S * f.pw)).astype(int)
             py = (f.y + np.floor(T * f.ph)).astype(int)
             c = model.img[py, px] / 255.0
-            ok = c[:, 3] > 0.1  # дыра в детали - луч идёт дальше
+            ok = c[:, 3] > 0.1  # a hole in the part - the ray goes on
             ii = idx[sel][ok]
             best_t[ii] = tmin[ii]
             col[ii] = np.concatenate([c[ok, :3], np.ones((ok.sum(), 1))], 1)
@@ -137,7 +137,7 @@ def bake(tier):
             cover = col[..., 3].mean(-1)
             rgb = (col[..., :3] * col[..., 3:4]).sum(-2) / np.maximum(col[..., 3:4].sum(-2), 1e-6)
             tex = np.concatenate([rgb, (cover >= 0.5)[..., None].astype(float)], -1)
-            # строки текстуры идут от v1 к v2 (у нижней грани v2 < v1 - переворот)
+            # texture rows go from v1 to v2 (for the bottom face v2 < v1 - flipped)
             if v2 < v1:
                 tex = tex[::-1]
             if u2 < u1:
@@ -147,7 +147,7 @@ def bake(tier):
 
 
 def tex_paint(img, u, v, w_, h, d):
-    """Раскраска коробки превью из текстуры брони (ближайший пиксель, как в игре); отражённые коробки - отражённой текстурой."""
+    """Painting of the preview box from the armor texture (nearest pixel, as in the game); mirrored boxes use the mirrored texture."""
     def paint(p, face, box):
         name = face.name
         P0, P1, P2, _ = face_verts(box.size)[name][0]

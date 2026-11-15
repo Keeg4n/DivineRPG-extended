@@ -29,25 +29,25 @@ import cpw.mods.fml.common.eventhandler.Event;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Факелы отгоняют монстров Divine своего мира: в {@link Config#divineTorchRadius} блоках от факела монстры Divine сами не
- * появляются (спавнеры, призыв и боссы не затронуты).
+ * Torches repel Divine monsters of their own world: within {@link Config#divineTorchRadius} blocks of a torch, Divine monsters do not
+ * spawn on their own (spawners, summons and bosses are not affected).
  * <ul>
- * <li>скелетный (костяной) факел - в обычном мире все монстры Divine; водный - в обычном мире те, что появляются в воде;</li>
- * <li>факел Эдема (Divine и аддона), Дикого леса, Апалачии, Скайтерна, Мортума - в своём сумеречном мире;</li>
- * <li>арканиевый факел - в Аркане; адский факел аддона (из стержня ифрита) - в Аду.</li>
+ * <li>skeleton (bone) torch - in the Overworld all Divine monsters; water torch - in the Overworld those that spawn in water;</li>
+ * <li>Eden torch (Divine and addon), Wildwood, Apalachia, Skythern, Mortum - in their own Twilight world;</li>
+ * <li>Arcanium torch - in Arcana; the addon's Nether torch (from an ifrit rod) - in the Nether.</li>
  * </ul>
- * Факелы учитываются по чанкам - при загрузке чанка, установке и поломке, - а не перебором блоков на каждую попытку спавна.
+ * Torches are tracked per chunk - on chunk load, placement and breaking - rather than by iterating blocks on every spawn attempt.
  */
 public class TorchWards {
 
-    /** Измерение -> чанк -> факелы в нём. */
+    /** Dimension -> chunk -> torches in it. */
     private static final Map<Integer, Map<Long, Set<Long>>> TORCHES = new HashMap<Integer, Map<Long, Set<Long>>>();
 
     public static boolean isTorch(Block b) {
         return b instanceof net.divinerpg.blocks.base.BlockModTorch || b instanceof BlockWorldTorch;
     }
 
-    /** Измерение, где факел работает (MIN_VALUE - нигде). */
+    /** The dimension where the torch works (MIN_VALUE - nowhere). */
     public static int home(Block b) {
         if (b == VanillaBlocks.skeletonTorch || b == VanillaBlocks.aquaTorch) return 0;
         if (b == TwilightBlocks.edenTorch) return ConfigurationHelper.eden;
@@ -56,7 +56,7 @@ public class TorchWards {
         return Integer.MIN_VALUE;
     }
 
-    /** Гонит ли этот факел этого монстра в точке появления. */
+    /** Whether this torch repels this monster at the spawn point. */
     static boolean wards(Block torch, World w, EntityLivingBase mob, int x, int y, int z) {
         if (home(torch) != w.provider.dimensionId) return false;
         if (torch == VanillaBlocks.aquaTorch) return w.getBlock(x, y, z).getMaterial() == Material.water;
@@ -90,7 +90,7 @@ public class TorchWards {
         if (s != null) s.remove(pos(x, y, z));
     }
 
-    /** Есть ли ближе радиуса факел, который гонит этого моба (по горизонтали круг, по высоте - тот же радиус). */
+    /** Whether there is a torch within the radius that repels this mob (a circle horizontally, the same radius in height). */
     public static boolean warded(World w, EntityLivingBase mob, int x, int y, int z) {
         int r = Config.divineTorchRadius;
         if (r <= 0) return false;
@@ -106,7 +106,7 @@ public class TorchWards {
                 if (dx * dx + dz * dz > r * r || Math.abs(ty - y) > r) continue;
                 Block b = w.getBlock(tx, ty, tz);
                 if (!isTorch(b)) {
-                    it.remove(); // сломан не игроком (вода, взрыв) - забыть
+                    it.remove(); // broken not by a player (water, explosion) - forget it
                     continue;
                 }
                 if (wards(b, w, mob, x, y, z)) return true;

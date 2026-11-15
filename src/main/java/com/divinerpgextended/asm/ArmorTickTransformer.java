@@ -13,18 +13,18 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 /**
- * Тик надетой брони (Forge зовёт Item.onArmorTick из InventoryPlayer.decrementAnimations) идёт через
- * {@link com.divinerpgextended.vethea.Nightmare#armorTick}: во сне до прохождения чужая броня не тикает.
+ * The tick of worn armor (Forge calls Item.onArmorTick from InventoryPlayer.decrementAnimations) goes through
+ * {@link com.divinerpgextended.vethea.Nightmare#armorTick}: in the dream before completion another's armor does not tick.
  * <p>
- * Класс Minecraft: на этом шаге имена в нём могут быть ещё обфусцированными. onArmorTick добавлен Forge и зовётся так
- * всегда, а описание хука собирается из описания самого вызова (владелец + аргументы) - после переименования типы
- * совпадут с настоящими.
+ * A Minecraft class: at this step the names in it may still be obfuscated. onArmorTick is added by Forge and is always called that,
+ * and the hook descriptor is built from the descriptor of the call itself (owner + arguments) - after renaming the types
+ * will match the real ones.
  */
 public class ArmorTickTransformer implements IClassTransformer, Opcodes {
 
     private static final Logger LOG = LogManager.getLogger("divinerpgextended-core");
     private static final String TARGET = "net.minecraft.entity.player.InventoryPlayer";
-    /** Поправка встала: проверяет самопроверка. */
+    /** The patch is in place: checked by the selftest. */
     public static boolean patched;
 
     @Override
@@ -46,16 +46,16 @@ public class ArmorTickTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (n != 1) {
-                LOG.error("Тик брони во сне: вызовов onArmorTick {} вместо одного, класс без изменений", n);
+                LOG.error("Armor tick in sleep: {} onArmorTick calls instead of one, class unchanged", n);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
             patched = true;
-            LOG.info("Тик брони во сне: чужая броня в Ветее не тикает до прохождения");
+            LOG.info("Armor tick in sleep: foreign armor in Vethea does not tick until progression");
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Тик брони во сне: не удалось изменить InventoryPlayer, класс без изменений", t);
+            LOG.error("Armor tick in sleep: could not modify InventoryPlayer, class unchanged", t);
             return bytes;
         }
     }

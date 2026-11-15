@@ -12,10 +12,10 @@ import com.divinerpgextended.registry.ModBlocks;
 import cpw.mods.fml.common.IWorldGenerator;
 
 /**
- * Облачные острова Небесного терна: плоский облачный остров-эллипс в небе (в середине толще), посередине пруд с водой мира в
- * облачной чаше. Рыбалка в таком пруду - своя зона ({@link com.divinerpgextended.fishing.Zone#CLOUD}): облачные плавники и
- * облачная медуза для заданий Леорны. Висит в пустом небе, строится внутри области заселения; в среднем один на
- * {@link Config#cloudIslandRarity} чанков.
+ * Cloud islands of Skythern: a flat elliptical cloud island in the sky (thicker in the middle), in the middle a pond with world water in a
+ * cloud bowl. Fishing in such a pond is its own zone ({@link com.divinerpgextended.fishing.Zone#CLOUD}): Cloudfin and
+ * Cloud Jelly for Leorna's quests. It hangs in empty sky, is built inside the population area; on average one per
+ * {@link Config#cloudIslandRarity} chunks.
  */
 public class CloudIslands implements IWorldGenerator {
 
@@ -36,23 +36,23 @@ public class CloudIslands implements IWorldGenerator {
         }
     }
 
-    /** Небо вокруг острова пусто. */
+    /** The sky around the island is empty. */
     public static boolean free(World w, int x, int y, int z, int rx, int rz) {
         for (int dx = -rx - 1; dx <= rx + 1; dx++) for (int dz = -rz - 1; dz <= rz + 1; dz++) for (int dy = -4; dy <= 3; dy++)
             if (!w.isAirBlock(x + dx, y + dy, z + dz)) return false;
         return true;
     }
 
-    /** Построить: середина (x, z), верх облака на y, полуоси rx, rz. Сколько блоков воды в пруду. */
+    /** Build: middle (x, z), top of the cloud at y, semi-axes rx, rz. How many blocks of water are in the pond. */
     public static int build(World w, int x, int y, int z, int rx, int rz) {
         int water = 0;
         for (int dx = -rx; dx <= rx; dx++) for (int dz = -rz; dz <= rz; dz++) {
             double d = (double) dx * dx / (rx * rx) + (double) dz * dz / (rz * rz);
             if (d > 1.0) continue;
-            int thick = 1 + (int) Math.round(2.4 * (1 - d)); // в середине толще
+            int thick = 1 + (int) Math.round(2.4 * (1 - d)); // thicker in the middle
             for (int dy = 0; dy < thick; dy++) w.setBlock(x + dx, y - dy, z + dz, ModBlocks.cloud, 0, 2);
             double p = (double) dx * dx / ((rx - 2) * (rx - 2)) + (double) dz * dz / ((rz - 2) * (rz - 2));
-            if (p <= 1.0) { // пруд: вода в облачной чаше, в середине глубже
+            if (p <= 1.0) { // pond: water in the cloud bowl, deeper in the middle
                 int depth = p < 0.35 && thick >= 3 ? 2 : 1;
                 for (int dy = 0; dy < depth; dy++) {
                     w.setBlock(x + dx, y - dy, z + dz, Blocks.water, 0, 2);

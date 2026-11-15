@@ -1,22 +1,22 @@
 package com.divinerpgextended.asm;
 
-/** Вызовы из EntityRenderer ({@link CameraTransformer}): сама работа - в клиентском классе мода. */
+/** Calls from EntityRenderer ({@link CameraTransformer}): the work itself is in the mod's client class. */
 public class CameraHooks {
 
     private static boolean broken;
 
-    /** Начало orientCamera: крен вида в вагонетке Апалачии. */
+    /** Start of orientCamera: roll of the view in the Apalachia Cart. */
     public static void orient(float partialTicks) {
         if (broken) return;
         try {
             com.divinerpgextended.client.CameraTilt.apply(partialTicks);
         } catch (Throwable t) {
-            broken = true; // не сыпать ошибками каждый кадр
-            org.apache.logging.log4j.LogManager.getLogger("divinerpgextended-core").error("Камера вагонетки: ошибка, наклон выключен", t);
+            broken = true; // do not spam errors every frame
+            org.apache.logging.log4j.LogManager.getLogger("divinerpgextended-core").error("Minecart camera: error, tilt disabled", t);
         }
     }
 
-    /** Вместо player.setAngles(dx, dy) в updateCameraAndRender: в вагонетке мышь - в осях наклонённого экрана. */
+    /** Instead of player.setAngles(dx, dy) in updateCameraAndRender: in the cart the mouse is in the axes of the tilted screen. */
     public static void angles(Object player, float dx, float dy) {
         net.minecraft.entity.Entity e = (net.minecraft.entity.Entity) player;
         if (broken) {
@@ -27,7 +27,7 @@ public class CameraHooks {
             com.divinerpgextended.client.CameraTilt.angles(e, dx, dy);
         } catch (Throwable t) {
             broken = true;
-            org.apache.logging.log4j.LogManager.getLogger("divinerpgextended-core").error("Камера вагонетки: ошибка, наклон выключен", t);
+            org.apache.logging.log4j.LogManager.getLogger("divinerpgextended-core").error("Minecart camera: error, tilt disabled", t);
             e.setAngles(dx, dy);
         }
     }

@@ -20,7 +20,7 @@ import com.divinerpgextended.block.BlockFrostIce;
 import com.divinerpgextended.cold.ColdHandler;
 import com.divinerpgextended.registry.ModBlocks;
 
-/** Общие способности боссов Ледяного Трона (Колосс с Королём-личом и сам Король-лич). */
+/** Shared abilities of the Frozen Throne bosses (the Colossus with the Lich King and the Lich King himself). */
 public final class FrostPowers {
 
     private FrostPowers() {}
@@ -39,8 +39,8 @@ public final class FrostPowers {
     }
 
     /**
-     * Воющий буран: конус ледяного ветра (60 градусов, 16 блоков) в сторону цели. Всем в конусе +30% холода и
-     * замедление.
+     * Howling Blizzard: a cone of icy wind (60 degrees, 16 blocks) toward the target. Everyone in the cone gets +30% cold and
+     * slowness.
      */
     public static void howlingBlast(EntityLiving caster, EntityLivingBase target, double fromY) {
         double dx = target.posX - caster.posX, dz = target.posZ - caster.posZ, len = Math.sqrt(dx * dx + dz * dz);
@@ -62,7 +62,7 @@ public final class FrostPowers {
         tell(caster, "dre.chat.howling_blast");
     }
 
-    /** Ледяная тюрьма: клетка из крепкого льда вокруг игрока, тает сама за 8 секунд. */
+    /** Ice prison: a cage of solid ice around the player, melts on its own in 8 seconds. */
     public static void icePrison(EntityPlayer p) {
         World w = p.worldObj;
         int x = MathHelper.floor_double(p.posX), y = MathHelper.floor_double(p.posY), z = MathHelper.floor_double(p.posZ);
@@ -74,7 +74,7 @@ public final class FrostPowers {
         p.addChatMessage(new ChatComponentTranslation("dre.chat.ice_prison"));
     }
 
-    /** Поднимает мертвецов Iceika: лучников и ролумов, не больше max рядом. */
+    /** Raises the dead of Iceika: archers and Rollums, no more than max nearby. */
     public static void raiseDead(EntityLiving boss, int count, int max) {
         World w = boss.worldObj;
         AxisAlignedBB box = boss.boundingBox.expand(30, 12, 30);
@@ -98,7 +98,7 @@ public final class FrostPowers {
         w.playSoundAtEntity(boss, "mob.zombie.unfect", 2.0F, 0.5F);
     }
 
-    /** Гасит ближайшую зажжённую жаровню в радиусе r. */
+    /** Puts out the nearest lit brazier within radius r. */
     public static boolean extinguishBrazier(EntityLiving boss, int r) {
         World w = boss.worldObj;
         int bx = MathHelper.floor_double(boss.posX), by = MathHelper.floor_double(boss.posY),
@@ -106,7 +106,7 @@ public final class FrostPowers {
         int[] best = null;
         double bestD = Double.MAX_VALUE;
         for (int x = bx - r; x <= bx + r; x++) for (int z = bz - r; z <= bz + r; z++) {
-            if (!w.blockExists(x, by, z)) continue; // выгруженный край - не грузим
+            if (!w.blockExists(x, by, z)) continue; // unloaded edge - we do not load it
             for (int y = by - 3; y <= by + 6; y++) {
                 if (w.getBlock(x, y, z) != ModBlocks.brazier || !BlockBrazier.isLit(w, x, y, z)) continue;
                 double d = (x - bx) * (x - bx) + (z - bz) * (z - bz);

@@ -8,7 +8,7 @@ import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 
-/** /dreweather rain|quake start|stop - для проверки: начать (через предупреждение) или прекратить ливень в Диком лесу, камнепад в Апалачии. */
+/** /dreweather rain|quake start|stop - for testing: start (through the warning) or stop the downpour in Wildwood, the rockfall in Apalachia. */
 public class CommandWorldWeather extends CommandBase {
 
     @Override
@@ -36,7 +36,7 @@ public class CommandWorldWeather extends CommandBase {
             return;
         }
         WorldWeather b = WorldWeather.get(w);
-        b.phase = "start".equals(args[1]) ? WorldWeather.CALM : WorldWeather.ACTIVE; // на следующей секунде - предупреждение или конец
+        b.phase = "start".equals(args[1]) ? WorldWeather.CALM : WorldWeather.ACTIVE; // on the next second - the warning or the end
         b.timer = 20;
         b.markDirty();
         sender.addChatMessage(new ChatComponentTranslation("dre.command.blizzard.ok"));

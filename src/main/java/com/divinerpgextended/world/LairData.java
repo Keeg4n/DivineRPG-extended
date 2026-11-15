@@ -8,13 +8,13 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldSavedData;
 
-/** Где мод построил логова боссов: сохраняется вместе с миром, нужно для карт логов. */
+/** Where the mod built boss lairs: saved with the world, needed for lair maps. */
 public class LairData extends WorldSavedData {
 
     public static final String NAME = "divinerpgextended_lairs";
     public static final int CARCINUS = 0, SNOW = 1, THRONE = 2, TOMB = 3;
 
-    /** [тип, x, y, z] */
+    /** [type, x, y, z] */
     private final List<int[]> lairs = new ArrayList<int[]>();
 
     public LairData(String name) {
@@ -35,20 +35,20 @@ public class LairData extends WorldSavedData {
         markDirty();
     }
 
-    /** Место логова из сида, где построить не удалось (рельеф не подошёл): тип + FAILED. */
+    /** A lair site from the seed where building failed (the terrain did not fit): type + FAILED. */
     public static final int FAILED = 100;
 
     public void fail(int type, int x, int z) {
         add(type + FAILED, x, 0, z);
     }
 
-    /** Есть ли запись этого типа ближе r блоков. */
+    /** Whether there is an entry of this type closer than r blocks. */
     public boolean near(int type, int x, int z, int r) {
         for (int[] l : lairs) if (l[0] == type && (long) (l[1] - x) * (l[1] - x) + (long) (l[3] - z) * (l[3] - z) <= (long) r * r) return true;
         return false;
     }
 
-    /** Убрать записи этого типа ближе r блоков (для автотеста); вернуть - {@link #add}. */
+    /** Remove entries of this type closer than r blocks (for the selftest); put back - {@link #add}. */
     public java.util.List<int[]> forget(int type, int x, int z, int r) {
         java.util.List<int[]> gone = new java.util.ArrayList<int[]>();
         for (java.util.Iterator<int[]> it = lairs.iterator(); it.hasNext();) {
@@ -62,14 +62,14 @@ public class LairData extends WorldSavedData {
         return gone;
     }
 
-    /** Все записи этого типа. */
+    /** All entries of this type. */
     public java.util.List<int[]> all(int type) {
         java.util.List<int[]> out = new java.util.ArrayList<int[]>();
         for (int[] l : lairs) if (l[0] == type) out.add(l);
         return out;
     }
 
-    /** Ближайшее логово этого типа или null. */
+    /** The nearest lair of this type or null. */
     public int[] nearest(int type, double px, double pz) {
         int[] best = null;
         double bestD = Double.MAX_VALUE;

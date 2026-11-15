@@ -18,9 +18,9 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Костюм H.E.V. не только на игроке: стойки для брони (BiblioCraft берёт у вещи её модель брони напрямую) и мобы в броне
- * спрашивают модель и текстуру брони у вещи - {@code Item.getArmorModel} и {@code ForgeHooksClient.getArmorTexture}. В начало
- * обоих - вызов {@link EasterHooks} с тем же описанием: вернул не null - это и ответ, иначе всё как было.
+ * The H.E.V. suit is not only on the player: armor stands (BiblioCraft takes the armor model directly from the item) and mobs in armor
+ * ask the item for the armor model and texture - {@code Item.getArmorModel} and {@code ForgeHooksClient.getArmorTexture}. At the start of
+ * both - a call to {@link EasterHooks} with the same descriptor: if it returns non-null, that is the answer, otherwise everything as before.
  */
 public class EasterArmorTransformer implements IClassTransformer, Opcodes {
 
@@ -48,8 +48,8 @@ public class EasterArmorTransformer implements IClassTransformer, Opcodes {
                 Type[] args = Type.getArgumentTypes(m.desc);
                 if (item ? !("getArmorModel".equals(m.name) && !stat && args.length == 3)
                     : !("getArmorTexture".equals(m.name) && stat && args.length == 5)) continue;
-                // "если хук ответил - вернуть его ответ": хук зовём второй раз, чтобы у метки перехода стек был пуст
-                // (кадр F_SAME, как у остальных правок - классы с таблицей кадров иначе не проходят проверку)
+                // "if the hook answered - return its answer": we call the hook a second time so that the stack is empty at the jump label
+                // (frame F_SAME, like the other patches - classes with a frame table otherwise fail verification)
                 InsnList in = new InsnList();
                 LabelNode keep = new LabelNode();
                 String hook = item ? "armorModel" : "armorTexture";
@@ -67,10 +67,10 @@ public class EasterArmorTransformer implements IClassTransformer, Opcodes {
             if (patched == 0) return bytes;
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Пасхалки: модель и текстура брони H.E.V. через {} ({})", transformedName, patched);
+            LOG.info("Easter eggs: H.E.V. armor model and texture via {} ({})", transformedName, patched);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Пасхалки: не удалось поправить " + transformedName + ", класс без изменений", t);
+            LOG.error("Easter eggs: could not fix " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }

@@ -13,17 +13,17 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 /**
- * Morph, получая форму убитого моба, копирует его модель и удаляет display list её частей через GLAllocation. У моделей,
- * где одна часть записана в несколько полей (Skythern Golem Divine и др.), список удаляется второй раз - GLAllocation
- * падает на NPE, и ошибка в обработке пакета выкидывает игрока из мира. Здесь удаление идёт через {@link MorphHooks}:
- * уже удалённый список пропускается.
+ * Morph, when getting the form of a killed mob, copies its model and deletes the display lists of its parts through GLAllocation. In models
+ * where one part is stored in several fields (Skythern Golem Divine and others), the list is deleted a second time - GLAllocation
+ * fails with an NPE, and the error in packet handling kicks the player out of the world. Here deletion goes through {@link MorphHooks}:
+ * an already deleted list is skipped.
  */
 public class MorphModelTransformer implements IClassTransformer, Opcodes {
 
     static final String CLS = "morph.client.model.ModelHelper";
     private static final String GL = "net/minecraft/client/renderer/GLAllocation";
     private static final Logger LOG = LogManager.getLogger("divinerpgextended-core");
-    /** Исправлено при загрузке (для самопроверки). */
+    /** Fixed on load (for the selftest). */
     public static boolean patched;
 
     @Override
@@ -44,16 +44,16 @@ public class MorphModelTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (n == 0) {
-                LOG.warn("Morph: удаление списков модели не найдено, класс без изменений");
+                LOG.warn("Morph: model list removal not found, class unchanged");
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
             patched = true;
-            LOG.info("Morph: удаление списков модели без вылета ({})", n);
+            LOG.info("Morph: model list removal without a crash ({})", n);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Morph: не удалось исправить, класс без изменений", t);
+            LOG.error("Morph: could not fix, class unchanged", t);
             return bytes;
         }
     }

@@ -18,16 +18,16 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Наведение арканных снарядов игрока.
+ * Homing of the player's arcane projectiles.
  * <ul>
- * <li>Светляк и Массив Мерика у Divine летят к ближайшему существу (любому, хоть к корове) и целятся ему в ноги - уходили в
- * землю. Теперь цель - тот, на кого смотрит игрок, иначе ближний враг ({@link AnchorSummons#foe}), а лететь - в середину
- * тела.</li>
- * <li>Звёзды звёздных посохов падают в точку под прицелом и мимо идущего моба: сползают к ближнему врагу в
- * {@link #STAR_R} блоках от точки падения.</li>
- * <li>Серенада льда: враждебные мобы рядом с местом попадания сразу вмерзают ({@link com.divinerpgextended.perk.FrostBite#freezeNow}).</li>
- * <li>Граната ЛаВекора: у Divine только взрыв без урона по существам рядом; теперь ещё арканный удар {@link #GRENADE_DMG} в
- * {@link #GRENADE_R} блоках.</li>
+ * <li>Glowbug and Merik's Array in Divine fly to the nearest creature (any, even a cow) and aim at its feet - they went into the
+ * ground. Now the target is whoever the player is looking at, otherwise the nearest enemy ({@link AnchorSummons#foe}), and they fly to the middle of the
+ * body.</li>
+ * <li>Stars of the star staffs fall at the point under the aim and miss a walking mob: they slide toward the nearest enemy within
+ * {@link #STAR_R} blocks of the landing point.</li>
+ * <li>Ice Serenade: hostile mobs near the impact point freeze at once ({@link com.divinerpgextended.perk.FrostBite#freezeNow}).</li>
+ * <li>LaVecor Grenade: in Divine only an explosion with no damage to nearby creatures; now also an arcane hit {@link #GRENADE_DMG} within
+ * {@link #GRENADE_R} blocks.</li>
  * </ul>
  */
 public class ArcaneHoming {
@@ -37,7 +37,7 @@ public class ArcaneHoming {
     static final int SEEK = 0, STAR = 1, GRENADE = 2, ICE = 3;
     public static final double ICE_R = 3.5;
 
-    /** {снаряд, хозяин, цель, вид}. */
+    /** {projectile, owner, target, kind}. */
     private static final List<Object[]> LIVE = new ArrayList<Object[]>();
     private static java.lang.reflect.Field seekTarget;
 
@@ -45,7 +45,7 @@ public class ArcaneHoming {
         LIVE.add(new Object[] { new WeakReference<EntityThrowable>(t), owner, target, kind });
     }
 
-    /** Самонаводка Divine: цель - кого видит игрок, иначе ближний враг. preset - уже выбранная (босс Арканы) или null. */
+    /** Divine's homing: the target is whoever the player sees, otherwise the nearest enemy. preset - already chosen (an Arcana boss) or null. */
     public static Entity seeker(EntityThrowable t, EntityPlayer p, Entity preset) {
         Entity aim = preset != null ? preset : lookAt(p);
         if (aim == null) aim = AnchorSummons.foe(p, SEEK_R);
@@ -66,7 +66,7 @@ public class ArcaneHoming {
         track(t, p, null, ICE);
     }
 
-    /** Существо под прицелом игрока (в SEEK_R блоках, не сквозь стены) или null. */
+    /** The creature under the player's aim (within SEEK_R blocks, not through walls) or null. */
     static EntityLivingBase lookAt(EntityPlayer p) {
         Vec3 eye = Vec3.createVectorHelper(p.posX, p.posY + p.getEyeHeight(), p.posZ), look = p.getLookVec();
         Vec3 far = eye.addVector(look.xCoord * SEEK_R, look.yCoord * SEEK_R, look.zCoord * SEEK_R);
@@ -101,7 +101,7 @@ public class ArcaneHoming {
         return e != null && !e.isDead && (!(e instanceof EntityLivingBase) || ((EntityLivingBase) e).getHealth() > 0);
     }
 
-    /** Чужого игрока трогаем только там, где можно PvP; своих призывов - никогда. */
+    /** Another player is touched only where PvP is allowed; one's own summons - never. */
     private static boolean mayHit(EntityPlayer owner, Entity v) {
         return v != owner && !AnchorSummons.own(owner, v) && !(v instanceof EntityPlayer && Protection.spare(owner, v));
     }
@@ -142,7 +142,7 @@ public class ArcaneHoming {
                 t.motionX = dx / len * v;
                 t.motionY = dy / len * v;
                 t.motionZ = dz / len * v;
-            } else { // звезда: падает как падала, а вбок - к цели
+            } else { // star: falls as it fell, and sideways - toward the target
                 double hl = Math.sqrt(dx * dx + dz * dz);
                 if (hl < 0.05) continue;
                 double side = Math.min(0.6, hl * 0.25);
@@ -153,7 +153,7 @@ public class ArcaneHoming {
         }
     }
 
-    /** Ближний враг у места, куда падает звезда (под ней, в STAR_R блоках по горизонтали). */
+    /** The nearest enemy near where the star is falling (under it, within STAR_R blocks horizontally). */
     static EntityLivingBase starFoe(EntityThrowable t, EntityPlayer owner) {
         EntityLivingBase best = null;
         double bd = STAR_R * STAR_R;
@@ -169,7 +169,7 @@ public class ArcaneHoming {
         return best;
     }
 
-    /** Серенада льда попала: враждебные вокруг вмерзают сразу. */
+    /** Ice Serenade hit: hostile ones around freeze at once. */
     static void chill(EntityThrowable t, EntityPlayer owner) {
         long now = t.worldObj.getTotalWorldTime();
         for (Object o : t.worldObj.getEntitiesWithinAABB(EntityLivingBase.class, t.boundingBox.expand(ICE_R, ICE_R, ICE_R))) {
@@ -179,15 +179,15 @@ public class ArcaneHoming {
         }
     }
 
-    /** Граната ЛаВекора взорвалась: арканный удар вокруг. */
+    /** LaVecor Grenade exploded: an arcane hit around. */
     static void burst(EntityThrowable t, EntityPlayer owner) {
         if (owner == null || owner.worldObj != t.worldObj) return;
         float dmg = GRENADE_DMG * ArcanaRules.stage(owner) * ArcanaCombat.crown(owner);
         for (Object o : t.worldObj.getEntitiesWithinAABB(EntityLivingBase.class, t.boundingBox.expand(GRENADE_R, GRENADE_R, GRENADE_R))) {
             EntityLivingBase v = (EntityLivingBase) o;
             if (!v.isEntityAlive() || !mayHit(owner, v) || v.getDistanceToEntity(t) > GRENADE_R + v.width / 2) continue;
-            if (!(v instanceof net.minecraft.entity.monster.IMob) && !(v instanceof EntityPlayer) && Protection.spare(owner, v)) continue; // мирных в привате не трогаем
-            v.hurtResistantTime = 0; // взрыв гранаты только что задел - арканный удар отдельный
+            if (!(v instanceof net.minecraft.entity.monster.IMob) && !(v instanceof EntityPlayer) && Protection.spare(owner, v)) continue; // we do not touch peaceful ones in a claim
+            v.hurtResistantTime = 0; // the grenade explosion has just hit - the arcane hit is separate
             v.attackEntityFrom(ArcanaCombat.arcaneSource(owner, v), dmg);
         }
     }

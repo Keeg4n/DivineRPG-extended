@@ -1,10 +1,10 @@
-"""Аксессуары, часть 2: от торговцев, из сундуков, объединённые, крылья, колчаны, знаки охотника."""
+"""Accessories, part 2: from traders, from chests, combined, wings, quivers, hunter marks."""
 from acc_kit import DISC, ELL, RING, RECT, POLY, LINE, PATH, SYM, DIAMOND, HEART, GEAR, cube, sym_x, icon, tint
 import acc_wear as W
 from acc_pal import *
 from acc_items1 import ITEMS, V, item, K, skull, cords, ring_band
 
-# ------------------------------------------------------------------ от торговцев
+# ------------------------------------------------------------------ from traders
 item('tackle_box', 'Ящик для снастей', 'бедро',
      V('Зелёный ящик', lambda c: (c.f(RECT(1, 5, 14, 14), GRN), c.l(1, 8, 14, 8, GRN[0]), c.f(RECT(6, 7, 9, 10), GOLD), c.f(PATH((5, 5), (5, 2), (10, 2), (10, 5)), IRON)), lambda a, i: W.box_at_hip(a, GRN[2], GRN[0]), 'waist'),
      V('Плетёная корзинка', lambda c: (c.f(POLY((2, 6), (14, 6), (12.5, 15), (3.5, 15)), WOOD), [c.l(x, 6, x, 14, WOOD[1]) for x in (4, 7, 10, 12)], [c.l(3, y, 13, y, WOOD[3]) for y in (8, 11, 13)], c.f(PATH((3, 6), (5, 1), (11, 1), (13, 6)), BRN)), lambda a, i: W.box_at_hip(a, WOOD[2], BRN[2], h=3.0), 'waist'),
@@ -26,7 +26,7 @@ item('warm_scarf', 'Тёплый шарф', 'шея',
      V('Толстый с бахромой', lambda c: (c.f(PATH((1, 4), (14, 4), (12, 12), w=4), GRN), [c.c(RECT(x, 4, x, 7), GOLD[3]) for x in (3, 6, 9)], c.c(LINE(11, 14, 11, 15), GOLD[3]), c.c(LINE(13, 14, 13, 15), GOLD[3])), lambda a, i: W.scarf(a, GRN[2], GOLD[3], fat=True)),
      V('Меховой воротник', lambda c: (c.f(ELL(8, 8, 7.5, 5.5), BONE), [c.d(BONE[0], x, y) for x, y in ((2, 7), (5, 4), (9, 3), (13, 6), (12, 11), (4, 11), (8, 12))], c.f(ELL(8, 8, 3.5, 2), BRN)), lambda a, i: W.scarf(a, BONE[2], BONE[3], tail=False, fat=True, fur=BONE[3])))
 
-# ------------------------------------------------------------------ из сундуков и с мобов
+# ------------------------------------------------------------------ from chests and mobs
 item('deep_shell', 'Ракушка глубин', 'голова',
      V('Трубач у виска', lambda c: (c.f(POLY((1, 14), (4, 5), (10, 1), (15, 4), (14, 10), (8, 14)), PINK), c.c(PATH((11, 3), (12, 7), (9, 10), (6, 9), (7, 6), (9, 6)), PINK[0]), c.d(PINK[4], 6, 4, 9, 2), c.d(WHITE[4], 2, 13, 3, 12)), lambda a, i: W.side_head(a, i, 'R', -4, .32), 'head'),
      V('Гребешок с жемчужиной', lambda c: (c.f(POLY((8, 15), (1, 7), (2, 3), (5, 1), (11, 1), (14, 3), (15, 7)), TEAL), [c.l(8, 14, x, 2, TEAL[0]) for x in (3, 6, 10, 13)], c.f(DISC(8, 11.5, 1.9), WHITE)), lambda a, i: W.on_head(a, i, 0, -6.4, .3), 'head'),
@@ -36,7 +36,7 @@ item('dungeon_lamp', 'Лампа подземелий', 'голова',
      V('Фонарь на поясе', lambda c: (c.f(RECT(5, 5, 10, 13), MAG), c.c(RECT(7, 7, 8, 11), WHITE[4]), c.f(RECT(4, 3, 11, 4), GOLD), c.f(RECT(4, 13, 11, 15), GOLD), c.f(PATH((6, 3), (8, 0), (10, 3)), GOLD)), lambda a, i: W.lantern(a, GOLD[2], MAG[3]), 'waist'),
      V('Шар на цепочке', lambda c: (c.l(8, 0, 8, 3, SILV[2]), c.f(DISC(8, 9, 6), PUR), c.f(DISC(8, 9, 3), MAG), c.d(WHITE[4], 5, 6, 8, 9), c.f(RECT(6, 3, 9, 4), SILV)), lambda a, i: W.float_at(a, i, (-8.5, -4, -2), .36), 'chest'))
 
-# ------------------------------------------------------------------ объединённые
+# ------------------------------------------------------------------ combined
 item('heart_of_winter', 'Сердце зимы', 'шея и грудь',
      V('Сердце-льдина', lambda c: (c.f(HEART(8, 7.5, 7), ICE), c.l(5, 3, 7, 9, WHITE[3]), c.l(7, 9, 11, 7, WHITE[3]), c.d(WHITE[4], 4, 4, 5, 3)), lambda a, i: W.scarf(a, ICE[2], WHITE[3]) + W.pin(a, i, 1.9, 4, .28)),
      V('Снежинка в сердце', lambda c: (c.f(HEART(8, 7.5, 7), LAP), c.l(8, 3, 8, 12, WHITE[4]), c.l(4, 7, 12, 7, WHITE[4]), c.l(5, 4, 11, 10, ICE[3]), c.l(11, 4, 5, 10, ICE[3])), lambda a, i: W.pendant(a, i, ICE[2], px=.32) + W.scarf(a, LAP[2], WHITE[3], tail=False)),
@@ -46,7 +46,7 @@ item('tide_armor', 'Доспех прилива', 'голова и спина',
      V('Жемчужные створки', lambda c: (c.f(ELL(8, 8, 7.5, 7), TEAL), [c.l(8, 8, x, y, TEAL[0]) for x, y in ((2, 3), (8, 1), (14, 3), (1, 9), (14, 9))], c.f(DISC(8, 9, 2.8), WHITE), c.d(TEAL[4], 4, 4)), lambda a, i: W.plate_back(a, i, .6) + W.side_head(a, i, 'R', -4, .22), 'up', 'back'),
      V('Кораллы и шипы', lambda c: (c.f(ELL(8, 10, 7, 5), ORG), c.f(PATH((3, 7), (3, 2)), PINK), c.f(PATH((8, 6), (8, 1), (6, 3)), PINK), c.f(PATH((13, 7), (13, 2), (11, 4)), PINK), c.d(PINK[4], 3, 1, 8, 0, 13, 1), c.l(4, 11, 12, 11, ORG[0])), lambda a, i: W.plate_back(a, i, .62, 3.5) + W.pauldron(a, ORG[2], PINK[3]), 'up', 'back'))
 
-# ------------------------------------------------------------------ движение
+# ------------------------------------------------------------------ movement
 RB = [RED[2], ORG[3], GOLD[3], GRN[3], CYAN[3], PUR[3]]
 item('ayeraco_wing', 'Крыло Айрако', 'сапоги',
      V('Радужное крылышко', lambda c: ([c.f(POLY((0, 8 + k), (15 - k * 2, 1 + k * 2), (13 - k * 2, 4 + k * 2), (0, 11 + k)), [RB[k]]) for k in range(5, -1, -1)]), lambda a, i: W.boot_wing(a, i), 'feet'),
@@ -98,7 +98,7 @@ for key, name, ramp, acc in (('dream_wings_1', 'Крылья сновидца', 
          V('Перья', lambda c, r=ramp, a_=acc: feathers(c, r, a_), lambda a, i: W.wings(a, W.halfwing(i), 1.05, 3, 18), 'up', 'back'),
          V('Перепонки', lambda c, r=ramp, a_=acc: membrane(c, r, a_), lambda a, i: W.wings(a, W.halfwing(i), 1.05, 3, 34), 'up', 'back'))
 
-# ------------------------------------------------------------------ колчаны
+# ------------------------------------------------------------------ quivers
 item('endless_quiver', 'Бездонный колчан', 'спина',
      V('Кожаный', lambda c: (c.f(LINE(2, 13, 10, 5, 4), BRN), c.f(LINE(9, 5, 10, 4, 4), GOLD), [c.l(x, y, x + 3, y - 3, WOOD[3]) for x, y in ((10, 3), (12, 5))], c.d(WHITE[4], 13, 0, 14, 1, 15, 2, 15, 3)), lambda a, i: W.quiver(a, BRN[2], GOLD[2], WHITE[3]), 'up', 'back'),
      V('Светящиеся стрелы', lambda c: (c.f(LINE(2, 13, 10, 5, 4), LAP), c.f(LINE(9, 5, 10, 4, 4), SILV), [c.l(x, y, x + 3, y - 3, CYAN[3]) for x, y in ((10, 3), (12, 5))], c.d(WHITE[4], 13, 0, 14, 1, 15, 2, 15, 3), c.d(CYAN[3], 5, 11, 7, 9)), lambda a, i: W.quiver(a, LAP[2], SILV[3], CYAN[3]), 'up', 'back'),
@@ -120,7 +120,7 @@ item('clarity_crystal', 'Кристалл ясности', 'голова',
      V('Обруч с кристаллом', lambda c: (c.f(PATH((1, 12), (4, 10), (8, 9), (12, 10), (15, 12), w=2), GOLD), c.f(POLY((8, 0), (11, 4), (10, 9), (6, 9), (5, 4)), PINK), c.d(WHITE[4], 7, 3, 7, 4)), lambda a, i: W.circlet(a, GOLD[2], i, -6.4, .28), 'head'),
      V('Призма у виска', lambda c: (c.f(POLY((8, 1), (15, 14), (1, 14)), ICE), c.f(POLY((8, 1), (15, 14), (8, 14)), PINK), c.l(1, 11, 5, 9, GOLD[3]), c.l(11, 9, 15, 11, CYAN[3])), lambda a, i: W.side_head(a, i, 'R', -5.5, .32), 'head'))
 
-# ------------------------------------------------------------------ знаки охотника: одна форма, цвет и значок мира
+# ------------------------------------------------------------------ hunter marks: one shape, the world's color and icon
 HUNTERS = [('overworld', 'обычного мира', OVER), ('nether', 'Ада', NETH), ('end', 'Края', END), ('iceika', 'Айсики', ICEK), ('eden', 'Эдема', EDEN), ('wildwood', 'Дикого леса', WILD),
            ('apalachia', 'Апалачии', APAL), ('skythern', 'Небесного терна', SKYT), ('mortum', 'Мортума', MORT), ('arcana', 'Арканы', ARC), ('vethea', 'Везеи', VETH)]
 

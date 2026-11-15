@@ -15,14 +15,14 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Спавн по рангам ({@link com.divinerpgextended.boss.ProgressSpawns}) - на уровне выбора вида моба:
+ * Spawn by rank ({@link com.divinerpgextended.boss.ProgressSpawns}) - at the level of mob kind selection:
  * <ul>
- * <li>WorldServer.spawnRandomCreature (обычный спавн всех типов): список видов для стаи берётся через
- * {@link SpawnHooks#potentialSpawns} вместо ForgeEventFactory.getPotentialSpawns - тот же вызов Forge, а затем копия
- * списка без видов выше ранга игроков рядом. Событие Forge отдаёт сам список биома, менять его нельзя. Описание вызова
- * остаётся прежним (в игре оно ещё в именах mt/sx, переименование FML приводит его к хуку).</li>
- * <li>SpawnerAnimals.performWorldGenSpawning (существа при генерации чанка - без проверки появления вообще; так Divine
- * селит, например, Глаконов): список существ биома проходит через {@link SpawnHooks#worldGenSpawns}.</li>
+ * <li>WorldServer.spawnRandomCreature (ordinary spawn of all types): the list of kinds for a pack is taken through
+ * {@link SpawnHooks#potentialSpawns} instead of ForgeEventFactory.getPotentialSpawns - the same Forge call, and then a copy of the
+ * list without kinds above the rank of nearby players. The Forge event hands out the biome's own list, it must not be modified. The call descriptor
+ * stays the same (in the game it is still in the names mt/sx, FML renaming brings it to the hook).</li>
+ * <li>SpawnerAnimals.performWorldGenSpawning (creatures at chunk generation - without any spawn check; this is how Divine
+ * settles Glacons, for example): the biome's creature list passes through {@link SpawnHooks#worldGenSpawns}.</li>
  * </ul>
  */
 public class SpawnTransformer implements IClassTransformer, Opcodes {
@@ -41,20 +41,20 @@ public class SpawnTransformer implements IClassTransformer, Opcodes {
             int n = 0;
             for (MethodNode m : node.methods) n += server ? potentialSpawns(m) : worldGen(m);
             if (n == 0) {
-                LOG.warn("Спавн по рангам: в {} не нашлось места для отбора - здесь остаётся только проверка при появлении моба", transformedName);
+                LOG.warn("Rank spawning: no place for selection found in {} - only the check on mob spawn remains here", transformedName);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Спавн по рангам: {} выбирает вид моба из разрешённых по рангу ({} мест)", transformedName, n);
+            LOG.info("Rank spawning: {} picks the mob type from those allowed by rank ({} places)", transformedName, n);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Спавн по рангам: не удалось подключиться к " + transformedName + ", класс без изменений", t);
+            LOG.error("Rank spawning: could not hook into " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }
 
-    /** WorldServer: ForgeEventFactory.getPotentialSpawns -> SpawnHooks.potentialSpawns (то же описание). */
+    /** WorldServer: ForgeEventFactory.getPotentialSpawns -> SpawnHooks.potentialSpawns (same descriptor). */
     private static int potentialSpawns(MethodNode m) {
         int n = 0;
         for (AbstractInsnNode i = m.instructions.getFirst(); i != null; i = i.getNext()) {
@@ -69,9 +69,9 @@ public class SpawnTransformer implements IClassTransformer, Opcodes {
     }
 
     /**
-     * SpawnerAnimals.performWorldGenSpawning(World, BiomeGenBase, int x, int z, int, int, Random) - статический, узнаём по
-     * описанию (в игре имена ещё не переименованы). Первый вызов, отдающий List, - biome.getSpawnableList(creature): после
-     * него список уходит в SpawnHooks.worldGenSpawns(list, world, x, z).
+     * SpawnerAnimals.performWorldGenSpawning(World, BiomeGenBase, int x, int z, int, int, Random) - static, found by
+     * descriptor (in the game the names are not renamed yet). The first call returning a List is biome.getSpawnableList(creature): after
+     * it the list goes to SpawnHooks.worldGenSpawns(list, world, x, z).
      */
     private static int worldGen(MethodNode m) {
         if ((m.access & ACC_STATIC) == 0 || !m.desc.endsWith("IIIILjava/util/Random;)V")) return 0;

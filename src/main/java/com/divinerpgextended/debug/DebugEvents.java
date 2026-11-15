@@ -50,10 +50,10 @@ import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Серверная часть отладки. Удар проходит по шагам: событие атаки (могут отменить), событие урона (перки, сеты,
- * аксессуары меняют число), затем броня, сопротивление и поглощение Minecraft. Первое число ловим в начале, второе - в
- * конце событий, итог - по здоровью в конце тика. Заметки механик ({@link Debug#note}) цепляются к удару, во время
- * которого сработали.
+ * Server part of debugging. A hit goes through steps: the attack event (can be cancelled), the damage event (perks, sets,
+ * accessories change the number), then Minecraft armor, resistance and absorption. The first number is caught at the start, the second at the
+ * end of the events, the result - by health at the end of the tick. Mechanic notes ({@link Debug#note}) attach to the hit during
+ * which they fired.
  */
 public class DebugEvents {
 
@@ -78,14 +78,14 @@ public class DebugEvents {
         }
     }
 
-    private static final String IFRAMES = "неуязвимость после прошлого удара";
+    private static final String IFRAMES = "invulnerability after the previous hit";
     private static final ArrayDeque<Hit> STACK = new ArrayDeque<Hit>();
     private static final List<Hit> PENDING = new ArrayList<Hit>();
     private static final Map<UUID, Map<Integer, int[]>> EFFECTS = new HashMap<UUID, Map<Integer, int[]>>();
     private static final Map<UUID, float[]> HEALS = new HashMap<UUID, float[]>();
     private static final Map<UUID, String> CONTAINER = new HashMap<UUID, String>();
 
-    // ---------------- Кто смотрит ----------------
+    // ---------------- Who is watching ----------------
 
     @SuppressWarnings("unchecked")
     static List<EntityPlayerMP> debugPlayers() {
@@ -113,7 +113,7 @@ public class DebugEvents {
         return out;
     }
 
-    // ---------------- Форматирование ----------------
+    // ---------------- Formatting ----------------
 
     static String f(float v) {
         return String.format("%.1f", v);
@@ -127,11 +127,11 @@ public class DebugEvents {
         StringBuilder b = new StringBuilder(h.src.damageType);
         if (h.attacker != null) b.append(", ").append(name(h.attacker));
         if (h.weapon != null) b.append(", ").append(h.weapon);
-        if (h.src.isProjectile()) b.append(", снаряд");
-        if (h.src.isMagicDamage()) b.append(", магия");
-        if (h.src.isFireDamage()) b.append(", огонь");
-        if (h.src.isExplosion()) b.append(", взрыв");
-        if (h.src.isUnblockable()) b.append(", сквозь броню");
+        if (h.src.isProjectile()) b.append(", projectile");
+        if (h.src.isMagicDamage()) b.append(", magic");
+        if (h.src.isFireDamage()) b.append(", fire");
+        if (h.src.isExplosion()) b.append(", explosion");
+        if (h.src.isUnblockable()) b.append(", ignores armor");
         return b.toString();
     }
 
@@ -152,26 +152,26 @@ public class DebugEvents {
             Debug.Flags fl = Debug.ON.get(w.getUniqueID());
             if (fl == null) continue;
             boolean taken = h.victim == w;
-            String who = taken ? "по тебе" : name(h.victim);
+            String who = taken ? "on you" : name(h.victim);
             String text, category;
             EnumChatFormatting color;
             if (cancelled == IFRAMES) {
-                // обычная неуязвимость Minecraft после удара (полсекунды): только в файл, в чате это спам
+                // ordinary Minecraft invulnerability after a hit (half a second): only to the file, in chat it is spam
                 if (fl.file) Debug.file(w, "damage_iframes", name(h.victim), f(h.raw) + " (" + src + ")" + (ns.isEmpty() ? "" : " | " + ns));
                 continue;
             }
             if (cancelled != null) {
-                text = "[урон отменён, " + cancelled + "] " + who + ": " + f(h.raw) + " (" + src + ")"
-                    + (ns.isEmpty() ? " - отменил Divine или другой мод" : "");
+                text = "[damage cancelled, " + cancelled + "] " + who + ": " + f(h.raw) + " (" + src + ")"
+                    + (ns.isEmpty() ? " - cancelled by Divine or another mod" : "");
                 color = EnumChatFormatting.YELLOW;
                 category = "damage_cancelled";
             } else {
                 float armor = h.after - dealt;
-                // цель умерла: остаток урона ушёл "в никуда", это не броня
-                String last = hp(h.victim) <= 0 ? " > добит, лишний урон " + f(Math.max(0, armor))
-                    : " > броня и защита " + (armor >= 0 ? "-" : "+") + f(Math.abs(armor));
-                text = (taken ? "[урон] -" : "[удар] " + who + " -") + f(dealt) + " HP (" + src + "): удар " + f(h.raw)
-                    + " > после эффектов " + f(h.after) + last
+                // the target died: the rest of the damage went "nowhere", it is not armor
+                String last = hp(h.victim) <= 0 ? " > finished off, excess damage " + f(Math.max(0, armor))
+                    : " > armor and protection " + (armor >= 0 ? "-" : "+") + f(Math.abs(armor));
+                text = (taken ? "[damage] -" : "[hit] " + who + " -") + f(dealt) + " HP (" + src + "): hit " + f(h.raw)
+                    + " > after effects " + f(h.after) + last
                     + " | HP " + f(h.victim.getHealth()) + "/" + f(h.victim.getMaxHealth());
                 color = taken ? EnumChatFormatting.RED : h.attacker == w || owner(h.attacker) == w ? EnumChatFormatting.GREEN
                     : EnumChatFormatting.GRAY;
@@ -179,9 +179,9 @@ public class DebugEvents {
             }
             if (fl.chat) {
                 Debug.chat(w, color, text);
-                if (!ns.isEmpty()) Debug.chat(w, EnumChatFormatting.AQUA, "   сработало: " + ns);
+                if (!ns.isEmpty()) Debug.chat(w, EnumChatFormatting.AQUA, "   triggered: " + ns);
             }
-            if (fl.file) Debug.file(w, category, name(h.victim), text + (ns.isEmpty() ? "" : " | сработало: " + ns));
+            if (fl.file) Debug.file(w, category, name(h.victim), text + (ns.isEmpty() ? "" : " | triggered: " + ns));
         }
     }
 
@@ -190,16 +190,16 @@ public class DebugEvents {
         return null;
     }
 
-    // ---------------- Удар по шагам ----------------
+    // ---------------- A hit by steps ----------------
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void attackStart(LivingAttackEvent e) {
         if (!Debug.any() || e.entityLiving.worldObj.isRemote) return;
-        // по игроку событие приходит дважды: второй раз уже с поправкой на сложность мира
+        // for a player the event arrives twice: the second time already adjusted for the world difficulty
         Hit same = find(e.entityLiving, e.source);
         if (same != null) {
             if (Math.abs(same.raw - e.ammount) > 0.01F) {
-                same.notes.add("сложность " + e.entityLiving.worldObj.difficultySetting.name().toLowerCase() + ": " + f(same.raw) + " > " + f(e.ammount));
+                same.notes.add("difficulty " + e.entityLiving.worldObj.difficultySetting.name().toLowerCase() + ": " + f(same.raw) + " > " + f(e.ammount));
                 same.raw = e.ammount;
             }
             return;
@@ -215,7 +215,7 @@ public class DebugEvents {
         Hit h = find(e.entityLiving, e.source);
         if (h == null) return;
         STACK.remove(h);
-        report(h, "на атаке", 0);
+        report(h, "on attack", 0);
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -232,19 +232,19 @@ public class DebugEvents {
         if (h == null) return;
         STACK.remove(h);
         if (e.isCanceled()) {
-            report(h, "на уроне", 0);
+            report(h, "on damage", 0);
             return;
         }
         h.after = e.ammount;
         h.before = hp(e.entityLiving);
-        // удар в окно неуязвимости: Minecraft засчитывает только разницу с прошлым - урон пришёл в событие уже меньше удара
+        // a hit into the invulnerability window: Minecraft counts only the difference from the previous one - the damage arrived in the event already less than the hit
         if (h.hurtStart >= 0 && h.hurtStart < h.raw - 0.01F) {
-            h.notes.add(0, "повторный удар в неуязвимость: засчитана разница " + f(h.hurtStart) + " из " + f(h.raw));
+            h.notes.add(0, "repeat hit during invulnerability: difference counted " + f(h.hurtStart) + " of " + f(h.raw));
         }
         PENDING.add(h);
     }
 
-    /** Заметка механики: к удару, в котором участвует сущность, иначе отладчику отдельной строкой. */
+    /** A mechanic note: to the hit in which the entity takes part, otherwise to the debugger as a separate line. */
     static void note(Entity who, String text) {
         for (Hit h : STACK) {
             if (h.victim == who || h.attacker == who || owner(h.attacker) == who) {
@@ -254,7 +254,7 @@ public class DebugEvents {
         }
         Debug.Flags fl = Debug.flags(who);
         if (fl == null) return;
-        if (fl.chat) Debug.chat((EntityPlayer) who, EnumChatFormatting.AQUA, "[механика] " + text);
+        if (fl.chat) Debug.chat((EntityPlayer) who, EnumChatFormatting.AQUA, "[mechanic] " + text);
         if (fl.file) Debug.file(who, "mechanic", "", text);
     }
 
@@ -278,7 +278,7 @@ public class DebugEvents {
         Entity killer = e.source.getEntity();
         String cause = e.source.damageType + (killer != null ? ", " + name(killer) : "");
         if (fl != null) {
-            String t = e.isCanceled() ? "[смерть отменена] " + cause : "[смерть] " + cause;
+            String t = e.isCanceled() ? "[death cancelled] " + cause : "[death] " + cause;
             if (fl.chat) Debug.chat((EntityPlayer) e.entityLiving, EnumChatFormatting.DARK_RED, t);
             if (fl.file) Debug.file(e.entityLiving, "death", e.isCanceled() ? "cancelled" : "", cause);
         }
@@ -286,7 +286,7 @@ public class DebugEvents {
         if (kf != null && kf.file && !e.isCanceled()) Debug.file(killer, "kill", name(e.entityLiving), e.source.damageType);
     }
 
-    // ---------------- Конец тика: итоги ударов, лечение, эффекты, снимки ----------------
+    // ---------------- End of tick: hit results, healing, effects, snapshots ----------------
 
     @SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent e) {
@@ -304,7 +304,7 @@ public class DebugEvents {
             if (tick % 20 == 0) {
                 float[] heal = HEALS.remove(p.getUniqueID());
                 if (heal != null && heal[0] > 0.01F) {
-                    String t = "[лечение] +" + f(heal[0]) + " HP за 1 с | HP " + f(p.getHealth()) + "/" + f(p.getMaxHealth());
+                    String t = "[heal] +" + f(heal[0]) + " HP per 1 s | HP " + f(p.getHealth()) + "/" + f(p.getMaxHealth());
                     if (fl.chat && heal[0] >= 0.5F) Debug.chat(p, EnumChatFormatting.LIGHT_PURPLE, t);
                     if (fl.file) Debug.file(p, "heal", "", t);
                 }
@@ -332,7 +332,7 @@ public class DebugEvents {
         for (Map.Entry<Integer, int[]> en : now.entrySet()) {
             int[] old = was.get(en.getKey());
             int[] v = en.getValue();
-            // новый или другой силы; продление того же эффекта (холод, ночное зрение перков) - не новость
+            // new or of a different strength; an extension of the same effect (cold, perk night vision) is not news
             if (old == null || old[0] != v[0]) effectMsg(p, fl, en.getKey(), "+", v);
         }
         for (Integer id : was.keySet()) if (!now.containsKey(id)) effectMsg(p, fl, id, "-", null);
@@ -341,9 +341,9 @@ public class DebugEvents {
     private static void effectMsg(EntityPlayerMP p, Debug.Flags fl, int id, String sign, int[] v) {
         Potion pot = Potion.potionTypes[id];
         if (pot == null) return;
-        String tail = v != null ? " " + roman(v[0] + 1) + " на " + (v[1] / 20) + " с" : " снят";
+        String tail = v != null ? " " + roman(v[0] + 1) + " over " + (v[1] / 20) + " s" : " removed";
         if (fl.chat) {
-            IChatComponent c = new Debug.DebugText("[эффект] " + sign);
+            IChatComponent c = new Debug.DebugText("[effect] " + sign);
             c.appendSibling(new ChatComponentTranslation(pot.getName()));
             c.appendText(tail);
             c.setChatStyle(new ChatStyle().setColor(com.divinerpgextended.vethea.Nightmare.bad(pot) ? EnumChatFormatting.DARK_PURPLE : EnumChatFormatting.DARK_AQUA));
@@ -361,30 +361,30 @@ public class DebugEvents {
         StringBuilder b = new StringBuilder();
         b.append("HP ").append(f(p.getHealth())).append('/').append(f(p.getMaxHealth()));
         if (p.getAbsorptionAmount() > 0) b.append(" +").append(f(p.getAbsorptionAmount()));
-        b.append(" | еда ").append(p.getFoodStats().getFoodLevel()).append(" сыт ").append(f(p.getFoodStats().getSaturationLevel()));
-        b.append(" | ур ").append(p.experienceLevel).append(" | падение ").append(f(p.fallDistance));
-        b.append(" | ранг ").append(com.divinerpgextended.boss.ProgressSpawns.rank(p)).append(" ступень брони ")
+        b.append(" | food ").append(p.getFoodStats().getFoodLevel()).append(" sat ").append(f(p.getFoodStats().getSaturationLevel()));
+        b.append(" | lvl ").append(p.experienceLevel).append(" | fall ").append(f(p.fallDistance));
+        b.append(" | rank ").append(com.divinerpgextended.boss.ProgressSpawns.rank(p)).append(" armor tier ")
             .append(com.divinerpgextended.item.ArmorData.effectiveTier(p));
-        if (p.getEntityData().hasKey("dreCold")) b.append(" | холод ").append(f(p.getEntityData().getFloat("dreCold")));
+        if (p.getEntityData().hasKey("dreCold")) b.append(" | cold ").append(f(p.getEntityData().getFloat("dreCold")));
         net.divinerpg.utils.events.ArcanaHelper ar = net.divinerpg.utils.events.ArcanaHelper.getProperties(p);
-        if (ar != null) b.append(" | аркана ").append(f(ar.getBarValue())).append('/').append(f(com.divinerpgextended.asm.ArcanaHooks.max(p)));
-        b.append(" | в руке ").append(stack(p.getHeldItem())).append(" | броня");
+        if (ar != null) b.append(" | arcana ").append(f(ar.getBarValue())).append('/').append(f(com.divinerpgextended.asm.ArcanaHooks.max(p)));
+        b.append(" | held ").append(stack(p.getHeldItem())).append(" | armor");
         for (int i = 3; i >= 0; i--) b.append(' ').append(stack(p.inventory.armorItemInSlot(i)));
-        b.append(" | в гнёздах");
+        b.append(" | in sockets");
         for (ItemStack armor : p.inventory.armorInventory) {
             for (ItemStack s : com.divinerpgextended.accessory.Sockets.contents(armor)) b.append(' ').append(s.getDisplayName());
         }
         if (p.getHeldItem() != null && com.divinerpgextended.perk.Ammo.of(p.getHeldItem()) != null)
-            b.append(" | заряд ").append(com.divinerpgextended.perk.Ammo.loaded(p.getHeldItem()));
+            b.append(" | loaded ammo ").append(com.divinerpgextended.perk.Ammo.loaded(p.getHeldItem()));
         Accessories a = Accessories.of(p);
         if (a.leftovers()) {
-            b.append(" | старые слоты");
+            b.append(" | old slots");
             for (int i = 0; i < Accessories.TOTAL; i++) {
                 ItemStack s = a.getStackInSlot(i);
                 if (s != null) b.append(' ').append(s.getDisplayName()).append(" x").append(s.stackSize);
             }
         }
-        if (p.capabilities.isFlying) b.append(" | летит");
+        if (p.capabilities.isFlying) b.append(" | flying");
         Debug.file(p, "state", "", b.toString());
     }
 
@@ -398,7 +398,7 @@ public class DebugEvents {
         if (fl.file) Debug.file(p, "container", name == null ? "close" : "open", name == null ? was : name);
     }
 
-    // ---------------- Действия (только в файл) ----------------
+    // ---------------- Actions (file only) ----------------
 
     private static void act(Entity who, String category, String event, String details) {
         Debug.Flags fl = Debug.flags(who);
@@ -423,20 +423,20 @@ public class DebugEvents {
     public void onInteract(PlayerInteractEvent e) {
         if (e.entityPlayer.worldObj.isRemote) return;
         act(e.entityPlayer, "interact", e.action.name() + (e.isCanceled() ? " cancelled" : ""),
-            e.x + " " + e.y + " " + e.z + " side " + e.face + " | в руке " + stack(e.entityPlayer.getHeldItem()));
+            e.x + " " + e.y + " " + e.z + " side " + e.face + " | held " + stack(e.entityPlayer.getHeldItem()));
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public void onEntityInteract(EntityInteractEvent e) {
         if (e.entityPlayer.worldObj.isRemote) return;
-        act(e.entityPlayer, "interact_entity", e.isCanceled() ? "cancelled" : "", name(e.target) + (e.entityPlayer.isSneaking() ? " (присев)" : "")
-            + " | в руке " + stack(e.entityPlayer.getHeldItem()));
+        act(e.entityPlayer, "interact_entity", e.isCanceled() ? "cancelled" : "", name(e.target) + (e.entityPlayer.isSneaking() ? " (sneaking)" : "")
+            + " | held " + stack(e.entityPlayer.getHeldItem()));
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public void onAttackEntity(AttackEntityEvent e) {
         if (e.entityPlayer.worldObj.isRemote) return;
-        act(e.entityPlayer, "attack", e.isCanceled() ? "cancelled" : "", name(e.target) + " | в руке " + stack(e.entityPlayer.getHeldItem()));
+        act(e.entityPlayer, "attack", e.isCanceled() ? "cancelled" : "", name(e.target) + " | held " + stack(e.entityPlayer.getHeldItem()));
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
@@ -461,7 +461,7 @@ public class DebugEvents {
 
     @SubscribeEvent
     public void onArrow(ArrowLooseEvent e) {
-        if (!e.entityPlayer.worldObj.isRemote) act(e.entityPlayer, "bow", "", "натяжение " + e.charge + " | " + stack(e.bow));
+        if (!e.entityPlayer.worldObj.isRemote) act(e.entityPlayer, "bow", "", "draw " + e.charge + " | " + stack(e.bow));
     }
 
     @SubscribeEvent
@@ -472,7 +472,7 @@ public class DebugEvents {
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public void onFall(LivingFallEvent e) {
         if (!e.entityLiving.worldObj.isRemote && e.distance > 3)
-            act(e.entityLiving, "fall", e.isCanceled() ? "cancelled" : "", f(e.distance) + " блоков");
+            act(e.entityLiving, "fall", e.isCanceled() ? "cancelled" : "", f(e.distance) + " blocks");
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
@@ -530,7 +530,7 @@ public class DebugEvents {
         if (Debug.any()) Debug.log().flush();
     }
 
-    /** Отладка выключена у последнего - закрыть файл. */
+    /** Debugging is off for the last one - close the file. */
     static void cleanup() {
         if (Debug.ON.isEmpty()) {
             STACK.clear();

@@ -9,7 +9,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
-/** Манекен для битья: ПКМ по верху блока - поставить свою копию (на сервере - не больше {@link DummyLimit#MAX}). */
+/** Training Dummy: right-click on the top of a block - place your copy (on the server - no more than {@link DummyLimit#MAX}). */
 public class ItemTrainingDummy extends Item {
 
     public ItemTrainingDummy() {

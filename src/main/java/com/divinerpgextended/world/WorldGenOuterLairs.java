@@ -14,47 +14,47 @@ import com.divinerpgextended.world.twilight.ColumnStructure;
 import cpw.mods.fml.common.IWorldGenerator;
 
 /**
- * Логова боссов Ада и Энда, у которых в Divine нет своего места. Место вычисляется из сида; постройка задана по
- * столбцам ({@link ColumnStructure}). Предмет вызова Divine работает только внутри логова (см.
- * {@link com.divinerpgextended.boss.LairSummons}), сам вызов делает Divine.
+ * Lairs of Nether and End bosses that have no place of their own in Divine. The site is computed from the seed; the structure is defined by
+ * columns ({@link ColumnStructure}). The Divine summoning item works only inside the lair (see
+ * {@link com.divinerpgextended.boss.LairSummons}), the summoning itself is done by Divine.
  * <ul>
- * <li>Логово Смотрителя (Ад): засыпанная обсерватория под лавовым озером ({@link WatcherVault}) - обсидиановый зал у
- * дна, внутри завал, который бой прорубает сам; вход - наклонный тоннель от берега. Зов Смотрителя - в зале. (До 0.99.48
- * - купольная обсерватория радиусом 20 с четырьмя тоннелями: в уже созданных чанках она и осталась.)</li>
- * <li>Огненная палата Короля скорчеров (Ад): гоночный трек под лавовым озером ({@link ScorcherPit}) - зал как у
- * обсерватории, в центре клетчатый помост за лавовым рвом. Инфернальное пламя - в палате. (До 0.99.51 - шар радиусом 17
- * в небе Ада: в уже созданных чанках он остался и работает.)</li>
- * <li>Гнездовье Айрако (Энд): большой остров в {@link #AYERACO_DIST} блоках от центра по диагонали - целиком внутри границы
- * мира {@link #WORLD_EDGE} (в 0.99.36-0.99.37 был в 1400, до того малый в 1000): рваный край, каплевидное основание, плоская арена с обсидиановыми кольцами,
- * пять башен со столпами орды, вокруг - пояс астероидов из эндерняка. Рог орды - на алтаре в центре арены; в 160 блоках от центра
- * сам никто не появляется.</li>
+ * <li>The Watcher's lair (Nether): a buried observatory under a lava lake ({@link WatcherVault}) - an obsidian hall at the
+ * bottom, inside a rubble pile that the fight clears itself; the entrance is a sloping tunnel from the shore. The Call of the Watcher is in the hall. (Before 0.99.48
+ * - a domed observatory of radius 20 with four tunnels: in already created chunks it stayed.)</li>
+ * <li>The Fire Chamber of the King of Scorchers (Nether): a race track under a lava lake ({@link ScorcherPit}) - a hall like the
+ * observatory's, in the center a checkered dais behind a lava moat. The Infernal Flame is in the chamber. (Before 0.99.51 - a sphere of radius 17
+ * in the Nether sky: in already created chunks it stayed and works.)</li>
+ * <li>The Ayeraco aerie (End): a large island {@link #AYERACO_DIST} blocks from the center diagonally - entirely inside the world
+ * border {@link #WORLD_EDGE} (in 0.99.36-0.99.37 it was at 1400, before that a small one at 1000): a ragged edge, a teardrop base, a flat arena with obsidian rings,
+ * five towers with horde pillars, around it a belt of End stone asteroids. The Horde Horn is on the altar at the arena center; within 160 blocks of the center
+ * nobody spawns on their own.</li>
  * </ul>
  */
 public class WorldGenOuterLairs implements IWorldGenerator {
 
     public static final int WATCHER = 0, SCORCHERS = 1, AYERACO = 2;
-    /** Радиус старой палаты скорчеров (шар в небе, до 0.99.51) - в уже созданных мирах она осталась и работает. */
+    /** Radius of the old Scorcher chamber (a sphere in the sky, before 0.99.51) - in already created worlds it stayed and works. */
     public static final int OLD_SCORCHER_R = 17;
 
-    /** Пол логова этого типа у центра c (у старой палаты скорчеров - свой). */
+    /** Floor of a lair of this type at center c (the old Scorcher chamber has its own). */
     public static int floor(World w, int type, int[] c) {
         return type == SCORCHERS && ScorcherPit.isOld(w, c[0], c[2]) ? ScorcherPit.OLD_FLOOR : FLOOR[type];
     }
-    /** Радиус зала, высота пола. */
+    /** Hall radius, floor height. */
     public static final int[] RADIUS = { WatcherVault.R, WatcherVault.R, 48 }, FLOOR = { WatcherVault.FLOOR, WatcherVault.FLOOR, 62 };
     private static final long[] SALT = { 0x5A7C4L, 0x5C0BCL, 0xA7E2AL };
-    /** Гнездовье Айрако - одно на мир: дальний остров на этом расстоянии от центра Энда (долететь - на ангельской броне). */
+    /** The Ayeraco aerie is one per world: a far island at this distance from the End center (reach it in Angelic armor). */
     public static final int AYERACO_DIST = 850;
-    /** Граница мира на сервере: всё гнездовье с поясом астероидов - внутри квадрата |x|, |z| <= WORLD_EDGE. */
+    /** The server world border: the whole aerie with the asteroid belt is inside the square |x|, |z| <= WORLD_EDGE. */
     public static final int WORLD_EDGE = 900;
-    /** Островки-передышки по пути к гнездовью: через столько блоков, сколько их. */
+    /** Breather islets on the way to the aerie: every so many blocks, as many as there are. */
     public static final int ISLET_STEP = 170, ISLETS = 4;
-    /** Гнездовье: плоская арена в центре острова; пояс астероидов - кольцо от BELT_IN до BELT_OUT, камней в нём. */
+    /** The aerie: a flat arena at the island center; the asteroid belt is a ring from BELT_IN to BELT_OUT, with stones in it. */
     public static final int ARENA = 32, BELT_IN = 78, BELT_OUT = 112, BELT_ROCKS = 110;
-    /** В этом радиусе от центра гнездовья сам никто не появляется: ни эндермены, ни мобы Divine и других модов. */
+    /** Within this radius of the aerie center nobody spawns on their own: no endermen, no Divine or other mods' mobs. */
     public static final int AYERACO_CALM = 160;
 
-    /** Точка в тихой зоне гнездовья Айрако. */
+    /** A point in the quiet zone of the Ayeraco aerie. */
     public static boolean nearAerie(World w, double x, double z) {
         if (!enabled(AYERACO) || w.provider.dimensionId != dim(AYERACO)) return false;
         int[] c = nearest(w.getSeed(), AYERACO, x, z);
@@ -63,8 +63,8 @@ public class WorldGenOuterLairs implements IWorldGenerator {
     }
 
     /**
-     * Алтарь орды в центре арены. Новые гнездовья строятся с ним, в уже построенных (до 0.99.96) его ставит обход игроков,
-     * когда кто-то рядом. true - поставлен сейчас.
+     * The horde altar at the arena center. New aeries are built with it; in already built ones (before 0.99.96) it is placed by the player sweep
+     * when someone is nearby. true - placed now.
      */
     public static boolean keepAyeracoAltar(net.minecraft.entity.player.EntityPlayer p) {
         World w = p.worldObj;
@@ -77,8 +77,8 @@ public class WorldGenOuterLairs implements IWorldGenerator {
     }
 
     /**
-     * Мир логова (как в конфиге Divine); логово строится только в Аду / Энде. Настройки миров боссов есть только с
-     * Divine 1.4.2 - в 1.4.1.5 их нет, там миры зашиты: Смотритель и скорчеры - Ад, орда Айрако - Энд.
+     * The lair's world (as in the Divine config); the lair is built only in the Nether / End. Boss world settings exist only since
+     * Divine 1.4.2 - in 1.4.1.5 there are none, the worlds are hardwired: the Watcher and scorchers - Nether, the Ayeraco horde - End.
      */
     public static int dim(int type) {
         return type == WATCHER ? option("theWatcherDim", -1) : type == SCORCHERS ? option("kingOfScorchersDim", -1)
@@ -93,23 +93,23 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         }
     }
 
-    /** Логово есть: мир этого типа - Ад (для Смотрителя и скорчеров) или Энд (для Айрако), и логова включены. */
+    /** A lair exists: this type's world is the Nether (for the Watcher and scorchers) or the End (for Ayeraco), and lairs are enabled. */
     public static boolean enabled(int type) {
         if (Config.netherLairSpacing <= 0) return false;
         return type == AYERACO ? dim(type) == 1 : dim(type) == -1;
     }
 
-    /** Центр логова в области (rx, rz); для Айрако область одна. */
+    /** Lair center in region (rx, rz); for Ayeraco there is a single region. */
     public static int[] center(long seed, int type, int rx, int rz) {
         Random r = new Random(seed ^ (rx * 341873128712L + rz * 132897987541L) ^ SALT[type]);
         if (type == AYERACO) {
-            // по диагонали (+-20 градусов): на 850 блоках от нуля и остров, и пояс астероидов не выходят за границу 900
+            // diagonally (+-20 degrees): at 850 blocks from zero both the island and the asteroid belt stay within the 900 border
             double a = Math.PI / 4 + r.nextInt(4) * Math.PI / 2 + (r.nextDouble() - 0.5) * Math.toRadians(40);
             return new int[] { (int) (Math.cos(a) * AYERACO_DIST), FLOOR[type], (int) (Math.sin(a) * AYERACO_DIST) };
         }
         int g = Config.netherLairSpacing, margin = Math.min(g / 3, RADIUS[type] + 40);
         int[] c = new int[] { rx * g + margin + r.nextInt(Math.max(1, g - 2 * margin)), FLOOR[type], rz * g + margin + r.nextInt(Math.max(1, g - 2 * margin)) };
-        // палата скорчеров не должна лечь на логово Смотрителя (у того вход тянется на восток) - тогда другое место в области
+        // the scorcher chamber must not overlap the Watcher's lair (its entrance stretches east) - then another site in the region
         for (int tries = 0; type == SCORCHERS && tries < 12 && clashesWithWatcher(seed, c); tries++) {
             c[0] = rx * g + margin + r.nextInt(Math.max(1, g - 2 * margin));
             c[2] = rz * g + margin + r.nextInt(Math.max(1, g - 2 * margin));
@@ -117,7 +117,7 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         return c;
     }
 
-    /** Палата скорчеров с центром c задевает логово Смотрителя в соседних областях (у обоих зал и вход на восток). */
+    /** A scorcher chamber centered at c touches the Watcher's lair in neighboring regions (both have a hall and an entrance to the east). */
     public static boolean clashesWithWatcher(long seed, int[] c) {
         int g = Config.netherLairSpacing, rx = Math.floorDiv(c[0], g), rz = Math.floorDiv(c[2], g);
         int west = WatcherVault.R + 8, east = WatcherVault.tunnelEnd() + 12, side = WatcherVault.R + 8;
@@ -146,13 +146,13 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         return best;
     }
 
-    /** Точка внутри логова этого типа (там работает предмет вызова). */
+    /** A point inside a lair of this type (the summoning item works there). */
     public static boolean inside(World w, int type, double x, double y, double z) {
         if (w.provider.dimensionId != dim(type)) return false;
         int[] c = nearest(w.getSeed(), type, x, z);
         if (c == null) return false;
         double dx = x - c[0] - 0.5, dz = z - c[2] - 0.5, R = RADIUS[type] - 2;
-        if (type == SCORCHERS && ScorcherPit.isOld(w, c[0], c[2])) { // палата старого вида - шар в небе (до 0.99.51)
+        if (type == SCORCHERS && ScorcherPit.isOld(w, c[0], c[2])) { // the old kind of chamber - a sphere in the sky (before 0.99.51)
             R = OLD_SCORCHER_R - 2;
             return dx * dx + dz * dz <= R * R && y >= ScorcherPit.OLD_FLOOR - 2 && y <= ScorcherPit.OLD_FLOOR + 24;
         }
@@ -169,9 +169,9 @@ public class WorldGenOuterLairs implements IWorldGenerator {
             if (c == null || Math.abs(c[0] - (x0 + 8)) > reach || Math.abs(c[2] - (z0 + 8)) > reach) continue;
             ColumnStructure s = shape(type, c);
             s.buildSlice(world, c[0], c[2], x0, z0);
-            if (type != AYERACO) { // оба логова Ада
+            if (type != AYERACO) { // both Nether lairs
                 s.clean(world, c[0], c[2], x0 - 16, z0 - 16, 48, FLOOR[type] + 1, WatcherVault.TUNNEL_Y + 12);
-                // озёра лавы и крови (Ад BoP и др.) вырезают пол и стены уже готовых кусков - вернуть
+                // lava and blood lakes (BoP Nether etc.) cut out the floor and walls of already finished pieces - restore
                 s.restore(world, c[0], c[2], x0 - 16, z0 - 16, 48, FLOOR[type] - 1, WatcherVault.TUNNEL_Y + 12, net.minecraft.init.Blocks.netherrack,
                     net.minecraft.init.Blocks.soul_sand, net.minecraft.init.Blocks.gravel);
             }
@@ -179,8 +179,8 @@ public class WorldGenOuterLairs implements IWorldGenerator {
     }
 
     /**
-     * В залах логов Ада (под лавой) сами не появляются ни гасты, ни прочие: их файерболы ломали бы зал. У гнездовья Айрако
-     * ({@link #AYERACO_CALM} блоков) - тоже никто: остров заполоняли эндермены и мобы других модов.
+     * In the halls of the Nether lairs (under lava) neither ghasts nor others spawn on their own: their fireballs would break the hall. At the Ayeraco aerie
+     * ({@link #AYERACO_CALM} blocks) nobody either: the island was overrun by endermen and other mods' mobs.
      */
     public static class NoSpawns {
 
@@ -227,17 +227,17 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         return Math.sqrt((dx - Math.cos(ca) * ring) * (dx - Math.cos(ca) * ring) + (dz - Math.sin(ca) * ring) * (dz - Math.sin(ca) * ring));
     }
 
-    // ---------------------------------------------------------------- залы Ада
+    // ---------------------------------------------------------------- Nether halls
 
-    // ---------------------------------------------------------------- гнездовье Айрако
+    // ---------------------------------------------------------------- Ayeraco aerie
 
     static class Aerie extends ColumnStructure {
 
         private final double toX, toZ;
-        /** Астероиды пояса: {x, z от центра, высота от пола, радиус, сплюснутость}. */
+        /** Belt asteroids: {x, z from the center, height from the floor, radius, flattening}. */
         private final double[][] rocks;
 
-        /** Центр гнездовья (cx, cz): дорога идёт от него к центру Энда. */
+        /** The aerie center (cx, cz): the road goes from it to the End center. */
         Aerie(int cx, int cz) {
             double len = Math.sqrt(cx * cx + cz * cz);
             toX = len < 1 ? 0 : -cx / len;
@@ -246,7 +246,7 @@ public class WorldGenOuterLairs implements IWorldGenerator {
             rocks = new double[BELT_ROCKS][];
             for (int i = 0; i < BELT_ROCKS; i++) {
                 double a = r.nextDouble() * Math.PI * 2, d = BELT_IN + r.nextDouble() * (BELT_OUT - BELT_IN);
-                double size = 1.5 + r.nextDouble() * r.nextDouble() * 6; // мелких больше
+                double size = 1.5 + r.nextDouble() * r.nextDouble() * 6; // more small ones
                 rocks[i] = new double[] { Math.cos(a) * d, Math.sin(a) * d, r.nextGaussian() * 6 + 4, size, 0.5 + r.nextDouble() * 0.5 };
             }
         }
@@ -266,7 +266,7 @@ public class WorldGenOuterLairs implements IWorldGenerator {
             return b == net.divinerpg.utils.blocks.VanillaBlocks.lamp1;
         }
 
-        /** Алтарь орды - над огнём в центре арены. */
+        /** The Horde Altar is above the fire at the arena center. */
         @Override
         protected void decorate(World w, int cx, int cz, int x0, int z0) {
             place(w, cx, cz, x0, z0, 0, FLOOR[AYERACO] + 1, 0, com.divinerpgextended.registry.ModBlocks.ayeracoAltar, 0);
@@ -276,7 +276,7 @@ public class WorldGenOuterLairs implements IWorldGenerator {
         protected boolean column(int dx, int dz, int[] col) {
             int R = RADIUS[AYERACO], top = FLOOR[AYERACO];
             double r = Math.sqrt(dx * dx + dz * dz);
-            // островки-передышки по пути к центру Энда: чтобы на ангельской броне перевести дух (аркана)
+            // breather islets on the way to the End center: so that in Angelic armor you can catch your breath (arcana)
             double along = dx * toX + dz * toZ, across = Math.abs(dx * toZ - dz * toX);
             for (int k = 1; k <= ISLETS; k++) {
                 double at = k * ISLET_STEP, ir = Math.sqrt((along - at) * (along - at) + across * across);
@@ -285,7 +285,7 @@ public class WorldGenOuterLairs implements IWorldGenerator {
                 for (int y = top - depth; y <= top; y++) put(col, y, END_STONE, 0);
                 if (ir < 0.8) {
                     put(col, top, GLOW, 0);
-                    for (int y = top + 1; y <= top + 3; y++) put(col, y, OBSIDIAN, 0); // веха: видно издалека
+                    for (int y = top + 1; y <= top + 3; y++) put(col, y, OBSIDIAN, 0); // a landmark: visible from afar
                     put(col, top + 4, GLOW, 0);
                 }
                 return true;
@@ -293,7 +293,7 @@ public class WorldGenOuterLairs implements IWorldGenerator {
             boolean any = belt(dx, dz, top, col);
             double edge = edge(dx, dz);
             if (r > edge + 0.5) return any;
-            // остров: снизу капля (глубже к центру) с обсидиановыми сосульками, сверху плоская арена и холмы к краю
+            // island: below a drop (deeper toward the center) with obsidian icicles, on top a flat arena and hills toward the edge
             double t = Math.min(1, r / edge);
             int h = hash(dx, dz);
             int depth = 4 + (int) (40 * Math.pow(Math.max(0, 1 - t * t), 0.7)) + h % 3;
@@ -306,16 +306,16 @@ public class WorldGenOuterLairs implements IWorldGenerator {
             if (icicle) for (int y = top - depth; y < top - depth + 3; y++) put(col, y, OBSIDIAN, 0);
             for (int y = top + rise + 1; y <= top + 40; y++) put(col, y, AIR, 0);
             if (r < ARENA) {
-                // арена: обсидиановые кольца, огни по кругу и в центре
+                // arena: obsidian rings, fires in a circle and at the center
                 if (((int) r) % 8 == 0 && r > 1.5) put(col, top, OBSIDIAN, 0);
                 if (r < 1.5 || ringDist(dx, dz, 12, 8, 0) < 0.5 || ringDist(dx, dz, 24, 16, Math.PI / 16) < 0.5) put(col, top, GLOW, 0);
             }
-            // обсидиановые зубцы вдоль края
+            // obsidian teeth along the edge
             if (t > 0.8 && ringDist(dx, dz, edge - 4, 24, 0) < 1.1) {
                 int sh = 4 + h % 6;
                 for (int y = top + rise + 1; y <= top + rise + sh; y++) put(col, y, OBSIDIAN, 0);
             }
-            // башни столпов орды: обсидиан с винтовой лестницей вокруг, на вершине - глиняный столп цвета
+            // horde pillar towers: obsidian with a spiral staircase around, on top a clay pillar of the color
             for (com.divinerpgextended.boss.AyeracoHorde.Hue hue : com.divinerpgextended.boss.AyeracoHorde.Hue.values()) {
                 int[] pa = com.divinerpgextended.boss.AyeracoHorde.pillarAt(0, top, 0, hue);
                 double px = dx - pa[0], pz = dz - pa[2], pr = Math.sqrt(px * px + pz * pz);
@@ -329,7 +329,7 @@ public class WorldGenOuterLairs implements IWorldGenerator {
                         put(col, pa[1] + com.divinerpgextended.boss.AyeracoHorde.PILLAR_H, GLOW, 0);
                     }
                 } else if (pr < 4.0) {
-                    // ступень: виток в 8 блоков вверх
+                    // step: a turn of 8 blocks up
                     double a = Math.atan2(pz, px);
                     int step = 1 + (int) Math.floor((a + Math.PI) / (Math.PI * 2) * lift);
                     for (int y = top + 1; y <= top + Math.min(step, lift); y++) put(col, y, END_STONE, 0);
@@ -338,7 +338,7 @@ public class WorldGenOuterLairs implements IWorldGenerator {
             return true;
         }
 
-        /** Край острова на этом направлении: рваный, со "щупальцами" как у острова Энда. */
+        /** The island edge in this direction: ragged, with "tentacles" like an End island. */
         static double edge(int dx, int dz) {
             double a = Math.atan2(dz, dx);
             double e = RADIUS[AYERACO] + 3 * Math.sin(3 * a + 0.7) + 2 * Math.sin(7 * a + 2.1) + 1.2 * Math.sin(13 * a + 0.3);
@@ -346,7 +346,7 @@ public class WorldGenOuterLairs implements IWorldGenerator {
             return e + 9 * Math.pow(Math.max(0, arm), 10);
         }
 
-        /** Пояс астероидов вокруг острова: куски эндерняка разного размера, крупные с огнём в макушке. */
+        /** The asteroid belt around the island: End stone chunks of different sizes, large ones with fire on the top. */
         private boolean belt(int dx, int dz, int top, int[] col) {
             boolean any = false;
             for (double[] k : rocks) {

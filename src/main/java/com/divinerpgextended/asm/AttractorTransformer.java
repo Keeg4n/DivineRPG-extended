@@ -13,8 +13,8 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Аттрактор Divine: снаряд при попадании толкает цель к бросившему (Entity.addVelocity). Вызов идёт через
- * {@link com.divinerpgextended.world.twilight.SeaWeapons#attract}: игрока - только где можно PvP.
+ * Divine attractor: on hit the projectile pushes the target toward the thrower (Entity.addVelocity). The call goes through
+ * {@link com.divinerpgextended.world.twilight.SeaWeapons#attract}: a player - only where PvP is allowed.
  */
 public class AttractorTransformer implements IClassTransformer, Opcodes {
 
@@ -43,15 +43,15 @@ public class AttractorTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (n == 0) {
-                LOG.warn("Аттрактор: в {} не нашлось толчка - тянет как в Divine", transformedName);
+                LOG.warn("Attractor: no push found in {} - pulls as in Divine", transformedName);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Аттрактор: игроков тянет только там, где можно PvP");
+            LOG.info("Attractor: players are pulled only where PvP is allowed");
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Аттрактор: не удалось подключиться к " + transformedName + ", класс без изменений", t);
+            LOG.error("Attractor: could not hook into " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }

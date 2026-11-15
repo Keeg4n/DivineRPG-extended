@@ -15,13 +15,13 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Вкладки творческого режима аддона. Все предметы и блоки ставят себе {@link #TAB} при создании, а {@link #sort()}
- * после регистрации раскладывает их по вкладкам по имени регистрации: основное, снаряжение, аксессуары, рыбалка,
- * аркана и зелья, боссы и прогресс. Предметы без вкладки (горящий факел, посадки) так и остаются без неё.
+ * Creative tabs of the addon. All items and blocks set {@link #TAB} for themselves on creation, and {@link #sort()}
+ * after registration distributes them across the tabs by registration name: main, gear, accessories, fishing,
+ * arcana and potions, bosses and progress. Items without a tab (burning torch, plantings) stay without one.
  */
 public final class DreTab extends CreativeTabs {
 
-    /** Основное: блоки, факелы, лампы, транспорт и прочее. */
+    /** Main: blocks, torches, lamps, transport and other things. */
     public static final DreTab TAB = new DreTab("divinerpgextended", "main");
     public static final DreTab GEAR = new DreTab("dre_gear", "gear");
     public static final DreTab TRINKETS = new DreTab("dre_trinkets", "trinkets");
@@ -63,7 +63,7 @@ public final class DreTab extends CreativeTabs {
         "rimeIngot", "watcherEye", "frozenHeart", "throneShard", "bestiary", "jungleOre", "jungleGem", "jungleTotem", "haliteMaterial", "mortumTrophy",
         "spiritSpark", "worldSpirit", "guardianHeart", "dreamItem", "bossEgg");
 
-    /** Вкладка по имени регистрации (без "divinerpgextended:"). */
+    /** Tab by registration name (without "divinerpgextended:"). */
     public static DreTab of(String name) {
         if (GEAR_NAMES.contains(name) || name.startsWith("wanderer") && !name.equals("wandererClock") && !name.equals("wandererAnvil")
             && !name.equals("wandererEgg")) return GEAR;
@@ -78,7 +78,7 @@ public final class DreTab extends CreativeTabs {
         return t instanceof DreTab;
     }
 
-    /** Разложить зарегистрированные предметы и блоки аддона по вкладкам (после регистрации; только клиент - вкладки есть лишь там). */
+    /** Distribute the registered items and blocks of the addon across the tabs (after registration; client only - tabs exist only there). */
     @SideOnly(Side.CLIENT)
     public static void sort() {
         String prefix = DivineRPGExtended.MODID + ":";

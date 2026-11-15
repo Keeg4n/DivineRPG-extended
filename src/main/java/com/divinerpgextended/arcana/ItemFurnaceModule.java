@@ -14,7 +14,7 @@ import net.minecraft.util.StatCollector;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Модуль печи Даттикона: 0 - удвоение, 1 - ускорение. Присесть + ПКМ по печи Divine - поставить. */
+/** Datticon furnace module: 0 - doubling, 1 - speed. Sneak + right click a Divine furnace - install. */
 public class ItemFurnaceModule extends Item {
 
     private static final String[] TYPES = { "double", "speed" };

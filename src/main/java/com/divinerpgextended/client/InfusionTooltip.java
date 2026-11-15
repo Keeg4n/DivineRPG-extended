@@ -15,8 +15,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Подсказки Ветеи: на шаблоне (и на всём, что кладут в нижний слот алтаря) - что из него выходит и сколько глыб
- * нужно; на ветейском оружии - его вид (для слабостей мобов и ритма Пояса хейвы).
+ * Vethea tooltips: on the template (and on everything put into the lower altar slot) - what comes out of it and how many chunks
+ * are needed; on Vethea weapons - its kind (for mob weaknesses and the rhythm of the Heiva Belt).
  */
 @SideOnly(Side.CLIENT)
 public class InfusionTooltip {

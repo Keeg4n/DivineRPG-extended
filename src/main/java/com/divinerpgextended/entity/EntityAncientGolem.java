@@ -21,46 +21,46 @@ import com.divinerpgextended.world.CadillionWorld;
 import com.divinerpgextended.world.twilight.TwilightWorld;
 
 /**
- * Древний голем Дикого леса, страж рощи - босс-конструктор. Тело из частей со своим здоровьем: правая и левая руки,
- * ноги, моховое ядро. Куда попал удар (по высоте и стороне), та часть и получает урон; ядро закрыто, пока целы руки или
- * ноги - удар по корпусу только звенит. Сломанная часть отваливается и забирает свою атаку:
+ * Wildwood Ancient Golem, guardian of the grove - a constructor boss. The body is made of parts with their own health: the right and left arms,
+ * the legs, the moss core. The part where the hit lands (by height and side) takes the damage; the core is closed while the arms or
+ * legs are intact - a hit on the torso only rings. A broken part falls off and takes its attack with it:
  * <ul>
- * <li>руки - удары кулаком (каждая своя сторона); без обеих рук голем хлещет лианами издалека и подтягивает к себе;</li>
- * <li>ноги - топот (волна подбрасывает рядом); без ног голем ползает и зовёт Вереков.</li>
+ * <li>arms - fist strikes (each its own side); without both arms the golem lashes with vines from afar and pulls you toward itself;</li>
+ * <li>legs - stomping (the wave throws up those nearby); without legs the golem crawls and summons Vereks.</li>
  * </ul>
- * Что сломано первым, то решает последнюю фазу (ядро): первыми руки - лиановая буря по всем на поляне, первыми ноги -
- * стая Вереков. Чтобы не быть грушей: пока есть руки, вырывает и швыряет глыбы ({@link EntityBoulder}) в тех, кто
- * держится на расстоянии; пока есть ноги, прыжком сокращает дистанцию (с топотом при приземлении); далёкую цель
- * подтягивает лианой. Лесной следопыт (сет Дикого леса) видит суставы - по частям урон x{@link #TRACKER_BONUS}.
+ * What is broken first decides the last phase (the core): arms first - a vine storm on everyone in the clearing, legs first -
+ * a pack of Vereks. So as not to be a punching bag: while it has arms, it tears out and hurls boulders ({@link EntityBoulder}) at those who
+ * keep their distance; while it has legs, it closes the distance with a jump (with a stomp on landing); a far target
+ * is pulled in with a vine. The Forest Tracker (the Wildwood set) sees the joints - damage to parts x{@link #TRACKER_BONUS}.
  */
 public class EntityAncientGolem extends EntityGroveGuardian {
 
     public static final int ARM_R = 0, ARM_L = 1, LEGS = 2, CORE = 3;
-    /** Доли здоровья частей: руки, ноги, ядро. */
+    /** Health fractions of the parts: arms, legs, core. */
     public static final float[] SHARE = { 0.2F, 0.2F, 0.25F, 0.35F };
     public static final float TRACKER_BONUS = 1.5F;
     public static final double EXTRA_HP = 200;
     public static final float PHASER_BONUS = 2.0F;
-    /** Замах лианы (тиков): в это время слайсер её перерезает. */
+    /** Vine windup (ticks): during this time the slicer cuts it. */
     public static final int LASH_WINDUP = 15;
     private EntityPlayer lashTarget;
     private int lashWindup;
     public static final float SCALE = 2.2F;
     private static final int DW_BROKEN = 21, DW_FIRST = 22;
-    /** Модель: ширина корпуса и плеч, высота ног (доля роста). */
+    /** Model: width of the torso and shoulders, height of the legs (a fraction of the height). */
     private static final double SIDE = 1.0, LEG_SHARE = 0.33;
 
     private final float[] partHp = new float[4];
     private int stompTimer = 120, lashTimer = 80, packTimer = 160, lastPunch = -100, stagger;
     private int boulderTimer = 60, leapTimer = 100, pullTimer = 200, answerTimer;
-    /** Ответ стрелку: дальше этого - лиана подтягивает, перезарядка ответа (тики). */
+    /** Reply to a shooter: beyond this distance the vine pulls, reply cooldown (ticks). */
     public static final double ARCHER_DIST = 6;
     public static final int ANSWER_CD = 60;
     private boolean leaping;
-    /** Родники капища: когда каждый снова проснётся (время мира) и кто сколько в нём стоит. */
+    /** Shrine springs: when each wakes up again (world time) and who has stood in it for how long. */
     private final long[] springWake = new long[4];
     private final java.util.Map<Integer, Integer> inSpring = new java.util.HashMap<Integer, Integer>();
-    /** Сколько можно стоять в роднике до гейзера, сколько он спит после, лечение (Лесной следопыт) раз в 5 тиков. */
+    /** How long you can stand in a spring before the geyser, how long it sleeps afterwards, healing (Forest Tracker) once per 5 ticks. */
     public static final int SPRING_STAY = 30, SPRING_SLEEP = 400;
     public static final float SPRING_HEAL = 1.0F;
     private long clangHint = -1000;
@@ -88,7 +88,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
     protected void applyEntityAttributes() {
         super.applyEntityAttributes();
         getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.3D);
-        // крепче стража мира: частей много, а убить его должно быть не быстрее кадиллиона
+        // sturdier than the world guardian: there are many parts, but killing it should not be faster than the cadillion
         getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(getEntityAttribute(SharedMonsterAttributes.maxHealth).getBaseValue() + EXTRA_HP);
     }
 
@@ -100,12 +100,12 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         return partHp[part];
     }
 
-    /** Ядро открыто: руки и ноги разбиты. */
+    /** The core is open: the arms and legs are broken. */
     public boolean coreOpen() {
         return broken(ARM_R) && broken(ARM_L) && broken(LEGS);
     }
 
-    /** Что разбито первым: ARM_R/ARM_L (руки) или LEGS, -1 - пока ничего; решает последнюю фазу. */
+    /** What was broken first: ARM_R/ARM_L (arms) or LEGS, -1 - nothing yet; decides the last phase. */
     public int firstBroken() {
         return dataWatcher.getWatchableObjectByte(DW_FIRST);
     }
@@ -115,9 +115,9 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         return f == ARM_R || f == ARM_L;
     }
 
-    // ---------------- куда попал удар ----------------
+    // ---------------- where the hit landed ----------------
 
-    /** Точка попадания: снаряд - где он сейчас, удар рукой - луч взгляда до тела голема. */
+    /** The hit point: for a projectile - where it is now, for a hand hit - the look ray to the golem's body. */
     private Vec3 hitPoint(DamageSource src) {
         Entity direct = src.getSourceOfDamage(), owner = src.getEntity();
         if (direct != null && direct != owner) return Vec3.createVectorHelper(direct.posX, direct.posY, direct.posZ);
@@ -133,7 +133,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         return null;
     }
 
-    /** Часть тела по точке попадания (в системе модели: x вправо от голема - его левая рука). */
+    /** The body part by the hit point (in model space: x to the right of the golem is its left arm). */
     public int partAt(double x, double y, double z) {
         double f = (y - posY) / height;
         if (f < LEG_SHARE) return LEGS;
@@ -151,7 +151,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         int part = hit == null ? CORE : partAt(hit.xCoord, hit.yCoord, hit.zCoord);
         if (coreOpen()) part = CORE;
         else if (part == CORE || broken(part)) {
-            // корпус закрыт - удар звенит; по уже отбитой части - ничего
+            // the torso is closed - the hit rings; on an already knocked-off part - nothing
             if (part == CORE) clang(hit, src.getEntity());
             return false;
         }
@@ -159,7 +159,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
             amount *= TRACKER_BONUS;
         answerArcher(src);
         int rk = com.divinerpgextended.perk.RangedRoles.kind(src.getSourceOfDamage());
-        if (rk == com.divinerpgextended.perk.RangedRoles.PHASER) amount *= PHASER_BONUS; // пробой по частям
+        if (rk == com.divinerpgextended.perk.RangedRoles.PHASER) amount *= PHASER_BONUS; // breakthrough by parts
         if (rk == com.divinerpgextended.perk.RangedRoles.SLICER && lashTarget != null) cutVine();
         amount = Math.min(amount, partHp[part]);
         float before = getHealth();
@@ -174,7 +174,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
 
     private void clang(Vec3 at, Entity who) {
         worldObj.playSoundAtEntity(this, "random.anvil_land", 0.6F, 1.6F);
-        if (who instanceof EntityPlayer && worldObj.getTotalWorldTime() - clangHint > 200) { // не чаще раза в 10 с
+        if (who instanceof EntityPlayer && worldObj.getTotalWorldTime() - clangHint > 200) { // no more than once per 10 s
             clangHint = worldObj.getTotalWorldTime();
             ((EntityPlayer) who).addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.golem_clang"));
         }
@@ -192,11 +192,11 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         double y = part == LEGS ? posY + 1 : posY + height * 0.7;
         ((WorldServer) worldObj).func_147487_a("blockcrack_" + logId + "_0", posX, y, posZ, 60, 1.2, 0.8, 1.2, 0.2);
         if (part == LEGS) {
-            setSize(3.4F, 4.4F); // осел на корпус
+            setSize(3.4F, 4.4F); // settled onto the torso
             getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.2D);
         }
         if (coreOpen()) worldObj.playSoundAtEntity(this, "mob.zombie.woodbreak", 2.0F, 0.5F);
-        // шатается 2 с: видно, что что-то отвалилось
+        // staggers for 2 s: it is visible that something fell off
         stagger = 40;
         String key = coreOpen() ? "dre.chat.golem_core" : part == LEGS ? "dre.chat.golem_legs"
             : broken(ARM_R) && broken(ARM_L) ? "dre.chat.golem_arms" : part == ARM_R ? "dre.chat.golem_arm_r" : "dre.chat.golem_arm_l";
@@ -205,11 +205,11 @@ public class EntityAncientGolem extends EntityGroveGuardian {
             m.getChatStyle().setColor(net.minecraft.util.EnumChatFormatting.GREEN);
             p.addChatMessage(m);
         }
-        String[] names = { "правая рука", "левая рука", "ноги" };
-        com.divinerpgextended.debug.Debug.noteNear(this, 40, "Голем: отбита " + names[part] + ", здоровье " + (int) getHealth() + (coreOpen() ? ", ядро открыто" : ""));
+        String[] names = { "right arm", "left arm", "legs" };
+        com.divinerpgextended.debug.Debug.noteNear(this, 40, "Golem: knocked off " + names[part] + ", health " + (int) getHealth() + (coreOpen() ? ", core open" : ""));
     }
 
-    // ---------------- атаки ----------------
+    // ---------------- attacks ----------------
 
     @Override
     public void onLivingUpdate() {
@@ -225,7 +225,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
             stagger--;
             motionX = motionZ = 0;
             getNavigator().clearPathEntity();
-            rotationYaw += (rand.nextFloat() - 0.5F) * 10; // качается
+            rotationYaw += (rand.nextFloat() - 0.5F) * 10; // sways
             if (stagger % 4 == 0) ((WorldServer) worldObj).func_147487_a("blockcrack_"
                 + net.minecraft.block.Block.getIdFromBlock(net.divinerpg.utils.blocks.TwilightBlocks.wildwoodLogs) + "_0", posX, posY + height * 0.5, posZ, 10, 1, 1, 1, 0.1);
             return;
@@ -234,7 +234,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         if (coreOpen() && ticksExisted % 10 == 0)
             ((WorldServer) worldObj).func_147487_a("happyVillager", posX, posY + height * 0.6, posZ, 8, 0.6, 0.6, 0.6, 0);
         if (t == null) return;
-        if (leaping && onGround && motionY <= 0) { // приземлился после прыжка
+        if (leaping && onGround && motionY <= 0) { // landed after a jump
             leaping = false;
             stomp();
         }
@@ -275,7 +275,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         return worldObj.getEntitiesWithinAABB(EntityPlayer.class, boundingBox.expand(r, 10, r));
     }
 
-    /** Топот: волна по земле - подбрасывает и бьёт тех, кто рядом (перепрыгнуть или отойти). */
+    /** Stomp: a wave along the ground - throws up and hits those nearby (jump over it or step away). */
     private void stomp() {
         stompTimer = 160 + rand.nextInt(60);
         worldObj.playSoundAtEntity(this, "random.explode", 1.5F, 0.5F);
@@ -290,8 +290,8 @@ public class EntityAncientGolem extends EntityGroveGuardian {
     }
 
     /**
-     * Родники капища: стоящего в воде родника Лесной следопыт лечит; через {@link #SPRING_STAY} тиков бьёт гейзер и
-     * выкидывает любого, родник засыпает на {@link #SPRING_SLEEP}.
+     * Shrine springs: the Forest Tracker standing in the spring water is healed; after {@link #SPRING_STAY} ticks a geyser hits and
+     * throws out anyone, and the spring falls asleep for {@link #SPRING_SLEEP}.
      */
     private void springs() {
         int[] home = com.divinerpgextended.boss.LairSummons.home(this);
@@ -333,12 +333,12 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         inSpring.keySet().retainAll(seen);
     }
 
-    /** Родник спит (для тестов и подсказок). */
+    /** The spring is asleep (for tests and hints). */
     public boolean springAwake(int i) {
         return worldObj.getTotalWorldTime() >= springWake[i];
     }
 
-    /** Стрелок издалека получает ответ: лиана подтягивает его к голему (или глыба, если лиане не дотянуться). */
+    /** A shooter from afar gets a reply: a vine pulls him to the golem (or a boulder if the vine can't reach). */
     private void answerArcher(DamageSource src) {
         if (!src.isProjectile() || !(src.getEntity() instanceof EntityPlayer) || answerTimer > 0) return;
         EntityPlayer p = (EntityPlayer) src.getEntity();
@@ -350,7 +350,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         else throwBoulder(p);
     }
 
-    /** Вырвать глыбу из земли и швырнуть дугой в цель. */
+    /** Tear a boulder out of the ground and hurl it in an arc at the target. */
     private void throwBoulder(EntityLivingBase t) {
         EntityBoulder b = new EntityBoulder(worldObj, this, (float) getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue() * 0.7F);
         b.setPosition(posX, posY + height * 0.75, posZ);
@@ -363,7 +363,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         worldObj.playSoundAtEntity(this, "mob.irongolem.throw", 2.0F, 0.5F);
     }
 
-    /** Прыжок к цели (приземление - топот). */
+    /** A jump to the target (the landing is a stomp). */
     private void leap(EntityLivingBase t) {
         double dx = t.posX - posX, dz = t.posZ - posZ, d = Math.sqrt(dx * dx + dz * dz);
         double speed = Math.min(1.6, d / 14);
@@ -375,7 +375,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         worldObj.playSoundAtEntity(this, "mob.irongolem.throw", 2.0F, 0.3F);
     }
 
-    /** Лиана: замах {@link #LASH_WINDUP} тиков (тянется зелёная дорожка), потом удар. */
+    /** Vine: windup of {@link #LASH_WINDUP} ticks (a green trail stretches), then the strike. */
     private void lash(EntityPlayer p) {
         if (p == null || p.getDistanceToEntity(this) < 4 || lashTarget != null) return;
         lashTarget = p;
@@ -383,13 +383,13 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         worldObj.playSoundAtEntity(this, "dig.grass", 2.0F, 0.4F);
     }
 
-    /** Слайсер перерезал лиану на замахе. */
+    /** The slicer cut the vine during the windup. */
     private void cutVine() {
         lashTarget = null;
         lashWindup = 0;
         worldObj.playSoundAtEntity(this, "mob.sheep.shear", 2.0F, 0.8F);
         ((WorldServer) worldObj).func_147487_a("slime", posX, posY + height * 0.6, posZ, 20, 1, 0.5, 1, 0.1);
-        com.divinerpgextended.debug.Debug.noteNear(this, 40, "Голем: лиана перерезана");
+        com.divinerpgextended.debug.Debug.noteNear(this, 40, "Golem: vine cut");
     }
 
     public boolean lashing() {
@@ -404,7 +404,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
             return;
         }
         WorldServer ws = (WorldServer) worldObj;
-        double k = 1 - lashWindup / (double) LASH_WINDUP; // лиана дотягивается
+        double k = 1 - lashWindup / (double) LASH_WINDUP; // the vine reaches
         ws.func_147487_a("slime", posX + (p.posX - posX) * k, posY + height * 0.6 + (p.posY + 1 - posY - height * 0.6) * k,
             posZ + (p.posZ - posZ) * k, 3, 0.1, 0.1, 0.1, 0);
         if (--lashWindup > 0) return;
@@ -412,7 +412,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         lashHit(p);
     }
 
-    /** Удар лианы: бьёт, подтягивает к голему и опутывает (замедление). */
+    /** Vine strike: hits, pulls toward the golem and entangles (slowness). */
     private void lashHit(EntityPlayer p) {
         if (p.getDistanceToEntity(this) < 4) return;
         p.attackEntityFrom(DamageSource.causeMobDamage(this), (float) getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue() * 0.5F);
@@ -431,7 +431,7 @@ public class EntityAncientGolem extends EntityGroveGuardian {
         worldObj.playSoundAtEntity(p, "dig.grass", 1.5F, 0.6F);
     }
 
-    /** Кулак: только живой рукой со стороны цели (или любой живой), с перезарядкой. */
+    /** Fist: only with a living arm on the target's side (or any living one), with a cooldown. */
     @Override
     public boolean attackEntityAsMob(Entity target) {
         if (stagger > 0 || broken(ARM_R) && broken(ARM_L)) return false;

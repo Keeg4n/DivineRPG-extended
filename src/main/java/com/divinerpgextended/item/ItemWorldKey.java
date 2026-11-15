@@ -18,9 +18,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Ключи миров (мета - номер мира TwilightWorld): открывают реликварий своего мира
- * ({@link com.divinerpgextended.block.BlockLockedChest}). Крафт: любой ключ Арканы в середине и 4 камня мира крестом. Значок -
- * ключ Divine, перекрашенный в цвет мира при запуске ({@link com.divinerpgextended.client.ChestTextures#keyPath}).
+ * World keys (meta - TwilightWorld dimension number): open the reliquary of their own dimension
+ * ({@link com.divinerpgextended.block.BlockLockedChest}). Craft: any Arcana key in the middle and 4 world stones in a cross. The icon is
+ * Divine's key, recolored to the dimension's color at startup ({@link com.divinerpgextended.client.ChestTextures#keyPath}).
  */
 public class ItemWorldKey extends Item {
 
@@ -75,7 +75,7 @@ public class ItemWorldKey extends Item {
             StatCollector.translateToLocal("tile.dre.lockedChest." + world(s).key() + ".name")));
     }
 
-    /** Крафт: любой из четырёх ключей Арканы и 4 камня мира крестом. */
+    /** Craft: any of the four Arcana keys and 4 world stones in a cross. */
     public static void recipes(Item key) {
         Item[] arcana = { net.divinerpg.utils.items.ArcanaItems.sludgeKey, net.divinerpg.utils.items.ArcanaItems.ancientKey,
             net.divinerpg.utils.items.ArcanaItems.soulKey, net.divinerpg.utils.items.ArcanaItems.degradedKey };

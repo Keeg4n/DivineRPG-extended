@@ -25,13 +25,13 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 
 /**
- * Древний драмкрикс - босс логова под храмом джунглей (модель драмкрикса Divine, втрое крупнее, замшелый).
+ * Ancient Dramcryx is the boss of the lair under the Jungle Temple (the Divine Dramcryx model, three times larger, mossy).
  * <ul>
- * <li>Хвост: цель рядом - замах {@link #SWEEP_WIND} тиков, удар по кругу ({@link #SWEEP_R}) и сильный отброс.</li>
- * <li>Таран: цель далеко - замах, бег по прямой; врезался в стену - оглушён {@link #STUN} тиков, урон по нему x1.5.</li>
- * <li>Споры: под игроками светится место, через {@link #SPORE_FUSE} тиков там ядовитое облако на {@link #SPORE_LIFE}.</li>
- * <li>На половине здоровья зовёт {@link #ADDS} порабощённых драмкриксов: пока они живы, шкура держит урон (x{@link #SHELL}).</li>
- * <li>На четверти здоровья - ярость: всё чаще.</li>
+ * <li>Tail: target nearby - a windup of {@link #SWEEP_WIND} ticks, a circular strike ({@link #SWEEP_R}) and strong knockback.</li>
+ * <li>Ram: target far - windup, a run in a straight line; if it hits a wall it is stunned for {@link #STUN} ticks, damage to it x1.5.</li>
+ * <li>Spores: a spot glows under players, after {@link #SPORE_FUSE} ticks a poison cloud appears there for {@link #SPORE_LIFE}.</li>
+ * <li>At half health it summons {@link #ADDS} Enthralled Dramcryxes: while they live, the hide holds back damage (x{@link #SHELL}).</li>
+ * <li>At a quarter health - rage: everything more often.</li>
  * </ul>
  */
 public class EntityAncientDramcryx extends EntityMob implements IBossDisplayData {
@@ -46,7 +46,7 @@ public class EntityAncientDramcryx extends EntityMob implements IBossDisplayData
     private int sweepWind, chargeWind, charge, stun, sweepCd = 60, chargeCd = 120, sporeCd = 160;
     private double cdx, cdz;
     private boolean called;
-    /** Споры: {x, y, z, тик облака, тик конца}. */
+    /** Spores: {x, y, z, cloud tick, end tick}. */
     private final List<double[]> spores = new ArrayList<double[]>();
 
     public EntityAncientDramcryx(World w) {
@@ -115,12 +115,12 @@ public class EntityAncientDramcryx extends EntityMob implements IBossDisplayData
         dataWatcher.addObject(DW_STUN, Byte.valueOf((byte) 0));
     }
 
-    /** Оглушён (видно и на клиенте - темнеет). */
+    /** Stunned (visible on the client too - it darkens). */
     public boolean stunned() {
         return worldObj.isRemote ? dataWatcher.getWatchableObjectByte(DW_STUN) != 0 : stun > 0;
     }
 
-    /** Живые порабощённые драмкриксы, которых он позвал. */
+    /** The living Enthralled Dramcryxes it summoned. */
     @SuppressWarnings("unchecked")
     public int adds() {
         int n = 0;
@@ -142,7 +142,7 @@ public class EntityAncientDramcryx extends EntityMob implements IBossDisplayData
     }
 
     private float rate() {
-        return getHealth() < getMaxHealth() * 0.25F ? 0.6F : 1.0F; // ярость
+        return getHealth() < getMaxHealth() * 0.25F ? 0.6F : 1.0F; // rage
     }
 
     @Override
@@ -200,7 +200,7 @@ public class EntityAncientDramcryx extends EntityMob implements IBossDisplayData
         playSound("divinerpg:dramcryx", 2.5F, 0.6F);
     }
 
-    /** Хвост по кругу: урон и отброс всем рядом. @return сколько задело */
+    /** Circular tail strike: damage and knockback to everyone nearby. @return how many were hit */
     @SuppressWarnings("unchecked")
     public int sweep() {
         int n = 0;
@@ -249,7 +249,7 @@ public class EntityAncientDramcryx extends EntityMob implements IBossDisplayData
         }
     }
 
-    /** Отметить места спор под игроками рядом (до трёх). @return сколько */
+    /** Mark spore spots under players nearby (up to three). @return how many */
     @SuppressWarnings("unchecked")
     public int spores() {
         sporeCd = (int) (SPORE_EVERY * rate());
@@ -287,13 +287,13 @@ public class EntityAncientDramcryx extends EntityMob implements IBossDisplayData
         }
     }
 
-    /** Отравить игрока спорами прямо сейчас (для проверок): облако там, где он стоит. */
+    /** Poison the player with spores right now (for tests): a cloud where he stands. */
     public void sporeAt(double x, double y, double z) {
         long now = worldObj.getTotalWorldTime();
         spores.add(new double[] { x, y, z, now, now + SPORE_LIFE });
     }
 
-    /** Зов порабощённых драмкриксов. @return сколько пришло */
+    /** Summon the Enthralled Dramcryxes. @return how many came */
     public int callAdds() {
         called = true;
         int n = 0;
@@ -303,7 +303,7 @@ public class EntityAncientDramcryx extends EntityMob implements IBossDisplayData
             a.setLocationAndAngles(posX + Math.cos(ang) * 4, posY + 0.5, posZ + Math.sin(ang) * 4, 0, 0);
             if (!worldObj.getCollidingBoundingBoxes(a, a.boundingBox).isEmpty()) a.setLocationAndAngles(posX, posY + 0.5, posZ, 0, 0);
             a.getEntityData().setInteger(ADD, getEntityId());
-            a.getEntityData().setBoolean("dreDemonAdd", true); // успокоение арены и бестиарий их не трогают
+            a.getEntityData().setBoolean("dreDemonAdd", true); // calming the arena and the bestiary do not affect them
             if (getAttackTarget() != null) a.setAttackTarget(getAttackTarget());
             com.divinerpgextended.boss.BossMinions.mark(a, this);
             if (worldObj.spawnEntityInWorld(a)) n++;

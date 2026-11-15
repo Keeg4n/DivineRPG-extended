@@ -15,7 +15,7 @@ import com.divinerpgextended.entity.EntityWarriorKing;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Король-воин: воин Апалачии из Divine вдвое выше, с клинком Апалачии; на колене - присел и потемнел. */
+/** Warrior King: the Divine Apalachia warrior twice as tall, with an Apalachia blade; on one knee - crouched and darkened. */
 @SideOnly(Side.CLIENT)
 public class RenderWarriorKing extends RenderBiped {
 
@@ -39,7 +39,7 @@ public class RenderWarriorKing extends RenderBiped {
             return;
         }
         GL11.glScalef(s, s, s);
-        // с каждой встречей ярче и золотистее
+        // brighter and more golden with each encounter
         float r = 0.85F + 0.075F * k.round();
         GL11.glColor4f(r, 0.8F, 1.0F, 1.0F);
     }

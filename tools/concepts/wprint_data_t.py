@@ -1,4 +1,4 @@
-"""Тексты раунда "в духе Террарии": R1 освящённая, R4 орихалковая, R7 хлорофитовая; у каждой три головы."""
+"""Texts of the "Terraria style" round: R1 hallowed, R4 orichalcum, R7 chlorophyte; each has three heads."""
 from wprint_data import PICKED
 
 ROUND = 'В духе Террарии'

@@ -10,7 +10,7 @@ import com.divinerpgextended.world.twilight.TwilightMaterial;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
-/** С мобов сумеречных миров, убитых игроком, кроме душ падает их материал: 35% и +10% за уровень Добычи. */
+/** Mobs of the twilight worlds killed by a player drop their material besides souls: 35% and +10% per Looting level. */
 public class TwilightDrops {
 
     public static final float CHANCE = 0.35F, PER_LOOTING = 0.10F;

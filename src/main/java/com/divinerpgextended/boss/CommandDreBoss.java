@@ -11,8 +11,8 @@ import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.EnumChatFormatting;
 
 /**
- * /dreboss list [игрок] - убитые боссы; /dreboss grant <босс|all> [игрок] - засчитать; /dreboss revoke <босс|all>
- * [игрок] - снять. Для тестов в новом мире и для админов сервера (уровень оператора 2).
+ * /dreboss list [player] - killed bosses; /dreboss grant <boss|all> [player] - count a boss; /dreboss revoke <boss|all>
+ * [player] - remove. For tests in a new world and for server admins (operator level 2).
  */
 public class CommandDreBoss extends CommandBase {
 
@@ -23,7 +23,7 @@ public class CommandDreBoss extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/dreboss <list|grant|revoke> [босс|all] [игрок]";
+        return "/dreboss <list|grant|revoke> [boss|all] [player]";
     }
 
     @Override

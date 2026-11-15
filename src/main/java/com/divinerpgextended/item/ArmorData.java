@@ -14,7 +14,7 @@ import com.divinerpgextended.world.ArmorTier;
 
 import net.minecraft.item.Item;
 
-/** Ступень, перки и ядро брони Странника хранятся в NBT каждой части. */
+/** The tier, perks and core of Wanderer armor are stored in the NBT of each piece. */
 public final class ArmorData {
 
     private static final String ROOT = "dre";
@@ -43,7 +43,7 @@ public final class ArmorData {
         root(stack, true).setInteger("tier", tier);
     }
 
-    /** Ядро части: старая броня без записи - божественная. */
+    /** The piece's core: old armor without a record is divine. */
     public static ArmorCore core(ItemStack stack) {
         NBTTagCompound r = root(stack, false);
         return r == null ? ArmorCore.DIVINE : ArmorCore.byName(r.getString("core"));
@@ -53,7 +53,7 @@ public final class ArmorData {
         root(stack, true).setString("core", core.name());
     }
 
-    /** Венец R8 или null (ниже R8 Венца нет). */
+    /** R8 Crown or null (there is no Crown below R8). */
     public static ArmorCrown crown(ItemStack stack) {
         NBTTagCompound r = root(stack, false);
         return r == null ? null : ArmorCrown.byName(r.getString("crown"));
@@ -63,7 +63,7 @@ public final class ArmorData {
         root(stack, true).setString("crown", crown == null ? "" : crown.name());
     }
 
-    /** Малые перки. Свойства Венца ({@link Perk#crown}), поставленные до 0.99.114, не считаются: их место свободно. */
+    /** Small perks. Crown properties ({@link Perk#crown}) set before 0.99.114 do not count: their slot is free. */
     public static List<Perk> perks(ItemStack stack) {
         List<Perk> out = new ArrayList<Perk>();
         NBTTagCompound r = root(stack, false);
@@ -82,7 +82,7 @@ public final class ArmorData {
         root(stack, true).setTag("perks", list);
     }
 
-    /** Владелец части (UUID строкой) или null - её ещё никто не надевал. */
+    /** Owner of the piece (UUID as a string) or null - nobody has worn it yet. */
     public static String owner(ItemStack stack) {
         NBTTagCompound r = root(stack, false);
         return r == null || !r.hasKey("owner") ? null : r.getString("owner");
@@ -93,7 +93,7 @@ public final class ArmorData {
         return r == null ? null : r.getString("ownerName");
     }
 
-    /** Привязать часть к игроку: защита, перки, ядро и гнёзда дальше работают только на нём. */
+    /** Bind the piece to a player: protection, perks, core and sockets then work only on them. */
     public static void bind(ItemStack stack, EntityPlayer p) {
         NBTTagCompound r = root(stack, true);
         r.setString("owner", p.getUniqueID().toString());
@@ -108,19 +108,19 @@ public final class ArmorData {
     }
 
     /**
-     * Работает ли часть на игроке: своя или ничья (ничью привяжет первый же тик на нём). На сервере сверяется UUID; на клиенте
-     * ещё и ник: у клиента без входа в аккаунт UUID может не совпасть с серверным, а подсказке и полоске брони нужен ответ.
+     * Whether the piece works on the player: own or nobody's (the first tick on them will bind a nobody's one). On the server the UUID is checked; on the client
+     * the name too: a client not logged in to an account may have a UUID that does not match the server's, yet the tooltip and the armor bar need an answer.
      */
     public static boolean owns(ItemStack stack, EntityPlayer p) {
         String o = owner(stack);
         if (o == null) return true;
         if (p == null) return false;
-        if (p instanceof com.divinerpgextended.dummy.DummyGhost) return true; // копия на манекене меряет защиту, привязка не в счёт
+        if (p instanceof com.divinerpgextended.dummy.DummyGhost) return true; // a copy on a training dummy measures protection, the binding does not count
         if (o.equals(p.getUniqueID().toString())) return true;
         return p.worldObj != null && p.worldObj.isRemote && p.getCommandSenderName().equals(ownerName(stack));
     }
 
-    /** Цвет покраски 0xRRGGBB или -1 - не крашена. Только облик. */
+    /** Dye color 0xRRGGBB or -1 - not dyed. Look only. */
     public static int color(ItemStack stack) {
         NBTTagCompound r = root(stack, false);
         return r == null || !r.hasKey("color") ? -1 : r.getInteger("color") & 0xFFFFFF;
@@ -136,9 +136,9 @@ public final class ArmorData {
     }
 
     /**
-     * Полный сет Странника на игроке.
+     * A full Wanderer set on the player.
      *
-     * @return минимальная ступень сета или 0, если сет не полный или чужой ({@link #owns})
+     * @return the minimum tier of the set or 0 if the set is not full or is someone else's ({@link #owns})
      */
     public static int equippedTier(EntityPlayer player) {
         int tier = Integer.MAX_VALUE;
@@ -150,7 +150,7 @@ public final class ArmorData {
         return tier;
     }
 
-    /** Венец надетого сета R8 (одинаковый на всех частях) или null. */
+    /** The Crown of the worn R8 set (the same on all pieces) or null. */
     public static ArmorCrown equippedCrown(EntityPlayer player) {
         if (equippedTier(player) < 8) return null;
         ArmorCrown c = crown(player.getCurrentArmor(0));
@@ -159,20 +159,20 @@ public final class ArmorData {
     }
 
     /**
-     * Ступень брони игрока для боссов: сет Странника - своя ступень; полные сеты Divine считаются эквивалентом
-     * (реалмит и элитный реалмит R0, финальные сеты обычного мира R1, Eden R2 ... Halite R7); всё остальное - R0.
+     * The player's armor tier for bosses: Wanderer set - its own tier; full Divine sets count as an equivalent
+     * (realmite and elite realmite R0, final Overworld sets R1, Eden R2 ... Halite R7); everything else - R0.
      */
     public static int effectiveTier(EntityPlayer player) {
         int wanderer = equippedTier(player);
         if (wanderer > 0) return wanderer;
-        // R1 - финальные сеты ({@link ArmorCore}), из них куётся Странник; элитный реалмит - лишь улучшенный R0
+        // R1 - the final sets ({@link ArmorCore}), the Wanderer is forged from them; elite realmite is just an improved R0
         if (ArmorCore.wornSet(player) != null) return 1;
         int best = 0;
         for (ArmorTier t : ArmorTier.values()) if (wearsSet(player, t.donorSet())) best = Math.max(best, t.tier);
         return best;
     }
 
-    /** set = [шлем, нагрудник, поножи, ботинки]; слоты игрока: 0 ботинки, 1 поножи, 2 нагрудник, 3 шлем. */
+    /** set = [helmet, chestplate, leggings, boots]; player slots: 0 boots, 1 leggings, 2 chestplate, 3 helmet. */
     private static boolean wearsSet(EntityPlayer player, Item[] set) {
         for (int i = 0; i < 4; i++) {
             ItemStack s = player.getCurrentArmor(i);
@@ -181,7 +181,7 @@ public final class ArmorData {
         return true;
     }
 
-    /** Перк действует, только если он есть на всех четырёх частях надетого сета; свойство Венца - если Венец такой на всех частях R8. */
+    /** A perk works only if it is on all four pieces of the worn set; the Crown property - if the Crown is the same on all R8 pieces. */
     public static boolean hasEquippedPerk(EntityPlayer player, Perk perk) {
         if (perk.crown()) return equippedCrown(player) == ArmorCrown.of(perk);
         if (equippedTier(player) == 0) return false;

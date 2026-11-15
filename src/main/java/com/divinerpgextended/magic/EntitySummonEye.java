@@ -6,9 +6,9 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
 
 /**
- * Око циклопического жезла ({@link AnchorSummons}): спутник над головой хозяина - летает сквозь блоки, как призрак, бьёт
- * слабее всех призывов, зато каждый удар отбрасывает врага от хозяина ({@link AnchorSummons#EYE_PUSH}; боссов - слабее,
- * стойких к отбросу - по их стойкости). Держится на 1 аркане в секунду.
+ * Eye of the Cyclops Wand ({@link AnchorSummons}): a companion over the owner's head - flies through blocks, like the ghost, hits
+ * weakest of all summons, but each hit knocks the enemy back from the owner ({@link AnchorSummons#EYE_PUSH}; bosses - weaker,
+ * those resistant to knockback - by their resistance). Lives on 1 arcana per second.
  */
 public class EntitySummonEye extends EntitySummonShark {
 
@@ -37,14 +37,14 @@ public class EntitySummonEye extends EntitySummonShark {
         return 2.6;
     }
 
-    /** Отброс от хозяина: держит врагов на расстоянии. */
+    /** Knockback from the owner: keeps enemies at a distance. */
     @Override
     protected void onHit(EntityLivingBase t, EntityPlayer o) {
         push(t, o.posX, o.posZ, posX, posZ);
         worldObj.playSoundAtEntity(this, "mob.ghast.fireball", 0.3F, 1.8F);
     }
 
-    /** Толчок цели прочь от точки (ox, oz); стоит на ней - прочь от ока (ex, ez). @return сила толчка */
+    /** Push the target away from point (ox, oz); if it stands on it - away from the eye (ex, ez). @return the push strength */
     public static double push(EntityLivingBase t, double ox, double oz, double ex, double ez) {
         double dx = t.posX - ox, dz = t.posZ - oz, len = Math.sqrt(dx * dx + dz * dz);
         if (len < 0.05) {

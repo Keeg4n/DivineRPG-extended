@@ -11,17 +11,17 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.DamageSource;
 
 /**
- * Чем ударили босса Ледяного Трона: оружие ближнего боя, стрела какого лука Divine, выстрел ледяной пушки. По этому
- * боссы решают, что сработало: каждый ледяной меч и лук Iceika полезен против своей цели.
+ * What hit the Frozen Throne boss: a melee weapon, an arrow of which Divine bow, a shot from the ice cannon. The bosses
+ * use this to decide what worked: each Iceika ice sword and bow is useful against its own target.
  */
 public final class ThroneCombat {
 
-    /** Метка помощников боссов Трона (поднятые мертвецы). */
+    /** Marker of the Throne bosses' helpers (raised dead). */
     public static final String MINION_TAG = "dreThroneMinion";
 
     private ThroneCombat() {}
 
-    /** Меч или молот в руке, если удар был в ближнем бою, иначе null. */
+    /** The sword or maul in hand if the blow was in melee, otherwise null. */
     public static Item melee(DamageSource s) {
         Entity e = s.getEntity();
         if (!(e instanceof EntityPlayer) || s.getSourceOfDamage() != e || s.isProjectile()) return null;
@@ -29,7 +29,7 @@ public final class ThroneCombat {
         return held == null ? null : held.getItem();
     }
 
-    /** Название стрелы Divine ("infernoArrow", "bluefireArrow", "snowstormArrow"...) или null. */
+    /** Name of the Divine arrow ("infernoArrow", "bluefireArrow", "snowstormArrow"...) or null. */
     public static String arrow(DamageSource s) {
         Entity src = s.getSourceOfDamage();
         return src instanceof EntityDivineArrow ? ((EntityDivineArrow) src).getTextureName() : null;
@@ -39,7 +39,7 @@ public final class ThroneCombat {
         return name.equals(arrow(s));
     }
 
-    /** Выстрел ледяной пушки (Frost, Fractite или Frostclaw Cannon). */
+    /** A shot from the ice cannon (Frost, Fractite or Frostclaw Cannon). */
     public static boolean iceCannon(DamageSource s) {
         if (!(s.getSourceOfDamage() instanceof EntityShooterBullet) || !(s.getEntity() instanceof EntityPlayer)) return false;
         ItemStack held = ((EntityPlayer) s.getEntity()).getHeldItem();
@@ -48,21 +48,21 @@ public final class ThroneCombat {
         return i == VanillaItemsWeapons.frostCannon || i == IceikaItems.fractiteCannon || i == IceikaItems.frostclawCannon;
     }
 
-    /** Множитель урона по Ледяному Колоссу: тяжёлое ледяное оружие раскалывает его тело. */
+    /** Damage multiplier against the Frost Colossus: heavy ice weapons split its body. */
     public static float vsColossus(Item w) {
         if (w == IceikaItems.frozenMaul) return 2.5F;
         if (w == IceikaItems.glacierSword) return 2.0F;
         if (w == IceikaItems.frostkingSword) return 1.6F;
-        if (vsLich(w) > 1.0F) return 1.3F; // клинки Лича - слабее молота, но лёд колют
+        if (vsLich(w) > 1.0F) return 1.3F; // the Lich's blades are weaker than the maul, but they split ice
         return 1.0F;
     }
 
-    /** Множитель по мертвецам боссов Трона: любое ледяное оружие Трона (против Колосса и против Лича) - x2. */
+    /** Multiplier against the Throne bosses' dead: any Throne ice weapon (against the Colossus and against the Lich) - x2. */
     public static float vsMinion(Item w) {
         return vsColossus(w) > 1.0F || vsLich(w) > 1.0F ? 2.0F : 1.0F;
     }
 
-    /** Множитель урона по Королю-личу: эти клинки ещё и не дают ему лечиться. */
+    /** Damage multiplier against the Lich King: these blades also keep him from healing. */
     public static float vsLich(Item w) {
         if (w == IceikaItems.icineSword) return 2.2F;
         if (w == IceikaItems.icicleBane) return 2.0F;

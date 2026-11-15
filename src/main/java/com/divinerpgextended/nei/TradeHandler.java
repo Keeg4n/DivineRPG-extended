@@ -24,7 +24,7 @@ import com.divinerpgextended.fishing.FishingLoot.View;
 import com.divinerpgextended.fishing.Rod;
 import com.divinerpgextended.registry.ModItems;
 
-/** NEI: удочки у торговцев (Леорна, Джек о'Мэн, Голод) и награды за рыбные задания Леорны. */
+/** NEI: fishing rods at merchants (Leorna, Jack O Man, the Hunger) and rewards for Leorna's fish quests. */
 public class TradeHandler extends DreHandler {
 
     public static final String ID = "dre.trades";
@@ -77,7 +77,7 @@ public class TradeHandler extends DreHandler {
         p.others.remove(p.result);
         p.add(baits, gx(4), gy(0), tierColor(View.BAIT), lines("dre.nei.quest.each"), false);
         p.add(crates, gx(5), gy(0), tierColor(View.CRATE), lines("dre.nei.quest.fifth"), false);
-        // лестница наград - второй ряд
+        // reward ladder - second row
         int i = COLS;
         for (int m : FishingEvents.MILESTONES) {
             List<String> tip = new ArrayList<String>();
@@ -115,7 +115,7 @@ public class TradeHandler extends DreHandler {
                 com.divinerpgextended.vethea.DreamItem.stack(com.divinerpgextended.vethea.DreamItem.WINGS_TEMPLATE)),
             trade("hunger", new ItemStack(VetheaItems.cleanPearls, FishingEvents.MIDNIGHT_TEMPLATE_PRICE), null,
                 com.divinerpgextended.vethea.DreamItem.stack(com.divinerpgextended.vethea.DreamItem.QUEEN_TEMPLATE)),
-            // рельсы арканы Divine у Датикона в инвентаре сразу становятся рельсами аддона
+            // Divine Arcana Rails in Datticon's inventory immediately become addon rails
             trade("datticon", new ItemStack(ArcanaItems.arcanium, 5), null, new ItemStack(ModItems.arcanaRails, 8)),
             quest(), worms());
     }

@@ -8,7 +8,7 @@ import com.divinerpgextended.fishing.FishingLoot.View;
 import com.divinerpgextended.fishing.Zone;
 import com.divinerpgextended.registry.ModItems;
 
-/** NEI: содержимое рыболовного ящика каждой зоны (ящик - первая ячейка). */
+/** NEI: the contents of each zone's fishing crate (the crate is the first cell). */
 public class CrateHandler extends DreHandler {
 
     public static final String ID = "dre.crates";
@@ -23,7 +23,7 @@ public class CrateHandler extends DreHandler {
         return ID;
     }
 
-    /** Зона ящика по мете (шахтёрские - пещеры). */
+    /** Crate zone by meta (miner's ones - caves). */
     private static Zone zone(int m) {
         if (FishingLoot.crateTier(m) >= 0) return Zone.CAVE;
         return Zone.values()[m >= 0 && m < Zone.values().length ? m : 0];

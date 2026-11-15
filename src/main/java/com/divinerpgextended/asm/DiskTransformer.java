@@ -13,7 +13,7 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
-/** Диски Ветеи: ПКМ (ItemVetheanDisk.onItemRightClick) целиком - в {@link com.divinerpgextended.vethea.DiskThrow#use}. */
+/** Vethea disks: right click (ItemVetheanDisk.onItemRightClick) entirely goes into {@link com.divinerpgextended.vethea.DiskThrow#use}. */
 public class DiskTransformer implements IClassTransformer, Opcodes {
 
     private static final String TARGET = "net.divinerpg.items.vethea.ItemVetheanDisk";
@@ -29,7 +29,7 @@ public class DiskTransformer implements IClassTransformer, Opcodes {
             int n = 0;
             for (MethodNode m : node.methods) {
                 if (!DESC.equals(m.desc) || !("func_77659_a".equals(m.name) || "onItemRightClick".equals(m.name))) continue;
-                // тело заменяется целиком: ранний выход перед старым кодом оставил бы его без кадров стека (VerifyError)
+                // the body is replaced entirely: an early exit before the old code would leave it without stack frames (VerifyError)
                 m.instructions.clear();
                 m.tryCatchBlocks.clear();
                 if (m.localVariables != null) m.localVariables.clear();
@@ -43,15 +43,15 @@ public class DiskTransformer implements IClassTransformer, Opcodes {
                 n++;
             }
             if (n == 0) {
-                LOG.warn("Диски Ветеи: в {} нет броска - летают как в Divine", transformedName);
+                LOG.warn("Vethea disks: no throw in {} - they fly as in Divine", transformedName);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Диски Ветеи: бросок как у томагавка");
+            LOG.info("Vethea disks: throw like the tomahawk");
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Диски Ветеи: не удалось подключиться к " + transformedName + ", класс без изменений", t);
+            LOG.error("Vethea disks: could not hook into " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }

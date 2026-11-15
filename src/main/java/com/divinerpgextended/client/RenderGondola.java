@@ -4,7 +4,7 @@ import net.minecraft.client.renderer.entity.RenderBoat;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.ResourceLocation;
 
-/** Ладья Харона: модель ванильной лодки из чёрного дерева. */
+/** Charon's Barge: a vanilla boat model made of black wood. */
 public class RenderGondola extends RenderBoat {
 
     private static final ResourceLocation TEX = new ResourceLocation("divinerpgextended", "textures/entity/gondola.png");

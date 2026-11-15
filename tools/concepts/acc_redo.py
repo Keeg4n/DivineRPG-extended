@@ -1,4 +1,4 @@
-"""Переделка 09.11 (запуск: python3 acc_redo.py <папка>; потом acc_redo_html.py <папка>): алтарь логова джунглей (3 новых), посадка шарфа 22А на обеих бронях, ковёр 28 (сейчас, А и 2 новых)."""
+"""Redo of 09.11 (run: python3 acc_redo.py <folder>; then acc_redo_html.py <folder>): jungle lair altar (3 new), scarf 22A fit on both armors, carpet 28 (current, A and 2 new)."""
 import os
 import sys
 
@@ -20,11 +20,11 @@ OUT = (sys.argv[1] if len(sys.argv) > 1 else '/tmp/acc_redo') + '/img'
 os.makedirs(OUT, exist_ok=True)
 T = AL.T
 
-# ------------------------------------------------------------------ алтарь логова джунглей
+# ------------------------------------------------------------------ jungle lair altar
 
 
 def jaws(c):
-    """Пасть драмкрикса: глаза и зубы."""
+    """Drumcrix maw: eyes and teeth."""
     c.c(RECT(3, 4, 5, 5), '#4cf07a').c(RECT(10, 4, 12, 5), '#4cf07a')
     c.d('#d8ffe0', 3, 4, 10, 4)
     for x in range(3, 13, 2):
@@ -57,17 +57,17 @@ ALT6 = [
 
 
 def _vine_low():
-    """Лианы только внизу грани."""
+    """Vines only at the bottom of the face."""
     v = T('vine').copy()
     v[:9, :, 3] = 0
     return v
 
 
-# ------------------------------------------------------------------ шарф: посадка по огибающей брони на всей высоте воротника
+# ------------------------------------------------------------------ scarf: fit along the armor envelope over the whole collar height
 
 
 def span_env(a, y0, y1, step=.25):
-    """Огибающая тела на всём отрезке высот: самые выступающие грани (броня на плечах и вороте тоже)."""
+    """Body envelope over the whole height range: the most protruding faces (armor on the shoulders and collar too)."""
     xs0, xs1, zs0, zs1 = [], [], [], []
     y = y0
     while y <= y1 + 1e-6:
@@ -82,14 +82,14 @@ def span_env(a, y0, y1, step=.25):
 
 def scarf_fit(a, c1, c2, tail='front', h=1.7):
     heads = [hi[1] for b, lo, hi in a.surface if b == 'head']
-    # чуть заходит под край шлема, но не выше низа головы (y=0): у Странника шлем кончается выше подбородка, и воротник
-    # на высоте шлема прятала сама голова
+    # goes slightly under the helmet edge, but not above the bottom of the head (y=0): the Wanderer helmet ends above the chin, and the collar
+    # at helmet height was hidden by the head itself
     top = max(-.1, max(heads + [-1.7]) - .15)
     x0, x1, z0, z1 = span_env(a, top, top + h)
     x = max(-x0, x1, 4.3) + .25
     z0, z1 = z0 - .3, max(z1, 2.3) + .3
     out = cube('body', -x, top, z0, x * 2, h, z1 - z0, c1)
-    for i in range(0, 6, 2):  # белые полосы спереди и сзади
+    for i in range(0, 6, 2):  # white stripes at the front and back
         px = -x + (i + .5) * x * 2 / 6 - .35
         out += cube('body', px, top - .03, z0 - .03, .9, h + .06, .1, c2)
         out += cube('body', px, top - .03, z1 - .07, .9, h + .06, .1, c2)
@@ -97,24 +97,24 @@ def scarf_fit(a, c1, c2, tail='front', h=1.7):
     for i in range(5):
         col = c1 if i % 2 == 0 else c2
         yy = y + i * 1.1
-        if tail == 'front':  # хвост по груди - поверх нагрудника на своей высоте
+        if tail == 'front':  # tail across the chest - over the chestplate at its own height
             zf = W.chest_z(a, yy + .5) - .35
             out += cube('body', -2.9, yy, min(zf, z0 + .1), 2.2, 1.1, .45, col)
-        elif tail == 'back':  # закинут за плечо - по спине
+        elif tail == 'back':  # thrown over the shoulder - along the back
             zb = max(W.back_z(a, yy + .5), 2.2) + .05
             out += cube('body', .8, yy, max(zb, z1 - .55), 2.2, 1.1, .45, col)
-        elif tail == 'two' and i < 3:  # два коротких хвоста узлом сбоку
+        elif tail == 'two' and i < 3:  # two short tails tied in a knot at the side
             zf = W.chest_z(a, yy + .5) - .35
             out += cube('body', -x + .2, yy, min(zf, z0 + .1), 1.6, 1.1, .45, col)
             out += cube('body', -x + 2.0, yy + .4, min(zf, z0 + .1), 1.6, 1.1, .45, c2 if col == c1 else c1)
     if tail == 'two':
-        out += cube('body', -x - .2, y - .3, z0 - .2, 1.8, 1.4, 1.2, c1)  # узел
+        out += cube('body', -x - .2, y - .3, z0 - .2, 1.8, 1.4, 1.2, c1)  # knot
     return out
 
 
 FITS = [('Хвост по груди (как было, но поверх брони)', 'front'), ('Хвост закинут за спину', 'back'), ('Узел сбоку, два коротких хвоста', 'two')]
 
-# ------------------------------------------------------------------ ковёр
+# ------------------------------------------------------------------ carpet
 
 
 def carpet_wave(c):
@@ -125,7 +125,7 @@ def carpet_wave(c):
 
 
 def carpet_stars(c):
-    """Ночной: тёмно-синий, золотая кайма и звёзды, кисти по краям."""
+    """Night: dark blue, gold trim and stars, tassels along the edges."""
     c.f(RECT(1, 3, 14, 12), LAP)
     c.c(RECT(1, 3, 14, 3) | RECT(1, 12, 14, 12) | RECT(1, 3, 1, 12) | RECT(14, 3, 14, 12), GOLD[2])
     c.d(GOLD[4], 4, 6, 9, 5, 11, 9, 6, 10, 12, 6)
@@ -142,13 +142,13 @@ def current_icon():
 
 def main():
     dv, wa = K.divine_armor(w.POSE), K.wanderer_armor(w.POSE)
-    # алтари
+    # altars
     for j, (name, blocks, side, top) in enumerate(ALT6):
         s, t = side(), top()
         AL.block_render(s, t).save(OUT + '/alt6_%d.jpg' % j, quality=92)
         AL.flat_tex(s, OUT + '/alt6_%d_s.png' % j)
         AL.flat_tex(t, OUT + '/alt6_%d_t.png' % j)
-    # шарф 22А: значок как был; посадки
+    # scarf 22A: icon as it was; fits
     items = {it[0]: it for it in acc_items1.ITEMS}
     sc = items['warm_scarf'][3][0]
     K.save_icon(K.icon(sc[1]), OUT + '/scarf_icon.png', 6)
@@ -159,7 +159,7 @@ def main():
             parts = scarf_fit(arm, RED[2], WHITE[3], kind)
             K.shot(arm, parts, 'chest', 'front', w.POSE).save(OUT + '/scarf_%d_%s.jpg' % (j, an), quality=90)
             K.shot(arm, parts, 'chest', 'back' if kind == 'back' else 'side', w.POSE).save(OUT + '/scarf_%d_%s2.jpg' % (j, an), quality=90)
-    # ковёр: сейчас, А и два новых
+    # carpet: current, A and two new ones
     cp = items['magic_carpet'][3][0]
     icons = [('Сейчас в игре', current_icon()), ('А. Алый с золотом', K.icon(cp[1])), ('Г. Волна в полёте', K.icon(carpet_wave)), ('Д. Ночной со звёздами', K.icon(carpet_stars))]
     for j, (label, ic) in enumerate(icons):

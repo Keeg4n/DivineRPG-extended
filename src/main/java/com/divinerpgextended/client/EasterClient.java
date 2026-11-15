@@ -34,7 +34,7 @@ import cpw.mods.fml.client.registry.RenderingRegistry;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
-/** Вид пасхалок ({@link Easter}): значки и модели переименованных вещей, костюм H.E.V. (шлем или очки), монтировка, граната ПГ-7, диван с РПГ. */
+/** Look of the Easter eggs ({@link Easter}): icons and models of renamed items, the H.E.V. suit (helmet or goggles), the crowbar, the PG-7 grenade, the sofa with an RPG. */
 public final class EasterClient {
 
     private EasterClient() {}
@@ -48,10 +48,10 @@ public final class EasterClient {
     static final EasterModels.HevArmor HEV_MODEL = new EasterModels.HevArmor();
     static final EasterMesh CROWBAR_MESH = new EasterMesh("crowbar");
     static final EasterModels.Sofa SOFA_MODEL = new EasterModels.Sofa();
-    /** РПГ-7 на диване (rpg/sofa) и граната ПГ-7 в полёте (pg7/flight) - по пропорциям настоящих. */
+    /** The RPG-7 on the sofa (rpg/sofa) and the PG-7 grenade in flight (pg7/flight) - with the proportions of the real ones. */
     static final EasterMesh RPG_MESH = new EasterMesh("rpg");
 
-    /** Значок пасхалки для вещи или null (обычная вещь). */
+    /** The Easter egg icon for an item, or null (an ordinary item). */
     static IIcon icon(ItemStack s) {
         if (Easter.crowbar(s)) return crowbar;
         if (Easter.musou(s)) return musou;
@@ -62,13 +62,13 @@ public final class EasterClient {
             : i == net.divinerpg.utils.items.VanillaItemsArmor.realmiteLegs ? hevLegs : hevBoots;
     }
 
-    /** Часть костюма по вещи брони: helmet/goggles, chest, legs, boots. */
+    /** The suit part by the armor item: helmet/goggles, chest, legs, boots. */
     static String piece(ItemStack s) {
         int type = ((net.minecraft.item.ItemArmor) s.getItem()).armorType;
         return type == 0 ? (Easter.goggles(s) ? "goggles" : "helmet") : type == 1 ? "chest" : type == 2 ? "legs" : "boots";
     }
 
-    /** Модель брони костюма для стоек и мобов ({@link com.divinerpgextended.asm.EasterHooks}); не костюм - null. */
+    /** The suit armor model for stands and mobs ({@link com.divinerpgextended.asm.EasterHooks}); null if not a suit. */
     public static net.minecraft.client.model.ModelBiped armorModel(ItemStack s) {
         if (!Easter.hev(s) || !(s.getItem() instanceof net.minecraft.item.ItemArmor)) return null;
         HEV_MODEL.piece = piece(s);
@@ -96,7 +96,7 @@ public final class EasterClient {
         HevSounds.init();
     }
 
-    /** После Divine: обёртки над его рендерами (обычные вещи и снаряды рисуются как раньше). */
+    /** After Divine: wrappers over its renderers (ordinary items and projectiles are drawn as before). */
     @SuppressWarnings("unchecked")
     public static void postInit() {
         Map<Item, IItemRenderer> custom;
@@ -134,8 +134,8 @@ public final class EasterClient {
         }
 
         /**
-         * Костюм H.E.V. на игроке - своя модель вместо реалмитовой брони. Часть - по типу вещи брони (номер прохода в этом
-         * событии идёт задом наперёд: 3 - шлем, 0 - ботинки).
+         * The H.E.V. suit on the player - its own model instead of Realmite armor. The part is by the armor item type (the pass number in this
+         * event goes backwards: 3 - helmet, 0 - boots).
          */
         @SubscribeEvent
         public void onArmor(RenderPlayerEvent.SetArmorModel e) {
@@ -156,7 +156,7 @@ public final class EasterClient {
         }
     }
 
-    /** Значки переименованных вещей (обычные - прежним рендером Divine или ванильным). */
+    /** Icons of renamed items (ordinary ones - with Divine's previous renderer or the vanilla one). */
     static class ItemIcons implements IItemRenderer {
 
         final IItemRenderer prev;
@@ -192,23 +192,23 @@ public final class EasterClient {
                 return;
             }
             if (type == ItemRenderType.ENTITY) GL11.glTranslatef(-0.5F, -0.25F, 0F);
-            if (Easter.crowbar(s)) { // монтировка в руке и на земле - объёмная, в той же раскладке, что значок меча
+            if (Easter.crowbar(s)) { // the crowbar in hand and on the ground is 3D, in the same layout as the sword icon
                 Minecraft.getMinecraft().getTextureManager().bindTexture(CROWBAR);
                 CROWBAR_MESH.render("crowbar", "item", 1F / 16F);
                 return;
             }
-            if (Easter.rpg(s)) { // РПГ-7 - объёмный, та же модель, что на диване
+            if (Easter.rpg(s)) { // the RPG-7 is 3D, the same model as on the sofa
                 Minecraft.getMinecraft().getTextureManager().bindTexture(RPG);
                 RPG_MESH.render("rpg", "item", 1F / 16F);
                 return;
             }
-            if (Easter.musou(s)) { // Musou no Hitotachi - объёмная катана, клинок и эмблема светятся
+            if (Easter.musou(s)) { // Musou no Hitotachi - a 3D katana, the blade and the emblem glow
                 Minecraft.getMinecraft().getTextureManager().bindTexture(MUSOU);
-                if (type != ItemRenderType.ENTITY) { // катана длиннее меча: в руке x KATANA вокруг середины рукояти
-                    GL11.glTranslatef(13.7F / 16F, 2.3F / 16F, -0.03F); // середина рукояти меча бури на значке (2.3, 2.3)
+                if (type != ItemRenderType.ENTITY) { // the katana is longer than a sword: in hand x KATANA around the middle of the handle
+                    GL11.glTranslatef(13.7F / 16F, 2.3F / 16F, -0.03F); // the middle of the Storm Sword handle on the icon (2.3, 2.3)
                     GL11.glScalef(KATANA, KATANA, KATANA);
-                    GL11.glTranslatef(-13.73F / 16F, -2.27F / 16F, 0.03F); // середина рукояти катаны (musou_model.py печатает)
-                } else { // на земле x KATANA_GROUND вокруг середины предмета
+                    GL11.glTranslatef(-13.73F / 16F, -2.27F / 16F, 0.03F); // the middle of the katana handle (musou_model.py prints it)
+                } else { // on the ground x KATANA_GROUND around the middle of the item
                     GL11.glTranslatef(0.5F, 0.5F, -0.03F);
                     GL11.glScalef(KATANA_GROUND, KATANA_GROUND, KATANA_GROUND);
                     GL11.glTranslatef(-0.5F, -0.5F, 0.03F);
@@ -223,13 +223,13 @@ public final class EasterClient {
         }
     }
 
-    /** Во сколько раз Musou больше своей модели: в руке и на земле. */
+    /** How many times larger Musou is than its model: in hand and on the ground. */
     static final float KATANA = 1.8F, KATANA_GROUND = 1.5F;
 
     private static float lastX, lastY;
     private static boolean lit;
 
-    /** Свечение: полная яркость и без теней (true), затем вернуть как было (false). */
+    /** Glow: full brightness and no shadows (true), then restore as it was (false). */
     static void glow(boolean on) {
         if (on) {
             lastX = net.minecraft.client.renderer.OpenGlHelper.lastBrightnessX;
@@ -243,7 +243,7 @@ public final class EasterClient {
         }
     }
 
-    /** Ракета Мерика из РПГ-7 - граната ПГ-7 с дымным следом; остальные - рендером Divine. */
+    /** Merik's rocket from the RPG-7 - a PG-7 grenade with a smoke trail; the others - with Divine's renderer. */
     static class RocketRenderer extends Render {
 
         final Render prev;
@@ -259,7 +259,7 @@ public final class EasterClient {
             if (prev != null) prev.setRenderManager(m);
         }
 
-        /** Выпущена из РПГ-7: в первый кадр рядом стоит игрок с ним в руке. */
+        /** Fired from an RPG-7: on the first frame a player with it in hand stands nearby. */
         boolean isRocket(Entity e) {
             Boolean b = rocket.get(e);
             if (b == null) {
@@ -293,7 +293,7 @@ public final class EasterClient {
         }
     }
 
-    /** Диван с РПГ: модель на первой половине, на оба блока. */
+    /** The sofa with an RPG: the model on the first half, over both blocks. */
     static class SofaRenderer extends TileEntitySpecialRenderer {
 
         static final float[] YAW = { 180F, 90F, 0F, 270F };
@@ -307,9 +307,9 @@ public final class EasterClient {
             GL11.glRotatef(180F, 0, 0, 1);
             bindTexture(SOFA);
             SOFA_MODEL.render(null, 0, 0, 0, 0, 0, 0.0625F);
-            // РПГ-7 лежит на подушках сиденья: на боку (рукояти к краю), чуть наискось, между подлокотниками и перед
-            // подушками спинки. Масштаб 0.7 - 1.4 блока, как настоящий с гранатой; положение посчитано по вершинам меша,
-            // ни одна не заходит в диван
+            // the RPG-7 lies on the seat cushions: on its side (handles toward the edge), slightly diagonal, between the armrests and in front of the
+            // back cushions. Scale 0.7 - 1.4 blocks, like the real one with a grenade; the position is calculated from the mesh vertices,
+            // none of them goes into the sofa
             GL11.glTranslatef(-11.11F / 16F, 10.77F / 16F, -0.84F / 16F);
             GL11.glRotatef(6F, 0, 1, 0);
             GL11.glRotatef(-90F, 1, 0, 0);

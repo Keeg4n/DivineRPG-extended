@@ -33,26 +33,26 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Орда Айрако гнездовья (дальний остров Энда) - бой как с Гидрой Сумеречного леса: пятеро драконов кружат широким
- * кругом высоко над островом и по очереди подлетают к игроку. Подлетевший {@link #ENGAGE_TICKS} тиков держится рядом,
- * облетая цель, и атакует:
+ * The Ayeraco aerie horde (far End island) - a fight like the Hydra of the Twilight Forest: five dragons circle in a wide
+ * circle high above the island and swoop at the player in turn. A swooping one stays near for {@link #ENGAGE_TICKS} ticks,
+ * circling the target, and attacks:
  * <ul>
- * <li>дыхание пустотным пламенем (фиолетовым) - конус, медленно доворачивает за целью (уйти вбок можно), жжёт
- * пустотным горением; пока дракон дышит, пасть открыта - урон по нему x{@link #BREATH_VULN};</li>
- * <li>снаряд пустотного пламени навесом - падает на место цели, взрывается и оставляет горящую землю на 5 секунд;</li>
- * <li>укус, если подошёл вплотную.</li>
+ * <li>void flame breath (purple) - a cone that slowly turns to follow the target (you can step aside), burns with
+ * void burning; while the dragon breathes, its mouth is open - damage to it x{@link #BREATH_VULN};</li>
+ * <li>a lobbed void flame projectile - falls on the target's spot, explodes and leaves burning ground for 5 seconds;</li>
+ * <li>a bite if you come up close.</li>
  * </ul>
- * Когда стая редеет (три и меньше), подлетают по двое. Пламя - огненный урон: зелье огнестойкости спасает. Раз в
- * {@link #ADD_EVERY} тиков стая зовёт подмогу Энда (тройни и наблюдатели, не больше {@link #MAX_ADDS}); прочих
- * враждебных мобов на острове, пока идёт бой, нет: при вызове и потом раз в секунду они исчезают. Лук Энда: x{@link #BOW_K},
- * сквозь щит синего, и пустотный якорь - подстреленного на {@link #ANCHOR_TICKS} тиков тянет вниз, к высоте стрелка, а
- * пустотный шаг стрелка ведёт прямо к нему ({@link EnderGear}). Лечение: столп и зелёный не лечат того, кого бил игрок
- * последние {@link #NO_HEAL} тиков.
- * Ауры живых по цвету действуют на всю стаю: зелёный лечит остальных; синий отбивает снаряды; красный - ярость
- * (урон x1.5); жёлтый - стая быстрее, попадания замедляют; фиолетовый перебрасывает собрата к игроку. Столпы гнезда:
- * пять цветных столпов на обсидиановых башнях острова; пока цел столп цвета, его Айрако восстанавливается. Сердце орды:
- * последний выживший забирает ауры павших и бьёт сильнее. Броня Энда того же цвета ({@link EnderColors}) снимает с
- * носителя ауру этого Айрако и усиливает удары по нему. Лучи Divine (блоки луча от рога) после боя убираются.
+ * When the pack thins out (three or fewer), they swoop two at a time. The flame is fire damage: a fire resistance potion saves you. Every
+ * {@link #ADD_EVERY} ticks the pack calls End reinforcements (triplets and watchers, no more than {@link #MAX_ADDS}); other
+ * hostile mobs on the island are absent while the fight lasts: on summon and then once a second they vanish. End Bow: x{@link #BOW_K},
+ * through the blue one's shield, and the void anchor - a shot one is pulled down for {@link #ANCHOR_TICKS} ticks toward the shooter's height, and
+ * the shooter's void step leads straight to it ({@link EnderGear}). Healing: the pillar and the green one do not heal one the player hit in
+ * the last {@link #NO_HEAL} ticks.
+ * Auras of the living by color work on the whole pack: green heals the others; blue deflects projectiles; red - rage
+ * (damage x1.5); yellow - the pack is faster, hits slow; purple throws a packmate to the player. Nest pillars:
+ * five colored pillars on the obsidian towers of the island; while the color's pillar is intact, its Ayeraco regenerates. Heart of the horde:
+ * the last survivor takes the auras of the fallen and hits harder. End armor of the same color ({@link EnderColors}) removes this Ayeraco's
+ * aura from the wearer and strengthens hits against it. Divine beams (beam blocks from the horn) are removed after the fight.
  */
 public class AyeracoHorde {
 
@@ -60,7 +60,7 @@ public class AyeracoHorde {
     static final String PH = "dreHordePh", UNTIL = "dreHordeUntil", NEXT = "dreHordeAtk", BREATH = "dreHordeBreath", AIM_YAW = "dreHordeYaw",
         AIM_PITCH = "dreHordePitch";
 
-    /** Цвета стаи по порядку столпов. */
+    /** Pack colors in pillar order. */
     public enum Hue {
         GREEN, BLUE, RED, YELLOW, PURPLE;
 
@@ -70,7 +70,7 @@ public class AyeracoHorde {
             return null;
         }
 
-        /** Цвет блока столпа (обожжённая глина). */
+        /** Pillar block color (stained clay). */
         public int clay() {
             switch (this) {
                 case GREEN: return 5;
@@ -82,33 +82,33 @@ public class AyeracoHorde {
         }
     }
 
-    /** Круг стаи: радиус, высота над полом, угловая скорость. */
+    /** Pack circle: radius, height above the floor, angular speed. */
     public static final double ORBIT_R = 36, ORBIT_H = 20, ORBIT_W = 0.012, LEASH = 64;
-    /** Подлёт: на каком расстоянии от цели и выше её держится. */
+    /** Swoop: at what distance from the target and above it it holds. */
     public static final double PERCH = 9, PERCH_UP = 5;
     public static final int APPROACH_TICKS = 100, ENGAGE_TICKS = 160, RETREAT_TICKS = 50, STAGGER = 50;
-    /** Столпы: кольцо башен, высота башни над полом, высота глиняного столпа. */
+    /** Pillars: ring of towers, tower height above the floor, clay pillar height. */
     public static final int PILLAR_RING = 36, PILLAR_LIFT = 8, PILLAR_H = 5;
-    /** Дыхание: длительность (первые BREATH_WIND - замах без урона), дальность, полуугол конуса, урон за 5 тиков. */
+    /** Breath: duration (the first BREATH_WIND - a windup without damage), range, half-angle of the cone, damage per 5 ticks. */
     public static final int BREATH_TICKS = 50, BREATH_WIND = 12;
     public static final double BREATH_RANGE = 13, BREATH_CONE = 0.32;
     public static final float BREATH_DMG = 2F, MORTAR_DMG = 5F, FIRE_DMG = 2F, BITE_RANGE = 4.5F, BURN_DMG = 1F;
-    /** Лечение: доля здоровья в секунду от столпа, зелёный - здоровья в секунду; после удара игрока не лечится столько тиков. */
+    /** Healing: fraction of health per second from the pillar, green - health per second; after a player hit it is not healed for this many ticks. */
     public static final float PILLAR_HEAL = 0.004F, GREEN_HEAL = 1F;
     public static final int NO_HEAL = 100;
-    /** Пасть открыта (дышит) - урон по дракону xBREATH_VULN; лук Энда - xBOW_K и якорь на ANCHOR_TICKS тиков. */
+    /** Mouth open (breathing) - damage to the dragon xBREATH_VULN; End Bow - xBOW_K and the anchor for ANCHOR_TICKS ticks. */
     public static final float BREATH_VULN = 1.5F, BOW_K = 2F;
     public static final int ANCHOR_TICKS = 60, BURN_TICKS = 60;
-    /** Подмога: раз в столько тиков, не больше стольких живых. */
+    /** Reinforcements: once per this many ticks, no more than this many alive. */
     public static final int ADD_EVERY = 400, MAX_ADDS = 3;
     public static final String ADD = "dreHordeAdd", ANCHOR = "dreHordeAnchor", ANCHOR_Y = "dreHordeAnchorY", ANCHOR_BY = "dreHordeAnchorBy",
         BURN = "dreVoidBurn";
-    /** Снаряд навесом: время полёта, тяжесть; горящая земля - сколько тиков. */
+    /** Lobbed projectile: flight time, gravity; burning ground - how many ticks. */
     public static final int MORTAR_FLIGHT = 30, FIRE_TICKS = 100;
     static final double MORTAR_G = 0.04;
     public static final int ORBIT = 0, APPROACH = 1, ENGAGE = 2, RETREAT = 3;
 
-    /** Снаряд навесом в полёте. */
+    /** Lobbed projectile in flight. */
     static final class Mortar {
         double x, y, z, vx, vy, vz;
         final EntityLiving owner;
@@ -119,7 +119,7 @@ public class AyeracoHorde {
         }
     }
 
-    /** Состояние стаи (по центру гнездовья). */
+    /** Pack state (by the aerie center). */
     static final class Pack {
         final int x, y, z;
         int turn;
@@ -129,7 +129,7 @@ public class AyeracoHorde {
         final List<EntityLiving> alive = new ArrayList<EntityLiving>();
         long aliveAt = -1;
         final List<Mortar> mortars = new ArrayList<Mortar>();
-        /** Горящая земля: {x, y, z, до какого тика}; кто поджёг - в fireOwners. */
+        /** Burning ground: {x, y, z, until which tick}; who set it on fire - in fireOwners. */
         final List<double[]> fires = new ArrayList<double[]>();
         final List<EntityLiving> fireOwners = new ArrayList<EntityLiving>();
 
@@ -159,7 +159,7 @@ public class AyeracoHorde {
         return p;
     }
 
-    /** Живые Айрако стаи (раз в тик). */
+    /** Living Ayeraco of the pack (once per tick). */
     static List<EntityLiving> alive(Pack p, World w) {
         long now = w.getTotalWorldTime();
         if (p.aliveAt == now) return p.alive;
@@ -177,7 +177,7 @@ public class AyeracoHorde {
         return alive(p, w).size() == 1 && p.fallen.size() >= 4;
     }
 
-    /** Действует ли аура цвета: жив такой Айрако или он пал, а остался последний (сердце орды). */
+    /** Whether the color's aura is active: such an Ayeraco is alive or it fell and the last one remained (heart of the horde). */
     static boolean aura(Pack p, World w, Hue h) {
         for (EntityLiving e : alive(p, w)) if (Hue.of(e) == h) return true;
         return heart(p, w) && p.fallen.contains(h);
@@ -207,7 +207,7 @@ public class AyeracoHorde {
         e.getEntityData().setLong(UNTIL, until);
     }
 
-    /** Сколько подлетают одновременно: по одному, при трёх и меньше - по двое. */
+    /** How many swoop at once: one at a time, with three or fewer - two at a time. */
     public static int maxEngaged(int alive) {
         return alive <= 3 ? 2 : 1;
     }
@@ -218,7 +218,7 @@ public class AyeracoHorde {
         return n;
     }
 
-    // ---------------- полёт
+    // ---------------- flight
 
     public static boolean steer(EntityLiving e) {
         if (!member(e) || e.worldObj.isRemote) return false;
@@ -230,7 +230,7 @@ public class AyeracoHorde {
         EntityPlayer t = target(p, w);
         double speedK = aura(p, w, Hue.YELLOW) ? 1.4 : 1.0;
         NBTTagCompound d = e.getEntityData();
-        // очередь подлёта: следующий по кругу из тех, кто кружит
+        // swoop queue: the next one around the circle among those circling
         if (t != null && now >= p.nextDive && engaged(all) < maxEngaged(all.size())) {
             for (int k = 1; k <= n; k++) {
                 int j = (p.turn + k) % n;
@@ -245,7 +245,7 @@ public class AyeracoHorde {
         int ph = phase(e);
         if (t == null && ph != ORBIT) phase(e, ph = ORBIT, now);
         if (d.getLong(ANCHOR) > now) {
-            // пустотный якорь: висит на месте, сползая к высоте стрелка, не атакует
+            // void anchor: hangs in place, sliding to the shooter's height, does not attack
             double ay = d.getDouble(ANCHOR_Y), dy = ay - e.posY;
             e.motionX *= 0.3;
             e.motionZ *= 0.3;
@@ -285,7 +285,7 @@ public class AyeracoHorde {
             speed = 0.6 * speedK;
             if (now > d.getLong(UNTIL)) phase(e, ORBIT, now);
         }
-        // привязь: далеко от гнездовья или ниже его - назад к кругу
+        // leash: far from the aerie or below it - back to the circle
         double hx = e.posX - p.x, hz = e.posZ - p.z;
         if (hx * hx + hz * hz > LEASH * LEASH || e.posY < p.y - 8) {
             tx = ox;
@@ -298,7 +298,7 @@ public class AyeracoHorde {
         double v = Math.min(speed, len * 0.3);
         if (len > 0.01) {
             e.motionX = dx / len * v;
-            e.motionY = dy / len * v + 0.08; // тяга против тяжести (её прибавит движение моба)
+            e.motionY = dy / len * v + 0.08; // thrust against gravity (the mob's motion will add it)
             e.motionZ = dz / len * v;
         }
         if (face && t != null) {
@@ -311,20 +311,20 @@ public class AyeracoHorde {
         return true;
     }
 
-    /** Точка подлёта: в PERCH от цели со стороны дракона, выше на PERCH_UP; turn - сдвиг по кругу (облёт). */
+    /** Swoop point: at PERCH from the target on the dragon's side, higher by PERCH_UP; turn - shift along the circle (circling). */
     static double[] perch(EntityLiving e, EntityPlayer t, double turn) {
         if (t == null) return new double[] { e.posX, e.posY, e.posZ };
         double a = Math.atan2(e.posZ - t.posZ, e.posX - t.posX) + turn;
         return new double[] { t.posX + Math.cos(a) * PERCH, t.posY + PERCH_UP, t.posZ + Math.sin(a) * PERCH };
     }
 
-    /** Пасть дракона: перед головой. */
+    /** Dragon's mouth: in front of the head. */
     static Vec3 mouth(EntityLiving e) {
         float yaw = e.rotationYawHead * (float) Math.PI / 180F;
         return Vec3.createVectorHelper(e.posX - MathHelper.sin(yaw) * e.width * 0.8, e.posY + e.height * 0.55, e.posZ + MathHelper.cos(yaw) * e.width * 0.8);
     }
 
-    /** Огненный урон от дракона: зелье огнестойкости его гасит. */
+    /** Fire damage from the dragon: a fire resistance potion extinguishes it. */
     public static DamageSource fire(Entity e) {
         return new EntityDamageSource("dre.ayeracoFire", e) {
 
@@ -334,7 +334,7 @@ public class AyeracoHorde {
         };
     }
 
-    /** Пламя без дракона (дракон пал, а земля ещё горит). */
+    /** Flame without a dragon (the dragon fell but the ground still burns). */
     public static DamageSource voidFire() {
         return new DamageSource("dre.voidBurn") {
 
@@ -344,7 +344,7 @@ public class AyeracoHorde {
         };
     }
 
-    /** Пустотное горение: фиолетовое пламя на игроке, урон раз в полсекунды; огнестойкость гасит. */
+    /** Void burning: purple flame on the player, damage every half second; fire resistance extinguishes it. */
     public static void burn(EntityPlayer p, int ticks) {
         long until = p.worldObj.getTotalWorldTime() + ticks;
         if (p.getEntityData().getLong(BURN) < until) p.getEntityData().setLong(BURN, until);
@@ -354,7 +354,7 @@ public class AyeracoHorde {
         return p.getEntityData().getLong(BURN) > p.worldObj.getTotalWorldTime();
     }
 
-    /** Тик пустотного горения игроков мира (раз в 10 тиков). */
+    /** Void burning tick for the world's players (once per 10 ticks). */
     static void tickBurn(World w) {
         long now = w.getTotalWorldTime();
         for (Object o : w.playerEntities) {
@@ -367,7 +367,7 @@ public class AyeracoHorde {
         }
     }
 
-    /** Выбор атаки: вплотную - укус, в пределах дыхания - чаще дыхание, иначе снаряд навесом. */
+    /** Attack choice: up close - bite, within breath range - breath more often, otherwise a lobbed projectile. */
     static void attack(EntityLiving e, Pack p, EntityPlayer t, long now) {
         NBTTagCompound d = e.getEntityData();
         double dist = e.getDistanceToEntity(t);
@@ -392,13 +392,13 @@ public class AyeracoHorde {
         e.worldObj.playSoundAtEntity(e, "mob.ghast.charge", 3F, 0.6F);
     }
 
-    /** Направление дыхания (единичный вектор) из угла прицела. */
+    /** Breath direction (unit vector) from the aim angle. */
     static Vec3 aimDir(Entity e) {
         float yaw = e.getEntityData().getFloat(AIM_YAW) * (float) Math.PI / 180F, pitch = e.getEntityData().getFloat(AIM_PITCH) * (float) Math.PI / 180F;
         return Vec3.createVectorHelper(-MathHelper.sin(yaw) * MathHelper.cos(pitch), -MathHelper.sin(pitch), MathHelper.cos(yaw) * MathHelper.cos(pitch));
     }
 
-    /** Тик дыхания: прицел медленно доворачивает за целью; после замаха - пламя и урон всем в конусе раз в 5 тиков. */
+    /** Breath tick: the aim slowly turns to follow the target; after the windup - flame and damage to everyone in the cone once per 5 ticks. */
     public static void breathe(EntityLiving e, Pack p, EntityPlayer t, long now) {
         NBTTagCompound d = e.getEntityData();
         long end = d.getLong(BREATH);
@@ -429,7 +429,7 @@ public class AyeracoHorde {
         }
     }
 
-    /** Игроки в конусе: от вершины m по направлению dir на range, полуугол cone (рад). */
+    /** Players in the cone: from apex m along direction dir for range, half-angle cone (rad). */
     public static List<EntityPlayer> inCone(World w, Vec3 m, Vec3 dir, double range, double cone) {
         List<EntityPlayer> out = new ArrayList<EntityPlayer>();
         for (Object o : w.playerEntities) {
@@ -438,20 +438,20 @@ public class AyeracoHorde {
             double vx = pl.posX - m.xCoord, vy = pl.posY + pl.height / 2 - m.yCoord, vz = pl.posZ - m.zCoord, len = Math.sqrt(vx * vx + vy * vy + vz * vz);
             if (len > range + 0.5 || len < 0.01) continue;
             double cos = (vx * dir.xCoord + vy * dir.yCoord + vz * dir.zCoord) / len;
-            // тело игрока шириной ~0.6: вблизи конус узкий - даём запас на полтела
+            // the player's body is ~0.6 wide: up close the cone is narrow - we allow a margin of half a body
             if (cos >= Math.cos(cone + Math.atan2(0.6, len))) out.add(pl);
         }
         return out;
     }
 
-    /** Огненный снаряд навесом в место цели (с упреждением). */
+    /** Lobbed fire projectile at the target's spot (with lead). */
     static void launch(EntityLiving e, Pack p, EntityPlayer t) {
         Vec3 m = mouth(e);
         Mortar s = new Mortar(e);
         s.x = m.xCoord;
         s.y = m.yCoord;
         s.z = m.zCoord;
-        // упреждение по сдвигу за тик (скорость игрока на сервере - отдача и мусор, её задаёт клиент), не дальше 4 блоков
+        // lead by the shift per tick (the player's velocity on the server is knockback and junk, the client sets it), no further than 4 blocks
         double lx = MathHelper.clamp_double((t.posX - t.prevPosX) * 8, -4, 4), lz = MathHelper.clamp_double((t.posZ - t.prevPosZ) * 8, -4, 4);
         double tx = t.posX + lx, ty = t.boundingBox.minY, tz = t.posZ + lz;
         s.vx = (tx - s.x) / MORTAR_FLIGHT;
@@ -461,7 +461,7 @@ public class AyeracoHorde {
         e.worldObj.playSoundAtEntity(e, "mob.ghast.fireball", 2F, 0.5F);
     }
 
-    /** Полёт снарядов и горящая земля (каждый тик). */
+    /** Projectile flight and burning ground (every tick). */
     static void tickFire(World w, Pack p) {
         long now = w.getTotalWorldTime();
         WorldServer ws = w instanceof WorldServer ? (WorldServer) w : null;
@@ -511,7 +511,7 @@ public class AyeracoHorde {
         }
     }
 
-    /** Разрыв снаряда: пламя вокруг, урон с расстоянием, горящая земля. Блоки не ломает. */
+    /** Projectile burst: flame around, damage falling off with distance, burning ground. Does not break blocks. */
     static void explode(World w, Pack p, Mortar s, double groundY) {
         if (w instanceof WorldServer) {
             ((WorldServer) w).func_147487_a("largeexplode", s.x, s.y, s.z, 1, 0, 0, 0, 0);
@@ -534,7 +534,7 @@ public class AyeracoHorde {
         p.fireOwners.add(s.owner);
     }
 
-    /** Телепорт Айрако орды: в случайную точку круга над островом, не в бездну. */
+    /** Horde Ayeraco teleport: to a random point of the circle above the island, not into the abyss. */
     public static boolean blink(EntityLiving e) {
         if (!member(e) || e.worldObj.isRemote) return false;
         Pack p = pack(e);
@@ -544,9 +544,9 @@ public class AyeracoHorde {
         return true;
     }
 
-    // ---------------- стая: метка, ауры, столпы
+    // ---------------- pack: mark, auras, pillars
 
-    /** Айрако, появившийся в гнездовье (рог орды), становится ордой: метка и центр гнездовья. */
+    /** An Ayeraco that appeared in the aerie (horde horn) becomes the horde: mark and aerie center. */
     @SubscribeEvent
     public void onJoin(EntityJoinWorldEvent e) {
         if (e.world.isRemote || !(e.entity instanceof EntityAyeraco) || e.entity.getEntityData().getBoolean(TAG)) return;
@@ -561,24 +561,24 @@ public class AyeracoHorde {
         d.setInteger(CY, c[1]);
         d.setInteger(CZ, c[2]);
         Pack p = PACKS.get(key(c[0], c[2]));
-        if (p != null && alive(p, e.world).isEmpty()) PACKS.remove(key(c[0], c[2])); // новая стая - заново
-        calm(e.world, c[0], c[1], c[2]); // вызов: посторонние разбегаются
+        if (p != null && alive(p, e.world).isEmpty()) PACKS.remove(key(c[0], c[2])); // a new pack - anew
+        calm(e.world, c[0], c[1], c[2]); // summon: outsiders scatter
     }
 
-    /** Столп цвета цел: в его колонне есть хоть один блок своей глины. */
+    /** The color's pillar is intact: its column has at least one block of its clay. */
     static boolean pillar(World w, Pack p, Hue h) {
         int[] at = pillarAt(p.x, p.y, p.z, h);
-        if (!w.blockExists(at[0], at[1], at[2])) return false; // чанк столпа не загружен - не грузим ради проверки
+        if (!w.blockExists(at[0], at[1], at[2])) return false; // the pillar chunk is not loaded - we do not load it for a check
         for (int y = at[1]; y < at[1] + PILLAR_H; y++) if (w.getBlock(at[0], y, at[2]) == Blocks.stained_hardened_clay && w.getBlockMetadata(at[0], y, at[2]) == h.clay()) return true;
         return false;
     }
 
-    /** Столп цвета у гнездовья с этим центром цел. */
+    /** The color's pillar at the aerie with this center is intact. */
     public static boolean pillar(World w, int cx, int cy, int cz, Hue h) {
         return pillar(w, new Pack(cx, cy, cz), h);
     }
 
-    /** Основание глиняного столпа цвета (на верху башни). */
+    /** Base of the color's clay pillar (at the top of the tower). */
     public static int[] pillarAt(int cx, int cy, int cz, Hue h) {
         double a = h.ordinal() * Math.PI * 2 / 5 + Math.PI / 10;
         return new int[] { cx + (int) Math.round(Math.cos(a) * PILLAR_RING), cy + PILLAR_LIFT + 1, cz + (int) Math.round(Math.sin(a) * PILLAR_RING) };
@@ -595,7 +595,7 @@ public class AyeracoHorde {
             if (now % 20 != 0) continue;
             List<EntityLiving> all = alive(p, e.world);
             if (all.isEmpty()) {
-                // бой кончен (пали или ушли с арены): убрать лучи Divine и подмогу, пока вокруг всё загружено
+                // the fight is over (they fell or left the arena): remove Divine beams and reinforcements while everything around is loaded
                 if (p.seen && e.world.blockExists(p.x, p.y, p.z)) {
                     sweepBeams(e.world, p.x, p.y, p.z);
                     for (EntityLiving a : adds(e.world, p)) poof(a);
@@ -612,13 +612,13 @@ public class AyeracoHorde {
             boolean heart = heart(p, e.world);
             for (EntityLiving a : all) {
                 Hue h = Hue.of(a);
-                // столп своего цвета - восстановление
-                boolean hit = a.getEntityData().getLong("dreNoHeal") >= now; // недавно бил игрок - не лечится
+                // pillar of its own color - regeneration
+                boolean hit = a.getEntityData().getLong("dreNoHeal") >= now; // a player hit it recently - no healing
                 if (h != null && !hit && pillar(e.world, p, h) && a.getHealth() < a.getMaxHealth()) {
                     a.heal(a.getMaxHealth() * PILLAR_HEAL);
                     beam(e.world, pillarAt(p.x, p.y, p.z, h), a);
                 }
-                // зелёный лечит остальных (сердце - себя)
+                // green heals the others (the heart - itself)
                 if (aura(p, e.world, Hue.GREEN) && (h != Hue.GREEN || heart) && !hit && a.getHealth() < a.getMaxHealth()) a.heal(GREEN_HEAL);
                 if (heart && a.getEntityData().getBoolean("dreHeartShown") == false) {
                     a.getEntityData().setBoolean("dreHeartShown", true);
@@ -626,7 +626,7 @@ public class AyeracoHorde {
                     say(e.world, p, "dre.chat.horde_heart");
                 }
             }
-            // фиолетовый перебрасывает собрата к игроку
+            // purple throws a packmate to the player
             if (t != null && aura(p, e.world, Hue.PURPLE) && now >= p.nextPurple && !EnderColors.wears(t, Hue.PURPLE) && all.size() > 1) {
                 p.nextPurple = now + 160;
                 EntityLiving m = all.get(e.world.rand.nextInt(all.size()));
@@ -639,8 +639,8 @@ public class AyeracoHorde {
     }
 
     /**
-     * Убрать блоки лучей Divine вокруг гнездовья. Рог ставит пять лучей, каждый Айрако убирает свой при смерти, но место луча
-     * Divine не сохраняет: после перезахода, выгрузки чанка или ухода орды с арены лучи оставались и копились.
+     * Remove Divine beam blocks around the aerie. The horn places five beams, each Ayeraco removes its own on death, but Divine does not save
+     * the beam's position: after a rejoin, a chunk unload or the horde leaving the arena the beams stayed and piled up.
      */
     public static int sweepBeams(World w, int cx, int cy, int cz) {
         int r = WorldGenOuterLairs.RADIUS[WorldGenOuterLairs.AYERACO] + 20, n = 0;
@@ -675,7 +675,7 @@ public class AyeracoHorde {
         }
     }
 
-    /** Синий отбивает снаряды; удары по Айрако броней его цвета - сильнее; зелёный цвет брони гасит лечение. */
+    /** Blue deflects projectiles; hits on an Ayeraco with armor of its color are stronger; the green armor color suppresses healing. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onAttack(LivingAttackEvent e) {
         if (!member(e.entityLiving) || e.entityLiving.worldObj.isRemote) return;
@@ -692,14 +692,14 @@ public class AyeracoHorde {
     public void onHurt(LivingHurtEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
         Entity a = e.source.getEntity();
-        // по игроку: ярость красного (и огнём тоже)
+        // on the player: red's rage (fire too)
         if (e.entityLiving instanceof EntityPlayer && member(a)) {
             Pack p = pack((EntityLiving) a);
             if (aura(p, a.worldObj, Hue.RED) && !EnderColors.wears((EntityPlayer) e.entityLiving, Hue.RED)) e.ammount *= 1.5F;
             if (heart(p, a.worldObj)) e.ammount *= 1.3F;
             return;
         }
-        // по Айрако: цвет брони игрока
+        // on the Ayeraco: the color of the player's armor
         if (member(e.entityLiving) && a instanceof EntityPlayer) {
             EntityPlayer pl = (EntityPlayer) a;
             Hue h = Hue.of(e.entityLiving);
@@ -707,29 +707,29 @@ public class AyeracoHorde {
             if (h != null && EnderColors.wears(pl, h)) k += 0.5F;
             long now = a.worldObj.getTotalWorldTime();
             NBTTagCompound d = e.entityLiving.getEntityData();
-            // любой удар игрока на время снимает лечение; зелёная броня - вдвое дольше
+            // any player hit suppresses healing for a while; green armor - twice as long
             d.setLong("dreNoHeal", Math.max(d.getLong("dreNoHeal"), now + (EnderColors.wears(pl, Hue.GREEN) ? NO_HEAL * 2 : NO_HEAL)));
-            if (d.getLong(BREATH) > now) k *= BREATH_VULN; // пасть открыта
+            if (d.getLong(BREATH) > now) k *= BREATH_VULN; // mouth open
             if (e.source.isProjectile() && enderBow(pl)) {
                 k *= BOW_K;
                 d.setLong(ANCHOR, now + ANCHOR_TICKS);
                 d.setDouble(ANCHOR_Y, pl.posY + 3);
                 d.setString(ANCHOR_BY, pl.getUniqueID().toString());
-                d.setLong(BREATH, 0); // якорь сбивает дыхание
+                d.setLong(BREATH, 0); // the anchor interrupts the breath
                 a.worldObj.playSoundAtEntity(e.entityLiving, "mob.endermen.portal", 1.5F, 0.6F);
             }
             e.ammount *= k;
         }
     }
 
-    /** Стрелок держит лук Энда. */
+    /** The shooter holds the End Bow. */
     static boolean enderBow(Entity shooter) {
         if (!(shooter instanceof EntityPlayer)) return false;
         net.minecraft.item.ItemStack s = ((EntityPlayer) shooter).getHeldItem();
         return s != null && s.getItem() == net.divinerpg.utils.items.VanillaItemsWeapons.enderBow;
     }
 
-    /** Айрако на якоре этого стрелка, к которому он смотрит (в 32 блоках, до 30 градусов от взгляда), или null. */
+    /** The Ayeraco on this shooter's anchor that he is looking at (within 32 blocks, up to 30 degrees from the view), or null. */
     public static EntityLiving anchoredFor(EntityPlayer p) {
         long now = p.worldObj.getTotalWorldTime();
         Vec3 look = p.getLookVec();
@@ -750,7 +750,7 @@ public class AyeracoHorde {
         return best;
     }
 
-    /** Подмога орды рядом с этим центром. */
+    /** Horde reinforcements near this center. */
     static List<EntityLiving> adds(World w, Pack p) {
         List<EntityLiving> out = new ArrayList<EntityLiving>();
         int r = WorldGenOuterLairs.RADIUS[WorldGenOuterLairs.AYERACO] + 24;
@@ -768,7 +768,7 @@ public class AyeracoHorde {
         m.setDead();
     }
 
-    /** Покой арены: пока идёт бой, чужих враждебных мобов на острове нет (кроме подмоги и самой орды). @return убрано */
+    /** Arena calm: while the fight lasts, there are no outside hostile mobs on the island (except reinforcements and the horde itself). @return removed */
     public static int calm(World w, int cx, int cy, int cz) {
         return calm(w, new Pack(cx, cy, cz));
     }
@@ -785,7 +785,7 @@ public class AyeracoHorde {
         return n;
     }
 
-    /** Стая зовёт подмогу Энда к цели: тройню или наблюдателя на землю острова в 5-9 блоках от игрока. */
+    /** The pack calls End reinforcements to the target: a triplet or a watcher onto the island ground 5-9 blocks from the player. */
     public static EntityLiving callAdd(World w, Pack p, EntityPlayer t) {
         if (adds(w, p).size() >= MAX_ADDS) return null;
         EntityLiving m = w.rand.nextInt(3) == 0 ? new net.divinerpg.entities.vanilla.EntityEnderTriplets(w) : new net.divinerpg.entities.vanilla.EntityEnderWatcher(w);
@@ -808,7 +808,7 @@ public class AyeracoHorde {
         return null;
     }
 
-    /** Павший Айрако орды - его цвет переходит к последнему. */
+    /** A fallen horde Ayeraco - its color passes to the last one. */
     @SubscribeEvent
     public void onDeath(net.minecraftforge.event.entity.living.LivingDeathEvent e) {
         if (!member(e.entityLiving) || e.entityLiving.worldObj.isRemote) return;
@@ -818,39 +818,39 @@ public class AyeracoHorde {
         p.aliveAt = -1;
     }
 
-    /** Для автотеста. */
+    /** For the selftest. */
     public static void reset() {
         PACKS.clear();
     }
 
-    /** Для автотеста: снарядов в полёте и горящих мест у стаи. */
+    /** For the selftest: projectiles in flight and burning spots of the pack. */
     public static int[] fireCount(EntityLiving e) {
         Pack p = pack(e);
         return new int[] { p.mortars.size(), p.fires.size() };
     }
 
-    /** Для автотеста: где горит последнее место. */
+    /** For the selftest: where the last spot burns. */
     public static double[] lastFire(EntityLiving e) {
         Pack p = pack(e);
         return p.fires.isEmpty() ? null : p.fires.get(p.fires.size() - 1);
     }
 
-    /** Для автотеста: прогнать снаряды и огонь стаи на тик. */
+    /** For the selftest: advance the pack's projectiles and fire by a tick. */
     public static void tickFireFor(EntityLiving e) {
         tickFire(e.worldObj, pack(e));
     }
 
-    /** Для автотеста: выпустить снаряд в цель. */
+    /** For the selftest: fire a projectile at the target. */
     public static void launchAt(EntityLiving e, EntityPlayer t) {
         launch(e, pack(e), t);
     }
 
-    /** Для автотеста: позвать подмогу к цели. */
+    /** For the selftest: call reinforcements to the target. */
     public static EntityLiving callAddFor(EntityLiving e, EntityPlayer t) {
         return callAdd(e.worldObj, pack(e), t);
     }
 
-    /** Для автотеста: тик дыхания. */
+    /** For the selftest: breath tick. */
     public static void breatheAt(EntityLiving e, EntityPlayer t, long now) {
         breathe(e, pack(e), t, now);
     }

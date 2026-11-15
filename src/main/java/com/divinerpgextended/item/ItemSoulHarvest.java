@@ -15,10 +15,10 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Жатва душ (реликварий Мортума): меч на материале Мортума Divine, не ломается. Каждое убийство им даёт душу (до {@link #MAX}),
- * каждая душа - +{@link #PER_SOUL} урона; без убийств души улетучиваются по одной за {@link #DECAY_TICKS} тиков. На полном запасе
- * следующий удар тратит все души на взрыв душ: {@link #BLAST_SHARE} урона удара по всем мобам вокруг (радиус
- * {@link #BLAST_RADIUS}), игроков и чужих питомцев не задевает ({@link com.divinerpgextended.perk.RelicEffects}).
+ * Soul Harvest (Mortum reliquary): a sword on Divine's Mortum material, does not break. Each kill with it gives a soul (up to {@link #MAX}),
+ * each soul is +{@link #PER_SOUL} damage; without kills souls dissipate one per {@link #DECAY_TICKS} ticks. At a full supply
+ * the next hit spends all souls on a soul blast: {@link #BLAST_SHARE} of the hit's damage to all mobs around (radius
+ * {@link #BLAST_RADIUS}), does not touch players or other people's pets ({@link com.divinerpgextended.perk.RelicEffects}).
  */
 public class ItemSoulHarvest extends ItemSword {
 
@@ -44,7 +44,7 @@ public class ItemSoulHarvest extends ItemSword {
         return s.getTagCompound();
     }
 
-    /** Души сейчас (с учётом улетучивания; пишет остаток обратно). */
+    /** Souls right now (accounting for dissipation; writes the remainder back). */
     public static int souls(ItemStack s, long now) {
         if (s == null || !s.hasTagCompound()) return 0;
         NBTTagCompound t = s.getTagCompound();
@@ -66,7 +66,7 @@ public class ItemSoulHarvest extends ItemSword {
         t.setLong(TIME, now);
     }
 
-    /** Добавить душу (убийство или улов души в Мортуме). */
+    /** Add a soul (a kill or catching a soul in Mortum). */
     public static void addSoul(ItemStack s, long now) {
         setSouls(s, souls(s, now) + 1, now);
     }

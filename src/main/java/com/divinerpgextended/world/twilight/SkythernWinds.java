@@ -24,39 +24,39 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Небесный терн - мир слабой тяги и ветра:
+ * Skythern - a world of weak gravity and wind:
  * <ul>
- * <li>полный сет Терна: вместо высокого прыжка Divine тяга вдвое слабее, прыжки длинные и падение медленное; на шифте падаешь как обычно;</li>
- * <li>удар моба толкает как порыв Повелителя ветров, не чаще раза в {@link #GUST_EVERY} тиков от одного моба;</li>
- * <li>наземные мобы тоже в слабой тяге и прыгают дугой к цели, которая выше или на другом острове.</li>
+ * <li>the full Skythern set: instead of Divine's high jump, gravity is half as strong, jumps are long and the fall is slow; on sneak you fall as usual;</li>
+ * <li>a mob hit pushes like a Wind Lord gust, no more than once per {@link #GUST_EVERY} ticks from one mob;</li>
+ * <li>ground mobs are also in weak gravity and jump in an arc toward a target that is higher or on another island.</li>
  * </ul>
- * Боссы и приспешники не затронуты: бой с Повелителем устроен по-своему. Лучники бьют издалека и прыгать за целью им незачем.
+ * Bosses and minions are not affected: the fight with the Wind Lord works its own way. Archers shoot from afar and have no need to jump after the target.
  */
 public class SkythernWinds {
 
-    /** Половина обычной тяги 0.08, с поправкой на затухание 0.98 после неё. */
+    /** Half of the normal gravity 0.08, with the correction for the 0.98 damping after it. */
     public static final double GRAVITY_CUT = 0.0392;
-    /** Прибавка Divine к прыжку в сете Терна. */
+    /** Divine's addition to the jump in the Skythern set. */
     private static final double DIVINE_JUMP = 0.5, VANILLA_JUMP = 0.42;
     public static final double GUST_UP = 0.35;
     public static final int GUST_EVERY = 80, LEAP_EVERY = 60;
-    /** Прыжок моба: цель дальше или выше этого, но не дальше {@link #LEAP_FAR}. */
+    /** Mob leap: the target is farther or higher than this, but not farther than {@link #LEAP_FAR}. */
     private static final double LEAP_NEAR = 6, LEAP_ABOVE = 2.5, LEAP_FAR = 16;
     private static final String GUST_AT = "dreGustAt", LEAP_AT = "dreLeapAt";
-    /** Толчок ждёт следующего тика игрока: сразу за событием урона игра сама гасит половину скорости своим отбросом. */
+    /** The push waits for the player's next tick: right after the damage event the game itself cancels half the speed with its knockback. */
     private static final Map<EntityPlayer, double[]> PENDING = new WeakHashMap<EntityPlayer, double[]>();
 
     private static boolean wearsSet(EntityPlayer p) {
         return HomeArmor.wears(p, TwilightWorld.SKYTHERN, false) && !Nightmare.active(p);
     }
 
-    /** Тик игрока в воздухе. Движение игрока считает его клиент, поэтому зовётся там. */
+    /** Player tick in the air. Player movement is computed by their client, so this is called there. */
     public static void floatStep(EntityPlayer p) {
         if (p.onGround || p.isSneaking() || p.capabilities.isFlying || p.isInWater() || p.handleLavaMovement() || p.isOnLadder() || p.isRiding() || !wearsSet(p)) return;
         p.motionY += GRAVITY_CUT;
     }
 
-    /** Divine прибавляет к прыжку в этом сете 0.5: убираем именно её, чужие прибавки остаются. */
+    /** Divine adds 0.5 to the jump in this set: we remove exactly that, others' additions remain. */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onJump(LivingEvent.LivingJumpEvent e) {
         if (!(e.entityLiving instanceof EntityPlayer) || !wearsSet((EntityPlayer) e.entityLiving)) return;
@@ -82,7 +82,7 @@ public class SkythernWinds {
         return e instanceof IBossDisplayData || e instanceof com.divinerpgextended.entity.mini.EntityMiniBoss || com.divinerpgextended.boss.Boss.of(e) != null || BossMinions.isMinion(e);
     }
 
-    /** Отложенный порыв; защита от отброса 1.0 (Каменная стена, нерушимость) держит на месте, как и у Повелителя. */
+    /** A deferred gust; knockback resistance 1.0 (Stone Wall, indestructibility) holds in place, as with the Wind Lord. */
     public static void flush(EntityPlayer p) {
         double[] dir = PENDING.remove(p);
         if (dir == null) return;
@@ -112,7 +112,7 @@ public class SkythernWinds {
         } else if (m.ticksExisted % 5 == 0) leap(m);
     }
 
-    /** Прыжок к цели, если она выше или далеко; дуга рассчитана на слабую тягу и затухание в воздухе. true - прыгнул. */
+    /** A leap toward the target if it is higher or far; the arc is calculated for weak gravity and air damping. true - jumped. */
     public static boolean leap(EntityMob m) {
         if (m instanceof net.divinerpg.entities.twilight.EntitySkythernArcher || special(m)) return false;
         Entity t = m.getEntityToAttack() != null ? m.getEntityToAttack() : m.getAttackTarget();

@@ -1,6 +1,6 @@
-"""Второй раунд концептов брони Странника: новые варианты Г/Д/Е для R1 (теперь из божественной брони), R4, R5, R7.
+"""Second round of Wanderer armor concepts: new variants G/D/E for R1 (now from Divine armor), R4, R5, R7.
 
-Запуск: python wround2.py [ключ ...]  (без ключей - все новые). Картинки - в wanderer_concepts рядом.
+Run: python wround2.py [key ...]  (without keys - all new ones). Images go to wanderer_concepts next to it.
 """
 import math
 import sys
@@ -20,7 +20,7 @@ def new(key, tier, line, title):
 
 
 def vring(bone, center, radius, n, t, paint):
-    """Кольцо в плоскости XY (стоит вертикально, лицом вперёд)."""
+    """Ring in the XY plane (stands vertically, facing forward)."""
     out = []
     L = 2 * math.pi * radius / n * 1.08
     cx, cy, cz = center
@@ -38,7 +38,7 @@ def round_mask(cx, cy, r):
 
 
 def zigzag(faces, b, amp, period, w, color, glow=True):
-    """Ломаная сверху вниз (молния): u = b +- amp по треугольной волне от v."""
+    """Polyline from top to bottom (lightning): u = b +- amp by a triangle wave of v."""
     c = C(color)
 
     def d(p, face, bx):
@@ -54,7 +54,7 @@ w_fuv = w.fuv
 
 
 def peak(bone, x, z, base_y, s, h, rock, snow):
-    """Ступенчатый пик: три уступа, верх в снегу."""
+    """Stepped peak: three ledges, snow on top."""
     return [box(bone, x - s / 2, base_y - h * 0.45, z - s / 2, s, h * 0.45, s, rock),
             box(bone, x - s * 0.33, base_y - h * 0.8, z - s * 0.33, s * 0.66, h * 0.35, s * 0.66, rock),
             box(bone, x - s * 0.18, base_y - h * 1.1, z - s * 0.18, s * 0.36, h * 0.3, s * 0.36, snow),
@@ -62,7 +62,7 @@ def peak(bone, x, z, base_y, s, h, rock, snow):
 
 
 def skirt(paint, top=9.0, length=12.6, inf=0.9, flare=0.0):
-    """Длинные полы (роба, сюртук) на теле - закрывают ноги."""
+    """Long skirts (robe, frock coat) on the body - cover the legs."""
     return [box('body', -4 - inf, top, -2 - inf, 8 + 2 * inf, length, 4 + 2 * inf, paint)]
 
 
@@ -72,7 +72,7 @@ def brim_hat(brim, crown, band, r=7.0, h=3.6):
             box('head', -4.6, -9.9, -4.6, 9.2, 1.1, 9.2, band)]
 
 
-# ---- R1 из божественной брони: золото, тёмно-алые вставки, голубой камень, сталь
+# ---- R1 from Divine armor: gold, dark scarlet inserts, a light-blue stone, steel
 DG, DGD, DGL, CRIM, CRIMD, GEM, STEEL, STEELD = '#ccaf3b', '#8b5e16', '#ece184', '#a01c0c', '#5e1100', '#46d6e6', '#80848c', '#4a4e56'
 w.TIER_BG[1] = '#2a2210'
 
@@ -119,8 +119,8 @@ def r1f():
     bs += belt(P(DGD, rect(('north',), 4.0, 5.4, 0.3, 2.3, DG))) + thigh(light) + boot(P(DG, trim(0.4, DGD)), toe=0.5)
     bs += helm(P(wh, trim(0.45, DG), rect(('north',), 1.4, 8.6, 3.8, 9.0, '#c8956d'), rect(('north',), 1.4, 8.6, 3.8, 4.4, DG)))
     bs += [box('head', -0.9, -8.2, -5.4, 1.8, 1.8, 0.7, P(GEM, glow=True))]
-    # сложенные крылья: плоский силуэт крыла (скруглённый верх над плечом, острый низ у колен), рисунок перьев
-    WW, WH_ = 5.8, 23.0  # локальный x=0 - внешний край крыла, x=WW - у позвоночника
+    # folded wings: a flat wing silhouette (rounded top above the shoulder, sharp bottom at the knees), feather pattern
+    WW, WH_ = 5.8, 23.0  # local x=0 is the outer edge of the wing, x=WW is at the spine
 
     def wing_mask(p, face, b):
         x, y = WW - p[..., 0], p[..., 1]
@@ -148,7 +148,7 @@ def fuv_v(p, face):
     return w.fuv(p, face)[1]
 
 
-# ---- R4 Апалачия: пурпур, сирень, зачарование
+# ---- R4 Apalachia: purple, lilac, enchantment
 AP, APD, APL, CRY = '#c020d8', '#5a1078', '#f090ff', '#e070ff'
 
 
@@ -216,7 +216,7 @@ def r4f():
     return bs
 
 
-# ---- R5 Небесный терн: белый, серебро, голубой
+# ---- R5 Skythern: white, silver, light blue
 SKY, SKYL, SKYD, BLUE = '#aeb2ba', '#eef0f4', '#6a6e78', '#8ab8ec'
 
 
@@ -278,7 +278,7 @@ def r5f():
     return bs
 
 
-# ---- R7 Галит: зелень, финал пути
+# ---- R7 Halite: green, the end of the path
 HA, HAD, HAM, HAL, BLK, GLOWH, GOLDH = '#50e010', '#1e4a0a', '#3a8a10', '#c0ff80', '#141a14', '#9aff40', '#e0b84a'
 WORLD_GEMS = (GEM, '#ff7a2a', '#2a7aff', '#d040ff', '#bfe4ff', '#ff3020')  # R1-R6
 

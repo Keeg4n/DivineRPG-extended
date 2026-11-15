@@ -9,10 +9,10 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldSavedData;
 
 /**
- * Учёт гарантий по участкам мира (в данных своего измерения): сколько поставлено на участке по виду и сколько подходящих
- * мест пропущено подряд. Им пользуются запертые сундуки Арканы ({@link ArcanaChests}) и реликварии миров
- * ({@link com.divinerpgextended.world.twilight.Reliquaries}): если на участке ещё ничего нет, N-е подходящее место получает
- * постройку без броска шанса.
+ * Tally of guarantees by world region (in its dimension's data): how many were placed in the region by kind and how many suitable
+ * places were skipped in a row. Used by Arcana locked chests ({@link ArcanaChests}) and world reliquaries
+ * ({@link com.divinerpgextended.world.twilight.Reliquaries}): if the region has nothing yet, the N-th suitable place gets
+ * a structure without a chance roll.
  */
 public class RegionTally extends WorldSavedData {
 
@@ -31,12 +31,12 @@ public class RegionTally extends WorldSavedData {
         return d;
     }
 
-    /** Ключ участка (rx, rz) и вида (0..4095). */
+    /** Key of region (rx, rz) and kind (0..4095). */
     public static long key(int rx, int rz, int kind) {
         return ((long) rx & 0xffffffL) << 36 | ((long) rz & 0xffffffL) << 12 | (kind & 0xfff);
     }
 
-    /** Участок по координате при размере участка size (не меньше 256). */
+    /** Region by coordinate at region size size (not less than 256). */
     public static int region(int c, int size) {
         return Math.floorDiv(c, Math.max(256, size));
     }
@@ -70,8 +70,8 @@ public class RegionTally extends WorldSavedData {
     }
 
     /**
-     * Решение для подходящего места: бросок 1 из chance или гарантия (на участке ещё нет, это pity-е место подряд). Записывает
-     * исход. 0 - не ставить, 1 - по броску, 2 - по гарантии.
+     * Decision for a suitable place: a 1-in-chance roll or the guarantee (the region has none yet, this is the pity-th place in a row). Records
+     * the outcome. 0 - do not place, 1 - by roll, 2 - by guarantee.
      */
     public int decide(long key, java.util.Random r, int chance, int pity) {
         boolean lucky = r.nextInt(Math.max(1, chance)) == 0;
@@ -84,7 +84,7 @@ public class RegionTally extends WorldSavedData {
         return lucky ? 1 : 2;
     }
 
-    /** Для самопроверки: забыть участок. */
+    /** For the selftest: forget the region. */
     public void forget(long key) {
         if (regions.remove(key) != null) markDirty();
     }

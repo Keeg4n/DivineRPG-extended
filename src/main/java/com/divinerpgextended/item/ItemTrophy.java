@@ -9,7 +9,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 
-/** Простой трофей босса с подсказкой (Ледяное сердце, Осколок Трона). */
+/** A simple boss trophy with a tooltip (Frozen Heart, Throne Shard). */
 public class ItemTrophy extends Item {
 
     private final String tooltip;

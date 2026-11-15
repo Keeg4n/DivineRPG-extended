@@ -21,8 +21,8 @@ import net.minecraft.item.ItemStack;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Что ловится. Как в Террарии: сила рыбалки (удочка + приманка) сокращает ожидание и повышает шанс редкого улова и
- * ящиков; таблицы зависят от места (зоны). Без приманки - только обычная рыба и мусор.
+ * What is caught. As in Terraria: fishing power (rod + bait) shortens the wait and raises the chance of a rare catch and
+ * crates; the tables depend on the place (zones). Without bait - only regular fish and junk.
  */
 public final class FishingLoot {
 
@@ -31,7 +31,7 @@ public final class FishingLoot {
     static final class Entry {
 
         final ItemStack stack;
-        /** Виды одной строки (камни с аспектами Таумкрафта): выпадает один наугад; stack - первый, для показа. */
+        /** Kinds of one row (stones with Thaumcraft aspects): one random one drops; stack - the first, for display. */
         final ItemStack[] alts;
         final int min, max, weight;
 
@@ -132,7 +132,7 @@ public final class FishingLoot {
 
         t = tables.get(Zone.CAVE);
         add(t.common, fish(Fish.CAVEFISH, 35), e(Items.fish, 0, 1, 1, 15));
-        // необычный улов пещер - руда своего яруса (initMine), отдельной таблицы нет
+        // an uncommon cave catch is the ore of its own tier (initMine), there is no separate table
         add(t.rare, e(Items.gold_ingot, 1, 2, 6), e(VanillaItemsOther.rupeeIngot, 1, 1, 4), e(VanillaItemsOther.arlemiteIngot, 1, 1, 4));
         add(t.veryRare, e(Items.diamond, 1, 2, 4), e(Items.emerald, 1, 1, 3));
 
@@ -161,12 +161,12 @@ public final class FishingLoot {
             TwilightItemsOther.skythernSoul, TwilightItemsOther.skythernGem, TwilightItemsOther.skythernChunk);
         twilight(Zone.MORTUM, Fish.MORTUM_EEL, TwilightItemsOther.mortumFragments, TwilightItemsOther.mortumSoul,
             TwilightItemsOther.mortumGem, TwilightItemsOther.mortumChunk);
-        // редкие рыбы миров для заданий Леорны (Грозовой сом - только в ливень, см. storm); души Мортума заряжают Жатву душ
+        // rare dimension fish for Leorna's tasks (Storm Catfish - only in a downpour, see storm); Mortum souls charge Soul Harvest
         add(tables.get(Zone.EDEN).rare, fish(Fish.SUN_PERCH, 6));
         add(tables.get(Zone.APALACHIA).rare, fish(Fish.AMETHYST_PIKE, 6));
         add(tables.get(Zone.MORTUM).rare, fish(Fish.BONE_FISH, 6));
         add(tables.get(Zone.MORTUM).uncommon, e(ModItems.wanderingSoul, 1, 1, 12));
-        // пруды облачных островов Небесного терна
+        // ponds of the Skythern cloud islands
         t = tables.get(Zone.CLOUD);
         add(t.common, fish(Fish.CLOUDFIN, 40), fish(Fish.SKYTHERN_FLYER, 10));
         add(t.uncommon, e(TwilightItemsOther.skythernFragments, 1, 3, 10), e(TwilightItemsOther.skythernSoul, 1, 2, 8), e(Items.feather, 2, 5, 6));
@@ -181,22 +181,22 @@ public final class FishingLoot {
         initMine();
     }
 
-    // ------------------------------------------------------------------ шахтёрская рыбалка
+    // ------------------------------------------------------------------ miner fishing
 
-    /** Ярусы пещер по высоте поплавка (зона {@link Zone#CAVE}). */
+    /** Cave tiers by bobber height (zone {@link Zone#CAVE}). */
     public static final int UPPER = 0, MIDDLE = 1, DEEP = 2, TIERS = 3;
-    /** Верхние пещеры - с этой высоты (и до 47), средние - с {@link #MIDDLE_FROM}, ниже - глубины. */
+    /** Upper caves - from this height (down to 47), middle ones - from {@link #MIDDLE_FROM}, below - the depths. */
     public static final int UPPER_FROM = 33, MIDDLE_FROM = 17;
-    /** Глубины целиком - с этой силы рыбалки; слабее там ловится как в средних пещерах. */
+    /** The depths in full - from this fishing power; weaker there it is caught as in the middle caves. */
     public static final int DEEP_POWER = 40;
-    /** Мета шахтёрского ящика: CRATE_MINE + ярус (у остальных ящиков мета - номер зоны). */
+    /** Meta of the miner's crate: CRATE_MINE + tier (for other crates the meta is the zone number). */
     public static final int CRATE_MINE = 32;
 
-    /** Руда ярусов пещер, руда лавы, редкая добавка шахтёрского ящика. */
+    /** Ore of the cave tiers, lava ore, a rare addition to the miner's crate. */
     private static List<Entry>[] mine;
     private static List<Entry> lava, mineRare;
 
-    /** Ярус по высоте поплавка и силе рыбалки. */
+    /** Tier by bobber height and fishing power. */
     public static int caveTier(double y, int power) {
         int by = net.minecraft.util.MathHelper.floor_double(y);
         if (by >= UPPER_FROM) return UPPER;
@@ -208,18 +208,18 @@ public final class FishingLoot {
         return t >= 0 && t < TIERS ? t : MIDDLE;
     }
 
-    /** Ярус шахтёрского ящика по мете; старый ящик пещер - средние; не шахтёрский - -1. */
+    /** Tier of the miner's crate by meta; the old cave crate - middle; not a miner's one - -1. */
     public static int crateTier(int meta) {
         if (meta >= CRATE_MINE && meta < CRATE_MINE + TIERS) return meta - CRATE_MINE;
         return meta == Zone.CAVE.ordinal() ? MIDDLE : -1;
     }
 
-    /** Ящик зоны (в пещерах - шахтёрский своего яруса). */
+    /** The zone's crate (in caves - the miner's crate of its own tier). */
     public static ItemStack crateItem(Zone zone, int tier) {
         return new ItemStack(ModItems.crate, 1, zone == Zone.CAVE ? CRATE_MINE + tier(tier) : zone.ordinal());
     }
 
-    /** Все ящики для показа: по одному на зону, вместо ящика пещер - три шахтёрских. */
+    /** All crates for display: one per zone, instead of the cave crate - three miner's ones. */
     public static List<ItemStack> crateKinds() {
         List<ItemStack> l = new ArrayList<ItemStack>();
         for (Zone z : Zone.values()) {
@@ -229,7 +229,7 @@ public final class FishingLoot {
         return l;
     }
 
-    /** Руда модов сборки по рудному словарю: по одному блоку на имя; нет такой руды в сборке - null. */
+    /** Ore of the modpack's mods by the ore dictionary: one block per name; no such ore in the modpack - null. */
     private static Entry dict(int min, int max, int w, String... names) {
         List<ItemStack> l = new ArrayList<ItemStack>();
         for (String n : names) {
@@ -254,12 +254,12 @@ public final class FishingLoot {
         Block realmite = net.divinerpg.utils.blocks.VanillaBlocks.realmiteOre, arlemite = net.divinerpg.utils.blocks.VanillaBlocks.arlemiteOre,
             rupee = net.divinerpg.utils.blocks.VanillaBlocks.rupeeOre, netherite = net.divinerpg.utils.blocks.VanillaBlocks.netheriteOre,
             bloodgem = net.divinerpg.utils.blocks.VanillaBlocks.bloodgemOre;
-        // Таумкрафт: камни с аспектами - одна строка на шесть видов
+        // Thaumcraft: stones with aspects - one row for six kinds
         Entry infused = dict(1, 2, 3, "oreInfusedAir", "oreInfusedFire", "oreInfusedWater", "oreInfusedEarth", "oreInfusedOrder", "oreInfusedEntropy");
         mine = new List[TIERS];
         for (int i = 0; i < TIERS; i++) mine[i] = new ArrayList<Entry>();
-        // веса - по предложению из листа добычи (12.11.2026); медь, олово, алюминий (в RedServer Magic - Tinkers), серебро, свинец - если
-        // они есть в сборке, с небольшим весом, чтобы не забивали ящик
+        // weights - per the suggestion from the loot sheet (12.11.2026); copper, tin, aluminum (in RedServer Magic - Tinkers), silver, lead - if
+        // they are in the modpack, with a small weight so they do not clog the crate
         Entry aluminum = dict(1, 2, 2, "oreAluminum");
         if (aluminum == null) aluminum = dict(1, 2, 2, "oreAluminium");
         addOres(mine[UPPER], e(Blocks.coal_ore, 2, 4, 10), e(Blocks.iron_ore, 1, 3, 8), dict(1, 2, 3, "oreAmber"), infused, e(Blocks.redstone_ore, 1, 2, 2),
@@ -276,7 +276,7 @@ public final class FishingLoot {
         addOres(mineRare, e(Blocks.diamond_ore, 1, 1, 2), e(rupee, 1, 1, 2), e(Blocks.emerald_ore, 1, 1, 1));
     }
 
-    /** Руда яруса для показа (NEI, автотесты). */
+    /** Tier ore for display (NEI, autotests). */
     public static List<ItemStack> ores(int tier) {
         init();
         List<ItemStack> l = new ArrayList<ItemStack>();
@@ -305,13 +305,13 @@ public final class FishingLoot {
     }
 
     /**
-     * Улов. power - сила рыбалки, baited - была ли приманка, crateBonus и rareMult - от удочки и приманки.
+     * The catch. power - fishing power, baited - whether there was bait, crateBonus and rareMult - from the rod and bait.
      */
     public static ItemStack roll(Random r, Zone zone, int power, boolean baited, float crateBonus, float rareMult) {
         return roll(r, zone, power, baited, crateBonus, rareMult, MIDDLE);
     }
 
-    /** Улов; tier - ярус пещер ({@link #caveTier}), вне пещер не важен. */
+    /** The catch; tier - cave tier ({@link #caveTier}), irrelevant outside caves. */
     public static ItemStack roll(Random r, Zone zone, int power, boolean baited, float crateBonus, float rareMult, int tier) {
         init();
         Table t = tables.get(zone);
@@ -325,7 +325,7 @@ public final class FishingLoot {
         if (x < power / 2500F * rareMult && !t.veryRare.isEmpty()) return pick(t.veryRare, r);
         if (x < power / 600F * rareMult && !t.rare.isEmpty()) return pick(t.rare, r);
         if (x < 0.15F + power / 500F) {
-            if (zone == Zone.CAVE) { // в пещерах необычный улов - 1-2 руды своего яруса
+            if (zone == Zone.CAVE) { // in caves the uncommon catch is 1-2 ores of its own tier
                 ItemStack o = pick(mine[tier(tier)], r);
                 if (o != null) o.stackSize = 1 + r.nextInt(2);
                 return o;
@@ -340,8 +340,8 @@ public final class FishingLoot {
     }
 
     /**
-     * Содержимое ящика зоны: 4-7 предметов из необычного и редкого, плюс рыба зоны и иногда приманки. Шахтёрские ящики
-     * (пещеры по ярусам и лава): 5-8 стопок руды блоками, в пещерах в 1 из 8 - ещё алмаз, изумруд или рупий.
+     * Contents of the zone crate: 4-7 items from uncommon and rare, plus the zone's fish and sometimes baits. Miner's crates
+     * (caves by tier and lava): 5-8 stacks of ore in blocks, in caves 1 in 8 also a diamond, emerald or rupee.
      */
     public static List<ItemStack> crate(Random r, Zone zone, int tier) {
         init();
@@ -372,7 +372,7 @@ public final class FishingLoot {
             Bait b = Bait.randomArcana(r);
             out.add(new ItemStack(b.item(), 2 + r.nextInt(3)));
         }
-        // шмот мира: оружие или инструмент ~2%, часть брони ~0.5%
+        // dimension gear: a weapon or tool ~2%, an armor piece ~0.5%
         com.divinerpgextended.world.twilight.TwilightWorld tw = zone.world();
         if (tw != null) {
             float x = r.nextFloat();
@@ -388,10 +388,10 @@ public final class FishingLoot {
         return out;
     }
 
-    /** Шанс оружия или инструмента мира в ящике сумеречного мира и шанс части брони. */
+    /** Chance of a dimension weapon or tool in a twilight dimension crate and the chance of an armor piece. */
     public static final float GEAR_CHANCE = 0.02F, ARMOR_CHANCE = 0.005F;
 
-    /** Оружие и инструменты мира Divine: клинок, слайсер, блиц, фазер, лук, кирка, топор, лопата. */
+    /** Weapons and tools of the Divine dimension: blade, slicer, blitz, phaser, bow, pickaxe, axe, shovel. */
     public static Item[] gear(com.divinerpgextended.world.twilight.TwilightWorld w) {
         switch (w) {
             case EDEN: return new Item[] { net.divinerpg.utils.items.TwilightItemsWeapons.edenBlade, net.divinerpg.utils.items.TwilightItemsWeapons.edenSlicer,
@@ -412,20 +412,20 @@ public final class FishingLoot {
         }
     }
 
-    /** Золотая рыбка: в сумеречных мирах 1 из {@link #GOLDEN_ODDS} поклёвок, ни сила, ни приманка, ни удочка не влияют. */
+    /** Golden Fish: in the twilight dimensions 1 in {@link #GOLDEN_ODDS} bites, neither power, nor bait, nor rod affects it. */
     public static final int GOLDEN_ODDS = 1000;
 
     public static ItemStack golden(Random r, Zone zone) {
         return zone.twilight() && r.nextInt(GOLDEN_ODDS) == 0 ? new ItemStack(ModItems.fish, 1, Fish.GOLDEN_FISH.ordinal()) : null;
     }
 
-    /** Грозовой сом: только в Диком лесу в ливень (и в дождь), с приманкой, с шансом редкого улова (не меньше 5%). */
+    /** Storm Catfish: only in the Wildwood in a downpour (and in rain), with bait, with a rare catch chance (at least 5%). */
     public static ItemStack storm(Random r, Zone zone, boolean raining, boolean baited, int power, float rareMult) {
         if (zone != Zone.WILDWOOD || !raining || !baited) return null;
         return r.nextFloat() < Math.max(0.05F, power / 600F * rareMult) ? new ItemStack(ModItems.fish, 1, Fish.STORM_CATFISH.ordinal()) : null;
     }
 
-    /** Пещерный удильщик: в пещере на Глазок циклопа - с этим шансом на поклёвку (растёт с редким уловом удочки). */
+    /** Cave Angler: in a cave on Cyclops Eye Bait - with this chance per bite (grows with the rod's rare catch). */
     public static final float ANGLER_CHANCE = 0.12F;
 
     public static ItemStack cave(Random r, Zone zone, Bait bait, float rareMult) {
@@ -433,7 +433,7 @@ public final class FishingLoot {
         return r.nextFloat() < ANGLER_CHANCE * rareMult ? new ItemStack(ModItems.fish, 1, Fish.CAVE_ANGLER.ordinal()) : null;
     }
 
-    /** Золотой улов Эдема: рыба приходит позолоченной (8%, с Солнечной блесной - 16%). */
+    /** Eden's golden catch: the fish comes gilded (8%, with the Sun Lure - 16%). */
     public static final float GILD_CHANCE = 0.08F;
     public static final String GILDED = "dreGilded";
 
@@ -448,14 +448,14 @@ public final class FishingLoot {
         return s != null && s.hasTagCompound() && s.getTagCompound().getBoolean(GILDED);
     }
 
-    /** Квестовые рыбы (задания Леорны). */
+    /** Quest fish (Leorna's tasks). */
     public static List<Fish> questFish() {
         List<Fish> l = new ArrayList<Fish>();
         for (Fish f : Fish.values()) if (f.quest) l.add(f);
         return l;
     }
 
-    /** Строка таблицы для показа (NEI): предмет, редкость и сколько штук. */
+    /** A table row for display (NEI): item, rarity and how many. */
     public static final class View {
 
         public static final int COMMON = 0, UNCOMMON = 1, RARE = 2, VERY_RARE = 3, CRATE = 4, BAIT = 5, JUNK = 6, RELIC = 7;
@@ -475,14 +475,14 @@ public final class FishingLoot {
         for (Entry x : l) out.add(new View(x.stack.copy(), tier, x.min, x.max));
     }
 
-    /** Улов зоны с приманкой, от обычного к очень редкому, плюс ящик зоны. */
+    /** The zone's catch with bait, from common to very rare, plus the zone crate. */
     public static List<View> catches(Zone zone) {
         init();
         Table t = tables.get(zone);
         List<View> out = new ArrayList<View>();
         view(out, t.common, View.COMMON);
         view(out, t.uncommon, View.UNCOMMON);
-        if (zone == Zone.CAVE) { // руда всех ярусов, 1-2 штуки
+        if (zone == Zone.CAVE) { // ore of all tiers, 1-2 pieces
             List<ItemStack> seen = new ArrayList<ItemStack>();
             for (List<Entry> l : mine) for (Entry x : l) for (ItemStack a : x.alts) {
                 boolean dup = false;
@@ -494,9 +494,9 @@ public final class FishingLoot {
         }
         view(out, t.rare, View.RARE);
         view(out, t.veryRare, View.VERY_RARE);
-        if (zone == Zone.WILDWOOD) out.add(new View(new ItemStack(ModItems.fish, 1, Fish.STORM_CATFISH.ordinal()), View.RARE, 1, 1)); // только в ливень
+        if (zone == Zone.WILDWOOD) out.add(new View(new ItemStack(ModItems.fish, 1, Fish.STORM_CATFISH.ordinal()), View.RARE, 1, 1)); // only in a downpour
         if (zone.twilight()) out.add(new View(new ItemStack(ModItems.fish, 1, Fish.GOLDEN_FISH.ordinal()), View.VERY_RARE, 1, 1));
-        if (zone == Zone.CAVE) out.add(new View(new ItemStack(ModItems.fish, 1, Fish.CAVE_ANGLER.ordinal()), View.RARE, 1, 1)); // только на Глазок циклопа
+        if (zone == Zone.CAVE) out.add(new View(new ItemStack(ModItems.fish, 1, Fish.CAVE_ANGLER.ordinal()), View.RARE, 1, 1)); // only on Cyclops Eye Bait
         ItemStack relic = relicOf(zone);
         if (relic != null && com.divinerpgextended.Config.fishingRelics) out.add(new View(relic, View.RELIC, 1, 1));
         if (zone == Zone.CAVE) for (int k = 0; k < TIERS; k++) out.add(new View(crateItem(zone, k), View.CRATE, 1, 1));
@@ -504,12 +504,12 @@ public final class FishingLoot {
         return out;
     }
 
-    /** Реликвия зоны (ловится очень редко и только с приманкой) или null. */
+    /** The zone's relic (caught very rarely and only with bait) or null. */
     public static ItemStack relicOf(Zone zone) {
         return zone == Zone.DREAM ? new ItemStack(ModItems.nightmareDrill) : null;
     }
 
-    /** Шанс реликвии растёт с силой: при силе 130 (лучшая снасть) - около 1 из 250 поклёвок. */
+    /** Relic chance grows with power: at power 130 (best tackle) - about 1 in 250 bites. */
     public static ItemStack relic(Random r, Zone zone, int power) {
         if (!com.divinerpgextended.Config.fishingRelics) return null;
         ItemStack s = relicOf(zone);
@@ -518,7 +518,7 @@ public final class FishingLoot {
         return r.nextDouble() < chance ? s : null;
     }
 
-    /** Мусор (любая вода, кроме лавы; без приманки - каждый четвёртый улов). */
+    /** Junk (any water except lava; without bait - every fourth catch). */
     public static List<View> junk() {
         init();
         List<View> out = new ArrayList<View>();
@@ -530,7 +530,7 @@ public final class FishingLoot {
         return crateContents(zone, MIDDLE);
     }
 
-    /** Что может лежать в ящике зоны (в пещерах - в шахтёрском ящике этого яруса). */
+    /** What can lie in the zone crate (in caves - in the miner's crate of this tier). */
     public static List<View> crateContents(Zone zone, int tier) {
         init();
         Table t = tables.get(zone);
@@ -548,7 +548,7 @@ public final class FishingLoot {
         view(out, t.common, View.COMMON);
         for (Bait b : Bait.values()) if (b.arcana) out.add(new View(new ItemStack(b.item()), View.BAIT, 2, 4));
         com.divinerpgextended.world.twilight.TwilightWorld tw = zone.world();
-        if (tw != null) { // шмот мира
+        if (tw != null) { // dimension gear
             for (Item it : gear(tw)) if (it != null) out.add(new View(new ItemStack(it), View.VERY_RARE, 1, 1));
             for (Item it : tw.armor()) if (it != null) out.add(new View(new ItemStack(it), View.VERY_RARE, 1, 1));
         }

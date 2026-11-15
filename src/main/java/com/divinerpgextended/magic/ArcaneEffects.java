@@ -23,15 +23,15 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Эффекты арканных зелий у игрока - настоящие эффекты Minecraft ({@link PotionArcane}): видны в инвентаре, снимаются
- * молоком, сохраняются и уходят клиенту как ванильные. Уровень 1 - обычное зелье, 2 - сильное.
+ * Arcane potion effects on a player - real Minecraft effects ({@link PotionArcane}): visible in the inventory, removed
+ * by milk, saved and sent to the client like vanilla ones. Level 1 - a regular potion, 2 - strong.
  */
 public class ArcaneEffects {
 
-    /** Где эффекты хранились до 0.99.30: при входе переносятся в эффекты Minecraft. */
+    /** Where effects were stored before 0.99.30: on login they are moved into Minecraft effects. */
     static final String TAG = "dreArcEffects";
 
-    /** Уровень эффекта (1 обычное, 2 сильное) или 0, если его нет. На клиенте - по эффектам, присланным сервером. */
+    /** Effect level (1 regular, 2 strong) or 0 if there is none. On the client - from the effects sent by the server. */
     public static int level(EntityPlayer p, ArcaneEffect e) {
         Potion pt = p == null ? null : PotionArcane.of(e);
         PotionEffect pe = pt == null ? null : p.getActivePotionEffect(pt);
@@ -48,7 +48,7 @@ public class ArcaneEffects {
         return pe == null ? 0 : pe.getDuration();
     }
 
-    /** Наложить эффект: как у ванильных зелий, сильнее - заменяет, того же уровня - продлевает до большего срока. */
+    /** Apply an effect: as with vanilla potions, a stronger one replaces, one of the same level extends to the longer duration. */
     public static void apply(EntityPlayer p, ArcaneEffect e, int level, int ticks) {
         Potion pt = PotionArcane.of(e);
         if (p.worldObj.isRemote || pt == null) return;
@@ -62,7 +62,7 @@ public class ArcaneEffects {
         }
     }
 
-    /** Выпить зелье: эффект себе (у общего - и игрокам в 8 блоках). Убранные зелья (возврат, зов битвы, затишье) - пустые. */
+    /** Drink a potion: the effect on yourself (for the shared one - on players within 8 blocks too). Removed potions (return, call to arms, stillness) are empty. */
     public static void drink(EntityPlayer p, ArcaneEffect e, boolean strong, boolean longer, boolean shared) {
         if (p.worldObj.isRemote || e.removed()) return;
         List<EntityPlayer> who = new java.util.ArrayList<EntityPlayer>();
@@ -76,9 +76,9 @@ public class ArcaneEffects {
         }
     }
 
-    // ---------------- действие эффектов ----------------
+    // ---------------- effect actions ----------------
 
-    /** Множитель цены выстрела (Собранность). */
+    /** Shot price multiplier (Composure). */
     public static float costFactor(EntityPlayer p) {
         int l = level(p, ArcaneEffect.COMPOSURE);
         return l == 0 ? 1F : l == 1 ? 0.75F : 0.6F;
@@ -89,7 +89,7 @@ public class ArcaneEffects {
             && !ArcanaCombat.ARCANE.equals(s.damageType);
     }
 
-    /** По игроку: оберег от чар, каменная кожа, отвод снарядов, стойкость, колючки. До защиты арканой. */
+    /** On the player: Charm Ward, Stone Skin, Missile ward, Fortitude, Bramble Hide. Before arcana defense. */
     @SubscribeEvent
     public void onHurtTaken(LivingHurtEvent e) {
         if (!(e.entityLiving instanceof EntityPlayer) || e.entityLiving.worldObj.isRemote) return;
@@ -107,7 +107,7 @@ public class ArcaneEffects {
         e.ammount *= k;
     }
 
-    /** От игрока: чародейская мощь, боевой раж, твёрдая рука, голод арканы. После правил арканного урона. */
+    /** From the player: sorcerous might, Battle Fervor, Steady Hand, Arcane Hunger. After the arcane damage rules. */
     @SubscribeEvent
     public void onHurtDealt(LivingHurtEvent e) {
         if (e.entityLiving.worldObj.isRemote || !(e.source.getEntity() instanceof EntityPlayer)) return;
@@ -124,7 +124,7 @@ public class ArcaneEffects {
         }
     }
 
-    /** Твёрдая рука: шанс, что стрела вернётся. */
+    /** Steady Hand: chance that the arrow returns. */
     @SubscribeEvent
     public void onLoose(ArrowLooseEvent e) {
         EntityPlayer p = e.entityPlayer;
@@ -133,7 +133,7 @@ public class ArcaneEffects {
         if (p.worldObj.rand.nextFloat() < (l == 1 ? 0.2F : 0.3F)) p.inventory.addItemStackToInventory(new ItemStack(Items.arrow));
     }
 
-    /** Старые записи эффектов (до 0.99.30) - в эффекты Minecraft, один раз. */
+    /** Old effect records (before 0.99.30) - into Minecraft effects, once. */
     @SubscribeEvent
     public void onTick(TickEvent.PlayerTickEvent e) {
         EntityPlayer p = e.player;
@@ -150,12 +150,12 @@ public class ArcaneEffects {
         ps.removeTag(TAG);
     }
 
-    /** Холод Айсики не копится под Внутренним жаром (для {@link ColdHandler}). */
+    /** Iceika cold does not build up under Inner Heat (for {@link ColdHandler}). */
     public static boolean warm(EntityPlayer p) {
         return has(p, ArcaneEffect.INNER_HEAT);
     }
 
-    /** Удача рыбака: множитель ожидания поклёвки и редкой добычи (для удочек аддона). */
+    /** Angler's luck: multiplier of the bite wait and of rare loot (for the addon's rods). */
     public static float biteFactor(EntityPlayer p) {
         int l = level(p, ArcaneEffect.FISHERS_FORTUNE);
         return l == 0 ? 1F : l == 1 ? 0.6F : 0.45F;

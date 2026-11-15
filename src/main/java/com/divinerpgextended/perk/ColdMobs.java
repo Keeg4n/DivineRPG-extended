@@ -12,13 +12,13 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Морозные мобы ({@link #isCold}: Глаконы, Фросты, мобы Iceika, Колосс, Король-лич и их мертвецы) боятся адского: адское
- * оружие (мечи Inferno, Molten, Scorching, Bluefire и адский лук) бьёт их вдвое сильнее и поджигает, огонь жжёт вдвое
- * сильнее, а игроку в огненной броне они наносят вдвое меньше урона. Палящий меч поджигает любую цель.
+ * Cold mobs ({@link #isCold}: Glacons, Frosts, Iceika mobs, the Colossus, the Lich King and their undead) fear the infernal: infernal
+ * weapons (Inferno, Molten, Scorching, Bluefire swords and the infernal bow) hit them twice as hard and set them on fire, fire burns them twice as
+ * hard, and they deal half damage to a player in fire armor. The Scorching sword sets any target on fire.
  */
 public class ColdMobs {
 
-    /** Морозные: Глаконы, Фросты, враждебные мобы Iceika, боссы и помощники Ледяного Трона. */
+    /** Cold: Glacons, Frosts, hostile Iceika mobs, bosses and helpers of the Frozen Throne. */
     public static boolean isCold(Entity e) {
         if (e instanceof EntityGlacon || e instanceof EntityFrost || e instanceof com.divinerpgextended.entity.EntitySnowGlacon
             || e instanceof com.divinerpgextended.entity.EntityFrostColossus || e instanceof com.divinerpgextended.entity.EntityLichKing) return true;
@@ -41,7 +41,7 @@ public class ColdMobs {
     @SubscribeEvent
     public void onHurt(LivingHurtEvent event) {
         Entity attacker = event.source.getEntity();
-        // Палящий меч Divine - обычный меч без свойств: поджигаем сами
+        // Divine's Scorching sword is a plain sword with no properties: we set the fire ourselves
         if (attacker instanceof EntityPlayer && event.source.getSourceOfDamage() == attacker && !event.entityLiving.worldObj.isRemote) {
             ItemStack held = ((EntityPlayer) attacker).getHeldItem();
             if (held != null && held.getItem() == VanillaItemsWeapons.scorchingSword && !Protection.spare(attacker, event.entityLiving))
@@ -50,17 +50,17 @@ public class ColdMobs {
         if (isCold(event.entityLiving)) {
             if (event.source.isFireDamage()) {
                 event.ammount *= 2.0F;
-                com.divinerpgextended.debug.Debug.note(event.entityLiving, "Холодный моб: огонь x2");
+                com.divinerpgextended.debug.Debug.note(event.entityLiving, "Cold mob: fire x2");
             }
             if (attacker instanceof EntityPlayer && isHellWeapon((EntityPlayer) attacker)) {
                 event.ammount *= 2.0F;
                 event.entityLiving.setFire(5);
-                com.divinerpgextended.debug.Debug.note(attacker, "Адское оружие по холодному мобу: x2 и поджог");
+                com.divinerpgextended.debug.Debug.note(attacker, "Nether weapon on a cold mob: x2 and ignite");
             }
         } else if (event.entityLiving instanceof EntityPlayer && isCold(attacker)
             && PerkEffects.wearsFireArmor((EntityPlayer) event.entityLiving)) {
                 event.ammount *= 0.5F;
-                com.divinerpgextended.debug.Debug.note(event.entityLiving, "Огненная броня: от холодных мобов x0.5");
+                com.divinerpgextended.debug.Debug.note(event.entityLiving, "Fire armor: from cold mobs x0.5");
             }
     }
 }

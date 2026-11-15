@@ -11,7 +11,7 @@ import org.lwjgl.opengl.GL11;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Глыба голема и камнепада: крутящийся блок в полтора блока. */
+/** Golem and rockfall boulder: a spinning block one and a half blocks in size. */
 @SideOnly(Side.CLIENT)
 public class RenderBoulder extends Render {
 

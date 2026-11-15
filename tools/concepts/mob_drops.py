@@ -1,4 +1,4 @@
-"""Концепты значков 16x16: материалы мобов сумеречных миров (рога кадиллионов и прочее), по три варианта на материал."""
+"""16x16 icon concepts: twilight world mob materials (Cadillion horns and the like), three variants per material."""
 import math
 
 from acc_kit import DISC, ELL, RING, RECT, POLY, LINE, PATH, SYM, DIAMOND, HEART, Ic
@@ -9,7 +9,7 @@ DROPS = []
 
 
 def drop(key, name, mob, world, use, *vs):
-    """vs - три варианта (название, функция значка)."""
+    """vs - three variants (name, icon function)."""
     DROPS.append((key, name, mob, world, use, vs))
 
 
@@ -18,7 +18,7 @@ TEMPER = 'закалка брони и лука мира'
 
 
 def horn(c, base, tip, ramp, w0=2.6, bands=None, band=None, curve=0.0):
-    """Рог: конус от основания base к кончику tip, ширина у основания w0; bands - сколько полос спирали."""
+    """Horn: a cone from base to tip, width at the base w0; bands - the number of spiral stripes."""
     (x0, y0), (x1, y1) = base, tip
     pts_l, pts_r = [], []
     n = 12
@@ -48,7 +48,7 @@ def horn(c, base, tip, ramp, w0=2.6, bands=None, band=None, curve=0.0):
     return m
 
 
-# ------------------------------------------------------------------ Эдем
+# ------------------------------------------------------------------ Eden
 def feather(c):
     m = POLY((2.5, 13.5), (4, 9), (8, 4.5), (13.5, 1.5), (12, 6), (8.5, 10), (4.5, 13))
     c.f(m, EDEN)
@@ -136,7 +136,7 @@ def root_bundle(c):
 
 
 
-# ------------------------------------------------------------------ Дикий лес
+# ------------------------------------------------------------------ Wildwood
 def fang(c):
     m = POLY((3.5, 1), (11.5, 1), (12.5, 5), (11, 10), (7, 15), (7.5, 9), (5.5, 5))
     c.f(m, BONE)
@@ -220,7 +220,7 @@ def moss_crack(c):
     c.d(SKY[4], 8, 9)
 
 
-# ------------------------------------------------------------------ Апалачия
+# ------------------------------------------------------------------ Apalachia
 def heart_cut(c):
     m = HEART(8, 8.5, 6.6)
     c.f(m, APAL)
@@ -247,7 +247,7 @@ def heart_stone(c):
 
 
 def heart_cube(c):
-    """Аметистовый куб с сердцем-руной: как рунный куб мшистого ядра (6Б), только целиком из аметиста."""
+    """Amethyst cube with a rune heart: like the rune cube of the Moss Core (6B), only entirely of amethyst."""
     top = POLY((8, 2), (14, 5), (8, 8), (2, 5))
     left = POLY((2, 5), (8, 8), (8, 15), (2, 12))
     right = POLY((8, 8), (14, 5), (14, 12), (8, 15))
@@ -308,7 +308,7 @@ def sigil_rune(c):
     c.d(MAG[4], 8, 8)
 
 
-# ------------------------------------------------------------------ Небесный терн
+# ------------------------------------------------------------------ Skythern
 def essence_vial(c):
     m = ELL(8, 10.5, 4.6, 4.4) | RECT(6, 3, 9, 6)
     c.f(m, WHITE)
@@ -389,7 +389,7 @@ def cloud_cube(c):
     c.d(SKY[4], 8, 4)
 
 
-# ------------------------------------------------------------------ Мортум
+# ------------------------------------------------------------------ Mortum
 def dark_twisted(c):
     horn(c, (3.5, 12.5), (13.5, 1.5), BLK, 3.0, bands=4, band=OBS[3], curve=1.0)
     c.d(RED[3], 13, 2, 12, 3)

@@ -23,13 +23,13 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 /**
- * Цены арканного оружия у торговцев Арканы - по полезности и этапу (у Divine от 1 до 30 вперемешку). Ваттикус больше
- * не продаёт зелья арканы (они теперь из сундуков и варятся), а продаёт Арканный щит и Кристалл ясности. Делается на
- * обеих сторонах: список сделок Divine строит и на клиенте.
+ * Prices of arcane weapons at Arcana traders - by usefulness and stage (in Divine from 1 to 30 mixed up). Lord Vatticus no longer
+ * sells arcana potions (they now come from chests and are brewed), but sells the Arcane Ward and the Crystal of Clarity. Done on
+ * both sides: Divine builds the trade list on the client too.
  */
 public class ArcanaPrices {
 
-    /** Вещь -> {валюта: 0 арканиум, 1 жетоны подземелий; сколько}. */
+    /** Item -> {currency: 0 arcanium, 1 dungeon tokens; how many}. */
     static final Map<Item, int[]> PRICE = new HashMap<Item, int[]>();
     public static final int WARD_PRICE = 20, CLARITY_PRICE = 25, BREWER_PRICE = 32;
 
@@ -52,7 +52,7 @@ public class ArcanaPrices {
         put(ArcanaItems.generalsStaff, 0, 18);
         put(ArcanaItems.arcaniteBlade, 0, 30);
         put(ArcanaItems.liviciaSword, 1, 30);
-        // зелья арканы Divine (дают Ясность) лежат в сундуках; свои зелья варятся на арканной стойке
+        // Divine's arcana potions (give Clarity) lie in chests; our own potions are brewed on the Arcane Brewing Stand
         for (String c : new String[] { ChestGenHooks.DUNGEON_CHEST, ChestGenHooks.MINESHAFT_CORRIDOR, ChestGenHooks.PYRAMID_DESERT_CHEST,
             ChestGenHooks.PYRAMID_JUNGLE_CHEST, ChestGenHooks.STRONGHOLD_CORRIDOR, ChestGenHooks.STRONGHOLD_CROSSING }) {
             ChestGenHooks.addItem(c, new WeightedRandomChestContent(new ItemStack(ArcanaItems.weakArcanaPotion), 1, 2, 8));
@@ -68,7 +68,7 @@ public class ArcanaPrices {
         return c == 1 ? ArcanaItems.dungeonTokens : ArcanaItems.arcanium;
     }
 
-    /** Цена в списке сделок: правит покупку, у Ваттикуса заменяет зелья на аксессуары арканы. */
+    /** Price in the trade list: fixes the purchase, at Lord Vatticus replaces potions with arcana accessories. */
     public static void apply(EntityDivineRPGVillager v, MerchantRecipeList list) {
         boolean ward = false, clarity = false, brewer = false;
         Item brewerItem = Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.arcaneBrewer);
@@ -98,7 +98,7 @@ public class ArcanaPrices {
         }
     }
 
-    /** И перед самым открытием торговли (список мог только что собраться). */
+    /** And right before the trade opens (the list may have just been assembled). */
     @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.LOW)
     public void onInteract(net.minecraftforge.event.entity.player.EntityInteractEvent e) {
         if (!(e.target instanceof EntityDivineRPGVillager)) return;

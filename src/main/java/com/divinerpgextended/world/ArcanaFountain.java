@@ -14,15 +14,15 @@ import com.divinerpgextended.registry.ModBlocks;
 import cpw.mods.fml.common.IWorldGenerator;
 
 /**
- * Фонтанный зал Арканы: в Аркане каждый чанк - четыре этажа комнат 16 x 16 высотой 8 (пол на высотах 8, 16, 24, 32; ниже пусто, на 40 потолок). Изредка ({@link Config#arcanaFountainChance})
- * одна обычная комната (без сундуков и спавнеров - не тайник и не логово босса) в новом чанке перестраивается: стены и проходы
- * остаются, внутри - чистый пол и фонтан с чашей арканного концентрата ({@link com.divinerpgextended.block.BlockArcaneConcentrate}):
- * в нём восстанавливается аркана и ловится рыба Арканы.
+ * Arcana fountain hall: in Arcana every chunk is four floors of 16 x 16 rooms of height 8 (floor at heights 8, 16, 24, 32; empty below, ceiling at 40). Occasionally ({@link Config#arcanaFountainChance})
+ * one ordinary room (without chests and spawners - not a stash or a boss lair) in a new chunk is rebuilt: walls and passages
+ * stay, inside there is a clean floor and a fountain with a bowl of Arcane Concentrate ({@link com.divinerpgextended.block.BlockArcaneConcentrate}):
+ * in it arcana is restored and Arcana fish are caught.
  */
 public class ArcanaFountain implements IWorldGenerator {
 
     public static final int LEVELS = 4, H = 8, IN0 = 2, IN1 = 13;
-    /** Для самопроверки: сколько залов построено. */
+    /** For the selftest: how many halls were built. */
     public static int built;
 
     @Override
@@ -33,12 +33,12 @@ public class ArcanaFountain implements IWorldGenerator {
         build(w, cx * 16, floorY(r.nextInt(LEVELS)), cz * 16);
     }
 
-    /** Высота пола этажа (0 - нижний). */
+    /** Floor height of a level (0 - the lowest). */
     public static int floorY(int level) {
         return (level + 1) * H;
     }
 
-    /** Комната без сундуков и спавнеров (тайники и логова боссов не трогаем). */
+    /** A room without chests and spawners (stashes and boss lairs are not touched). */
     static boolean plain(World w, int x0, int y0, int z0) {
         for (int x = x0; x < x0 + 16; x++) for (int z = z0; z < z0 + 16; z++) for (int y = y0; y < y0 + H; y++)
             if (w.getTileEntity(x, y, z) != null || w.getBlock(x, y, z) == net.divinerpg.utils.blocks.ArcanaBlocks.dramixAltar
@@ -46,18 +46,18 @@ public class ArcanaFountain implements IWorldGenerator {
         return true;
     }
 
-    /** Перестроить комнату (x0, y0 - пол, z0) в фонтанный зал. false - комната не подошла. */
+    /** Rebuild the room (x0, y0 - floor, z0) into a fountain hall. false - the room did not fit. */
     public static boolean build(World w, int x0, int y0, int z0) {
-        if (y0 < floorY(0) || !plain(w, x0, y0, z0)) return false; // ниже первого этажа пустота, зал повис бы под картой
+        if (y0 < floorY(0) || !plain(w, x0, y0, z0)) return false; // below the first floor is a void, the hall would hang under the map
         Block floor = w.getBlock(x0 + 8, y0, z0 + 8);
         if (floor.isAir(w, x0 + 8, y0, z0 + 8)) floor = net.divinerpg.utils.blocks.ArcanaBlocks.ancientTile;
         Block rim = net.divinerpg.utils.blocks.ArcanaBlocks.ancientBrick, lamp = net.divinerpg.utils.blocks.ArcanaBlocks.dungenLamp;
-        // внутри - пусто, пол ровный (проходы в стенах не трогаем)
+        // inside - empty, an even floor (passages in the walls are not touched)
         for (int x = x0 + IN0; x <= x0 + IN1; x++) for (int z = z0 + IN0; z <= z0 + IN1; z++) {
             w.setBlock(x, y0, z, floor, 0, 2);
             for (int y = y0 + 1; y < y0 + H - 1; y++) w.setBlock(x, y, z, Blocks.air, 0, 2);
         }
-        // чаша 8 x 8: бортик, внутри концентрат; в центре - столб с огнём арканы
+        // an 8 x 8 bowl: a rim, concentrate inside; in the center - a pillar with arcana fire
         int c0 = x0 + 4, c1 = x0 + 11, d0 = z0 + 4, d1 = z0 + 11;
         for (int x = c0; x <= c1; x++) for (int z = d0; z <= d1; z++) {
             boolean edge = x == c0 || x == c1 || z == d0 || z == d1;
@@ -68,7 +68,7 @@ public class ArcanaFountain implements IWorldGenerator {
                 w.setBlock(x, y0 + 4, z, lamp, 0, 2);
             } else w.setBlock(x, y0 + 1, z, ModBlocks.arcaneConcentrate, 0, 2);
         }
-        // огни по углам зала
+        // fires in the corners of the hall
         for (int[] c : new int[][] { { IN0, IN0 }, { IN0, IN1 }, { IN1, IN0 }, { IN1, IN1 } }) w.setBlock(x0 + c[0], y0 + 1, z0 + c[1], lamp, 0, 2);
         built++;
         return true;

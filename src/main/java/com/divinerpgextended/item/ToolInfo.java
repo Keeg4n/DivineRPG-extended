@@ -5,7 +5,7 @@ import java.util.List;
 import net.divinerpg.utils.TooltipLocalizer;
 import net.minecraft.item.ItemStack;
 
-/** Строки подсказки инструментов аддона в формате кирок Divine: эффективность и прочность (или бесконечность). */
+/** Tooltip lines for the addon's tools in the format of Divine pickaxes: efficiency and durability (or infinity). */
 public final class ToolInfo {
 
     private ToolInfo() {}

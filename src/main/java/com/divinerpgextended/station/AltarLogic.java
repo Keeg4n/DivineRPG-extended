@@ -31,42 +31,42 @@ import com.divinerpgextended.DivineRPGExtended;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Алтарь порчи Divine по правилам аддона.
+ * Corruption altar from Divine, with the addon's rules.
  * <ul>
- * <li>Чары бросаются, когда вещь кладут в алтарь ({@link #rollAll}): вынул и положил - новые, узнанное пропало.</li>
- * <li>Слот задаёт только силу броска: ванильная цена при полном столе, умноженная в 5/3 (первый 3-17, второй 10-35,
- * последний 50). Уровень чара - высший, на который хватает силы (у ванили сверху ещё потолок, и при большой силе
- * Защита пропадает совсем). Какой чар - по ванильным весам, так что лучший в последнем слоте не гарантирован.</li>
- * <li>Цена - по выпавшим чарам ({@link #price}): очки тира ({@link #tier}) за полный уровень, за неполный - по доле.
- * Вещь - сумма, не дороже {@link Config#altarTopLevels}; книга - {@link Config#altarBookBase} + сумма, не дороже
- * {@link Config#altarBookMax}. Внутри тира цена одна: иначе цена выдала бы чар без оплаты.</li>
- * <li>Цена снимается уровнями сверху, как у ванильного стола.</li>
- * <li>Книга: сначала выбирается вещь ({@link #BOOK_TARGETS}), все чары книги - для неё; книга получает все чары броска.</li>
- * <li>Узнать чары слота: оплата по виду вещи ({@link Config#altarRevealItems}) - осколки за первый и второй слоты,
- * камень за последний, у книги - рупиевые слитки.</li>
+ * <li>Enchantments are rolled when an item is placed in the altar ({@link #rollAll}): take it out and put it back - new ones, what was revealed is gone.</li>
+ * <li>The slot sets only the strength of the roll: the vanilla price with a full table, multiplied by 5/3 (first 3-17, second 10-35,
+ * last 50). The enchantment level is the highest the strength can afford (vanilla also has a cap on top, and at high strength
+ * Protection disappears entirely). Which enchantment - by vanilla weights, so the best in the last slot is not guaranteed.</li>
+ * <li>The price is by the rolled enchantments ({@link #price}): tier points ({@link #tier}) for a full level, for a partial one - proportionally.
+ * Item - the sum, at most {@link Config#altarTopLevels}; book - {@link Config#altarBookBase} + the sum, at most
+ * {@link Config#altarBookMax}. Within a tier the price is the same: otherwise the price would hand out an enchantment without payment.</li>
+ * <li>The price is taken in levels from the top, like the vanilla table.</li>
+ * <li>Book: the item is chosen first ({@link #BOOK_TARGETS}), all the book's enchantments are for it; the book gets all enchantments of the roll.</li>
+ * <li>Reveal a slot's enchantments: payment by item kind ({@link Config#altarRevealItems}) - shards for the first and second slots,
+ * a stone for the last, rupee ingots for a book.</li>
  * </ul>
  */
 public class AltarLogic {
 
     public static final int SLOTS = 3;
-    /** Сила последнего слота: хватает на Остроту V, Защиту IV, Эффективность V. */
+    /** Strength of the last slot: enough for Sharpness V, Protection IV, Efficiency V. */
     private static final int TOP_POWER = 50;
-    /** Зерно игрока из 0.99.70 в PERSISTED: больше не нужно, стирается при открытии алтаря. */
+    /** The player's seed from 0.99.70 in PERSISTED: no longer needed, erased when the altar is opened. */
     private static final String OLD_TAG = "dreAltar";
 
-    /** Лучшие чары (тир 0). */
+    /** The best enchantments (tier 0). */
     public static final Set<Enchantment> BEST = new HashSet<Enchantment>(Arrays.asList(Enchantment.protection, Enchantment.sharpness,
         Enchantment.looting, Enchantment.efficiency, Enchantment.silkTouch, Enchantment.fortune, Enchantment.power, Enchantment.infinity));
-    /** Слабые чары (тир 2); остальные, в том числе чары других модов, - средние. */
+    /** Weak enchantments (tier 2); the rest, including enchantments from other mods, are medium. */
     public static final Set<Enchantment> WEAK = new HashSet<Enchantment>(Arrays.asList(Enchantment.smite, Enchantment.baneOfArthropods,
         Enchantment.knockback, Enchantment.punch, Enchantment.fireProtection, Enchantment.blastProtection, Enchantment.projectileProtection));
 
-    /** Вещи, под которые зачаровывается книга, и их веса (броня всего 4, меч и кирка по 3, лук 2, удочка 1). */
+    /** Items a book is enchanted for, and their weights (armor 4 in total, sword and pickaxe 3 each, bow 2, fishing rod 1). */
     public static final Item[] BOOK_TARGETS = { Items.diamond_helmet, Items.diamond_chestplate, Items.diamond_leggings, Items.diamond_boots,
         Items.diamond_sword, Items.diamond_pickaxe, Items.bow, Items.fishing_rod };
     private static final int[] BOOK_WEIGHTS = { 1, 1, 1, 1, 3, 3, 2, 1 };
 
-    /** Оплата "узнать" по видам вещей из конфига; разбирается при первом обращении (предметы уже зарегистрированы). */
+    /** Payment for "reveal" by item kind from the config; parsed on first access (items are already registered). */
     private static Map<String, Item[]> payments;
 
     public static boolean altar(World w, int x, int y, int z) {
@@ -77,17 +77,17 @@ public class AltarLogic {
         return s != null && s.getItem() == Items.book;
     }
 
-    /** Тир чара для цены: 0 - лучшие, 1 - средние, 2 - слабые. */
+    /** Enchantment tier for the price: 0 - best, 1 - medium, 2 - weak. */
     public static int tier(Enchantment e) {
         return BEST.contains(e) ? 0 : WEAK.contains(e) ? 2 : 1;
     }
 
-    /** Цена последнего слота (самая высокая). */
+    /** Price of the last slot (the highest). */
     public static int price(List<EnchantmentData> list, boolean book) {
         return price(list, book, SLOTS - 1);
     }
 
-    /** Цена слота в уровнях по выпавшим чарам, не выше потолка слота ({@link #cap}); 0 - зачаровать нечем. */
+    /** Slot price in levels by the rolled enchantments, at most the slot cap ({@link #cap}); 0 - nothing to enchant with. */
     public static int price(List<EnchantmentData> list, boolean book, int slot) {
         if (list.isEmpty()) return 0;
         int[] pts = book ? Config.altarBookPoints : Config.altarItemPoints;
@@ -101,29 +101,29 @@ public class AltarLogic {
     }
 
     /**
-     * Потолок цены слота: последний - весь потолок, первые - треть и две трети пути от базы (вещь 40 / 80 / 120, книга
-     * 70 / 110 / 150). Иначе второй слот с кучей средних чаров стоит как последний, а узнаётся за осколки.
+     * Slot price cap: the last one is the whole cap, the first ones are a third and two thirds of the way from the base (item 40 / 80 / 120, book
+     * 70 / 110 / 150). Otherwise the second slot with a pile of medium enchantments costs as much as the last, yet is revealed for shards.
      */
     public static int cap(boolean book, int slot) {
         int lo = book ? Config.altarBookBase : 0, hi = book ? Config.altarBookMax : Config.altarTopLevels;
         return lo + Math.round((hi - lo) * (slot + 1) / (float) SLOTS);
     }
 
-    /** Броски трёх слотов для вещи (пустой - слот закрыт). */
+    /** Rolls of the three slots for an item (empty - slot closed). */
     public static List<List<EnchantmentData>> rollAll(Random r, ItemStack s) {
         List<List<EnchantmentData>> out = new ArrayList<List<EnchantmentData>>();
         for (int i = 0; i < SLOTS; i++) out.add(roll(r, s, i));
         return out;
     }
 
-    /** Чары слота: ровно то, что покажет "узнать" и что ляжет на вещь. Пусто - зачаровать нечем. */
+    /** Slot enchantments: exactly what "reveal" will show and what will go on the item. Empty - nothing to enchant with. */
     public static List<EnchantmentData> roll(Random r, ItemStack s, int slot) {
         List<EnchantmentData> out = new ArrayList<EnchantmentData>();
         if (s == null || !s.isItemEnchantable()) return out;
         int base = EnchantmentHelper.calcItemStackEnchantability(r, slot, 15, s);
         if (base <= 0) return out;
         int cost = Math.max(1, Math.round(base * TOP_POWER / 30F));
-        // сила как у ванили: сила слота + немного от зачаруемости вещи, разброс 15%
+        // strength as in vanilla: slot strength + a bit from the item's enchantability, 15% spread
         int k = s.getItem().getItemEnchantability(s) / 2;
         k = 1 + r.nextInt((k >> 1) + 1) + r.nextInt((k >> 1) + 1);
         float f = (r.nextFloat() + r.nextFloat() - 1.0F) * 0.15F;
@@ -149,7 +149,7 @@ public class AltarLogic {
         return out;
     }
 
-    /** Чары, которые встают на вещь при этой силе: у каждого высший уровень, на который хватает силы. */
+    /** Enchantments that go on the item at this strength: each at the highest level the strength can afford. */
     private static Map<Integer, EnchantmentData> pool(ItemStack target, boolean book, int power) {
         Map<Integer, EnchantmentData> m = new LinkedHashMap<Integer, EnchantmentData>();
         for (Enchantment e : Enchantment.enchantmentsList) {
@@ -162,7 +162,7 @@ public class AltarLogic {
         return m;
     }
 
-    /** Вещь под книгу: по весам, из тех, на которые при этой силе что-то встаёт (удочке на малой силе дать нечего). */
+    /** Item for a book: by weights, among those that get something at this strength (a fishing rod has nothing to get at low strength). */
     private static ItemStack bookTarget(Random r, int power) {
         int[] w = new int[BOOK_TARGETS.length];
         int total = 0;
@@ -173,7 +173,7 @@ public class AltarLogic {
         return null;
     }
 
-    /** Положить чары на вещь; книга становится зачарованной книгой (имя и данные остаются). */
+    /** Put enchantments on the item; a book becomes an enchanted book (name and data remain). */
     public static void apply(ItemStack s, List<EnchantmentData> list) {
         boolean book = book(s);
         if (book) s.func_150996_a(Items.enchanted_book);
@@ -183,7 +183,7 @@ public class AltarLogic {
         }
     }
 
-    /** Вид вещи для оплаты: weapon, tool, armor, bow, book или other. */
+    /** Item kind for payment: weapon, tool, armor, bow, book or other. */
     public static String kind(ItemStack s) {
         Item i = s == null ? null : s.getItem();
         if (i == null) return "other";
@@ -208,7 +208,7 @@ public class AltarLogic {
         return payments = m;
     }
 
-    /** Чем платить за "узнать" слот этой вещи: первое из пары вида - за первый и второй слоты, второе - за последний. */
+    /** What to pay for "reveal" of this item's slot: the first of the kind's pair - for the first and second slots, the second - for the last. */
     public static Item revealItem(ItemStack s, int slot) {
         Item[] p = payments().get(kind(s));
         if (p == null) p = payments().get("other");
@@ -221,7 +221,7 @@ public class AltarLogic {
         return c.length == 0 ? 0 : Math.max(0, c[Math.min(slot, c.length - 1)]);
     }
 
-    /** Годится в ячейку оплаты: этим платят хоть за один вид вещей. */
+    /** Fits the payment cell: this pays for at least one item kind. */
     public static boolean payment(ItemStack s) {
         if (s == null) return false;
         if (s.getItem() == VanillaItemsOther.corruptedShards || s.getItem() == VanillaItemsOther.corruptedStone) return true;
@@ -230,8 +230,8 @@ public class AltarLogic {
     }
 
     /**
-     * Правый клик по алтарю порчи открывает окно аддона. Divine тоже открывает окно только с сервера, поэтому хватает
-     * отменить клик на сервере. Присев с блоком в руке - ставить блок, как у любого стола.
+     * Right-click on the corruption altar opens the addon's window. Divine also opens its window only from the server, so it is enough to
+     * cancel the click on the server. Sneaking with a block in hand - place the block, like on any table.
      */
     public static class Open {
 
@@ -246,9 +246,9 @@ public class AltarLogic {
             p.getEntityData().getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG).removeTag(OLD_TAG);
             p.openGui(DivineRPGExtended.instance, GuiHandler.ALTAR, e.world, e.x, e.y, e.z);
             try {
-                p.triggerAchievement(net.divinerpg.libs.DivineRPGAchievements.perfectlyCorrupted); // как у алтаря Divine
+                p.triggerAchievement(net.divinerpg.libs.DivineRPGAchievements.perfectlyCorrupted); // as with the Divine altar
             } catch (Throwable t) {
-                // в другой версии Divine ачивки может не быть
+                // the achievement may not exist in another version of Divine
             }
         }
     }

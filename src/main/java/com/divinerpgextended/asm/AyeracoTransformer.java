@@ -13,10 +13,10 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 /**
- * Айрако Divine при сохранении пишут ID братьев по стае, не проверяя, что ссылка на брата есть: дракон без связанных
- * братьев (сразу после загрузки чанка, одиночный, вызванный командой) роняет сохранение чанка - вылет или потеря
- * чанка; в сборке с Morph падает и убийство (мод сохраняет моба, чтобы превратить в него игрока). Вызовы
- * getPersistentID у брата в классах Айрако перенаправляем в {@link AyeracoHooks#id}: нет брата - пустой ID.
+ * Divine Ayeraco on save write the IDs of their pack siblings without checking that a reference to a sibling exists: a dragon without linked
+ * siblings (right after a chunk load, a lone one, summoned by a command) crashes the chunk save - a crash or chunk
+ * loss; in a modpack with Morph the kill crashes too (the mod saves the mob to turn the player into it). Calls to
+ * getPersistentID of the sibling in Ayeraco classes are redirected to {@link AyeracoHooks#id}: no sibling - empty ID.
  */
 public class AyeracoTransformer implements IClassTransformer, Opcodes {
 
@@ -26,8 +26,8 @@ public class AyeracoTransformer implements IClassTransformer, Opcodes {
     private static final Logger LOG = LogManager.getLogger("divinerpgextended-core");
 
     /**
-     * Базовый класс Айрако: полёт (updateAITasks) и прыжок-телепорт вверх (teleportRandomUp) у орды гнездовья ведёт аддон
-     * ({@link AyeracoHooks#steer}, {@link AyeracoHooks#blink}): в начало методов - "если это орда гнездовья - своё и выйти".
+     * Base Ayeraco class: flight (updateAITasks) and the jump-teleport upward (teleportRandomUp) of the aerie horde are driven by the addon
+     * ({@link AyeracoHooks#steer}, {@link AyeracoHooks#blink}): at the start of the methods - "if this is an aerie horde - do our own and exit".
      */
     private static byte[] base(byte[] bytes) {
         ClassNode node = new ClassNode();
@@ -45,7 +45,7 @@ public class AyeracoTransformer implements IClassTransformer, Opcodes {
             in.add(new org.objectweb.asm.tree.JumpInsnNode(IFEQ, go));
             in.add(new org.objectweb.asm.tree.InsnNode(RETURN));
             in.add(go);
-            // кадр стека у метки перехода (классы Java 7+ без него не проходят проверку): локальные - как на входе
+            // stack frame at the jump label (Java 7+ classes do not pass verification without it): locals - as on entry
             if ((node.version & 0xFFFF) >= 50) in.add(new org.objectweb.asm.tree.FrameNode(F_SAME, 0, null, 0, null));
             m.instructions.insert(in);
             patched++;
@@ -53,7 +53,7 @@ public class AyeracoTransformer implements IClassTransformer, Opcodes {
         if (patched == 0) return bytes;
         ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         node.accept(w);
-        LOG.info("Айрако: полёт и телепорт орды гнездовья ведёт аддон ({} методов)", patched);
+        LOG.info("Ayeraco: flight and teleport of the aerie horde are handled by the addon ({} methods)", patched);
         return w.toByteArray();
     }
 
@@ -64,7 +64,7 @@ public class AyeracoTransformer implements IClassTransformer, Opcodes {
             try {
                 return base(bytes);
             } catch (Throwable t) {
-                LOG.error("Айрако: полёт орды не подключён, класс без изменений", t);
+                LOG.error("Ayeraco: horde flight not hooked, class unchanged", t);
                 return bytes;
             }
         }
@@ -88,10 +88,10 @@ public class AyeracoTransformer implements IClassTransformer, Opcodes {
             if (patched == 0) return bytes;
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Айрако: {} - сохранение без братьев не падает ({} вызовов)", transformedName, patched);
+            LOG.info("Ayeraco: {} - saving without siblings does not crash ({} calls)", transformedName, patched);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Айрако: не удалось исправить " + transformedName + ", класс без изменений", t);
+            LOG.error("Ayeraco: could not fix " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }

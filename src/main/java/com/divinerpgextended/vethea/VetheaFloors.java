@@ -53,22 +53,22 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 /**
- * Вертикаль Ветеи. Этажи - плиты дримстоуна толщиной 16 блоков через каждые 48 (поверхности на y 16, 64, 112, 160).
+ * Vethea's vertical. Floors are dreamstone slabs 16 blocks thick every 48 (surfaces at y 16, 64, 112, 160).
  * <ul>
- * <li>Наверх ведут только разломы: шахта сквозь плиту, одна на квадрат 6x6 чанков в каждой плите, с огненными
- * кристаллами по краю. Разломы прорубаются рядом с игроками (и в старых мирах тоже), строить в шахте нельзя.</li>
- * <li>Нижнюю часть плит не сломать (верхние 4 блока - можно: там трава, земля и стройка).</li>
- * <li>Крылья сна (три ступени) - взлёт только в Ветее. Из разлома на этаж N без крыльев ступени N-1 сбрасывает поток.</li>
- * <li>Страж: кто оказался выше дозволенного этажа любым путём (жемчуг, столб, моды) - через 1.5 с сброшен вниз.
- * Дозволено: 1 + наибольшая ступень крыльев, что игрок когда-либо надевал.</li>
- * <li>Обычный полёт в Ветее выключен (кроме творческого режима).</li>
- * <li>Дары сна: за этажи и боссов Ветеи - награда в обычном мире по пробуждении (новые вещи, ничего не переносится).</li>
+ * <li>Only rifts lead up: a shaft through the slab, one per 6x6 chunk square in each slab, with fire
+ * crystals along the edge. Rifts are cut near players (in old worlds too), building in the shaft is impossible.</li>
+ * <li>The lower part of the slabs cannot be broken (the top 4 blocks can: grass, dirt and building there).</li>
+ * <li>Dream Wings (three tiers) - takeoff only in Vethea. From a rift onto floor N without wings of tier N-1 the stream throws you down.</li>
+ * <li>Guardian: anyone who ends up above the allowed floor by any means (pearl, pillar, mods) is thrown down after 1.5 s.
+ * Allowed: 1 + the highest wing tier the player has ever worn.</li>
+ * <li>Normal flight in Vethea is disabled (except in creative mode).</li>
+ * <li>Dream gifts: for floors and Vethea bosses - a reward in the normal world upon waking (new items, nothing is carried over).</li>
  * </ul>
  */
 public class VetheaFloors {
 
     public static final int GAP = 48, REGION = 6;
-    /** Радиус шахты разлома (квадрат) и зоны потока. */
+    /** Rift shaft radius (square) and stream zone. */
     private static final int SHAFT_R2 = 5;
     private static final double FLOW_R2 = 6.25;
     private static final String TIER = "dre_wing_tier", GIFT_DONE = "dre_dream_done", GIFT_PENDING = "dre_dream_pending";
@@ -80,9 +80,9 @@ public class VetheaFloors {
 
     private static final Map<UUID, State> STATE = new HashMap<UUID, State>();
 
-    // ---------------- Геометрия ----------------
+    // ---------------- Geometry ----------------
 
-    /** Плита под этажом f (2..4): нижний и верхний y. */
+    /** The slab under floor f (2..4): lower and upper y. */
     public static int slabBottom(int f) {
         return GAP * (f - 1) + 1;
     }
@@ -91,7 +91,7 @@ public class VetheaFloors {
         return GAP * (f - 1) + 16;
     }
 
-    /** y травы этажа f. */
+    /** Grass y of floor f. */
     public static int surface(int f) {
         return GAP * (f - 1) + 16;
     }
@@ -104,7 +104,7 @@ public class VetheaFloors {
         return a >= 0 ? a / b : -((-a + b - 1) / b);
     }
 
-    /** Центр разлома в плите f для региона (rx, rz): {x, z}. */
+    /** Rift center in slab f for region (rx, rz): {x, z}. */
     public static int[] rift(World w, int rx, int rz, int f) {
         Random r = new Random(w.getSeed() ^ rx * 341873128712L ^ rz * 132897987541L ^ f * 0x5DEECE66DL);
         r.nextInt();
@@ -112,7 +112,7 @@ public class VetheaFloors {
         return new int[] { cx * 16 + 8, cz * 16 + 8 };
     }
 
-    /** В каком разломе точка: номер плиты (2..4) или 0. below/above - запас по высоте вне плиты. */
+    /** In which rift the point lies: slab number (2..4) or 0. below/above - height margin outside the slab. */
     public static int riftAt(World w, double x, double y, double z, double r2, int below, int above) {
         for (int f = 2; f <= 4; f++) {
             if (y < slabBottom(f) - below || y > slabTop(f) + above + 1) continue;
@@ -128,7 +128,7 @@ public class VetheaFloors {
         return riftAt(w, x + 0.5, y, z + 0.5, SHAFT_R2 + 0.5, 0, -1) != 0;
     }
 
-    /** Неломаемая часть плит (кроме верхних 4 блоков). */
+    /** The unbreakable part of the slabs (except the top 4 blocks). */
     public static boolean protectedSlab(int y) {
         for (int f = 2; f <= 4; f++) if (y >= slabBottom(f) && y <= slabTop(f) - 4) return true;
         return false;
@@ -138,7 +138,7 @@ public class VetheaFloors {
         return w.provider.dimensionId == ConfigurationHelper.vethea;
     }
 
-    // ---------------- Разломы: прорубить один раз ----------------
+    // ---------------- Rifts: cut once ----------------
 
     public static class Rifts extends WorldSavedData {
 
@@ -172,7 +172,7 @@ public class VetheaFloors {
         }
     }
 
-    /** Для замеров: время прорубки разломов и проверок вокруг игроков. */
+    /** For measurements: time of cutting rifts and the checks around players. */
     public static long carveNanos, carves, nearNanos;
 
     public static void carveNearForTest(EntityPlayer p) {
@@ -199,13 +199,13 @@ public class VetheaFloors {
                     if (rifts.carved.contains(key)) continue;
                     int[] c = rift(w, rx, rz, f);
                     if (!w.getChunkProvider().chunkExists(c[0] >> 4, c[1] >> 4)) continue;
-                    // только в населённом чанке: иначе деревья и постройки Divine потом перезапишут край (а то и шахту)
+                    // only in an inhabited chunk: otherwise Divine's trees and buildings later overwrite the edge (and even the shaft)
                     if (!w.getChunkFromChunkCoords(c[0] >> 4, c[1] >> 4).isTerrainPopulated) continue;
                     long c0 = System.nanoTime();
                     carve(w, c[0], c[1], f);
                     carveNanos += System.nanoTime() - c0;
                     carves++;
-                    com.divinerpgextended.debug.Debug.note(p, "Разлом прорублен: плита " + f + ", центр " + c[0] + " " + c[1]);
+                    com.divinerpgextended.debug.Debug.note(p, "Rift cut through: slab " + f + ", center " + c[0] + " " + c[1]);
                     rifts.carved.add(key);
                     rifts.markDirty();
                 }
@@ -231,37 +231,37 @@ public class VetheaFloors {
     }
 
     private static void rim(World w, int x, int y, int z) {
-        // любой обычный твёрдый блок плиты (в полах Ветеи бывают кристаллы и прочее), но не воздух, не сундук и не бедрок
+        // any ordinary solid slab block (Vethea floors contain crystals and so on), but not air, a chest or bedrock
         Block bl = w.getBlock(x, y, z);
         if (bl.isAir(w, x, y, z) || w.getTileEntity(x, y, z) != null || bl.getBlockHardness(w, x, y, z) < 0) return;
         w.setBlock(x, y, z, VetheaBlocks.fireCrystal, 0, 2);
     }
 
-    // ---------------- Крылья и дозволенный этаж ----------------
+    // ---------------- Wings and the allowed floor ----------------
 
     private static final Trinket[] WINGS = { Trinket.DREAM_WINGS_1, Trinket.DREAM_WINGS_2, Trinket.DREAM_WINGS_3 };
 
-    /** Ступень надетых крыльев (0 - нет). */
+    /** Tier of the worn wings (0 - none). */
     public static int wingTier(EntityPlayer p) {
         for (int t = WINGS.length; t >= 1; t--) if (Accessories.wears(p, WINGS[t - 1])) return t;
         return 0;
     }
 
-    /** Ветея пройдена: Леди Луна побеждена (её подарок получен). */
+    /** Vethea is completed: Lady Luna is defeated (her gift is received). */
     public static boolean dreamDone(EntityPlayer p) {
         return (dreamMask(p) & 1 << Gift.LADY_LUNA.ordinal()) != 0;
     }
 
-    /** Дары сна игрока (по биту на босса): на сервере - из данных игрока, на клиенте - присланные сервером. */
+    /** The player's dream gifts (one bit per boss): on the server - from player data, on the client - sent by the server. */
     public static int dreamMask(EntityPlayer p) {
         if (p.worldObj != null && p.worldObj.isRemote) return com.divinerpgextended.boss.ProgressSync.dream(p);
         return persisted(p).getInteger(GIFT_DONE);
     }
 
-    /** Боссы Ветеи (дары за них). */
+    /** Vethea bosses (gifts for them). */
     private static final Gift[] BOSSES = { Gift.HIVE_QUEEN, Gift.QUADRO, Gift.KAROS, Gift.WRECK, Gift.RAGLOK, Gift.LADY_LUNA };
 
-    /** Сон покорён: побеждены все боссы Ветеи - вещи сна работают наяву, а вещи яви - во сне. */
+    /** The dream is conquered: all Vethea bosses are defeated - dream items work in waking life, and waking items work in the dream. */
     public static boolean allBosses(EntityPlayer p) {
         int done = dreamMask(p);
         for (Gift g : BOSSES) if ((done & 1 << g.ordinal()) == 0) return false;
@@ -298,7 +298,7 @@ public class VetheaFloors {
         p.fallDistance = 0;
         p.motionY = 0;
         say(p, EnumChatFormatting.DARK_PURPLE, "dre.vethea.guard", String.valueOf(need));
-        com.divinerpgextended.debug.Debug.note(p, "Страж этажей: сброшен на этаж " + floor + " (нужна ступень " + need + ")");
+        com.divinerpgextended.debug.Debug.note(p, "Floor Guardian: dropped to floor " + floor + " (step needed: " + need + ")");
     }
 
     @SubscribeEvent
@@ -316,20 +316,20 @@ public class VetheaFloors {
         if (tier > persisted(p).getInteger(TIER)) persisted(p).setInteger(TIER, tier);
         if (p.ticksExisted % 20 == 0) carveNear(p);
         if (p.capabilities.isCreativeMode) return;
-        // обычный полёт во сне не работает
+        // normal flight does not work in the dream
         if (p.capabilities.allowFlying || p.capabilities.isFlying) {
             p.capabilities.allowFlying = false;
             p.capabilities.isFlying = false;
             p.sendPlayerAbilities();
             Nightmare.hint(p, "flight");
         }
-        // поток в разломе: без крыльев нужной ступени - вниз
+        // stream in a rift: without wings of the needed tier - down
         int f = riftAt(p.worldObj, p.posX, p.posY, p.posZ, FLOW_R2, 8, 1);
         if (f > 0) {
             s.lastRift = p.ticksExisted;
             if (tier < f - 1) {
                 p.motionY = -0.8;
-                if (p.ticksExisted % 20 == 0) com.divinerpgextended.debug.Debug.note(p, "Поток разлома: вниз, ступень крыльев " + tier + " < " + (f - 1));
+                if (p.ticksExisted % 20 == 0) com.divinerpgextended.debug.Debug.note(p, "Rift Current: downward, wing step " + tier + " < " + (f - 1));
                 p.velocityChanged = true;
                 if (p.ticksExisted - s.lastMsg > 100) {
                     s.lastMsg = p.ticksExisted;
@@ -337,7 +337,7 @@ public class VetheaFloors {
                 }
             }
         }
-        // страж этажей
+        // floor guardian
         int floor = floorOf(p.posY), allowed = allowedFloor(p);
         if (floor > allowed) {
             if (++s.over > 30) {
@@ -355,7 +355,7 @@ public class VetheaFloors {
         STATE.remove(e.player.getUniqueID());
     }
 
-    /** Крылья гасят падение; через разлом тоже можно спрыгнуть вниз без урона. */
+    /** Wings cancel the fall; through a rift you can also jump down without damage. */
     @SubscribeEvent
     public void onFall(LivingFallEvent e) {
         if (!(e.entityLiving instanceof EntityPlayer) || e.entityLiving.worldObj.isRemote || !vethea(e.entityLiving.worldObj)) return;
@@ -363,18 +363,18 @@ public class VetheaFloors {
         State s = STATE.get(p.getUniqueID());
         if (wingTier(p) > 0 || s != null && p.ticksExisted - s.lastRift < 100) {
             e.setCanceled(true);
-            com.divinerpgextended.debug.Debug.note(p, "Падение не ранит: " + (wingTier(p) > 0 ? "крылья сна" : "прыжок через разлом"));
+            com.divinerpgextended.debug.Debug.note(p, "Fall does not hurt: " + (wingTier(p) > 0 ? "Dream Wings" : "jump across the rift"));
         }
     }
 
-    // ---------------- Плиты и шахты ----------------
+    // ---------------- Slabs and shafts ----------------
 
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onBreak(BlockEvent.BreakEvent e) {
         if (!Config.vetheaFloors || !vethea(e.world) || e.getPlayer() == null || e.getPlayer().capabilities.isCreativeMode) return;
         if (!protectedSlab(e.y)) return;
         e.setCanceled(true);
-        com.divinerpgextended.debug.Debug.note(e.getPlayer(), "Основа этажа: ломать нельзя (y " + e.y + ")");
+        com.divinerpgextended.debug.Debug.note(e.getPlayer(), "Floor base: cannot be broken (y " + e.y + ")");
         Nightmare.hint(e.getPlayer(), "slab");
     }
 
@@ -383,7 +383,7 @@ public class VetheaFloors {
         if (!Config.vetheaFloors || !vethea(e.world) || e.player == null || e.player.capabilities.isCreativeMode) return;
         if (!inShaft(e.world, e.x, e.y, e.z)) return;
         e.setCanceled(true);
-        com.divinerpgextended.debug.Debug.note(e.player, "Шахта разлома: строить нельзя");
+        com.divinerpgextended.debug.Debug.note(e.player, "Rift shaft: cannot build");
         Nightmare.hint(e.player, "rift_place");
     }
 
@@ -396,7 +396,7 @@ public class VetheaFloors {
         }
     }
 
-    // ---------------- Дары сна ----------------
+    // ---------------- Dream gifts ----------------
 
     public enum Gift {
         FLOOR_2(200, new ItemStack(VanillaItemsOther.realmiteIngot, 12), new ItemStack(Items.diamond, 6)),
@@ -438,7 +438,7 @@ public class VetheaFloors {
         if ((done & bit) != 0) return;
         d.setInteger(GIFT_DONE, done | bit);
         d.setInteger(GIFT_PENDING, d.getInteger(GIFT_PENDING) | bit);
-        com.divinerpgextended.debug.Debug.note(p, "Дар сна отмечен: " + g.name());
+        com.divinerpgextended.debug.Debug.note(p, "Dream gift marked: " + g.name());
         say(p, EnumChatFormatting.LIGHT_PURPLE, "dre.vethea.gift_marked", new ChatComponentTranslation(g.key()));
     }
 
@@ -454,7 +454,7 @@ public class VetheaFloors {
                 if (!p.inventory.addItemStackToInventory(c)) p.worldObj.spawnEntityInWorld(new EntityItem(p.worldObj, p.posX, p.posY + 0.5, p.posZ, c));
             }
             p.addExperience(g.xp);
-            com.divinerpgextended.debug.Debug.note(p, "Дар сна выдан: " + g.name());
+            com.divinerpgextended.debug.Debug.note(p, "Dream gift given: " + g.name());
             say(p, EnumChatFormatting.LIGHT_PURPLE, "dre.vethea.gift", new ChatComponentTranslation(g.key()));
         }
         p.inventoryContainer.detectAndSendChanges();
@@ -470,5 +470,5 @@ public class VetheaFloors {
         for (EntityPlayer p : near) mark(p, g);
     }
 
-    // Крылья делаются на алтаре наполнения ({@link Infusion}), верстачных рецептов нет.
+    // Wings are made at the infusion altar ({@link Infusion}), there are no crafting table recipes.
 }

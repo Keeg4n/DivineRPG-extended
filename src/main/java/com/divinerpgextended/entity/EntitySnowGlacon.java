@@ -34,11 +34,11 @@ import net.minecraft.world.WorldServer;
 import com.divinerpgextended.Config;
 
 /**
- * Снежный Глакон: кидает взрывные снежинки, призывает маленьких Глаконов и летающих Фростов (не больше шести
- * помощников разом - босс несложный, серьёзный ледяной босс будет в самой Iceika). Боится адского: огонь бьёт
- * его втрое сильнее, а подожжённый он в панике бежит и не атакует (после паники 10 секунд огонь на нём гаснет сам).
- * Адский лук (Inferno) бьёт вдвое сильнее, оглушает и поджигает. С него падает Снежный шар - единственный
- * способ зажечь портал в Iceika.
+ * Snow Glacon: throws Frost Charges, summons small Glacons and flying Frosts (no more than six
+ * helpers at once - the boss is not hard, a serious ice boss will be in Iceika itself). Fears the infernal: fire hits
+ * it three times harder, and when set on fire it runs in panic and does not attack (after the panic the fire on it goes out on its own after 10 seconds).
+ * The Inferno bow hits twice as hard, stuns and ignites. It drops the Snowball - the only
+ * way to light the portal to Iceika.
  */
 public class EntitySnowGlacon extends EntityMob implements IBossDisplayData {
 
@@ -118,7 +118,7 @@ public class EntitySnowGlacon extends EntityMob implements IBossDisplayData {
                 worldObj.playSoundAtEntity(this, "random.fizz", 2.0F, 0.6F);
                 tell("dre.chat.glacon_panic");
             } else {
-                extinguish(); // лёд ещё не прогрелся заново: огонь гаснет
+                extinguish(); // the ice has not warmed up again yet: the fire goes out
                 worldObj.playSoundAtEntity(this, "random.fizz", 1.0F, 1.4F);
             }
         }
@@ -136,7 +136,7 @@ public class EntitySnowGlacon extends EntityMob implements IBossDisplayData {
             return;
         }
         EntityLivingBase target = getAttackTarget();
-        // призыв идёт, пока рядом игрок (в том числе в творческом, когда цели у босса нет)
+        // summoning goes on while a player is nearby (including in creative, when the boss has no target)
         if (target == null && worldObj.getClosestPlayerToEntity(this, 24) == null) return;
         boolean enraged = getHealth() / getMaxHealth() <= 0.5F;
 
@@ -161,7 +161,7 @@ public class EntitySnowGlacon extends EntityMob implements IBossDisplayData {
         }
     }
 
-    /** Паника: убегает от ближайшего игрока, не бьёт и не колдует. */
+    /** Panic: runs away from the nearest player, does not hit and does not cast. */
     private void flee() {
         setAttackTarget(null);
         if (panicLeft % 10 != 0) return;

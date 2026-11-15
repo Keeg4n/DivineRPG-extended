@@ -8,7 +8,7 @@ import com.divinerpgextended.fishing.Bait;
 import com.divinerpgextended.fishing.FishingLoot;
 import com.divinerpgextended.fishing.Zone;
 
-/** NEI: что ловится в каждой зоне (рамка ячейки - редкость), отдельная страница мусора. */
+/** NEI: what is caught in each zone (the cell frame is the rarity), a separate junk page. */
 public class FishingHandler extends DreHandler {
 
     public static final String ID = "dre.fishing";
@@ -70,7 +70,7 @@ public class FishingHandler extends DreHandler {
         if (s.getItem() instanceof ItemFishingRod || Bait.of(s.getItem()) != null) all();
     }
 
-    /** Самая высокая страница - под неё NEI отводит место. */
+    /** The tallest page - NEI reserves space for it. */
     public static int maxHeight() {
         int n = FishingLoot.junk().size();
         for (Zone z : Zone.values()) n = Math.max(n, FishingLoot.catches(z).size());

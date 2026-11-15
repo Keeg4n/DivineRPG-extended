@@ -12,9 +12,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Теневой лук на бегу не замедляет: игра режет шаг в 5 раз, пока натягиваешь лук (и бег при этом обрывается). Свой ввод
- * движения заранее умножает шаг на 5 - после урезания он прежний, бег не обрывается. Только когда игрок бежит и натягивает
- * Теневой лук; ввод заменяется, только если он ванильный (чужой ввод других модов не трогаем).
+ * The Shadow Bow does not slow you while running: the game cuts the step by 5 times while you draw a bow (and the sprint breaks because of it). Our own movement
+ * input multiplies the step by 5 in advance - after the cut it is the same as before, the sprint does not break. Only when the player is running and drawing
+ * the Shadow Bow; the input is replaced only if it is vanilla (we do not touch other mods' input).
  */
 @SideOnly(Side.CLIENT)
 public class ShadowBowMove {

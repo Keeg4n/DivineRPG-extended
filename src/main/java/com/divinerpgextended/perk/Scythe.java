@@ -31,19 +31,19 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Коса Джек-О-Мена (у Divine: ПКМ - бросок крутящейся косы, 6 урона, с полным сетом Джек-О-Мена 18).
+ * Jack O Man's scythe (in Divine: right-click throws a spinning scythe, 6 damage, 18 with the full Jack O Man set).
  * <ul>
- * <li>Страх: попадание с шансом {@link #FEAR_CHANCE} (полный сет Джек-О-Мена - {@link #FEAR_CHANCE_JACK}): моб
- * {@link #FEAR_TICKS} тиков убегает от бросившего и никого не бьёт, потом {@link #FEAR_IMMUNE} тиков страх его не берёт
- * (иначе бесконечная коса держала бы толпу в страхе без конца). Боссы, мини-боссы и игроки не боятся.</li>
- * <li>Полный сет скелета: с шансом {@link #PROVOKE_CHANCE} попадание провоцирует - враждебные мобы в {@link #PROVOKE_R}
- * блоках {@link #PROVOKE_TICKS} тиков бьют того, в кого попала коса (как мобы, в которых попал скелет).</li>
- * <li>Полный сет Увядшего жнеца: с шансом {@link #CHARM_CHANCE} моб {@link #CHARM_TICKS} тиков воюет за бросившего: бьёт
- * враждебных мобов рядом, игроков, мирных и боссов не трогает (урон по ним отменяется); убитые им - как убитые игроком
- * (опыт и добыча). Потом {@link #CHARM_IMMUNE} тиков не подчиняется. Крипер под подчинением не взрывается.</li>
+ * <li>Fear: a hit with a {@link #FEAR_CHANCE} chance (full Jack O Man set - {@link #FEAR_CHANCE_JACK}): the mob
+ * runs away from the thrower for {@link #FEAR_TICKS} ticks and hits no one, then fear does not affect it for {@link #FEAR_IMMUNE} ticks
+ * (otherwise an infinite scythe would keep a crowd in fear forever). Bosses, mini-bosses and players do not fear.</li>
+ * <li>Full skeleton set: with a {@link #PROVOKE_CHANCE} chance a hit provokes - hostile mobs within {@link #PROVOKE_R}
+ * blocks attack whoever the scythe hit for {@link #PROVOKE_TICKS} ticks (like mobs hit by a skeleton).</li>
+ * <li>Full Withered Reaper set: with a {@link #CHARM_CHANCE} chance the mob fights for the thrower for {@link #CHARM_TICKS} ticks: it hits
+ * hostile mobs nearby, does not touch players, peaceful mobs or bosses (damage to them is cancelled); mobs killed by it count as killed by the player
+ * (experience and loot). Then it does not obey for {@link #CHARM_IMMUNE} ticks. A creeper under control does not explode.</li>
  * </ul>
- * Драка навязанных целей ведётся и вручную: у зомби и многих мобов удар ванили бьёт только игроков и жителей, поэтому, если
- * моб сам не ударил цель за секунду, удар наносим за него (тем же уроном, что у моба).
+ * The fight against imposed targets is also driven by hand: for zombies and many mobs the vanilla hit only hurts players and villagers, so if the
+ * mob has not hit the target itself within a second, we deal the hit for it (with the same damage as the mob's).
  */
 public class Scythe {
 
@@ -56,7 +56,7 @@ public class Scythe {
         FEAR_Z = "dreFearZ", FEAR_BY = "dreFearBy", FIGHT_UNTIL = "dreFightUntil", FIGHT_TARGET = "dreFightTarget", CHARM_BY = "dreCharmBy",
         CHARM_IMM = "dreCharmImmune", LAST_HIT = "dreFightHit";
 
-    /** Для автотеста: бросок шанса (null - случайный). */
+    /** For the selftest: chance roll (null - random). */
     public static Float testRoll;
     private static final Random RAND = new Random();
 
@@ -64,7 +64,7 @@ public class Scythe {
         return testRoll != null ? testRoll : RAND.nextFloat();
     }
 
-    // ---------------- сеты ----------------
+    // ---------------- sets ----------------
 
     private static boolean wears(EntityPlayer p, Item boots, Item legs, Item body, Item helmet) {
         Item[] want = { boots, legs, body, helmet };
@@ -100,9 +100,9 @@ public class Scythe {
         return e.worldObj.getTotalWorldTime();
     }
 
-    // ---------------- попадание ----------------
+    // ---------------- hit ----------------
 
-    /** Коса Divine - снаряд EntityShooterBullet; отличаем по косе в руке бросившего. */
+    /** Divine's scythe is an EntityShooterBullet projectile; we tell it by the scythe in the thrower's hand. */
     @SubscribeEvent
     public void onJoin(EntityJoinWorldEvent e) {
         if (e.world.isRemote || !(e.entity instanceof net.divinerpg.entities.vanilla.projectile.EntityShooterBullet)) return;
@@ -117,7 +117,7 @@ public class Scythe {
         EntityLivingBase t = e.entityLiving;
         if (t.worldObj.isRemote) return;
         Entity a = e.source.getEntity();
-        // удар подчинённого моба засчитывается хозяину (опыт и добыча)
+        // a hit by a controlled mob is credited to the owner (experience and loot)
         if (a instanceof EntityLiving && a.getEntityData().hasKey(FIGHT_UNTIL)) {
             a.getEntityData().setLong(LAST_HIT, now(a));
             EntityPlayer owner = charmOwner((EntityLiving) a);
@@ -128,7 +128,7 @@ public class Scythe {
         hit((EntityLiving) t, (EntityPlayer) a);
     }
 
-    /** Попадание косой игрока p по мобу t: подчинение (сет жнеца), страх, провокация (сет скелета). */
+    /** A hit by player p's scythe on mob t: control (reaper set), fear, provocation (skeleton set). */
     public static void hit(EntityLiving t, EntityPlayer p) {
         if (boss(t) || Protection.spare(p, t)) return;
         if (reaperSet(p) && roll() < CHARM_CHANCE && charm(t, p)) return;
@@ -136,7 +136,7 @@ public class Scythe {
         if (skelemanSet(p) && roll() < PROVOKE_CHANCE) provoke(t, p);
     }
 
-    /** Напугать: false - моб не боится (босс, игрок, ещё не отошёл от прошлого страха). */
+    /** Frighten: false - the mob does not fear (boss, player, has not yet recovered from the previous fear). */
     public static boolean fear(EntityLiving t, EntityPlayer from) {
         if (boss(t) || t.isDead) return false;
         NBTTagCompound d = t.getEntityData();
@@ -158,7 +158,7 @@ public class Scythe {
         return t.getEntityData().hasKey(FEAR_UNTIL) && now(t) < t.getEntityData().getLong(FEAR_UNTIL);
     }
 
-    /** Мобы вокруг цели бросаются на неё. @return сколько спровоцировано */
+    /** Mobs around the target rush at it. @return how many were provoked */
     public static int provoke(EntityLiving t, EntityPlayer p) {
         int n = 0;
         @SuppressWarnings("unchecked")
@@ -173,7 +173,7 @@ public class Scythe {
         return n;
     }
 
-    /** Подчинить моба игроку на CHARM_TICKS. false - не подчиняется (босс, не враждебный, недавно был подчинён). */
+    /** Subjugate the mob to the player for CHARM_TICKS. false - does not obey (boss, non-hostile, was recently subjugated). */
     public static boolean charm(EntityLiving m, EntityPlayer p) {
         if (boss(m) || !(m instanceof IMob) || m.isDead) return false;
         NBTTagCompound d = m.getEntityData();
@@ -181,7 +181,7 @@ public class Scythe {
         if (d.hasKey(CHARM_IMM) && now < d.getLong(CHARM_IMM)) return false;
         d.setInteger(CHARM_BY, p.getEntityId());
         d.setLong(CHARM_IMM, now + CHARM_TICKS + CHARM_IMMUNE);
-        d.removeTag(FEAR_UNTIL); // подчинённый не боится
+        d.removeTag(FEAR_UNTIL); // a subjugated mob does not fear
         EntityLivingBase target = enemyNear(m, p);
         fight(m, target, CHARM_TICKS);
         if (target == null) calm(m);
@@ -189,13 +189,13 @@ public class Scythe {
         return true;
     }
 
-    /** Подчинён ли сейчас (хозяин мог и уйти из игры - запреты всё равно действуют). */
+    /** Whether it is subjugated now (the owner may have left the game - the restrictions still apply). */
     public static boolean charmed(EntityLivingBase m) {
         NBTTagCompound d = m.getEntityData();
         return d.hasKey(CHARM_BY) && now(m) < d.getLong(FIGHT_UNTIL);
     }
 
-    /** Чей подчинённый (null - ничей или подчинение кончилось). */
+    /** Whose subordinate it is (null - nobody's or the control has ended). */
     public static EntityPlayer charmOwner(EntityLiving m) {
         NBTTagCompound d = m.getEntityData();
         if (!d.hasKey(CHARM_BY) || now(m) >= d.getLong(FIGHT_UNTIL)) return null;
@@ -203,7 +203,7 @@ public class Scythe {
         return o instanceof EntityPlayer ? (EntityPlayer) o : null;
     }
 
-    /** Ближний враждебный моб для подчинённого: не он сам, не босс, не подчинённый того же игрока. */
+    /** The nearest hostile mob for a subordinate: not itself, not a boss, not a subordinate of the same player. */
     static EntityLivingBase enemyNear(EntityLiving m, EntityPlayer owner) {
         @SuppressWarnings("unchecked")
         List<EntityLiving> near = m.worldObj.getEntitiesWithinAABB(EntityLiving.class, m.boundingBox.expand(CHARM_R, CHARM_R / 2, CHARM_R));
@@ -220,7 +220,7 @@ public class Scythe {
         return best;
     }
 
-    /** Навязать мобу цель на ticks тиков. */
+    /** Impose a target on the mob for ticks ticks. */
     static void fight(EntityLiving m, EntityLivingBase target, int ticks) {
         NBTTagCompound d = m.getEntityData();
         d.setLong(FIGHT_UNTIL, now(m) + ticks);
@@ -230,7 +230,7 @@ public class Scythe {
         } else d.removeTag(FIGHT_TARGET);
     }
 
-    /** Опыт и добыча с цели - игроку (как если бы бил он). */
+    /** Experience and loot from the target go to the player (as if they had hit it). */
     private static java.lang.reflect.Field attackingPlayer, recentlyHit;
 
     static void credit(EntityLivingBase t, EntityPlayer owner) {
@@ -244,7 +244,7 @@ public class Scythe {
         } catch (Throwable ignored) {}
     }
 
-    // ---------------- ход моба ----------------
+    // ---------------- mob step ----------------
 
     @SubscribeEvent
     public void onUpdate(LivingEvent.LivingUpdateEvent e) {
@@ -255,7 +255,7 @@ public class Scythe {
         tick(m);
     }
 
-    /** Ход страха и навязанной драки (открыт для автотеста). */
+    /** Step of fear and the imposed fight (open for the selftest). */
     public static void tick(EntityLiving m) {
         NBTTagCompound d = m.getEntityData();
         long now = now(m);
@@ -265,7 +265,7 @@ public class Scythe {
                 if (m.ticksExisted % 10 == 0) flee(m);
                 if (m.ticksExisted % 10 == 0 && m.worldObj instanceof WorldServer) ((WorldServer) m.worldObj).func_147487_a("smoke", m.posX,
                     m.posY + m.height + 0.2, m.posZ, 3, m.width * 0.3, 0.1, m.width * 0.3, 0.01);
-                return; // испуганный не дерётся
+                return; // a frightened mob does not fight
             }
             if (now > d.getLong(FEAR_UNTIL) + FEAR_IMMUNE) d.removeTag(FEAR_UNTIL);
         }
@@ -285,7 +285,7 @@ public class Scythe {
             }
             if (t == null) {
                 if (charmed) {
-                    calm(m); // подчинённый без врага рядом просто стоит
+                    calm(m); // a subordinate with no enemy nearby just stands
                     return;
                 }
                 release(m);
@@ -296,7 +296,7 @@ public class Scythe {
         drive(m, (EntityLivingBase) t);
     }
 
-    /** Снять навязанную драку (подчинение тоже). */
+    /** Remove the imposed fight (control too). */
     static void release(EntityLiving m) {
         NBTTagCompound d = m.getEntityData();
         Entity t = d.hasKey(FIGHT_TARGET) ? m.worldObj.getEntityByID(d.getInteger(FIGHT_TARGET)) : null;
@@ -308,7 +308,7 @@ public class Scythe {
         d.removeTag(LAST_HIT);
     }
 
-    /** Без цели: ни нового ИИ, ни старого; крипер гасит запал. */
+    /** Without a target: neither the new AI nor the old; a creeper puts out its fuse. */
     static void calm(EntityLiving m) {
         if (m.getAttackTarget() != null) m.setAttackTarget(null);
         if (m instanceof EntityCreature && ((EntityCreature) m).getEntityToAttack() != null) ((EntityCreature) m).setTarget(null);
@@ -322,7 +322,7 @@ public class Scythe {
 
     private static java.lang.reflect.Method aiEnabled;
 
-    /** Новый ли ИИ у моба (isAIEnabled защищён); не узнали - считаем, что новый. */
+    /** Whether the mob has the new AI (isAIEnabled is protected); if we could not find out, assume new. */
     static boolean newAi(EntityLiving m) {
         try {
             if (aiEnabled == null) aiEnabled = cpw.mods.fml.relauncher.ReflectionHelper.findMethod(EntityLivingBase.class, m,
@@ -333,7 +333,7 @@ public class Scythe {
         }
     }
 
-    /** Бежать от того, кто напугал. */
+    /** Run from whoever frightened it. */
     static void flee(EntityLiving m) {
         if (!(m instanceof EntityCreature)) return;
         EntityCreature c = (EntityCreature) m;
@@ -351,7 +351,7 @@ public class Scythe {
         else c.setPathToEntity(c.worldObj.getEntityPathToXYZ(c, (int) v.xCoord, (int) v.yCoord, (int) v.zCoord, 20F, true, false, false, true));
     }
 
-    /** Вести моба на цель и бить её, если его собственный удар её не берёт. */
+    /** Lead the mob to the target and hit it if the mob's own hit does not affect it. */
     static void drive(EntityLiving m, EntityLivingBase t) {
         aim(m, t);
         NBTTagCompound d = m.getEntityData();
@@ -370,9 +370,9 @@ public class Scythe {
         m.attackEntityAsMob(t);
     }
 
-    // ---------------- запреты ----------------
+    // ---------------- restrictions ----------------
 
-    /** Испуганный никого не ранит; подчинённый ранит только враждебных мобов (не игроков, не мирных, не боссов). */
+    /** A frightened mob hurts no one; a subordinate hurts only hostile mobs (not players, not peaceful ones, not bosses). */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onAttack(LivingAttackEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
@@ -386,7 +386,7 @@ public class Scythe {
         if (charmed(m) && (!(e.entityLiving instanceof IMob) || e.entityLiving instanceof EntityPlayer || boss(e.entityLiving))) e.setCanceled(true);
     }
 
-    /** Испуганный не берёт цель; подчинённый не берёт целью игроков и мирных. */
+    /** A frightened mob takes no target; a subordinate does not target players and peaceful mobs. */
     @SubscribeEvent
     public void onTarget(LivingSetAttackTargetEvent e) {
         if (e.target == null || !(e.entityLiving instanceof EntityLiving) || e.entityLiving.worldObj.isRemote) return;

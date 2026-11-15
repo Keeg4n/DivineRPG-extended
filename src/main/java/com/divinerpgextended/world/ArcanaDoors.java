@@ -13,46 +13,46 @@ import com.divinerpgextended.Config;
 import cpw.mods.fml.common.IWorldGenerator;
 
 /**
- * Аркана - лабиринт без глухих тупиков. В Divine каждый чанк Арканы - стопка из четырёх комнат 16x16 (этажи с полом на y =
- * 8, 16, 24, 32), каждая из 21 случайного шаблона. Проёмы у шаблонов только по центру стороны (z или x = 7..8, высота 2), и
- * у большинства одна-три стороны глухие; две соседние комнаты соединены, только если проём есть у обеих - поэтому этажи
- * рвутся на острова, и порой проще перенести портал.
+ * Arcana is a maze without dead ends. In Divine every Arcana chunk is a stack of four 16x16 rooms (floors with the floor at y =
+ * 8, 16, 24, 32), each from 21 random templates. Template openings are only at the middle of a side (z or x = 7..8, height 2), and
+ * most have one to three sides blind; two adjacent rooms are connected only if both have an opening - so floors
+ * break into islands, and sometimes it is easier to move the portal.
  * <p>
- * Каждый стык решается правилом лабиринта (с 0.99.120; раньше любой проём с одной стороны прорубался насквозь - открыто
- * было ~80% стыков, и по Аркане ходили напрямик):
+ * Each joint is decided by a maze rule (since 0.99.120; before, any opening on one side was cut through - about 80% of joints
+ * were open, and people walked through Arcana in a straight line):
  * <ul>
- * <li>каждый чанк на каждом этаже обязательно открывает один стык - восточный или южный (выбор постоянный, от координат);
- * не прорубить - открывает второй. Это лабиринт "бинарное дерево": этаж связный, но ходы петляют;</li>
- * <li>родной проход Divine (проём у обеих комнат) остаётся открытым с шансом {@link #LOOP} - петли, чтобы не ходить
- * длинными коридорами;</li>
- * <li>остальные стыки закрыты: проём, который в него смотрит, закладывается кладкой стены рядом - дверей в стену нет.</li>
+ * <li>each chunk on each floor must open one joint - east or south (the choice is fixed, from coordinates);
+ * if it cannot be cut, the other one opens. This is a "binary tree" maze: the floor is connected, but the paths wind;</li>
+ * <li>Divine's native passage (an opening in both rooms) stays open with chance {@link #LOOP} - loops, so that people do not walk
+ * long corridors;</li>
+ * <li>the other joints are closed: an opening that looks into one is bricked up with wall masonry - no doors in the wall.</li>
  * </ul>
- * Проход 2x2 по центру стыка: с каждой стороны - до первого свободного места в комнате, не глубже 7 блоков; если с
- * какой-то стороны свободного места не нашлось - стык не трогаем. Сундуки, спавнеры и прочие тайлы не ломаем.
+ * A 2x2 passage at the center of the joint: on each side - up to the first free space in the room, no deeper than 7 blocks; if on
+ * some side no free space is found - we leave the joint alone. Chests, spawners and other tiles are not broken.
  */
 public class ArcanaDoors implements IWorldGenerator {
 
     private static final int[] LEVELS = { 8, 16, 24, 32 };
     private static final int MAX_DEPTH = 7;
-    /** Доля родных проходов Divine, которые остаются открытыми сверх обязательных (петли лабиринта). */
+    /** Share of Divine's native passages that stay open beyond the mandatory ones (maze loops). */
     public static final float LOOP = 0.3F;
 
     @Override
     public void generate(Random rand, int chunkX, int chunkZ, World world, IChunkProvider gen, IChunkProvider prov) {
         if (!Config.arcanaNoDeadEnds || world.provider.dimensionId != ConfigurationHelper.arcana) return;
-        // стыки не только этого чанка, но и соседей: заселение чанка (залы боссов Divine) перестраивает и соседние комнаты, и
-        // уже решённый стык снова получал проём в стену. Решения постоянные (от координат), повторный проход их не меняет
+        // joints not only of this chunk but of its neighbors: populating a chunk (Divine's boss halls) rebuilds neighboring rooms too, and
+        // an already decided joint would get an opening into the wall again. Decisions are fixed (from coordinates), a repeat pass does not change them
         for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) junctions(world, chunkX + dx, chunkZ + dz);
     }
 
-    /** Восточный и южный стыки чанка на всех этажах - если оба соседа уже есть (чанков не создаём). */
+    /** The east and south joints of the chunk on all floors - if both neighbors already exist (we do not create chunks). */
     private static void junctions(World world, int chunkX, int chunkZ) {
         IChunkProvider cp = world.getChunkProvider();
         if (!cp.chunkExists(chunkX, chunkZ) || !cp.chunkExists(chunkX + 1, chunkZ) || !cp.chunkExists(chunkX, chunkZ + 1)) return;
         int x0 = chunkX * 16, z0 = chunkZ * 16;
         for (int y0 : LEVELS) {
-            // восточный стык с чанком (x+1) и южный с (z+1): каждый стык обрабатывает ровно один чанк;
-            // один из них обязательный (связность этажа), выбор постоянный от координат; не прорубился - обязателен второй
+            // the east joint with chunk (x+1) and the south with (z+1): each joint is handled by exactly one chunk;
+            // one of them is mandatory (floor connectivity), the choice is fixed from coordinates; if it was not cut, the second is mandatory
             int h = (chunkX * 73856093) ^ (chunkZ * 19349663) ^ (y0 * 83492791);
             boolean east = (h >>> 7 & 1) == 1;
             boolean loopE = (h >>> 9 & 1023) < LOOP * 1024, loopS = (h >>> 19 & 1023) < LOOP * 1024;
@@ -61,12 +61,12 @@ public class ArcanaDoors implements IWorldGenerator {
         }
     }
 
-    /** Открыт ли стык (сечение 2x2 свободно с обеих сторон границы) - для самопроверки. */
+    /** Whether the joint is open (the 2x2 section is free on both sides of the border) - for the selftest. */
     public static boolean open(World w, int x, int y0, int z, int ax, int az) {
         return free(w, x, y0, z, ax, az) && free(w, x + ax, y0, z + az, ax, az);
     }
 
-    /** Проём только с одной стороны стыка (дверь в стену) - для самопроверки. */
+    /** An opening on only one side of the joint (a door into a wall) - for the selftest. */
     public static boolean blind(World w, int x, int y0, int z, int ax, int az) {
         return free(w, x, y0, z, ax, az) != free(w, x + ax, y0, z + az, ax, az);
     }
@@ -77,9 +77,9 @@ public class ArcanaDoors implements IWorldGenerator {
             .blocksMovement();
     }
 
-    /** Свободно ли сечение прохода 2x2 в точке (смещение вдоль стыка - по поперечной оси). */
+    /** Whether the 2x2 passage section is free at the point (offset along the joint - along the cross axis). */
     private static boolean free(World w, int x, int y0, int z, int ax, int az) {
-        int px = az, pz = ax; // поперёк направления прохода
+        int px = az, pz = ax; // across the passage direction
         for (int s = 0; s <= 1; s++) for (int y = y0 + 1; y <= y0 + 2; y++) {
             if (blocks(w, x + px * s, y, z + pz * s)) return false;
         }
@@ -87,20 +87,20 @@ public class ArcanaDoors implements IWorldGenerator {
     }
 
     /**
-     * Стык между клеткой (x, z) и следующей по оси (ax, az). x, z - последний ряд этой комнаты, z (или x) - левая из
-     * двух клеток проёма. force - обязательный стык (прорубить), loop - родной проход оставить. @return открыт ли стык
+     * The joint between cell (x, z) and the next one along axis (ax, az). x, z - the last row of this room, z (or x) - the left of
+     * the two opening cells. force - mandatory joint (cut through), loop - keep the native passage. @return whether the joint is open
      */
     private static boolean door(World w, int x, int y0, int z, int ax, int az, boolean force, boolean loop) {
-        int bx = x + ax, bz = z + az; // первый ряд соседней комнаты
+        int bx = x + ax, bz = z + az; // the first row of the neighboring room
         boolean fa = free(w, x, y0, z, ax, az), fb = free(w, bx, y0, bz, ax, az);
-        if (!force && !(fa && fb && loop)) { // стык закрыт: проёмы, что в него смотрят, заложить
+        if (!force && !(fa && fb && loop)) { // the joint is closed: openings that look into it get bricked up
             if (fa) seal(w, x, y0, z, ax, az);
             if (fb) seal(w, bx, y0, bz, ax, az);
             return false;
         }
-        if (fa && fb) return true; // и так открыто
+        if (fa && fb) return true; // already open
         int dA = depth(w, x, y0, z, -ax, -az), dB = depth(w, bx, y0, bz, ax, az);
-        if (dA < 0 || dB < 0) { // с какой-то стороны не дорубиться - стык закрыт, проём заложить
+        if (dA < 0 || dB < 0) { // cannot cut through on some side - the joint is closed, brick up the opening
             if (fa) seal(w, x, y0, z, ax, az);
             if (fb) seal(w, bx, y0, bz, ax, az);
             return false;
@@ -110,9 +110,9 @@ public class ArcanaDoors implements IWorldGenerator {
         return true;
     }
 
-    /** Заложить сечение 2x2 в ряду (x, z) кладкой стены рядом с проёмом; тайлы не трогаем. */
+    /** Brick up the 2x2 section in row (x, z) with wall masonry matching the opening; tiles are not touched. */
     private static void seal(World w, int x, int y0, int z, int ax, int az) {
-        int px = az, pz = ax; // вдоль стены
+        int px = az, pz = ax; // along the wall
         Block wall = null;
         int meta = 0;
         for (int[] at : new int[][] { { x - px, z - pz }, { x + 2 * px, z + 2 * pz } }) {
@@ -131,7 +131,7 @@ public class ArcanaDoors implements IWorldGenerator {
         }
     }
 
-    /** Сколько рядов от границы вглубь (dx, dz) надо прорубить до свободного сечения; -1 - не найдено. */
+    /** How many rows from the border inward (dx, dz) must be cut to reach a free section; -1 - not found. */
     private static int depth(World w, int x, int y0, int z, int dx, int dz) {
         for (int d = 0; d <= MAX_DEPTH; d++) {
             if (free(w, x + dx * d, y0, z + dz * d, Math.abs(dx), Math.abs(dz))) return d;
@@ -139,7 +139,7 @@ public class ArcanaDoors implements IWorldGenerator {
         return -1;
     }
 
-    /** Прорубить n рядов от границы вглубь (dx, dz), сечение 2x2; тайлы (сундуки, спавнеры) не трогаем. */
+    /** Cut n rows from the border inward (dx, dz), a 2x2 section; tiles (chests, spawners) are not touched. */
     private static void carve(World w, int x, int y0, int z, int dx, int dz, int n, int ax, int az) {
         int px = az, pz = ax;
         for (int d = 0; d < n; d++) {
@@ -148,7 +148,7 @@ public class ArcanaDoors implements IWorldGenerator {
                 Block b = w.getBlock(cx, y, cz);
                 if (!b.getMaterial()
                     .blocksMovement() || b.hasTileEntity(w.getBlockMetadata(cx, y, cz)) || b == Blocks.bedrock || b instanceof net.minecraft.block.BlockDoor
-                    || b.getClass().getSimpleName().contains("Door")) continue; // двери Арканы (с ключами) не ломаем
+                    || b.getClass().getSimpleName().contains("Door")) continue; // Arcana doors (with keys) are not broken
                 w.setBlock(cx, y, cz, Blocks.air, 0, 2);
             }
         }

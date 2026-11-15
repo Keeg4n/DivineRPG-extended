@@ -14,8 +14,8 @@ import com.divinerpgextended.magic.ArcaneEffect;
 import com.divinerpgextended.magic.ItemArcanePotion;
 
 /**
- * NEI: арканная стойка зельеварения. По странице на зелье: склянка воды + ингредиент = зелье, ниже - что оно делает и
- * как его усилить (светопыль - сильное, редстоун - долгое, порох - общее; арканиум - топливо на 4 варки).
+ * NEI: Arcane Brewing Stand. One page per potion: water bottle + ingredient = potion, below - what it does and
+ * how to strengthen it (glowstone dust - strong, redstone - long, gunpowder - shared; arcanium - fuel for 4 brews).
  */
 public class BrewingHandler extends DreHandler {
 
@@ -38,7 +38,7 @@ public class BrewingHandler extends DreHandler {
         p.add(new ItemStack(e.ingredient(), 1, e == ArcaneEffect.FISHERS_FORTUNE ? Short.MAX_VALUE : 0), gx(1), gy(0), tierColor(View.UNCOMMON), null, true);
         p.result = p.add(ItemArcanePotion.of(e, false, false, false), gx(3), gy(0), tierColor(View.RARE), null, false);
         p.others.remove(p.result);
-        // варианты: сильное, долгое, общее (что есть у этого зелья)
+        // variants: strong, long, shared (whichever this potion has)
         int col = 5;
         if (e.leveled()) p.add(ItemArcanePotion.of(e, true, false, false), gx(col++), gy(0), tierColor(View.VERY_RARE), null, false);
         if (!e.instant()) p.add(ItemArcanePotion.of(e, false, true, false), gx(col++), gy(0), tierColor(View.VERY_RARE), null, false);
@@ -76,7 +76,7 @@ public class BrewingHandler extends DreHandler {
             arecipes.add(page(e));
             return;
         }
-        // склянка воды, усилители и топливо - все зелья
+        // water bottle, boosters and fuel - all potions
         boolean any = s.getItem() == Items.potionitem && s.getItemDamage() == 0 || s.getItem() == Items.glowstone_dust || s.getItem() == Items.redstone
             || s.getItem() == Items.gunpowder || s.getItem() == net.divinerpg.utils.items.ArcanaItems.arcanium
             || s.getItem() == net.minecraft.item.Item.getItemFromBlock(com.divinerpgextended.registry.ModBlocks.arcaneBrewer);

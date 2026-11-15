@@ -8,7 +8,7 @@ import net.minecraft.util.MathHelper;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Вьюжная ель: четыре яруса хвои на стволе, ходит на двух корнях, ветви-руки и светлые глаза на стволе. Текстура - tools/spruce_texture.py. */
+/** Blizzard Spruce: four tiers of needles on a trunk, walks on two roots, branch arms and light eyes on the trunk. Texture - tools/spruce_texture.py. */
 @SideOnly(Side.CLIENT)
 public class ModelBlizzardSpruce extends ModelBase {
 

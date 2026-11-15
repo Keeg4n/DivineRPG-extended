@@ -16,19 +16,19 @@ import com.divinerpgextended.registry.ModItems;
 import com.divinerpgextended.trinket.Trinket;
 
 /**
- * Алтарь наполнения Ветеи. У Divine в левый верхний слот кладут глыбы, в нижний - шаблон, и рецепт срабатывал только при
- * точном числе глыб. Здесь (через {@link com.divinerpgextended.asm.VetheaTransformer}): глыб можно положить больше -
- * уйдёт ровно сколько нужно; плюс рецепты аддона: Крылья сна трёх ступеней и лунное оружие (оружие из арксиана +
- * лунные осколки с Леди Луны).
+ * Vethea Infusion Altar. In Divine, boulders go into the upper left slot, a template into the lower, and the recipe worked only with
+ * the exact number of boulders. Here (via {@link com.divinerpgextended.asm.VetheaTransformer}): more boulders can be placed -
+ * exactly as many as needed are consumed; plus addon recipes: three tiers of Dream Wings and moon weapons (Arksiane weapon +
+ * Lunar Shards from Lady Luna).
  */
 public final class Infusion {
 
-    /** Рецепт: глыбы (слот 0) count штук + шаблон (слот 1) = результат; шаблон тратится. */
+    /** Recipe: boulders (slot 0) count pieces + template (slot 1) = result; the template is consumed. */
     public static class Recipe {
 
         public final ItemStack lump, template, output;
         public final int count;
-        /** Шаблон-крылья: только закалённые / только незакалённые (null - не важно). */
+        /** Wing template: only tempered / only untempered (null - does not matter). */
         final Boolean tempered;
 
         Recipe(ItemStack lump, int count, ItemStack template, ItemStack output, Boolean tempered) {
@@ -72,7 +72,7 @@ public final class Infusion {
         return s;
     }
 
-    /** Предмет Ветеи по имени поля или по концу внутреннего имени (в разных версиях Divine поля названы по-разному). */
+    /** A Vethea item by field name or by the end of the internal name (the fields are named differently in different Divine versions). */
     public static Item vethea(String... names) {
         for (String n : names) {
             try {
@@ -91,7 +91,7 @@ public final class Infusion {
         return null;
     }
 
-    /** Лунное оружие: [оружие из арксиана, оружие Луны]. */
+    /** Moon weapon: [Arksiane weapon, Luna weapon]. */
     public static Item[][] lunar() {
         return new Item[][] { { vethea("arksianeSword", "arksianeWrathsword"), vethea("everlight") },
             { vethea("arksianeClaw", "arksianeWrathclaw"), vethea("everbright") },
@@ -105,7 +105,7 @@ public final class Infusion {
     public static synchronized List<Recipe> own() {
         if (own != null) return own;
         List<Recipe> l = new ArrayList<Recipe>();
-        // крылья: шаблоны у Голода; I - амтирмис, II - цермил (с Королевы улья), III - закалка каросом, затем квадротик
+        // wings: templates from the Hunger; I - amthirmis, II - cermile (from the Hive Queen), III - tempering with Karos, then quadrotic
         l.add(new Recipe(new ItemStack(VetheaItems.amthirmisLump), 8, DreamItem.stack(DreamItem.WINGS_TEMPLATE),
             wings(Trinket.DREAM_WINGS_1, false), null));
         l.add(new Recipe(new ItemStack(VetheaItems.cermileLump), 12, DreamItem.stack(DreamItem.QUEEN_TEMPLATE),
@@ -121,14 +121,14 @@ public final class Infusion {
         return own = Collections.unmodifiableList(l);
     }
 
-    /** Рецепты Divine (из его таблицы: глыбы, шаблон, сколько глыб). */
+    /** Divine recipes (from its table: boulders, template, how many boulders). */
     @SuppressWarnings("unchecked")
     static List<Recipe> divine() {
         List<Recipe> l = new ArrayList<Recipe>();
         try {
             Class<?> rc = Class.forName("net.divinerpg.utils.recipes.RecipesInfusionTable");
             Map<Object, Item> map = (Map<Object, Item>) rc.getField("recipes").get(null);
-            // таблицу Divine заполнял сам алтарь при каждом тике (а его тик теперь наш)
+            // the altar itself filled Divine's table on every tick (and its tick is now ours)
             if (map.isEmpty()) rc.getMethod("addRecipes").invoke(null);
             Class<?> kc = Class.forName("net.divinerpg.utils.recipes.RecipesInfusionTable$InfusionRecipe");
             Field a = kc.getDeclaredField("lump"), b = kc.getDeclaredField("template"), n = kc.getDeclaredField("lumpCount");
@@ -141,18 +141,18 @@ public final class Infusion {
                 l.add(new Recipe(new ItemStack(lump), n.getInt(e.getKey()), new ItemStack(template), new ItemStack(e.getValue()), null));
             }
         } catch (Throwable t) {
-            com.divinerpgextended.DivineRPGExtended.LOG.warn("Алтарь наполнения: рецепты Divine не прочитаны - " + t);
+            com.divinerpgextended.DivineRPGExtended.LOG.warn("Infusion Altar: Divine recipes not read - " + t);
         }
         return l;
     }
 
-    /** Все рецепты алтаря (Divine и аддона) - для подсказок и NEI. */
+    /** All altar recipes (Divine and the addon) - for tooltips and NEI. */
     public static synchronized List<Recipe> all() {
         if (all != null) return all;
         List<Recipe> l = new ArrayList<Recipe>(own());
         List<Recipe> d = divine();
         l.addAll(d);
-        if (d.isEmpty()) return l; // Divine ещё не готов - не запоминаем
+        if (d.isEmpty()) return l; // Divine is not ready yet - do not remember
         return all = l;
     }
 
@@ -162,14 +162,14 @@ public final class Infusion {
         return null;
     }
 
-    /** Каждый тик алтаря: что лежит в слоте результата. */
+    /** Every altar tick: what lies in the result slot. */
     public static void update(ItemStack[] inv) {
         if (inv == null || inv.length < 3) return;
         Recipe r = match(inv[0], inv[1]);
         inv[2] = r == null ? null : r.result(inv[1]);
     }
 
-    /** Результат забрали: глыб - ровно сколько нужно, шаблон - один. */
+    /** The result was taken: boulders - exactly as many as needed, template - one. */
     public static void take(IInventory inv) {
         Recipe r = match(inv.getStackInSlot(0), inv.getStackInSlot(1));
         if (r == null) return;
@@ -177,7 +177,7 @@ public final class Infusion {
         inv.decrStackSize(1, 1);
     }
 
-    /** Рецепты, где вещь - шаблон (для подсказки на шаблонах). */
+    /** Recipes where the item is a template (for the tooltip on templates). */
     public static List<Recipe> byTemplate(ItemStack t) {
         List<Recipe> l = new ArrayList<Recipe>();
         for (Recipe r : all()) if (same(t, r.template) && (r.tempered == null || r.tempered == tempered(t))) l.add(r);

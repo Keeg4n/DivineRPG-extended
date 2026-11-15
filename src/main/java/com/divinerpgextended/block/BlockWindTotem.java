@@ -17,8 +17,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Ветряной тотем арены Повелителя ветров (мета 0 - погашен, 1 - заряжен). Правый клик начинает зарядку: Повелитель
- * рядом запоминает, кто заряжает. Не ломается, ничего не роняет; ставит и убирает его сам Повелитель.
+ * Wind Totem of the Wind Lord arena (meta 0 - extinguished, 1 - charged). Right click starts charging: the Wind Lord
+ * nearby remembers who is charging. It does not break, drops nothing; it is placed and removed by the Wind Lord himself.
  */
 public class BlockWindTotem extends Block {
 

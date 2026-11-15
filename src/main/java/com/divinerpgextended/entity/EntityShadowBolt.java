@@ -8,7 +8,7 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 
-/** Теневой снаряд Демона сумерек: летит прямо (без тяжести), бьёт магией и иссушает; блоки не ломает. */
+/** Twilight Demon's Shadow Bolt: flies straight (no gravity), hits with magic and withers; does not break blocks. */
 public class EntityShadowBolt extends EntityThrowable {
 
     public static final float DAMAGE = 7;

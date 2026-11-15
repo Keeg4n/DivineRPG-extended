@@ -6,19 +6,19 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraftforge.common.BiomeDictionary;
 
-/** Где ловим: от мира, биома, глубины и жидкости зависит улов и ящики. */
+/** Where we fish: the catch and crates depend on the dimension, biome, depth and liquid. */
 public enum Zone {
 
     OCEAN, FRESH, SNOW, ICEIKA, JUNGLE, DESERT, CAVE, HELL, ARCANA, EDEN, WILDWOOD, APALACHIA, SKYTHERN, MORTUM, DREAM,
-    /** Пруд на облачном острове Небесного терна (новые зоны - только в конец: номер зоны - мета ящика). */
+    /** A pond on a Skythern cloud island (new zones - only at the end: the zone number is the crate meta). */
     CLOUD;
 
-    /** Сумеречный мир (золотая рыбка, шмот мира в ящиках). */
+    /** Twilight dimension (golden fish, dimension gear in crates). */
     public boolean twilight() {
         return this == EDEN || this == WILDWOOD || this == APALACHIA || this == SKYTHERN || this == MORTUM || this == CLOUD;
     }
 
-    /** Мир зоны для шмота в ящиках (облака - Небесный терн) или null. */
+    /** The zone's dimension for gear in crates (clouds - Skythern) or null. */
     public com.divinerpgextended.world.twilight.TwilightWorld world() {
         switch (this) {
             case EDEN: return com.divinerpgextended.world.twilight.TwilightWorld.EDEN;
@@ -30,7 +30,7 @@ public enum Zone {
         }
     }
 
-    /** Вода в пруду облачного острова: под поплавком или по бокам пруда - облака. */
+    /** Water in a cloud island pond: under the bobber or at the sides of the pond - clouds. */
     public static boolean cloudPond(World w, int x, int y, int z) {
         net.minecraft.block.Block cloud = com.divinerpgextended.registry.ModBlocks.cloud;
         int n = 0;
@@ -48,7 +48,7 @@ public enum Zone {
         int d = w.provider.dimensionId;
         if (d == -1) return HELL;
         if (d == ConfigurationHelper.iceika) return ICEIKA;
-        // рыба Арканы - только в арканном концентрате (фонтанные залы), где бы он ни был; прочая вода Арканы - пресная
+        // Arcana fish only in arcane concentrate (fountain halls), wherever it is; the rest of Arcana's water is fresh
         if (com.divinerpgextended.block.BlockArcaneConcentrate.at(w, px, py, pz) || com.divinerpgextended.block.BlockArcaneConcentrate.at(w, px, py - 0.5, pz)) return ARCANA;
         if (d == ConfigurationHelper.arcana) return FRESH;
         if (d == ConfigurationHelper.eden) return EDEN;

@@ -17,8 +17,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Погода сумеречных миров на экране: перегрев Эдема (градусник над полоской еды и марево по краям), дождь ливня в Диком лесу и гул
- * камнепада в Апалачии. Дождь включается на самом клиенте: сервер в этом мире о нём не знает, у него погода обычного мира.
+ * Weather of the Twilight worlds on screen: Eden overheating (a thermometer above the food bar and a haze along the edges), downpour rain in the Wildwood and the rumble of
+ * a rockfall in Apalachia. Rain is turned on on the client itself: the server does not know about it in this world, it has the Overworld weather.
  */
 @SideOnly(Side.CLIENT)
 public class WeatherHud extends Gui {
@@ -38,11 +38,11 @@ public class WeatherHud extends Gui {
         drawRect(x, y, x + len, y + 3, 0xFF504030);
         int color = heat >= 100 ? 0xFFFFFFFF : heat >= 75 ? 0xFFFF5020 : heat >= 50 ? 0xFFFF9020 : 0xFFE8C040;
         drawRect(x, y, x + (int) (len * heat / 100F), y + 3, color);
-        for (int t = 2; t < 4; t++) drawRect(x + len * t / 4, y, x + len * t / 4 + 1, y + 3, 0x80000000); // отметки 50 и 75
+        for (int t = 2; t < 4; t++) drawRect(x + len * t / 4, y, x + len * t / 4 + 1, y + 3, 0x80000000); // marks 50 and 75
         GL11.glColor4f(1, 1, 1, 1);
     }
 
-    /** Марево: тёплые полосы по краям, сходящие на нет к центру. */
+    /** Haze: warm stripes along the edges, fading out toward the center. */
     private void haze(int w, int h, float k) {
         int steps = 8, bandX = w / 6, bandY = h / 6;
         for (int s = 0; s < steps; s++) {

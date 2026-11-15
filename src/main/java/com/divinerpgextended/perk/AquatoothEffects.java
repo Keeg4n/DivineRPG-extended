@@ -23,17 +23,17 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Зубастое оружие и молоты (с 0.99.113, вместе с Лиоплевродоном - поздним боссом):
+ * Aquatooth weapons and mauls (since 0.99.113, together with the Liopleurodon - a late boss):
  * <ul>
- * <li>Зубастый меч - урон {@link #SWORD_DAMAGE} (между клинками Апалачии 29 и Небесного терна 31: Лиоплевродон - между этими
- * мирами; до 0.99.120 было 35, почти как халит 36) и кровотечение: задетый моб {@link #BLEED_SECONDS} с теряет
- * {@link #BLEED_DAMAGE} в секунду сквозь броню (игрока - там, где можно PvP).</li>
- * <li>Зубастый молот - урон {@link #MAUL_DAMAGE} и удар по площади: мобы того же рода в {@link #WAVE_R} блоках от цели
- * получают {@link #MAUL_DAMAGE} (как волна бедрокового молота, игроков и питомцев не задевает).</li>
- * <li>Все молоты - настоящая перезарядка {@link #MAUL_COOLDOWN} тиков: удары чаще не проходят (клиент не даёт и замахнуться,
+ * <li>Aquatooth Sword - damage {@link #SWORD_DAMAGE} (between the Apalachia blades at 29 and Skythern at 31: the Liopleurodon sits between those
+ * worlds; before 0.99.120 it was 35, almost like halite at 36) and bleeding: a hit mob loses {@link #BLEED_DAMAGE} per second
+ * through armor for {@link #BLEED_SECONDS} s (a player - where PvP is allowed).</li>
+ * <li>Aquatooth Maul - damage {@link #MAUL_DAMAGE} and an area hit: mobs of the same kind within {@link #WAVE_R} blocks of the target
+ * receive {@link #MAUL_DAMAGE} (like the Bedrock Maul wave, players and pets are not affected).</li>
+ * <li>All mauls have a real cooldown of {@link #MAUL_COOLDOWN} ticks: earlier hits do not land (the client does not even allow the swing,
  * {@link com.divinerpgextended.client.MaulSwingClient}).</li>
  * </ul>
- * Якоря крабовый и лиоплевродона больше не крафтятся: это призывы, они падают с Карцинуса и Лиоплевродона.
+ * The crab and Liopleurodon anchors are no longer craftable: they are summons, dropped by Carcinus and the Liopleurodon.
  */
 public class AquatoothEffects {
 
@@ -41,14 +41,14 @@ public class AquatoothEffects {
     public static final int BLEED_SECONDS = 5, MAUL_COOLDOWN = 20;
     public static final double WAVE_R = 3.5;
     private static final String BLEED = "dreBleed", BLEED_BY = "dreBleedBy";
-    /** Тик последнего удара молотом (данные игрока). */
+    /** Tick of the last maul hit (player data). */
     public static final String SWING = "dreMaulSwing";
-    /** Для самопроверки: без перезарядки (прочие проверки бьют молотом по нескольку раз за тик). */
+    /** For the selftest: no cooldown (other checks hit with a maul several times per tick). */
     public static boolean testNoCooldown;
     public static final DamageSource BLEEDING = new DamageSource("dre.bleed").setDamageBypassesArmor();
     private static boolean inWave;
 
-    /** После регистрации предметов Divine: урон зубастого оружия, без рецептов призывных якорей. */
+    /** After Divine items are registered: damage of the aquatooth weapons, without recipes for the summon anchors. */
     public static void postInit() {
         setDamage(VanillaItemsWeapons.aquatoothSword, SWORD_DAMAGE);
         setDamage(VanillaItemsWeapons.aquatoothMaul, MAUL_DAMAGE);
@@ -61,11 +61,11 @@ public class AquatoothEffects {
         try {
             ReflectionHelper.setPrivateValue(ItemSword.class, (ItemSword) i, d, "field_150934_a");
         } catch (Throwable t) {
-            com.divinerpgextended.DivineRPGExtended.LOG.warn("Урон " + i.getUnlocalizedName() + " не изменён: " + t);
+            com.divinerpgextended.DivineRPGExtended.LOG.warn("Damage of " + i.getUnlocalizedName() + " not changed: " + t);
         }
     }
 
-    /** Урон меча-основы (для самопроверки). */
+    /** Damage of the base sword (for the selftest). */
     public static float damage(Item i) {
         return i instanceof ItemSword ? (Float) ReflectionHelper.getPrivateValue(ItemSword.class, (ItemSword) i, "field_150934_a") : -1F;
     }
@@ -83,7 +83,7 @@ public class AquatoothEffects {
         return MeleeRoles.kind(s) == MeleeRoles.Kind.MAUL;
     }
 
-    /** Молот: удар раньше перезарядки не проходит (сервер; клиент и не даёт замахнуться). */
+    /** Maul: a hit before the cooldown does not land (server; the client does not even allow the swing). */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onAttack(AttackEntityEvent e) {
         EntityPlayer p = e.entityPlayer;
@@ -105,14 +105,14 @@ public class AquatoothEffects {
         EntityPlayer p = (EntityPlayer) a;
         ItemStack held = p.getHeldItem();
         if (held == null || Protection.spare(p, v)) return;
-        if (held.getItem() == VanillaItemsWeapons.aquatoothSword) { // и игрока - Protection.spare выше уже проверил PvP
+        if (held.getItem() == VanillaItemsWeapons.aquatoothSword) { // and the player - Protection.spare above already checked PvP
             v.getEntityData().setLong(BLEED, v.worldObj.getTotalWorldTime() + BLEED_SECONDS * 20);
             v.getEntityData().setString(BLEED_BY, p.getUniqueID().toString());
         }
         if (held.getItem() == VanillaItemsWeapons.aquatoothMaul) wave(p, v);
     }
 
-    /** Удар по площади зубастого молота. */
+    /** Area hit of the Aquatooth Maul. */
     static int wave(EntityPlayer p, EntityLivingBase center) {
         @SuppressWarnings("unchecked")
         List<EntityLivingBase> l = center.worldObj.getEntitiesWithinAABB(EntityLivingBase.class, center.boundingBox.expand(WAVE_R, 1.5, WAVE_R));
@@ -136,7 +136,7 @@ public class AquatoothEffects {
         return n;
     }
 
-    /** Кровотечение: раз в секунду, пока не кончится. */
+    /** Bleeding: once a second until it runs out. */
     @SubscribeEvent
     public void onUpdate(LivingEvent.LivingUpdateEvent e) {
         EntityLivingBase v = e.entityLiving;
@@ -153,7 +153,7 @@ public class AquatoothEffects {
             ((WorldServer) v.worldObj).func_147487_a("reddust", v.posX, v.posY + v.height * 0.6, v.posZ, 8, v.width * 0.4, v.height * 0.3, v.width * 0.4, 0);
     }
 
-    /** Игрок кровоточит, пока ранивший рядом в мире и PvP между ними можно (ушёл в приват - кровь останавливается). */
+    /** A player bleeds while the attacker is nearby in the world and PvP between them is allowed (moved into a protected region - the bleeding stops). */
     private static boolean bleedPvp(EntityPlayer v) {
         String by = v.getEntityData().getString(BLEED_BY);
         EntityPlayer p = null;
@@ -163,7 +163,7 @@ public class AquatoothEffects {
         return p != null && !Protection.spare(p, v);
     }
 
-    /** Кровоточит ли (для самопроверки). */
+    /** Whether it is bleeding (for the selftest). */
     public static boolean bleeding(EntityLivingBase v) {
         return v.getEntityData().getLong(BLEED) > v.worldObj.getTotalWorldTime();
     }

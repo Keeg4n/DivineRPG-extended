@@ -18,9 +18,9 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Телепорты Divine (скипетр Энда, кристалл телепортации) спрашивают разрешения у приватов
- * ({@link com.divinerpgextended.portal.TeleportGuard}): в начало onItemRightClick - "если {@link TeleportHooks#deny} - вернуть
- * предмет и выйти" (ни телепорта, ни траты арканы и прочности).
+ * Divine teleports (End scepter, teleportation crystal) ask permission from protected regions
+ * ({@link com.divinerpgextended.portal.TeleportGuard}): at the start of onItemRightClick - "if {@link TeleportHooks#deny} - return the
+ * item and exit" (no teleport, no arcana or durability spent).
  */
 public class TeleportTransformer implements IClassTransformer, Opcodes {
 
@@ -54,10 +54,10 @@ public class TeleportTransformer implements IClassTransformer, Opcodes {
             if (patched == 0) return bytes;
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Телепорт: {} спрашивает приваты", transformedName);
+            LOG.info("Teleport: {} asks claims", transformedName);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Телепорт: не удалось подключить проверку приватов к " + transformedName + ", класс без изменений", t);
+            LOG.error("Teleport: could not hook the claim check into " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }

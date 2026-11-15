@@ -20,19 +20,19 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Пасхалки (как Экскалибур в Botania - переименованная вещь меняет только вид): предмет остаётся тем же предметом Divine
- * со всеми свойствами, вид и звуки - по имени, данному на наковальне.
+ * Easter eggs (like Excalibur in Botania - a renamed item changes only the look): the item stays the same Divine item
+ * with all its properties, the look and sounds follow the name given on the anvil.
  * <ul>
- * <li>Реалмитовая броня с именем "H.E.V" - костюм H.E.V. из Half-Life: своя модель (у шлема два вида - шлем Mark IV или
- * очки Гордона, переключаются в верстаке: шлем один в сетке), голос костюма в чате (вход в систему,
- * переломы, критическое здоровье), морфин при малом здоровье не чаще раза в {@link #MORPHINE_EVERY} тиков; со звуками
- * Half-Life, если они установлены ({@link com.divinerpgextended.client.HevSounds}).</li>
- * <li>Реалмитовый меч с именем "crowbar" - монтировка.</li>
- * <li>Ракетница Мерика с именем "rpg" - РПГ-7, ракета летит гранатой ПГ-7.</li>
- * <li>Меч бури Арканы, брошенный на землю, от удара молнии становится Musou no Hitotachi: объёмная катана в руке и на
- * земле, своё имя; все свойства меча те же. Молния его не сжигает.</li>
+ * <li>Realmite armor named "H.E.V" - the H.E.V. suit from Half-Life: its own model (the helmet has two looks - the Mark IV helmet or
+ * Gordon's glasses, switched at the crafting table: the helmet alone in the grid), the suit voice in chat (login,
+ * fractures, critical health), morphine at low health no more than once per {@link #MORPHINE_EVERY} ticks; with the sounds of
+ * Half-Life, if they are installed ({@link com.divinerpgextended.client.HevSounds}).</li>
+ * <li>Realmite sword named "crowbar" - a crowbar.</li>
+ * <li>Merik's Rocket Launcher named "rpg" - an RPG-7, the rocket flies as a PG-7 grenade.</li>
+ * <li>An Arcana Storm Sword thrown on the ground becomes Musou no Hitotachi when struck by lightning: a 3D katana in hand and on
+ * the ground, its own name; all the sword's properties are the same. Lightning does not burn it.</li>
  * </ul>
- * Переименовал обратно - вид обычный.
+ * Renamed back - the look is ordinary.
  */
 public final class Easter {
 
@@ -41,14 +41,14 @@ public final class Easter {
 
     private Easter() {}
 
-    /** Пасхалки включены: на сервере - из конфига, у игрока - как решил сервер ({@link Toggle}). */
+    /** Easter eggs are on: on the server - from the config, for the player - as the server decided ({@link Toggle}). */
     public static volatile boolean enabled = true;
 
     public static boolean on() {
         return enabled;
     }
 
-    /** Сервер говорит игроку при входе, включены ли пасхалки. */
+    /** The server tells the player on login whether Easter eggs are on. */
     public static class Toggle implements cpw.mods.fml.common.network.simpleimpl.IMessage {
 
         boolean on;
@@ -94,19 +94,19 @@ public final class Easter {
         return i == VanillaItemsArmor.realmiteHelmet || i == VanillaItemsArmor.realmiteBody || i == VanillaItemsArmor.realmiteLegs || i == VanillaItemsArmor.realmiteBoots;
     }
 
-    /** Часть костюма H.E.V.: реалмитовая броня с именем H.E.V. */
+    /** A part of the H.E.V. suit: Realmite armor named H.E.V. */
     public static boolean hev(ItemStack s) {
         return enabled && s != null && realmiteArmor(s.getItem()) && named(s, "H.E.V", "H.E.V.", "HEV");
     }
 
-    /** Шлем костюма в виде очков Гордона (иначе - шлем Mark IV). */
+    /** The suit helmet in the form of Gordon's glasses (otherwise - the Mark IV helmet). */
     public static boolean goggles(ItemStack s) {
         return hev(s) && s.getItem() == VanillaItemsArmor.realmiteHelmet && s.hasTagCompound() && s.getTagCompound().getBoolean(STYLE);
     }
 
     public static final String STYLE = "DreHevGoggles";
 
-    /** Шлем костюма один в сетке верстака - тот же шлем другого вида (шлем Mark IV <-> очки). */
+    /** The suit helmet alone in the crafting grid - the same helmet in another look (Mark IV helmet <-> glasses). */
     public static class StyleRecipe implements net.minecraft.item.crafting.IRecipe {
 
         static ItemStack single(net.minecraft.inventory.InventoryCrafting inv) {
@@ -157,29 +157,29 @@ public final class Easter {
         return true;
     }
 
-    /** Монтировка: реалмитовый меч с именем crowbar. */
+    /** Crowbar: a Realmite sword named crowbar. */
     public static boolean crowbar(ItemStack s) {
         return enabled && s != null && s.getItem() == VanillaItemsWeapons.realmiteSword && named(s, "crowbar");
     }
 
     public static final String MUSOU = "DreMusou", MUSOU_NAME = "Musou no Hitotachi";
 
-    /** Musou no Hitotachi: меч бури Арканы, преображённый молнией (метка в предмете). */
+    /** Musou no Hitotachi: an Arcana Storm Sword transformed by lightning (a mark in the item). */
     public static boolean musou(ItemStack s) {
         return enabled && s != null && s.getItem() == ArcanaItems.stormSword && s.hasTagCompound() && s.getTagCompound().getBoolean(MUSOU);
     }
 
-    /** Преобразить меч бури: метка и имя; true - получилось (это меч бури и ещё не преображён). */
+    /** Transform the Storm Sword: mark and name; true - succeeded (it is a Storm Sword and not yet transformed). */
     public static boolean awaken(ItemStack s) {
         if (!enabled || s == null || s.getItem() != ArcanaItems.stormSword) return false;
         if (!s.hasTagCompound()) s.setTagCompound(new NBTTagCompound());
         if (s.getTagCompound().getBoolean(MUSOU)) return false;
         s.getTagCompound().setBoolean(MUSOU, true);
-        s.setStackDisplayName(EnumChatFormatting.RESET + MUSOU_NAME); // без курсива переименованных
+        s.setStackDisplayName(EnumChatFormatting.RESET + MUSOU_NAME); // without the italics of renamed ones
         return true;
     }
 
-    /** РПГ-7: ракетница Мерика с именем rpg. */
+    /** RPG-7: Merik's Rocket Launcher named rpg. */
     public static boolean rpg(ItemStack s) {
         return enabled && s != null && s.getItem() == ArcanaItems.meriksMissile && named(s, "rpg", "rpg-7", "rpg7");
     }
@@ -190,10 +190,10 @@ public final class Easter {
         p.addChatMessage(m);
     }
 
-    /** Голос костюма и морфин (сервер). */
+    /** Suit voice and morphine (server). */
     public static class Events {
 
-        /** Молния в брошенный меч бури: не сжигает, а преображает в Musou no Hitotachi. */
+        /** Lightning on a thrown Storm Sword: does not burn it, but transforms it into Musou no Hitotachi. */
         @SubscribeEvent
         public void onLightning(net.minecraftforge.event.entity.EntityStruckByLightningEvent e) {
             if (!(e.entity instanceof net.minecraft.entity.item.EntityItem) || e.entity.worldObj.isRemote) return;
@@ -222,7 +222,7 @@ public final class Easter {
             tick(p);
         }
 
-        /** Шлем костюма: какой вид и как сменить. */
+        /** Suit helmet: which look and how to change it. */
         @SubscribeEvent
         @SuppressWarnings("unchecked")
         public void onTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent e) {
@@ -237,9 +237,9 @@ public final class Easter {
         }
     }
 
-    /** Раз в полсекунды: надел полный костюм - вход в систему; малое здоровье - морфин. */
+    /** Once every half second: put on the full suit - login; low health - morphine. */
     public static void tick(EntityPlayer p) {
-        ItemStack held = p.getHeldItem(); // тати, преображённый до 0.99.56, - имя без курсива
+        ItemStack held = p.getHeldItem(); // a tati transformed before 0.99.56 - the name without italics
         if (musou(held) && MUSOU_NAME.equals(held.getDisplayName())) held.setStackDisplayName(EnumChatFormatting.RESET + MUSOU_NAME);
         NBTTagCompound d = p.getEntityData();
         boolean full = fullHev(p);
@@ -253,7 +253,7 @@ public final class Easter {
         say(p, "dre.hev.morphine");
     }
 
-    /** Удар по игроку в костюме: переломы при падении, критическое здоровье. */
+    /** A hit on a player in the suit: fractures on falling, critical health. */
     public static void hurt(EntityPlayer p, DamageSource s, float amount) {
         if (!fullHev(p)) return;
         if (s == DamageSource.fall) say(p, amount >= 6 ? "dre.hev.major_fracture" : "dre.hev.minor_fracture");

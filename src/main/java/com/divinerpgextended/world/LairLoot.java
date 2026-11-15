@@ -20,10 +20,10 @@ import net.minecraft.world.World;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Сундуки в норах боссов. Нора Карцинуса - обычные сундуки: материалы на сет Kraken (чернильные мешки, кожа
- * кракена), крабовое и водное, реалмит, изредка молот из клешней и карта к снежной пещере. Ледяная пещера Глакона -
- * морозные сундуки Divine: ледяные камни и осколки (снежная кирка, сет Frozen), горячая еда против холода Iceika,
- * адские слитки, изредка части Frozen, морозное оружие и снежинки.
+ * Chests in boss burrows. The Carcinus burrow has ordinary chests: materials for the Kraken armor (ink sacs, kraken
+ * leather), crab and water items, realmite, occasionally a claw maul and a map to the snow cave. The Glacon ice cave has
+ * Divine frozen chests: ice stones and shards (Snow Pickaxe, Frozen set), hot food against the Iceika cold,
+ * nether ingots, occasionally Frozen parts, frozen weapons and snowflakes.
  */
 public final class LairLoot {
 
@@ -42,7 +42,7 @@ public final class LairLoot {
     }
 
     private static WeightedRandomChestContent[] crab() {
-        return new WeightedRandomChestContent[] { e(Items.dye, 0, 4, 10, 12), // чернильные мешки - на сет Kraken
+        return new WeightedRandomChestContent[] { e(Items.dye, 0, 4, 10, 12), // ink sacs - for the Kraken armor
             e(VanillaItemsOther.krakenSkin, 1, 3, 6), e(VanillaItemsOther.krakenScale, 1, 3, 6),
             e(VanillaItemsOther.crabClaw, 2, 5, 10), e(VanillaItemsOther.aquaticPellets, 2, 6, 10),
             e(VanillaItemsOther.aquaticIngot, 1, 3, 6), e(VanillaItemsOther.sharkFin, 1, 2, 5),
@@ -63,7 +63,7 @@ public final class LairLoot {
             e(IceikaItems.snowflake, 1, 2, 2), e(ModItems.icePick, 1, 1, 1) };
     }
 
-    /** Сундуки в домах жителей Iceika: еда против холода, топливо и огниво, сладости, немного материалов. */
+    /** Chests in Iceika villager houses: food against the cold, fuel and flint and steel, sweets, some materials. */
     public static WeightedRandomChestContent[] village() {
         return new WeightedRandomChestContent[] { e(IceikaItems.eggNog, 1, 3, 8), e(IceikaItems.fruitCake, 1, 2, 6),
             e(IceikaItems.chocolateLog, 1, 4, 6), e(ItemsFood.hotPie, 1, 2, 4), e(ItemsFood.tomato, 2, 4, 6),
@@ -73,7 +73,7 @@ public final class LairLoot {
             e(ModItems.rimeIngot, 1, 2, 3), e(ModItems.lairMap, 2, 1, 1, 1) };
     }
 
-    /** Сундуки в подземных данжах Iceika и в пещерах к ним: снежинки, иней, ледяное оружие, редкости. */
+    /** Chests in underground Iceika dungeons and in caves leading to them: snowflakes, rime, ice weapons, rarities. */
     public static WeightedRandomChestContent[] iceikaDungeon() {
         return new WeightedRandomChestContent[] { e(IceikaItems.snowflake, 1, 2, 5), e(ModItems.rimeIngot, 1, 3, 6),
             e(IceikaItems.iceStone, 2, 4, 6), e(IceikaItems.iceShards, 3, 8, 8), e(VanillaItemsOther.arlemiteIngot, 1, 3, 4),
@@ -85,7 +85,7 @@ public final class LairLoot {
             e(ModItems.trinket, com.divinerpgextended.trinket.Trinket.ETERNAL_ICE_RING.ordinal(), 1, 1, 1) };
     }
 
-    /** Саркофаги Древней гробницы: золото и самоцветы, кости фараонов, редкое оружие и яблоки. */
+    /** Sarcophagi of the Ancient Tomb: gold and gems, pharaoh bones, rare weapons and apples. */
     public static WeightedRandomChestContent[] tomb() {
         return new WeightedRandomChestContent[] { e(Items.gold_ingot, 2, 6, 10), e(Items.gold_nugget, 4, 12, 8),
             e(Items.dye, 4, 4, 10, 6), e(Items.emerald, 1, 3, 5), e(Items.diamond, 1, 2, 3), e(Items.bone, 2, 6, 6),
@@ -96,12 +96,12 @@ public final class LairLoot {
             e(ModItems.trinket, com.divinerpgextended.trinket.Trinket.PHARAOH_ANKH.ordinal(), 1, 1, 1) };
     }
 
-    /** Добавить в уже стоящий сундук count стопок из таблицы. */
+    /** Add count stacks from the table to an already placed chest. */
     public static void fill(TileEntityChest te, Random rand, WeightedRandomChestContent[] table, int count) {
         WeightedRandomChestContent.generateChestContents(rand, table, te, count);
     }
 
-    /** Поставить сундук block и заполнить 4-7 стопками из таблицы. */
+    /** Place chest block and fill it with 4-7 stacks from the table. */
     public static void chest(World w, Random rand, int x, int y, int z, Block block, WeightedRandomChestContent[] table) {
         w.setBlock(x, y, z, block, 0, 2);
         if (w.getTileEntity(x, y, z) instanceof TileEntityChest) {
@@ -109,7 +109,7 @@ public final class LairLoot {
         }
     }
 
-    /** Поставить сундук и заполнить: 5-8 стопок. snow - морозный сундук Divine, иначе обычный. */
+    /** Place a chest and fill it: 5-8 stacks. snow - a Divine frozen chest, otherwise an ordinary one. */
     public static void chest(World w, Random rand, int x, int y, int z, boolean snow) {
         w.setBlock(x, y, z, snow ? IceikaBlocks.decorativeFrostedChest : Blocks.chest, 0, 2);
         if (!(w.getTileEntity(x, y, z) instanceof TileEntityChest)) return;

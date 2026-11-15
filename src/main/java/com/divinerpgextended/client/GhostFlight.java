@@ -12,9 +12,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Призрак (Венец полёта R8): в полёте - вдвое быстрее творческого, как в ихоровых ботинках Thaumic Tinkerer; с бегом - ещё
- * быстрее. Полёт считает клиент, поэтому и скорость ставится здесь. Свою скорость из /dreflyspeed не трогаем: меняем, только
- * пока стоит обычная, и возвращаем обычную, когда сет сняли.
+ * Wraith (Crown of Flight R8): in flight - twice as fast as creative, like in the Thaumic Tinkerer ichor boots; with sprint - even
+ * faster. The client calculates flight, so the speed is set here too. We do not touch the speed from /dreflyspeed: we change it only
+ * while the normal one is set, and restore the normal one when the set is taken off.
  */
 @SideOnly(Side.CLIENT)
 public class GhostFlight {
@@ -32,7 +32,7 @@ public class GhostFlight {
         }
         boolean ghost = ArmorData.equippedCrown(p) == ArmorCrown.FLIGHT && !com.divinerpgextended.vethea.Nightmare.inVethea(p);
         float now = p.capabilities.getFlySpeed();
-        if (ghost && Math.abs(now - BASE) < 1e-4F) { // и снова, если сервер прислал способности с обычной скоростью
+        if (ghost && Math.abs(now - BASE) < 1e-4F) { // and again, if the server sent abilities with the normal speed
             p.capabilities.setFlySpeed(GHOST);
             ours = true;
         } else if (!ghost && ours) {

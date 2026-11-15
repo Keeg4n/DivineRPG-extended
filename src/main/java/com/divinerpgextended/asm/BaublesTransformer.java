@@ -15,20 +15,20 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Чужие аксессуары Baubles во сне до прохождения молчат ({@link com.divinerpgextended.vethea.NightmareBaubles}):
+ * Other mods' Baubles accessories are silent in the dream before completion ({@link com.divinerpgextended.vethea.NightmareBaubles}):
  * <ul>
- * <li>тик ношения (EventHandlerEntity.playerTick): IBauble.onWornTick идёт через проверку;</li>
- * <li>BaublesApi.getBaubles отдаёт модам вид без чужих аксессуаров (сами вещи в слотах лежат как лежали, окно Baubles
- * берёт их мимо API).</li>
+ * <li>the wear tick (EventHandlerEntity.playerTick): IBauble.onWornTick goes through a check;</li>
+ * <li>BaublesApi.getBaubles gives mods a view without other people's accessories (the items themselves lie in the slots as before, the Baubles
+ * window takes them bypassing the API).</li>
  * </ul>
- * API Baubles лежит копией во многих модах, но загружается один класс - поправка по имени класса встаёт на любую копию.
+ * The Baubles API lies as a copy in many mods, but one class is loaded - the patch by class name applies to any copy.
  */
 public class BaublesTransformer implements IClassTransformer, Opcodes {
 
     private static final Logger LOG = LogManager.getLogger("divinerpgextended-core");
     private static final String TICK = "baubles.common.event.EventHandlerEntity", API = "baubles.api.BaublesApi";
     private static final String HOOKS = "com/divinerpgextended/vethea/NightmareBaubles";
-    /** Сколько поправок встало (2 - обе): проверяет самопроверка. */
+    /** How many patches are in place (2 - both): checked by the selftest. */
     public static int patched;
 
     @Override
@@ -65,16 +65,16 @@ public class BaublesTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (n == 0) {
-                LOG.warn("Аксессуары во сне: в {} не нашлось места для поправки, класс без изменений", transformedName);
+                LOG.warn("Accessories in sleep: no place for the fix found in {}, class unchanged", transformedName);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
             patched++;
-            LOG.info("Аксессуары во сне: {} - {} мест", transformedName, n);
+            LOG.info("Accessories in sleep: {} - {} places", transformedName, n);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Аксессуары во сне: не удалось изменить " + transformedName + ", класс без изменений", t);
+            LOG.error("Accessories in sleep: could not modify " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }

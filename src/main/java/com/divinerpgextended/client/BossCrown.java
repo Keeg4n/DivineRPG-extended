@@ -14,9 +14,9 @@ import cpw.mods.fml.relauncher.SideOnly;
 import cpw.mods.fml.relauncher.Side;
 
 /**
- * Маленькая золотая корона на модели босса, чтобы он выделялся среди обычных мобов того же вида (Карцинус, Снежный Глакон,
- * Древний драмкрикс). Крепится к части модели (голове или панцирю) и поворачивается вместе с ней: обод из четырёх планок,
- * зубцы по углам и посередине сторон, спереди и по бокам - камни цвета босса. Размеры - в пикселях модели.
+ * A small golden crown on a boss model, so it stands out among ordinary mobs of the same kind (Carcinus, Snow Glacon,
+ * Ancient Dramcryx). Attached to a model part (head or shell) and rotates with it: a rim of four bars,
+ * spikes at the corners and in the middle of the sides, gems in the boss color at the front and on the sides. Sizes are in model pixels.
  */
 @SideOnly(Side.CLIENT)
 public final class BossCrown {
@@ -28,7 +28,7 @@ public final class BossCrown {
     private final float cx, top, cz, size;
     private final int gem;
 
-    /** part - поле модели Divine; (cx, top, cz) - середина верха части в её координатах; size - ширина короны. */
+    /** part - a Divine model field; (cx, top, cz) - the middle of the part's top in its coordinates; size - crown width. */
     public BossCrown(String part, float cx, float top, float cz, float size, int gem) {
         this.part = part;
         this.cx = cx;
@@ -49,7 +49,7 @@ public final class BossCrown {
         return r;
     }
 
-    /** Нарисовать после модели (части уже повёрнуты), scale - масштаб модели (0.0625). */
+    /** Draw after the model (the parts are already rotated), scale - model scale (0.0625). */
     public void render(ModelBase model, float scale) {
         ModelRenderer p = find(model);
         if (p == null || p.isHidden || !p.showModel) return;
@@ -61,18 +61,18 @@ public final class BossCrown {
         Tessellator t = Tessellator.instance;
         t.startDrawingQuads();
         float h = size / 2, th = 0.6F, band = 1.2F, spike = 1.4F;
-        // обод (y вниз: верх части - 0, корона выше - отрицательные y)
+        // rim (y points down: the top of the part is 0, the crown is higher - negative y)
         box(t, -h, -band, -h, h, 0, -h + th, GOLD);
         box(t, -h, -band, h - th, h, 0, h, GOLD);
         box(t, -h, -band, -h + th, -h + th, 0, h - th, GOLD);
         box(t, h - th, -band, -h + th, h, 0, h - th, GOLD);
-        // зубцы: углы и середины сторон
+        // spikes: corners and middles of the sides
         float[][] at = { { -h, -h }, { h - th, -h }, { -h, h - th }, { h - th, h - th }, { -th / 2, -h }, { -th / 2, h - th }, { -h, -th / 2 }, { h - th, -th / 2 } };
         for (int i = 0; i < at.length; i++) {
             float sp = i < 4 ? spike : spike * 1.4F;
             box(t, at[i][0], -band - sp, at[i][1], at[i][0] + th, -band, at[i][1] + th, i < 4 ? GOLD : GOLD_DARK);
         }
-        // камни на ободе: спереди (-z) и по бокам
+        // gems on the rim: at the front (-z) and on the sides
         float g = 0.45F;
         box(t, -g, -band * 0.8F, -h - 0.25F, g, -band * 0.2F, -h, gem);
         box(t, -h - 0.25F, -band * 0.8F, -g, -h, -band * 0.2F, g, gem);
@@ -89,34 +89,34 @@ public final class BossCrown {
         t.setNormal(nx, ny, nz);
     }
 
-    /** Коробка от (x0, y0, z0) до (x1, y1, z1); верх (меньший y) светлее, бока темнее. */
+    /** A box from (x0, y0, z0) to (x1, y1, z1); the top (smaller y) is lighter, the sides darker. */
     private static void box(Tessellator t, float x0, float y0, float z0, float x1, float y1, float z1, int rgb) {
-        face(t, rgb, 1.0F, 0, -1, 0); // верх
+        face(t, rgb, 1.0F, 0, -1, 0); // top
         t.addVertex(x0, y0, z0);
         t.addVertex(x1, y0, z0);
         t.addVertex(x1, y0, z1);
         t.addVertex(x0, y0, z1);
-        face(t, rgb, 0.55F, 0, 1, 0); // низ
+        face(t, rgb, 0.55F, 0, 1, 0); // bottom
         t.addVertex(x0, y1, z1);
         t.addVertex(x1, y1, z1);
         t.addVertex(x1, y1, z0);
         t.addVertex(x0, y1, z0);
-        face(t, rgb, 0.8F, 0, 0, -1); // перед
+        face(t, rgb, 0.8F, 0, 0, -1); // front
         t.addVertex(x0, y1, z0);
         t.addVertex(x1, y1, z0);
         t.addVertex(x1, y0, z0);
         t.addVertex(x0, y0, z0);
-        face(t, rgb, 0.8F, 0, 0, 1); // зад
+        face(t, rgb, 0.8F, 0, 0, 1); // back
         t.addVertex(x0, y0, z1);
         t.addVertex(x1, y0, z1);
         t.addVertex(x1, y1, z1);
         t.addVertex(x0, y1, z1);
-        face(t, rgb, 0.7F, -1, 0, 0); // бок
+        face(t, rgb, 0.7F, -1, 0, 0); // side
         t.addVertex(x0, y0, z0);
         t.addVertex(x0, y0, z1);
         t.addVertex(x0, y1, z1);
         t.addVertex(x0, y1, z0);
-        face(t, rgb, 0.7F, 1, 0, 0); // бок
+        face(t, rgb, 0.7F, 1, 0, 0); // side
         t.addVertex(x1, y1, z0);
         t.addVertex(x1, y1, z1);
         t.addVertex(x1, y0, z1);

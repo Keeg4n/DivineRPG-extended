@@ -17,9 +17,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Алтарь арены Мортума: кристалл босса работает только по клику на него ({@link com.divinerpgextended.boss.LairSummons}),
- * сам кристалл Divine и вызывает босса над алтарём. Пустой рукой - подсказка, чей это алтарь; в творческом режиме пустая рука
- * сама вызывает босса арены (кристалл не нужен). Неразрушим в выживании; если его всё же сломал особый инструмент - ничего не роняет.
+ * Mortum Arena Altar: the boss crystal works only on a click on it ({@link com.divinerpgextended.boss.LairSummons}),
+ * the Divine crystal itself summons the boss above the altar. With an empty hand - a hint whose altar this is; in creative mode an empty hand
+ * itself summons the arena boss (no crystal needed). Unbreakable in survival; if a special tool still broke it - it drops nothing.
  */
 public class BlockArenaAltar extends Block {
 
@@ -36,7 +36,7 @@ public class BlockArenaAltar extends Block {
     @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
     private net.minecraft.util.IIcon top;
 
-    /** Грань и верх: обсидиан с трещинами красного камня (tools/concepts/acc_export.py). */
+    /** Side and top: obsidian with redstone cracks (tools/concepts/acc_export.py). */
     @Override
     @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
     public void registerBlockIcons(net.minecraft.client.renderer.texture.IIconRegister reg) {
@@ -50,7 +50,7 @@ public class BlockArenaAltar extends Block {
         return s <= 1 ? top : blockIcon;
     }
 
-    /** Над алтарём поднимаются багровые искры. */
+    /** Crimson sparks rise above the altar. */
     @Override
     @SideOnly(Side.CLIENT)
     public void randomDisplayTick(World world, int x, int y, int z, Random rand) {
@@ -60,7 +60,7 @@ public class BlockArenaAltar extends Block {
 
     @Override
     public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hx, float hy, float hz) {
-        if (player.getHeldItem() != null) return false; // кристалл Divine сам вызовет босса
+        if (player.getHeldItem() != null) return false; // the Divine crystal will summon the boss itself
         if (!world.isRemote) {
             int[] c = MortumArenas.nearest(world, x, z);
             MortumArenas.Type t = c == null ? null : MortumArenas.typeAt(world, c);
@@ -70,7 +70,7 @@ public class BlockArenaAltar extends Block {
         return true;
     }
 
-    /** Вызов без кристалла (творческий режим): кристалл арены применяется сам - туда же, куда его поставил бы игрок. true - вызван. */
+    /** Summon without a crystal (creative mode): the arena crystal is applied by itself - to the same place where a player would put it. true - summoned. */
     public static boolean summon(World world, int x, int y, int z, EntityPlayer player, MortumArenas.Type t, int[] c) {
         net.minecraft.util.AxisAlignedBB area = net.minecraft.util.AxisAlignedBB.getBoundingBox(c[0] - 48, y - 24, c[2] - 48, c[0] + 48, y + 32, c[2] + 48);
         for (Object o : world.getEntitiesWithinAABB(net.minecraft.entity.boss.IBossDisplayData.class, area))

@@ -20,9 +20,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Холод на экране: изморозь со снежинками по краям (гуще с ростом холода) и градусник над полоской еды. Пока
- * действует "Согрет", градусник обведён оранжевым. Во вьюгу там, куда достаёт ветер, - белая пелена, густой туман, снег
- * по ветру и вой ветра; перед вьюгой снег уже начинает мести.
+ * Cold on the screen: frost with snowflakes along the edges (thicker as the cold grows) and a thermometer above the food bar. While
+ * "Warmed" is active, the thermometer is outlined in orange. In a blizzard where the wind reaches - a white veil, thick fog, snow
+ * in the wind and the howl of the wind; before the blizzard the snow already starts to sweep.
  */
 @SideOnly(Side.CLIENT)
 public class ColdHud extends Gui {
@@ -33,7 +33,7 @@ public class ColdHud extends Gui {
     public ColdHud() {
         Random r = new Random(1234);
         for (int i = 0; i < FLAKES; i++) {
-            // точки у краёв экрана: x, y в долях экрана, размер, порог холода появления
+            // dots near the screen edges: x, y as fractions of the screen, size, cold threshold of appearance
             float edge = r.nextFloat() * 0.22F;
             int side = r.nextInt(4);
             float along = r.nextFloat();
@@ -53,13 +53,13 @@ public class ColdHud extends Gui {
         int w = res.getScaledWidth(), h = res.getScaledHeight();
 
         GL11.glEnable(GL11.GL_BLEND);
-        if (storm(mc)) drawRect(0, 0, w, h, argb(0.28F, 0xF0F6FF)); // белая пелена вьюги
+        if (storm(mc)) drawRect(0, 0, w, h, argb(0.28F, 0xF0F6FF)); // white blizzard veil
         if (cold > 15) frost(w, h, (cold - 15) / 85F);
         thermometer(mc, w, h, cold, ColdMessage.clientWarm > 0);
         GL11.glColor4f(1, 1, 1, 1);
     }
 
-    /** Вьюга вокруг и ветер достаёт игрока. */
+    /** A blizzard around and the wind reaches the player. */
     private static boolean storm(Minecraft mc) {
         return mc.thePlayer != null && ColdHandler.inIceika(mc.thePlayer) && ColdMessage.clientPhase == Blizzard.STORM
             && Blizzard.exposed(mc.thePlayer);
@@ -81,7 +81,7 @@ public class ColdHud extends Gui {
         event.blue = 0.96F;
     }
 
-    /** Снег по ветру вокруг игрока и вой ветра. */
+    /** Snow in the wind around the player and the howl of the wind. */
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         Minecraft mc = Minecraft.getMinecraft();
@@ -109,7 +109,7 @@ public class ColdHud extends Gui {
         return ((int) (Math.max(0, Math.min(1, a)) * 255) << 24) | rgb;
     }
 
-    /** Изморозь: светло-голубые полосы по краям, сходящие на нет к центру, и снежинки. */
+    /** Frost: light blue stripes along the edges, fading out toward the center, and snowflakes. */
     private void frost(int w, int h, float k) {
         int steps = 10, bandX = w / 5, bandY = h / 5;
         for (int s = 0; s < steps; s++) {
@@ -126,9 +126,9 @@ public class ColdHud extends Gui {
             if (cold < f[3]) continue;
             int x = (int) (f[0] * w), y = (int) (f[1] * h), s = (int) f[2];
             int c = argb(0.85F, 0xFFFFFF);
-            drawRect(x - 2 * s, y, x + 2 * s + 1, y + 1, c); // горизонталь
-            drawRect(x, y - 2 * s, x + 1, y + 2 * s + 1, c); // вертикаль
-            for (int d = 1; d <= s; d++) { // диагонали
+            drawRect(x - 2 * s, y, x + 2 * s + 1, y + 1, c); // horizontal
+            drawRect(x, y - 2 * s, x + 1, y + 2 * s + 1, c); // vertical
+            for (int d = 1; d <= s; d++) { // diagonals
                 drawRect(x - d, y - d, x - d + 1, y - d + 1, c);
                 drawRect(x + d, y - d, x + d + 1, y - d + 1, c);
                 drawRect(x - d, y + d, x - d + 1, y + d + 1, c);
@@ -137,7 +137,7 @@ public class ColdHud extends Gui {
         }
     }
 
-    /** Градусник справа над полоской еды (выше пузырьков воздуха под водой). */
+    /** Thermometer on the right above the food bar (higher than the air bubbles underwater). */
     private void thermometer(Minecraft mc, int w, int h, float cold, boolean warm) {
         int x = w / 2 + 10, y = h - (mc.thePlayer.isInWater() ? 59 : 49), len = 81;
         drawRect(x - 1, y - 1, x + len + 1, y + 4, warm ? 0xFFFF9020 : 0xFF202830);
@@ -145,6 +145,6 @@ public class ColdHud extends Gui {
         int fill = (int) (len * cold / 100F);
         int color = cold >= 100 ? 0xFFFFFFFF : cold >= 75 ? 0xFFBFE8FF : cold >= 50 ? 0xFF7FC8F0 : 0xFF3F9AD8;
         drawRect(x, y, x + fill, y + 3, color);
-        for (int t = 1; t < 4; t++) drawRect(x + len * t / 4, y, x + len * t / 4 + 1, y + 3, 0x80000000); // отметки 25/50/75
+        for (int t = 1; t < 4; t++) drawRect(x + len * t / 4, y, x + len * t / 4 + 1, y + 3, 0x80000000); // marks at 25/50/75
     }
 }

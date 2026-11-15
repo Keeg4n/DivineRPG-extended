@@ -6,7 +6,7 @@ import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 
-/** Сервер -> клиент: холод игрока (0-100), сколько секунд ещё "Согрет", фаза вьюги и направление ветра. */
+/** Server -> client: the player's cold (0-100), how many more seconds of "Warmed", the blizzard phase and the wind direction. */
 public class ColdMessage implements IMessage {
 
     public float cold;
@@ -41,7 +41,7 @@ public class ColdMessage implements IMessage {
         buf.writeFloat(windZ);
     }
 
-    /** Клиентская копия холода для HUD. */
+    /** Client copy of the cold for the HUD. */
     public static float clientCold;
     public static int clientWarm, clientPhase;
     public static float clientWindX, clientWindZ;

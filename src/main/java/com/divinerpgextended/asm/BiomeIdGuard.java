@@ -16,37 +16,37 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * ID биомов Divine по умолчанию (100-107) совпадают с биомами Biomes O' Plenty (Tropics, Volcano, Mangrove, Alps
- * Forest...): чей биом зарегистрирован позже, тот затирает другой - в мирах Divine и в обычном мире путаются биомы.
- * До загрузки модов (из coremod) смотрим ID биомов в конфигах других модов и, если ID Divine заняты, переписываем
- * конфиг Divine на свободные (начиная со 170, как на RedServer).
+ * Default Divine biome IDs (100-107) coincide with Biomes O' Plenty biomes (Tropics, Volcano, Mangrove, Alps
+ * Forest...): whichever biome is registered later overwrites the other - biomes get mixed up in the Divine worlds and in the Overworld.
+ * Before mods load (from the coremod) we look at biome IDs in the configs of other mods and, if the Divine IDs are taken, rewrite
+ * the Divine config to free ones (starting from 170, as on RedServer).
  */
 public final class BiomeIdGuard {
 
     static final Logger LOG = LogManager.getLogger("DivineRPG Extended");
     private static final Charset UTF8 = Charset.forName("UTF-8");
-    /** Ключи конфига Divine и ID по умолчанию. */
+    /** Divine config keys and default IDs. */
     static final String[] KEYS = { "Apalachia", "Arcana", "Eden", "Iceika", "Mortum", "Skythern", "Vethea", "Wildwood" };
     static final int[] DEFAULTS = { 102, 106, 100, 107, 104, 103, 105, 101 };
-    /** Biomes O' Plenty без своего конфига (первый запуск): его ID по умолчанию. */
+    /** Biomes O' Plenty without its own config (first launch): its default IDs. */
     static final int BOP_FROM = 40, BOP_TO = 123;
     private static final Pattern LINE = Pattern.compile("^(\\s*)I:\"(\\w+) biome ID\"=(\\d+)\\s*$");
     private static final Pattern ANY_INT = Pattern.compile("^\\s*I:(\"[^\"]*\"|\\S+)=(\\d+)\\s*$");
 
     private BiomeIdGuard() {}
 
-    /** Вызов из coremod; ошибки только в лог - запуск игры важнее. */
+    /** Called from the coremod; errors go only to the log - starting the game is more important. */
     public static void run(File gameDir) {
         try {
             Map<String, Integer> moved = resolve(new File(gameDir, "config"), new File(gameDir, "mods"));
-            if (!moved.isEmpty()) LOG.warn("ID биомов Divine совпадали с биомами других модов - переставлены: " + moved
-                + ". Уже сгенерированные чанки миров Divine могут показывать чужие биомы.");
+            if (!moved.isEmpty()) LOG.warn("Divine biome IDs collided with biomes of other mods - reassigned: " + moved
+                + ". Already generated chunks of Divine worlds may show foreign biomes.");
         } catch (Throwable t) {
-            LOG.warn("Проверка ID биомов Divine не удалась: " + t);
+            LOG.warn("Divine biome ID check failed: " + t);
         }
     }
 
-    /** @return что переставлено (ключ - новый ID); пусто - конфликтов нет */
+    /** @return what was rearranged (key - new ID); empty - no conflicts */
     public static Map<String, Integer> resolve(File config, File mods) throws Exception {
         Set<Integer> taken = takenByOthers(config);
         if (hasMod(mods, "biomesoplenty") && !new File(config, "biomesoplenty/ids.cfg").isFile())
@@ -61,7 +61,7 @@ public final class BiomeIdGuard {
             if (m.matches() && ids.containsKey(m.group(2))) ids.put(m.group(2), Integer.parseInt(m.group(3)));
         }
 
-        // занятые чужими или повторяющиеся у самой Divine
+        // taken by others or duplicated within Divine itself
         Set<Integer> own = new TreeSet<Integer>();
         boolean clash = false;
         for (int id : ids.values()) {
@@ -74,7 +74,7 @@ public final class BiomeIdGuard {
         int next = 170;
         for (String k : KEYS) {
             while (next <= 255 && (used.contains(next) || vanilla(next))) next++;
-            if (next > 255) throw new IllegalStateException("нет свободных ID биомов");
+            if (next > 255) throw new IllegalStateException("no free biome IDs");
             ids.put(k, next);
             used.add(next);
             moved.put(k, next);
@@ -84,12 +84,12 @@ public final class BiomeIdGuard {
         return moved;
     }
 
-    /** Ванильные биомы: 0-39 и их варианты M (+128). */
+    /** Vanilla biomes: 0-39 and their M variants (+128). */
     static boolean vanilla(int id) {
         return id < 40 || id >= 128 && id <= 167;
     }
 
-    /** ID из категорий конфигов с "biome" в названии (Biomes O' Plenty, Twilight Forest и др.), кроме самой Divine. */
+    /** IDs from config categories with "biome" in the name (Biomes O' Plenty, Twilight Forest and others), except Divine itself. */
     static Set<Integer> takenByOthers(File config) throws Exception {
         Set<Integer> out = new TreeSet<Integer>();
         List<File> files = new ArrayList<File>();
@@ -104,7 +104,7 @@ public final class BiomeIdGuard {
                 else if (t.equals("}")) cat = "";
                 else if (cat.contains("biome")) {
                     Matcher m = ANY_INT.matcher(l);
-                    // только ID: в категориях биомов бывают и веса ("biome weights")
+                    // IDs only: biome categories also have weights ("biome weights")
                     if (m.matches() && (cat.contains("id") || m.group(1).toLowerCase().contains("id"))) {
                         int v = Integer.parseInt(m.group(2));
                         if (v >= 0 && v <= 255) out.add(v);

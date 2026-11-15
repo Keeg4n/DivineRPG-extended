@@ -17,14 +17,14 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Способности полного сета брони Энда (цвета можно смешивать):
+ * Abilities of a full End armor set (colors can be mixed):
  * <ul>
- * <li>Пустотный шаг: двойное W с эндер-мечом в руке (с места или прямо на бегу; бег на клавише бега шага не делает) -
- * перенос на {@link #RANGE} блоков туда, куда смотришь, хоть вверх, на уступы до {@link #LEDGE} блоков. Не сработает, если
- * в точке под тобой нет земли в {@link #GROUND} блоках (в бездну не шагнуть) - причина пишется над хотбаром. Цена
- * {@link #COST} арканы, короткий откат. Двойное W ловит клиент ({@link Client}) и шлёт пакет.</li>
- * <li>Спасение из пустоты: упал ниже дна мира - тебя переносит на последнюю твёрдую землю, {@link #RESCUE_HURT} урона, не
- * чаще раза в {@link #RESCUE_CD} тиков.</li>
+ * <li>Void Step: double W with an Ender sword in hand (from standing or right while running; the sprint key does not make a step) -
+ * teleports {@link #RANGE} blocks in the direction you look, even upward, onto ledges up to {@link #LEDGE} blocks high. Fails if
+ * there is no ground within {@link #GROUND} blocks below the target point (you can't step into the abyss) - the reason is shown above the hotbar. Costs
+ * {@link #COST} arcana, short cooldown. The client ({@link Client}) catches the double W and sends a packet.</li>
+ * <li>Void Rescue: if you fall below the bottom of the world, you are moved to the last solid ground, taking {@link #RESCUE_HURT} damage, no
+ * more than once per {@link #RESCUE_CD} ticks.</li>
  * </ul>
  */
 public class EnderGear {
@@ -39,7 +39,7 @@ public class EnderGear {
         com.divinerpgextended.cold.ColdHandler.NET.registerMessage(FailHandler.class, Fail.class, 14, cpw.mods.fml.relauncher.Side.CLIENT);
     }
 
-    /** Сервер -> клиент: почему шаг не вышел (ключ перевода) - строкой над хотбаром (в 1.7.10 у чата такого места нет). */
+    /** Server -> client: why the step failed (translation key) - as a line above the hotbar (in 1.7.10 the chat has no such place). */
     public static class Fail implements cpw.mods.fml.common.network.simpleimpl.IMessage {
 
         String key = "";
@@ -70,7 +70,7 @@ public class EnderGear {
         }
     }
 
-    /** Клиент -> сервер: двойное W (с места или на бегу). Сет, меч, аркану и откат проверяет сервер. */
+    /** Client -> server: double W (from standing or while running). The server checks the set, sword, arcana and cooldown. */
     public static class Blink implements cpw.mods.fml.common.network.simpleimpl.IMessage {
 
         @Override
@@ -87,7 +87,7 @@ public class EnderGear {
             EntityPlayerMP p = ctx.getServerHandler().playerEntity;
             if (!EnderColors.fullSet(p) || !EnderColors.sword(p.getHeldItem())) return null;
             String why = tryBlink(p);
-            if (why != null && !why.isEmpty()) com.divinerpgextended.cold.ColdHandler.NET.sendTo(new Fail(why), p); // откат - молча: на бегу двойное W жмут часто
+            if (why != null && !why.isEmpty()) com.divinerpgextended.cold.ColdHandler.NET.sendTo(new Fail(why), p); // cooldown - silently: while running, double W is pressed often
             if (why != null) p.worldObj.playSoundAtEntity(p, "random.fizz", 0.25F, 1.8F);
             return null;
         }
@@ -99,7 +99,7 @@ public class EnderGear {
         if (e.phase != TickEvent.Phase.END || p.worldObj.isRemote) return;
         if (!EnderColors.fullSet(p)) return;
         NBTTagCompound d = p.getEntityData();
-        // последняя твёрдая земля
+        // last solid ground
         if (p.onGround && p.ticksExisted % 10 == 0 && p.worldObj.getBlock(MathHelper.floor_double(p.posX), MathHelper.floor_double(p.boundingBox.minY) - 1,
             MathHelper.floor_double(p.posZ)).getMaterial().isSolid()) {
             d.setDouble(SAFE_X, p.posX);
@@ -110,19 +110,19 @@ public class EnderGear {
         if (p.posY < -4 && d.getBoolean("dreSafe") && p.worldObj.getTotalWorldTime() >= d.getLong(RESCUE_AT)) rescue(p, d);
     }
 
-    /** Пустотный шаг. @return сработал ли */
+    /** Void Step. @return whether it worked */
     public static boolean blink(EntityPlayer p) {
         return tryBlink(p) == null;
     }
 
     /**
-     * Пустотный шаг: луч взгляда от глаз, ноги идут вдоль него на высоте глаз ниже; упёрлись в уступ до {@link #LEDGE}
-     * блоков - поднимаемся на него (взгляд чуть вниз или ступенька не обрывают шаг). Скорость сохраняется - шаг на бегу
-     * продолжает бег. @return null - сработал; "" - откат; иначе ключ причины для строки над хотбаром
+     * Void Step: a look ray from the eyes, the feet go along it at eye height lower; if we hit a ledge up to {@link #LEDGE}
+     * blocks high, we climb onto it (looking slightly down or a step does not break the step). Speed is preserved - a step while running
+     * keeps the run going. @return null - worked; "" - cooldown; otherwise the reason key for the line above the hotbar
      */
     public static String tryBlink(EntityPlayer p) {
         World w = p.worldObj;
-        // Айрако на пустотном якоре этого стрелка перед глазами - шаг прямо к нему, вплотную
+        // an Ayeraco on this archer's void anchor in front of the eyes - step straight to it, point blank
         net.minecraft.entity.EntityLiving prey = AyeracoHorde.anchoredFor(p);
         if (prey != null) {
             double dx = p.posX - prey.posX, dz = p.posZ - prey.posZ, len = Math.max(0.1, Math.sqrt(dx * dx + dz * dz));
@@ -148,9 +148,9 @@ public class EnderGear {
             double nx = x + look.xCoord * s, nz = z + look.zCoord * s, ny = y + look.yCoord * s + lift;
             if (!fits(w, nx, ny, nz) || !clear(p, nx, ny, nz)) {
                 double up = -1;
-                double base = Math.floor(Math.max(ny, ty)); // от ног, а не от луча: взгляд вниз уводит луч под землю
+                double base = Math.floor(Math.max(ny, ty)); // from the feet, not from the ray: looking down leads the ray under the ground
                 for (int k = 0; k <= LEDGE && up < 0; k++) {
-                    double c = base + k; // встать на верх блока
+                    double c = base + k; // stand on top of the block
                     if (c > ny && c - ty <= LEDGE + 0.01 && fits(w, nx, c, nz) && clear(p, nx, c, nz)) up = c;
                 }
                 if (up < 0) break;
@@ -162,13 +162,13 @@ public class EnderGear {
             tz = nz;
         }
         if ((tx - x) * (tx - x) + (ty - y) * (ty - y) + (tz - z) * (tz - z) < 2 * 2) return "dre.blink.wall";
-        if (!clear(p, tx, ty, tz)) return "dre.blink.wall"; // не в блоки
-        if (!groundBelow(w, tx, ty, tz)) return "dre.blink.void"; // в бездну не шагнуть
+        if (!clear(p, tx, ty, tz)) return "dre.blink.wall"; // not into blocks
+        if (!groundBelow(w, tx, ty, tz)) return "dre.blink.void"; // can't step into the abyss
         if (com.divinerpgextended.perk.EnderGear.pinned(p)) return "dre.blink.pinned";
-        if (!com.divinerpgextended.portal.TeleportGuard.allowed(p, tx, ty, tz)) return "dre.blink.private"; // приват с запретом телепортов
+        if (!com.divinerpgextended.portal.TeleportGuard.allowed(p, tx, ty, tz)) return "dre.blink.private"; // a protected region that forbids teleports
         ArcanaHelper h = ArcanaHelper.getProperties(p);
         if (h == null) return "dre.blink.arcana";
-        if (!ArcanaRules.useBar(h, COST, "EnderBlink")) return h.getBarValue() < COST * 0.5F ? "dre.blink.arcana" : ""; // мало арканы или откат
+        if (!ArcanaRules.useBar(h, COST, "EnderBlink")) return h.getBarValue() < COST * 0.5F ? "dre.blink.arcana" : ""; // not enough arcana or on cooldown
         particles(w, x, y, z);
         moveTo(p, tx, ty + (p.posY - p.boundingBox.minY), tz);
         p.fallDistance = 0;
@@ -177,10 +177,10 @@ public class EnderGear {
         return null;
     }
 
-    /** Полуширина игрока (0.3) чуть внутрь, чтобы стоящий вплотную к стене не считался в ней: в углу из блоков центр в воздухе, а края хитбокса - в стенах (задыхался). */
+    /** Half the player width (0.3) slightly inward, so that a player standing right against a wall is not counted as inside it: in a corner of blocks the center is in the air, but the hitbox edges are in walls (suffocated). */
     static final double HALF = 0.29;
 
-    /** Помещается ли игрок (ноги на y): все четыре угла хитбокса свободны на трёх высотах. */
+    /** Whether the player fits (feet at y): all four hitbox corners are free at three heights. */
     static boolean fits(World w, double x, double y, double z) {
         for (int cx = -1; cx <= 1; cx += 2)
             for (int cz = -1; cz <= 1; cz += 2) {
@@ -190,7 +190,7 @@ public class EnderGear {
         return true;
     }
 
-    /** Хитбокс игрока в точке (ноги на y) ни во что не упирается - точная проверка по рамкам блоков перед переносом. */
+    /** The player hitbox at the point (feet at y) does not touch anything - an exact check against block bounding boxes before the teleport. */
     static boolean clear(EntityPlayer p, double x, double y, double z) {
         return p.worldObj.func_147461_a(p.boundingBox.getOffsetBoundingBox(x - p.posX, y - p.boundingBox.minY, z - p.posZ)).isEmpty();
     }
@@ -208,7 +208,7 @@ public class EnderGear {
     static void rescue(EntityPlayer p, NBTTagCompound d) {
         d.setLong(RESCUE_AT, p.worldObj.getTotalWorldTime() + RESCUE_CD);
         double x = d.getDouble(SAFE_X), y = d.getDouble(SAFE_Y), z = d.getDouble(SAFE_Z);
-        if (!com.divinerpgextended.portal.TeleportGuard.check(p, x, y, z)) return; // приват запрещает телепорты - и спасение тоже
+        if (!com.divinerpgextended.portal.TeleportGuard.check(p, x, y, z)) return; // a protected region forbids teleports - and rescue too
         p.motionX = p.motionY = p.motionZ = 0;
         moveTo(p, x, y, z);
         p.fallDistance = 0;
@@ -217,14 +217,14 @@ public class EnderGear {
         p.addChatMessage(new ChatComponentTranslation("dre.chat.void_rescue"));
     }
 
-    /** Перенести игрока (с оповещением клиента, если есть соединение). */
+    /** Teleport the player (notifying the client if there is a connection). */
     static void moveTo(EntityPlayer p, double x, double y, double z) {
         if (p instanceof EntityPlayerMP && ((EntityPlayerMP) p).playerNetServerHandler != null)
             ((EntityPlayerMP) p).playerNetServerHandler.setPlayerLocation(x, y, z, p.rotationYaw, p.rotationPitch);
         else p.setPosition(x, y, z);
     }
 
-    /** Клиент: двойное нажатие W (второе - не позже {@link #DOUBLE_TAP} тиков после первого) в полном сете с эндер-мечом. */
+    /** Client: double tap of W (the second no later than {@link #DOUBLE_TAP} ticks after the first) in a full set with an Ender sword. */
     @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
     public static class Client {
 
@@ -232,7 +232,7 @@ public class EnderGear {
         private boolean wasDown;
         private int sinceTap = 100;
 
-        /** Строка над хотбаром - место надписи о пластинке. */
+        /** The line above the hotbar - the place for the record disc caption. */
         static void show(String key) {
             net.minecraft.client.Minecraft.getMinecraft().ingameGUI.func_110326_a(net.minecraft.util.EnumChatFormatting.LIGHT_PURPLE
                 + net.minecraft.util.StatCollector.translateToLocal(key), false);
@@ -252,7 +252,7 @@ public class EnderGear {
             if (down && !wasDown) {
                 if (sinceTap <= DOUBLE_TAP && EnderColors.fullSet(p) && EnderColors.sword(p.getHeldItem())) {
                     com.divinerpgextended.cold.ColdHandler.NET.sendToServer(new Blink());
-                    sinceTap = 100; // третье нажатие - снова пара
+                    sinceTap = 100; // third press - a pair again
                 } else sinceTap = 0;
             }
             wasDown = down;

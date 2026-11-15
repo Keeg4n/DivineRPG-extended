@@ -29,28 +29,28 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Древняя гробница под ванильной пирамидой пустыни - логово Древней сущности (Ancient Entity).
+ * The Ancient Tomb under the vanilla desert pyramid - the lair of the Ancient Entity.
  * <p>
- * Пирамиду узнаём по ловушке в комнате с сокровищами: каменная нажимная плита, под ней через блок - TNT. Гробницу
- * строим не сразу, а когда вся её площадь (около 120 x 60 блоков) уже заселена: иначе поздние части пирамиды и
- * озёра соседних чанков ломали бы её (засыпанная лестница, висящая вода). Пока ждём - пирамида в списке, который
- * хранится вместе с миром и проверяется раз в 5 секунд.
+ * We recognize the pyramid by the trap in the treasure room: a stone pressure plate with TNT under it through one block. The tomb
+ * is not built at once, but when its whole area (about 120 x 60 blocks) is already populated: otherwise late parts of the pyramid and
+ * lakes of neighboring chunks would break it (a buried staircase, hanging water). While waiting, the pyramid is in a list that
+ * is stored with the world and checked every 5 seconds.
  * <p>
- * Ловушку пирамиды разминируем, восточный сундук комнаты переносим в угол, из центра вниз уходит широкая лестница в
- * лабиринт на ~25 блоков ниже: прямые коридоры как в египетских гробницах, стены из песчаника с полосой
- * "иероглифов" из оранжевой и синей глины, золотые лампы Divine в потолке. В тупиках - саркофаги с сундуками и
- * спавнеры мертвецов; в коридорах - крошащийся пол, неотличимый от обычного, а под ним яма с паутиной. Из дальнего
- * конца лабиринта лестница ведёт в погребальный зал; на помосте у восточной стены - алтарь для Таинственных часов.
+ * We disarm the pyramid trap, move the east chest of the room to the corner, and a wide staircase goes down from the center into the
+ * maze about 25 blocks lower: straight corridors as in Egyptian tombs, sandstone walls with a strip of
+ * "hieroglyphs" of orange and blue clay, Divine gold lamps in the ceiling. In dead ends there are sarcophagi with chests and
+ * undead spawners; in the corridors - a crumbling floor indistinguishable from a normal one, and under it a pit with cobwebs. From the far
+ * end of the maze a staircase leads to the burial hall; on a dais by the east wall - the altar for the Mysterious Clock.
  */
 public class WorldGenTomb implements IWorldGenerator {
 
     private static final int CELLS = 9, PITCH = 6, W = CELLS * PITCH + 1, H = 5;
-    /** Алтарь стоит на помосте в ALTAR_DX блоках восточнее центра зала: призванный босс встаёт в центре. */
+    /** The altar stands on a dais ALTAR_DX blocks east of the hall center: the summoned boss stands in the center. */
     public static final int ALTAR_DX = 10, ALTAR_DY = 2;
 
-    // ---------------------------------------------------------------- ожидание достройки окрестностей
+    // ---------------------------------------------------------------- waiting for the surroundings to be finished
 
-    /** Пирамиды, под которыми гробница ещё не построена (x, y, z нажимной плиты). Хранятся вместе с миром. */
+    /** Pyramids under which the tomb is not yet built (x, y, z of the pressure plate). Stored with the world. */
     public static class Pending extends WorldSavedData {
 
         private static final String NAME = "divinerpgextended_tombs_pending";
@@ -109,7 +109,7 @@ public class WorldGenTomb implements IWorldGenerator {
         }
     }
 
-    /** Раз в 5 секунд пробуем построить ожидающие гробницы. */
+    /** Every 5 seconds we try to build the waiting tombs. */
     public static class Ticker {
 
         @SubscribeEvent
@@ -122,36 +122,36 @@ public class WorldGenTomb implements IWorldGenerator {
             for (Iterator<int[]> it = p.list.iterator(); it.hasNext();) {
                 int[] t = it.next();
                 if (!ready(w, t[0], t[1], t[2])) {
-                    // игрок у пирамиды, а площадь гробницы (до 110 блоков на восток) не вся заселена: при малой дальности
-                    // прорисовки она так и не построилась бы - догружаем недостающие чанки понемногу
+                    // a player is at the pyramid, and the tomb area (up to 110 blocks to the east) is not all populated: with a short
+                    // view distance it would never get built - we load the missing chunks little by little
                     if (w.getClosestPlayer(t[0], t[1], t[2], 96) != null) fill(w, t[0], t[1], t[2], 12);
-                    else release(w, t[0], t[1], t[2]); // игрок ушёл - догруженное не держим (вернётся - догрузим снова)
+                    else release(w, t[0], t[1], t[2]); // the player left - we do not hold the loaded chunks (if they return - we load again)
                     continue;
                 }
                 it.remove();
                 p.markDirty();
                 if (w.getBlock(t[0], t[1], t[2]) == Blocks.stone_pressure_plate && build(w, w.rand, t[0], t[1], t[2])) {
-                    DivineRPGExtended.LOG.info("Древняя гробница: " + t[0] + " " + t[2]);
+                    DivineRPGExtended.LOG.info("Ancient Tomb: " + t[0] + " " + t[2]);
                 }
                 release(w, t[0], t[1], t[2]);
             }
         }
     }
 
-    /** Длина лестницы от комнаты с сокровищами до пола лабиринта. */
+    /** Length of the staircase from the treasure room to the maze floor. */
     private static int stairLength(int py) {
         int floor = py - 1;
         return floor - Math.max(20, floor - 26);
     }
 
-    /** Чанки площади гробницы (лестница, лабиринт, зал): {ax0, ax1, az0, az1}. */
+    /** Chunks of the tomb area (staircase, maze, hall): {ax0, ax1, az0, az1}. */
     private static int[] area(int px, int py, int pz) {
         int d = stairLength(py);
         int x0 = px - 12, x1 = px + d + 2 + W + 40, z0 = pz - 32, z1 = pz + 32;
         return new int[] { (x0 - 8) >> 4, (x1 - 8) >> 4, (z0 - 8) >> 4, (z1 - 8) >> 4 };
     }
 
-    /** Вся площадь гробницы загружена и заселена. */
+    /** The whole tomb area is loaded and populated. */
     private static boolean ready(World w, int px, int py, int pz) {
         int[] a = area(px, py, pz);
         for (int ax = a[0]; ax <= a[1]; ax++) {
@@ -163,7 +163,7 @@ public class WorldGenTomb implements IWorldGenerator {
         return true;
     }
 
-    /** Загрузить (создать) до max недостающих чанков площади и кольца за ней - без кольца крайние не заселятся. */
+    /** Load (create) up to max missing chunks of the area and the ring behind it - without the ring the outermost ones will not be populated. */
     private static void fill(World w, int px, int py, int pz, int max) {
         int[] a = area(px, py, pz);
         for (int ax = a[0]; ax <= a[1] + 1 && max > 0; ax++) for (int az = a[2]; az <= a[3] + 1 && max > 0; az++) {
@@ -173,23 +173,23 @@ public class WorldGenTomb implements IWorldGenerator {
         }
     }
 
-    /** После постройки: чанки площади, которые никто из игроков не видит (догруженные {@link #fill}), - в очередь на выгрузку. */
+    /** After building: chunks of the area that no player sees (loaded by {@link #fill}) - go to the unload queue. */
     private static void release(World w, int px, int py, int pz) {
         if (!(w instanceof net.minecraft.world.WorldServer)) return;
         net.minecraft.world.WorldServer ws = (net.minecraft.world.WorldServer) w;
-        if (ws.getPlayerManager() == null) return; // мир ещё создаётся (поиск точки спавна) - выгружать рано
+        if (ws.getPlayerManager() == null) return; // the world is still being created (searching for the spawn point) - too early to unload
         int[] a = area(px, py, pz);
         for (int ax = a[0]; ax <= a[1] + 1; ax++) for (int az = a[2]; az <= a[3] + 1; az++)
             if (ws.theChunkProviderServer.chunkExists(ax, az) && !ws.getPlayerManager().func_152621_a(ax, az)) ws.theChunkProviderServer.unloadChunksIfNotNearSpawn(ax, az);
     }
 
-    /** Ждёт ли постройки гробница ближе r блоков (пирамида есть, площадь ещё не готова). */
+    /** Whether a tomb closer than r blocks is waiting to be built (the pyramid exists, the area is not ready yet). */
     static boolean pendingNear(World w, int x, int z, int r) {
         for (int[] t : Pending.get(w).list) if ((long) (t[0] - x) * (t[0] - x) + (long) (t[2] - z) * (t[2] - z) <= (long) r * r) return true;
         return false;
     }
 
-    // ---------------------------------------------------------------- постройка
+    // ---------------------------------------------------------------- construction
 
     private static void set(World w, int x, int y, int z, Block b, int meta) {
         w.setBlock(x, y, z, b, meta, 2);
@@ -199,12 +199,12 @@ public class WorldGenTomb implements IWorldGenerator {
         set(w, x, y, z, Blocks.sandstone, meta);
     }
 
-    /** Золотая лампа Divine (вместо светокамня и золотых блоков: свет есть, бесплатного золота нет). */
+    /** Divine gold lamp (instead of glowstone and gold blocks: there is light, no free gold). */
     private static void lamp(World w, int x, int y, int z) {
         set(w, x, y, z, VanillaBlocks.lamp1, 10);
     }
 
-    /** Перенести сундук со всем содержимым. */
+    /** Move a chest with all its contents. */
     private static void moveChest(World w, int x, int y, int z, int nx, int ny, int nz) {
         if (!(w.getTileEntity(x, y, z) instanceof TileEntityChest)) return;
         TileEntityChest from = (TileEntityChest) w.getTileEntity(x, y, z);
@@ -221,19 +221,19 @@ public class WorldGenTomb implements IWorldGenerator {
         }
     }
 
-    /** px, py, pz - нажимная плита в комнате с сокровищами. */
+    /** px, py, pz - the pressure plate in the treasure room. */
     private static boolean build(World w, Random rand, int px, int py, int pz) {
-        int floor = py - 1; // пол комнаты с сокровищами
+        int floor = py - 1; // floor of the treasure room
         int d = stairLength(py);
-        int t = floor - d; // пол лабиринта
+        int t = floor - d; // floor of the maze
         if (d < 8) return false;
 
-        // разминировать ловушку пирамиды, восточный сундук - в угол комнаты (на его месте пройдёт лестница)
+        // disarm the pyramid trap, move the east chest to the corner of the room (the staircase will pass in its place)
         set(w, px, py, pz, Blocks.air, 0);
         for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) sandstone(w, px + dx, py - 2, pz + dz, 0);
         if (w.getBlock(px + 2, py, pz) == Blocks.chest) moveChest(w, px + 2, py, pz, px - 2, py, pz + 2);
 
-        // лестница вниз на восток: 3 в ширину, ступень на блок вниз за блок вперёд, стены и свод из песчаника
+        // staircase down to the east: 3 wide, a step one block down per block forward, walls and vault of sandstone
         for (int i = 0; i <= d + 1; i++) {
             int x = px + i, sy = Math.max(t, floor - i);
             for (int dz = -2; dz <= 2; dz++) {
@@ -247,13 +247,13 @@ public class WorldGenTomb implements IWorldGenerator {
             if (i > 2 && i % 5 == 2) lamp(w, x, sy + 5, pz);
         }
 
-        // лабиринт: клетка (0, mid) встречает лестницу с запада
+        // maze: cell (0, mid) meets the staircase from the west
         int mid = CELLS / 2;
         int mx0 = px + d + 2, mz0 = pz - 1 - mid * PITCH - 1;
         boolean[][] open = maze(rand, mid);
-        open[0][mid * PITCH + 1] = open[0][mid * PITCH + 2] = open[0][mid * PITCH + 3] = true; // вход с лестницы
+        open[0][mid * PITCH + 1] = open[0][mid * PITCH + 2] = open[0][mid * PITCH + 3] = true; // entrance from the staircase
         int exitZ = mid * PITCH + 2;
-        for (int i = W - 3; i < W; i++) { // выход к погребальному залу сквозь стену в 3 блока
+        for (int i = W - 3; i < W; i++) { // exit to the burial hall through a wall of 3 blocks
             open[i][exitZ - 1] = open[i][exitZ] = open[i][exitZ + 1] = true;
         }
         for (int i = 0; i < W; i++) {
@@ -266,11 +266,11 @@ public class WorldGenTomb implements IWorldGenerator {
                     else sandstone(w, x, t + H, z, 2);
                 } else {
                     for (int y = t; y <= t + H; y++) {
-                        // полоса "иероглифов" на уровне глаз по стенам коридоров
+                        // strip of "hieroglyphs" at eye level on the corridor walls
                         if (y == t + 3 && touchesOpen(open, i, k)) {
                             int c = (i + k) % 4;
-                            if (c == 0) set(w, x, y, z, Blocks.stained_hardened_clay, 1); // оранжевая
-                            else if (c == 2) set(w, x, y, z, Blocks.stained_hardened_clay, 11); // синяя
+                            if (c == 0) set(w, x, y, z, Blocks.stained_hardened_clay, 1); // orange
+                            else if (c == 2) set(w, x, y, z, Blocks.stained_hardened_clay, 11); // blue
                             else sandstone(w, x, y, z, 1);
                         } else {
                             sandstone(w, x, y, z, 0);
@@ -280,7 +280,7 @@ public class WorldGenTomb implements IWorldGenerator {
             }
         }
 
-        // тупики: саркофаги с сундуками и спавнеры мертвецов
+        // dead ends: sarcophagi with chests and undead spawners
         List<int[]> ends = deadEnds(open);
         Collections.shuffle(ends, rand);
         String[] undead = { (String) EntityList.classToStringMapping.get(EntityAridWarrior.class),
@@ -289,11 +289,11 @@ public class WorldGenTomb implements IWorldGenerator {
         List<int[]> used = new ArrayList<int[]>();
         for (int[] e : ends) {
             int x = mx0 + e[0], z = mz0 + e[1];
-            if (e[0] <= 3 && Math.abs(e[1] - exitZ) <= 3) continue; // не у самого входа
+            if (e[0] <= 3 && Math.abs(e[1] - exitZ) <= 3) continue; // not right at the entrance
             used.add(e);
             if (chests < 8) {
                 LairLoot.chest(w, rand, x, t + 1, z, Blocks.chest, LairLoot.tomb());
-                set(w, x, t + 2, z, Blocks.stone_slab, 1); // саркофаг: песчаниковая плита сверху
+                set(w, x, t + 2, z, Blocks.stone_slab, 1); // sarcophagus: a sandstone slab on top
                 chests++;
             } else if (com.divinerpgextended.Config.dungeonSpawners && spawners < 6) {
                 String mob = undead[rand.nextInt(undead.length)];
@@ -306,7 +306,7 @@ public class WorldGenTomb implements IWorldGenerator {
             }
         }
 
-        // ловушки: в клетках-перекрёстках пол крошится, под ним яма на 5 блоков с паутиной
+        // traps: in crossroad cells the floor crumbles, with a 5-block pit with cobwebs under it
         for (int n = 0, tries = 0; n < 7 && tries < 100; tries++) {
             int ci = 1 + rand.nextInt(CELLS - 1), cj = rand.nextInt(CELLS);
             int x = mx0 + ci * PITCH + 2, z = mz0 + cj * PITCH + 2;
@@ -330,9 +330,9 @@ public class WorldGenTomb implements IWorldGenerator {
             n++;
         }
 
-        // спуск к погребальному залу и сам зал
+        // descent to the burial hall and the hall itself
         int ex = mx0 + W, ez = mz0 + exitZ;
-        int tb = t - 7; // пол зала
+        int tb = t - 7; // hall floor
         for (int i = 0; i <= 9; i++) {
             int x = ex + i, sy = Math.max(tb, t - Math.max(0, i - 1));
             for (int dz = -2; dz <= 2; dz++) {
@@ -343,10 +343,10 @@ public class WorldGenTomb implements IWorldGenerator {
                 }
             }
         }
-        hall(w, ex + 10 + 14, tb, ez); // западная стена зала сразу за лестницей
+        hall(w, ex + 10 + 14, tb, ez); // west wall of the hall right behind the staircase
 
         LairData.get(w)
-            .add(LairData.TOMB, px, w.getTopSolidOrLiquidBlock(px, pz), pz); // пирамида
+            .add(LairData.TOMB, px, w.getTopSolidOrLiquidBlock(px, pz), pz); // pyramid
         return true;
     }
 
@@ -356,8 +356,8 @@ public class WorldGenTomb implements IWorldGenerator {
     }
 
     /**
-     * Погребальный зал: 27 x 27, высота 12, по периметру колонны из резного песчаника, внутри четыре массивные
-     * колонны с поясом из золотых ламп, лампы в потолке. Вход с запада, помост с алтарём у восточной стены.
+     * Burial hall: 27 x 27, height 12, columns of carved sandstone along the perimeter, inside four massive
+     * columns with a belt of gold lamps, lamps in the ceiling. Entrance from the west, a dais with the altar by the east wall.
      */
     private static void hall(World w, int cx, int tb, int cz) {
         int r = 13, h = 12;
@@ -380,9 +380,9 @@ public class WorldGenTomb implements IWorldGenerator {
                 if (!wall && dx % 6 == 0 && dz % 6 == 0) lamp(w, x, tb + h, z);
             }
         }
-        // проход с запада
+        // passage from the west
         for (int dz = -1; dz <= 1; dz++) for (int y = tb + 1; y <= tb + 4; y++) set(w, cx - r - 1, y, cz + dz, Blocks.air, 0);
-        // четыре массивные колонны 3x3 с поясом из золотых ламп
+        // four massive 3x3 columns with a belt of gold lamps
         for (int[] c : new int[][] { { -6, -6 }, { -6, 6 }, { 6, -6 }, { 6, 6 } }) {
             for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
                 for (int y = tb + 1; y <= tb + h; y++) {
@@ -392,19 +392,19 @@ public class WorldGenTomb implements IWorldGenerator {
                 }
             }
         }
-        // помост с алтарём у восточной стены: босс встаёт в центре зала
+        // dais with the altar by the east wall: the boss stands in the center of the hall
         int ax = cx + ALTAR_DX;
         for (int dx = -1; dx <= 1; dx++) for (int dz = -2; dz <= 2; dz++) sandstone(w, ax + dx, tb + 1, cz + dz, 2);
         for (int dz : new int[] { -2, 2 }) lamp(w, ax, tb + 2, cz + dz);
         set(w, ax, tb + ALTAR_DY, cz, ModBlocks.tombAltar, 0);
-        // резная стена-"дверь" за алтарём с лампами
+        // carved "door" wall behind the altar with lamps
         for (int dz = -1; dz <= 1; dz++) for (int y = tb + 1; y <= tb + 5; y++) {
             if ((y + dz) % 2 == 0) lamp(w, cx + r + 1, y, cz + dz);
             else sandstone(w, cx + r + 1, y, cz + dz, 1);
         }
     }
 
-    /** Лабиринт "рекурсивным возвратом" на сетке клеток: true - проход (клетка 3x3 и проёмы между клетками). */
+    /** A maze by "recursive backtracking" on a cell grid: true - passage (a 3x3 cell and the openings between cells). */
     private static boolean[][] maze(Random rand, int mid) {
         boolean[][] open = new boolean[W][W];
         boolean[][] seen = new boolean[CELLS][CELLS];
@@ -427,7 +427,7 @@ public class WorldGenTomb implements IWorldGenerator {
             int[] n = next.get(rand.nextInt(next.size()));
             seen[n[0]][n[1]] = true;
             cell(open, n[0], n[1]);
-            // проём между клетками: стена толщиной 3 между ними пробивается на всю ширину коридора
+            // opening between cells: the wall of thickness 3 between them is broken through across the whole corridor width
             int ax = Math.min(c[0], n[0]) * PITCH, az = Math.min(c[1], n[1]) * PITCH;
             if (c[0] != n[0]) {
                 for (int s = 4; s <= 6; s++) for (int q = 1; q <= 3; q++) open[ax + s][c[1] * PITCH + q] = true;
@@ -443,7 +443,7 @@ public class WorldGenTomb implements IWorldGenerator {
         for (int a = 1; a <= 3; a++) for (int b = 1; b <= 3; b++) open[cx * PITCH + a][cz * PITCH + b] = true;
     }
 
-    /** Центры клеток с одним выходом. */
+    /** Centers of cells with one exit. */
     private static List<int[]> deadEnds(boolean[][] open) {
         List<int[]> out = new ArrayList<int[]>();
         for (int cx = 0; cx < CELLS; cx++) {

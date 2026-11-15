@@ -29,23 +29,23 @@ import com.divinerpgextended.world.CadillionWorld;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 /**
- * Крафты сумеречных миров вместо рецептов Divine:
+ * Twilight dimension crafts instead of Divine recipes:
  * <ul>
- * <li>палки мира из досок дерева мира, факелы мира (пыль на палке), стрелы мира на палках мира;</li>
- * <li>броня мира = куски мира + материал мобов мира + шестерня времени прошлого мира ({@link #gear}, в верстаке не тратится,
- * у Эдема её нет): сет прошлого мира в крафт больше не идёт;</li>
- * <li>оружие и инструменты - цепочкой: вещь мира = такая же вещь прошлого мира + куски мира + материал мобов мира, рукояти
- * из палок мира. Эдем начинается с божественных вещей верхнего мира;</li>
- * <li>Дикий лес вдобавок просит морское: китовый плавник в броню, акулий якорь в клинок, зубы лиоплевродона в луки и
- * пушки, клешню краба в инструменты;</li>
- * <li>рамка портала в следующий мир - камни врат из сердца стража (трофей Великого кадиллиона).</li>
+ * <li>world sticks from world wood planks, world torches (dust on a stick), world arrows on world sticks;</li>
+ * <li>world armor = world pieces + world mob material + the time gear of the previous world ({@link #gear}, not consumed in the crafting table,
+ * Eden has none): the previous world's set no longer goes into the craft;</li>
+ * <li>weapons and tools - as a chain: a world item = the same item of the previous world + world pieces + world mob material, handles
+ * from world sticks. Eden starts with divine items of the overworld;</li>
+ * <li>Wildwood additionally asks for sea items: a whale fin into armor, a shark anchor into a blade, Liopleurodon teeth into bows and
+ * cannons, a crab claw into tools;</li>
+ * <li>the portal frame to the next world - gate stones from the guardian heart (a trophy of the Great Cadillion).</li>
  * </ul>
  */
 public final class TwilightCrafts {
 
     private TwilightCrafts() {}
 
-    /** Материал мобов для брони, оружия и инструментов мира (индекс в {@link TwilightMaterial#ofWorld}). */
+    /** Mob material for world armor, weapons and tools (index in {@link TwilightMaterial#ofWorld}). */
     public static final int ARMOR_MAT = 1, WEAPON_MAT = 0, TOOL_MAT = 2;
 
     public static ItemStack stick(WorldWood w) {
@@ -56,7 +56,7 @@ public final class TwilightCrafts {
         return new ItemStack(ModItems.twilightMaterial, 1, TwilightMaterial.ofWorld(w)[idx].ordinal());
     }
 
-    /** Предыдущая вещь цепочки с любой прочностью. */
+    /** The previous item of the chain with any durability. */
     private static ItemStack any(Item i) {
         return new ItemStack(i, 1, OreDictionary.WILDCARD_VALUE);
     }
@@ -71,7 +71,7 @@ public final class TwilightCrafts {
         }
     }
 
-    /** Оружие мира: [0] клинок, [1] лук, [2] фазер, [3] блиц. */
+    /** World weapons: [0] blade, [1] bow, [2] phaser, [3] blitz. */
     public static Item[] weapons(TwilightWorld w) {
         switch (w) {
             case EDEN: return new Item[] { TwilightItemsWeapons.edenBlade, TwilightItemsWeapons.edenBow, TwilightItemsWeapons.edenPhaser, TwilightItemsWeapons.edenBlitz };
@@ -82,7 +82,7 @@ public final class TwilightCrafts {
         }
     }
 
-    /** Инструменты мира: [0] кирка, [1] лопата, [2] топор. */
+    /** World tools: [0] pickaxe, [1] shovel, [2] axe. */
     public static Item[] tools(TwilightWorld w) {
         switch (w) {
             case EDEN: return new Item[] { TwilightItemsTools.edenPickaxe, TwilightItemsTools.edenShovel, TwilightItemsTools.edenAxe };
@@ -93,13 +93,13 @@ public final class TwilightCrafts {
         }
     }
 
-    /** Шестерня времени прошлого мира - ключ к броне мира w (перед Эдемом обычный мир, шестерни нет - null). */
+    /** The time gear of the previous world - the key to world w armor (before Eden is the overworld, there is no gear - null). */
     public static ItemStack gear(TwilightWorld w) {
         return w == TwilightWorld.EDEN ? null : new ItemStack(ModItems.timeGear, 1, w.ordinal() - 1);
     }
 
     /**
-     * Сет прошлого мира цепочки (перед Эдемом - божественный): в крафт брони больше не идёт, дома даёт полуступень
+     * The previous world's set of the chain (before Eden - divine): no longer goes into the armor craft, at home it gives a half-step
      * ({@link com.divinerpgextended.perk.HomeArmor}).
      */
     public static Item[] prevArmor(TwilightWorld w) {
@@ -117,7 +117,7 @@ public final class TwilightCrafts {
         return tools(TwilightWorld.values()[w.ordinal() - 1]);
     }
 
-    /** Убрать рецепты Divine и поставить свои. Вызывать в postInit (после рецептов Divine). */
+    /** Remove Divine recipes and set our own. Call in postInit (after Divine recipes). */
     public static void postInit() {
         rails();
         if (Config.worldCrafts) {
@@ -129,10 +129,10 @@ public final class TwilightCrafts {
     }
 
     /**
-     * Рельсы Апалачии и арканы Divine - предметы-блоки: клиент сам проверяет пол под рельсом и клик по стене до сервера не
-     * доходит, без правки байткода Divine их на стену не поставить. Поэтому вместо них - рельсы аддона (на пол ставят те же
-     * рельсы, на стены и потолок - навесные), а рельсы Divine из игры убраны: крафта нет, во вкладке их нет, сломанные
-     * выпадают рельсами аддона, купленные у Датикона и найденные - в инвентаре сразу становятся ими же.
+     * Apalachia and Arcana rails of Divine are item-blocks: the client itself checks the floor under the rail and a click on a wall does not reach the server,
+     * so without editing Divine bytecode they cannot be placed on a wall. So instead there are the addon's rails (the same
+     * rails go on the floor, hanging ones on walls and ceiling), and Divine rails are removed from the game: no craft, not in the tab, broken ones
+     * drop addon rails, those bought from Datticon and found ones become them right in the inventory.
      */
     public static class RailDrops {
 
@@ -141,7 +141,7 @@ public final class TwilightCrafts {
             net.divinerpg.utils.blocks.ArcanaBlocks.arcaniteRails.setCreativeTab(null);
         }
 
-        /** Рельсы аддона вместо рельсов Divine (null - не они). */
+        /** Addon rails instead of Divine rails (null - not them). */
         public static Item replacement(Item i) {
             if (i == null) return null;
             if (i == Item.getItemFromBlock(TwilightBlocks.apalachiaRails)) return ModItems.apalachiaRails;
@@ -149,7 +149,7 @@ public final class TwilightCrafts {
             return null;
         }
 
-        /** Рельсы Divine в инвентаре - на месте те же по числу рельсы аддона (слот не освобождается ни на миг). */
+        /** Divine rails in the inventory - in their place the same number of addon rails (the slot is not freed even for a moment). */
         public static int convert(net.minecraft.entity.player.EntityPlayer p) {
             int n = 0;
             ItemStack[] inv = p.inventory.mainInventory;
@@ -181,14 +181,14 @@ public final class TwilightCrafts {
         }
     }
 
-    /** Рельсы Апалачии Divine (на пол - обычные, на стены и потолок - навесные) и вагонетка Апалачии к ним. */
+    /** Divine Apalachia rails (ordinary on the floor, hanging ones on walls and ceiling) and the Apalachia Cart for them. */
     private static void rails() {
         Item old = Item.getItemFromBlock(TwilightBlocks.apalachiaRails);
         remove(old);
         RailDrops.hideDivine();
-        // рельсы Апалачии: на пол - настоящие рельсы Divine, на стену и потолок - навесные; старые рельсы Divine перекладываются в них
+        // Apalachia rails: on the floor - real Divine rails, on a wall and ceiling - hanging ones; old Divine rails are converted into them
         GameRegistry.addShapelessRecipe(new ItemStack(ModItems.apalachiaRails), old);
-        // рельсы арканы Divine (у Датикона) - в рельсы арканы аддона: разгоняют вагонетку, ставятся и на стены
+        // Divine Arcana rails (from Datticon) - into addon Arcana rails: they accelerate the cart, and can also be placed on walls
         GameRegistry.addShapelessRecipe(new ItemStack(ModItems.arcanaRails), net.divinerpg.utils.blocks.ArcanaBlocks.arcaniteRails);
         GameRegistry.addRecipe(new ItemStack(ModItems.apalachiaRails, 16), "F F", "FSF", "F F", 'F', net.divinerpg.utils.items.TwilightItemsOther.apalachiaFragments, 'S',
             stick(WorldWood.APALACHIA));
@@ -199,7 +199,7 @@ public final class TwilightCrafts {
     private static void sticks() {
         List<IRecipe> list = recipes();
         for (WorldWood w : WorldWood.values()) {
-            // свои палки раньше ванильного рецепта палок из любых досок
+            // our own sticks before the vanilla recipe of sticks from any planks
             IRecipe r = GameRegistry.addShapedRecipe(new ItemStack(ModItems.worldStick, 4, w.ordinal()), "P", "P", 'P', w.planks());
             list.remove(r);
             list.add(0, r);
@@ -217,8 +217,8 @@ public final class TwilightCrafts {
     }
 
     /**
-     * Обычные палки из досок миров не делаются (и в NEI их нет): рецепты палок только из досок мира убираются, из
-     * словарных рецептов (доски любого дерева) доски миров вычёркиваются.
+     * Ordinary sticks are not made from world planks (and are absent in NEI): recipes of sticks only from world planks are removed, from
+     * ore dictionary recipes (planks of any wood) world planks are struck out.
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private static void noVanillaSticks(List<IRecipe> list) {
@@ -241,7 +241,7 @@ public final class TwilightCrafts {
                 for (Object o : (List) in[k]) if (!(o instanceof ItemStack && world.contains(((ItemStack) o).getItem()))) filtered.add(o);
                 if (filtered.size() == ((List) in[k]).size()) continue;
                 if (r instanceof net.minecraftforge.oredict.ShapedOreRecipe) in[k] = filtered;
-                else { // у бесформенного getInput - сам список рецепта
+                else { // for a shapeless recipe getInput is the recipe's own list
                     List live = ((net.minecraftforge.oredict.ShapelessOreRecipe) r).getInput();
                     live.set(live.indexOf(in[k]), filtered);
                 }
@@ -250,7 +250,7 @@ public final class TwilightCrafts {
         }
     }
 
-    /** Есть ли рецепт обычных палок, принимающий эти доски (для автотеста). */
+    /** Whether there is an ordinary sticks recipe accepting these planks (for selftest). */
     public static boolean vanillaSticksFrom(net.minecraft.world.World w, Block planks) {
         net.minecraft.inventory.InventoryCrafting g = new net.minecraft.inventory.InventoryCrafting(new net.minecraft.inventory.Container() {
             @Override
@@ -267,11 +267,11 @@ public final class TwilightCrafts {
     private static void world(TwilightWorld w) {
         Item c = chunk(w);
         ItemStack s = stick(WorldWood.of(w)), am = mat(w, ARMOR_MAT), wm = mat(w, WEAPON_MAT), tm = mat(w, TOOL_MAT);
-        // у других миров на этих местах те же куски мира
+        // other worlds have the same world pieces in these places
         boolean sea = w == TwilightWorld.WILDWOOD;
-        ItemStack cs = new ItemStack(c), fin = sea ? new ItemStack(VanillaItemsOther.whaleFin) : cs, teeth = sea ? new ItemStack(VanillaItemsOther.sharkFin) : cs, // зубы лиоплевродона с 0.99.113 - только с позднего босса
+        ItemStack cs = new ItemStack(c), fin = sea ? new ItemStack(VanillaItemsOther.whaleFin) : cs, teeth = sea ? new ItemStack(VanillaItemsOther.sharkFin) : cs, // Liopleurodon teeth since 0.99.113 - only from the late boss
             claw = sea ? new ItemStack(VanillaItemsOther.crabClaw) : cs, hook = sea ? any(VanillaItemsWeapons.sharkAnchor) : cs;
-        // броня: на месте части прошлого сета - шестерня времени прошлого мира (остаётся в верстаке); у Эдема место пустое
+        // armor: in place of the previous set's piece - the time gear of the previous world (stays in the crafting table); Eden's place is empty
         Item[] armor = w.armor();
         ItemStack gear = gear(w);
         for (Item i : armor) remove(i);
@@ -298,7 +298,7 @@ public final class TwilightCrafts {
         GameRegistry.addRecipe(new ItemStack(tl[2]), "KM ", "KP ", " S ", 'K', claw, 'M', tm, 'P', any(pt[2]), 'S', s);
     }
 
-    /** Божественный меч и инструменты верхнего мира - на палках из божественного дерева. */
+    /** The divine sword and tools of the overworld - on sticks of divine wood. */
     private static void divineTier() {
         ItemStack s = stick(WorldWood.DIVINE);
         Item st = VanillaItemsOther.divineStone;
@@ -312,7 +312,7 @@ public final class TwilightCrafts {
         GameRegistry.addRecipe(new ItemStack(VanillaItemsTools.divineAxe), "II ", "IS ", " S ", 'I', st, 'S', s);
     }
 
-    /** Порталы Дикого леса..Мортума: рамка из камней врат вместо блоков камней прошлого мира. */
+    /** Wildwood..Mortum portals: a frame of gate stones instead of blocks of the previous world's stones. */
     private static void gates() {
         Block[] portals = { TwilightBlocks.wildwoodPortal, TwilightBlocks.apalachiaPortal, TwilightBlocks.skythernPortal, TwilightBlocks.mortumPortal };
         try {
@@ -320,18 +320,18 @@ public final class TwilightCrafts {
             f.setAccessible(true);
             for (CadillionWorld w : CadillionWorld.values()) f.set(portals[w.ordinal()], ModBlocks.gateStone[w.ordinal()]);
         } catch (Exception e) {
-            DivineRPGExtended.LOG.error("Не удалось заменить рамки порталов на камни врат", e);
+            DivineRPGExtended.LOG.error("Could not replace portal frames with gate stones", e);
             return;
         }
         for (CadillionWorld w : CadillionWorld.values()) {
             TwilightWorld tw = TwilightWorld.values()[w.ordinal()];
-            // 10 штук - ровно на рамку портала 4 x 5
+            // 10 pieces - exactly for a 4 x 5 portal frame
             GameRegistry.addRecipe(new ItemStack(ModBlocks.gateStone[w.ordinal()], 10), "BBB", "BHB", "BBB", 'B', tw.gemBlock(), 'H',
                 new ItemStack(ModItems.guardianHeart, 1, w.ordinal()));
         }
     }
 
-    /** Портал, рамка которого - этот камень врат, или null. */
+    /** The portal whose frame is this gate stone, or null. */
     public static BlockModPortal portalOf(Block gate) {
         Block[] portals = { TwilightBlocks.wildwoodPortal, TwilightBlocks.apalachiaPortal, TwilightBlocks.skythernPortal, TwilightBlocks.mortumPortal };
         for (int i = 0; i < 4; i++) if (ModBlocks.gateStone[i] == gate) return (BlockModPortal) portals[i];

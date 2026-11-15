@@ -7,7 +7,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
-/** Харон: модель в балахоне ({@link ModelCharon}), на голову выше игрока. */
+/** Charon: a model in a robe ({@link ModelCharon}), a head taller than the player. */
 public class RenderCharon extends RenderBiped {
 
     private static final ResourceLocation TEX = new ResourceLocation("divinerpgextended", "textures/entity/charon.png");

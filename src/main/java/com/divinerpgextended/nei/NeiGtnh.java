@@ -18,22 +18,22 @@ import com.divinerpgextended.registry.ModItems;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Только для NEI из GTNH (в классическом NEI этих классов и методов нет - этот класс там не загружается): удочки как
- * катализаторы рыбалки и описания вкладок (иконка, высота страницы).
+ * For NEI from GTNH only (classic NEI has none of these classes and methods - this class is not loaded there): fishing rods as
+ * fishing catalysts and tab descriptions (icon, page height).
  */
 public class NeiGtnh {
 
     static void setup(FishingHandler fishing, BrewingHandler brewing) {
-        // удочки - катализаторы рыбалки: в NEI видно, чем ловить, и по удочке открывается вкладка
+        // fishing rods are fishing catalysts: NEI shows what to catch with, and the tab opens from a rod
         API.addRecipeCatalyst(new ItemStack(Items.fishing_rod), fishing);
         for (Item rod : ModItems.rods) if (rod != null) API.addRecipeCatalyst(new ItemStack(rod), fishing);
-        // арканная стойка - катализатор зельеварения
+        // the Arcane Brewing Stand is a brewing catalyst
         API.addRecipeCatalyst(new ItemStack(com.divinerpgextended.registry.ModBlocks.arcaneBrewer), brewing);
         infos();
         MinecraftForge.EVENT_BUS.register(new NeiGtnh());
     }
 
-    /** NEI перечитывает описания вкладок при загрузке, наши кладём каждый раз. */
+    /** NEI rereads tab descriptions on load, so we register ours every time. */
     @SubscribeEvent
     public void onHandlerInfos(NEIRegisterHandlerInfosEvent e) {
         infos();

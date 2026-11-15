@@ -24,8 +24,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Вагонетка Апалачии: модель ванильной вагонетки, фиолетовая, повёрнута по пути - колёсами к опоре (на стене боком, на
- * потолке вверх дном, на горке наклонно), носом по ходу. Седок ({@link Rider}) поворачивается вместе с ней.
+ * Apalachia Cart: a vanilla minecart model, purple, rotated along the path - wheels toward the support (on a wall sideways, on the
+ * ceiling upside down, on a slope tilted), nose along the direction of travel. The rider ({@link Rider}) rotates together with it.
  */
 @SideOnly(Side.CLIENT)
 public class RenderSkyCart extends Render {
@@ -37,7 +37,7 @@ public class RenderSkyCart extends Render {
         shadowSize = 0.4F;
     }
 
-    /** Нормаль пути между тиками. */
+    /** The path normal between ticks. */
     static double[] up(EntitySkyCart c, float pt) {
         float[] a = c.prevNormal, b = c.normal();
         double[] n = { a[0] + (b[0] - a[0]) * pt, a[1] + (b[1] - a[1]) * pt, a[2] + (b[2] - a[2]) * pt };
@@ -46,8 +46,8 @@ public class RenderSkyCart extends Render {
     }
 
     /**
-     * Наклон по кратчайшему повороту "вверх" -> нормаль (взгляд не крутится вокруг себя): {угол в градусах, ось x, ось z};
-     * на потолке ось - вбок от хода. null - на полу, наклона нет.
+     * Tilt by the shortest rotation "up" -> normal (the look does not spin around itself): {angle in degrees, axis x, axis z};
+     * on the ceiling the axis is sideways to the direction of travel. null - on the floor, no tilt.
      */
     static double[] tilt(EntitySkyCart c, double[] up) {
         if (up[1] > 0.999) return null;
@@ -61,13 +61,13 @@ public class RenderSkyCart extends Render {
         return new double[] { Math.toDegrees(Math.acos(Math.max(-1, Math.min(1, up[1])))), ax, az };
     }
 
-    /** Поворот модели: X - по ходу, Y - по нормали, Z - вбок (матрица по столбцам для glMultMatrix). */
+    /** Model rotation: X - along the travel, Y - along the normal, Z - sideways (a column-major matrix for glMultMatrix). */
     static FloatBuffer basis(EntitySkyCart c, double[] up) {
         float[] f0 = c.course();
         double d = f0[0] * up[0] + f0[1] * up[1] + f0[2] * up[2];
         double[] f = { f0[0] - up[0] * d, f0[1] - up[1] * d, f0[2] - up[2] * d };
         double l = Math.sqrt(f[0] * f[0] + f[1] * f[1] + f[2] * f[2]);
-        if (l < 1e-4) { // курс вдоль нормали - любой перпендикуляр
+        if (l < 1e-4) { // heading along the normal - any perpendicular
             f = Math.abs(up[0]) < 0.9 ? new double[] { 1, 0, 0 } : new double[] { 0, 0, 1 };
             d = f[0] * up[0] + f[1] * up[1] + f[2] * up[2];
             f = new double[] { f[0] - up[0] * d, f[1] - up[1] * d, f[2] - up[2] * d };
@@ -102,8 +102,8 @@ public class RenderSkyCart extends Render {
     }
 
     /**
-     * Седок вагонетки Апалачии: на стене и потолке рисуется повёрнутым вместе с ней - сидит внутри, а не торчит рядом
-     * стоймя. Его настоящая позиция - у глаз (камера и рамка не в блоках), рисунок переносится к сиденью.
+     * Apalachia Cart rider: on a wall and ceiling is drawn rotated together with it - sits inside rather than sticking out nearby
+     * upright. His real position is at the eyes (camera and frame are not in blocks), the picture is moved to the seat.
      */
     public static class Rider {
 
@@ -116,7 +116,7 @@ public class RenderSkyCart extends Render {
             EntitySkyCart c = (EntitySkyCart) p.ridingEntity;
             float pt = e.partialRenderTick;
             double[] up = up(c, pt);
-            if (up[1] > 0.999) return; // на полу - как в обычной вагонетке
+            if (up[1] > 0.999) return; // on the floor - like in an ordinary minecart
             double px = p.lastTickPosX + (p.posX - p.lastTickPosX) * pt - RenderManager.renderPosX;
             double py = p.lastTickPosY + (p.posY - p.lastTickPosY) * pt - RenderManager.renderPosY - p.yOffset;
             double pz = p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * pt - RenderManager.renderPosZ;
@@ -124,11 +124,11 @@ public class RenderSkyCart extends Render {
             double my = c.lastTickPosY + (c.posY - c.lastTickPosY) * pt - RenderManager.renderPosY + c.height / 2;
             double mz = c.lastTickPosZ + (c.posZ - c.lastTickPosZ) * pt - RenderManager.renderPosZ;
             GL11.glPushMatrix();
-            // точка ног сиденья: ниже середины по нормали, как у ванильной вагонетки
+            // the seat's feet point: below the middle along the normal, like the vanilla minecart
             GL11.glTranslated(mx - up[0] * EntitySkyCart.SEAT, my - up[1] * EntitySkyCart.SEAT, mz - up[2] * EntitySkyCart.SEAT);
             double[] t = tilt(c, up);
             GL11.glRotated(t[0], t[1], 0, t[2]);
-            // сам игрок рисуется от своей позиции - её убрать
+            // the player himself is drawn from his own position - remove it
             GL11.glTranslated(-px, -py, -pz);
             pushed.add(p);
         }
@@ -141,7 +141,7 @@ public class RenderSkyCart extends Render {
         private final Set<net.minecraft.entity.EntityLivingBase> mobs = new HashSet<net.minecraft.entity.EntityLivingBase>();
         private static java.lang.reflect.Field timer;
 
-        /** Доля тика кадра (в событии моба её нет; таймер игры закрыт). */
+        /** Fraction of the frame tick (the mob event does not have it; the game timer is closed). */
         private static float partialTicks() {
             try {
                 if (timer == null) timer = cpw.mods.fml.relauncher.ReflectionHelper.findField(net.minecraft.client.Minecraft.class, "timer", "field_71428_T");
@@ -151,7 +151,7 @@ public class RenderSkyCart extends Render {
             }
         }
 
-        /** Моб в вагонетке - так же повёрнут вместе с ней (рисуется от e.x, e.y, e.z - точки его ног). */
+        /** A mob in the cart is rotated together with it in the same way (drawn from e.x, e.y, e.z - the point of its feet). */
         @SubscribeEvent(priority = EventPriority.LOWEST)
         public void onMobPre(net.minecraftforge.client.event.RenderLivingEvent.Pre e) {
             net.minecraft.entity.EntityLivingBase m = e.entity;
@@ -163,8 +163,8 @@ public class RenderSkyCart extends Render {
             double mx = c.lastTickPosX + (c.posX - c.lastTickPosX) * pt - RenderManager.renderPosX;
             double my = c.lastTickPosY + (c.posY - c.lastTickPosY) * pt - RenderManager.renderPosY + c.height / 2;
             double mz = c.lastTickPosZ + (c.posZ - c.lastTickPosZ) * pt - RenderManager.renderPosZ;
-            // ноги моба - на той же высоте над серединой, что и на полу (EntitySkyCart.updateRiderPosition): иначе на стене и
-            // потолке он рисовался на полблока глубже и проваливался в вагонетку
+            // the mob's feet are at the same height above the middle as on the floor (EntitySkyCart.updateRiderPosition): otherwise on a wall and
+            // ceiling it was drawn half a block deeper and sank into the cart
             double seat = 1.62 - 0.5 - EntitySkyCart.EYES - m.getYOffset();
             GL11.glPushMatrix();
             GL11.glTranslated(mx - up[0] * seat, my - up[1] * seat, mz - up[2] * seat);

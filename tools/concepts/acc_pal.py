@@ -1,4 +1,4 @@
-"""Рампы цветов значков: от тёмного к светлому."""
+"""Icon color ramps: from dark to light."""
 GOLD = ['#5c3a0e', '#9a6a1c', '#d39a2a', '#f6d25e', '#fff3b4']
 SILV = ['#3e434f', '#6d7482', '#a2a9b6', '#d3d8e0', '#f6f8fb']
 BONE = ['#6a5a3c', '#a08f6a', '#cdbf9c', '#ece2c6', '#fffbe8']

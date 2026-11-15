@@ -1,7 +1,7 @@
-"""Концепты моделей брони Странника R1-R7: по 3 на ступень (А - Путник, Б - Рыцарь миров, В - Дух мира).
+"""Concepts of Wanderer armor models R1-R7: 3 per tier (A - Traveler, B - World Knight, V - World Spirit).
 
-Модели собираются из коробок meshkit на костях игрока (как будет в игре), рендер - свой растеризатор со свечением.
-Запуск: python3 wconcepts.py [ключ ...]  (ключ вида r1a; без ключей - все). Картинки - в OUT.
+Models are assembled from meshkit boxes on the player's bones (as it will be in the game), rendering uses our own rasterizer with glow.
+Run: python3 wconcepts.py [key ...]  (key like r1a; without keys - all). Images go to OUT.
 """
 import math
 import os
@@ -16,7 +16,7 @@ import meshkit as mk  # noqa: E402
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'wanderer_concepts')
 os.makedirs(OUT, exist_ok=True)
 
-# ------------------------------------------------------------------ раскраска
+# ------------------------------------------------------------------ painting
 
 def fuv(p, face):
     n = face.name
@@ -28,7 +28,7 @@ def fuv(p, face):
 
 
 def P(base, *decals, bevel=0.2, noise=0.05, glow=False, alpha=None, grad=0.0):
-    """Материал + наклейки. Наклейка: f(p, face, box) -> (цвет, доля 0..1, светится). alpha(p, face, box) -> 0/1 (дыры)."""
+    """Material + decals. Decal: f(p, face, box) -> (color, fraction 0..1, glows). alpha(p, face, box) -> 0/1 (holes)."""
     mat = mk.material(base, bevel=bevel, noise=noise, grad=grad)
 
     def paint(p, face, box):
@@ -90,7 +90,7 @@ def mottle(color, scale=1.0, thr=0.6, seed=0, glow=False, amount=1.0):
 
     def d(p, face, box):
         q = p + box.p0
-        # клетка ~1/scale единицы - "пиксель" Minecraft, а не рябь
+        # a cell is ~1/scale of a unit - a Minecraft "pixel", not shimmer
         return c, (mk.hash_noise(q, scale * 0.25, seed) > thr).astype(float) * amount, glow
     return d
 
@@ -107,7 +107,7 @@ def veins(color, scale=0.8, width=0.25, glow=True, seed=0.0):
 
 
 def streaks(color, scale=1.0, thr=0.55, seed=1):
-    """Волокна вдоль высоты (кора, дерево)."""
+    """Fibers along the height (bark, wood)."""
     c = C(color)
 
     def d(p, face, box):
@@ -131,7 +131,7 @@ def dots(faces, step, r, color, off=0.0):
 
 
 def facets(color, amount=0.35):
-    """Грани кристалла: диагональ делит каждую сторону на светлую и тёмную половины."""
+    """Crystal facets: a diagonal splits each side into light and dark halves."""
     c = C(color)
 
     def d(p, face, box):
@@ -141,7 +141,7 @@ def facets(color, amount=0.35):
 
 
 def stripe(faces, k, b, w, color, glow=False):
-    """Наклонная полоса |u - k*v - b| < w (перевязь, блик)."""
+    """Slanted stripe |u - k*v - b| < w (bandolier, highlight)."""
     c = C(color)
 
     def d(p, face, box):
@@ -153,7 +153,7 @@ def stripe(faces, k, b, w, color, glow=False):
 
 
 def tatter(depth=2.5, freq=2.1, seed=0.0):
-    """Рваный низ: дыры у нижнего края коробки."""
+    """Ragged hem: holes at the bottom edge of the box."""
     def a(p, face, box):
         u = p[..., 0] + p[..., 2]
         h = box.size[1]
@@ -162,7 +162,7 @@ def tatter(depth=2.5, freq=2.1, seed=0.0):
     return a
 
 
-# ------------------------------------------------------------------ коробки
+# ------------------------------------------------------------------ boxes
 
 def box(bone, x, y, z, w, h, d, paint, rot=(0, 0, 0), pivot=None, k=4.0):
     return mk.Box('a', bone, x, y, z, w, h, d, paint, rot=rot, pivot=pivot, k=k)
@@ -176,7 +176,7 @@ def sym(*bs):
 
 
 def rod(bone, start, L, t, paint, rx=0.0, rz=0.0, ry=0.0, k=4.0):
-    """Брусок длиной L от точки start вверх (-y), повёрнутый вокруг start."""
+    """A bar of length L from point start upward (-y), rotated around start."""
     sx, sy, sz = start
     return box(bone, sx - t / 2, sy - L, sz - t / 2, t, L, t, paint, rot=(rx, ry, rz), pivot=(sx, sy, sz), k=k)
 
@@ -186,7 +186,7 @@ def tip(start, L, rx=0.0, rz=0.0, ry=0.0):
 
 
 def chain(bone, start, segs, t0, paint, taper=0.75, colors=None):
-    """Рог / ветка: сегменты (длина, rx, rz) друг за другом, тоньше к концу; colors=(от, до) - цвет плавно к кончику."""
+    """Horn / branch: segments (length, rx, rz) one after another, thinner toward the end; colors=(from, to) - color fades toward the tip."""
     out, s, t = [], np.asarray(start, float), t0
     for i, (L, rx, rz) in enumerate(segs):
         if colors:
@@ -210,7 +210,7 @@ def ring(bone, center, radius, n, t, paint, y_axis=True):
     return out
 
 
-# ---- части брони (кости игрока; y вниз, лицо в -Z)
+# ---- armor parts (player bones; y down, face toward -Z)
 
 def chest(paint, top=-1.0, bottom=11.0, inf=1.0):
     return [box('body', -4 - inf, top, -2 - inf, 8 + 2 * inf, bottom - top, 4 + 2 * inf, paint)]
@@ -251,13 +251,13 @@ def pauldron(paint, tilt=-12.0, layers=2, big=1.0):
 
 def hood(paint, shadow='#140f0c', tip_len=3.2, capelet=None):
     bs = [
-        box('head', -5.2, -9.8, -5.2, 10.4, 1.8, 10.8, paint),           # верх
-        box('head', -5.2, -8.0, 4.2, 10.4, 8.8, 1.4, paint),             # затылок
-        box('head', -4.4, -8.6, -6.0, 8.8, 1.3, 1.3, paint),             # козырёк
-        box('head', -4.0, -8.0, -4.2, 8.0, 2.0, 0.15, P(shadow, noise=0.0, bevel=0)),  # тень на лбу
-        box('head', -1.9, -9.6, 5.0, 3.8, tip_len, 2.6, paint, rot=(30, 0, 0), pivot=(0, -9.6, 5.0)),  # хвостик
+        box('head', -5.2, -9.8, -5.2, 10.4, 1.8, 10.8, paint),           # top
+        box('head', -5.2, -8.0, 4.2, 10.4, 8.8, 1.4, paint),             # back of the head
+        box('head', -4.4, -8.6, -6.0, 8.8, 1.3, 1.3, paint),             # visor
+        box('head', -4.0, -8.0, -4.2, 8.0, 2.0, 0.15, P(shadow, noise=0.0, bevel=0)),  # shadow on the forehead
+        box('head', -1.9, -9.6, 5.0, 3.8, tip_len, 2.6, paint, rot=(30, 0, 0), pivot=(0, -9.6, 5.0)),  # ponytail
     ]
-    bs += sym(box('head', -5.6, -8.0, -5.2, 1.6, 8.8, 9.4, paint))      # бока
+    bs += sym(box('head', -5.6, -8.0, -5.2, 1.6, 8.8, 9.4, paint))      # sides
     if capelet:
         bs += [box('body', -5.8, -1.6, -3.6, 11.6, 3.8, 7.2, capelet)]
         bs += sym(box('rightArm', -4.6, -3.9, -3.5, 6.4, 3.6, 7.0, capelet, rot=(0, 0, -14), pivot=(-1, -3, 0)))
@@ -284,7 +284,7 @@ def mannequin():
             + sym(mk.Box('m', 'rightArm', -3, -2, -2, 4, 12, 4, arm, k=2), mk.Box('m', 'rightLeg', -2, 0, -2, 4, 12, 4, P(pants, bevel=0), k=2)))
 
 
-# ------------------------------------------------------------------ концепты
+# ------------------------------------------------------------------ concepts
 
 CONCEPTS = {}
 
@@ -296,7 +296,7 @@ def concept(key, tier, line, title):
     return reg
 
 
-# ---- R1 Реалмит
+# ---- R1 Realmite
 COP, COPD, COPL, LEA, LEAD, CLOTH, BRASS, MAIL = '#c8642c', '#7a3a18', '#f0a050', '#6b4a2e', '#4a321e', '#7e5f40', '#d8b04a', '#8a8c90'
 
 
@@ -343,7 +343,7 @@ def r1c():
     return bs
 
 
-# ---- R2 Эдем
+# ---- R2 Eden
 ED, EDD, WH, GOLD, GLOWG = '#d8401c', '#8a2010', '#f0ede6', '#f0c040', '#ffe27a'
 
 
@@ -389,7 +389,7 @@ def r2c():
     return bs
 
 
-# ---- R3 Дикий лес
+# ---- R3 Wildwood
 WWB, WWD, WWL, BARK, MOSS, LEAFD, GLOWC = '#1a62e0', '#0e2f78', '#5aa0ff', '#24345a', '#2f8f80', '#123c8a', '#8ae8ff'
 
 
@@ -439,7 +439,7 @@ def r3c():
     return bs
 
 
-# ---- R4 Апалачия
+# ---- R4 Apalachia
 AP, APD, APL, CRY = '#c020d8', '#5a1078', '#f090ff', '#e070ff'
 
 
@@ -482,7 +482,7 @@ def r4c():
     return bs
 
 
-# ---- R5 Небесный терн
+# ---- R5 Skythern
 SKY, SKYL, SKYD, BLUE = '#aeb2ba', '#eef0f4', '#6a6e78', '#8ab8ec'
 
 
@@ -541,7 +541,7 @@ def r5c():
     return bs
 
 
-# ---- R6 Мортум
+# ---- R6 Mortum
 MO, MOD, MOL, BONE, RED, GLOWR = '#2e2e32', '#121214', '#5a5a60', '#d8d0b8', '#b01818', '#ff3020'
 
 
@@ -598,7 +598,7 @@ def r6c():
     return bs
 
 
-# ---- R7 Галит
+# ---- R7 Halite
 HA, HAD, HAM, HAL, BLK, GLOWH = '#50e010', '#1e4a0a', '#3a8a10', '#c0ff80', '#141a14', '#9aff40'
 
 
@@ -649,7 +649,7 @@ def r7c():
     return bs
 
 
-# ------------------------------------------------------------------ рендер
+# ------------------------------------------------------------------ rendering
 
 POSE = {'rightArm': (-4, 0, 9), 'leftArm': (4, 0, -9), 'rightLeg': (-3, 0, 2.5), 'leftLeg': (3, 0, -2.5)}
 TIER_BG = {1: '#2a1a12', 2: '#2a1410', 3: '#0e1a30', 4: '#22102c', 5: '#1c2230', 6: '#3a3a46', 7: '#0e1e0c'}
@@ -711,7 +711,7 @@ def view(model, yaw, pitch, bg, W=780, H=1040, scale=22.5, center=(0, 5.4, 0)):
     t = np.linspace(0, 1, H)[:, None, None]
     canvas = top * (1 - t) + bot * t
     canvas = np.broadcast_to(canvas, (H, W, 3)).copy()
-    # тень на земле
+    # shadow on the ground
     fy = (24.4 - center[1]) * scale * math.cos(math.radians(pitch)) + H / 2
     yy, xx = np.mgrid[0:H, 0:W]
     e = ((xx - W / 2) / (W * 0.24)) ** 2 + ((yy - fy) / (W * 0.05)) ** 2

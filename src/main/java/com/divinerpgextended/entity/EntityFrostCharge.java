@@ -15,8 +15,8 @@ import net.minecraft.world.WorldServer;
 import com.divinerpgextended.perk.PerkEffects;
 
 /**
- * Взрывная снежинка Снежного Глакона: небольшой взрыв без разрушения блоков и замедление. Рядом с игроком в
- * огненной броне (Inferno, Netherite или Странник с огнезащитой) снежинка тает на подлёте и ничего не делает.
+ * Snow Glacon's Frost Charge: a small explosion that does not destroy blocks, plus slowness. Near a player in
+ * fire armor (Inferno, Netherite or Wanderer with fire protection) the snowflake melts in flight and does nothing.
  */
 public class EntityFrostCharge extends EntityThrowable {
 

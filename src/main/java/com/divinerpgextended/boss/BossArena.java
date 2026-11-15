@@ -31,41 +31,41 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Арена босса - как у Стража Гайи в Botania:
+ * Boss arena - like the Guardian of Gaia in Botania:
  * <ul>
- * <li>Вызов не в логове - только на ровной свободной площадке ({@link #clearField}); в логове место задаёт постройка,
- * проверяем лишь, что точку появления босса не застроили ({@link #roomFor}).</li>
- * <li>Бойцы - игроки (не в творческом режиме), побывавшие на арене при живом боссе. У края арены бойца отталкивает
- * обратно к центру ({@link Config#bossArenaHold}); телепорт, смерть, выход из игры - уход с арены.</li>
- * <li>На арене не осталось бойцов - босс ждёт {@link Config#bossArenaLeaveSeconds} секунд и исчезает без трофеев
- * (0 - сразу, как Гайа; -1 - не исчезает). Кто-то вернулся - ожидание сбрасывается. Время ухода хранится в боссе,
- * так что уйти, пока чанк не выгрузится, и вернуться потом тоже не выйдет.</li>
+ * <li>A summon outside a lair - only on a flat free area ({@link #clearField}); in a lair the place is set by the structure,
+ * we only check that the boss spawn point has not been built over ({@link #roomFor}).</li>
+ * <li>Fighters are players (not in creative mode) who have been in the arena while the boss is alive. At the arena edge a fighter is pushed
+ * back to the center ({@link Config#bossArenaHold}); teleport, death, leaving the game - leaving the arena.</li>
+ * <li>No fighters left in the arena - the boss waits {@link Config#bossArenaLeaveSeconds} seconds and vanishes without trophies
+ * (0 - at once, like Gaia; -1 - does not vanish). Someone came back - the wait resets. The leave time is stored in the boss,
+ * so leaving until the chunk unloads and coming back later does not work either.</li>
  * </ul>
- * Арена - привязь логова ({@link LairSummons#home}) с запасом {@link #MARGIN}, иначе круг {@link Config#bossArenaRadius}
- * вокруг места появления; босс, появившийся на чужой арене (Король-лич из Колосса), остаётся на ней. Полёт рядом с
- * боссом выключает {@link BossNoFly}. Королева улья не в счёт: у неё свой сброс боя ({@link com.divinerpgextended.vethea.HiveTimer}).
+ * The arena is the lair leash ({@link LairSummons#home}) with a margin {@link #MARGIN}, otherwise a circle of {@link Config#bossArenaRadius}
+ * around the spawn point; a boss that appeared in someone else's arena (the Lich King from the Colossus) stays in it. Flight near
+ * the boss is disabled by {@link BossNoFly}. The Hive Queen does not count: she has her own fight reset ({@link com.divinerpgextended.vethea.HiveTimer}).
  */
 public class BossArena {
 
-    /** Запас арены за привязью логова: босс держится в привязи, бойцы - на всей площадке. */
+    /** Arena margin beyond the lair leash: the boss stays in the leash, fighters on the whole area. */
     public static final int MARGIN = 6;
-    /** Ширина кольца за краем арены, где бойца тянет обратно; дальше - он ушёл (телепорт, жемчуг). */
+    /** Width of the ring beyond the arena edge where a fighter is pulled back; further - he has left (teleport, pearl). */
     public static final int PULL = 8;
-    /** Высота арены от пола: ниже (этажи башни Демона) и выше (пилоны Трона). */
+    /** Arena height from the floor: below (floors of the Demon tower) and above (Throne pylons). */
     public static final int BELOW = 16, ABOVE = 40;
-    /** Вызов вне логова: высота площадки над полом и допустимая доля застроенных колонн. */
+    /** Summon outside a lair: height of the area above the floor and the allowed share of built-over columns. */
     public static final int FIELD_H = 4;
     public static final double FIELD_CLUTTER = 0.1;
 
     public static final String ARENA = "dreArena", ON = "dreArenaOn", EMPTY = "dreArenaEmpty", TOLD = "dreArenaTold";
 
-    /** Арена живого босса: где, кто бьётся. */
+    /** Arena of a living boss: where, who is fighting. */
     public static final class Arena {
         public final int dim;
         public int cx, floor, cz, r;
         public final Set<UUID> fighters = new HashSet<UUID>();
         long seen;
-        /** Бой начат: на арене побывал боец. */
+        /** Fight started: a fighter has been in the arena. */
         boolean on;
         final net.minecraft.util.IChatComponent name;
 
@@ -86,7 +86,7 @@ public class BossArena {
 
     private static final Map<Integer, Arena> ACTIVE = new ConcurrentHashMap<Integer, Arena>();
 
-    /** Босс, у которого есть арена: боссы Divine и аддона, кроме Королевы улья. */
+    /** A boss that has an arena: Divine and addon bosses, except the Hive Queen. */
     public static boolean applies(Entity e) {
         if (!(e instanceof EntityLiving) || e instanceof net.divinerpg.entities.vethea.EntityHiveQueen) return false;
         if (!(e instanceof IBossDisplayData || e instanceof net.divinerpg.entities.base.EntityDivineRPGBoss)) return false;
@@ -94,12 +94,12 @@ public class BossArena {
         return cls.startsWith("net.divinerpg.") || cls.startsWith("com.divinerpgextended.");
     }
 
-    /** Задать арену явно (вызов на алтаре, когда босс встаёт не в центре зала). */
+    /** Set the arena explicitly (summon at an altar, when the boss stands not in the hall center). */
     public static void set(Entity boss, int cx, int floor, int cz, int r) {
         boss.getEntityData().setIntArray(ARENA, new int[] { cx, floor, cz, r });
     }
 
-    /** Арена босса {x, пол, z, радиус}: привязь логова с запасом, заданная, унаследованная или вокруг места появления. */
+    /** Boss arena {x, floor, z, radius}: lair leash with a margin, set, inherited, or around the spawn point. */
     public static int[] bounds(Entity boss) {
         int[] h = LairSummons.home(boss);
         if (h != null) return new int[] { h[0], h[1], h[2], h[3] + MARGIN };
@@ -117,7 +117,7 @@ public class BossArena {
         return a;
     }
 
-    /** Живая арена, на которой стоит сущность, или null. */
+    /** The living arena the entity stands in, or null. */
     public static Arena at(Entity e) {
         long now = e.worldObj.getTotalWorldTime();
         for (Arena a : ACTIVE.values()) {
@@ -126,7 +126,7 @@ public class BossArena {
         return null;
     }
 
-    /** Бойцы на арене сейчас: живые игроки на сервере, не в творческом режиме. */
+    /** Fighters in the arena now: live players on the server, not in creative mode. */
     private static int countInside(Arena a, long now) {
         int n = 0;
         for (Object o : MinecraftServer.getServer().getConfigurationManager().playerEntityList) {
@@ -145,7 +145,7 @@ public class BossArena {
         tick(boss);
     }
 
-    /** Проверка арены (раз в полсекунды): кто на арене, не пора ли боссу уйти. */
+    /** Arena check (every half second): who is in the arena, whether it is time for the boss to leave. */
     public static void tick(EntityLiving boss) {
         long now = boss.worldObj.getTotalWorldTime();
         int[] b = bounds(boss);
@@ -168,14 +168,14 @@ public class BossArena {
         if (!d.getBoolean(ON) || Config.bossArenaLeaveSeconds < 0) return;
         if (!d.hasKey(EMPTY)) {
             d.setLong(EMPTY, now);
-            long told = d.getLong(TOLD); // топчется на границе - не чаще раза в 10 секунд
+            long told = d.getLong(TOLD); // pacing at the border - no more than once per 10 seconds
             if (Config.bossArenaLeaveSeconds > 0 && (!d.hasKey(TOLD) || now - told > 200 || now < told)) {
                 d.setLong(TOLD, now);
                 tell(a, boss, new ChatComponentTranslation("dre.chat.arena_empty", a.name, Config.bossArenaLeaveSeconds));
             }
         }
         long since = d.getLong(EMPTY);
-        if (now < since) d.setLong(EMPTY, since = now); // время мира откатили
+        if (now < since) d.setLong(EMPTY, since = now); // world time was rolled back
         if (now - since >= Config.bossArenaLeaveSeconds * 20L) despawn(boss, a);
     }
 
@@ -186,7 +186,7 @@ public class BossArena {
         }
     }
 
-    /** Босс уходит: дым, звук, весть бойцам. Без трофеев и без засчитанной победы. */
+    /** The boss leaves: smoke, sound, a message to the fighters. Without trophies and without a counted victory. */
     public static void despawn(EntityLiving boss, Arena a) {
         if (boss.worldObj instanceof WorldServer) {
             ((WorldServer) boss.worldObj).func_147487_a("largesmoke", boss.posX, boss.posY + boss.height / 2, boss.posZ, 60, boss.width / 2,
@@ -194,19 +194,19 @@ public class BossArena {
         }
         boss.worldObj.playSoundEffect(boss.posX, boss.posY, boss.posZ, "mob.endermen.portal", 2.0F, 0.5F);
         if (a != null) tell(a, boss, new ChatComponentTranslation("dre.chat.arena_gone", a.name));
-        com.divinerpgextended.debug.Debug.note(boss, "На арене не осталось бойцов - босс ушёл");
+        com.divinerpgextended.debug.Debug.note(boss, "No fighters left on the arena - the boss left");
         boss.setDead();
         ACTIVE.remove(boss.getEntityId());
     }
 
-    /** Имя босса для чата - ключом перевода, чтобы клиент показал его на своём языке. */
+    /** Boss name for chat - as a translation key, so the client shows it in its own language. */
     public static net.minecraft.util.IChatComponent name(Entity boss) {
         Boss b = Boss.of(boss);
         String key = b != null ? b.langKey() : "entity." + net.minecraft.entity.EntityList.getEntityString(boss) + ".name";
         return new ChatComponentTranslation(key);
     }
 
-    /** Весть бойцам этой арены, где бы они ни были. */
+    /** A message to this arena's fighters, wherever they are. */
     private static void tell(Arena a, Entity boss, ChatComponentTranslation msg) {
         for (Object o : MinecraftServer.getServer().getConfigurationManager().playerEntityList) {
             EntityPlayerMP p = (EntityPlayerMP) o;
@@ -214,7 +214,7 @@ public class BossArena {
         }
     }
 
-    // ---------------------------------------------------------------- удержание на арене
+    // ---------------------------------------------------------------- holding in the arena
 
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent e) {
@@ -222,7 +222,7 @@ public class BossArena {
         hold(e.player);
     }
 
-    /** Боец у края арены - толчок к центру. true - толкнули. */
+    /** A fighter at the arena edge - a push toward the center. true - pushed. */
     public static boolean hold(EntityPlayer p) {
         if (p.capabilities.isCreativeMode || !p.isEntityAlive()) return false;
         long now = p.worldObj.getTotalWorldTime();
@@ -247,14 +247,14 @@ public class BossArena {
         return false;
     }
 
-    // ---------------------------------------------------------------- место для вызова
+    // ---------------------------------------------------------------- place for the summon
 
-    /** Босс поместится: в его рамке нет блоков (залы логов тесные по задумке - без запаса). */
+    /** The boss will fit: there are no blocks in its frame (lair halls are tight by design - without margin). */
     public static boolean roomFor(EntityLiving boss) {
         return boss.worldObj.getCollidingBoundingBoxes(boss, boss.boundingBox).isEmpty();
     }
 
-    /** Доля застроенных колонн в круге r вокруг (x, z) на высоте y..y+FIELD_H-1 (0..1). */
+    /** Share of built-over columns in circle r around (x, z) at height y..y+FIELD_H-1 (0..1). */
     public static double clutter(World w, int x, int y, int z, int r) {
         int all = 0, busy = 0;
         for (int dx = -r; dx <= r; dx++) {
@@ -273,14 +273,14 @@ public class BossArena {
         return all == 0 ? 0 : (double) busy / all;
     }
 
-    /** Вызов вне логова: вокруг точки (пол - y) ровная свободная площадка, как у Гайи. */
+    /** Summon outside a lair: around the point (floor - y) there is a flat free area, like Gaia's. */
     public static boolean clearField(World w, int x, int y, int z) {
         return Config.bossSummonClearRadius <= 0 || clutter(w, x, y, z, Config.bossSummonClearRadius) <= FIELD_CLUTTER;
     }
 
     /**
-     * Предметы вызова Divine вне логова (логова выключены или вызов где угодно): нужна свободная площадка. В логове
-     * предмет проверяет {@link LairSummons}, комнаты Ветеи и Арканы - постройки Divine, их не трогаем.
+     * Divine summon items outside a lair (lairs disabled or summon anywhere): a free area is needed. In a lair
+     * the item is checked by {@link LairSummons}, Vethea and Arcana rooms are Divine structures, we do not touch them.
      */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onInteract(PlayerInteractEvent e) {
@@ -294,7 +294,7 @@ public class BossArena {
         e.entityPlayer.addChatMessage(new ChatComponentTranslation("dre.chat.summon_space", Config.bossSummonClearRadius));
     }
 
-    /** Предметы вызова боссов Divine, которые ставят босса у точки клика. */
+    /** Divine boss summon items that place the boss at the click point. */
     public static boolean summonItem(Item i) {
         return i instanceof net.divinerpg.items.twilight.ItemTwilightSpawner || i instanceof net.divinerpg.items.vanilla.ItemCallOfTheWatcher
             || i instanceof net.divinerpg.items.vanilla.ItemInfernalFlame || i instanceof net.divinerpg.items.vanilla.ItemHordeHorn;

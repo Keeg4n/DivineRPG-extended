@@ -10,10 +10,10 @@ import net.minecraft.util.ChatComponentTranslation;
 import org.apache.logging.log4j.LogManager;
 
 /**
- * Быстрые телепорты игрока (пустотный шаг и спасение брони Энда, скипетр Энда, кристалл телепортации) спрашивают разрешения у
- * сервера: на гибридном ядре (Cauldron, Thermos, KCauldron) - обычным событием телепорта Bukkit с причиной ENDER_PEARL. Его
- * проверяют плагины приватов (WorldGuard и др.): запрет телепортов в регионе отменяет событие - телепорта нет. На чистом
- * Forge (без Bukkit) - всегда можно. Ошибка рефлексии один раз пишется в лог и проверка выключается.
+ * Fast player teleports (the Ender armor's void step and rescue, the Ender scepter, the teleportation crystal) ask the server for permission:
+ * on a hybrid core (Cauldron, Thermos, KCauldron) - with the regular Bukkit teleport event with cause ENDER_PEARL. It is
+ * checked by region plugins (WorldGuard and others): a teleport ban in a region cancels the event - no teleport. On pure
+ * Forge (without Bukkit) - always allowed. A reflection error is written to the log once and the check is turned off.
  */
 public final class TeleportGuard {
 
@@ -47,11 +47,11 @@ public final class TeleportGuard {
             for (Object c : causeCls.getEnumConstants()) if ("ENDER_PEARL".equals(c.toString())) cause = c;
             ok = cause != null;
         } catch (Throwable notHybrid) {
-            ok = false; // чистый Forge: приватов-плагинов нет
+            ok = false; // pure Forge: no region plugins
         }
     }
 
-    /** Разрешает ли сервер быстрый телепорт игрока из текущей точки в (x, y, z). */
+    /** Whether the server allows a fast teleport of the player from the current point to (x, y, z). */
     public static boolean allowed(EntityPlayer p, double x, double y, double z) {
         if (!(p instanceof EntityPlayerMP) || p instanceof net.minecraftforge.common.util.FakePlayer) return true;
         init();
@@ -64,12 +64,12 @@ public final class TeleportGuard {
             return !(Boolean) isCancelled.invoke(e);
         } catch (Throwable t) {
             ok = false;
-            LogManager.getLogger("divinerpgextended").warn("Проверка телепорта в приватах выключена: {}", t.toString());
+            LogManager.getLogger("divinerpgextended").warn("Teleport check in claims is disabled: {}", t.toString());
             return true;
         }
     }
 
-    /** То же, с сообщением игроку при запрете. */
+    /** The same, with a message to the player on refusal. */
     public static boolean check(EntityPlayer p, double x, double y, double z) {
         if (allowed(p, x, y, z)) return true;
         p.addChatMessage(new ChatComponentTranslation("dre.chat.teleport_denied"));

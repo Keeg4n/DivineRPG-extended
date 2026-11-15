@@ -13,8 +13,8 @@ import com.divinerpgextended.registry.ModItems;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Руда джунглей: только в джунглях, глубоко под землёй. Берёт её лишь халитовая кирка или мультиинструмент - другими
- * не копается вовсе. Даёт самоцветы джунглей (для тотема Древнего драмкрикса).
+ * Jungle Ore: only in the jungle, deep underground. Only a Halite Pickaxe or Multitool takes it - with others
+ * it cannot be mined at all. Gives Jungle Gems (for the Ancient Dramcryx Totem).
  */
 public class BlockJungleOre extends Block {
 
@@ -43,7 +43,7 @@ public class BlockJungleOre extends Block {
         return 4 + new Random().nextInt(5);
     }
 
-    /** Только халитовая кирка и мультиинструмент. */
+    /** Only the Halite Pickaxe and Multitool. */
     public static class Handler {
 
         @SubscribeEvent

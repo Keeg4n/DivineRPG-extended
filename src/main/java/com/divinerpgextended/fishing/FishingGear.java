@@ -10,12 +10,12 @@ import net.minecraft.world.World;
 
 import com.divinerpgextended.registry.ModItems;
 
-/** Снаряжение рыбака: сила рыбалки целиком (удочка, приманка, набор рыбака), сумка приманок, реликвии. */
+/** Angler gear: fishing power as a whole (rod, bait, angler set), bait bag, relics. */
 public final class FishingGear {
 
-    /** Каждая часть набора рыбака +5, полный набор ещё +10. */
+    /** Each piece of the angler set +5, the full set another +10. */
     public static final int PIECE_POWER = 5, SET_POWER = 10;
-    /** Бездонная сумка приманок: доля приманок, которые не тратятся (поверх удочки). */
+    /** Bottomless Bait Bag: the share of baits that are not spent (on top of the rod). */
     public static final float BAG_SAVE = 0.25F;
 
     private FishingGear() {}
@@ -39,7 +39,7 @@ public final class FishingGear {
         return n;
     }
 
-    /** Лучшая удочка на хотбаре (для справочника) или null. */
+    /** The best rod on the hotbar (for the guide) or null. */
     public static Rod bestRod(EntityPlayer p) {
         Rod best = null;
         for (int i = 0; i < 9; i++) {

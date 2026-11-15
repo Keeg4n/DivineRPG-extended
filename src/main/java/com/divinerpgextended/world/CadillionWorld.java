@@ -4,7 +4,7 @@ import net.divinerpg.utils.config.ConfigurationHelper;
 import net.divinerpg.utils.items.TwilightItemsOther;
 import net.minecraft.item.Item;
 
-/** Сумеречные миры, где живёт великий кадиллион. Номер = вариант босса = метаданные шестерни и зова. */
+/** Twilight dimensions where the Great Cadillion lives. The number = the boss variant = the gear and call metadata. */
 public enum CadillionWorld {
 
     EDEN,

@@ -6,18 +6,18 @@ import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 
 /**
- * Молния оружия (Ударная серенада, Меч бури, Грозовой лук): бьёт врагов и чужих игроков, где можно PvP, но не того, кто её вызвал
+ * Weapon lightning (Strike Serenade, Storm Sword, Storm Bow): hits enemies and other players where PvP is allowed, but not the one who summoned it
  * ({@link com.divinerpgextended.perk.EarlyWeapons#onStruck}),
- * не жжёт добычу и опыт на земле и не поджигает блоки. Огонь молния Minecraft ставит в конструкторе и при каждой вспышке
- * - смотрим, где огня не было до неё, и гасим новый там же.
+ * does not burn loot and experience on the ground and does not ignite blocks. Minecraft lightning places fire in the constructor and on every flash
+ * - we look at where there was no fire before it and put out the new one in the same place.
  */
 public class EntitySafeLightning extends EntityLightningBolt {
 
     private static final ThreadLocal<boolean[]> BEFORE = new ThreadLocal<boolean[]>();
-    /** Кто сейчас бьёт молниями: оружие Divine перед своими молниями записывает игрока ({@link com.divinerpgextended.asm.LightningTransformer}). */
+    /** Who is currently striking with lightning: Divine weapons record the player before their lightning ({@link com.divinerpgextended.asm.LightningTransformer}). */
     private static final ThreadLocal<EntityPlayer> CASTER = new ThreadLocal<EntityPlayer>();
 
-    /** Игрок, вызвавший молнию (null - неизвестно): его она не бьёт, других игроков - только где можно PvP. */
+    /** The player who summoned the lightning (null - unknown): it does not hit them, and hits other players only where PvP is allowed. */
     public EntityPlayer caster;
 
     public EntitySafeLightning(World w, double x, double y, double z) {
@@ -32,7 +32,7 @@ public class EntitySafeLightning extends EntityLightningBolt {
         caster = by;
     }
 
-    /** Вызов из оружия Divine в начале метода с молниями. */
+    /** Called from a Divine weapon at the start of the method with lightning. */
     public static void cast(EntityPlayer p) {
         CASTER.set(p);
     }
@@ -49,7 +49,7 @@ public class EntitySafeLightning extends EntityLightningBolt {
         return w;
     }
 
-    /** Где горит огонь в кубе 3x3x3 у точки (молния ставит огонь только в нём). */
+    /** Where fire burns in the 3x3x3 cube around the point (lightning places fire only there). */
     static boolean[] fire(World w, double x, double y, double z) {
         boolean[] f = new boolean[27];
         int bx = (int) Math.floor(x), by = (int) Math.floor(y), bz = (int) Math.floor(z), i = 0;
@@ -58,7 +58,7 @@ public class EntitySafeLightning extends EntityLightningBolt {
         return f;
     }
 
-    /** Погасить огонь, которого не было до молнии. */
+    /** Put out fire that was not there before the lightning. */
     static void unfire(World w, double x, double y, double z, boolean[] was) {
         if (was == null || w == null || w.isRemote) return;
         int bx = (int) Math.floor(x), by = (int) Math.floor(y), bz = (int) Math.floor(z), i = 0;

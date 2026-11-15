@@ -10,13 +10,13 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.util.EnumHelper;
 
 /**
- * Халитовые инструменты: кирка, топор, лопата чуть быстрее инструментов Мортума; мультиинструмент (кирка, топор,
- * лопата и мотыга в одном: правой кнопкой пашет) - так же быстр, как отдельные халитовые. Руду джунглей берут только
- * халитовая кирка и мультиинструмент. Не ломаются.
+ * Halite tools: pickaxe, axe, shovel slightly faster than Mortum tools; the multitool (pickaxe, axe,
+ * shovel and hoe in one: right click tills) - as fast as the separate halite ones. Jungle ore is taken only by the
+ * halite pickaxe and the multitool. Do not break.
  */
 public final class HaliteTools {
 
-    /** Скорость копки: у кирки Мортума 55, у божественного шикакса 20. */
+    /** Dig speed: Mortum's pickaxe has 55, the Divine shickaxe 20. */
     public static final float SPEED = 60F, MULTI_SPEED = 60F;
     public static final Item.ToolMaterial HALITE = EnumHelper.addToolMaterial("DRE_HALITE", 100, 8000, SPEED, 6F, 22);
     public static final Item.ToolMaterial MULTI = EnumHelper.addToolMaterial("DRE_HALITE_MULTI", 100, 12000, MULTI_SPEED, 7F, 22);
@@ -38,7 +38,7 @@ public final class HaliteTools {
             com.divinerpgextended.item.ToolInfo.add(list, s, efficiencyOnProperMaterial);
         }
 
-        /** Мотыга: как ванильная (трава и земля - в пашню, событие UseHoeEvent для других модов). */
+        /** Hoe: like the vanilla one (grass and dirt to farmland, UseHoeEvent event for other mods). */
         @Override
         public boolean onItemUse(ItemStack s, net.minecraft.entity.player.EntityPlayer p, net.minecraft.world.World w, int x, int y, int z, int side,
             float hx, float hy, float hz) {
@@ -72,7 +72,7 @@ public final class HaliteTools {
             com.divinerpgextended.item.ToolInfo.add(list, s, efficiencyOnProperMaterial);
         }
 
-        /** Мотыга: как ванильная (трава и земля - в пашню, событие UseHoeEvent для других модов). */
+        /** Hoe: like the vanilla one (grass and dirt to farmland, UseHoeEvent event for other mods). */
         @Override
         public boolean onItemUse(ItemStack s, net.minecraft.entity.player.EntityPlayer p, net.minecraft.world.World w, int x, int y, int z, int side,
             float hx, float hy, float hz) {
@@ -106,7 +106,7 @@ public final class HaliteTools {
             com.divinerpgextended.item.ToolInfo.add(list, s, efficiencyOnProperMaterial);
         }
 
-        /** Мотыга: как ванильная (трава и земля - в пашню, событие UseHoeEvent для других модов). */
+        /** Hoe: like the vanilla one (grass and dirt to farmland, UseHoeEvent event for other mods). */
         @Override
         public boolean onItemUse(ItemStack s, net.minecraft.entity.player.EntityPlayer p, net.minecraft.world.World w, int x, int y, int z, int side,
             float hx, float hy, float hz) {
@@ -125,7 +125,7 @@ public final class HaliteTools {
         }
     }
 
-    /** Мультиинструмент: кирка, топор и лопата (как шикакс Divine). */
+    /** Multitool: pickaxe, axe and shovel (like the Divine shickaxe). */
     public static class Multitool extends ItemPickaxe {
         public Multitool() {
             super(MULTI);
@@ -166,7 +166,7 @@ public final class HaliteTools {
             com.divinerpgextended.item.ToolInfo.add(list, s, efficiencyOnProperMaterial);
         }
 
-        /** Мотыга: как ванильная (трава и земля - в пашню, событие UseHoeEvent для других модов). */
+        /** Hoe: like the vanilla one (grass and dirt to farmland, UseHoeEvent event for other mods). */
         @Override
         public boolean onItemUse(ItemStack s, net.minecraft.entity.player.EntityPlayer p, net.minecraft.world.World w, int x, int y, int z, int side,
             float hx, float hy, float hz) {
@@ -185,7 +185,7 @@ public final class HaliteTools {
         }
     }
 
-    /** Берёт руду джунглей: только халитовая кирка и мультиинструмент. */
+    /** Takes jungle ore: only the halite pickaxe and the multitool. */
     public static boolean minesJungle(ItemStack s) {
         return s != null && (s.getItem() instanceof Pickaxe || s.getItem() instanceof Multitool);
     }

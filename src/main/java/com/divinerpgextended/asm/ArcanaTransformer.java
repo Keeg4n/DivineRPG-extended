@@ -21,15 +21,15 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Максимум арканы Divine вместо зашитых 200 берём из {@link ArcanaHooks}:
+ * Instead of the hardcoded 200 we take the Divine arcana maximum from {@link ArcanaHooks}:
  * <ul>
- * <li>ArcanaHelper.updateAllBars - предел на сервере (по игроку);</li>
- * <li>ClientTicker.tickClient - клиентская догрузка полоски до предела;</li>
- * <li>ArcanaRenderer.onTickRender - масштаб полоски (25 в формуле ширины).</li>
+ * <li>ArcanaHelper.updateAllBars - the limit on the server (per player);</li>
+ * <li>ClientTicker.tickClient - the client top-up of the bar to the limit;</li>
+ * <li>ArcanaRenderer.onTickRender - the bar scale (25 in the width formula).</li>
  * </ul>
- * Зелье арканы (ItemArcanaPotion.onItemRightClick) пьётся и при полной полоске: у аддона это эффект на время, его пьют заранее.
- * Divine не даёт пить при полоске ровно 200; сравнение с NaN никогда не равно, поэтому проверка всегда пропускает.
- * Меняются только константы в этих методах; если что-то не нашлось - класс остаётся как был.
+ * The arcana potion (ItemArcanaPotion.onItemRightClick) is drunk even with a full bar: in the addon it is a timed effect, drunk in advance.
+ * Divine does not allow drinking with the bar at exactly 200; a comparison with NaN is never equal, so the check always passes.
+ * Only constants in these methods are changed; if something is not found, the class stays as it was.
  */
 public class ArcanaTransformer implements IClassTransformer, Opcodes {
 
@@ -54,7 +54,7 @@ public class ArcanaTransformer implements IClassTransformer, Opcodes {
             if (helper) {
                 for (FieldNode f : node.fields) if ("player".equals(f.name)) playerDesc = f.desc;
                 if (playerDesc == null) {
-                    LOG.warn("Аркана: в ArcanaHelper нет поля player - оставляю как есть");
+                    LOG.warn("Arcana: ArcanaHelper has no player field - leaving as is");
                     return bytes;
                 }
             }
@@ -90,15 +90,15 @@ public class ArcanaTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (patched == 0) {
-                LOG.warn("Аркана: в {} не нашлось констант для замены - оставляю как есть", transformedName);
+                LOG.warn("Arcana: no constants to replace found in {} - leaving as is", transformedName);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Аркана: максимум берётся из аддона ({}: замен {})", transformedName, patched);
+            LOG.info("Arcana: maximum is taken from the addon ({}: {} replacements)", transformedName, patched);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Аркана: не удалось исправить " + transformedName + ", класс без изменений", t);
+            LOG.error("Arcana: could not fix " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }

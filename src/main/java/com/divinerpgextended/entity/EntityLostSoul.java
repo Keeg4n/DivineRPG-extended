@@ -21,8 +21,8 @@ import com.divinerpgextended.world.twilight.MortumAfterlife;
 import com.divinerpgextended.world.twilight.TwilightWorld;
 
 /**
- * Душа убитого в Мортуме моба ({@link MortumAfterlife}): висит над телом {@link #RISE} тиков. Ударил - рассеялась и оставила
- * душу мира; полный сет Мортума забирает её сам и лечит. Не успел - моб встаёт снова, слабее и быстрее, уже без добычи.
+ * The soul of a mob killed in Mortum ({@link MortumAfterlife}): hangs over the body for {@link #RISE} ticks. Hit it - it disperses and leaves
+ * a world soul; a full Mortum set picks it up by itself and heals. If you are too slow - the mob rises again, weaker and faster, already without loot.
  */
 public class EntityLostSoul extends Entity {
 
@@ -78,7 +78,7 @@ public class EntityLostSoul extends Entity {
         return true;
     }
 
-    /** Рассеять: душа мира остаётся на земле. */
+    /** Disperse: the world soul remains on the ground. */
     private void banish() {
         entityDropItem(new ItemStack(TwilightItemsOther.mortumSoul), 0.2F);
         worldObj.playSoundAtEntity(this, "mob.ghast.death", 0.6F, 1.6F);

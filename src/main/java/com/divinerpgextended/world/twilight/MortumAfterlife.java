@@ -19,9 +19,9 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Посмертие Мортума: убитый игроком моб с шансом {@link Config#mortumSoulChance} оставляет душу ({@link EntityLostSoul}). Добыча
- * первой смерти падает как обычно, вставший моб добычи и опыта уже не даёт и второй раз не встаёт. Боссы, их приспешники и души
- * Пожирателя не считаются: у них свои правила.
+ * Mortum afterlife: a mob killed by a player leaves a soul ({@link EntityLostSoul}) with chance {@link Config#mortumSoulChance}. The loot
+ * of the first death drops as usual, the risen mob gives no loot or experience and does not rise a second time. Bosses, their minions and Soul Fiend
+ * souls do not count: they have their own rules.
  */
 public class MortumAfterlife {
 
@@ -36,7 +36,7 @@ public class MortumAfterlife {
         EntityLivingBase v = e.entityLiving;
         if (v.worldObj.isRemote || v.dimension != ConfigurationHelper.mortum) return;
         if (risen(v)) {
-            // опыт падает, пока недавно бил игрок, - убираем отметку удара
+            // experience drops while a player hit recently - remove the hit mark
             try {
                 ReflectionHelper.setPrivateValue(EntityLivingBase.class, v, 0, "recentlyHit", "field_70718_bc");
             } catch (Throwable ignored) {}

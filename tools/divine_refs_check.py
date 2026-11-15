@@ -1,15 +1,15 @@
-"""Сверка аддона с DivineRPG: все обращения байткода к классам, полям и методам net/divinerpg должны быть в целевом jar Divine
-(аддон собирается против 1.4.2.3, а играют и на 1.4.1.5 - там пропущенное поле роняет игру при загрузке класса).
-Запуск: python3 divine_refs_check.py <jar аддона> <jar Divine> [jar Minecraft/Forge ...]. Jar Minecraft/Forge нужны для
-унаследованных членов (Forge SRG-jar и forgeSrc: в первом имена SRG, во втором - добавленные Forge методы вроде getEntityData).
-Рефлексия (getField по имени) не проверяется - она и так мягкая. Код выхода 1 - есть пропуски."""
+"""Checking the addon against DivineRPG: all bytecode references to net/divinerpg classes, fields and methods must be present in the target Divine jar
+(the addon is built against 1.4.2.3, but people also play on 1.4.1.5 - there a missing field crashes the game when the class loads).
+Run: python3 divine_refs_check.py <addon jar> <Divine jar> [Minecraft/Forge jar ...]. The Minecraft/Forge jars are needed for
+inherited members (Forge SRG jar and forgeSrc: the first has SRG names, the second has methods added by Forge such as getEntityData).
+Reflection (getField by name) is not checked - it is soft anyway. Exit code 1 means there are gaps."""
 import struct
 import sys
 import zipfile
 
 
 def parse(data):
-    """Пул констант и члены класса: (имя, super, [(поле, desc)], [(метод, desc)], ссылки [(kind, owner, name, desc)], классы)."""
+    """Constant pool and class members: (name, super, [(field, desc)], [(method, desc)], references [(kind, owner, name, desc)], classes)."""
     pos = 8
     n = struct.unpack('>H', data[pos:pos + 2])[0]
     pos += 2
@@ -99,7 +99,7 @@ def main(addon, divine, *mc):
     ours = load(addon, 'com/divinerpgextended/')
     dv = load(divine, 'net/divinerpg/')
     pool = dict(dv)
-    for jar in mc:  # Minecraft и Forge: наследованные члены (члены одного класса из разных jar складываются)
+    for jar in mc:  # Minecraft and Forge: inherited members (members of one class from different jars are merged)
         for k, v in load(jar, 'net/minecraft').items():
             if k in pool and not k.startswith('net/divinerpg/'):
                 old = pool[k]
@@ -109,7 +109,7 @@ def main(addon, divine, *mc):
     OBJ = {'hashCode', 'equals', 'toString', 'getClass', 'clone', 'finalize', 'notify', 'notifyAll', 'wait'}
 
     def has(owner, kind, name, desc, seen=None):
-        """True - есть, False - точно нет, None - не проверить (классы java.*)."""
+        """True - present, False - definitely absent, None - cannot be checked (java.* classes)."""
         seen = seen if seen is not None else set()
         if owner in seen:
             return False

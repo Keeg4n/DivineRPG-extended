@@ -33,26 +33,26 @@ import com.divinerpgextended.item.ArmorData;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
-/** Эффекты перков и ядра полного сета брони Странника и бонусы водных сетов Divine (Kraken, Aquastrive). */
+/** Effects of perks and the core of the full Wanderer armor set, and bonuses of Divine's water sets (Kraken, Aquastrive). */
 public class PerkEffects {
 
-    /** Перки из сетов Тени, порчи, арлемита и рупия: те же свойства, но слабее самих сетов (скорость x3, снаряды x1.2, урон x0.3). */
+    /** Perks from the Shadow, corrupted, arlemite and rupee sets: the same properties, but weaker than the sets themselves (speed x3, projectiles x1.2, damage x0.3). */
     public static final float SWIFT_SPEED = 1.25F, MARKSMAN = 1.1F, GUARD = 0.75F;
-    /** Высокий шаг перка Тени: на блок вверх без прыжка. Обычный шаг игрока - 0.5. */
+    /** High step of the Shadow perk: one block up without jumping. The player's normal step is 0.5. */
     public static final float HIGH_STEP = 1.0F, NORMAL_STEP = 0.5F;
     private static final String STEP_TAG = "dreHighStep";
-    /** Ядро: то же, что полный сет. */
+    /** Core: the same as the full set. */
     public static final float CORE_DIVINE_MELEE = 6F, CORE_DIVINE_UNDEAD = 10F, CORE_CORRUPTED_RANGED = 1.2F;
 
-    /** Нерушимость бедрока: сдвиг дальше этого от места, где встал, сбрасывает стойку (мелкие толчки не считаются). */
+    /** Bedrock steadfastness: moving farther than this from where you stood resets the stance (small nudges do not count). */
     private static final double STANCE_MOVE = 0.25;
     private static final java.util.UUID STANCE_ID = java.util.UUID.fromString("c3a71f52-8d04-4e6b-9a17-2b6f4e90d1a8");
-    /** Где игрок встал и сколько тиков стоит: {x, y, z, тики}. */
+    /** Where the player stopped and for how many ticks they have stood: {x, y, z, ticks}. */
     private static final java.util.Map<EntityPlayer, double[]> STANCE = new java.util.WeakHashMap<EntityPlayer, double[]>();
 
     /**
-     * Ближний бой в божественной броне: сет и ядро бьют только то, что само враждебно. Нежить сильнее, вражеские мобы, боссы и игроки
-     * как раньше, мирные и нейтральные без бонуса.
+     * Melee in divine armor: the set and core hit only what is itself hostile. Undead take more, enemy mobs, bosses and players
+     * as before, peaceful and neutral ones get no bonus.
      */
     public static float divineMelee(EntityLivingBase target) {
         if (target.getCreatureAttribute() == net.minecraft.entity.EnumCreatureAttribute.UNDEAD) return CORE_DIVINE_UNDEAD;
@@ -60,7 +60,7 @@ public class PerkEffects {
             || target instanceof com.divinerpgextended.dummy.EntityTrainingDummy ? CORE_DIVINE_MELEE : 0;
     }
 
-    /** Ядро надетого сета; во сне (кошмар Ветеи) чужие сеты молчат, ядро тоже. */
+    /** Core of the worn set; in the dream (Vethea nightmare) foreign sets are silent, and so is the core. */
     private static ArmorCore core(EntityPlayer p) {
         ArmorCore c = ArmorCore.worn(p);
         return c == null || com.divinerpgextended.vethea.Nightmare.active(p) ? null : c;
@@ -71,7 +71,7 @@ public class PerkEffects {
     private static final Item[] AQUASTRIVE = { VanillaItemsArmor.aquastriveHelmet, VanillaItemsArmor.aquastriveBody,
         VanillaItemsArmor.aquastriveLegs, VanillaItemsArmor.aquastriveBoots };
 
-    /** Полный сет Divine: set = [шлем, нагрудник, поножи, ботинки], слоты игрока 0 ботинки ... 3 шлем. */
+    /** Full Divine set: set = [helmet, chestplate, leggings, boots], player slots 0 boots ... 3 helmet. */
     public static boolean wears(EntityPlayer p, Item[] set) {
         for (int i = 0; i < 4; i++) {
             ItemStack s = p.getCurrentArmor(i);
@@ -80,7 +80,7 @@ public class PerkEffects {
         return true;
     }
 
-    /** Водные существа для бонуса Kraken. */
+    /** Aquatic creatures for the Kraken bonus. */
     public static boolean isAquatic(Entity e) {
         return e instanceof EntityShark || e instanceof EntityCrab || e instanceof EntityKingCrab
             || e instanceof EntityLiopleurodon || e instanceof EntityWhale || e instanceof EntityWaterMob
@@ -97,7 +97,7 @@ public class PerkEffects {
         EntityPlayer player = (EntityPlayer) event.entityLiving;
         if (!player.worldObj.isRemote) {
             ArmorCore c = core(player);
-            // как сами сеты: взрывы - только у победивших Смотрителя (его бой - про взрывы), огонь - у бедрока
+            // like the sets themselves: explosions - only for those who defeated the Watcher (his fight is about explosions), fire - for bedrock
             if (c == ArmorCore.BEDROCK && event.source.isFireDamage()) {
                 player.extinguish();
                 event.setCanceled(true);
@@ -111,10 +111,10 @@ public class PerkEffects {
         if (event.source.isFireDamage() && ArmorData.hasEquippedPerk(player, Perk.FIRE_PROTECTION)) {
             player.extinguish();
             event.setCanceled(true);
-            com.divinerpgextended.debug.Debug.note(player, "Перк защиты от огня: огонь не ранит");
+            com.divinerpgextended.debug.Debug.note(player, "Fire Protection perk: fire does not hurt");
         } else if (event.source.isExplosion() && ArmorData.hasEquippedPerk(player, Perk.EXPLOSION_PROTECTION)) {
             event.setCanceled(true);
-            com.divinerpgextended.debug.Debug.note(player, "Перк защиты от взрывов: взрыв не ранит");
+            com.divinerpgextended.debug.Debug.note(player, "Explosion Protection perk: explosion does not hurt");
         }
     }
 
@@ -123,20 +123,20 @@ public class PerkEffects {
     private static final Item[] NETHERITE = { VanillaItemsArmor.netheriteHelmet, VanillaItemsArmor.netheriteBody,
         VanillaItemsArmor.netheriteLegs, VanillaItemsArmor.netheriteBoots };
 
-    /** Огненная броня: полный сет Inferno или Netherite, либо броня Странника с огнезащитой. */
+    /** Fire armor: a full Inferno or Netherite set, or Wanderer armor with fire protection. */
     public static boolean wearsFireArmor(EntityPlayer p) {
         return wears(p, INFERNO) || wears(p, NETHERITE) || ArmorData.hasEquippedPerk(p, Perk.FIRE_PROTECTION);
     }
 
-    /** Водная броня: полный сет Kraken или Aquastrive, либо броня Странника с водным перком. */
+    /** Water armor: a full Kraken or Aquastrive set, or Wanderer armor with the water perk. */
     public static boolean wearsWaterArmor(EntityPlayer p) {
         return wears(p, KRAKEN) || wears(p, AQUASTRIVE) || ArmorData.hasEquippedPerk(p, Perk.WATER_BREATHING)
             || ArmorData.hasEquippedPerk(p, Perk.AQUA_MINER);
     }
 
     /**
-     * "Охотник глубин": полный сет Kraken - +50% урона по водным существам и -30% урона от них. Карцинус в водную
-     * броню клешнями почти не пробивает: она сделана как раз против обитателей глубин. Песчаный вихрь бьёт полностью.
+     * "Deep Hunter": a full Kraken set - +50% damage to aquatic creatures and -30% damage from them. Carcinus barely pierces
+     * water armor with his claws: it was made precisely against dwellers of the deep. The Sand Whirl hits in full.
      */
     @SubscribeEvent
     public void onHurt(LivingHurtEvent event) {
@@ -144,7 +144,7 @@ public class PerkEffects {
         if (attacker instanceof EntityPlayer && !attacker.worldObj.isRemote && attacker != event.entityLiving) {
             EntityPlayer a = (EntityPlayer) attacker;
             ArmorCore c = core(a);
-            // арканный удар мечей Арканы и удары призывов идут "от игрока", но это не его ближний бой: без прибавки ядра (до 0.99.120 +6 шло и им)
+            // the arcane hit of Arcana swords and the hits of summons come "from the player", but that is not their melee: no core bonus (before 0.99.120 +6 applied to them too)
             if (c == ArmorCore.DIVINE && event.source.getSourceOfDamage() == a && !event.source.isProjectile() && !event.source.isMagicDamage()
                 && !com.divinerpgextended.magic.ArcanaCombat.ARCANE.equals(event.source.damageType)) event.ammount += divineMelee(event.entityLiving);
             if (event.source.isProjectile()) {
@@ -160,30 +160,30 @@ public class PerkEffects {
         if (attacker instanceof EntityPlayer && !attacker.worldObj.isDaytime()
             && ArmorData.hasEquippedPerk((EntityPlayer) attacker, Perk.NIGHT_REAPER)) {
             event.ammount *= 1.2F;
-            com.divinerpgextended.debug.Debug.note(attacker, "Перк Ночной жнец: ночью x1.2");
+            com.divinerpgextended.debug.Debug.note(attacker, "Night Reaper perk: at night x1.2");
         }
         if (attacker instanceof EntityCarcinus && "mob".equals(event.source.damageType)
             && event.entityLiving instanceof EntityPlayer
             && wearsWaterArmor((EntityPlayer) event.entityLiving)) {
             event.ammount *= (float) Config.carcinusWaterArmorFactor;
-            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Водная броня против клешней Карцинуса: x" + Config.carcinusWaterArmorFactor);
+            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Water armor against Carcinus claws: x" + Config.carcinusWaterArmorFactor);
         }
         if (attacker instanceof EntityPlayer && isAquatic(event.entityLiving) && wears((EntityPlayer) attacker, KRAKEN)) {
             event.ammount *= 1.5F;
-            com.divinerpgextended.debug.Debug.note(attacker, "Сет Кракена: по водным x1.5");
+            com.divinerpgextended.debug.Debug.note(attacker, "Kraken armor: against water mobs x1.5");
         } else if (event.entityLiving instanceof EntityPlayer && isAquatic(attacker)
             && wears((EntityPlayer) event.entityLiving, KRAKEN)) {
                 event.ammount *= 0.7F;
-                com.divinerpgextended.debug.Debug.note(event.entityLiving, "Сет Кракена: от водных x0.7");
+                com.divinerpgextended.debug.Debug.note(event.entityLiving, "Kraken armor: from water mobs x0.7");
             }
     }
 
     private static final Item[] BEDROCK = { VanillaItemsArmor.bedrockHelmet, VanillaItemsArmor.bedrockBody, VanillaItemsArmor.bedrockLegs, VanillaItemsArmor.bedrockBoots };
 
     /**
-     * Нерушимость: полный сет бедрока или его ядро. Игрок стоит на месте - копится защита: Сопротивление I, затем II, отброса нет
-     * (иначе первый же удар сбрасывал бы стойку). Сдвинулся - отброс возвращается, а эффект сам кончается за полсекунды: снимать
-     * его нельзя, это мог быть настоящий эликсир. Бить, есть и смотреть по сторонам можно.
+     * Steadfastness: a full bedrock set or its core. The player stands still - protection accumulates: Resistance I, then II, no knockback
+     * (otherwise the very first hit would reset the stance). Once they move, knockback returns, and the effect itself ends within half a second: it must not
+     * be removed, it could be a real potion. Hitting, eating and looking around are allowed.
      */
     public static void stance(EntityPlayer p) {
         net.minecraft.entity.ai.attributes.IAttributeInstance kb = p.getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.knockbackResistance);
@@ -212,7 +212,7 @@ public class PerkEffects {
         if (ticks == first || ticks == second || ticks % 10 == 0) p.addPotionEffect(new PotionEffect(Potion.resistance.id, 15, ticks >= second ? 1 : 0, true));
     }
 
-    /** Руда: по словарю Forge или по имени, как у руд Divine. Шлак, бревно и песок тоже плавятся, но это не руда. */
+    /** Ore: by Forge ore dictionary or by name, like Divine ores. Slag, logs and sand also smelt, but they are not ore. */
     static boolean isOre(ItemStack s) {
         for (int id : net.minecraftforge.oredict.OreDictionary.getOreIDs(s)) if (net.minecraftforge.oredict.OreDictionary.getOreName(id).startsWith("ore")) return true;
         Object name = Item.itemRegistry.getNameForObject(s.getItem());
@@ -221,7 +221,7 @@ public class PerkEffects {
         return n.endsWith("Ore") || n.startsWith("ore") || n.endsWith("_ore");
     }
 
-    /** Адская броня: полный сет Inferno или Netherite - руда с шансом падает сразу переплавленной, один к одному, как из печи. */
+    /** Infernal armor: a full Inferno or Netherite set - ore has a chance to drop already smelted, one to one, as from a furnace. */
     @SubscribeEvent
     public void onHarvest(net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent e) {
         EntityPlayer p = e.harvester;
@@ -242,7 +242,7 @@ public class PerkEffects {
 
     private static final String ANGEL = "dreAngelFlight";
 
-    /** Ангельский полёт: пока надет сет с перком (не во сне) - можно летать; снял - полёт отбирается. */
+    /** Angelic Flight: while a set with the perk is worn (not in the dream) you can fly; take it off and flight is removed. */
     private static void angelFlight(EntityPlayer p) {
         boolean on = ArmorData.equippedTier(p) > 0 && ArmorData.hasEquippedPerk(p, Perk.ANGEL_FLIGHT)
             && !com.divinerpgextended.vethea.Nightmare.inVethea(p);
@@ -263,7 +263,7 @@ public class PerkEffects {
 
     private static java.lang.reflect.Method arcanaProps, arcanaRegen;
 
-    /** Аркана Divine (ArcanaHelper) - отражением. */
+    /** Divine arcana (ArcanaHelper) - via reflection. */
     private static void arcana(EntityPlayer p, float amount) {
         try {
             if (arcanaProps == null) {
@@ -276,7 +276,7 @@ public class PerkEffects {
         } catch (Throwable ignored) {}
     }
 
-    /** "Мягкое приземление" (донор - элитный реалмит): без урона от падения; чужая броня не спасает. */
+    /** "Soft landing" (donor - elite realmite): no fall damage; foreign armor does not save you. */
     @SubscribeEvent
     public void onFall(LivingFallEvent event) {
         if (event.entityLiving instanceof EntityPlayer && ArmorData.hasEquippedPerk((EntityPlayer) event.entityLiving, Perk.SOFT_LANDING)) {
@@ -284,7 +284,7 @@ public class PerkEffects {
         }
     }
 
-    /** "Подводный шахтёр": в воде копание без замедления (как с Подводником) и даже без опоры под ногами. */
+    /** "Aqua Miner": digging in water without slowdown (as with the Diver) and even without footing. */
     @SubscribeEvent
     public void onBreakSpeed(PlayerEvent.BreakSpeed event) {
         EntityPlayer p = event.entityPlayer;
@@ -296,9 +296,9 @@ public class PerkEffects {
     }
 
     /**
-     * Скорость ядра Тени и перка. Divine в каждом тике (в обеих фазах, на обеих сторонах) сама пишет скорость ходьбы по надетому
-     * сету - поэтому самым низким приоритетом, сразу за ней. Именно скорость ходьбы, а не модификатор атрибута: поле зрения
-     * от неё не растягивается, как и у самого сета Тени.
+     * Speed of the Shadow core and perk. Every tick (in both phases, on both sides) Divine itself writes the walking speed from the worn
+     * set - so we run at the lowest priority, right after it. Specifically the walking speed, not an attribute modifier: the field of view
+     * does not stretch from it, just like with the Shadow set itself.
      */
     @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.LOWEST)
     public void onWalkSpeed(TickEvent.PlayerTickEvent event) {
@@ -312,8 +312,8 @@ public class PerkEffects {
     }
 
     /**
-     * Высокий шаг перка Тени, на обеих сторонах: ходьбу считает клиент, а сервер сверяет её своим шагом. Снимаем только то, что
-     * поставили сами: шаг могут держать и вещи других модов (сапоги Таума, пояс Ботании).
+     * High step of the Shadow perk, on both sides: the client computes walking, and the server checks it with its own step. We remove only what
+     * we set ourselves: the step can also be held by items of other mods (Thaumcraft boots, Botania belt).
      */
     private static void highStep(EntityPlayer p) {
         if (ArmorData.hasEquippedPerk(p, Perk.SWIFTNESS) && !com.divinerpgextended.vethea.Nightmare.inVethea(p)) {
@@ -339,7 +339,7 @@ public class PerkEffects {
 
         angelFlight(player);
         stance(player);
-        // противоядие сета джунглей (у Странника - перком ниже): яд снят, остальные плохие эффекты проходят быстрее
+        // antidote of the jungle set (for Wanderer - by the perk below): poison removed, other bad effects pass faster
         if (Antidote.jungleSet(player) && player.isPotionActive(Potion.poison)) player.removePotionEffect(Potion.poison.id);
         if (player.ticksExisted % Antidote.PERIOD == 0) Antidote.tick(player);
         if (ArmorData.equippedTier(player) == 0) return;
@@ -355,7 +355,7 @@ public class PerkEffects {
         if (player.isPotionActive(Potion.wither) && ArmorData.hasEquippedPerk(player, Perk.WITHER_PROTECTION)) {
             player.removePotionEffect(Potion.wither.id);
         }
-        if (ArmorData.hasEquippedPerk(player, Perk.SATIETY)) Satiety.tick(player); // голод вдвое медленнее (смерти от голода нет - Satiety)
+        if (ArmorData.hasEquippedPerk(player, Perk.SATIETY)) Satiety.tick(player); // hunger twice as slow (no death from hunger - Satiety)
         if (player.ticksExisted % 20 == 0 && ArmorData.hasEquippedPerk(player, Perk.COLD_AURA)) {
             @SuppressWarnings("unchecked")
             List<EntityLivingBase> near = player.worldObj.getEntitiesWithinAABB(EntityLivingBase.class,

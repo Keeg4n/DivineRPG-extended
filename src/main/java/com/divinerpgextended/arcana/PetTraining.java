@@ -41,13 +41,13 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Дрессировка питомцев у Зелуса. Присесть + ПКМ по Зелусу: ближайший твой питомец Divine (до 10 блоков) получает
- * следующий уровень за арканиум (и жетоны). Каждый уровень +25% здоровья и +20% урона. Умения:
+ * Pet training at Zelus. Sneak + right click Zelus: your nearest Divine pet (within 10 blocks) gets
+ * the next level for arcanium (and tokens). Each level gives +25% health and +20% damage. Skills:
  * <ul>
- * <li>Paratiku: 1 - летает за хозяином, 2 - собирает предметы вокруг себя и приносит хозяину (8 блоков), 3 - радиус 14;</li>
- * <li>Голем омоложения: 2 - хозяин рядом регенерирует, 3 - регенерация II;</li>
- * <li>Фиракрикс: 2 - хозяин рядом не горит, 3 - его удары поджигают;</li>
- * <li>Сеймер: 2 - хозяин рядом видит в темноте, 3 - и дышит под водой.</li>
+ * <li>Paratiku: 1 - flies after the owner, 2 - collects items around itself and brings them to the owner (8 blocks), 3 - radius 14;</li>
+ * <li>Golem of Rejuv: 2 - the owner nearby regenerates, 3 - Regeneration II;</li>
+ * <li>Fyracryx: 2 - the owner nearby does not burn, 3 - its hits set targets on fire;</li>
+ * <li>Seimer: 2 - the owner nearby sees in the dark, 3 - and breathes underwater.</li>
  * </ul>
  */
 public class PetTraining {
@@ -110,7 +110,7 @@ public class PetTraining {
         return "other";
     }
 
-    /** Питомцы Торговца скотом - их учит он (за теневые монеты), остальных - Зелус. */
+    /** Pets of the Livestock Merchant - he trains them (for shadow coins), the rest - Zelus. */
     static boolean livestock(Entity pet) {
         return pet instanceof EntitySmelter || pet instanceof EntityStoneGolem || pet instanceof EntityGrizzle
             || pet instanceof EntitySnapper || pet instanceof EntityEhu || pet instanceof EntityHusk;
@@ -147,7 +147,7 @@ public class PetTraining {
             return;
         }
         int[] c = cost(lvl + 1);
-        if (farmer) c = new int[] { 8 << lvl, 0 }; // 8, 16, 32 теневых монет
+        if (farmer) c = new int[] { 8 << lvl, 0 }; // 8, 16, 32 shadow coins
         net.minecraft.item.Item money = zelus ? ArcanaItems.arcanium : net.divinerpg.utils.items.VanillaItemsOther.shadowCoins;
         if (!p.capabilities.isCreativeMode) {
             if (count(p, money) < c[0] || count(p, ArcanaItems.dungeonTokens) < c[1]) {
@@ -171,7 +171,7 @@ public class PetTraining {
         say(p, EnumChatFormatting.AQUA, "dre.zelus.skill." + kind(pet) + "." + (lvl + 1));
     }
 
-    /** Свой обученный питомец этого вида рядом с хозяином (уровень, иначе 0). */
+    /** Own trained pet of this kind next to the owner (level, otherwise 0). */
     static int nearPet(EntityPlayer owner, Class<? extends EntityDivineRPGTameable> type, double r) {
         int best = 0;
         @SuppressWarnings("unchecked")
@@ -180,7 +180,7 @@ public class PetTraining {
         return best;
     }
 
-    /** Переплавка для Smelter: руда - в слитки (3 - иногда вдвойне); null - не руда. */
+    /** Smelting for Smelter: ore - into ingots (3 - sometimes double); null - not an ore. */
     static ItemStack smelt(net.minecraft.world.World w, ItemStack s, int lvl) {
         if (s == null || !FurnaceRoles.ore(s)) return null;
         ItemStack r = net.minecraft.item.crafting.FurnaceRecipes.smelting().getSmeltingResult(s);
@@ -193,8 +193,8 @@ public class PetTraining {
     }
 
     /**
-     * Smelter 2+: руда, выпавшая из блока рядом с хозяином, плавится сразу на земле - огонь, дым, шипение, смелтер
-     * вспыхивает. Выброшенное самим игроком (у него задержка подбора 40) не трогаем.
+     * Smelter 2+: ore dropped from a block near the owner smelts at once on the ground - fire, smoke, hissing, the smelter
+     * flares up. What the player dropped himself (he has a pickup delay of 40) we do not touch.
      */
     @SubscribeEvent
     public void onItemJoin(net.minecraftforge.event.entity.EntityJoinWorldEvent e) {
@@ -224,7 +224,7 @@ public class PetTraining {
         if (pet != null) ws.func_147487_a("lava", pet.posX, pet.posY + pet.height, pet.posZ, 4, 0.3, 0.2, 0.3, 0);
     }
 
-    /** Smelter 2+: руда, подобранная рядом и ещё не расплавленная на земле (выпала далеко), переплавляется при подборе. */
+    /** Smelter 2+: ore picked up nearby and not yet smelted on the ground (dropped far away) is smelted on pickup. */
     @SubscribeEvent
     public void onPickup(net.minecraftforge.event.entity.player.EntityItemPickupEvent e) {
         EntityPlayer p = e.entityPlayer;
@@ -235,18 +235,18 @@ public class PetTraining {
         if (out != null) e.item.setEntityItemStack(out);
     }
 
-    /** Каменный голем 2+: хозяин рядом получает вдвое (3 - вчетверо) меньше урона от взрывов. */
+    /** Stone Golem 2+: the owner nearby takes half (3 - a quarter) as much explosion damage. */
     @SubscribeEvent
     public void onOwnerHurt(LivingHurtEvent e) {
         if (!(e.entityLiving instanceof EntityPlayer) || e.entityLiving.worldObj.isRemote || !e.source.isExplosion()) return;
         int lvl = nearPet((EntityPlayer) e.entityLiving, EntityStoneGolem.class, 10);
         if (lvl >= 2) {
             e.ammount *= lvl >= 3 ? 0.25F : 0.5F;
-            com.divinerpgextended.debug.Debug.note(e.entityLiving, "Каменный голем рядом: взрыв x" + (lvl >= 3 ? "0.25" : "0.5"));
+            com.divinerpgextended.debug.Debug.note(e.entityLiving, "Stone golem nearby: explosion x" + (lvl >= 3 ? "0.25" : "0.5"));
         }
     }
 
-    /** Snapper 3: под водой копаешь без замедления. */
+    /** Snapper 3: you mine underwater without slowdown. */
     @SubscribeEvent
     public void onBreakSpeed(net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed e) {
         EntityPlayer p = e.entityPlayer;
@@ -258,12 +258,12 @@ public class PetTraining {
         e.newSpeed = speed;
     }
 
-    /** Умения оверворлдных питомцев, которые работают по времени. */
+    /** Overworld pet skills that work over time. */
     private static void livestockSkills(EntityDivineRPGTameable pet, EntityPlayer owner, int lvl) {
         if (lvl < 2 || pet.ticksExisted % 20 != 0) return;
         boolean close = owner.getDistanceSqToEntity(pet) <= 100;
         if (pet instanceof EntityGrizzle) {
-            // Вожак: враги, нацеленные на хозяина, переключаются на гризли
+            // Leader: enemies targeting the owner switch to the grizzle
             @SuppressWarnings("unchecked")
             List<Entity> mobs = pet.worldObj.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class, pet.boundingBox.expand(8, 4, 8));
             for (Entity m : mobs) {
@@ -274,7 +274,7 @@ public class PetTraining {
         } else if (pet instanceof EntitySnapper && close && owner.isInsideOfMaterial(net.minecraft.block.material.Material.water)) {
             owner.setAir(300);
         } else if (pet instanceof EntityEhu && pet.ticksExisted % 40 == 0) {
-            // Пастух: детёныши растут и животные готовы к новому приплоду быстрее
+            // Shepherd: young grow and animals are ready for new offspring faster
             double r = lvl >= 3 ? 12 : 8;
             int step = lvl >= 3 ? 400 : 200;
             @SuppressWarnings("unchecked")
@@ -299,13 +299,13 @@ public class PetTraining {
         }
     }
 
-    /** +25% здоровья за уровень (модификатор не сохраняется - ставим заново при каждой загрузке). */
+    /** +25% health per level (the modifier is not saved - set again on every load). */
     private static void applyStats(EntityLivingBase pet) {
         IAttributeInstance hp = pet.getEntityAttribute(SharedMonsterAttributes.maxHealth);
         AttributeModifier old = hp.getModifier(HP);
         if (old != null) hp.removeModifier(old);
         int lvl = level(pet);
-        if (lvl > 0) hp.applyModifier(new AttributeModifier(HP, "Дрессировка", 0.25 * lvl, 1).setSaved(false));
+        if (lvl > 0) hp.applyModifier(new AttributeModifier(HP, "Training", 0.25 * lvl, 1).setSaved(false));
     }
 
     @SubscribeEvent
@@ -315,7 +315,7 @@ public class PetTraining {
         }
     }
 
-    /** +20% урона за уровень; Фиракрикс 3 поджигает. */
+    /** +20% damage per level; Fyracryx 3 sets on fire. */
     @SubscribeEvent
     public void onHurt(LivingHurtEvent e) {
         Entity src = e.source.getEntity();
@@ -324,11 +324,11 @@ public class PetTraining {
         int lvl = level(src);
         if (lvl <= 0) return;
         e.ammount *= 1.0F + 0.2F * lvl;
-        com.divinerpgextended.debug.Debug.note(src, "Питомец уровня " + lvl + ": урон x" + (1.0F + 0.2F * lvl));
+        com.divinerpgextended.debug.Debug.note(src, "Pet of level " + lvl + ": damage x" + (1.0F + 0.2F * lvl));
         if (src instanceof EntityFyracryx && lvl >= 3) e.entityLiving.setFire(4);
     }
 
-    /** Летающий Paratiku не разбивается. */
+    /** A flying Paratiku does not break. */
     @SubscribeEvent
     public void onFall(LivingFallEvent e) {
         if (e.entityLiving instanceof EntityParatiku && level(e.entityLiving) >= 1) e.distance = 0;
@@ -353,7 +353,7 @@ public class PetTraining {
         }
     }
 
-    /** Paratiku: держится на высоте хозяина (летает), с уровня 2 - собирает предметы и приносит их хозяину. */
+    /** Paratiku: stays at the owner's height (flies), from level 2 it collects items and brings them to the owner. */
     private static void paratiku(EntityDivineRPGTameable pet, EntityPlayer owner, int lvl) {
         if (pet.isSitting()) return;
         double targetY = owner.posY + 1.5;
@@ -374,7 +374,7 @@ public class PetTraining {
             if (owner.inventory.addItemStackToInventory(s)) {
                 it.setDead();
             } else if (s.stackSize == before) {
-                continue; // инвентарь полон - оставляем лежать
+                continue; // inventory is full - leave it lying
             }
             pet.worldObj.playSoundAtEntity(owner, "random.pop", 0.2F, 1.6F);
         }

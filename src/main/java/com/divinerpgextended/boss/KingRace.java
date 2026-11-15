@@ -30,22 +30,22 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Король скорчеров - лихач. У Divine его выстрелы и метеоры написаны, но не работают (сидят в updateEntityActionState, а у
- * мобов Divine ИИ на задачах и этот метод не вызывается) - здесь они идут сами, каждый тик ({@link #onUpdate}).
+ * King of Scorchers is a scorcher. Divine has his shots and meteors written but they do not work (they sit in updateEntityActionState, and
+ * Divine mobs use AI tasks, so this method is never called) - here they run on their own, every tick ({@link #onUpdate}).
  * <p>
- * В своей палате ({@link ScorcherPit}) он гоняет по треку:
+ * In his chamber ({@link ScorcherPit}) he races along a track:
  * <ul>
- * <li>Круги по разметке (радиус {@link #LAP_R}) на большой скорости. За ним тянется огненный след ({@link #TRAIL_LIFE} тиков):
- * стоять в нём - огонь. Задел бойца - таран с отбросом и поджогом. На бегу стреляет огнём и раз в {@link #METEORS_EVERY}
- * тиков зовёт метеоры; время от времени выпускает на трек скорчеров (до {@link #SCORCHERS_MAX}).</li>
- * <li>После {@link #LAPS_TO_PIT} кругов - пит-стоп на клетчатой финишной полосе ({@link #PIT} тиков): стоит и не атакует,
- * щит пламени снят - удары вплотную проходят полностью. Это окно для ближнего боя.</li>
- * <li>Ниже {@link #LOW} здоровья на осях иногда срезает через мостки и помост - в центре больше не отсидеться.</li>
+ * <li>Laps along the markings (radius {@link #LAP_R}) at high speed. A fire trail ({@link #TRAIL_LIFE} ticks) follows him:
+ * standing in it means fire. If he hits a fighter - a ram with knockback and ignition. While running he shoots fire and every {@link #METEORS_EVERY}
+ * ticks summons meteors; from time to time he releases scorchers onto the track (up to {@link #SCORCHERS_MAX}).</li>
+ * <li>After {@link #LAPS_TO_PIT} laps - a pit stop on the checkered finish strip ({@link #PIT} ticks): he stands still and does not attack,
+ * the flame shield is down - point-blank hits go through in full. This is the window for melee.</li>
+ * <li>Below {@link #LOW} health he sometimes cuts across the axes over the catwalks and the platform - you can no longer sit it out in the center.</li>
  * </ul>
- * Урон по нему ({@link #onHurt}): щит пламени - удары вплотную вполовину, но водное оружие (водные кинжал, молот и трезубец -
- * вода гасит пламя) - в полтора раза, на пит-стопе - в два с половиной; Maelstrom и Sound of Music - в полтора раза. Урон от
- * него: огонь, жар и поджог - без огнестойкости не выстоять; в полном сете Inferno или Netherite (огнестойкость) таран,
- * выстрелы и метеоры - вдвое слабее.
+ * Damage to him ({@link #onHurt}): the flame shield halves point-blank hits, but water weapons (the water dagger, maul and trident -
+ * water puts out flame) deal 1.5 times, during the pit stop 2.5 times; Maelstrom and Sound of Music 1.5 times. Damage from
+ * him: fire, heat and ignition - you can't survive without fire resistance; in a full Inferno or Netherite set (fire resistance) the ram,
+ * shots and meteors are half as strong.
  */
 public class KingRace {
 
@@ -60,7 +60,7 @@ public class KingRace {
         int mode = RACE, timer, fireball, meteors = 120, scorchers = 200;
         double angle, travelled, cutX, cutZ;
         boolean init;
-        final List<double[]> trail = new ArrayList<double[]>(); // x, z, тик угасания
+        final List<double[]> trail = new ArrayList<double[]>(); // x, z, fade tick
         final Map<Entity, Long> rammed = new WeakHashMap<Entity, Long>();
         final List<Entity> minions = new ArrayList<Entity>();
     }
@@ -73,14 +73,14 @@ public class KingRace {
         return s;
     }
 
-    /** Центр новой палаты, где сейчас король (или null - вне её или палата старого вида). */
+    /** Center of the new chamber where the king currently is (or null - outside it or the chamber is of the old kind). */
     public static int[] pit(World w, double x, double y, double z) {
         if (!WorldGenOuterLairs.inside(w, WorldGenOuterLairs.SCORCHERS, x, y, z)) return null;
         int[] c = WorldGenOuterLairs.nearest(w.getSeed(), WorldGenOuterLairs.SCORCHERS, x, z);
         return c == null || !ScorcherPit.isNew(w, c[0], c[2]) ? null : c;
     }
 
-    // ---------------------------------------------------------------- для проверок
+    // ---------------------------------------------------------------- for tests
 
     public static boolean pitStop(Entity e) {
         State s = STATES.get(e);
@@ -99,7 +99,7 @@ public class KingRace {
         return s.minions.size();
     }
 
-    /** Сразу на пит-стоп (сделал свои круги). */
+    /** Go straight to the pit stop (he has done his laps). */
     public static void toPit(EntityKingOfScorchers k) {
         State s = state(k);
         s.travelled = LAPS_TO_PIT * Math.PI * 2;
@@ -113,7 +113,7 @@ public class KingRace {
         STATES.remove(e);
     }
 
-    // ---------------------------------------------------------------- ход
+    // ---------------------------------------------------------------- turn
 
     @SubscribeEvent
     public void onUpdate(LivingEvent.LivingUpdateEvent e) {
@@ -124,7 +124,7 @@ public class KingRace {
         else divineAttacks(k);
     }
 
-    /** Вне палаты - как задумано в Divine: выстрел раз в 15 тиков, метеоры раз в 250. */
+    /** Outside the chamber - as intended in Divine: a shot every 15 ticks, meteors every 250. */
     static void divineAttacks(EntityKingOfScorchers k) {
         EntityPlayer t = k.worldObj.getClosestVulnerablePlayerToEntity(k, 40);
         if (t == null) return;
@@ -136,7 +136,7 @@ public class KingRace {
         State s = state(k);
         WorldServer ws = (WorldServer) k.worldObj;
         double cx = c[0] + 0.5, cz = c[2] + 0.5;
-        if (!s.init) { // свой ход вместо задач Divine (иначе идёт напролом к игроку)
+        if (!s.init) { // our own turn instead of Divine's tasks (otherwise he charges straight at the player)
             k.tasks.taskEntries.clear();
             k.targetTasks.taskEntries.clear();
             k.getNavigator().clearPathEntity();
@@ -146,7 +146,7 @@ public class KingRace {
         long now = ws.getTotalWorldTime();
         burnTrail(ws, s, now);
         EntityPlayer t = fighter(ws, k);
-        if (t == null) { // никого - стоит на финише
+        if (t == null) { // nobody around - he stands at the finish
             k.motionX = k.motionZ = 0;
             return;
         }
@@ -164,7 +164,7 @@ public class KingRace {
             }
             return;
         }
-        if (s.mode == CUT) { // напрямик через мостки и помост
+        if (s.mode == CUT) { // straight across the catwalks and the platform
             drive(k, s.cutX, s.cutZ, CUT_SPEED);
             if (Math.hypot(s.cutX - k.posX, s.cutZ - k.posZ) < 1.5) {
                 s.mode = RACE;
@@ -177,14 +177,14 @@ public class KingRace {
             double a = s.angle + 0.3;
             drive(k, cx + Math.cos(a) * LAP_R, cz + Math.sin(a) * LAP_R, SPEED);
             if (s.travelled >= LAPS_TO_PIT * Math.PI * 2) s.mode = TO_PIT;
-            if (s.mode == TO_PIT && Math.abs(wrap(s.angle - Math.PI)) < 0.25) { // на финишной прямой - в боксы
+            if (s.mode == TO_PIT && Math.abs(wrap(s.angle - Math.PI)) < 0.25) { // on the finish straight - into the pits
                 s.mode = STOP;
                 s.timer = PIT;
                 ws.playSoundAtEntity(k, "random.anvil_land", 1.5F, 0.5F);
                 return;
             }
             double q = Math.PI / 2;
-            if (low && s.mode == RACE && Math.floor(prev / q) != Math.floor(s.angle / q) && k.getRNG().nextBoolean()) { // срезать по оси
+            if (low && s.mode == RACE && Math.floor(prev / q) != Math.floor(s.angle / q) && k.getRNG().nextBoolean()) { // cut across the axis
                 double ax = Math.round(s.angle / q) * q + Math.PI;
                 s.cutX = cx + Math.cos(ax) * LAP_R;
                 s.cutZ = cz + Math.sin(ax) * LAP_R;
@@ -214,7 +214,7 @@ public class KingRace {
         return a;
     }
 
-    /** Ехать к точке (по горизонтали; вниз тянет как обычно). */
+    /** Drive to a point (horizontally; pulled down as usual). */
     static void drive(EntityKingOfScorchers k, double x, double z, double speed) {
         double dx = x - k.posX, dz = z - k.posZ, d = Math.sqrt(dx * dx + dz * dz);
         if (d < 0.05) {
@@ -226,7 +226,7 @@ public class KingRace {
         k.rotationYaw = k.renderYawOffset = k.rotationYawHead = (float) (Math.atan2(dz, dx) * 180 / Math.PI) - 90F;
     }
 
-    /** Огненный след: искры, бойцу в нём - огонь. */
+    /** Fire trail: sparks, fire for a fighter in it. */
     static void burnTrail(WorldServer ws, State s, long now) {
         for (Iterator<double[]> it = s.trail.iterator(); it.hasNext();) {
             double[] p = it.next();
@@ -249,7 +249,7 @@ public class KingRace {
         }
     }
 
-    /** Таран: задел бойца - урон, отброс от себя, поджог (одного и того же - не чаще раза в RAM_EVERY тиков). */
+    /** Ram: if it hits a fighter - damage, knockback away from itself, ignition (the same one no more than once per RAM_EVERY ticks). */
     static void ram(EntityKingOfScorchers k, State s, long now) {
         for (Object o : k.worldObj.getEntitiesWithinAABB(EntityPlayer.class, k.boundingBox.expand(0.5, 0.2, 0.5))) {
             EntityPlayer p = (EntityPlayer) o;
@@ -264,7 +264,7 @@ public class KingRace {
         }
     }
 
-    /** Три метеора над бойцом (как в Divine). */
+    /** Three meteors above the fighter (as in Divine). */
     static void meteors(EntityKingOfScorchers k, EntityPlayer t) {
         for (int i = 0; i < 3; i++) {
             EntityKingOfScorchersMeteor m = new EntityKingOfScorchersMeteor(k.worldObj, t.posX + (k.getRNG().nextDouble() - k.getRNG().nextDouble()) * 2.0, t.posY + 10.0,
@@ -277,7 +277,7 @@ public class KingRace {
         for (Iterator<Entity> it = s.minions.iterator(); it.hasNext();) if (it.next().isDead) it.remove();
     }
 
-    /** Скорчеры на треке (приспешники: без добычи, гибнут с королём). */
+    /** Scorchers on the track (minions: no loot, they die with the king). */
     static void spawnScorchers(EntityKingOfScorchers k, State s, int n) {
         prune(s);
         for (int i = 0; i < n && s.minions.size() < SCORCHERS_MAX; i++) {
@@ -308,14 +308,14 @@ public class KingRace {
         return best;
     }
 
-    // ---------------------------------------------------------------- урон
+    // ---------------------------------------------------------------- damage
 
-    /** Водное оружие: вода гасит щит пламени. */
+    /** Water weapon: water puts out the flame shield. */
     public static boolean aquatic(Item i) {
         return i == VanillaItemsWeapons.aquaticDagger || i == VanillaItemsWeapons.aquaticMaul || i == VanillaItemsWeapons.aquaticTrident;
     }
 
-    /** Полный сет Inferno или Netherite. */
+    /** A full Inferno or Netherite set. */
     public static boolean heatproof(EntityPlayer p) {
         ItemStack[] a = p.inventory.armorInventory;
         if (a[0] == null || a[1] == null || a[2] == null || a[3] == null) return false;
@@ -325,7 +325,7 @@ public class KingRace {
                 && a[3].getItem() == VanillaItemsArmor.netheriteHelmet;
     }
 
-    /** Король или его снаряды. */
+    /** The king or his projectiles. */
     static boolean fromKing(DamageSource src) {
         Entity a = src.getEntity(), b = src.getSourceOfDamage();
         return a instanceof EntityKingOfScorchers || b instanceof EntityKingOfScorchers || b instanceof EntityKingOfScorchersMeteor
@@ -346,7 +346,7 @@ public class KingRace {
         else if (NetherArsenal.maelstrom(e.source) || e.source.getSourceOfDamage() instanceof net.divinerpg.entities.iceika.projectile.EntityMusic) e.ammount *= RANGED;
     }
 
-    /** Не трогать задачи моба вне палаты: проверка для тестов - моб под нашим управлением. */
+    /** Do not touch the mob's tasks outside the chamber: a check for tests - the mob is under our control. */
     public static boolean driven(EntityLiving k) {
         State s = STATES.get(k);
         return s != null && s.init;

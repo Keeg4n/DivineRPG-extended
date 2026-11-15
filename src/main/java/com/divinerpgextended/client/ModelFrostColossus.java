@@ -10,15 +10,15 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Модель Ледяного Колосса: железный голем с ледяной короной на голове и ледяными шипами на плечах. Анимация удара
- * - от своего таймера (у ванильной модели она жёстко завязана на железного голема).
+ * Frost Colossus model: an iron golem with an ice crown on its head and ice spikes on its shoulders. The attack animation
+ * is driven by its own timer (the vanilla model has it hard-wired to the iron golem).
  */
 @SideOnly(Side.CLIENT)
 public class ModelFrostColossus extends ModelIronGolem {
 
     public ModelFrostColossus() {
         super();
-        // корона: обруч и зубцы, текстура в свободном углу 128x128
+        // crown: a hoop and spikes, the texture is in a free corner of the 128x128
         ModelRenderer crown = new ModelRenderer(this, 96, 96).setTextureSize(128, 128);
         crown.addBox(-4.5F, -13.0F, -6.0F, 9, 1, 9);
         crown.setTextureOffset(96, 108)
@@ -28,7 +28,7 @@ public class ModelFrostColossus extends ModelIronGolem {
         crown.addBox(-4.5F, -15.0F, 1.0F, 2, 2, 2);
         crown.addBox(2.5F, -15.0F, 1.0F, 2, 2, 2);
         ironGolemHead.addChild(crown);
-        // шипы на плечах
+        // spikes on the shoulders
         ModelRenderer spikes = new ModelRenderer(this, 112, 108).setTextureSize(128, 128);
         spikes.addBox(-9.0F, -6.0F, -3.0F, 3, 4, 3);
         spikes.addBox(-8.0F, -9.0F, -2.0F, 2, 3, 2);

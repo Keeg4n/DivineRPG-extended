@@ -14,8 +14,8 @@ import com.divinerpgextended.item.ItemSoulHarvest;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Блуждающая душа - ловится в Мортуме (в Лете и тёмной воде). ПКМ: отдаёт {@link #SOULS} души Жатве душ из инвентаря (до полного
- * запаса) и тает. Нет Жатвы - ничего не тратится.
+ * Wandering Soul - caught in Mortum (in Lethe and dark water). Right click: gives {@link #SOULS} souls to a Soul Harvest from the inventory (up to the full
+ * supply) and melts away. No Soul Harvest - nothing is spent.
  */
 public class ItemWanderingSoul extends Item {
 

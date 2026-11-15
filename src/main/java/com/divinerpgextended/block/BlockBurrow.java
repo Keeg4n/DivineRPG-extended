@@ -14,9 +14,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Стены крабьей норы: на вид песчаник (мета 0) и песок (мета 1). Сломал в выживании или взорвал - нора обрушивается:
- * проход вокруг засыпает песком. Сами блоки норы, гнездо и сердце не унести: в инвентаре игрока сразу становятся обычными
- * песчаником, песком и резным песчаником ({@link Convert}), поставленные в выживании - тоже.
+ * Walls of the crab burrow: look like sandstone (meta 0) and sand (meta 1). Broken in survival or blown up - the burrow collapses:
+ * the passage around is filled with sand. The burrow blocks themselves, the nest and the heart cannot be carried away: in the player's inventory they immediately become ordinary
+ * sandstone, sand and chiseled sandstone ({@link Convert}), and those placed in survival do too.
  */
 public class BlockBurrow extends Block {
 
@@ -54,7 +54,7 @@ public class BlockBurrow extends Block {
         super.onBlockHarvested(world, x, y, z, meta, player);
     }
 
-    /** В выживании на месте сломанного блока сразу появляется падающий песок: пролом тут же засыпает. */
+    /** In survival, falling sand appears at once in place of the broken block: the breach is filled at once. */
     @Override
     public boolean removedByPlayer(World world, EntityPlayer player, int x, int y, int z, boolean willHarvest) {
         if (!world.isRemote && !player.capabilities.isCreativeMode) {
@@ -73,7 +73,7 @@ public class BlockBurrow extends Block {
         Convert.placed(w, x, y, z, e, s);
     }
 
-    /** Засыпать песком всё пустое и затопленное вокруг места пролома: песок падает и забивает проход. */
+    /** Fill with sand everything empty and flooded around the breach: the sand falls and clogs the passage. */
     public static void collapse(World world, int x, int y, int z) {
         for (int dx = -3; dx <= 3; dx++) {
             for (int dz = -3; dz <= 3; dz++) {
@@ -89,7 +89,7 @@ public class BlockBurrow extends Block {
         world.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, "dig.sand", 2.0F, 0.6F);
     }
 
-    /** Ванильный двойник блока норы (null - не блок норы). */
+    /** Vanilla twin of a burrow block (null - not a burrow block). */
     public static net.minecraft.item.ItemStack plain(net.minecraft.item.ItemStack s) {
         if (s == null) return null;
         Block b = Block.getBlockFromItem(s.getItem());
@@ -100,7 +100,7 @@ public class BlockBurrow extends Block {
         return null;
     }
 
-    /** Блоки норы у игрока в выживании - обычные; поставленные им - тоже обычные, без свойств норы. */
+    /** Burrow blocks in a survival player's hands are ordinary; those placed by him too, without burrow properties. */
     public static class Convert {
 
         static void placed(World w, int x, int y, int z, net.minecraft.entity.EntityLivingBase e, net.minecraft.item.ItemStack s) {

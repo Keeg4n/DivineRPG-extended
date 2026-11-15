@@ -19,15 +19,15 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Посох мага сумеречного мира (падает с мага своего мира): стреляет его зарядом, арканный урон. Мета - мир: 0 Дикий лес
- * (Маг), 1 Апалачия (Чародей-связыватель), 2 Небесный терн (Мистик), 3 Мортум (Колдун).
+ * Mage staff of a twilight dimension (drops from the mage of its dimension): shoots its charge, arcane damage. Meta - dimension: 0 Wildwood
+ * (Mage), 1 Apalachia (Spellbinder), 2 Skythern (Mystic), 3 Mortum (Sorcerer).
  */
 public class ItemMageStaff extends Item {
 
     public static final String OWNER = "ItemMageStaff";
     static final String[] KEYS = { "wildwood", "apalachia", "skythern", "mortum" };
     static final String[] MAGES = { "EntityMage", "EntitySpellbinder", "EntityMystic", "EntitySorcerer" };
-    /** База урона; растёт с этапом Арканы (до x2.2) - Мортум в конце игры ~31, ниже Арксианского посоха Везеи (36). */
+    /** Base damage; grows with the Arcana stage (up to x2.2) - Mortum at the end of the game ~31, below Vethea's Arksiane Staff (36). */
     static final float[] DAMAGE = { 8F, 10F, 12F, 14F };
     static final int[][] COLOR = { { 62, 212, 254 }, { 180, 90, 255 }, { 235, 235, 255 }, { 200, 40, 50 } };
 
@@ -50,7 +50,7 @@ public class ItemMageStaff extends Item {
         return DAMAGE[meta(s)];
     }
 
-    /** Мета посоха для этого мага или -1. */
+    /** Meta of the staff for this mage or -1. */
     public static int metaOf(Entity mage) {
         String n = mage.getClass().getSimpleName();
         for (int i = 0; i < MAGES.length; i++) if (MAGES[i].equals(n)) return i;

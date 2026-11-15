@@ -1,5 +1,5 @@
-"""Четвёртый раунд концептов брони Странника (A4): эталон Ботании и размеры, затем по странице на ступень - было и стало.
-Запуск: python wprint_slim.py <out.html>. Картинки ждёт в img/ рядом с HTML: r1s..r7s, прежние облики, bot_terrasteel, bot_manasteel, bot_elementium."""
+"""Fourth round of Wanderer armor concepts (A4): the Botania reference and sizes, then a page per tier - before and after.
+Run: python wprint_slim.py <out.html>. Expects images in img/ next to the HTML: r1s..r7s, previous looks, bot_terrasteel, bot_manasteel, bot_elementium."""
 import html
 import sys
 
@@ -19,7 +19,7 @@ BOTANIA = [
     ('bot_elementium', 'Элементий', 'Открытый шлем с плоскими крылышками наружу, лёгкие крылья за спиной.'),
 ]
 
-SIZES = [  # деталь, было, стало, Ботания (единицы модели; тело игрока: торс 8 x 4, рука и нога 4 x 4, голова 8)
+SIZES = [  # part, before, after, Botania (model units; player body: torso 8 x 4, arm and leg 4 x 4, head 8)
     ('Грудь, ширина x толщина', '10 x 6.5', '9.2 x 6', '9.4 x 6.4'),
     ('Талия', '10 x 6, без сужения', '8.4 x 5', '8.4 x 5.4'),
     ('Наплечник: выступ от руки', '3', '1.1', '1.2'),

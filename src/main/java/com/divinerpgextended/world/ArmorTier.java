@@ -7,8 +7,8 @@ import net.minecraft.item.Item;
 import com.divinerpgextended.boss.Boss;
 
 /**
- * Ступени закалки брони Странника R2-R7: каждый сумеречный мир добавляет свою ступень. Донор - полный сет брони мира,
- * топливо - камни мира, требование - босс мира.
+ * Tempering tiers of Wanderer armor R2-R7: each twilight world adds its own tier. The donor is a full armor set of the world,
+ * the fuel is the world's stones, the requirement is the world's boss.
  */
 public enum ArmorTier {
 
@@ -27,7 +27,7 @@ public enum ArmorTier {
         this.boss = boss;
     }
 
-    /** [шлем, нагрудник, поножи, ботинки] */
+    /** [helmet, chestplate, leggings, boots] */
     public Item[] donorSet() {
         switch (this) {
             case R2_EDEN:
@@ -68,7 +68,7 @@ public enum ArmorTier {
         }
     }
 
-    /** Ступень, в которую ведёт улучшение из текущей, или null. */
+    /** The tier the upgrade from the current one leads to, or null. */
     public static ArmorTier next(int currentTier) {
         for (ArmorTier t : values()) if (t.tier == currentTier + 1) return t;
         return null;

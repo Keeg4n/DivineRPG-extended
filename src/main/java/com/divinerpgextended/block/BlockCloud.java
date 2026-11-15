@@ -11,8 +11,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Облако Скайтерна: площадки под ветряными тотемами. Мягкое и чуть прозрачное, по нему можно ходить; падение на облако
- * не ранит. Не выпадает при ломании. Мета {@link #TEMP} - облако Посоха облаков: тает через {@link #TEMP_TICKS} тиков.
+ * Skythern Cloud: platforms under Wind Totems. Soft and slightly transparent, it can be walked on; a fall onto the cloud
+ * does not hurt. Does not drop when broken. Meta {@link #TEMP} is the Cloud Staff cloud: melts after {@link #TEMP_TICKS} ticks.
  */
 public class BlockCloud extends Block {
 

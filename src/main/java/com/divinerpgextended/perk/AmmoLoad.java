@@ -15,8 +15,8 @@ import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 
 /**
- * Зарядка оружия: присесть и ПКМ ({@link com.divinerpgextended.client.AmmoLoadKey}). Клиент только просит, сервер сам
- * проверяет оружие в руке и патроны в инвентаре ({@link Ammo#load}) и играет звук перезарядки своего вида.
+ * Loading a weapon: sneak and right-click ({@link com.divinerpgextended.client.AmmoLoadKey}). The client only asks, the server
+ * checks the weapon in hand and the cartridges in the inventory itself ({@link Ammo#load}) and plays the reload sound of its kind.
  */
 public final class AmmoLoad {
 
@@ -30,7 +30,7 @@ public final class AmmoLoad {
         ColdHandler.NET.registerMessage(Handler.class, Load.class, 15, Side.SERVER);
     }
 
-    /** Зарядить оружие в руке (метательное - собрать в одну стопку). @return сколько вошло */
+    /** Load the weapon in hand (throwable - gather into one stack). @return how much went in */
     public static int load(EntityPlayer p) {
         ItemStack w = p.getHeldItem();
         if (p.isDead) return 0;
@@ -46,7 +46,7 @@ public final class AmmoLoad {
         return n;
     }
 
-    /** Звук перезарядки: фазер и блиц - пыль, пушки и La Vekor - затвор, луки - без звука (null). */
+    /** Reload sound: phaser and blitz - dust, cannons and La Vekor - bolt, bows - no sound (null). */
     public static String sound(ItemStack w) {
         if (RangedRoles.dust(w.getItem()) != null) return DUST;
         if (w.getItem() instanceof ItemBow) return null;
@@ -69,7 +69,7 @@ public final class AmmoLoad {
             EntityPlayerMP p = ctx.getServerHandler().playerEntity;
             String before = Ammo.describe(p);
             int n = load(p);
-            LOG.info("Зарядка (сервер, " + p.getCommandSenderName() + "): " + before + " - вошло " + n);
+            LOG.info("Loading (server, " + p.getCommandSenderName() + "): " + before + " - loaded " + n);
             return null;
         }
     }

@@ -10,12 +10,12 @@ import com.divinerpgextended.world.twilight.TwilightWorld;
 import com.divinerpgextended.world.twilight.WorldWeather;
 
 /**
- * Старый верек, Дикий лес: вожак стаи. На двух третях и трети здоровья зовёт вереков, издалека прыгает на цель. В ливень становится
- * невиден, остаётся только след на земле.
+ * Old Verek, Wildwood: the pack leader. At two thirds and one third of health it calls Vereks, jumps at the target from afar. In a downpour it becomes
+ * invisible, only a trail on the ground remains.
  */
 public class EntityOldVerek extends EntityMiniBoss {
 
-    public static final double HEALTH = 150; // верек 50 x3, страж 400
+    public static final double HEALTH = 150; // Verek 50 x3, guardian 400
     private int howls, leap = 120;
 
     public EntityOldVerek(World w) {
@@ -47,7 +47,7 @@ public class EntityOldVerek extends EntityMiniBoss {
         twilightLoot(TwilightWorld.WILDWOOD, looting);
     }
 
-    /** Вой на порогах здоровья; true - позвал стаю. */
+    /** Howl at the health thresholds; true - called the pack. */
     public boolean howl() {
         float left = getHealth() / getMaxHealth();
         if (howls == 0 && left < 2F / 3 || howls == 1 && left < 1F / 3) {

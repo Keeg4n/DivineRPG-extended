@@ -6,8 +6,8 @@ import net.minecraft.block.material.Material;
 import com.divinerpgextended.world.twilight.TwilightWorld;
 
 /**
- * Лампа сумеречного мира - пара к лампе Эдема из Divine (та же мерцающая рамка, цвет мира). Светит в полную силу,
- * крафтится как у Divine: железо вокруг осколка мира. Ею освещены постройки аддона вместо глоустоуна.
+ * Twilight world lamp - a pair to Divine's Eden lamp (the same flickering frame, the world's color). Gives full light,
+ * crafted as in Divine: iron around a world shard. Addon structures are lit with it instead of glowstone.
  */
 public class BlockWorldLamp extends Block {
 

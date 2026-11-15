@@ -31,13 +31,13 @@ import cpw.mods.fml.common.registry.GameRegistry;
 
 public final class ModItems {
 
-    /** Части брони Странника: [0] шлем, [1] нагрудник, [2] поножи, [3] ботинки (как armorType в Minecraft). */
+    /** Wanderer armor pieces: [0] helmet, [1] chestplate, [2] leggings, [3] boots (like armorType in Minecraft). */
     public static final Item[] wanderer = new Item[4];
     private static final String[] NAMES = { "wandererHelmet", "wandererChestplate", "wandererLeggings",
         "wandererBoots" };
 
     public static Item wandererClock;
-    /** Ведро Леты - регистрируется вместе с Летой ({@link ModBlocks#register}): блок нужен ведру при создании. */
+    /** Lethe Bucket - registered together with Lethe ({@link ModBlocks#register}): the bucket needs the block at creation. */
     public static Item letheBucket;
     public static Item dreamMelonSeeds, dreamWaterBucket;
     public static Item bossEgg;
@@ -54,11 +54,11 @@ public final class ModItems {
     public static Item throneShard;
     public static Item fish;
     public static Item crate;
-    /** Удочки по номеру в {@link Rod}; [VANILLA] пусто - это ванильная удочка. */
+    /** Fishing rods by index in {@link Rod}; [VANILLA] is empty - that is the vanilla rod. */
     public static final Item[] rods = new Item[Rod.values().length];
     public static Item worm;
     public static Item wormShovel;
-    /** Набор рыбака: [0] шляпа, [1] жилет, [2] штаны. */
+    /** Angler set: [0] hat, [1] vest, [2] pants. */
     public static final Item[] angler = new Item[3];
     public static Item fishGuide;
     public static Item baitBag;
@@ -73,23 +73,23 @@ public final class ModItems {
     public static Item worldStick;
     public static Item guardianHeart;
     public static Item skyCart, apalachiaRails, arcanaRails, gondola;
-    /** Вещи Ветеи аддона: шаблоны крыльев, лунный осколок ({@link com.divinerpgextended.vethea.DreamItem}). */
+    /** Addon Vethea items: wing templates, lunar shard ({@link com.divinerpgextended.vethea.DreamItem}). */
     public static Item dreamItem;
-    /** Арканитовая кирка: ломает блоки и спавнеры подземелий Арканы; заряженная - 3x3. */
+    /** Arcanite Pickaxe: breaks Arcana dungeon blocks and spawners; charged - 3x3. */
     public static Item arcanePick, arcanePickCharged;
-    /** Яйцо призыва Странника. */
+    /** Spawn egg of the Wanderer. */
     public static Item wandererEgg;
-    /** Посохи магов сумеречных миров. */
+    /** Mage staffs of the twilight worlds. */
     public static Item mageStaff;
-    /** Арканные зелья (с арканной стойки). */
+    /** Arcane potions (from the Arcane Brewing Stand). */
     public static Item arcanePotion;
-    /** Манекен для битья. */
+    /** Training Dummy. */
     public static Item trainingDummy, petWhistle;
-    /** Реликварии миров: ключи миров (мета - мир) и вещи из реликвариев. */
+    /** World reliquaries: world keys (meta - world) and items from reliquaries. */
     public static Item worldKey, stormBow, tomahawk, cloudStaff, soulHarvest;
-    /** Рыбалка миров: Солнечная блесна (приманка из искр Эдема) и блуждающая душа (улов Мортума, заряжает Жатву душ). */
+    /** World fishing: Sun Lure (bait made of Eden sparks) and Wandering Soul (Mortum catch, charges Soul Harvest). */
     public static Item sunLure, wanderingSoul, cyclopsBait;
-    /** Лиоплевродон: лук Цунами (с босса) и Кровавая наживка (призыв). */
+    /** Liopleurodon: the Tsunami bow (from the boss) and Bloody Bait (summon). */
     public static Item tsunami, bloodBait;
 
     private ModItems() {}
@@ -221,12 +221,12 @@ public final class ModItems {
         GameRegistry.registerItem(soulHarvest, "soulHarvest");
         sunLure = new Item().setUnlocalizedName("dre.sunLure").setTextureName("divinerpgextended:sun_lure").setCreativeTab(com.divinerpgextended.DreTab.TAB);
         GameRegistry.registerItem(sunLure, "sunLure");
-        if (net.divinerpg.utils.items.TwilightItemsOther.edenSparkles != null) // 2 искры Эдема и золотой самородок - 2 блесны
+        if (net.divinerpg.utils.items.TwilightItemsOther.edenSparkles != null) // 2 Eden sparks and a gold nugget - 2 lures
             GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(sunLure, 2), net.divinerpg.utils.items.TwilightItemsOther.edenSparkles,
                 net.divinerpg.utils.items.TwilightItemsOther.edenSparkles, net.minecraft.init.Items.gold_nugget);
         cyclopsBait = new Item().setUnlocalizedName("dre.cyclopsBait").setTextureName("divinerpgextended:cyclops_bait").setCreativeTab(com.divinerpgextended.DreTab.TAB);
         GameRegistry.registerItem(cyclopsBait, "cyclopsBait");
-        if (net.divinerpg.utils.items.VanillaItemsOther.cyclopsEyeShards != null) // осколок глаза циклопа - 2 глазка
+        if (net.divinerpg.utils.items.VanillaItemsOther.cyclopsEyeShards != null) // cyclops eye shard - 2 eye baits
             GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(cyclopsBait, 2), net.divinerpg.utils.items.VanillaItemsOther.cyclopsEyeShards);
         wanderingSoul = new com.divinerpgextended.fishing.ItemWanderingSoul();
         GameRegistry.registerItem(wanderingSoul, "wanderingSoul");
@@ -234,13 +234,13 @@ public final class ModItems {
         GameRegistry.registerItem(tsunami, "tsunami");
         bloodBait = new ItemTrophy("dre.bloodBait", "divinerpgextended:blood_bait", "dre.tooltip.blood_bait", false);
         GameRegistry.registerItem(bloodBait, "bloodBait");
-        if (net.divinerpg.utils.items.TwilightItemsOther.apalachiaChunk != null) // акулёнок, сырая говядина и кусок Апалачии
+        if (net.divinerpg.utils.items.TwilightItemsOther.apalachiaChunk != null) // shark pup, raw beef and an Apalachia piece
             GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(bloodBait), new net.minecraft.item.ItemStack(fish, 1,
                 com.divinerpgextended.fishing.Fish.SHARK_PUP.ordinal()), net.minecraft.init.Items.beef, net.divinerpg.utils.items.TwilightItemsOther.apalachiaChunk);
-        // железный свисток на шнурке, золотой мундштук
+        // iron whistle on a string, gold mouthpiece
         GameRegistry.addShapelessRecipe(new net.minecraft.item.ItemStack(petWhistle), net.minecraft.init.Items.iron_ingot, net.minecraft.init.Items.gold_nugget,
             net.minecraft.init.Items.string);
-        // тыква на тюке сена на палке
+        // pumpkin on a hay bale on a stick
         GameRegistry.addRecipe(new net.minecraft.item.ItemStack(trainingDummy), "P", "H", "S", 'P', net.minecraft.init.Blocks.pumpkin, 'H', net.minecraft.init.Blocks.hay_block, 'S',
             net.minecraft.init.Items.stick);
 
@@ -302,13 +302,13 @@ public final class ModItems {
         return k;
     }
 
-    /** Значения в списке имён у мобов аддона: выше 255, чтобы не путать с настоящими глобальными id (их в 1.7.10 до 255). */
+    /** Values in the name list for addon mobs: above 255, so as not to confuse them with real global ids (in 1.7.10 those go up to 255). */
     public static final int MINIMAP_ID_BASE = 1000;
 
     /**
-     * Xaero's Minimap читает описания иконок только для имён из глобального списка id (EntityList.func_151515_b), а мобы
-     * аддона (registerModEntity) в нём не числятся - их описания не читались, и на миникарте был знак вопроса. Дописываем
-     * свои имена в этот список; кроме Xaero им пользуется только подсказка команды /summon.
+     * Xaero's Minimap reads icon descriptions only for names from the global id list (EntityList.func_151515_b), and addon
+     * mobs (registerModEntity) are not in it - their descriptions were not read, and the minimap showed a question mark. We append
+     * our names to this list; besides Xaero it is used only by the /summon command hint.
      */
     @SuppressWarnings("unchecked")
     static void listForMinimap() {
@@ -322,7 +322,7 @@ public final class ModItems {
                 if (!ids.containsKey(e.getValue())) ids.put(e.getValue(), MINIMAP_ID_BASE + n++);
             }
         } catch (Throwable t) {
-            DivineRPGExtended.LOG.warn("Миникарта: мобы аддона не добавлены в список имён - " + t);
+            DivineRPGExtended.LOG.warn("Minimap: addon mobs not added to the name list - " + t);
         }
     }
 }

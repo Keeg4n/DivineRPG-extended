@@ -29,31 +29,31 @@ import cpw.mods.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
 
 /**
- * Подвиды ближнего оружия обычного мира (мечи из VanillaItemsWeapons Divine): у каждого своё окно неуязвимости цели после
- * удара и свой множитель урона, отдельно по мобам и по игрокам (Config, категория melee).
+ * Subtypes of Overworld melee weapons (swords from Divine's VanillaItemsWeapons): each has its own target invulnerability window after a
+ * hit and its own damage multiplier, separately for mobs and players (Config, category melee).
  * <p>
- * Окно: при свежем ударе ваниль пишет hurtResistantTime = maxHurtResistantTime (20), а новый удар проходит целиком, когда
- * значение не выше половины. Записать половину + N - следующий удар через N тиков; maxHurtResistantTime не трогаем: по нему
- * сверяются чужие проверки. Удар внутри окна, как и в ванили, проходит разницей с прошлым.
+ * Window: on a fresh hit vanilla writes hurtResistantTime = maxHurtResistantTime (20), and a new hit goes through in full when the
+ * value is no higher than half. Write half + N - the next hit comes in N ticks; we do not touch maxHurtResistantTime: foreign checks
+ * compare against it. A hit inside the window, as in vanilla, goes through as the difference from the previous one.
  * <p>
- * Правила действуют только на удар самого игрока кликом: {@link AttackEntityEvent} взводит метку, первый прямой урон от
- * этого игрока её снимает. Волна бедроковой булавы и прочие удары "от имени игрока" идут мимо, снаряды - тем более.
- * Манекен считается как моб: его удар проходит через призрака-игрока, а окно живёт на самом манекене.
+ * The rules apply only to the player's own click hit: {@link AttackEntityEvent} sets a mark, the first direct damage from
+ * that player clears it. The Bedrock mace wave and other hits "on behalf of the player" bypass it, projectiles all the more so.
+ * A dummy counts as a mob: its hit goes through the ghost player, and the window lives on the dummy itself.
  * <p>
- * Здесь же крит полного сета Terran ({@link #terranCrit}): удар с земли x{@link #TERRAN_CRIT} без прыжка. Прыжковый крит
- * требует отрыва от земли, поэтому они не складываются. Только сам сет, броне Странника не передаётся.
+ * Also here is the crit of the full Terran set ({@link #terranCrit}): a hit from the ground x{@link #TERRAN_CRIT} without jumping. The jump crit
+ * requires leaving the ground, so they do not stack. Only the set itself, it is not passed to Wanderer armor.
  */
 public class MeleeRoles {
 
     public enum Kind {
-        // молот: окно 1 с, урон x1.2 (до 0.99.122 было x2 и x1.5 по игрокам - с площадью выходило сильнее Маула Кароса)
+        // maul: window 1 s, damage x1.2 (before 0.99.122 it was x2 and x1.5 against players - with the area it came out stronger than Karos's Maul)
         KNIFE(6, 0.75F, 8, 1F), RAPIER(8, 0.9F, 9, 1F), SWORD(10, 1F, 10, 1F), MAUL(20, 1.2F, 20, 1.2F),
-        // Ветея: когти быстрее мечей, мечи как обычно, молоты медленнее, но x1.3
+        // Vethea: claws faster than swords, swords as usual, mauls slower but x1.3
         CLAW(7, 1F, 7, 1F), HAMMER(14, 1.3F, 14, 1.3F);
 
-        /** Окно неуязвимости цели в тиках: по мобам и по игрокам. */
+        /** Target invulnerability window in ticks: against mobs and against players. */
         public int window, windowPvp;
-        /** Множитель урона: по мобам и по игрокам. */
+        /** Damage multiplier: against mobs and against players. */
         public float damage, damagePvp;
 
         Kind(int window, float damage, int windowPvp, float damagePvp) {
@@ -68,9 +68,9 @@ public class MeleeRoles {
         }
     }
 
-    /** Окно в обычном Minecraft: такой подвид окно цели не трогает. */
+    /** The window in regular Minecraft: this subtype does not touch the target's window. */
     public static final int VANILLA_WINDOW = 10;
-    /** Крит сета Terran: столько же, сколько обычный крит в прыжке. */
+    /** Terran set crit: the same as the regular jump crit. */
     public static final float TERRAN_CRIT = 1.5F;
 
     private static final String[] KNIVES = { "oceanKnife", "jungleKnife", "aquaticDagger", "terranDagger", "terranKnife", "dualClaw" };
@@ -83,7 +83,7 @@ public class MeleeRoles {
     private static Entity struck;
     private static long strikeTick;
 
-    /** Подвиды по именам предметов Divine: чего нет в её версии, то просто не попадает в список. @return сколько нашлось */
+    /** Subtypes by Divine item names: whatever is missing in its version simply does not get into the list. @return how many were found */
     public static int setup() {
         KINDS.clear();
         put(Kind.KNIFE, KNIVES);
@@ -99,7 +99,7 @@ public class MeleeRoles {
         }
     }
 
-    /** Подвид оружия; остальные мечи обычного мира и Ада - меч; когти, мечи и молоты Ветеи; null - оружие других миров и всё прочее. */
+    /** The weapon subtype; other Overworld and Nether swords - sword; Vethea claws, swords and mauls; null - weapons of other worlds and everything else. */
     public static Kind kind(ItemStack s) {
         if (s == null) return null;
         Kind k = KINDS.get(s.getItem());
@@ -112,7 +112,7 @@ public class MeleeRoles {
         return o == WeaponOrigin.OVERWORLD || o == WeaponOrigin.NETHER ? Kind.SWORD : null;
     }
 
-    /** Крит без прыжка: полный сет Terran, на земле; как и обычный крит - не верхом и не в слепоте. В кошмаре Ветеи чужие сеты молчат. */
+    /** Crit without a jump: the full Terran set, on the ground; like the regular crit - not mounted and not blind. In the Vethea nightmare foreign sets are silent. */
     static boolean terranCrit(EntityPlayer p) {
         return p.onGround && p.ridingEntity == null && !p.isPotionActive(net.minecraft.potion.Potion.blindness)
             && PerkEffects.wears(p, new Item[] { net.divinerpg.utils.items.VanillaItemsArmor.terranHelmet, net.divinerpg.utils.items.VanillaItemsArmor.terranBody,
@@ -120,7 +120,7 @@ public class MeleeRoles {
             && !com.divinerpgextended.vethea.Nightmare.active(p);
     }
 
-    /** Отменённый другими удар сюда не приходит. */
+    /** A hit cancelled by others does not arrive here. */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onSwing(AttackEntityEvent e) {
         if (e.entityPlayer.worldObj.isRemote) return;
@@ -129,7 +129,7 @@ public class MeleeRoles {
         strikeTick = e.entityPlayer.worldObj.getTotalWorldTime();
     }
 
-    /** Раньше прочих: проценты брони, аксессуаров и боссов считаются уже от урона подвида, волна булавы - тоже. */
+    /** Before the rest: percentages of armor, accessories and bosses are already counted from the subtype's damage, and so is the mace wave. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onHurt(LivingHurtEvent e) {
         EntityPlayer p = striker;
@@ -151,13 +151,13 @@ public class MeleeRoles {
         e.ammount *= pvp ? k.damagePvp : k.damage;
         int window = pvp ? k.windowPvp : k.window;
         EntityLivingBase holder = dummy ? (EntityLivingBase) target : v;
-        // равно максимуму - только что записала ваниль (или манекен), удар свежий; разницей внутри окна окно не продлеваем
+        // equals the maximum - vanilla (or the dummy) just wrote it, the hit is fresh; we do not extend the window with the difference inside the window
         if (window != VANILLA_WINDOW && holder.hurtResistantTime == holder.maxHurtResistantTime) holder.hurtResistantTime = holder.maxHurtResistantTime / 2 + window;
     }
 
-    // ---------------- подсказка: числа сервера, а не свой конфиг клиента ----------------
+    // ---------------- tooltip: server numbers, not the client's own config ----------------
 
-    /** На клиенте - что прислал сервер при входе (null - ещё ничего). Свой конфиг клиента в подсказке врал бы. */
+    /** On the client - what the server sent at login (null - nothing yet). The client's own config would lie in the tooltip. */
     public static Sync shown;
 
     public static void registerMessages() {

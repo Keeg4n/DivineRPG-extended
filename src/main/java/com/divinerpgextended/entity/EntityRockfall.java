@@ -13,8 +13,8 @@ import net.minecraft.world.WorldServer;
 import com.divinerpgextended.world.twilight.WorldWeather;
 
 /**
- * Глыба камнепада Апалачии: падает с высоты {@link #DROP}, пока летит, на земле видна метка. Блоков не ставит и не ломает. Ранит только
- * тех, у кого над головой открытое небо; урон - как от падающего блока, поэтому сет Апалачии его не чувствует.
+ * Apalachia Rockfall boulder: falls from a height of {@link #DROP}, while it flies a marker is visible on the ground. Places and breaks no blocks. Hurts only
+ * those with open sky overhead; the damage is like a falling block, so the Apalachia set does not feel it.
  */
 public class EntityRockfall extends EntityThrowable {
 
@@ -55,7 +55,7 @@ public class EntityRockfall extends EntityThrowable {
         setDead();
     }
 
-    /** Удар о землю. */
+    /** Ground impact. */
     public void strike() {
         if (worldObj instanceof WorldServer) {
             int stone = net.minecraft.block.Block.getIdFromBlock(net.divinerpg.utils.blocks.TwilightBlocks.twilightStone);

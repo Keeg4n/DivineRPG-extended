@@ -13,11 +13,11 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 /**
- * Заселение сумеречных миров Divine ставит деревья (и каменные конусы Эдема) от угла чанка, а не со сдвигом +8, как
- * положено: крона залезает в соседние чанки, которые у игрока уже загружены. Сервер шлёт эти блоки клиенту, и клиент
- * на каждый пересчитывает небесный свет - над пустотой у края острова это столб высотой ~100 в пяти колоннах, отсюда
- * рывки при исследовании Эдема и Вайлдвуда. Вызовы этих генераторов идут через {@link TreeShiftHooks}: та же точка
- * со сдвигом +8 и высотой, пересчитанной под новое место. Без сдвига: дерево 2 Вайлдвуда (уже +8), руды, цветы, озёра.
+ * Divine twilight world population places trees (and Eden stone cones) from the chunk corner instead of with a +8 shift, as
+ * it should: the crown reaches into neighboring chunks that the player has already loaded. The server sends these blocks to the client, and the client
+ * recomputes sky light for each - above the void at the island edge this is a column ~100 high in five columns, hence
+ * the stutter when exploring Eden and Wildwood. Calls of these generators go through {@link TreeShiftHooks}: the same point
+ * with a +8 shift and a height recomputed for the new place. Without a shift: Wildwood tree 2 (already +8), ores, flowers, lakes.
  */
 public class TreeShiftTransformer implements IClassTransformer, Opcodes {
 
@@ -42,7 +42,7 @@ public class TreeShiftTransformer implements IClassTransformer, Opcodes {
             int trees = 0, cones = 0;
             for (MethodNode m : node.methods) {
                 if (!("func_73153_a".equals(m.name) || "populate".equals(m.name))) continue;
-                // метка "идёт заселение" на всё время метода (для пересылки чанков целиком - PopulationResend)
+                // the "population in progress" mark for the whole method (for resending chunks whole - PopulationResend)
                 m.instructions.insert(new MethodInsnNode(INVOKESTATIC, HOOKS, "begin", "()V", false));
                 for (AbstractInsnNode r = m.instructions.getFirst(); r != null; r = r.getNext()) {
                     if (r.getOpcode() == RETURN) m.instructions.insertBefore(r, new MethodInsnNode(INVOKESTATIC, HOOKS, "end", "()V", false));
@@ -66,20 +66,20 @@ public class TreeShiftTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (trees + cones == 0) {
-                LOG.warn("Деревья {}: вызовы не найдены - класс без изменений", transformedName);
+                LOG.warn("Trees {}: calls not found - class unchanged", transformedName);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Деревья {}: сдвиг +8 ({} деревьев, {} конусов)", transformedName, trees, cones);
+            LOG.info("Trees {}: shift +8 ({} trees, {} cones)", transformedName, trees, cones);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Деревья " + transformedName + ": не удалось исправить, класс без изменений", t);
+            LOG.error("Trees " + transformedName + ": could not fix, class unchanged", t);
             return bytes;
         }
     }
 
-    /** Генераторы деревьев Divine, которые ставятся от угла чанка (дерево 2 Вайлдвуда уже со сдвигом). */
+    /** Divine tree generators that are placed from the chunk corner (Wildwood tree 2 is already shifted). */
     private static boolean tree(String owner) {
         String simple = owner.substring(owner.lastIndexOf('/') + 1);
         return owner.startsWith("net/divinerpg/") && simple.contains("Tree") && !"WorldGenWildwoodTree2".equals(simple);

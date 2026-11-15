@@ -59,7 +59,7 @@ public class CommonProxy {
         com.divinerpgextended.perk.MeleeRoles.registerMessages();
         com.divinerpgextended.perk.AmmoLoad.register();
         com.divinerpgextended.debug.Debug.register();
-        com.divinerpgextended.perk.FrostBite.register(); // ледяная глыба вмороженного моба - клиентам
+        com.divinerpgextended.perk.FrostBite.register(); // ice block of a frozen mob - to the clients
     }
 
     public void init(FMLInitializationEvent event) {
@@ -75,10 +75,10 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcanaPrices());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcanePhases());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcaneSummons());
-        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.AnchorSummons()); // призывные якоря: краб и акула
-        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.AquatoothEffects()); // зубастое оружие, перезарядка молотов
-        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.FrostBite()); // обморожение ледяным оружием
-        com.divinerpgextended.perk.EarlyWeapons early = new com.divinerpgextended.perk.EarlyWeapons(); // оружие обычного мира: роли, серенады, наковальня
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.AnchorSummons()); // summon anchors: crab and shark
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.AquatoothEffects()); // toothed weapons, maul cooldown
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.FrostBite()); // frostbite from ice weapons
+        com.divinerpgextended.perk.EarlyWeapons early = new com.divinerpgextended.perk.EarlyWeapons(); // Overworld weapons: roles, serenades, anvil
         MinecraftForge.EVENT_BUS.register(early);
         FMLCommonHandler.instance().bus().register(early);
         com.divinerpgextended.boss.AyeracoHorde horde = new com.divinerpgextended.boss.AyeracoHorde();
@@ -228,7 +228,7 @@ public class CommonProxy {
         GameRegistry.addRecipe(new ItemStack(ModBlocks.wandererAnvil), "RRR", " A ", "III", 'R',
             VanillaBlocks.realmiteBlock, 'A', Blocks.anvil, 'I', Items.iron_ingot);
 
-        // Часы Странника I: как сумеречные часы Divine, из 9 обычных часов
+        // Wanderer's Clock I: like the Divine twilight clock, from 9 ordinary clocks
         GameRegistry.addRecipe(ItemWandererClock.withTier(ModItems.wandererClock, 1), "CCC", "CCC", "CCC", 'C',
             Items.clock);
         RecipeSorter.register("divinerpgextended:clock_upgrade", ClockUpgradeRecipe.class,
@@ -260,15 +260,15 @@ public class CommonProxy {
             .register(new com.divinerpgextended.trinket.DoubleJump());
         com.divinerpgextended.trinket.TrinketEffects trinkets = new com.divinerpgextended.trinket.TrinketEffects();
         MinecraftForge.EVENT_BUS.register(trinkets);
-        com.divinerpgextended.perk.RelicEffects relics = new com.divinerpgextended.perk.RelicEffects(); // вещи из реликвариев миров
+        com.divinerpgextended.perk.RelicEffects relics = new com.divinerpgextended.perk.RelicEffects(); // items from the world reliquaries
         MinecraftForge.EVENT_BUS.register(relics);
         FMLCommonHandler.instance().bus().register(relics);
-        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.fishing.GoldenHearts()); // золотая рыбка: +1 сердце навсегда
-        FMLCommonHandler.instance().bus().register(new com.divinerpgextended.fishing.FishSchools()); // косяки
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.fishing.GoldenHearts()); // golden fish: +1 heart permanently
+        FMLCommonHandler.instance().bus().register(new com.divinerpgextended.fishing.FishSchools()); // schools of fish
         FMLCommonHandler.instance()
             .bus()
             .register(trinkets);
-        // Наковальня Странника: выход с сервера и смерть закрывают окно - вещи из слотов возвращаются игроку
+        // Wanderer Anvil: leaving the server and death close the window - items from the slots are returned to the player
         com.divinerpgextended.station.AnvilWork.Events anvilWork = new com.divinerpgextended.station.AnvilWork.Events();
         MinecraftForge.EVENT_BUS.register(anvilWork);
         FMLCommonHandler.instance()
@@ -306,14 +306,14 @@ public class CommonProxy {
         FMLCommonHandler.instance()
             .bus()
             .register(nightmare);
-        com.divinerpgextended.vethea.NightmareHands hands = new com.divinerpgextended.vethea.NightmareHands(); // чужое по ПКМ и площадь во сне
+        com.divinerpgextended.vethea.NightmareHands hands = new com.divinerpgextended.vethea.NightmareHands(); // other people's stuff on right click and area effects during sleep
         MinecraftForge.EVENT_BUS.register(hands);
         FMLCommonHandler.instance()
             .bus()
             .register(hands);
         FMLCommonHandler.instance()
             .bus()
-            .register(new com.divinerpgextended.vethea.NightmareBaubles()); // чужие аксессуары во сне
+            .register(new com.divinerpgextended.vethea.NightmareBaubles()); // other people's accessories during sleep
         com.divinerpgextended.vethea.VetheaFloors floors = new com.divinerpgextended.vethea.VetheaFloors();
         MinecraftForge.EVENT_BUS.register(floors);
         FMLCommonHandler.instance()
@@ -352,52 +352,52 @@ public class CommonProxy {
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaFountain(), 100);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.IceikaXmasTree(), 101);
         GameRegistry.registerWorldGenerator(new WorldGenThrone(), 60);
-        GameRegistry.registerWorldGenerator(new WorldGenThrone.Seal(), 100000); // последним, после генераторов других модов
-        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.LairDomes(), 99000); // купола логов - поверх заселения чанка
+        GameRegistry.registerWorldGenerator(new WorldGenThrone.Seal(), 100000); // last, after the generators of other mods
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.LairDomes(), 99000); // log domes - on top of chunk population
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new WorldGenThrone.Relight());
         MinecraftForge.EVENT_BUS.register(new WorldGenThrone.NoSpawns());
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.WorldGenNests(), 62);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.WorldGenTwilightFeatures(), 64);
-        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenOuterLairs(), 99000); // логова Ада и Энда - после озёр и прочего других модов
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenOuterLairs(), 99000); // Nether and End lairs - after lakes and other things from other mods
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaDoors(), 70);
-        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaChests(), 110); // после фонтанных залов: зал перестраивает комнату
-        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.Reliquaries.Ships(), 66); // терновые корабли с реликварием Терна
-        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.CloudIslands(), 67); // облачные острова с прудом (рыбалка в облаках)
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaChests(), 110); // after the fountain halls: the hall rebuilds the room
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.Reliquaries.Ships(), 66); // Skythern ships with the Skythern reliquary
+        GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.twilight.CloudIslands(), 67); // cloud islands with a pond (fishing in the clouds)
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenTomb(), 55);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.ClockGuard());
         FMLCommonHandler.instance()
             .bus()
             .register(new com.divinerpgextended.world.WorldGenTomb.Ticker());
 
-        // Карты логов: бумага в окружении материалов биома
+        // Lair maps: paper surrounded by the biome's materials
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, 0), "CCC", "CPC", "CCC", 'C',
             VanillaItemsOther.crabClaw, 'P', Items.paper);
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, 1), "SIS", "IPI", "SIS", 'S', Items.snowball, 'I',
             Blocks.packed_ice, 'P', Items.paper);
 
-        // руда инея плавится в слиток только в угольной печи Iceika (ванильную печь глушит RimeSmelting); кирка инея
+        // Rime ore smelts into an ingot only in the Iceika coal furnace (the vanilla furnace is blocked by RimeSmelting); Rime Pickaxe
         GameRegistry.addSmelting(ModBlocks.rimeOre, new ItemStack(ModItems.rimeIngot), 1.0F);
         GameRegistry.addRecipe(new ItemStack(ModItems.rimePick), "III", " S ", " S ", 'I', ModItems.rimeIngot, 'S',
             com.divinerpgextended.world.twilight.TwilightCrafts.stick(com.divinerpgextended.world.twilight.WorldWood.FROZEN));
 
-        // Подозрительный песчаник (ловушка гробницы): гладкий песчаник шлемом
+        // Suspicious Sandstone (tomb trap): smooth sandstone with a helmet
         GameRegistry.addRecipe(new ItemStack(ModBlocks.trapFloor, 5), "PPP", "P P", 'P', new ItemStack(Blocks.sandstone, 1, 2));
 
-        // Карта к храму джунглей (логово Древнего драмкрикса): бумага в какао-бобах
+        // Map to the Jungle Temple (Ancient Dramcryx lair): paper surrounded by cocoa beans
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.JUNGLE), "SSS", "SPS", "SSS", 'S',
             new ItemStack(Items.dye, 1, 3), 'P', Items.paper);
 
-        // Карта к Древней гробнице: бумага в резном песчанике
+        // Map to the Ancient Tomb: paper surrounded by chiseled sandstone
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, 3), "SSS", "SPS", "SSS", 'S', new ItemStack(Blocks.sandstone,
             1, 1), 'P', Items.paper);
 
-        // Карта к гнезду Великого кадиллиона: бумага в осколках Эдема; к Демоническому кругу - в осколках Мортума
+        // Map to the Great Cadillion nest: paper surrounded by Eden shards; to the Demonic Circle - by Mortum shards
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.NEST), "SSS", "SPS", "SSS", 'S',
             net.divinerpg.utils.items.TwilightItemsOther.edenFragments, 'P', Items.paper);
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.CIRCLE), "SSS", "SPS", "SSS", 'S',
             net.divinerpg.utils.items.TwilightItemsOther.mortumFragments, 'P', Items.paper);
 
-        // Карты к логовам Ада и Энда: бумага в адском кирпиче (Смотритель), огненном порошке (скорчеры), эндерняке (Айрако)
+        // Maps to the Nether and End lairs: paper surrounded by nether brick (Watcher), blaze powder (Scorchers), end stone (Ayeraco)
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.WATCHER), "SSS", "SPS", "SSS", 'S',
             Items.netherbrick, 'P', Items.paper);
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.SCORCHERS), "SSS", "SPS", "SSS", 'S',
@@ -405,16 +405,16 @@ public class CommonProxy {
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, com.divinerpgextended.item.ItemLairMap.AYERACO), "SSS", "SPS", "SSS", 'S',
             Blocks.end_stone, 'P', Items.paper);
 
-        // Карта Ледяного Трона: бумага в ледяных осколках
+        // Frozen Throne Map: paper surrounded by ice shards
         GameRegistry.addRecipe(new ItemStack(ModItems.lairMap, 1, 2), "SSS", "SPS", "SSS", 'S', IceikaItems.iceShards,
             'P', Items.paper);
 
-        // Ледоруб: ледяные камни (падают с Фростов в снежной пещере) на палках
+        // Ice Pick: ice stones (dropped by Frosts in the snow cave) on sticks
         GameRegistry.addRecipe(new ItemStack(ModItems.icePick), "III", " S ", " S ", 'I', IceikaItems.iceStone,
             'S', com.divinerpgextended.world.twilight.TwilightCrafts.stick(com.divinerpgextended.world.twilight.WorldWood.FROZEN));
 
-        // Зов великого кадиллиона: души мира, камень мира, рог (у Скайтерна - эссенция) с мобов мира и печать святилища
-        // из подземелья острова - до босса не дойти без исследования мира
+        // Call of the Great Cadillion: world souls, world stone, a horn (for Skythern - an essence) from the world's mobs, and a sanctum seal
+        // from the island dungeon - the boss cannot be reached without exploring the world
         for (CadillionWorld w : CadillionWorld.values()) {
             com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.values()[w.ordinal()];
             GameRegistry.addRecipe(new ItemStack(ModItems.cadillionCall, 1, w.ordinal()), "SHS", "SGS", "SPS", 'S', w.soul(), 'G', w.gem(),
@@ -424,11 +424,11 @@ public class CommonProxy {
     }
 
     /**
-     * Удочки как мечи Divine: базовые из слитков, сумеречные из кусков своего мира, и каждая следующая из предыдущей
-     * (рукоять). Эдемская требует арканную удочку Леорны, дальше цепочка до Мортума; Джек, Голод и Золотая - не крафт.
+     * Fishing rods like Divine swords: the base ones from ingots, the twilight ones from pieces of their own world, and each next one from the previous one
+     * (handle). The Eden one requires Leorna's Arcana fishing rod, then the chain goes up to Mortum; Jack, the Hunger and Golden are not craftable.
      */
     private static void fishingRecipes() {
-        // червекопалка: железная лопата + нитка + миска (черви падают только с неё)
+        // worm shovel: iron shovel + string + bowl (worms drop only from it)
         GameRegistry.addShapelessRecipe(new ItemStack(ModItems.wormShovel), Items.iron_shovel, Items.string, Items.bowl);
         rodRecipe(com.divinerpgextended.fishing.Rod.REALMITE, VanillaItemsOther.realmiteIngot, Items.stick);
         rodRecipe(com.divinerpgextended.fishing.Rod.ARLEMITE, VanillaItemsOther.arlemiteIngot,
@@ -456,14 +456,14 @@ public class CommonProxy {
             handle);
     }
 
-    /** Игрок этого клиента (на сервере - null). */
+    /** The player of this client (null on the server). */
     public net.minecraft.entity.player.EntityPlayer clientPlayer() {
         return null;
     }
 
     public void postInit(FMLPostInitializationEvent event) {
         HatsCompat.apply();
-        com.divinerpgextended.magic.PotionArcane.register(Config.arcanePotionIds); // после всех модов: их эффекты уже на местах
+        com.divinerpgextended.magic.PotionArcane.register(Config.arcanePotionIds); // after all mods: their effects are already in place
         com.divinerpgextended.world.twilight.TwilightClimate.apply();
         com.divinerpgextended.vethea.LunaFight.buffEverlight();
         com.divinerpgextended.item.ItemArcanePick.makeBreakable();
@@ -471,9 +471,9 @@ public class CommonProxy {
         if (Config.replaceTwilightClock) removeRecipes(TwilightItemsOther.twilightClock);
         if (Config.snowGlobeOnlyFromBoss) removeRecipes(IceikaItems.snowGlobe);
         if (Config.snowflakesInSummons) {
-            // Порядок: сначала Iceika, потом Ancient Entity и Watcher - в призывалки добавлены снежинки (нижние углы)
+            // Order: first Iceika, then Ancient Entity and Watcher - snowflakes were added to the summoners (bottom corners)
             removeRecipes(VanillaItemsOther.mysteriousClock);
-            // Таинственные часы (призыв Ancient Entity) - из Осколков Ледяного Трона: сначала Король-лич
+            // Mysterious Clock (Ancient Entity summon) - from Frozen Throne Shards: Lich King first
             GameRegistry.addRecipe(new ItemStack(VanillaItemsOther.mysteriousClock), " H ", "SCS", "FSF", 'H',
                 VanillaItemsOther.hellstoneIngot, 'S', VanillaItemsOther.corruptedStone, 'C', Items.clock, 'F',
                 ModItems.throneShard);
@@ -482,11 +482,11 @@ public class CommonProxy {
                 VanillaItemsOther.hellstoneIngot, 'S', VanillaItemsOther.moltenStone, 'E', VanillaItemsOther.watchingEye,
                 'F', IceikaItems.snowflake);
         }
-        // рамки портала Арканы - только с Оком Смотрителя (камни синего огня Короля Скорчеров остаются в рецепте)
+        // Arcana portal frames - only with the Eye of the Watcher (the blue flame stones of the King of Scorchers stay in the recipe)
         removeRecipes(Item.getItemFromBlock(net.divinerpg.utils.blocks.ArcanaBlocks.arcanaPortalFrame));
         GameRegistry.addRecipe(new ItemStack(net.divinerpg.utils.blocks.ArcanaBlocks.arcanaPortalFrame, 12), " c ", "iEi",
             " c ", 'c', VanillaItemsOther.bluefireStone, 'i', Blocks.iron_block, 'E', ModItems.watcherEye);
-        // алтарь погибели - с Оком Смотрителя в центре вместо тёмного камня: после Смотрителя (его 56 уровней - как раз на чар за 50)
+        // altar of doom - with the Eye of the Watcher in the center instead of dark stone: after the Watcher (its 56 levels are just right for a 50 enchant)
         if (Config.corruptAltar) {
             removeRecipes(Item.getItemFromBlock(net.divinerpg.utils.blocks.VanillaBlocks.altarOfCorruption));
             GameRegistry.addRecipe(new ItemStack(net.divinerpg.utils.blocks.VanillaBlocks.altarOfCorruption), "sss", "dEd", "ddd", 's',
@@ -494,32 +494,32 @@ public class CommonProxy {
         }
 
         com.divinerpgextended.world.twilight.TwilightCrafts.postInit();
-        com.divinerpgextended.perk.AquatoothEffects.postInit(); // урон зубастого оружия, призывные якоря без рецептов
-        com.divinerpgextended.perk.EarlyWeapons.postInit(); // Серенада смерти из Серенады здоровья, жезл циклопа - призыв
+        com.divinerpgextended.perk.AquatoothEffects.postInit(); // toothed weapon damage, summon anchors without recipes
+        com.divinerpgextended.perk.EarlyWeapons.postInit(); // Serenade of Death from Serenade of Health, cyclops rod - summon
         com.divinerpgextended.perk.RangedRoles.setupDust();
         com.divinerpgextended.perk.ColorGear.setup();
         com.divinerpgextended.perk.MeleeRoles.setup();
-        com.divinerpgextended.world.ForeignTweaks.apply(); // броня из бедрока, острова Tinkers
-        // Divine при входе игрока проверяет обновления сетевым запросом в потоке сервера без таймаута: нет ответа - сервер стоит
+        com.divinerpgextended.world.ForeignTweaks.apply(); // bedrock armor, Tinkers islands
+        // Divine checks for updates with a network request in the server thread without a timeout when a player joins: no answer - the server hangs
         try {
             net.divinerpg.utils.config.ConfigurationHelper.class.getField("updateChecker").setBoolean(null, false);
         } catch (Exception ignored) {
-            // нет такой настройки - нечего выключать
+            // no such setting - nothing to disable
         }
-        // вход в Ветею - Кровать кошмаров только с Духом вселенной
+        // entrance to Vethea - the Nightmare Bed only with the Spirit of the Universe
         removeRecipes(net.divinerpg.utils.items.VetheaItems.nightmareBed);
         com.divinerpgextended.halite.HaliteRecipes.register();
-        com.divinerpgextended.bestiary.Bestiary.build(); // главы - когда все мобы и спавны уже записаны
+        com.divinerpgextended.bestiary.Bestiary.build(); // chapters - when all mobs and spawns are already recorded
 
         com.divinerpgextended.vethea.VetheaStash.disableDivineSwap();
         if (Config.warnVetheaInventory && com.divinerpgextended.vethea.VetheaStash.divineSwap()) {
             DivineRPGExtended.LOG.warn(
-                "В конфиге Divine включён отдельный инвентарь Vethea (Vethea Inventory = true). "
-                    + "Для прогрессии DivineRPG Extended его нужно выключить.");
+                "Divine config has the separate Vethea inventory enabled (Vethea Inventory = true). "
+                    + "It must be turned off for DivineRPG Extended progression.");
         }
     }
 
-    /** Убирает все рецепты верстака, которые выдают этот предмет. */
+    /** Removes all crafting table recipes that produce this item. */
     private static void removeRecipes(net.minecraft.item.Item item) {
         int removed = 0;
         for (Iterator<?> it = CraftingManager.getInstance()
@@ -532,6 +532,6 @@ public class CommonProxy {
                 removed++;
             }
         }
-        DivineRPGExtended.LOG.info("Убрано рецептов " + item.getUnlocalizedName() + ": " + removed);
+        DivineRPGExtended.LOG.info("Recipes removed: " + item.getUnlocalizedName() + ": " + removed);
     }
 }

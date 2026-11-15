@@ -10,12 +10,12 @@ import com.divinerpgextended.world.twilight.TwilightWorld;
 import com.divinerpgextended.world.twilight.WorldWeather;
 
 /**
- * Полуденный кори, Эдем: парит над целью и сводит на неё солнечный луч. {@link #WINDUP} тиков луч виден, потом бьёт, если над целью
- * открытое небо: урон, поджог и сразу {@link #BEAM_HEAT} перегрева. Шаг под крышу спасает. Раненый зовёт двух кори.
+ * Noon Cori, Eden: hovers over the target and brings a sunbeam down on it. For {@link #WINDUP} ticks the beam is visible, then it strikes if there is open
+ * sky above the target: damage, ignition and at once {@link #BEAM_HEAT} of overheating. A step under a roof saves you. When wounded it calls two Cori.
  */
 public class EntityNoonCori extends EntityMiniBoss {
 
-    public static final double HEALTH = 225; // кадиллион Эдема 75 x3, страж 300
+    public static final double HEALTH = 225; // Eden Cadillion 75 x3, guardian 300
     public static final int BEAM_EVERY = 160, WINDUP = 40;
     public static final float BEAM_HEAT = 15F;
     private int beam = BEAM_EVERY;
@@ -45,7 +45,7 @@ public class EntityNoonCori extends EntityMiniBoss {
         twilightLoot(TwilightWorld.EDEN, looting);
     }
 
-    /** Удар луча; true - попал. */
+    /** Beam strike; true - it hit. */
     public boolean strike(EntityPlayer t) {
         if (!WorldWeather.open(t)) return false;
         t.attackEntityFrom(DamageSource.causeMobDamage(this), (float) baseDamage() * 1.5F);

@@ -17,15 +17,15 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Эдем и Вайлдвуд: когда заселение нового чанка кладёт блоки (озёра, цветы, руду, кроны) в соседний чанк, который у
- * игрока уже есть, Minecraft шлёт их пачкой отдельных блоков, и клиент на каждый пересчитывает небесный свет столба -
- * у острова над пустотой это фриз до секунды. Вместо пачки шлём изменённые секции чанка целиком (так Minecraft сам
- * делает при 64+ изменениях): клиент принимает их без пересчёта на каждый блок, а свет досчитывает растянуто
- * ({@link com.divinerpgextended.client.TwilightRelight}). Обычные изменения (игрок ломает и ставит) - как раньше.
+ * Eden and Wildwood: when population of a new chunk puts blocks (lakes, flowers, ore, crowns) into a neighboring chunk that the
+ * player already has, Minecraft sends them as a batch of single blocks, and the client recomputes the column's sky light for each -
+ * for an island over the void this is a freeze of up to a second. Instead of the batch we send the chunk's changed sections whole (as
+ * Minecraft itself does at 64+ changes): the client accepts them without recomputing for every block, and finishes the light spread out over time
+ * ({@link com.divinerpgextended.client.TwilightRelight}). Ordinary changes (a player breaking and placing) - as before.
  */
 public class PopulationResend implements IWorldAccess {
 
-    /** Для замера: сколько раз чанк ушёл целиком вместо пачки блоков. */
+    /** For measurement: how many times a chunk went out whole instead of a batch of blocks. */
     public static int resends;
 
     private static Method watcher;
@@ -60,10 +60,10 @@ public class PopulationResend implements IWorldAccess {
                 count = ReflectionHelper.findField(inst, "numberOfTilesToUpdate", "field_73262_e");
             }
             Object w = watcher.invoke(world.getPlayerManager(), x >> 4, z >> 4, false);
-            if (w == null) return; // чанк ни у кого не загружен - и слать нечего
+            if (w == null) return; // the chunk is not loaded by anyone - nothing to send
             int n = count.getInt(w);
             if (n > 0 && n < 64) {
-                count.setInt(w, 64); // секции уже отмечены Minecraft - уйдут целиком
+                count.setInt(w, 64); // the sections are already marked by Minecraft - they go out whole
                 resends++;
             }
         } catch (Throwable t) {

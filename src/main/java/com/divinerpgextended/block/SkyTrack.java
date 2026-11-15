@@ -9,26 +9,26 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.common.util.ForgeDirection;
 
 /**
- * Путь вагонетки Апалачии по рельсам (навесным и напольным - аддона и старым Divine): соседи рельса, внутренние углы-горки
- * (пол - стена, стена - потолок), точка касания колёс, нормаль и стык с соседом. Вагонетка едет по ломаной
- * "середина рельса - стык - середина следующего", на горке - по диагонали блока, как ванильная по рельсу на блок выше.
+ * Apalachia Cart path along the rails (overhead and floor - addon and old Divine): rail neighbors, inner corners-ramps
+ * (floor - wall, wall - ceiling), wheel contact point, normal and the joint with the neighbor. The cart rides along a polyline
+ * "middle of the rail - joint - middle of the next", on a ramp - along the block diagonal, like a vanilla one on a rail one block higher.
  */
 public final class SkyTrack {
 
-    /** Высота рельса над гранью опоры. */
+    /** Rail height above the support face. */
     public static final double LIFT = 1 / 16.0;
     private static final ForgeDirection NONE = ForgeDirection.UNKNOWN;
 
     private SkyTrack() {}
 
-    /** Напольный рельс: любой (Апалачии, арканы, ванильные и чужие) - вагонетка Апалачии ездит и по обычным рельсам. */
+    /** Floor rail: any (Apalachia, Arcana, vanilla and other mods') - the Apalachia Cart rides on ordinary rails too. */
     static boolean floor(Block b) {
         return b instanceof net.minecraft.block.BlockRailBase;
     }
 
     /**
-     * Во что превращается напольный рельс у подножия стены с навесным рельсом (горка): рельсы Апалачии - в навесной
-     * Апалачии, рельсы арканы - в навесной арканы; остальные не превращаются (иначе ванильный рельс ломался бы в рельс Апалачии).
+     * What a floor rail at the foot of a wall with an overhead rail turns into (a ramp): Apalachia Rails into an Apalachia
+     * overhead one, Arcana rails into an Arcana overhead one; the others do not turn (otherwise a vanilla rail would break into an Apalachia rail).
      */
     public static Block rampOf(Block b) {
         if (b == TwilightBlocks.apalachiaRails || b == com.divinerpgextended.registry.ModBlocks.apalachiaRail) return com.divinerpgextended.registry.ModBlocks.skyRail;
@@ -36,20 +36,20 @@ public final class SkyTrack {
         return null;
     }
 
-    /** Разгоняет ли рельс вагонетку Апалачии: рельсы арканы (на полу и навесные) и запитанные золотые. */
+    /** Whether the rail accelerates the Apalachia Cart: Arcana rails (floor and overhead) and powered golden ones. */
     public static boolean boost(IBlockAccess w, int x, int y, int z) {
         Block b = w.getBlock(x, y, z);
         return b instanceof BlockSkyBoostRail || b == net.divinerpg.utils.blocks.ArcanaBlocks.arcaniteRails
             || b == net.minecraft.init.Blocks.golden_rail && (w.getBlockMetadata(x, y, z) & 8) != 0;
     }
 
-    /** Форма напольного рельса (0-9, как у ванильных): без бита "запитан" у рельсов Divine. */
+    /** Floor rail shape (0-9, like vanilla): without the "powered" bit for Divine rails. */
     private static int shapeMeta(IBlockAccess w, int x, int y, int z) {
         Block b = w.getBlock(x, y, z);
         return b instanceof net.minecraft.block.BlockRailBase ? ((net.minecraft.block.BlockRailBase) b).getBasicRailMetadata(w, null, x, y, z) : 0;
     }
 
-    /** Грань опоры рельса: навесной - по мете, напольный - пол; не рельс - UNKNOWN. */
+    /** Rail support face: overhead - by meta, floor - the floor; not a rail - UNKNOWN. */
     public static ForgeDirection support(IBlockAccess w, int x, int y, int z) {
         Block b = w.getBlock(x, y, z);
         if (b instanceof BlockSkyRail) return BlockSkyRail.support(w.getBlockMetadata(x, y, z));
@@ -57,7 +57,7 @@ public final class SkyTrack {
         return NONE;
     }
 
-    /** Наклонный напольный рельс (мета 2-5, как у ванильных): куда поднимается; иначе UNKNOWN. */
+    /** Sloped floor rail (meta 2-5, like vanilla): where it rises; otherwise UNKNOWN. */
     public static ForgeDirection ascending(IBlockAccess w, int x, int y, int z) {
         if (!floor(w.getBlock(x, y, z))) return NONE;
         switch (shapeMeta(w, x, y, z)) {
@@ -74,9 +74,9 @@ public final class SkyTrack {
     }
 
     /**
-     * Внутренний угол: рельс стоит у стены, а над ним (со стороны от опоры) на этой стене висит рельс - пол переходит в
-     * стену (так же стена - в потолок). Возвращает, куда уходит горка (сторона стены); не угол - UNKNOWN. Рельсов в
-     * своей плоскости у угла не больше одного - и тот с обратной стороны (иначе это развилка вдоль стены, а не горка).
+     * Inner corner: the rail stands at a wall, and above it (on the side away from the support) a rail hangs on that wall - the floor turns into
+     * the wall (likewise wall - ceiling). Returns where the ramp goes (the wall side); not a corner - UNKNOWN. There is at most one rail in
+     * its own plane at the corner - and that one from the opposite side (otherwise it is a fork along the wall, not a ramp).
      */
     public static ForgeDirection corner(IBlockAccess w, int x, int y, int z) {
         ForgeDirection n = support(w, x, y, z);
@@ -89,7 +89,7 @@ public final class SkyTrack {
         return d;
     }
 
-    /** Куда с этого рельса можно уехать (смещения к соседним рельсам, у наклонных Divine - и на блок выше/ниже). */
+    /** Where you can go from this rail (offsets to neighboring rails, for sloped Divine ones - also one block up/down). */
     public static List<int[]> exits(IBlockAccess w, int x, int y, int z) {
         List<int[]> out = new ArrayList<int[]>();
         ForgeDirection n = support(w, x, y, z);
@@ -106,7 +106,7 @@ public final class SkyTrack {
                     }
                 }
             }
-            // навесные рельсы рядом: форма рельса Divine о них не знает
+            // overhead rails nearby: the Divine rail shape does not know about them
             for (ForgeDirection d : ForgeDirection.VALID_DIRECTIONS) {
                 if (d == ForgeDirection.DOWN || contains(out, d)) continue;
                 Block b = w.getBlock(x + d.offsetX, y + d.offsetY, z + d.offsetZ);
@@ -116,12 +116,12 @@ public final class SkyTrack {
             }
             return out;
         }
-        // навесной рельс держит форму, как напольный: едем только туда, куда он соединён
+        // an overhead rail holds its shape like a floor one: we go only where it is connected
         for (ForgeDirection d : ForgeDirection.VALID_DIRECTIONS)
             if (d != n && d != n.getOpposite() && track(w, x, y, z, d) && BlockSkyRail.linked(w, x, y, z, d)) out.add(off(d));
         ForgeDirection c = corner(w, x, y, z);
         if (c != NONE && BlockSkyRail.linked(w, x, y, z, c)) out.add(off(n.getOpposite()));
-        // внешнее ребро: рельса дальше в своей плоскости нет, а за ребром опоры на соседней грани того же блока - есть
+        // outer edge: there is no rail further in its plane, but behind the support edge on the adjacent face of the same block there is
         for (ForgeDirection d : ForgeDirection.VALID_DIRECTIONS) {
             if (d == n || d == n.getOpposite() || track(w, x, y, z, d) || !BlockSkyRail.linked(w, x, y, z, d)) continue;
             if (outerTo(w, x, y, z, d)) out.add(new int[] { d.offsetX + n.offsetX, d.offsetY + n.offsetY, d.offsetZ + n.offsetZ });
@@ -129,14 +129,14 @@ public final class SkyTrack {
         return out;
     }
 
-    /** За ребром опоры в сторону d (вдоль своей плоскости) - рельс на соседней грани того же блока. */
+    /** Behind the support edge toward d (along its plane) - a rail on the adjacent face of the same block. */
     static boolean outerTo(IBlockAccess w, int x, int y, int z, ForgeDirection d) {
         ForgeDirection n = support(w, x, y, z);
         if (n == NONE || d == n || d == n.getOpposite()) return false;
         return support(w, x + d.offsetX + n.offsetX, y + d.offsetY + n.offsetY, z + d.offsetZ + n.offsetZ) == d.getOpposite();
     }
 
-    /** Пара a -> b через внешнее ребро: направление от a по его плоскости (UNKNOWN - не ребро). */
+    /** Pair a -> b across an outer edge: direction from a along its plane (UNKNOWN - not an edge). */
     private static ForgeDirection outer(IBlockAccess w, int ax, int ay, int az, int bx, int by, int bz) {
         ForgeDirection n = support(w, ax, ay, az);
         if (n == NONE) return NONE;
@@ -153,7 +153,7 @@ public final class SkyTrack {
         return new int[] { d.offsetX, d.offsetY, d.offsetZ };
     }
 
-    /** Два направления ванильной формы рельса по мете. */
+    /** The two directions of a vanilla rail shape by meta. */
     private static ForgeDirection[] shape(int meta) {
         ForgeDirection N = ForgeDirection.NORTH, S = ForgeDirection.SOUTH, E = ForgeDirection.EAST, W = ForgeDirection.WEST;
         switch (meta) {
@@ -180,15 +180,15 @@ public final class SkyTrack {
         return new double[] { x + 0.5, y + 0.5, z + 0.5 };
     }
 
-    /** Точка касания колёс в середине рельса. */
+    /** Wheel contact point in the middle of the rail. */
     public static double[] contact(IBlockAccess w, int x, int y, int z) {
         double[] c = center(x, y, z);
         ForgeDirection n = support(w, x, y, z);
-        if (n == NONE || corner(w, x, y, z) != NONE || ascending(w, x, y, z) != NONE) return c; // горка и наклон - середина блока
+        if (n == NONE || corner(w, x, y, z) != NONE || ascending(w, x, y, z) != NONE) return c; // ramp and slope - the middle of the block
         return add(c, v(n, 0.5 - LIFT));
     }
 
-    /** Нормаль пути (от опоры в сторону вагонетки), единичная. */
+    /** Path normal (from the support toward the cart), unit length. */
     public static double[] normal(IBlockAccess w, int x, int y, int z) {
         ForgeDirection n = support(w, x, y, z);
         if (n == NONE) return new double[] { 0, 1, 0 };
@@ -199,14 +199,14 @@ public final class SkyTrack {
         return v(n, -1);
     }
 
-    /** Точка стыка рельса с соседом в сторону dir (горизонтальная часть смещения у наклонных). */
+    /** Joint point of the rail with the neighbor toward dir (the horizontal part of the offset for sloped ones). */
     public static double[] port(IBlockAccess w, int x, int y, int z, ForgeDirection dir) {
         double[] c = center(x, y, z);
         ForgeDirection n = support(w, x, y, z);
         ForgeDirection cr = corner(w, x, y, z), asc = ascending(w, x, y, z);
         if (cr != NONE) {
-            if (dir == cr.getOpposite()) return add(c, v(n, 0.5), v(cr, -0.5)); // нижний край горки
-            if (dir == n.getOpposite()) return add(c, v(n, -0.5), v(cr, 0.5)); // верхний край - у рельса на стене
+            if (dir == cr.getOpposite()) return add(c, v(n, 0.5), v(cr, -0.5)); // lower edge of the ramp
+            if (dir == n.getOpposite()) return add(c, v(n, -0.5), v(cr, 0.5)); // upper edge - at the rail on the wall
             return add(c, v(dir, 0.5));
         }
         if (asc != NONE) {
@@ -218,9 +218,9 @@ public final class SkyTrack {
         return add(c, v(dir, 0.5));
     }
 
-    /** Стык двух соседних рельсов (середина между их краями - сглаживает неточные пары). */
+    /** Joint of two neighboring rails (the middle between their edges - smooths out inexact pairs). */
     public static double[] joint(IBlockAccess w, int ax, int ay, int az, int bx, int by, int bz) {
-        // через внешнее ребро - стык на самом ребре опоры (чуть снаружи), вагонетка перекатывается через него
+        // across an outer edge - the joint is on the support edge itself (slightly outside), the cart rolls over it
         ForgeDirection od = outer(w, ax, ay, az, bx, by, bz);
         if (od != NONE) {
             ForgeDirection n = support(w, ax, ay, az);

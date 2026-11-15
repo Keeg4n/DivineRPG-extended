@@ -18,10 +18,10 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Замер генерации миров (только с -Ddre.genbench=true на тестовом сервере). В каждом мире грузит одинаковый квадрат
- * чанков вдали от спавна и пишет в logs/dre-genbench.txt: время на чанк, сколько чанков подтянулось за пределами
- * квадрата (цепная генерация - заселение лезет в соседей, которых ещё нет), и отдельно время голого рельефа без
- * заселения. После замера выключает сервер.
+ * World generation benchmark (only with -Ddre.genbench=true on a test server). In each world it loads the same square of
+ * chunks far from spawn and writes to logs/dre-genbench.txt: time per chunk, how many chunks were pulled in outside the
+ * square (chained generation - population reaches into neighbors that do not exist yet), and separately the time of bare terrain without
+ * population. After the benchmark it shuts the server down.
  */
 public class GenBench {
 
@@ -89,8 +89,8 @@ public class GenBench {
     }
 
     /**
-     * Порталы: первый вход на новом месте (генерация + поиск + постройка портала), повторный вход и выход назад - у
-     * Divine и у быстрого телепорта; оба должны поставить в одну точку.
+     * Portals: first entry at a new place (generation + search + portal build), repeat entry and exit back - for
+     * Divine and for the fast teleporter; both must put you at the same point.
      */
     private static String portal(MinecraftServer server, String name, int dim, net.minecraft.block.Block portal) {
         net.minecraft.block.Block frame = ReflectionHelper.getPrivateValue(net.divinerpg.blocks.base.portal.BlockModPortal.class,
@@ -111,7 +111,7 @@ public class GenBench {
             oldBack, newBack, same ? "та же точка" : "РАЗНЫЕ ТОЧКИ");
     }
 
-    /** Телепорт свиньи с (x, 70, z): время в мс, куда поставило - в at. */
+    /** Teleport a pig from (x, 70, z): time in ms, where it was placed - in at. */
     private static double time(net.minecraft.world.Teleporter t, WorldServer w, double x, double z, double[] at) {
         net.minecraft.entity.passive.EntityPig pig = new net.minecraft.entity.passive.EntityPig(w);
         pig.setPosition(x, 70, z);
@@ -130,8 +130,8 @@ public class GenBench {
         ChunkProviderServer cps = w.theChunkProviderServer;
         IChunkProvider gen = ReflectionHelper.getPrivateValue(ChunkProviderServer.class, cps, "currentChunkProvider", "field_73246_d");
         int dim = w.provider.dimensionId;
-        int base = ORIGIN + dim * 64; // у каждого мира своё место: не мешают друг другу
-        // голый рельеф без заселения - генератором напрямую, в мир не попадает
+        int base = ORIGIN + dim * 64; // each world has its own place: they do not interfere with each other
+        // bare terrain without population - straight through the generator, does not get into the world
         long t0 = System.nanoTime();
         int n = 0;
         for (int x = -R; x <= R; x++)
@@ -150,7 +150,7 @@ public class GenBench {
             for (int z = -R; z <= R; z++)
                 cps.loadChunk(base + x, base + z);
         double total = (System.nanoTime() - t0) / 1e6 / n;
-        // освещение: чанк уходит игроку только когда свет рассчитан; сервер считает его в следующих тиках
+        // lighting: a chunk goes to the player only when light is computed; the server computes it in the following ticks
         java.lang.reflect.Method light = ReflectionHelper.findMethod(Chunk.class, null, new String[] { "func_150809_p" });
         t0 = System.nanoTime();
         int lit = 0;
@@ -166,7 +166,7 @@ public class GenBench {
                 }
             }
         double lighting = lit == 0 ? 0 : (System.nanoTime() - t0) / 1e6 / lit;
-        // какие блоки меняются сами: как сервер возле игрока - случайные тики (3 блока на секцию за тик) и отложенные
+        // which blocks change by themselves: as the server does near a player - random ticks (3 blocks per section per tick) and scheduled ones
         final java.util.Map<String, Integer> changed = new java.util.TreeMap<String, Integer>();
         final java.util.Set<Long> pairs = new java.util.HashSet<Long>();
         final int fb = base;
@@ -204,7 +204,7 @@ public class GenBench {
             public void onStaticEntitiesChanged() {}
         };
         w.addWorldAccess(spy);
-        // квадрат уже у игрока: чанки готовы к отправке; генерация кольца вокруг - что из него прилетит в квадрат
+        // the square is already with the player: chunks are ready to send; generating the ring around - what of it arrives into the square
         for (int x = -R; x <= R; x++)
             for (int z = -R; z <= R; z++) {
                 Chunk c = cps.provideChunk(base + x, base + z);
@@ -231,7 +231,7 @@ public class GenBench {
             com.divinerpgextended.world.twilight.WorldGenTwilightFeatures.camps - camp0, (2 * R + 7) * (2 * R + 7)));
         GAPS.add(String.format("%-10s изменений %6d, затронуто пар (заселение, загруженный чанк) %5d на %d новых чанков: %s", name, changes, pairs.size(),
             (2 * R + 7) * (2 * R + 7) - (2 * R + 1) * (2 * R + 1), top.subList(0, Math.min(6, top.size()))));
-        // цена пересылки чанка целиком: размер пакета и время сборки (сжатие)
+        // cost of sending a whole chunk: packet size and build time (compression)
         Chunk sample = cps.provideChunk(base, base);
         long p0 = System.nanoTime();
         int bytes = 0;
@@ -246,8 +246,8 @@ public class GenBench {
             bytes = buf.readableBytes();
         }
         GAPS.add(String.format("%-10s   чанк целиком: %d байт, сборка %.2f мс", "", bytes, (System.nanoTime() - p0) / 1e6 / 20));
-        // мобы, появившиеся при заселении, и цена их тика (без игрока рядом мобы не обновляются - держим тикет на чанках
-        // через обычный тик мира не выйдет, поэтому обновляем сущности напрямую)
+        // mobs that appeared during population, and the cost of their tick (without a player nearby mobs are not updated - we hold a ticket on the chunks
+        // it will not come out through the normal world tick, so we update entities directly)
         int mobs = 0;
         java.util.Map<String, Integer> kinds = new java.util.TreeMap<String, Integer>();
         for (Object o : w.loadedEntityList) {

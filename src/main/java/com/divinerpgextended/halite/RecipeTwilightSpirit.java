@@ -10,7 +10,7 @@ import net.minecraft.world.World;
 
 import com.divinerpgextended.registry.ModItems;
 
-/** Дух сумерек: три частички души Мортума от трёх разных боссов (одинаковые не годятся - одного босса не фармят). */
+/** Twilight Spirit: three Mortum soul sparks from three different bosses (identical ones will not do - one boss is not farmed). */
 public class RecipeTwilightSpirit implements IRecipe {
 
     public static final int NEED = 3;

@@ -6,8 +6,8 @@ import java.util.List;
 import codechicken.nei.PositionedStack;
 
 /**
- * Какой NEI стоит: классический (ChickenBones 1.0.5) или из GTNH. Методы, которых в классическом нет, вызываем только
- * отражением или из {@link NeiGtnh} - иначе классический NEI падал (NoSuchMethodError при открытии вкладки рыбалки).
+ * Which NEI is installed: classic (ChickenBones 1.0.5) or from GTNH. Methods that classic lacks are called only via
+ * reflection or from {@link NeiGtnh} - otherwise classic NEI crashed (NoSuchMethodError when opening the fishing tab).
  */
 final class Nei {
 
@@ -17,7 +17,7 @@ final class Nei {
 
     private Nei() {}
 
-    /** NEI из GTNH (есть описания вкладок HandlerInfo). */
+    /** NEI from GTNH (has HandlerInfo tab descriptions). */
     static boolean gtnh() {
         if (gtnh == null) {
             try {
@@ -30,7 +30,7 @@ final class Nei {
         return gtnh;
     }
 
-    /** Подсказка ячейки силами NEI (GTNH). false - не умеет, подсказку показываем сами ({@link DreHandler#handleItemTooltip}). */
+    /** Slot tooltip handled by NEI itself (GTNH). false - it cannot, we show the tooltip ourselves ({@link DreHandler#handleItemTooltip}). */
     static boolean setTooltip(PositionedStack ps, List<String> tip) {
         if (!tooltipLooked) {
             tooltipLooked = true;

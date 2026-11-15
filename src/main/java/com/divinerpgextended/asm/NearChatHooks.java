@@ -1,9 +1,9 @@
 package com.divinerpgextended.asm;
 
-/** Сообщения Divine, которые шли всему серверу ({@link NearChatTransformer}): только игрокам рядом с источником. */
+/** Divine messages that went to the whole server ({@link NearChatTransformer}): only to players near the source. */
 public class NearChatHooks {
 
-    /** Насколько далеко слышно (блоков). */
+    /** How far it is heard (blocks). */
     public static final int RADIUS = 64;
 
     public static void near(net.minecraft.util.ChatComponentTranslation msg, Object source) {

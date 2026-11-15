@@ -1,4 +1,4 @@
-"""Текстура Вьюжной ели 128x128: хвоя со снегом, кора, корни, ветви и глаза. Раскладка - client/ModelBlizzardSpruce."""
+"""Blizzard Spruce texture 128x128: needles with snow, bark, roots, branches and eyes. Layout - client/ModelBlizzardSpruce."""
 import os
 import random
 import struct
@@ -22,7 +22,7 @@ def rect(x, y, w, h, fn):
 
 
 def needles(top, height):
-    """Хвоя: снег лежит сверху и редко на боках, ниже тёмная зелень с прожилками."""
+    """Needles: snow lies on top and rarely on the sides, below it dark green with veins."""
     def fn(i, j):
         if j < top + height // 3 or random.random() < 0.08:
             return noise((226, 238, 246), 10)
@@ -42,14 +42,14 @@ def eye(i, j):
     return (170, 240, 255, 255)
 
 
-rect(0, 0, 112, 36, needles(0, 36))     # нижний ярус
-rect(0, 36, 88, 30, needles(36, 30))    # второй
-rect(0, 66, 64, 24, needles(66, 24))    # третий
-rect(64, 66, 32, 16, needles(66, 16))   # верхушка
-rect(96, 36, 32, 44, bark)              # ствол
-rect(64, 90, 24, 14, bark)              # корни
-rect(0, 100, 40, 8, bark)               # ветви-руки
-rect(44, 100, 14, 3, eye)               # глаза
+rect(0, 0, 112, 36, needles(0, 36))     # lower tier
+rect(0, 36, 88, 30, needles(36, 30))    # second
+rect(0, 66, 64, 24, needles(66, 24))    # third
+rect(64, 66, 32, 16, needles(66, 16))   # top
+rect(96, 36, 32, 44, bark)              # trunk
+rect(64, 90, 24, 14, bark)              # roots
+rect(0, 100, 40, 8, bark)               # arm branches
+rect(44, 100, 14, 3, eye)               # eyes
 
 
 def png(path):

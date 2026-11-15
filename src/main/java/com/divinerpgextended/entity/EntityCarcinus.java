@@ -31,18 +31,18 @@ import com.divinerpgextended.Config;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Карцинус, Владыка глубин. Панцирь: обычное оружие наносит только часть урона, крабовое - полный. Фаза 2 (меньше
- * половины здоровья): Короли крабов и уход в панцирь, который раскалывает удар крабовым молотом. Фаза 3 (меньше 20%):
- * затягивает игроков и слепит песком.
+ * Carcinus, Lord of the Deep. Shell: ordinary weapons deal only part of the damage, crab weapons deal full. Phase 2 (below
+ * half health): King Crabs and a retreat into the shell, which a hit with the crab maul splits. Phase 3 (below 20%):
+ * pulls players in and blinds with sand.
  */
 public class EntityCarcinus extends EntityMob implements IBossDisplayData {
 
     private static final int DW_SHELL = 20, DW_VORTEX = 21;
     private static final int VORTEX_CHARGE = 30;
     private static final double VORTEX_RADIUS = 5.0D;
-    /** Приспешников-крабов одновременно не больше; после гибели краба новых не зовёт {@link #CRAB_PAUSE} тиков. */
+    /** No more than this many crab minions at once; after a crab dies he summons no new ones for {@link #CRAB_PAUSE} ticks. */
     public static final int MAX_CRABS = 12, CRAB_PAUSE = 300;
-    /** Досягаемость клешней от центра (ванильный ИИ бьёт с 6 блоков - к нему не подойти с мечом). */
+    /** Claw reach from the center (the vanilla AI hits from 6 blocks - you can't approach him with a sword). */
     public static final double REACH = 3.5D;
     private int crabPause, lastCrabs;
     private int crabTimer = 120, kingTimer = 200, shellTimer = 260, rageTimer = 100, shellLeft;
@@ -77,7 +77,7 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
         getEntityAttribute(SharedMonsterAttributes.knockbackResistance).setBaseValue(1.0D);
     }
 
-    /** Карцинус закручивает песчаный вихрь: стоит на месте, через полторы секунды бьёт всех вокруг. */
+    /** Carcinus whips up a sand whirlwind: stands still, after a second and a half hits everyone around. */
     public boolean chargingVortex() {
         return dataWatcher.getWatchableObjectByte(DW_VORTEX) != 0;
     }
@@ -90,7 +90,7 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
         dataWatcher.updateObject(DW_SHELL, Byte.valueOf((byte) (on ? 1 : 0)));
     }
 
-    /** Крабовое оружие из Divine: им панцирь пробивается полностью. */
+    /** Crab weapons from Divine: they pierce the shell completely. */
     public static boolean isCrabWeapon(Item item) {
         return item == VanillaItemsWeapons.crabclawMaul || item == VanillaItemsWeapons.dualClaw
             || item == VanillaItemsWeapons.crabAnchor || item == VanillaItemsWeapons.crabclawCannon;
@@ -107,7 +107,7 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
         boolean crab = isCrabWeapon(weapon);
         if (inShell()) {
             if (weapon == VanillaItemsWeapons.crabclawMaul) {
-                setShell(false); // молот раскалывает панцирь
+                setShell(false); // the maul splits the shell
                 shellLeft = 0;
                 worldObj.playSoundAtEntity(this, "random.break", 2.0F, 0.6F);
                 tell("dre.chat.carcinus_shell_broken");
@@ -125,7 +125,7 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
     @Override
     public boolean attackEntityAsMob(Entity target) {
         double dx = target.posX - posX, dz = target.posZ - posZ, r = REACH + target.width / 2;
-        if (dx * dx + dz * dz > r * r) return false; // ещё далеко: подходит ближе
+        if (dx * dx + dz * dz > r * r) return false; // still far: moves closer
         return super.attackEntityAsMob(target);
     }
 
@@ -170,7 +170,7 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
     }
 
     private void spawnMinion(EntityLiving minion) {
-        minion.getEntityData().setBoolean(EntityLairCrab.CARCINUS_ADD, true); // в бою - без клешней и опыта
+        minion.getEntityData().setBoolean(EntityLairCrab.CARCINUS_ADD, true); // in battle - no claws and no experience
         com.divinerpgextended.boss.BossMinions.mark(minion, this);
         minion.setLocationAndAngles(posX + (rand.nextDouble() - 0.5) * 6, posY, posZ + (rand.nextDouble() - 0.5) * 6,
             rand.nextFloat() * 360, 0);
@@ -188,7 +188,7 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
                 }
             }
             if (chargingVortex()) {
-                // песок крутится по всему кругу поражения: видно, куда не надо стоять
+                // the sand swirls over the whole kill circle: you can see where not to stand
                 for (int i = 0; i < 20; i++) {
                     double a = rand.nextDouble() * Math.PI * 2, r = Math.sqrt(rand.nextDouble()) * VORTEX_RADIUS;
                     worldObj.spawnParticle("blockcrack_12_0", posX + Math.cos(a) * r, posY + 0.2 + rand.nextDouble(),
@@ -205,7 +205,7 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
             if (--vortexLeft == 0) releaseVortex();
             return;
         }
-        // фазы идут, пока рядом игрок (в том числе в творческом, когда цели у краба нет)
+        // phases run while a player is nearby (including creative, when the crab has no target)
         if (getAttackTarget() == null && worldObj.getClosestPlayerToEntity(this, 24) == null) return;
         float hp = getHealth() / getMaxHealth();
 
@@ -217,7 +217,7 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
         }
         if (ticksExisted % 10 == 0) {
             int crabs = com.divinerpgextended.boss.BossMinions.count(this);
-            if (crabs < lastCrabs) crabPause = CRAB_PAUSE; // краба убили - пауза
+            if (crabs < lastCrabs) crabPause = CRAB_PAUSE; // a crab was killed - pause
             lastCrabs = crabs;
         }
         if (crabPause > 0) crabPause--;
@@ -254,7 +254,7 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
         }
     }
 
-    /** Удар вихря: урон сквозь любую броню (и водную тоже) и замедление всем, кто не успел отбежать. */
+    /** Whirlwind strike: damage through any armor (water armor too) and slowness to everyone who did not get away. */
     private void releaseVortex() {
         dataWatcher.updateObject(DW_VORTEX, Byte.valueOf((byte) 0));
         worldObj.playSoundAtEntity(this, "random.explode", 1.5F, 0.6F);
@@ -270,7 +270,7 @@ public class EntityCarcinus extends EntityMob implements IBossDisplayData {
         }
     }
 
-    /** Подсказка всем игрокам рядом с боем. */
+    /** A hint to all players near the fight. */
     private void tell(String key) {
         @SuppressWarnings("unchecked")
         List<EntityPlayer> near = worldObj.getEntitiesWithinAABB(EntityPlayer.class, boundingBox.expand(24, 12, 24));

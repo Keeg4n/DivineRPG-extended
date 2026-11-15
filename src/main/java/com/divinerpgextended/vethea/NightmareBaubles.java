@@ -16,17 +16,17 @@ import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Чужие аксессуары Baubles во сне до прохождения молчат (поправки - {@link com.divinerpgextended.asm.BaublesTransformer}):
- * их тик ношения не идёт, моды, которые спрашивают BaublesApi "что надето", их не видят, а при входе в кошмар
- * аксессуар снимается (onUnequipped - убирает свои прибавки здоровья, скорости и прочего), при выходе надевается
- * снова. Сами вещи из слотов никуда не уходят. Аксессуары аддона (амулеты, кольца, крылья сна) - своими правилами в
+ * Foreign Baubles accessories are silent in the dream before completion (patches in {@link com.divinerpgextended.asm.BaublesTransformer}):
+ * their wear tick does not run, mods that ask BaublesApi "what is worn" do not see them, and on entering the nightmare the
+ * accessory is taken off (onUnequipped - removes its own health, speed and other bonuses), on leaving it is put on
+ * again. The items themselves never leave the slots. The addon's accessories (amulets, rings, dream wings) follow their own rules in
  * {@link com.divinerpgextended.accessory.Accessories}.
  */
 public class NightmareBaubles {
 
     private static Method onWornTick, onEquipped, onUnequipped, playerBaubles;
     private static boolean looked;
-    /** Какие аксессуары игрока сейчас сняты кошмаром (по слотам). */
+    /** Which of the player's accessories are currently taken off by the nightmare (by slot). */
     private static final Map<UUID, ItemStack[]> MASKED = new HashMap<UUID, ItemStack[]>();
 
     private static synchronized void lookup() {
@@ -41,19 +41,19 @@ public class NightmareBaubles {
         } catch (Throwable ignored) {}
     }
 
-    /** Спрятан ли аксессуар от модов сейчас. */
+    /** Whether the accessory is hidden from mods right now. */
     public static boolean masked(EntityPlayer p, ItemStack s) {
         return s != null && Nightmare.active(p) && !Nightmare.vethean(s);
     }
 
-    /** Вызов из Baubles вместо IBauble.onWornTick. */
+    /** Called from Baubles instead of IBauble.onWornTick. */
     public static void wornTick(Object bauble, ItemStack s, EntityLivingBase e) {
         if (e instanceof EntityPlayer && masked((EntityPlayer) e, s)) return;
         lookup();
         call(onWornTick, bauble, s, e);
     }
 
-    /** Вызов из BaublesApi.getBaubles: во сне - вид без чужих аксессуаров. */
+    /** Called from BaublesApi.getBaubles: in the dream - a view without foreign accessories. */
     public static IInventory view(IInventory real, EntityPlayer p) {
         if (real == null || p == null || !Nightmare.active(p)) return real;
         return new Masked(real, p);
@@ -63,7 +63,7 @@ public class NightmareBaubles {
         if (m == null || bauble == null || !m.getDeclaringClass().isInstance(bauble)) return;
         try {
             m.invoke(bauble, s, e);
-        } catch (InvocationTargetException x) { // сбой самого аксессуара - как без поправки
+        } catch (InvocationTargetException x) { // the accessory itself failed - as without the patch
             Throwable c = x.getCause();
             if (c instanceof RuntimeException) throw (RuntimeException) c;
             if (c instanceof Error) throw (Error) c;
@@ -71,7 +71,7 @@ public class NightmareBaubles {
         } catch (IllegalAccessException ignored) {}
     }
 
-    /** Настоящий инвентарь аксессуаров (мимо вида). */
+    /** The real accessory inventory (bypassing the view). */
     private static IInventory real(EntityPlayer p) {
         lookup();
         if (playerBaubles == null) return null;
@@ -82,7 +82,7 @@ public class NightmareBaubles {
         }
     }
 
-    /** Снять на входе в кошмар, надеть на выходе. */
+    /** Take off on entering the nightmare, put on when leaving. */
     @SubscribeEvent
     public void onTick(TickEvent.PlayerTickEvent e) {
         if (e.phase != TickEvent.Phase.START || e.player.worldObj.isRemote) return;
@@ -113,14 +113,14 @@ public class NightmareBaubles {
                 }
                 left = true;
             } else if (m[i] != null) {
-                if (m[i] == s) call(onEquipped, s.getItem(), s, p); // всё ещё в слоте - надеть обратно
+                if (m[i] == s) call(onEquipped, s.getItem(), s, p); // still in the slot - put it back on
                 m[i] = null;
             }
         }
         if (!left) MASKED.remove(id);
     }
 
-    /** Выход с сервера: снятое кошмаром надеть обратно, чтобы в сохранение ушло как было. */
+    /** Leaving the server: put back on what the nightmare took off, so that the save goes out as it was. */
     @SubscribeEvent
     public void onLogout(PlayerEvent.PlayerLoggedOutEvent e) {
         ItemStack[] m = MASKED.remove(e.player.getUniqueID());
@@ -131,7 +131,7 @@ public class NightmareBaubles {
             if (m[i] != null && m[i] == inv.getStackInSlot(i)) call(onEquipped, m[i].getItem(), m[i], e.player);
     }
 
-    /** Вид инвентаря аксессуаров без чужих: пустые слоты на их месте, запись в такие слоты не проходит. */
+    /** A view of the accessory inventory without foreign ones: empty slots in their place, writing to such slots does not go through. */
     static final class Masked implements IInventory {
 
         private final IInventory real;

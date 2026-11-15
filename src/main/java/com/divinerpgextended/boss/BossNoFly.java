@@ -10,21 +10,21 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Рядом с живым боссом (в {@link #RADIUS} блоках) летать нельзя: с полёта почти любой наземный босс не достаёт.
- * Босс - боссы Divine и аддона (у боссов других модов - Иссушителя, дракона и т.п. - летать можно). Кроме Скайтерна (там бой в небе) и
- * творческого режима. Проверяем только летящих - остальным это ничего не стоит.
+ * Near a living boss (within {@link #RADIUS} blocks) flying is not allowed: from the air almost any ground boss can't reach you.
+ * Boss means Divine and addon bosses (with bosses of other mods - the Wither, the dragon, etc. - flying is allowed). Except Skythern (the fight is in the sky) and
+ * creative mode. Only flying players are checked - for everyone else it costs nothing.
  */
 public class BossNoFly {
 
     public static final int RADIUS = 48;
     private static final String TOLD = "dreNoFlyTold";
 
-    /** Рядом с игроком живой босс, при котором летать нельзя. */
+    /** There is a living boss near the player that forbids flying. */
     public static boolean near(EntityPlayer p) {
         if (p.worldObj.provider.dimensionId == net.divinerpg.utils.config.ConfigurationHelper.skythern) return false;
         for (Object o : p.worldObj.getEntitiesWithinAABB(EntityLiving.class, p.boundingBox.expand(RADIUS, RADIUS, RADIUS))) {
             EntityLiving e = (EntityLiving) o;
-            String cls = e.getClass().getName(); // только боссы Divine и аддона: у боссов других модов летать можно
+            String cls = e.getClass().getName(); // only Divine and addon bosses: with bosses of other mods flying is allowed
             if (e.isEntityAlive() && (e instanceof net.minecraft.entity.boss.IBossDisplayData || e instanceof net.divinerpg.entities.base.EntityDivineRPGBoss)
                 && (cls.startsWith("net.divinerpg.") || cls.startsWith("com.divinerpgextended."))) return true;
         }
@@ -35,12 +35,12 @@ public class BossNoFly {
     public void onTick(TickEvent.PlayerTickEvent e) {
         EntityPlayer p = e.player;
         if (e.phase != TickEvent.Phase.END || p.worldObj.isRemote || !Config.bossNoFly || !p.capabilities.isFlying || p.capabilities.isCreativeMode
-            || p.ticksExisted % 10 != 0) return; // поиск босса в 48 блоках - раз в полсекунды
+            || p.ticksExisted % 10 != 0) return; // boss search within 48 blocks - once every half second
         if (!near(p)) return;
         p.capabilities.isFlying = false;
         p.sendPlayerAbilities();
         long now = p.worldObj.getTotalWorldTime();
-        if (now - p.getEntityData().getLong(TOLD) > 200) { // не чаще раза в 10 секунд
+        if (now - p.getEntityData().getLong(TOLD) > 200) { // no more than once every 10 seconds
             p.getEntityData().setLong(TOLD, now);
             p.addChatMessage(new ChatComponentTranslation("dre.chat.boss_no_fly"));
         }

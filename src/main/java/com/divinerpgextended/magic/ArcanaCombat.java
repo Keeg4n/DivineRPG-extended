@@ -33,41 +33,41 @@ import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Арканный урон и бой.
+ * Arcane damage and combat.
  * <ul>
- * <li>Снаряды арканного оружия игрока помечаются при появлении: урон из {@link #BASE} с ростом по этапу игрока
- * ({@link ArcanaRules#stage}). Такой урон идёт сквозь броню, снаряды одного залпа не перекрывают друг друга (у
- * Divine попадало одно), маги сумеречных миров держат его вдвое лучше.</li>
- * <li>Звёзды и метеоры падают с 12 блоков, а не с 25 (у Divine долетали слишком долго).</li>
- * <li>По игроку арканным уроном бьют выстрелы магов, снаряды Ветеи и ближние удары мобов Арканы: сначала его
- * принимает на себя аркана ({@link ArcanaRules#absorb}).</li>
- * <li>Маги сумеречных миров стреляют раз в 1-1.5 с и только видя цель (у Divine - дважды в секунду сквозь стены).</li>
- * <li>Мечи Арканы добавляют к удару арканный урон, молнии Storm Sword не бьют своего хозяина.</li>
- * <li>Шкала арканы переживает перезаход (Divine обнулял её при входе), эффект зелья восстанавливает без задержки.</li>
+ * <li>Projectiles of the player's arcane weapons are marked when they appear: damage from {@link #BASE} growing with the player's stage
+ * ({@link ArcanaRules#stage}). Such damage goes through armor, projectiles of one volley do not overlap each other (in
+ * Divine only one hit), mages of the twilight dimensions withstand it twice as well.</li>
+ * <li>Stars and meteors fall from 12 blocks, not 25 (in Divine they took too long to arrive).</li>
+ * <li>A player is hit with arcane damage by mages' shots, Vethea projectiles and melee strikes of Arcana mobs: first it is
+ * taken by arcana ({@link ArcanaRules#absorb}).</li>
+ * <li>Mages of the twilight dimensions shoot once every 1-1.5 s and only when seeing the target (in Divine - twice a second through walls).</li>
+ * <li>Arcana swords add arcane damage to the hit, Storm Sword lightning does not hit its own owner.</li>
+ * <li>The arcana bar survives a rejoin (Divine zeroed it on login), the potion effect restores without delay.</li>
  * </ul>
  */
 public class ArcanaCombat {
 
     /**
-     * Магическое оружие обычного мира, Ада и Заснежья (Водоворот, Повреждённая пушка, Пушка Гаста, Звуки музыки и Каролса):
-     * урон свой, как в Divine, но арканный - мобов бьёт сквозь броню, у игрока его первой принимает аркана.
+     * Magic weapons of the Overworld, the Nether and the Frost lands (Whirlwind, Corrupted Cannon, Ghast Cannon, Sound of Music and Sound of Carols):
+     * their own damage, as in Divine, but arcane - it hits mobs through armor, for a player arcana takes it first.
      */
     static final java.util.Set<Item> OWN_DAMAGE = new java.util.HashSet<Item>();
-    /** Свой урон снаряда, но арканный: метка снаряда. */
+    /** The projectile's own damage, but arcane: the projectile marker. */
     static final String PIERCE = "dreArcPierce";
 
-    /** Всенощный: 115 урона у Divine - вдвое меньше, через броню. */
+    /** Nightlong: 115 damage in Divine - half of that, through armor. */
     static final String EVERNIGHT = "dreEvernight";
     public static final float EVERNIGHT_K = 0.5F;
 
-    /** Пуля залпа Арканового взрывателя: как дробь блица, бьёт и игрока каждой пулей. */
+    /** A bullet of the Arcana Exploder volley: like blitz buckshot, hits the player with every bullet too. */
     static final String VOLLEY = "dreArcVolley";
     public static final String DMG = "dreArcDmg", MOB = "dreArcMob", NEXT_SHOT = "dreNextShot", SAVED = "dreArcSaved";
-    /** Базовый арканный урон снаряда по оружию в руке (на входе в Аркану). */
+    /** Base arcane damage of a projectile by the weapon in hand (on entering Arcana). */
     static final Map<Item, Float> BASE = new HashMap<Item, Float>();
-    /** Прибавка мечей Арканы к удару (арканный урон). */
+    /** Bonus of Arcana swords to the hit (arcane damage). */
     public static final float SWORD_BONUS = 8.0F, MAGE_RESIST = 0.5F;
-    /** На сколько ниже Divine ставит падающие звёзды и метеоры (Divine - 25 блоков над целью). */
+    /** By how much lower than Divine falling stars and meteors are placed (Divine - 25 blocks above the target). */
     static final double DROP_LOWER = 13.0;
 
     private static final Set<String> MAGES = new HashSet<String>();
@@ -105,26 +105,26 @@ public class ArcanaCombat {
             || i == ArcanaItems.liviciaSword;
     }
 
-    /** Базовый урон оружия в руке или null, если это не арканное оружие. */
+    /** Base damage of the weapon in hand or null if it is not an arcane weapon. */
     public static Float base(ItemStack held) {
         if (held == null) return null;
         if (held.getItem() instanceof ItemMageStaff) return ItemMageStaff.damage(held);
         return BASE.get(held.getItem());
     }
 
-    /** Арканный урон снаряда этого игрока с этим оружием (с ростом по этапу). */
+    /** Arcane damage of this player's projectile with this weapon (with stage growth). */
     public static float damage(EntityPlayer p, ItemStack held) {
         Float b = base(held);
         return b == null ? 0 : b * ArcanaRules.stage(p) * crown(p);
     }
 
-    /** Венец арканы R8: арканный урон x{@link com.divinerpgextended.Config#crownArcanaDamage}. */
+    /** R8 arcana Crown: arcane damage x{@link com.divinerpgextended.Config#crownArcanaDamage}. */
     public static float crown(EntityPlayer p) {
         return p != null && com.divinerpgextended.item.ArmorData.equippedCrown(p) == com.divinerpgextended.item.ArmorCrown.ARCANA
             ? com.divinerpgextended.Config.crownArcanaDamage : 1F;
     }
 
-    // ---------------- снаряды ----------------
+    // ---------------- projectiles ----------------
 
     @SubscribeEvent
     public void onJoin(EntityJoinWorldEvent e) {
@@ -134,7 +134,7 @@ public class ArcanaCombat {
         if (d.hasKey(DMG)) return;
         EntityLivingBase thrower = t.getThrower();
         String cls = t.getClass().getSimpleName();
-        // звёзды и метеоры Divine создаёт без бросившего, высоко над целью: хозяин - ближний игрок с посохом
+        // Divine creates stars and meteors without a thrower, high above the target: the owner is the nearest player with a staff
         if (thrower == null && ("EntityStar".equals(cls) || "EntityMeteor".equals(cls))) {
             EntityPlayer owner = null;
             double best = 40 * 40;
@@ -174,7 +174,7 @@ public class ArcanaCombat {
             float dmg = damage((EntityPlayer) thrower, thrower.getHeldItem());
             if (dmg > 0) d.setFloat(DMG, dmg);
             else if (VETHEA_ARCANE.contains(t.getClass().getName()) || thrower.getHeldItem() != null && OWN_DAMAGE.contains(thrower.getHeldItem().getItem())) {
-                d.setBoolean(MOB, true); // посохи Ветеи и магия обычного мира: свой урон, но арканный
+                d.setBoolean(MOB, true); // Vethea staffs and Overworld magic: their own damage, but arcane
                 d.setBoolean(PIERCE, true);
             }
             return;
@@ -188,11 +188,11 @@ public class ArcanaCombat {
         }
     }
 
-    /** Точка прицела игрока на этот тик (у взрывателя 30 пуль за раз - луч считаем один раз). */
+    /** The player's aim point for this tick (the exploder fires 30 bullets at once - the ray is computed once). */
     private static final Map<EntityPlayer, Object[]> AIM = new java.util.WeakHashMap<EntityPlayer, Object[]>();
     static final double AIM_RANGE = 32;
 
-    /** Куда смотрит игрок: первое существо на луче, иначе блок, иначе точка на AIM_RANGE. */
+    /** Where the player is looking: the first creature on the ray, otherwise a block, otherwise a point at AIM_RANGE. */
     static net.minecraft.util.Vec3 aimPoint(EntityPlayer p) {
         long now = p.worldObj.getTotalWorldTime();
         Object[] c = AIM.get(p);
@@ -221,15 +221,15 @@ public class ArcanaCombat {
     }
 
     /**
-     * Пули взрывателя Арканы сходятся в точку прицела. Divine разбрасывает их не по направлению, а по точке старта (+-1.5
-     * блока по каждой оси), и 30 пуль летят параллельным облаком шириной 3 блока: цель ловила лишь его часть на любой
-     * дистанции, а стартовавшие в стене рядом гибли сразу. Скорость пули та же; стартовавшая в блоке или за преградой - вылетает от глаз.
+     * The Arcana exploder's bullets converge at the aim point. Divine scatters them not by direction but by the start point (+-1.5
+     * blocks on each axis), and 30 bullets fly as a parallel cloud 3 blocks wide: the target caught only part of it at any
+     * distance, and those that started in a nearby wall died at once. The bullet speed is the same; one that started in a block or behind an obstacle flies out from the eyes.
      */
     static void converge(EntityThrowable b, EntityPlayer p) {
         net.minecraft.util.Vec3 aim = aimPoint(p);
         boolean inBlock = b.worldObj.getBlock(net.minecraft.util.MathHelper.floor_double(b.posX), net.minecraft.util.MathHelper.floor_double(b.posY),
             net.minecraft.util.MathHelper.floor_double(b.posZ)).getMaterial().blocksMovement();
-        // в стене или путь до прицела перегорожен блоком - вылетает от глаз (оттуда до прицела чисто)
+        // in a wall or the path to the aim is blocked by a block - flies out from the eyes (from there to the aim it is clear)
         if (inBlock || b.worldObj.rayTraceBlocks(net.minecraft.util.Vec3.createVectorHelper(b.posX, b.posY, b.posZ),
             net.minecraft.util.Vec3.createVectorHelper(aim.xCoord, aim.yCoord, aim.zCoord)) != null) b.setPosition(p.posX, p.posY + p.getEyeHeight() - 0.1, p.posZ);
         double dx = aim.xCoord - b.posX, dy = aim.yCoord - b.posY, dz = aim.zCoord - b.posZ, len = Math.sqrt(dx * dx + dy * dy + dz * dz);
@@ -243,8 +243,8 @@ public class ArcanaCombat {
     private static java.lang.reflect.Field seekTarget;
 
     /**
-     * Ракета Мерика рядом с боссом Арканы сразу берёт целью его (Divine берёт ближнее живое и не меняет цель, пока та жива:
-     * миньон или напарник рядом уводили ракету). Невидимость Драмикса самонаводке не мешает. Для автотеста - публичный.
+     * Merik's missile near an Arcana boss immediately targets it (Divine takes the nearest living one and does not change the target while it is alive:
+     * a minion or a partner nearby led the missile away). Dramix's invisibility does not hinder homing. Public for the autotest.
      */
     public static net.minecraft.entity.Entity aimAtArcanaBoss(EntityThrowable missile) {
         net.minecraft.entity.Entity best = null;
@@ -264,11 +264,11 @@ public class ArcanaCombat {
             seekTarget.set(missile, best);
             return best;
         } catch (Throwable ex) {
-            return null; // нет поля - наводится как у Divine
+            return null; // no field - homes in as in Divine
         }
     }
 
-    /** Маг стреляет раз в 1-1.5 с и только видя цель. */
+    /** A mage shoots once every 1-1.5 s and only when seeing the target. */
     static boolean mageMayShoot(EntityLiving m) {
         long now = m.worldObj.getTotalWorldTime();
         NBTTagCompound d = m.getEntityData();
@@ -284,7 +284,7 @@ public class ArcanaCombat {
         return src == null ? null : src.getEntityData();
     }
 
-    /** Залп арканного оружия: каждый снаряд попадает (у Divine после первого цель была неуязвима полсекунды). */
+    /** A volley of arcane weapons: every projectile hits (in Divine after the first the target was invulnerable for half a second). */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onAttack(LivingAttackEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
@@ -294,7 +294,7 @@ public class ArcanaCombat {
 
     private static java.lang.reflect.Field unblockable;
 
-    /** Урон сквозь броню (поле isUnblockable источника; источник у снаряда каждый раз новый). */
+    /** Damage through armor (the source's isUnblockable field; the projectile's source is new every time). */
     static void pierce(DamageSource s) {
         try {
             if (unblockable == null) unblockable = cpw.mods.fml.relauncher.ReflectionHelper.findField(DamageSource.class, "isUnblockable", "field_76374_o");
@@ -302,7 +302,7 @@ public class ArcanaCombat {
         } catch (Throwable ignored) {}
     }
 
-    /** Нападение: арканный урон снарядов и мечей Арканы. */
+    /** Attack: arcane damage of Arcana projectiles and swords. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onHurtDealt(LivingHurtEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
@@ -311,7 +311,7 @@ public class ArcanaCombat {
         if (t != null && t.hasKey(DMG)) {
             e.ammount = t.getFloat(DMG) * (mage ? MAGE_RESIST : 1F);
             if (!(e.entityLiving instanceof EntityPlayer)) pierce(e.source);
-            com.divinerpgextended.debug.Debug.note(e.source.getEntity(), "Арканный урон: " + e.ammount + (mage ? " (маг держит x0.5)" : ""));
+            com.divinerpgextended.debug.Debug.note(e.source.getEntity(), "Arcane damage: " + e.ammount + (mage ? " (mage holds x0.5)" : ""));
             return;
         }
         if (t != null && t.getBoolean(EVERNIGHT)) e.ammount *= EVERNIGHT_K;
@@ -320,7 +320,7 @@ public class ArcanaCombat {
             if (mage) e.ammount *= MAGE_RESIST;
             return;
         }
-        if (ARCANE.equals(e.source.damageType)) { // арканный удар мечом
+        if (ARCANE.equals(e.source.damageType)) { // arcane sword strike
             if (mage) e.ammount *= MAGE_RESIST;
             return;
         }
@@ -329,21 +329,21 @@ public class ArcanaCombat {
             EntityPlayer p = (EntityPlayer) a;
             ItemStack h = p.getHeldItem();
             if (h != null && arcanaSword(h.getItem()) && !edgeQueued(e.entityLiving) && edgeReady(p) && edgePaid(p, h.getItem())) {
-                // отдельным ударом следующим тиком: в этот тик цель уже неуязвима, а прибавка к обычному удару резалась бы бронёй
+                // as a separate hit on the next tick: on this tick the target is already invulnerable, and a bonus to the regular hit would be cut by armor
                 queueEdge(e.entityLiving, p);
             }
         }
     }
 
-    /** Уже ждёт ли цель арканного удара (два клика за тик - один удар). */
+    /** Whether the target is already waiting for an arcane hit (two clicks per tick - one hit). */
     static boolean edgeQueued(EntityLivingBase target) {
         for (Object[] o : PENDING) if (o[0] == target) return true;
         return false;
     }
 
     /**
-     * Оплата арканного удара по боссу Арканы: обычный удар там отменён ещё на атаке, попадания нет, и теневой меч (Divine
-     * берёт его 12 арканы при попадании) платит здесь.
+     * Payment for an arcane hit on an Arcana boss: the regular hit there is cancelled at the attack, there is no impact, and the Shadow Sword (Divine
+     * takes its 12 arcana on impact) pays here.
      */
     static boolean edgePaidOnArcanaBoss(EntityPlayer p, Item sword) {
         if (sword != ArcanaItems.shadowSword) return edgePaid(p, sword);
@@ -352,8 +352,8 @@ public class ArcanaCombat {
     }
 
     /**
-     * Арканный удар меча Арканы по цели - отдельным ударом следующим тиком. Манекен меряет удар на своей скрытой копии игрока:
-     * арканный удар - по самому манекену (до 0.99.120 он уходил в копию, и манекен показывал один обычный удар).
+     * An Arcana sword's arcane hit on the target - as a separate hit on the next tick. The dummy measures the hit on its hidden copy of the player:
+     * the arcane hit goes to the dummy itself (before 0.99.120 it went to the copy, and the dummy showed one regular hit).
      */
     static void queueEdge(EntityLivingBase target, EntityPlayer p) {
         if (target instanceof com.divinerpgextended.dummy.DummyGhost && ((com.divinerpgextended.dummy.DummyGhost) target).owner != null)
@@ -361,7 +361,7 @@ public class ArcanaCombat {
         PENDING.add(new Object[] { target, p, SWORD_BONUS * ArcanaRules.stage(p) * crown(p) });
     }
 
-    /** Арканный удар мечом: свой тип урона, сквозь броню. */
+    /** Arcane sword hit: its own damage type, through armor. */
     public static final String ARCANE = "dre.arcane";
     private static final java.util.List<Object[]> PENDING = new java.util.ArrayList<Object[]>();
 
@@ -370,14 +370,14 @@ public class ArcanaCombat {
     }
 
     /**
-     * Арканный удар по этой цели: по мобам - сквозь броню, по игроку - через броню (сквозь броню арканный удар бил игрока в
-     * Терра-броне в 2-3 раза сильнее обычного; щит арканы всё равно принимает свою долю первым).
+     * Arcane hit on this target: on mobs - through armor, on a player - via armor (through armor the arcane hit struck a player in
+     * Terra armor 2-3 times harder than a regular one; the arcana shield still takes its share first).
      */
     public static DamageSource arcaneSource(EntityPlayer p, Entity victim) {
         return victim instanceof EntityPlayer ? new net.minecraft.util.EntityDamageSource(ARCANE, p) : arcaneSource(p);
     }
 
-    /** Арканный удар меча - не чаще раза в {@link #EDGE_EVERY} тиков (на каждый клик он снимал с цели неуязвимость и бил снова). */
+    /** An arcane sword hit - no more often than once per {@link #EDGE_EVERY} ticks (on every click it removed the target's invulnerability and hit again). */
     public static final int EDGE_EVERY = 10;
     static final String EDGE_AT = "dreEdgeAt";
 
@@ -389,8 +389,8 @@ public class ArcanaCombat {
     }
 
     /**
-     * Оплачен ли арканный удар: сабля и клинок Арканы списывают аркану сами до удара (иначе удара нет), теневой меч - после
-     * (нужно, чтобы её хватало), Storm Sword и меч Ливиции - 6 арканы на сам арканный удар.
+     * Whether the arcane hit is paid: the Arcana Saber and Blade deduct arcana themselves before the hit (otherwise there is no hit), the Shadow Sword - after
+     * (so that it has enough), Storm Sword and the Livicia Sword - 6 arcana for the arcane hit itself.
      */
     static boolean edgePaid(EntityPlayer p, Item sword) {
         ArcanaHelper h = ArcanaHelper.getProperties(p);
@@ -400,13 +400,13 @@ public class ArcanaCombat {
         return ArcanaRules.useBar(h, 6F, "ArcaneEdge");
     }
 
-    /** Отложенные арканные удары мечей. */
+    /** Deferred arcane sword hits. */
     @SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent e) {
         if (e.phase == TickEvent.Phase.END) flushEdges();
     }
 
-    /** Нанести отложенные арканные удары (конец тика сервера; самопроверка зовёт сама). */
+    /** Deal the deferred arcane hits (end of the server tick; the selftest calls it itself). */
     public static void flushEdges() {
         if (PENDING.isEmpty()) return;
         java.util.List<Object[]> now = new java.util.ArrayList<Object[]>(PENDING);
@@ -422,7 +422,7 @@ public class ArcanaCombat {
         }
     }
 
-    /** Арканный ли этот удар по игроку. */
+    /** Whether this hit on a player is arcane. */
     public static boolean incoming(DamageSource s) {
         if ("arcana".equals(s.damageType) || ARCANE.equals(s.damageType)) return true;
         NBTTagCompound t = tagOf(s);
@@ -431,10 +431,10 @@ public class ArcanaCombat {
         return a != null && a == s.getSourceOfDamage() && "mob".equals(s.damageType) && a.getClass().getName().startsWith("net.divinerpg.entities.arcana.");
     }
 
-    /** Арканный урон снарядов и посохов игрока по другому игроку: x{@link #PVP_K} (броня и щит арканы его сильно режут). */
+    /** Arcane damage of a player's projectiles and staffs against another player: x{@link #PVP_K} (armor and the arcana shield cut it a lot). */
     public static final float PVP_K = 1.5F;
 
-    /** Защита: арканный урон сначала принимает на себя аркана игрока. */
+    /** Defense: arcane damage is first taken by the player's arcana. */
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onHurtTaken(LivingHurtEvent e) {
         if (!(e.entityLiving instanceof EntityPlayer) || e.entityLiving.worldObj.isRemote || !incoming(e.source)) return;
@@ -442,15 +442,15 @@ public class ArcanaCombat {
         NBTTagCompound tag = tagOf(e.source);
         if (tag != null && e.source.getEntity() instanceof EntityPlayer && e.source.getEntity() != p && (tag.hasKey(DMG) || tag.getBoolean(PIERCE)))
             e.ammount *= PVP_K;
-        // арканный удар виден: фиолетовые искры, как у мечей Арканы
+        // the arcane hit is visible: purple sparks, like Arcana swords
         if (p.worldObj instanceof net.minecraft.world.WorldServer) ((net.minecraft.world.WorldServer) p.worldObj).func_147487_a("witchMagic", p.posX,
             p.posY + p.height * 0.6, p.posZ, 12, p.width * 0.4, p.height * 0.3, p.width * 0.4, 0.05);
         float before = e.ammount;
         e.ammount = ArcanaRules.absorb(p, e.ammount);
-        if (e.ammount < before) com.divinerpgextended.debug.Debug.note(p, String.format("Аркана приняла %.1f из %.1f арканного урона", before - e.ammount, before));
+        if (e.ammount < before) com.divinerpgextended.debug.Debug.note(p, String.format("Arcana absorbed %.1f of %.1f arcane damage", before - e.ammount, before));
     }
 
-    /** Молнии Storm Sword бьют вокруг хозяина, а не его самого. */
+    /** Storm Sword lightning hits around the owner, not the owner himself. */
     @SubscribeEvent
     public void onLightning(EntityStruckByLightningEvent e) {
         if (!(e.entity instanceof EntityPlayer)) return;
@@ -458,7 +458,7 @@ public class ArcanaCombat {
         if (h != null && h.getItem() == ArcanaItems.stormSword) e.setCanceled(true);
     }
 
-    /** С магов сумеречных миров - их посох (4%, +1% за уровень добычи). */
+    /** From twilight dimension mages - their staff (4%, +1% per looting level). */
     @SubscribeEvent
     public void onDrops(LivingDropsEvent e) {
         if (!isMage(e.entityLiving) || !e.recentlyHit || e.entityLiving.worldObj.isRemote) return;
@@ -468,7 +468,7 @@ public class ArcanaCombat {
             new ItemStack(com.divinerpgextended.registry.ModItems.mageStaff, 1, meta)));
     }
 
-    // ---------------- восстановление и сохранение шкалы ----------------
+    // ---------------- bar recovery and saving ----------------
 
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent e) {
@@ -477,7 +477,7 @@ public class ArcanaCombat {
         ArcanaHelper h = ArcanaHelper.getProperties(p);
         if (h == null) return;
         NBTTagCompound d = p.getEntityData();
-        if (d.hasKey(SAVED) && p.ticksExisted > 2) { // после входа: Divine обнулил шкалу - вернуть, что было
+        if (d.hasKey(SAVED) && p.ticksExisted > 2) { // after login: Divine zeroed the bar - restore what it was
             h.setBarValue(Math.min(d.getFloat(SAVED), ArcanaHooks.max(p)));
             d.removeTag(SAVED);
         }
@@ -506,7 +506,7 @@ public class ArcanaCombat {
         if (ps.hasKey(SAVED)) e.player.getEntityData().setFloat(SAVED, ps.getFloat(SAVED));
     }
 
-    /** Смерть снимает эффекты зелий. */
+    /** Death removes potion effects. */
     @SubscribeEvent
     public void onDeath(net.minecraftforge.event.entity.living.LivingDeathEvent e) {
         if (e.entityLiving instanceof EntityPlayer && !e.entityLiving.worldObj.isRemote) ArcaneEffects.clear((EntityPlayer) e.entityLiving);

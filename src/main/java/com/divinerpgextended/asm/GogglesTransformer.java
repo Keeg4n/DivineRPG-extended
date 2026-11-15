@@ -15,10 +15,10 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Броня Divine и Странника понимает встроенные очки откровения ({@link com.divinerpgextended.accessory.Goggles}). Таум и другие моды
- * узнают шлем по интерфейсам вещи ({@code instanceof IRevealer}, {@code IGoggles}), поэтому классам брони добавляются эти
- * интерфейсы и их методы. Только если Таум есть: иначе класс с чужим интерфейсом не загрузится. Весь класс один на все части,
- * а ответ зависит от того, что встроено в саму вещь.
+ * Divine and Wanderer armor understands built-in Goggles of Revealing ({@link com.divinerpgextended.accessory.Goggles}). Thaum and other mods
+ * recognize the helmet by item interfaces ({@code instanceof IRevealer}, {@code IGoggles}), so these
+ * interfaces and their methods are added to the armor classes. Only if Thaum is present: otherwise a class with a foreign interface will not load. One class for all parts,
+ * and the answer depends on what is built into the item itself.
  */
 public class GogglesTransformer implements IClassTransformer, Opcodes {
 
@@ -42,15 +42,15 @@ public class GogglesTransformer implements IClassTransformer, Opcodes {
             node.methods.add(forward("getVisDiscount", "(" + STACK + "Lnet/minecraft/entity/player/EntityPlayer;Lthaumcraft/api/aspects/Aspect;)I", "discount", "(" + STACK + ")I", IRETURN));
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Очки откровения: {} понимает встроенные очки", transformedName);
+            LOG.info("Goggles of Revelation: {} understands built-in goggles", transformedName);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Очки откровения: не удалось изменить " + transformedName + ", класс без изменений", t);
+            LOG.error("Goggles of Revelation: could not modify " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }
 
-    /** Метод интерфейса: первый аргумент (вещь) - в статический метод {@link com.divinerpgextended.accessory.Goggles}. */
+    /** Interface method: the first argument (the item) goes to a static method of {@link com.divinerpgextended.accessory.Goggles}. */
     private static MethodNode forward(String name, String desc, String hook, String hookDesc, int ret) {
         MethodNode m = new MethodNode(ACC_PUBLIC, name, desc, null, null);
         m.instructions.add(new VarInsnNode(ALOAD, 1));

@@ -1,8 +1,8 @@
-"""Значки рыб 16x16: сразу по диагонали, как у ванильных (голова снизу слева, хвост сверху справа). Обычный поворот картинки
-размыл бы пиксели, поэтому каждый пиксель считается в координатах рыбы: u - от головы к хвосту, v - от спины к брюху.
+"""16x16 fish icons drawn diagonally right away, like the vanilla ones (head at the bottom left, tail at the top right). A plain rotation of the image
+would blur the pixels, so each pixel is computed in fish coordinates: u - from head to tail, v - from back to belly.
 
-Запуск: python tools/fish_icons.py - ставит выбранные варианты (CHOSEN) в текстуры предметов;
-python tools/fish_icons.py <папка> - кладёт в папку все варианты: <рыба>_a.png, _b.png, _c.png.
+Run: python tools/fish_icons.py - installs the chosen variants (CHOSEN) into the item textures;
+python tools/fish_icons.py <folder> - puts all variants into the folder: <fish>_a.png, _b.png, _c.png.
 """
 import math
 import os
@@ -42,8 +42,8 @@ WHITE, BLACK, RED, GOLD, CYAN, LIME, PINK, ORANGE, YELLOW, BONE = (240, 240, 245
 
 
 class Fish:
-    """shape: head - кончик морды, end - конец тела, w - половина толщины, peak - где тело толще (0..1), tail_end - кончик хвоста,
-    tw - половина ширины хвоста, tail: fork/fan/crescent/none, dorsal/ventral: (начало, конец, высота) или None, wave: (амплитуда, частота) для угрей."""
+    """shape: head - tip of the snout, end - end of the body, w - half thickness, peak - where the body is thickest (0..1), tail_end - tip of the tail,
+    tw - half width of the tail, tail: fork/fan/crescent/none, dorsal/ventral: (start, end, height) or None, wave: (amplitude, frequency) for eels."""
 
     def __init__(self, main, head=-8.6, end=3.6, w=3.7, peak=0.42, tail_end=9.2, tw=3.6, tail='fork', dorsal=(-3.5, 2.5, 1.6), ventral=(-1.0, 2.0, 1.0), wave=None,
                  back=None, belly=None, fin=None, pattern='scales', pat=None, period=3.0, tailc=None, eye=(-5.6, -0.34), eyec=BLACK, flat=False, body=None, extras=()):
@@ -145,7 +145,7 @@ class Fish:
         for (x, y), r in label.items():
             u, v = uv(x, y)
             c = self.color(x, y, u, v) if r == 'body' else (self.tailc if r == 'tail' else self.fin)
-            if r == 'tail' and self.tail == 'fan':  # лучи веера
+            if r == 'tail' and self.tail == 'fan':  # fan rays
                 c = dark(c, 0.2) if int(abs(v - self.center(u)) * 1.25) % 2 else light(c, 0.12)
             elif r != 'body' and (x + y) % 2 == 0:
                 c = light(c, 0.2)
@@ -169,7 +169,7 @@ def put(img, x, y, c):
 
 
 def dots(c, *points):
-    """Пиксели в координатах значка."""
+    """Pixels in icon coordinates."""
     def draw(f, img):
         for x, y in points:
             put(img, x, y, c)
@@ -177,7 +177,7 @@ def dots(c, *points):
 
 
 def on_fish(c, *points):
-    """Пиксели в координатах рыбы (u, v): так детали едут вместе с формой."""
+    """Pixels in fish coordinates (u, v): this way details move together with the shape."""
     def draw(f, img):
         for u, v in points:
             x, y = xy(u, v)
@@ -186,7 +186,7 @@ def on_fish(c, *points):
 
 
 def spines(c, *us):
-    """Острые шипы по спине."""
+    """Sharp spikes along the back."""
     def draw(f, img):
         for u in us:
             h = max(0.5, f.half(u))
@@ -200,7 +200,7 @@ def diamond(t, u=None):
 
 
 def ray_body(t, u=None):
-    """Скат: острые крылья и вогнутые края, иначе ромб на диагонали выглядит квадратом."""
+    """Ray: sharp wings and concave edges, otherwise a diamond on the diagonal looks like a square."""
     a = t / 0.42 if t < 0.42 else (1 - t) / 0.58
     return max(0.12, a ** 1.45)
 
@@ -356,7 +356,7 @@ VARIANTS = {
         ('Пятнистый кои', dict(ROUND, **dict(FAN, main=(246, 246, 240), back=(232, 232, 226), belly=WHITE, pattern='koi', pat=(240, 90, 60), fin=(250, 220, 210), tailc=(250, 200, 190)))),
         ('Сон', dict(ROUND, **dict(FAN, main=(150, 110, 240), pattern='gradient', pat=(90, 240, 200), fin=(190, 150, 255), tailc=(120, 240, 210), extras=(dots(WHITE, (5, 6), (9, 10), (3, 11)),)))),
     ),
-    # с 0.99.112: редкие рыбы миров для Леорны, облачные, золотая рыбка (по одному варианту)
+    # since 0.99.112: rare world fish for Leorna, cloud fish, goldfish (one variant each)
     'sun_perch': (
         ('Солнечный окунь', G(main=0xFFB830, pattern='stripes', pat=(200, 80, 20), period=2.6, fin=(255, 120, 40), tailc=(255, 140, 40), dorsal=(-4.0, 2.8, 2.0))),
     ),
@@ -382,7 +382,7 @@ VARIANTS = {
     'cave_angler': (
         ('Пещерный удильщик', G(main=(64, 78, 104), back=(34, 42, 62), belly=(128, 140, 160), head=-9.0, w=3.8, body=wide_head, pattern='spots', pat=(44, 54, 76),
                                 fin=(44, 54, 76), eyec=(230, 230, 170),
-                                # удочка-фонарик над головой (голова в левом нижнем углу значка): стебель вверх, светящийся шарик
+                                # anglerfish lure above the head (head in the lower left corner of the icon): a stalk upward, a glowing bulb
                                 extras=(dots((170, 180, 200), (3, 10), (2, 9), (2, 8), (2, 7)), dots((150, 255, 230), (1, 6), (2, 6), (1, 5)),
                                         on_fish((240, 240, 240), (-9.2, 0.4))))),
     ),
@@ -393,7 +393,7 @@ VARIANTS = {
 }
 
 
-# Что выбрал пользователь (06.11.2026): a, b, c - варианты А, Б, В на листе выбора.
+# What the user chose (06.11.2026): a, b, c - variants A, B, V on the selection sheet.
 CHOSEN = {'sea_bass': 'c', 'coral_wrasse': 'b', 'shark_pup': 'a', 'ruff': 'a', 'gold_crucian': 'a', 'ice_trout': 'b', 'snow_burbot': 'c', 'crystal_fish': 'b',
           'piranha': 'b', 'emerald_catfish': 'a', 'sand_carp': 'c', 'mummy_fish': 'b', 'cavefish': 'c', 'obsidifish': 'b', 'flarefin': 'b', 'ember_fry': 'c',
           'arcane_eel': 'c', 'stargazer': 'b', 'eden_goldfish': 'a', 'wildwood_glowfish': 'b', 'apalachia_ray': 'b', 'skythern_flyer': 'a', 'mortum_eel': 'b', 'dream_carp': 'c',

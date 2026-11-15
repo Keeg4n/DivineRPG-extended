@@ -25,18 +25,18 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Вход в Аркану - после Смотрителя (Watcher).
+ * Entrance to Arcana - after the Watcher.
  * <ul>
- * <li>Со Смотрителя падает Око Смотрителя; рамки портала Арканы крафтятся только с ним (рецепт Divine заменён).</li>
- * <li>Портал пускает только тех, кто сам участвовал в убийстве Смотрителя. Остальным уже на подходе к порталу
- * держим паузу переноса (Divine переносит только при нулевой паузе, причём при первом же касании - проверять
- * только блок под ногами поздно) и подсказываем, что нужно.</li>
- * <li>Если всё же проскочил (падение, телепорт) - сразу возвращаем туда, где игрок стоял недавно, вдали от портала.</li>
+ * <li>The Eye of the Watcher drops from the Watcher; Arcana portal frames are crafted only with it (the Divine recipe is replaced).</li>
+ * <li>The portal admits only those who took part in killing the Watcher themselves. Others, already on approach to the portal,
+ * get a transfer pause (Divine transfers only at zero pause, and on the very first touch - checking
+ * only the block underfoot is too late) and are told what is needed.</li>
+ * <li>If one still slipped through (a fall, a teleport) - we return him at once to where the player stood recently, far from the portal.</li>
  * </ul>
  */
 public class ArcanaGate {
 
-    /** Последнее безопасное место игрока вне Арканы: измерение и координаты. */
+    /** The player's last safe place outside Arcana: dimension and coordinates. */
     private static final Map<UUID, double[]> SAFE = new HashMap<UUID, double[]>();
 
     @SubscribeEvent
@@ -58,7 +58,7 @@ public class ArcanaGate {
         }
         if (p.ticksExisted % 4 != 0) return;
         if (nearPortal(p)) {
-            p.timeUntilPortal = 20; // портал Divine не перенесёт, пока пауза не кончилась
+            p.timeUntilPortal = 20; // the Divine portal will not transfer until the pause ends
             if (p.ticksExisted % 60 == 0) p.addChatMessage(new ChatComponentTranslation("dre.chat.arcana_locked"));
             com.divinerpgextended.DreAchievements.give(p, com.divinerpgextended.DreAchievements.lockedPortal);
         } else if (p.ticksExisted % 20 == 0 && p.onGround) {
@@ -66,12 +66,12 @@ public class ArcanaGate {
         }
     }
 
-    /** Портал в паре блоков вокруг (и ниже - с запасом на скорость падения). */
+    /** A portal within a couple of blocks around (and below - with a margin for falling speed). */
     private static boolean nearPortal(EntityPlayer p) {
         int x0 = MathHelper.floor_double(p.boundingBox.minX) - 2, x1 = MathHelper.floor_double(p.boundingBox.maxX) + 2;
         int z0 = MathHelper.floor_double(p.boundingBox.minZ) - 2, z1 = MathHelper.floor_double(p.boundingBox.maxZ) + 2;
         int y1 = MathHelper.floor_double(p.boundingBox.minY) + 1;
-        int y0 = MathHelper.floor_double(p.boundingBox.minY + Math.min(0, p.motionY * 4)) - 2; // раз в 4 тика: запас на падение за 4 тика
+        int y0 = MathHelper.floor_double(p.boundingBox.minY + Math.min(0, p.motionY * 4)) - 2; // every 4 ticks: margin for a fall in 4 ticks
         for (int x = x0; x <= x1; x++)
             for (int z = z0; z <= z1; z++)
                 for (int y = y0; y <= y1; y++)

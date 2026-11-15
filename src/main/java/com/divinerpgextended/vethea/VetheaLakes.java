@@ -13,19 +13,19 @@ import com.divinerpgextended.Config;
 import cpw.mods.fml.common.IWorldGenerator;
 
 /**
- * Озёра на этажах Ветеи - рыбалка мечтаний: овальная вода в траве этажа, глубиной до 3 (в пределах верхних 4 блоков
- * плиты, их можно копать - нижнюю часть плиты не трогаем, {@link VetheaFloors}).
+ * Lakes on Vethea floors - dream fishing: oval water in the floor's grass, up to 3 deep (within the top 4 blocks of the
+ * slab, which can be dug - we do not touch the lower part of the slab, {@link VetheaFloors}).
  * <p>
- * Озёра в потолке: в низу плиты над этажом вырезана чаша с водой мечтаний, которая течёт вверх: гладь смотрит вниз,
- * вровень с потолком. Доплыл до неё - висишь вверх ногами, ногами в воде, и рыбачишь
+ * Ceiling lakes: at the bottom of the slab above the floor a bowl of Dream Water is cut out that flows upward: the surface faces down,
+ * flush with the ceiling. Swim up to it - you hang upside down, feet in the water, and fish
  * ({@link com.divinerpgextended.block.BlockDreamWater}).
  */
 public class VetheaLakes implements IWorldGenerator {
 
-    /** Поверхности этажей. */
+    /** Floor surfaces. */
     public static final int[] FLOORS = { 16, 64, 112, 160 };
 
-    /** Для замеров: сколько наносекунд ушло на озёра и на сколько чанков. */
+    /** For measurements: how many nanoseconds went to lakes and for how many chunks. */
     public static long nanos, chunks;
 
     @Override
@@ -53,18 +53,18 @@ public class VetheaLakes implements IWorldGenerator {
         }
     }
 
-    /** Наименьшая высота потолка над травой, где ставим озеро в потолке. */
+    /** The lowest ceiling height above the grass where we place a ceiling lake. */
     static final int MIN_CEILING = 10;
 
-    /** Нижний твёрдый блок потолка над (x, y, z) не выше limit или -1. */
+    /** The lowest solid ceiling block above (x, y, z) not higher than limit, or -1. */
     static int ceiling(World w, int x, int y, int z, int limit) {
         for (int h = y; h <= limit; h++) if (!w.isAirBlock(x, h, z)) return h;
         return -1;
     }
 
     /**
-     * Озеро в потолке с центром в (x, z) на этаже floor: овальная чаша вырезана в низу плиты над этажом, гладь вровень с
-     * потолком; false - место не подошло (потолок неровный или низкий).
+     * A ceiling lake centered at (x, z) on floor floor: an oval bowl is cut at the bottom of the slab above the floor, the surface flush with
+     * the ceiling; false - the place did not fit (the ceiling is uneven or low).
      */
     public static boolean hanging(World w, Random r, int x, int z, int floor) {
         int g = ground(w, x, z, floor);
@@ -75,7 +75,7 @@ public class VetheaLakes implements IWorldGenerator {
         for (int dx = -rx - 1; dx <= rx + 1; dx++) for (int dz = -rz - 1; dz <= rz + 1; dz++) {
             double d = Math.pow(dx / (rx + 1.0), 2) + Math.pow(dz / (rz + 1.0), 2);
             if (d >= 1) continue;
-            // вокруг и над чашей - сплошная плита: вода не вытечет вверх и вбок
+            // around and above the bowl is a solid slab: the water will not flow up or sideways
             if (!w.isAirBlock(x + dx, c - 1, z + dz) || w.isAirBlock(x + dx, c, z + dz)) return false;
             for (int y = c; y <= c + 4; y++) if (w.isAirBlock(x + dx, y, z + dz) || w.getBlock(x + dx, y, z + dz).getMaterial().isLiquid()) return false;
         }
@@ -89,14 +89,14 @@ public class VetheaLakes implements IWorldGenerator {
         return true;
     }
 
-    /** Трава этажа в столбце около высоты floor (верхний блок с воздухом над ним) или -1. */
+    /** Floor grass in the column near height floor (the top block with air above it) or -1. */
     public static int ground(World w, int x, int z, int floor) {
         for (int y = floor + 4; y >= floor - 4; y--)
             if (w.getBlock(x, y, z) == VetheaBlocks.dreamGrass && w.isAirBlock(x, y + 1, z) && w.isAirBlock(x, y + 3, z)) return y;
         return -1;
     }
 
-    /** Озеро 12 x 12 с углом в (x, z) на этаже floor; false - место не подошло. */
+    /** A 12 x 12 lake with its corner at (x, z) on floor floor; false - the place did not fit. */
     public static boolean lake(World w, Random r, int x, int z, int floor) {
         int lo = 999, hi = -1;
         for (int i = 0; i < 12; i++) for (int k = 0; k < 12; k++) {

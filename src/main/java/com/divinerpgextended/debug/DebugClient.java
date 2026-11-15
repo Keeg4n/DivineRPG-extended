@@ -15,7 +15,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Клиентская часть отладки: клавиши, кнопки мыши и окна - в logs/dre-debug/...-client.csv, пока сервер включил отладку. */
+/** Client part of debugging: keys, mouse buttons and windows go to logs/dre-debug/...-client.csv while the server has debugging on. */
 @SideOnly(Side.CLIENT)
 public class DebugClient {
 
@@ -51,7 +51,7 @@ public class DebugClient {
         if (!Debug.clientOn || Minecraft.getMinecraft().thePlayer == null) return;
         int b = Mouse.getEventButton();
         if (b < 0) return;
-        write("mouse", Mouse.getEventButtonState() ? "down" : "up", "кнопка " + b + (binding(b - 100).isEmpty() ? "" : " (" + binding(b - 100) + ")"));
+        write("mouse", Mouse.getEventButtonState() ? "down" : "up", "button " + b + (binding(b - 100).isEmpty() ? "" : " (" + binding(b - 100) + ")"));
     }
 
     @SubscribeEvent
@@ -61,13 +61,13 @@ public class DebugClient {
         write("gui", g == null ? "close" : "open", g == null ? "" : g.getClass().getName());
     }
 
-    /** Кадры за текущую секунду: число, самый долгий кадр (нс), время прошлого кадра. */
+    /** Frames in the current second: count, the longest frame (ns), time of the previous frame. */
     private int frames;
     private long worstFrame, lastFrame, lastSecond, lastChunkUpdates;
 
     /**
-     * Сэмплер рывков: фоновый поток каждые 10 мс снимает стек главного потока игры (пока включена отладка). Кадр дольше
-     * 150 мс - в журнал строка lag: где игра провела это время (самые частые места в стеке).
+     * Stutter sampler: a background thread every 10 ms takes the stack of the game's main thread (while debugging is on). A frame longer than
+     * 150 ms - a lag line in the log: where the game spent this time (the most frequent places in the stack).
      */
     private static final int SAMPLE_MS = 10, LAG_MS = 150;
     private static volatile Thread main;
@@ -96,7 +96,7 @@ public class DebugClient {
         t.start();
     }
 
-    /** Самые частые места в стеке за отрезок: метод игры/мода (без java, lwjgl) и путь к нему из 4 вызовов. */
+    /** The most frequent places in the stack over a period: a game/mod method (without java, lwjgl) and the path to it of 4 calls. */
     private static String hotspots(long from, long to) {
         java.util.Map<String, Integer> top = new java.util.HashMap<String, Integer>();
         int n = 0;
@@ -130,11 +130,11 @@ public class DebugClient {
                 return b.getValue() - a.getValue();
             }
         });
-        StringBuilder b = new StringBuilder("сэмплов " + n);
+        StringBuilder b = new StringBuilder("samples " + n);
         for (int i = 0; i < Math.min(4, l.size()); i++) b.append(" | ").append(l.get(i).getValue()).append("x ").append(l.get(i).getKey());
-        // полный путь одного сэмпла из середины рывка: видно, кто запустил тяжёлую работу
+        // the full path of one sample from the middle of a stutter: you can see who started the heavy work
         if (deep != null) {
-            b.append(" || путь:");
+            b.append(" || path:");
             for (int i = 0; i < Math.min(30, deep.length); i++) {
                 String c = deep[i].getClassName();
                 b.append(' ').append(c.substring(c.lastIndexOf('.') + 1)).append('.').append(deep[i].getMethodName());
@@ -143,7 +143,7 @@ public class DebugClient {
         return b.toString();
     }
 
-    /** Замер плавности: каждый кадр - его длительность; раз в секунду - строка perf в журнал. */
+    /** Smoothness measurement: every frame - its duration; once a second - a perf line in the log. */
     @SubscribeEvent
     public void onRender(TickEvent.RenderTickEvent e) {
         if (e.phase != TickEvent.Phase.END || !Debug.clientOn) return;
@@ -153,7 +153,7 @@ public class DebugClient {
         long now = System.nanoTime();
         if (lastFrame != 0) {
             worstFrame = Math.max(worstFrame, now - lastFrame);
-            if (now - lastFrame > LAG_MS * 1000000L) write("lag", (now - lastFrame) / 1000000 + " мс", hotspots(lastFrame, now));
+            if (now - lastFrame > LAG_MS * 1000000L) write("lag", (now - lastFrame) / 1000000 + " ms", hotspots(lastFrame, now));
         }
         lastFrame = now;
         frames++;
@@ -165,34 +165,34 @@ public class DebugClient {
     }
 
     /**
-     * Кадров за секунду, худший кадр, сколько участков чанков пересобрано и сколько ждёт пересборки (так видно, тормозит
-     * ли отрисовка новых чанков), дальность прорисовки, графика; в одиночной игре - средний тик своего сервера.
+     * Frames per second, the worst frame, how many chunk sections were rebuilt and how many are waiting for a rebuild (so you can see whether the
+     * drawing of new chunks lags), render distance, graphics; in singleplayer - the average tick of its own server.
      */
     private String perf(Minecraft mc) {
         int updates = net.minecraft.client.renderer.WorldRenderer.chunksUpdated;
         StringBuilder b = new StringBuilder();
-        b.append("кадров ").append(frames).append(", худший кадр ").append(worstFrame / 1000000).append(" мс");
-        b.append(", пересобрано участков ").append(Math.max(0, updates - lastChunkUpdates));
+        b.append("frames ").append(frames).append(", worst frame ").append(worstFrame / 1000000).append(" ms");
+        b.append(", rebuilt chunks ").append(Math.max(0, updates - lastChunkUpdates));
         lastChunkUpdates = updates;
         try {
             java.util.List<?> queue = cpw.mods.fml.relauncher.ReflectionHelper.getPrivateValue(net.minecraft.client.renderer.RenderGlobal.class,
                 mc.renderGlobal, "worldRenderersToUpdate", "field_72767_j");
-            b.append(", ждут пересборки ").append(queue.size());
+            b.append(", awaiting rebuild ").append(queue.size());
         } catch (Throwable t) {
-            // другой рендер (OptiFine) - без очереди
+            // another renderer (OptiFine) - no queue
         }
-        b.append(", прорисовка ").append(mc.gameSettings.renderDistanceChunks).append(mc.gameSettings.fancyGraphics ? ", графика детальная" : ", графика быстрая");
-        b.append(", загружено чанков ").append(mc.theWorld.getChunkProvider().getLoadedChunkCount());
+        b.append(", render distance ").append(mc.gameSettings.renderDistanceChunks).append(mc.gameSettings.fancyGraphics ? ", fancy graphics" : ", fast graphics");
+        b.append(", loaded chunks ").append(mc.theWorld.getChunkProvider().getLoadedChunkCount());
         net.minecraft.server.integrated.IntegratedServer s = mc.getIntegratedServer();
         if (s != null) {
             long sum = 0;
             for (long t : s.tickTimeArray) sum += t;
-            b.append(", тик своего сервера ").append(String.format(java.util.Locale.ROOT, "%.1f", sum / 1e6 / s.tickTimeArray.length)).append(" мс");
+            b.append(", own server tick ").append(String.format(java.util.Locale.ROOT, "%.1f", sum / 1e6 / s.tickTimeArray.length)).append(" ms");
         }
         return b.toString();
     }
 
-    /** Раз в секунду - на диск; отладку выключили - закрыть файл. */
+    /** Once a second - to disk; debugging turned off - close the file. */
     @SubscribeEvent
     public void onTick(TickEvent.ClientTickEvent e) {
         if (e.phase != TickEvent.Phase.END) return;

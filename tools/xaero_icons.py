@@ -1,12 +1,12 @@
-"""Иконки аддона: заряженная арканитовая кирка, значок манекена и описания мобов для Xaero's Minimap.
+"""Addon icons: the charged Arcanite Pickaxe, the mannequin icon and mob descriptions for Xaero's Minimap.
 
-Xaero рисует на радаре голову модели моба; на моделях Divine и аддона он её не находит, и моб пропадает с карты.
-Описание моба {"default": "dot"} велит рисовать вместо иконки цветную точку (враги - красные); манекену - свой значок
-(соломенное лицо), а не голова игрока. Xaero ищет описание по id моба: assets/xaerominimap/entity/icon/definition/<id>.json,
-id - имя из EntityList (в 1.7.10 у модов через точку: divinerpg.TheGrue). Id мобов Divine берутся из его lang:
-entity.<id>.name (Divine пишет туда все имена, под которыми регистрирует мобов).
+Xaero draws the head of the mob model on the radar; on Divine and addon models it cannot find it, and the mob disappears from the map.
+The mob description {"default": "dot"} tells it to draw a colored dot instead of an icon (enemies are red); the mannequin has its own icon
+(a straw face), not the player's head. Xaero looks up the description by mob id: assets/xaerominimap/entity/icon/definition/<id>.json,
+the id is the name from EntityList (in 1.7.10 for mods with a dot: divinerpg.TheGrue). Divine mob ids are taken from its lang:
+entity.<id>.name (Divine writes there all the names under which it registers mobs).
 
-Запуск (нужен Pillow): python xaero_icons.py <корень репо> <jar Divine> [<jar Divine> ...]
+Run (needs Pillow): python xaero_icons.py <repo root> <Divine jar> [<Divine jar> ...]
 """
 import colorsys
 import json
@@ -23,7 +23,7 @@ OURS = os.path.join(ASSETS, 'divinerpgextended')
 XAERO = os.path.join(ASSETS, 'xaerominimap', 'entity', 'icon')
 DUMMY_SPRITE = 'divinerpgextended_training_dummy.png'
 BUILDER = 'xaero.common.minimap.render.radar.EntityIconDefinitions.buildVariantIdString'
-# мобы ванили: их описания у Xaero свои, не трогаем
+# vanilla mobs: Xaero has its own descriptions for them, we leave them alone
 VANILLA = {'Item', 'XPOrb', 'LeashKnot', 'Painting', 'Arrow', 'Snowball', 'Fireball', 'SmallFireball', 'ThrownEnderpearl',
            'EyeOfEnderSignal', 'ThrownPotion', 'ThrownExpBottle', 'ItemFrame', 'WitherSkull', 'PrimedTnt', 'FallingSand',
            'FireworksRocketEntity', 'Boat', 'MinecartRideable', 'MinecartChest', 'MinecartFurnace', 'MinecartTNT', 'MinecartHopper',
@@ -34,7 +34,7 @@ VANILLA = {'Item', 'XPOrb', 'LeashKnot', 'Painting', 'Arrow', 'Snowball', 'Fireb
 
 
 def charged_pick():
-    """Голова кирки (бирюза) - в яркий фиолетово-розовый, светлее; рукоять как была."""
+    """Pickaxe head (turquoise) -> bright violet-pink, lighter; the handle as it was."""
     im = Image.open(os.path.join(OURS, 'textures', 'items', 'arcane_pick.png')).convert('RGBA')
     px = im.load()
     for y in range(im.size[1]):
@@ -51,7 +51,7 @@ def charged_pick():
 
 
 def dummy_sprite():
-    """Лицо манекена (8x8 из соломенной текстуры) x6 в середине 64x64, с тёмной рамкой."""
+    """Mannequin face (8x8 from the straw texture) x6 in the middle of 64x64, with a dark border."""
     skin = Image.open(os.path.join(OURS, 'textures', 'entity', 'training_dummy.png')).convert('RGBA')
     face = skin.crop((8, 8, 16, 16)).resize((48, 48), Image.NEAREST)
     out = Image.new('RGBA', (64, 64), (0, 0, 0, 0))

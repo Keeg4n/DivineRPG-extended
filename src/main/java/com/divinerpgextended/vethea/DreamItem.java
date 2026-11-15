@@ -4,14 +4,14 @@ import net.minecraft.item.ItemStack;
 
 import com.divinerpgextended.registry.ModItems;
 
-/** Вещи Ветеи от аддона (метаданные предмета dreamItem): шаблоны крыльев и лунный осколок. Новые - только в конец. */
+/** Vethea items from the addon (dreamItem item metadata): wing templates and the Lunar Shard. New ones - only at the end. */
 public enum DreamItem {
 
-    /** Шаблон Крыльев сна у Голода. */
+    /** Dream Wings Template from the Hunger. */
     WINGS_TEMPLATE,
-    /** Шаблон Крыльев II у Голода (глыбы цермила к нему - с Королевы улья). */
+    /** Wings II template from the Hunger (cermile boulders for it - from the Hive Queen). */
     QUEEN_TEMPLATE,
-    /** Лунный осколок - с Леди Луны: из оружия арксиана делает её оружие. */
+    /** Lunar Shard - from Lady Luna: makes her weapon from an Arksiane weapon. */
     LUNAR_SHARD;
 
     public static String[] keys() {

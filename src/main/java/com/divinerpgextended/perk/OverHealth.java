@@ -15,9 +15,9 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * В Divine лечение вшито "пока здоровья меньше 20": Vemos (+0.1 за тик), Wildwood в воде (+0.25 за тик), кормёжка
- * кролика-питомца. Сверх 10 сердец (статуи Генерала, обученные Зелусом питомцы) оно не работает. Здесь то же
- * лечение продолжается от 20 до настоящего максимума; ниже 20 лечит сам Divine, двойного лечения нет.
+ * In Divine healing is hardcoded as "while health is below 20": Vemos (+0.1 per tick), Wildwood in water (+0.25 per tick), feeding a
+ * pet bunny. Above 10 hearts (General statues, pets trained by Zelus) it does not work. Here the same
+ * healing continues from 20 up to the real maximum; below 20 Divine heals itself, so there is no double healing.
  */
 public class OverHealth {
 
@@ -36,28 +36,28 @@ public class OverHealth {
         if (hp < 20.0F || hp >= max || hp <= 0) return;
         if (wears(p, ArcanaItems.vemosBoots, ArcanaItems.vemosLegs, ArcanaItems.vemosBody, ArcanaItems.vemosHelmet)) {
             p.setHealth(Math.min(hp + 0.1F, max));
-            if (p.ticksExisted % 20 == 0) Debug.note(p, "Сет Vemos: лечение выше 20 (до " + max + ")");
+            if (p.ticksExisted % 20 == 0) Debug.note(p, "Vemos set: healing above 20 (up to " + max + ")");
         } else if (p.isInsideOfMaterial(Material.water) && wears(p, TwilightItemsArmor.wildwoodBoots, TwilightItemsArmor.wildwoodLeggings,
             TwilightItemsArmor.wildwoodChestplate, TwilightItemsArmor.wildwoodHelmet)) {
             p.heal(0.25F);
-            if (p.ticksExisted % 20 == 0) Debug.note(p, "Сет Wildwood в воде: лечение выше 20 (до " + max + ")");
+            if (p.ticksExisted % 20 == 0) Debug.note(p, "Wildwood set in water: healing above 20 (up to " + max + ")");
         }
     }
 
-    /** Кролик-питомец ест, пока здоровья меньше 20 - обученный Зелусом с большим максимумом дальше не лечился. */
+    /** A pet bunny eats while health is below 20 - one trained by Zelus with a large maximum was not healed further. */
     @SubscribeEvent
     public void onFeed(EntityInteractEvent e) {
         if (!(e.target instanceof EntityBunny)) return;
         EntityBunny b = (EntityBunny) e.target;
         ItemStack held = e.entityPlayer.getHeldItem();
         if (!b.isTamed() || held == null || !(held.getItem() instanceof ItemFood) || !((ItemFood) held.getItem()).isWolfsFavoriteMeat()) return;
-        if (b.getHealth() < 20.0F || b.getHealth() >= b.getMaxHealth()) return; // ниже 20 кормит сам Divine
+        if (b.getHealth() < 20.0F || b.getHealth() >= b.getMaxHealth()) return; // below 20 Divine feeds it itself
         e.setCanceled(true);
         if (b.worldObj.isRemote) return;
         if (!e.entityPlayer.capabilities.isCreativeMode && --held.stackSize <= 0) {
             e.entityPlayer.inventory.setInventorySlotContents(e.entityPlayer.inventory.currentItem, null);
         }
         b.heal(((ItemFood) held.getItem()).func_150905_g(held));
-        Debug.note(e.entityPlayer, "Кролик накормлен выше 20: " + b.getHealth() + "/" + b.getMaxHealth());
+        Debug.note(e.entityPlayer, "Bunny fed above 20: " + b.getHealth() + "/" + b.getMaxHealth());
     }
 }

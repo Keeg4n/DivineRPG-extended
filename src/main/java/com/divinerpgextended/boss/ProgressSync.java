@@ -16,17 +16,17 @@ import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 
 /**
- * Клиенту - какие боссы убиты. Нужно торговцам Divine: их окно строит список сделок на клиенте, и чтобы список по
- * прогрессу совпадал с серверным, клиент должен знать прогресс. Шлём при входе, сразу после засчитанного босса и
- * раз в секунду (на случай рассинхрона).
+ * To the client - which bosses are killed. Needed by Divine merchants: their window builds the trade list on the client, and for the list by
+ * progress to match the server's, the client must know the progress. Sent on login, right after a boss is counted, and
+ * once a second (in case of desync).
  */
 public class ProgressSync {
 
     private static int clientMask, clientDream;
 
     /**
-     * Дары сна (боссы Ветеи) игрока - на клиенте из присланного; для чужих игроков клиент не знает и считает сон
-     * покорённым (кошмар у них не мешает ничему на этом клиенте).
+     * The player's Dream gifts (Vethea bosses) - on the client from what was sent; for other players the client does not know and treats the dream as
+     * conquered (their nightmare does not interfere with anything on this client).
      */
     public static int dream(EntityPlayer p) {
         return p == com.divinerpgextended.DivineRPGExtended.proxy.clientPlayer() ? clientDream : -1;
@@ -36,7 +36,7 @@ public class ProgressSync {
         ColdHandler.NET.registerMessage(Handler.class, Mask.class, 5, Side.CLIENT);
     }
 
-    /** Убит ли босс - на сервере из данных игрока, на клиенте из присланной маски. */
+    /** Whether the boss is killed - on the server from the player's data, on the client from the sent mask. */
     public static boolean has(EntityPlayer p, Boss b) {
         if (p.worldObj.isRemote) return (clientMask & b.bit()) != 0;
         return BossProgress.has(p, b);

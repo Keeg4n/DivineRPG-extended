@@ -12,9 +12,9 @@ import net.minecraftforge.event.world.BlockEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Рамки порталов, которые построил сам телепорт Divine на той стороне (из блоков мира, откуда пришёл игрок: блок
- * Эдема, Дикого леса и т.д.). Добытые, они ничего не роняют - иначе каждый переход давал бы горсть дорогих блоков
- * даром. Портал, который игрок сложил сам, ломается как обычно. Хранится по миру (perWorldStorage).
+ * Portal frames built by Divine's teleporter itself on that side (from blocks of the world the player came from: an Eden
+ * block, Wildwood, etc.). When mined, they drop nothing - otherwise every transition would give a handful of expensive blocks
+ * for free. A portal the player built themselves breaks as usual. Stored per world (perWorldStorage).
  */
 public class PortalFrames extends WorldSavedData {
 
@@ -42,7 +42,7 @@ public class PortalFrames extends WorldSavedData {
         return frames.contains(key(x, y, z));
     }
 
-    /** Отметить блоки рамки frame вокруг (x, y, z), которых до постройки портала не было (before - снимок до). */
+    /** Mark the frame blocks of frame around (x, y, z) that were not there before the portal was built (before - the snapshot from before). */
     static void mark(World w, Block frame, Set<Long> before, int cx, int cz, int r) {
         PortalFrames d = get(w);
         for (int x = cx - r; x <= cx + r; x++) for (int z = cz - r; z <= cz + r; z++) for (int y = 1; y < w.getHeight(); y++) {
@@ -52,7 +52,7 @@ public class PortalFrames extends WorldSavedData {
         }
     }
 
-    /** Снимок блоков frame вокруг до постройки портала. */
+    /** Snapshot of frame blocks around before the portal is built. */
     static Set<Long> snapshot(World w, Block frame, int cx, int cz, int r) {
         Set<Long> s = new HashSet<Long>();
         for (int x = cx - r; x <= cx + r; x++) for (int z = cz - r; z <= cz + r; z++) for (int y = 1; y < w.getHeight(); y++)
@@ -84,7 +84,7 @@ public class PortalFrames extends WorldSavedData {
         return out;
     }
 
-    /** Добыт блок рамки, построенной телепортом: дропа нет, отметка снимается. */
+    /** A block of a frame built by the teleporter was mined: no drop, the mark is removed. */
     public static class Drops {
 
         @SubscribeEvent

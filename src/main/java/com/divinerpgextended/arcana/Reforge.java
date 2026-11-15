@@ -9,8 +9,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 
 /**
- * Свойства перековки у Капитана Мерика (как модификаторы Террарии). Только для мечей Divine. Бывают плохие (риск при
- * перековке), общие хорошие, свойство мира оружия (выпадает только мечу этого мира) и редкое Легендарное.
+ * Reforge properties at Captain Merik (like Terraria modifiers). Only for Divine swords. There are bad ones (a risk when
+ * reforging), common good ones, a weapon world property (drops only for a sword of that world) and a rare Legendary one.
  */
 public enum Reforge {
 
@@ -31,9 +31,9 @@ public enum Reforge {
     private static final String TAG = "dreForge";
 
     public final int weight;
-    /** null - общее свойство, иначе только для оружия этого мира. */
+    /** null - a common property, otherwise only for weapons of this world. */
     public final WeaponOrigin world;
-    /** Постоянная прибавка к урону (доля). */
+    /** Permanent damage bonus (a fraction). */
     public final float damage;
     public final EnumChatFormatting color;
 
@@ -66,7 +66,7 @@ public enum Reforge {
         s.getTagCompound().setString(TAG, name());
     }
 
-    /** Случайное свойство для меча этого мира (свойства других миров не выпадают). */
+    /** Random property for a sword of this world (properties of other worlds do not drop). */
     public static Reforge roll(Random r, WeaponOrigin origin) {
         List<Reforge> pool = new ArrayList<Reforge>();
         int total = 0;

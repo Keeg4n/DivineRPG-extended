@@ -10,18 +10,18 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
 /**
- * Призрак кости призрака (Ghostbane) - призыв: летает за хозяином сквозь блоки, бьёт арканным уроном то, что бьёт хозяин
- * (или того, кто напал на хозяина), не получает урона и не сохраняется в мире. Держится, пока у хозяина есть аркана:
- * {@link #UPKEEP} в секунду за каждого. Вид и звуки - призрака Divine.
+ * Ghost from the ghost bone (Ghostbane) - a summon: flies after the owner through blocks, hits with arcane damage what the owner hits
+ * (or whoever attacked the owner), takes no damage and is not saved in the world. Stays while the owner has arcana:
+ * {@link #UPKEEP} per second for each. Look and sounds - Divine's ghost.
  */
 public class EntityArcaneWraith extends EntityWraith {
 
-    public static final float BASE_DAMAGE = 10F, UPKEEP = AnchorSummons.UPKEEP; // как у всех призывов
+    public static final float BASE_DAMAGE = 10F, UPKEEP = AnchorSummons.UPKEEP; // like all summons
     public static final int HIT_EVERY = 15, LEASH = 48;
     private static java.lang.reflect.Field age;
     private int cooldown, life;
     private final AnchorSummons.Aim aim = new AnchorSummons.Aim();
-    /** Хозяин напрямую: у Divine он ищется по имени среди игроков мира, каждый тик. */
+    /** The owner directly: in Divine he is looked up by name among the world's players, every tick. */
     private EntityPlayer master;
 
     public EntityArcaneWraith(World w) {
@@ -43,7 +43,7 @@ public class EntityArcaneWraith extends EntityWraith {
 
     @Override
     public void onUpdate() {
-        // срок Divine (6 с) не идёт: держится, пока платят арканой
+        // Divine's duration (6 s) does not apply: it stays while arcana is paid
         try {
             if (age == null) age = cpw.mods.fml.relauncher.ReflectionHelper.findField(EntityWraith.class, "age");
             age.setInt(this, 120);
@@ -53,7 +53,7 @@ public class EntityArcaneWraith extends EntityWraith {
         super.onUpdate();
     }
 
-    /** Свой полёт: к цели хозяина или вокруг хозяина, сквозь блоки. */
+    /** Its own flight: toward the owner's target or around the owner, through blocks. */
     @Override
     protected void updateAITasks() {
         if (worldObj.isRemote) return;
@@ -62,7 +62,7 @@ public class EntityArcaneWraith extends EntityWraith {
             setDead();
             return;
         }
-        // платит первый призрак хозяина - за всех сразу, обычной тратой арканы (с паузой восстановления)
+        // the owner's first ghost pays - for all at once, as an ordinary arcana spend (with a recovery pause)
         if (++life % 20 == 0 && ArcaneSummons.index(this) == 0 && !AnchorSummons.pay(o, ArcaneSummons.count(o))) {
             ArcaneSummons.dismissAll(o);
             return;
@@ -89,7 +89,7 @@ public class EntityArcaneWraith extends EntityWraith {
             speed = 0.35;
         }
         double dx = tx - posX, dy = ty - posY, dz = tz - posZ, len = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (len > 24) { // отстал - рядом с хозяином
+        if (len > 24) { // fell behind - next to the owner
             double[] at = AnchorSummons.near(o, ArcaneSummons.index(this));
             setPosition(at[0], at[1] + 1.8, at[2]);
             return;
@@ -110,8 +110,8 @@ public class EntityArcaneWraith extends EntityWraith {
             setDead();
             return true;
         }
-        if (AnchorSummons.rivalHit(owner(), s)) return super.attackEntityFrom(s, a); // чужой игрок, где можно PvP
-        return false; // призрак: не ранить
+        if (AnchorSummons.rivalHit(owner(), s)) return super.attackEntityFrom(s, a); // another player, where PvP is allowed
+        return false; // ghost: do not hurt
     }
 
     @Override
@@ -119,7 +119,7 @@ public class EntityArcaneWraith extends EntityWraith {
         return false;
     }
 
-    /** ПКМ хозяина по призраку - убрать (клик не уходит в предмет в руке: призыв той же костью не повторяется). */
+    /** Owner right click on the ghost - dismiss (the click does not go to the item in hand: the summon with the same bone is not repeated). */
     @Override
     public boolean interact(EntityPlayer p) {
         if (!worldObj.isRemote && owner() == p) AnchorSummons.dismiss(this);
@@ -134,7 +134,7 @@ public class EntityArcaneWraith extends EntityWraith {
     @Override
     protected void collideWithEntity(Entity e) {}
 
-    /** Не сохраняется: призыв живёт только при хозяине. */
+    /** Not saved: the summon lives only with its owner. */
     @Override
     public boolean writeToNBTOptional(NBTTagCompound t) {
         return false;

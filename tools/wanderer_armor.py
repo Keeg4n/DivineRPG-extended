@@ -1,17 +1,17 @@
-"""Облики брони Странника для игры: концепт ступени (tools/concepts) -> меш, атлас и маска свечения. Значки частей - tools/wanderer_icons.py.
+"""Wanderer armor looks for the game: a tier concept (tools/concepts) -> mesh, atlas and glow mask. Part icons - tools/wanderer_icons.py.
 
-Ступень -> концепт (пятый раунд, concepts/wslim5.py, пропорции как у брони Ботании): R1 божественная со щитом на спине,
-R2 лепестки и нимб, R3 деревянные латы с прорезью-плюсом и посохом, R4 убор из перьев и бусы, R5 закрытый шлем и крылья,
-R6 капюшон культиста и костяной хребет, R7 хлорофитовая. У первой ступени облик зависит от ядра (concepts/wr1.py): r1_shadow,
-r1_bedrock, r1_ender, r1_corrupted. Коробки делятся по частям брони, как у костюма H.E.V.:
-helmet - всё на голове, chest - торс и руки, legs - пояс и бёдра (на теле - ниже y=9), boots - голени ниже y=6.5.
-Светящиеся тексели (альфа 0.6 в атласе концепта) уходят в отдельную маску r<N>_glow.png: в игре её рисуют вторым
-проходом на полной яркости поверх того же меша.
-Полупрозрачные облики (TRANSLUCENT, сейчас Призрак R8): основа в атласе с частичной альфой, в игре рисуется со смешиванием.
-Покраска (красители в верстаке): маска r<N>_dye.png - серым там, где тексель основного материала облика (цвета из DYE), в игре
-её рисуют поверх того же меша, умножив на цвет. Отделка, камни, кожа и свечение остаются своими.
+Tier -> concept (fifth round, concepts/wslim5.py, proportions as in Botania armor): R1 divine with a shield on the back,
+R2 petals and halo, R3 wooden plate with a plus-shaped slit and a staff, R4 feather headdress and beads, R5 closed helmet and wings,
+R6 cultist hood and a bone spine, R7 chlorophyte. The look of the first tier depends on the core (concepts/wr1.py): r1_shadow,
+r1_bedrock, r1_ender, r1_corrupted. Boxes are split by armor part, as in the H.E.V. suit:
+helmet - everything on the head, chest - torso and arms, legs - belt and thighs (on the body - below y=9), boots - shins below y=6.5.
+Glowing texels (alpha 0.6 in the concept atlas) go into a separate mask r<N>_glow.png: in the game it is drawn in a second
+pass at full brightness over the same mesh.
+Translucent looks (TRANSLUCENT, currently the Wraith R8): the base in the atlas has partial alpha, in the game it is drawn with blending.
+Dyeing (dyes at the crafting table): mask r<N>_dye.png - gray where the texel is the look's main material (colors from DYE), in the game
+it is drawn over the same mesh, multiplied by the color. Trim, stones, leather and glow keep their own colors.
 
-Запуск: python3 tools/wanderer_armor.py  (из корня репо). Пишет в src/main/resources/assets/divinerpgextended.
+Run: python3 tools/wanderer_armor.py  (from the repo root). Writes to src/main/resources/assets/divinerpgextended.
 """
 import math
 import os
@@ -28,7 +28,7 @@ import wconcepts as w  # noqa: E402
 
 
 def code(c):
-    """Цвет '#rrggbb' или массив rgb 0..1 (в том числе по текселям) -> число 0xRRGGBB."""
+    """Color '#rrggbb' or an rgb array 0..1 (including per texel) -> number 0xRRGGBB."""
     if isinstance(c, str):
         return int(c.lstrip('#'), 16)
     q = np.rint(np.asarray(c, float)[..., :3] * 255).astype(np.int64)
@@ -36,7 +36,7 @@ def code(c):
 
 
 def _labeled(P):
-    """P концептов с подписью цвета по текселям (основа или наклейка поверх неё) - для маски покраски. Картинку не меняет."""
+    """P of the concepts with a per-texel color label (base or a decal over it) - for the dye mask. Does not change the image."""
     def LP(base, *decals, **kw):
         paint = P(base, *decals, **kw)
 
@@ -53,21 +53,21 @@ def _labeled(P):
     return LP
 
 
-w.P = _labeled(w.P)  # до импорта концептов: они берут P из wconcepts при загрузке
-import wslim5  # noqa: E402,F401 (регистрирует концепты пятого раунда и R2 из четвёртого)
-import wr1  # noqa: E402,F401 (облики первой ступени по ядру)
-import wr8  # noqa: E402,F401 (облики R8 по Венцу)
+w.P = _labeled(w.P)  # before importing the concepts: they take P from wconcepts at load time
+import wslim5  # noqa: E402,F401 (registers the fifth-round concepts and R2 from the fourth)
+import wr1  # noqa: E402,F401 (first-tier looks by core)
+import wr8  # noqa: E402,F401 (R8 looks by Crown)
 
 RES = os.path.join(HERE, '..', 'src', 'main', 'resources', 'assets', 'divinerpgextended')
 LOOKS = {'r1': 'r1v', 'r2': 'r2s', 'r3': 'r3v', 'r4': 'r4v', 'r5': 'r5v', 'r6': 'r6v', 'r7': 'r7z',
          'r1_shadow': 'r1t', 'r1_bedrock': 'r1k', 'r1_ender': 'r1o', 'r1_corrupted': 'r1r',
          'r8_flight': 'r8m', 'r8_regen': 'r8b', 'r8_arcana': 'r8c'}
-# Полупрозрачные облики: непрозрачность основы (свечение и коробки с атрибутом solid - полностью непрозрачные). В игре
-# ModelWandererArmor рисует их с прозрачностью.
+# Translucent looks: opacity of the base (glow and boxes with the solid attribute are fully opaque). In the game
+# ModelWandererArmor draws them with transparency.
 TRANSLUCENT = {'r8_flight': 0.6}
-# Основной материал облика - его перекрашивает краситель. По площади граней: золото и сталь R1, камень бедрока, пурпур порчи,
-# синева Энда, чернь Тени, золото R2 (у поножей - алая ткань), синие доски R3, пурпур R4, белые латы R5, тёмная ткань R6,
-# лайм R7.
+# The main material of a look is what the dye recolors. By face area: gold and steel of R1, bedrock stone, corruption purple,
+# End blue, Shadow black, gold of R2 (scarlet cloth on the greaves), blue planks of R3, purple of R4, white plate of R5, dark cloth of R6,
+# lime of R7.
 DYE = {
     'r1': ('#f0c41c', '#a87808', '#6a4a04', '#fff3a0', '#c8c8dc', '#8686a0'),
     'r1_bedrock': ('#525252', '#7c7c7c'),
@@ -85,18 +85,18 @@ DYE = {
     'r8_arcana': ('#3a2a6a', '#6a58b0'),
 }
 DYE_PIECE = {('r2', 'legs'): ('#7a2414', '#4a1408', '#7a1a08', '#f0c040', '#9a6a20')}
-K = 2.0  # текселей на единицу модели (у ванильной брони 1)
+K = 2.0  # texels per model unit (1 for vanilla armor)
 ATLAS_W = 512
-# Второй слой скина раздут на 0.25, а броня Ботании, с которой сняты пропорции, на 0.2: слой торчал бы сквозь неё.
-# Поэтому всё, что снаружи конечности, отодвигается ещё на PUSH: броня 0.36, поддоспешник 0.30. Шапка раздута на 0.5,
-# капюшон R6 лежал точно на ней и мерцал бы: голове хватает HEAD_PUSH.
+# The second skin layer is inflated by 0.25, and the Botania armor the proportions were taken from by 0.2: the layer would stick out through it.
+# So everything on the outside of a limb is pushed out further by PUSH: armor 0.36, undersuit 0.30. The cap is inflated by 0.5,
+# the R6 hood lay exactly on it and would flicker: HEAD_PUSH is enough for the head.
 PUSH, HEAD_PUSH = 0.16, 0.05
 LIMBS = {'head': ((-4, 4), (-8, 0), (-4, 4)), 'body': ((-4, 4), (0, 12), (-2, 2)), 'rightArm': ((-3, 1), (-2, 10), (-2, 2)),
          'leftArm': ((-1, 3), (-2, 10), (-2, 2)), 'rightLeg': ((-2, 2), (0, 12), (-2, 2)), 'leftLeg': ((-2, 2), (0, 12), (-2, 2))}
 
 
 def push_out(box, verts):
-    """Сдвиг наружу по каждой оси, а не раздутие коробок: тонкие детали не толстеют, порядок слоёв не меняется."""
+    """Shift outward along each axis instead of inflating the boxes: thin details do not get thicker, the layer order does not change."""
     limb = LIMBS.get(box.bone)
     if limb is None:
         return verts
@@ -106,7 +106,7 @@ def push_out(box, verts):
         center, half = (lo + hi) / 2.0, (hi - lo) / 2.0
         d = out[:, axis] - center
         out[:, axis] = center + np.where(np.abs(d) >= half, d + np.sign(d) * amount, d * (1 + amount / half))
-    if box.bone == 'head' and box.size[1] >= 6:  # оболочка шлема закрывает нижний край шапки на шее
+    if box.bone == 'head' and box.size[1] >= 6:  # the helmet shell covers the lower edge of the cap at the neck
         out[:, 1] = np.where((out[:, 1] > -0.7) & (out[:, 1] < 0.56), 0.56, out[:, 1])
     return out
 
@@ -136,12 +136,12 @@ def luma(rgb):
 
 
 def dye_gray(lum, ref):
-    """Яркость маски: тени и блики материала сохраняются, но и тёмный материал красится заметно."""
+    """Mask brightness: the material's shadows and highlights are kept, but a dark material is also dyed noticeably."""
     return 0.25 + 0.75 * np.clip(lum / ref, 0, 1) ** 0.7
 
 
 def dye_mask(m, name):
-    """Серая маска основного материала по атласу модели (None - нечего красить)."""
+    """Gray mask of the main material by the model atlas (None - nothing to dye)."""
     if name not in DYE:
         return None
     out = np.zeros_like(m.img)
@@ -154,7 +154,7 @@ def dye_mask(m, name):
         pts, fu, fv = f.texel_points()
         p = pts.copy()
         fname = f.name
-        if f.box.mirrored:  # как в Model: рисуем как у исходной коробки
+        if f.box.mirrored:  # as in Model: draw as for the original box
             p[..., 0] = f.box.size[0] - p[..., 0]
             f.name = {'east': 'west', 'west': 'east'}.get(fname, fname)
         lab = labels(p, f, f.box)
@@ -184,7 +184,7 @@ def main():
         glow = (a > 25) & (a < 200)
         base = m.img.copy()
         base[..., 3] = np.where(a > 25, 255, 0)
-        if name in TRANSLUCENT:  # полупрозрачная основа, кроме свечения и непрозрачных коробок
+        if name in TRANSLUCENT:  # translucent base, except glow and opaque boxes
             base[..., 3] = np.where(a > 25, np.where(glow, 255, int(round(255 * TRANSLUCENT[name]))), 0)
             for f in m.faces:
                 if getattr(f.box, 'solid', False):

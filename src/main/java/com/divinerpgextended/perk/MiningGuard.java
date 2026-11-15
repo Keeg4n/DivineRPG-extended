@@ -18,11 +18,11 @@ import com.divinerpgextended.world.twilight.TwilightWorld;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Блоки с правилами добычи (руды по уровням кирок, блоки Арканы) для всех неломаемые, настоящая прочность - только для
- * ломки игроком: на неё указывает {@link com.divinerpgextended.asm.MiningGuardTransformer} в ForgeHooks.blockStrength, а
- * какой инструмент подходит, решают события ломки. Иначе правила обходит всё, что копает без этих событий и смотрит только
- * на прочность: связанная кирка Blood Magic, бур Thaumcraft, поршни и другие. Блоки из {@link #allowMove} при этом можно переносить:
- * настоящую прочность видят ещё набалдашник "Перемещение" и телепозер ({@link com.divinerpgextended.asm.MoverTransformer}).
+ * Blocks with mining rules (ores by pickaxe tiers, Arcana blocks) are unbreakable for everyone, the real hardness is used only for
+ * breaking by a player: {@link com.divinerpgextended.asm.MiningGuardTransformer} points at it in ForgeHooks.blockStrength, and
+ * which tool fits is decided by the break events. Otherwise the rules are bypassed by anything that digs without these events and looks only at
+ * hardness: the Blood Magic bound pickaxe, the Thaumcraft drill, pistons and others. Blocks from {@link #allowMove} can still be moved:
+ * the real hardness is also seen by the "Moving" focus and the teleposer ({@link com.divinerpgextended.asm.MoverTransformer}).
  */
 public final class MiningGuard {
 
@@ -33,28 +33,28 @@ public final class MiningGuard {
 
     private MiningGuard() {}
 
-    /** Настоящая прочность блока (для всех остальных блоков - обычная). */
+    /** Real hardness of a block (for all other blocks - the usual one). */
     public static float real(Block b, World w, int x, int y, int z) {
         Float f = REAL.get(b);
         return f != null ? f : b.getBlockHardness(w, x, y, z);
     }
 
-    /** Защитить блок: real - прочность при ломке игроком. */
+    /** Protect a block: real - hardness when broken by a player. */
     public static void guard(Block b, float real) {
         if (b != null) REAL.put(b, real);
     }
 
-    /** Защищённый блок можно переносить. */
+    /** A protected block can be moved. */
     public static void allowMove(Block b) {
         if (REAL.containsKey(b)) MOVABLE.add(b);
     }
 
-    /** Прочность для набалдашника "Перемещение": у переносимых настоящая, у остальных обычная. */
+    /** Hardness for the "Moving" focus: real for movable blocks, usual for the rest. */
     public static float forMover(Block b, World w, int x, int y, int z) {
         return MOVABLE.contains(b) ? REAL.get(b) : b.getBlockHardness(w, x, y, z);
     }
 
-    /** Телепозер начал работу: на это время переносимые блоки показывают настоящую прочность всем. */
+    /** The teleposer started working: during that time movable blocks show real hardness to everyone. */
     public static void beginMove(TileEntity te) {
         move(te, true);
     }
@@ -63,7 +63,7 @@ public final class MiningGuard {
         move(te, false);
     }
 
-    /** Только на сервере: в одиночной игре клиент работает в другом потоке и его телепозер не должен закрывать окно серверного. */
+    /** Server only: in singleplayer the client runs in another thread and its teleposer must not close the server one's window. */
     private static void move(TileEntity te, boolean on) {
         World w = te.getWorldObj();
         if (w == null || w.isRemote || moving == on) return;
@@ -80,7 +80,7 @@ public final class MiningGuard {
         return (Float) ReflectionHelper.getPrivateValue(Block.class, b, "blockHardness", "field_149782_v");
     }
 
-    /** Руды и камень с правилами аддона: прочность снимается родная. Блоки Арканы добавляет {@link com.divinerpgextended.item.ItemArcanePick}. */
+    /** Ores and stone with addon rules: the native hardness is removed. Arcana blocks are added by {@link com.divinerpgextended.item.ItemArcanePick}. */
     public static void guardOres() {
         guard(ModBlocks.jungleOre, field(ModBlocks.jungleOre));
         if (!Config.miningTiers) return;
@@ -89,8 +89,8 @@ public final class MiningGuard {
     }
 
     /**
-     * Поставить неломаемость при запуске сервера (и встроенного): копают чужие инструменты только на сервере, а у клиента
-     * прочность остаётся родной, и подсказка Waila в сетевой игре не пишет про руду "неломаемая".
+     * Set unbreakability on server start (including the integrated one): other tools dig only on the server, and on the client
+     * the hardness stays native, so the Waila tooltip in multiplayer does not call the ore "unbreakable".
      */
     public static void apply() {
         for (Block b : REAL.keySet()) ReflectionHelper.setPrivateValue(Block.class, b, -1F, "blockHardness", "field_149782_v");

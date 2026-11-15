@@ -23,9 +23,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Грозовой лук (реликварий Дикого леса): стреляет как лук Дикого леса Divine (те же стрелы Дикого леса и урон 6-16), не
- * ломается. В ливень Дикого леса (и в любой дождь) каждая стрела бьёт молнией в цель, иначе - каждая {@link #EVERY}-я: молния в
- * точку попадания и +{@link #BONUS} урона по цели ({@link com.divinerpgextended.perk.RelicEffects}).
+ * Storm Bow (Wildwood reliquary): shoots like Divine's Wildwood bow (the same Wildwood arrows and damage 6-16), does not
+ * break. In a Wildwood downpour (and in any rain) every arrow strikes the target with lightning, otherwise - every {@link #EVERY}-th: lightning at
+ * the point of impact and +{@link #BONUS} damage to the target ({@link com.divinerpgextended.perk.RelicEffects}).
  */
 public class ItemStormBow extends ItemBow {
 
@@ -48,13 +48,13 @@ public class ItemStormBow extends ItemBow {
         return false;
     }
 
-    /** Стрелы Дикого леса Divine (нет поля - обычные). */
+    /** Divine's Wildwood arrows (no field - regular ones). */
     public static Item ammo() {
         Item a = net.divinerpg.utils.items.TwilightItemsWeapons.wildwoodArrow;
         return a != null ? a : net.minecraft.init.Items.arrow;
     }
 
-    /** Гроза: ливень Дикого леса или обычный дождь. */
+    /** Storm: a Wildwood downpour or regular rain. */
     public static boolean storm(World w) {
         return com.divinerpgextended.world.twilight.WorldWeather.rain(w) || w.isRaining();
     }
@@ -90,7 +90,7 @@ public class ItemStormBow extends ItemBow {
         if (punch > 0) arrow.setKnockbackStrength(punch);
         if (EnchantmentHelper.getEnchantmentLevel(Enchantment.flame.effectId, s) > 0) arrow.setFire(100);
         if (infinite) arrow.canBePickedUp = 2;
-        else com.divinerpgextended.asm.AmmoHooks.consume(p.inventory, ammo()); // сначала заряд лука, потом инвентарь
+        else com.divinerpgextended.asm.AmmoHooks.consume(p.inventory, ammo()); // first the bow's charge, then the inventory
         if (!s.hasTagCompound()) s.setTagCompound(new NBTTagCompound());
         int shots = s.getTagCompound().getInteger(SHOTS) + 1;
         s.getTagCompound().setInteger(SHOTS, shots % 1000);

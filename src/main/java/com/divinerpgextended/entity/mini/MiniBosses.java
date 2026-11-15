@@ -20,15 +20,15 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Появление мини-боссов: в сумеречных мирах и на этажах 1-3 Ветеи, не чаще раза в {@link Config#miniBossMinutes} минут на игрока, в 20-32 блоках от
- * него, не у факела мира, не рядом с боссом и другим мини-боссом.
+ * Mini-boss spawning: in the twilight dimensions and on Vethea floors 1-3, no more often than once per {@link Config#miniBossMinutes} minutes per player, 20-32 blocks from
+ * them, not at a world torch, not near a boss or another mini-boss.
  */
 public class MiniBosses {
 
     private static final String NEXT = "dreMiniNext";
     private static final int FIRST_DELAY = 6000, CHECK_EVERY = 40;
     private static final double CHANCE = 0.05;
-    /** За секунду метели: ель появляется в первые десятки секунд. */
+    /** Per second of blizzard: the spruce appears in the first tens of seconds. */
     public static double SPRUCE_CHANCE = 0.05;
 
     private static NBTTagCompound data(EntityPlayer p) {
@@ -37,7 +37,7 @@ public class MiniBosses {
         return d.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
     }
 
-    /** Когда этому игроку можно ждать следующего мини-босса. */
+    /** When this player can expect the next mini-boss. */
     public static long next(EntityPlayer p) {
         return data(p).getLong(NEXT);
     }
@@ -46,7 +46,7 @@ public class MiniBosses {
         data(p).setLong(NEXT, at);
     }
 
-    /** Мини-босс мира игрока (null - здесь их нет). */
+    /** The mini-boss of the player's dimension (null - there are none here). */
     public static EntityMiniBoss create(EntityPlayer p) {
         World w = p.worldObj;
         int d = p.dimension;
@@ -64,7 +64,7 @@ public class MiniBosses {
         return null;
     }
 
-    /** Поставить мини-босса рядом с игроком (null - негде или нельзя). */
+    /** Place a mini-boss next to the player (null - no room or not allowed). */
     public static EntityMiniBoss spawnNear(EntityPlayer p) {
         EntityMiniBoss m = create(p);
         if (m == null) return null;
@@ -88,9 +88,9 @@ public class MiniBosses {
         return null;
     }
 
-    /** Проверка игрока: пришло ли время, и если повезло - мини-босс. */
+    /** Check a player: whether the time has come, and if lucky - a mini-boss. */
     public static EntityMiniBoss tick(EntityPlayer p) {
-        if (!Config.miniBosses || p.capabilities.isCreativeMode || p.dimension == ConfigurationHelper.iceika) return null; // ель приходит с метелью
+        if (!Config.miniBosses || p.capabilities.isCreativeMode || p.dimension == ConfigurationHelper.iceika) return null; // the spruce comes with the blizzard
         long now = p.worldObj.getTotalWorldTime();
         if (!data(p).hasKey(NEXT)) setNext(p, now + FIRST_DELAY);
         if (now < next(p) || p.worldObj.rand.nextDouble() >= CHANCE) return null;
@@ -104,7 +104,7 @@ public class MiniBosses {
         if (e.phase == TickEvent.Phase.END && !e.player.worldObj.isRemote && e.player.ticksExisted % CHECK_EVERY == 0) tick(e.player);
     }
 
-    /** Секунда метели: ель приходит раз за метель, к тому, кого достаёт ветер. true - пришла. */
+    /** A second of blizzard: the spruce comes once per blizzard, to whoever the wind reaches. true - it came. */
     public static boolean spruceStep(World w, com.divinerpgextended.cold.Blizzard b) {
         if (!Config.miniBosses || b.spruceCame || w.rand.nextDouble() >= SPRUCE_CHANCE) return false;
         for (Object o : w.playerEntities) {
@@ -117,7 +117,7 @@ public class MiniBosses {
         return false;
     }
 
-    /** Смерть моба рядом кормит Плакальщика. */
+    /** A mob death nearby feeds the Mourner. */
     @SubscribeEvent
     public void onDeath(LivingDeathEvent e) {
         if (e.entityLiving.worldObj.isRemote || e.entityLiving.dimension != ConfigurationHelper.mortum || !(e.entityLiving instanceof IMob) || e.entityLiving instanceof EntityMiniBoss) return;

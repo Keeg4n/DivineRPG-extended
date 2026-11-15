@@ -20,23 +20,23 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Звуки пасхалок прямо из установленных у игрока Half-Life и Half-Life 2 (Steam), как "монтирование" игр в Garry's Mod:
- * файлы Valve в мод не входят и никуда не копируются. Half-Life - россыпь WAV в valve/sound, Half-Life 2 - архивы VPK
- * (hl2_sound_misc). Любой WAV приводится к моно 16 бит PCM (Minecraft играет его кодеком WAV). Нет игр - звуки обычные.
+ * Easter egg sounds straight from the player's installed Half-Life and Half-Life 2 (Steam), like "mounting" games in Garry's Mod:
+ * the Valve files are not part of the mod and are not copied anywhere. Half-Life is a scattering of WAVs in valve/sound, Half-Life 2 is VPK archives
+ * (hl2_sound_misc). Any WAV is converted to mono 16-bit PCM (Minecraft plays it with its WAV codec). No games - ordinary sounds.
  * <p>
- * Имена файлов для ресурсов: {@code hl1/<путь>} и {@code hl2/<путь>} без расширения (путь - от папки sound).
+ * File names for resources: {@code hl1/<path>} and {@code hl2/<path>} without extension (the path is from the sound folder).
  */
 public final class HalfLifeMount {
 
     private HalfLifeMount() {}
 
-    /** Событие -> варианты; вариант - кандидаты по порядку (первый найденный). */
+    /** Event -> variants; a variant is candidates in order (the first found). */
     public static final Map<String, String[][]> EVENTS = new LinkedHashMap<String, String[][]>();
     static {
         ev("hev.pain", seq("hl1/player/pl_pain%d", 2, 4, 5, 6, 7));
         ev("hev.fallpain", seq("hl1/player/pl_fallpain%d", 1, 2, 3));
         ev("hev.flatline", one("hl1/fvox/flatline"));
-        // смерть как в Half-Life 2 (Player.Death: pl_pain5-7), без HL2 - писк монитора из первой части
+        // death like in Half-Life 2 (Player.Death: pl_pain5-7), without HL2 - the monitor flatline from the first game
         ev("hev.death", new String[][] { { "hl2/player/pl_pain5", "hl1/fvox/flatline" }, { "hl2/player/pl_pain6", "hl1/fvox/flatline" },
             { "hl2/player/pl_pain7", "hl1/fvox/flatline" } });
         ev("hev.logon", one("hl1/fvox/hev_logon"));
@@ -77,33 +77,33 @@ public final class HalfLifeMount {
         return out;
     }
 
-    /** Шаги: Half-Life 2 (по поверхности), запасной - Half-Life. */
+    /** Footsteps: Half-Life 2 (by surface), fallback - Half-Life. */
     private static void steps(String surface, String hl1, int n) {
         String[][] out = new String[n][];
         for (int i = 1; i <= n; i++) out[i - 1] = new String[] { "hl2/player/footsteps/" + surface + i, String.format(hl1, i) };
         ev("hev.step." + surface, out);
     }
 
-    // ------------------------------------------------------------------ поиск игр
+    // ------------------------------------------------------------------ finding the games
 
     static File hl1, hl2vpk;
     static Vpk vpk;
     static boolean searched;
     static final Map<String, byte[]> CACHE = new HashMap<String, byte[]>();
 
-    /** Папка valve/sound у Half-Life (или null). */
+    /** The valve/sound folder of Half-Life (or null). */
     public static synchronized File halfLife() {
         search();
         return hl1;
     }
 
-    /** hl2_sound_misc_dir.vpk у Half-Life 2 (или null). */
+    /** hl2_sound_misc_dir.vpk of Half-Life 2 (or null). */
     public static synchronized File halfLife2() {
         search();
         return hl2vpk;
     }
 
-    /** Заново искать игры (после смены пути в конфиге). */
+    /** Search for the games again (after the path in the config changes). */
     public static synchronized void reset() {
         searched = false;
         hl1 = hl2vpk = null;
@@ -129,7 +129,7 @@ public final class HalfLifeMount {
         }
     }
 
-    /** Библиотеки Steam: путь из настроек, обычные места Steam и все библиотеки из libraryfolders.vdf. */
+    /** Steam libraries: the path from the settings, the usual Steam locations and all libraries from libraryfolders.vdf. */
     public static List<File> libraries() {
         Set<File> roots = new LinkedHashSet<File>();
         String custom = System.getProperty("dre.steamLibrary", com.divinerpgextended.Config.halfLifePath);
@@ -186,9 +186,9 @@ public final class HalfLifeMount {
         }
     }
 
-    // ------------------------------------------------------------------ файлы
+    // ------------------------------------------------------------------ files
 
-    /** Есть ли файл (hl1/... или hl2/... без расширения). */
+    /** Whether the file exists (hl1/... or hl2/... without extension). */
     public static synchronized boolean has(String name) {
         search();
         if (name.startsWith("hl1/")) return hl1 != null && new File(hl1, name.substring(4) + ".wav").isFile();
@@ -196,13 +196,13 @@ public final class HalfLifeMount {
         return false;
     }
 
-    /** Первый найденный кандидат варианта (или null). */
+    /** The first found candidate of the variant (or null). */
     public static String resolve(String[] candidates) {
         for (String c : candidates) if (has(c)) return c;
         return null;
     }
 
-    /** WAV, приведённый к моно 16 бит (null - нет файла или формат не PCM). */
+    /** A WAV converted to mono 16-bit (null - no file or the format is not PCM). */
     public static synchronized byte[] wav(String name) {
         if (CACHE.containsKey(name)) return CACHE.get(name);
         byte[] out = null;
@@ -231,7 +231,7 @@ public final class HalfLifeMount {
         }
     }
 
-    /** RIFF WAV PCM 8/16 бит, моно/стерео -> моно 16 бит со своей частотой; лишние блоки (cue, LIST) отбрасываются. */
+    /** RIFF WAV PCM 8/16 bit, mono/stereo -> mono 16-bit at its own sample rate; extra chunks (cue, LIST) are dropped. */
     public static byte[] normalize(byte[] d) {
         ByteBuffer b = ByteBuffer.wrap(d).order(ByteOrder.LITTLE_ENDIAN);
         if (d.length < 12 || b.getInt(0) != 0x46464952 || b.getInt(8) != 0x45564157) return null; // RIFF....WAVE
@@ -267,12 +267,12 @@ public final class HalfLifeMount {
         return o.array();
     }
 
-    /** Архив VPK (v1/v2): каталог в *_dir.vpk, данные - в *_NNN.vpk или в самом каталоге. */
+    /** A VPK archive (v1/v2): the directory is in *_dir.vpk, the data is in *_NNN.vpk or in the directory itself. */
     public static final class Vpk {
 
         final File dir;
         final String base;
-        final Map<String, long[]> entries = new HashMap<String, long[]>(); // путь -> {архив, смещение, длина, начало preload, длина preload}
+        final Map<String, long[]> entries = new HashMap<String, long[]>(); // path -> {archive, offset, length, preload start, preload length}
         final byte[] tree;
         final int dataStart;
 
@@ -282,7 +282,7 @@ public final class HalfLifeMount {
             base = n.substring(0, n.length() - "_dir.vpk".length());
             byte[] all = readAll(new FileInputStream(dirFile));
             ByteBuffer b = ByteBuffer.wrap(all).order(ByteOrder.LITTLE_ENDIAN);
-            if (b.getInt(0) != 0x55aa1234) throw new IOException("не VPK");
+            if (b.getInt(0) != 0x55aa1234) throw new IOException("not a VPK");
             int ver = b.getInt(4), treeLen = b.getInt(8), hdr = ver == 2 ? 28 : 12;
             tree = all;
             dataStart = hdr + treeLen;

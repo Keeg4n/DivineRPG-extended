@@ -28,11 +28,11 @@ import cpw.mods.fml.relauncher.SideOnly;
 import net.divinerpg.utils.items.VanillaItemsArmor;
 
 /**
- * Броня Странника: одна броня на всю игру. Защита считается так же, как у брони Divine: полный сет даёт
- * процент снижения урона ступени, части делят его в пропорции 5/8/7/4 из 24. У каждой ступени R1-R7 свой облик: модель
- * ({@link com.divinerpgextended.client.ModelWandererArmor}) и значки частей; без облика - как божественная броня.
- * Привязывается к тому, кто наденет первым ({@link ArmorData#owner}): на чужом не защищает и не даёт эффектов. Красится
- * красителями в верстаке ({@link RecipeWandererDye}), это только облик: основной материал части под цвет.
+ * Wanderer armor: one armor for the whole game. Protection is computed the same as for Divine armor: a full set gives the
+ * tier's damage reduction percentage, the pieces share it in the proportion 5/8/7/4 of 24. Each tier R1-R7 has its own look: the model
+ * ({@link com.divinerpgextended.client.ModelWandererArmor}) and piece icons; without a look - like divine armor.
+ * Binds to whoever puts it on first ({@link ArmorData#owner}): on someone else it does not protect and gives no effects. Dyed
+ * with dyes in the crafting table ({@link RecipeWandererDye}), this is look only: the piece's main material matches the color.
  */
 public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
 
@@ -42,13 +42,13 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
     private static final String[] ICONS = { "divinerpg:eliteRealmiteHelmet", "divinerpg:eliteRealmiteChestplate",
         "divinerpg:eliteRealmiteLeggings", "divinerpg:eliteRealmiteBoots" };
     private static final String[] PARTS = { "helmet", "chest", "legs", "boots" };
-    /** Сколько ступеней с одним обликом (R1..LOOKS). */
+    /** How many tiers share one look (R1..LOOKS). */
     public static final int LOOKS = 7;
-    /** Высшая ступень: R8 с Венцом. */
+    /** The highest tier: R8 with a Crown. */
     public static final int MAX_TIER = 8;
-    /** Номер первого облика R8 (по Венцу): после ступеней и обликов ядер первой ступени. */
+    /** Number of the first R8 look (by Crown): after the tiers and the first-tier core looks. */
     public static final int CROWN_BASE = LOOKS + ArmorCore.values().length;
-    /** Всего обликов: ступени, по одному на первой ступени у каждого ядра, кроме божественного, и по одному на R8 у каждого Венца. */
+    /** Total looks: tiers, one on the first tier for each core except the divine one, and one on R8 for each Crown. */
     public static final int LOOK_COUNT = CROWN_BASE + ArmorCrown.values().length - 1;
 
     @SideOnly(Side.CLIENT)
@@ -58,7 +58,7 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
         return tier >= 1 && tier <= MAX_TIER;
     }
 
-    /** Номер облика вещи: ступень, а на первой ступени с ядром не из божественной брони - свой номер после ступеней. */
+    /** The item's look number: the tier, and on the first tier with a core that is not from divine armor - its own number after the tiers. */
     public static int look(ItemStack stack) {
         int t = ArmorData.tier(stack);
         if (t >= MAX_TIER) {
@@ -69,18 +69,18 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
         return t == 1 && core != ArmorCore.DIVINE ? LOOKS + core.ordinal() : t;
     }
 
-    /** Имя файлов облика: r2, r1_shadow, r8_flight (tools/wanderer_armor.py). */
+    /** Name of the look files: r2, r1_shadow, r8_flight (tools/wanderer_armor.py). */
     public static String lookName(int look) {
         if (look >= CROWN_BASE) return "r8_" + ArmorCrown.values()[look - CROWN_BASE].key();
         return look <= LOOKS ? "r" + look : "r1_" + ArmorCore.values()[look - LOOKS].key();
     }
 
-    /** Полупрозрачный облик (Призрак R8 - Венец полёта): рисуется со смешиванием. */
+    /** Semi-transparent look (Wraith R8 - the Flight Crown): drawn with blending. */
     public static boolean translucent(int look) {
         return look == CROWN_BASE + ArmorCrown.FLIGHT.ordinal();
     }
 
-    /** Атлас облика (модель брони, tools/wanderer_armor.py). */
+    /** Look atlas (armor model, tools/wanderer_armor.py). */
     public static String lookTexture(int look) {
         return "divinerpgextended:textures/models/wanderer/" + lookName(look) + ".png";
     }
@@ -93,7 +93,7 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
         setMaxDamage(0);
     }
 
-    /** Часть брони этой ступени с этим ядром. */
+    /** The armor piece of this tier with this core. */
     public static ItemStack stack(Item item, int tier, ArmorCore core) {
         ItemStack s = new ItemStack(item);
         ArmorData.setTier(s, tier);
@@ -101,14 +101,14 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
         return s;
     }
 
-    /** Часть R8 с Венцом. */
+    /** An R8 piece with a Crown. */
     public static ItemStack stack(Item item, ArmorCrown crown) {
         ItemStack s = stack(item, MAX_TIER, ArmorCore.DIVINE);
         ArmorData.setCrown(s, crown);
         return s;
     }
 
-    /** В творческом и в NEI - все облики: R1 с ядром каждого финального сета, R2-R7 и R8 с каждым Венцом. */
+    /** In creative and in NEI - all looks: R1 with the core of each final set, R2-R7 and R8 with each Crown. */
     @Override
     @SideOnly(Side.CLIENT)
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -118,7 +118,7 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
         for (ArmorCrown c : ArmorCrown.values()) list.add(stack(item, c));
     }
 
-    /** Та же часть божественной брони (ищется при вызове: поля Divine заполняются в его preInit). */
+    /** The same piece of divine armor (looked up at call time: Divine's fields are filled in its preInit). */
     private Item divine() {
         Item[] set = { VanillaItemsArmor.divineHelmet, VanillaItemsArmor.divineBody, VanillaItemsArmor.divineLegs,
             VanillaItemsArmor.divineBoots };
@@ -152,7 +152,7 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
     @Override
     @SideOnly(Side.CLIENT)
     public IIcon getIcon(ItemStack stack, int pass) {
-        // второй проход - покраска: серая маска основного материала, умноженная на цвет (не крашена - тот же значок ещё раз)
+        // second pass - dyeing: a gray mask of the main material multiplied by the color (not dyed - the same icon once more)
         if (pass == 1 && dyeLooks != null && ArmorData.color(stack) >= 0 && hasLook(ArmorData.tier(stack))) return dyeLooks[look(stack)];
         return getIconIndex(stack);
     }
@@ -192,22 +192,22 @@ public class ItemWandererArmor extends ItemArmor implements ISpecialArmor {
         return ArmorData.owns(armor, player) ? (int) Math.round(pieceRatio(armor) * 100.0 / 4.0) : 0;
     }
 
-    /** Защищает ли часть того, на ком надета: игрока - только своя, моба - только ничья. */
+    /** Whether the piece protects the one wearing it: for a player - only their own, for a mob - only a nobody's. */
     private static boolean works(EntityLivingBase wearer, ItemStack armor) {
         return wearer instanceof EntityPlayer ? ArmorData.owns(armor, (EntityPlayer) wearer) : ArmorData.owner(armor) == null;
     }
 
-    /** Кто первым надел, тот и владелец (игроки-заглушки модов не в счёт). */
+    /** Whoever put it on first is the owner (mods' stub players do not count). */
     @Override
     public void onArmorTick(World world, EntityPlayer player, ItemStack stack) {
         if (world.isRemote || player instanceof FakePlayer || ArmorData.owner(stack) != null) return;
         ArmorData.bind(stack, player);
-        com.divinerpgextended.audit.Audit.log(player, "Wanderer", "привязана " + stack.getDisplayName());
+        com.divinerpgextended.audit.Audit.log(player, "Wanderer", "bound " + stack.getDisplayName());
     }
 
     @Override
     public void damageArmor(EntityLivingBase entity, ItemStack stack, DamageSource source, int damage, int slot) {
-        // неразрушима
+        // indestructible
     }
 
     @Override

@@ -16,7 +16,7 @@ import net.minecraft.world.World;
 
 import com.divinerpgextended.cold.ColdHandler;
 
-/** Кристалл памяти: выдаётся в Аркане, ПКМ - окно встреченных торговцев. Выбросить нельзя, вне Арканы исчезает. */
+/** Memory Crystal: given in Arcana, right click - window of met merchants. Cannot be dropped, vanishes outside Arcana. */
 public class ItemMemoryCrystal extends Item {
 
     public ItemMemoryCrystal() {
@@ -37,7 +37,7 @@ public class ItemMemoryCrystal extends Item {
         return s;
     }
 
-    /** Брошенный кристалл сразу рассыпается: он личный. */
+    /** A dropped crystal crumbles at once: it is personal. */
     @Override
     public boolean onEntityItemUpdate(EntityItem e) {
         if (!e.worldObj.isRemote) e.setDead();

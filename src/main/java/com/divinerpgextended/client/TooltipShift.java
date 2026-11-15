@@ -17,21 +17,21 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Описания предметов Divine и аддона - под Shift. Без Shift видны название, ванильные строки (чары, атрибуты), имя мода
- * (Waila и др.) и строки с меткой {@link #KEEP}; остальное - описания из самих предметов (вместе с цифрами Divine: урон,
- * применения, эффекты брони) и подсказки, дописанные событиями, - прячется, вместо них строка "Shift - описание".
+ * Descriptions of Divine and addon items are under Shift. Without Shift you see the name, vanilla lines (enchantments, attributes), the mod name
+ * (Waila etc.) and lines with the {@link #KEEP} mark; the rest - descriptions from the items themselves (together with Divine numbers: damage,
+ * uses, armor effects) and tooltips appended by events - is hidden, replaced by the line "Shift - description".
  */
 @SideOnly(Side.CLIENT)
 public class TooltipShift {
 
-    /** Метка строки, которая видна и без Shift (невидимые коды сброса цвета). */
+    /** The mark of a line that is visible even without Shift (invisible color reset codes). */
     public static final String KEEP = "§r§r";
-    /** Начало строки с именем мода (Waila, NEI). */
+    /** The start of the line with the mod name (Waila, NEI). */
     private static final String MOD_NAME = "§9§o";
     private static ItemTooltipEvent seen;
     private static List<String> base;
 
-    /** Ванильная часть подсказки - до всех обработчиков. */
+    /** The vanilla part of the tooltip - before all handlers. */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void first(ItemTooltipEvent e) {
         seen = e;
@@ -43,21 +43,21 @@ public class TooltipShift {
         return id != null && (id.startsWith("divinerpg:") || id.startsWith("divinerpgextended:"));
     }
 
-    /** Спрятать описания (из {@link TooltipWrap}, после всех обработчиков). */
+    /** Hide descriptions (from {@link TooltipWrap}, after all handlers). */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     static void apply(ItemTooltipEvent e) {
         if (e.itemStack == null || e.toolTip.size() < 2 || GuiScreen.isShiftKeyDown()) return;
         Item item = e.itemStack.getItem();
         boolean own = divine(item);
         Map<String, Integer> hide = new HashMap<String, Integer>();
-        if (own) { // строки самого предмета
+        if (own) { // lines of the item itself
             List info = new ArrayList();
             try {
                 item.addInformation(e.itemStack, e.entityPlayer, info, e.showAdvancedItemTooltips);
             } catch (Throwable ignored) {}
             for (Object o : info) bump(hide, String.valueOf(o), 1);
         }
-        if (seen == e) { // дописанное событиями (без ванильных строк)
+        if (seen == e) { // appended by events (without vanilla lines)
             Map<String, Integer> was = new HashMap<String, Integer>();
             for (String l : base) bump(was, l, 1);
             for (String l : e.toolTip) {
@@ -72,7 +72,7 @@ public class TooltipShift {
         for (int i = 0; i < e.toolTip.size(); i++) {
             String l = e.toolTip.get(i);
             Integer n = hide.get(l);
-            if (i > 0 && vethean.equals(EnumChatFormatting.getTextWithoutFormattingCodes(l).trim())) { // "Из Везеи" видна всегда - над "Shift - описание"
+            if (i > 0 && vethean.equals(EnumChatFormatting.getTextWithoutFormattingCodes(l).trim())) { // "From Vethea" is always visible - above "Shift - description"
                 origin.add(l);
                 continue;
             }
@@ -85,7 +85,7 @@ public class TooltipShift {
         }
         if (!hidden) return;
         while (out.size() > 1 && EnumChatFormatting.getTextWithoutFormattingCodes(out.get(out.size() - 1)).trim().isEmpty()) out.remove(out.size() - 1);
-        int at = out.size(); // над именем мода, если оно в конце
+        int at = out.size(); // above the mod name if it is at the end
         while (at > 1 && out.get(at - 1).startsWith(MOD_NAME)) at--;
         out.add(at, EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("dre.tooltip.shift"));
         out.addAll(at, origin);

@@ -13,23 +13,23 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Частицы факелов миров вместо обычного огонька: у Эдема из солнца бьют лучи, у Дикого леса падают капли и всплывают
- * лунные искры, Апалачию затягивает в разлом, у Небесного терна ветер сносит облачка и кружит искры, у Мортума капает
- * кровь и поднимается тёмный дым, у адского факела летят угли.
+ * World torch particles instead of the ordinary flame: for Eden rays strike from the sun, for the Wildwood drops fall and
+ * moon sparks float up, Apalachia is pulled into a rift, for Skythern the wind sweeps clouds away and swirls sparks, for Mortum
+ * blood drips and dark smoke rises, for the Nether torch embers fly.
  */
 @SideOnly(Side.CLIENT)
 public class TorchFX extends EntityFX {
 
-    /** Текстуры частиц игры: дымка (0..7, по убыванию размера), капля, искра фейерверка (160..167, гаснет). */
+    /** Game particle textures: haze (0..7, in decreasing size), a drop, a firework spark (160..167, fades out). */
     static final int PUFF = 0, DROP = 113, SPARK = 160, BUBBLE = 32;
 
     private final float size;
     private final int tex;
     private final boolean glow, fade;
-    /** Затягивать к точке (разлом Апалачии). */
+    /** Pull toward a point (the Apalachia rift). */
     private double cx, cy, cz;
     private boolean pull;
-    /** Кружить вокруг точки: угол, радиус, шаг. */
+    /** Circle around a point: angle, radius, step. */
     private double angle, radius, spin;
     private boolean orbit;
 
@@ -89,7 +89,7 @@ public class TorchFX extends EntityFX {
             setPosition(cx + Math.cos(angle) * radius, posY + motionY, cz + Math.sin(angle) * radius);
             return;
         }
-        if (pull) { // разгон к центру, у центра гаснет
+        if (pull) { // accelerates to the center, fades out at the center
             motionX += (cx - posX) * 0.04;
             motionY += (cy - posY) * 0.04;
             motionZ += (cz - posZ) * 0.04;
@@ -130,7 +130,7 @@ public class TorchFX extends EntityFX {
         return (r.nextDouble() - 0.5) * d;
     }
 
-    /** Пузыри горящего водного факела зова: поднимаются и лопаются (и на воздухе). */
+    /** Bubbles of a lit Water Lure Torch: they rise and burst (in the air too). */
     public static void bubbles(World w, double x, double y, double z, Random r) {
         int set = Minecraft.getMinecraft().gameSettings.particleSetting;
         for (int i = set > 0 ? 1 : 3; i > 0; i--)
@@ -139,12 +139,12 @@ public class TorchFX extends EntityFX {
         if (r.nextInt(4) == 0) w.spawnParticle("dripWater", x, y - 0.1, z, 0, 0, 0);
     }
 
-    /** Частицы факела {@code world} (null - адский) у головки (x, y, z). */
+    /** Particles of the {@code world} torch (null - Nether) at the head (x, y, z). */
     public static void spawn(World w, TwilightWorld world, String key, double x, double y, double z, Random r) {
-        int set = Minecraft.getMinecraft().gameSettings.particleSetting; // 0 - все, 1 - меньше, 2 - минимум
+        int set = Minecraft.getMinecraft().gameSettings.particleSetting; // 0 - all, 1 - fewer, 2 - minimum
         if (set == 2 && r.nextInt(3) != 0) return;
         boolean less = set > 0;
-        if ("iceika".equals(key)) { // мороз: снежинки кружат и падают, иней искрит холодным светом
+        if ("iceika".equals(key)) { // frost: snowflakes swirl and fall, rime sparkles with a cold light
             for (int i = less ? 1 : 2; i > 0; i--)
                 add(new TorchFX(w, x + jit(r, 0.5), y + 0.2 + r.nextDouble() * 0.3, z + jit(r, 0.5), jit(r, 0.01), -0.01, jit(r, 0.01),
                     r.nextBoolean() ? 0xFFFFFF : 0xD8F0FF, PUFF, 0.35F, 40 + r.nextInt(20), 0.05F, false));
@@ -152,13 +152,13 @@ public class TorchFX extends EntityFX {
             if (r.nextInt(3) == 0) w.spawnParticle("snowshovel", x, y, z, 0, 0, 0);
             return;
         }
-        if ("vethea".equals(key)) { // сон: лиловые и бирюзовые огоньки медленно кружат вокруг и тают
+        if ("vethea".equals(key)) { // dream: lilac and turquoise lights slowly swirl around and fade
             double a = r.nextDouble() * Math.PI * 2;
             add(new TorchFX(w, x, y - 0.05, z, 0, 0.01, 0, r.nextBoolean() ? 0xB070FF : 0x50FFD0, SPARK, 0.35F, 40, 0, true).orbit(x, z, a, 0.25, 0.12));
             if (!less) add(new TorchFX(w, x + jit(r, 0.3), y + jit(r, 0.2), z + jit(r, 0.3), jit(r, 0.005), 0.008, jit(r, 0.005), 0xE0C8FF, PUFF, 0.6F, 35, 0, true));
             return;
         }
-        if (world == null) { // ад: угли рвутся вверх, иногда хлопок лавы
+        if (world == null) { // Nether: embers burst upward, sometimes a lava pop
             w.spawnParticle("flame", x, y, z, 0, 0, 0);
             for (int i = less ? 1 : 2; i > 0; i--)
                 add(new TorchFX(w, x + jit(r, 0.15), y + 0.05, z + jit(r, 0.15), jit(r, 0.03), 0.04 + r.nextDouble() * 0.04, jit(r, 0.03),
@@ -168,7 +168,7 @@ public class TorchFX extends EntityFX {
             return;
         }
         switch (world) {
-            case EDEN: { // солнце: лучи во все стороны и тёплое сияние вверх
+            case EDEN: { // sun: rays in all directions and a warm glow upward
                 int n = less ? 3 : 5;
                 double a0 = r.nextDouble() * Math.PI * 2;
                 for (int i = 0; i < n; i++) {
@@ -179,14 +179,14 @@ public class TorchFX extends EntityFX {
                 add(new TorchFX(w, x, y + 0.05, z, 0, 0.015, 0, 0xFFD23F, PUFF, 0.9F, 14, 0, true));
                 break;
             }
-            case WILDWOOD: { // луна и вода: капля срывается вниз, лунные искры всплывают покачиваясь
+            case WILDWOOD: { // moon and water: a drop breaks off downward, moon sparks float up swaying
                 add(new TorchFX(w, x + jit(r, 0.1), y - 0.15, z + jit(r, 0.1), 0, -0.01, 0, 0x3C7FE0, DROP, 0.8F, 40, 0.6F, false));
                 for (int i = less ? 1 : 2; i > 0; i--)
                     add(new TorchFX(w, x + jit(r, 0.4), y + jit(r, 0.2), z + jit(r, 0.4), jit(r, 0.01), 0.012, jit(r, 0.01),
                         r.nextBoolean() ? 0xC4ECFF : 0x7FC4E6, SPARK, 0.25F, 25 + r.nextInt(15), 0, true));
                 break;
             }
-            case APALACHIA: { // разлом: всё вокруг затягивает внутрь, мелькают бирюзовые сбои
+            case APALACHIA: { // rift: everything around is pulled inward, turquoise glitches flicker
                 for (int i = less ? 2 : 4; i > 0; i--) {
                     double a = r.nextDouble() * Math.PI * 2, d = 0.6 + r.nextDouble() * 0.4;
                     add(new TorchFX(w, x + Math.cos(a) * d, y + jit(r, 0.8), z + Math.sin(a) * d, 0, 0, 0,
@@ -196,7 +196,7 @@ public class TorchFX extends EntityFX {
                     add(new TorchFX(w, x + jit(r, 0.8), y + jit(r, 0.6), z + jit(r, 0.8), 0, 0, 0, 0x3DFFF2, SPARK, 0.35F, 4, 0, true));
                 break;
             }
-            case SKYTHERN: { // ветер: облачка сносит в одну сторону (поворачивается со временем), искры вьются вокруг
+            case SKYTHERN: { // wind: clouds are swept in one direction (turning over time), sparks swirl around
                 double wind = w.getTotalWorldTime() / 400.0;
                 for (int i = less ? 1 : 2; i > 0; i--)
                     add(new TorchFX(w, x + jit(r, 0.2), y + 0.05, z + jit(r, 0.2), Math.cos(wind) * 0.05, 0.008, Math.sin(wind) * 0.05,
@@ -206,7 +206,7 @@ public class TorchFX extends EntityFX {
                 if (!less) add(new TorchFX(w, x, y - 0.1, z, 0, 0.02, 0, 0x5FB8F5, SPARK, 0.3F, 26, 0, true).orbit(x, z, a + Math.PI, 0.2, 0.35));
                 break;
             }
-            default: { // Мортум: кровь капает, над каплей тёмный дым, изредка багровые искры
+            default: { // Mortum: blood drips, dark smoke above the drop, occasionally crimson sparks
                 add(new TorchFX(w, x + jit(r, 0.1), y - 0.15, z + jit(r, 0.1), 0, -0.01, 0, 0x8A0000, DROP, 0.8F, 40, 0.7F, false));
                 add(new TorchFX(w, x + jit(r, 0.1), y + 0.1, z + jit(r, 0.1), jit(r, 0.01), 0.025, jit(r, 0.01),
                     r.nextBoolean() ? 0x2A0505 : 0x4A0000, PUFF, 1.0F, 30 + r.nextInt(10), 0, false));

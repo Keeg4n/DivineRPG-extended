@@ -15,18 +15,18 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Лета - багровая река забвения в низинах Мортума. С 0.99.111 река мира - та же жидкость, что Лета из ведра ({@code flows}):
- * течёт, как вода, и между двумя источниками рождает новый (поэтому и вычерпанное в русле заливается само). Без течения
- * ({@code flows = false}) блок остаётся неподвижным, а пустоты в русле заливает {@link #refill}.
- * Вошедший забывает: с него слетают все эффекты, мобы теряют его из виду; пока стоишь в реке - утекают опыт и аркана, без арканы
- * река кусает ({@link com.divinerpgextended.world.twilight.MortumWorld}).
+ * Lethe is the crimson river of oblivion in the lowlands of Mortum. Since 0.99.111 the world river is the same liquid as Lethe from a bucket ({@code flows}):
+ * it flows like water and between two sources creates a new one (so what is scooped out of the riverbed refills by itself). Without flow
+ * ({@code flows = false}) the block stays still, and gaps in the riverbed are filled by {@link #refill}.
+ * Whoever enters forgets: all effects fall off, mobs lose sight of him; while you stand in the river experience and arcana drain away, and without arcana
+ * the river bites ({@link com.divinerpgextended.world.twilight.MortumWorld}).
  */
 public class BlockLethe extends BlockFluidClassic {
 
     @SideOnly(Side.CLIENT)
     private IIcon still, flow;
 
-    /** Течёт ли (Лета из ведра); река мира - нет. */
+    /** Whether it flows (Lethe from a bucket); the world river does not. */
     public final boolean flows;
 
     public BlockLethe(Fluid f, boolean flows) {
@@ -39,8 +39,8 @@ public class BlockLethe extends BlockFluidClassic {
     }
 
     /**
-     * Река мира не течёт (русло задаёт генерация), но и дыр не держит: вычерпали ведром, поставили и сломали блок - пустое место
-     * в русле снова заливается. Лета из ведра течёт, а между двумя источниками на дне - новый источник.
+     * The world river does not flow (the riverbed is set by generation), but does not hold holes either: scooped out with a bucket, a block placed and broken - the empty spot
+     * in the riverbed fills again. Lethe from a bucket flows, and between two sources on the bottom - a new source.
      */
     @Override
     public void updateTick(World w, int x, int y, int z, Random r) {
@@ -58,7 +58,7 @@ public class BlockLethe extends BlockFluidClassic {
 
     private static final int[][] SIDES = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 0, 1 }, { 0, 0, -1 }, { 0, 1, 0 }, { 0, -1, 0 } };
 
-    /** Залить пустоты в русле рядом с этим блоком реки. Сколько залито. */
+    /** Fill gaps in the riverbed near this river block. How many were filled. */
     public int refill(World w, int x, int y, int z) {
         if (w.isRemote || w.getBlockMetadata(x, y, z) != 0) return 0;
         int n = 0;
@@ -72,8 +72,8 @@ public class BlockLethe extends BlockFluidClassic {
     }
 
     /**
-     * Пустота внутри русла, а не берег и не воздух над рекой: рядом два источника реки и снизу дно или река (как вода рождает
-     * источник), либо сверху река (вычерпали со дна, разрыв водопада).
+     * A gap inside the riverbed, not a bank and not the air above the river: two river sources nearby and bottom or river below (as water creates
+     * a source), or river above (scooped from the bottom, a waterfall break).
      */
     private boolean holeInRiver(World w, int x, int y, int z) {
         int side = 0;
@@ -87,7 +87,7 @@ public class BlockLethe extends BlockFluidClassic {
         return w.getBlock(x, y, z) == this && w.getBlockMetadata(x, y, z) == 0;
     }
 
-    /** Источник Леты (река мира или из ведра). */
+    /** Lethe source (world river or from a bucket). */
     public static boolean isSource(World w, int x, int y, int z) {
         return w.getBlock(x, y, z) instanceof BlockLethe && w.getBlockMetadata(x, y, z) == 0;
     }

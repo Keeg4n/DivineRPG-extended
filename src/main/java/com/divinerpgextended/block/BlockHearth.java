@@ -13,8 +13,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Очаг в домах торговцев Iceika: горит вечно, светит и греет (для холода считается как огонь), но огонь из него не
- * перекидывается на деревянный пол.
+ * Hearth in Iceika merchant houses: burns forever, gives light and warmth (counts as fire for the cold), but the fire from it does not
+ * spread to a wooden floor.
  */
 public class BlockHearth extends Block {
 
@@ -46,7 +46,7 @@ public class BlockHearth extends Block {
     @Override
     @SideOnly(Side.CLIENT)
     public void randomDisplayTick(World world, int x, int y, int z, Random rand) {
-        // пламя у открытых сторон (очаг стоит в стене, над ним полка)
+        // flame at the open sides (the hearth stands in a wall, with a shelf above)
         int[][] sides = { { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } };
         for (int[] s : sides) {
             if (!world.isAirBlock(x + s[0], y, z + s[1])) continue;

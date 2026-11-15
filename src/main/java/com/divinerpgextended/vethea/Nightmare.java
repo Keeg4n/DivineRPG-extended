@@ -52,23 +52,23 @@ import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.registry.GameData;
 
 /**
- * Ветея - мир кошмаров: чужие (не ветейские) вещи работают наоборот. Вместо отдельного инвентаря: принести можно что
- * угодно, но пользоваться этим во сне вредно.
+ * Vethea is the world of nightmares: foreign (non-Vethean) items work in reverse. Instead of a separate inventory: you can bring
+ * anything, but using it in the dream is harmful.
  * <ul>
- * <li>чужое оружие лечит цель вместо урона (по игрокам - просто не бьёт);</li>
- * <li>чужая броня не защищает, а усиливает входящий урон настолько, насколько защищала бы (80% -> x1.8);</li>
- * <li>чужая еда отнимает сытость, чужие зелья дают обратный эффект;</li>
- * <li>чужие инструменты копают в 5 раз медленнее и только блок под рукой;</li>
- * <li>ПКМ чужой вещью не срабатывает, кроме строительства, еды, зелий и луков ({@link NightmareHands});</li>
- * <li>чужие аксессуары Baubles молчат ({@link NightmareBaubles}).</li>
+ * <li>foreign weapons heal the target instead of damaging (against players - simply do not hit);</li>
+ * <li>foreign armor does not protect but amplifies incoming damage by as much as it would have protected (80% -> x1.8);</li>
+ * <li>foreign food takes away satiety, foreign potions give the opposite effect;</li>
+ * <li>foreign tools dig 5 times slower and only the block under the hand;</li>
+ * <li>right-click with a foreign item does not work, except for building, food, potions and bows ({@link NightmareHands});</li>
+ * <li>foreign Baubles accessories are silent ({@link NightmareBaubles}).</li>
  * </ul>
- * Всё это - до победы над всеми боссами Ветеи.
- * Своими считаются предметы и блоки Ветеи из Divine, ветейское от аддона и белый список из конфига.
+ * All this holds until all Vethea bosses are defeated.
+ * Vethea items and blocks from Divine, Vethean items from the addon and the config whitelist count as native.
  */
 public class Nightmare {
 
     private static Set<Item> vethean;
-    /** Какие подсказки игрок уже видел за этот заход. */
+    /** Which hints the player has already seen during this session. */
     private static final Map<UUID, Set<String>> HINTS = new HashMap<UUID, Set<String>>();
 
     public static boolean inVethea(Entity e) {
@@ -79,17 +79,17 @@ public class Nightmare {
         return w != null && w.provider.dimensionId == ConfigurationHelper.vethea;
     }
 
-    /** Кошмар действует: в Ветее, не в творческом и пока не побеждены все боссы Ветеи (после - сон покорён). */
+    /** The nightmare is in effect: in Vethea, not in creative and until all Vethea bosses are defeated (after that the dream is conquered). */
     public static boolean active(EntityPlayer p) {
         return Config.vetheaNightmare && inVethea(p) && !p.capabilities.isCreativeMode && !VetheaFloors.allBosses(p);
     }
 
-    /** Наяву (вне Ветеи) вещи сна не работают, пока не побеждены все боссы Ветеи. */
+    /** In waking life (outside Vethea) dream items do not work until all Vethea bosses are defeated. */
     public static boolean awake(EntityPlayer p) {
         return Config.vetheaNightmare && !inVethea(p) && !p.capabilities.isCreativeMode && !VetheaFloors.allBosses(p);
     }
 
-    /** Оператор сервера (или хозяин одиночной игры с читами). */
+    /** Server operator (or the owner of a single-player game with cheats). */
     public static boolean op(EntityPlayer p) {
         MinecraftServer s = MinecraftServer.getServer();
         return s != null && s.getConfigurationManager().func_152596_g(p.getGameProfile());
@@ -118,7 +118,7 @@ public class Nightmare {
         return vethean = s;
     }
 
-    /** Своя для Ветеи вещь (пустая рука - тоже). */
+    /** An item native to Vethea (an empty hand too). */
     public static boolean vethean(ItemStack s) {
         if (s == null) return true;
         Item i = s.getItem();
@@ -131,8 +131,8 @@ public class Nightmare {
     }
 
     /**
-     * Ставит блок и только: двери, кровати, таблички, редстоун, повторители, горшки, головы, семена, картины. Во сне ими
-     * можно строить, как обычными блоками.
+     * Only places a block: doors, beds, signs, redstone, repeaters, pots, heads, seeds, paintings. In the dream they
+     * can be used for building like ordinary blocks.
      */
     public static boolean placer(Item i) {
         return i instanceof net.minecraft.item.ItemBlock || i instanceof net.minecraft.item.ItemReed || i instanceof net.minecraft.item.ItemDoor
@@ -141,9 +141,9 @@ public class Nightmare {
     }
 
     /**
-     * ПКМ чужой вещью во сне до прохождения работает: строительство ({@link #placer}), еда и зелья (их кошмар
-     * переворачивает), луки (их стрелы лечат мобов сна). Остальное чужое (жезлы, фокусы, сигилы, призывы, телепорты,
-     * площадные инструменты, блок мечом) не срабатывает.
+     * Right-click with a foreign item in the dream before completion works for: building ({@link #placer}), food and potions (the nightmare
+     * reverses them), bows (their arrows heal dream mobs). Everything else foreign (rods, foci, sigils, summons, teleports,
+     * area tools, block with a sword) does not work.
      */
     public static boolean usable(ItemStack s) {
         if (s == null || vethean(s)) return true;
@@ -151,7 +151,7 @@ public class Nightmare {
         return placer(i) || i instanceof ItemFood || i instanceof ItemPotion || i instanceof ItemBow;
     }
 
-    /** Tinkers' Construct, Tainted Magic (катана, разборщик), Blood Magic (связанный мульти-инструмент). */
+    /** Tinkers' Construct, Tainted Magic (katana, disassembler), Blood Magic (bound multi-tool). */
     private static final Set<String> FOREIGN_WEAPONS = new HashSet<String>(java.util.Arrays.asList(
         "tconstruct.library.tools.ToolCore",
         "taintedmagic.common.items.tools.ItemKatana",
@@ -172,7 +172,7 @@ public class Nightmare {
     static boolean weapon(ItemStack s) {
         Item i = s.getItem();
         if (i instanceof ItemSword || i instanceof ItemTool || i instanceof ItemBow) return true;
-        // оружие других модов без ванильной основы и атрибута урона (урон считают сами) - узнаём по классу
+        // weapons of other mods without a vanilla base and a damage attribute (they compute damage themselves) - recognized by class
         for (Class<?> c = i.getClass(); c != null; c = c.getSuperclass()) {
             if (FOREIGN_WEAPONS.contains(c.getName())) return true;
         }
@@ -205,9 +205,9 @@ public class Nightmare {
         }
     }
 
-    // ---------------- Урон: чужое оружие и чужая броня ----------------
+    // ---------------- Damage: foreign weapons and foreign armor ----------------
 
-    /** Урон, перевыпущенный сквозь броню (чужая броня в Ветее не защищает). */
+    /** Damage reissued through the armor (foreign armor in Vethea does not protect). */
     static class Unarmored extends DamageSource {
 
         Unarmored(DamageSource orig) {
@@ -241,7 +241,7 @@ public class Nightmare {
         }
         if (e.source instanceof Unarmored || e.source instanceof UnarmoredEntity) return;
         Entity src = e.source.getEntity();
-        // чужое оружие (или выстрел, пока в руке чужая вещь) лечит
+        // a foreign weapon (or a shot while a foreign item is in hand) heals
         if (src instanceof EntityPlayer && active((EntityPlayer) src)) {
             EntityPlayer p = (EntityPlayer) src;
             ItemStack held = p.getHeldItem();
@@ -252,10 +252,10 @@ public class Nightmare {
                 return;
             }
         }
-        // чужая броня: не защищает и усиливает удар
+        // foreign armor: does not protect and amplifies the hit
         if (e.entityLiving instanceof EntityPlayer && active((EntityPlayer) e.entityLiving) && !e.source.isUnblockable()) {
             EntityPlayer p = (EntityPlayer) e.entityLiving;
-            // чем сильнее чужая броня защищала бы, тем сильнее она притягивает удар: защита 80% -> урон x1.8
+            // the more a foreign armor would have protected, the more it attracts the hit: 80% protection -> x1.8 damage
             double guard = 0;
             boolean alien = false;
             for (int slot = 0; slot < 4; slot++) {
@@ -266,9 +266,9 @@ public class Nightmare {
             }
             if (!alien) return;
             e.setCanceled(true);
-            // заметка - до повторного удара, иначе отладка прицепит её к нему, а не к отменённому
-            com.divinerpgextended.debug.Debug.note(p, "Кошмар: чужая броня, удар заменён на x" + String.format("%.2f", 1 + Math.min(guard, 1.0))
-                + " сквозь броню");
+            // note - before the repeated hit, otherwise debugging attaches it to it, not to the cancelled one
+            com.divinerpgextended.debug.Debug.note(p, "Nightmare: foreign armor, hit replaced with x" + String.format("%.2f", 1 + Math.min(guard, 1.0))
+                + " through armor");
             DamageSource again = e.source.getEntity() != null || e.source.getSourceOfDamage() != null ? new UnarmoredEntity(e.source)
                 : new Unarmored(e.source);
             p.attackEntityFrom(again, (float) (e.ammount * (1 + Math.min(guard, 1.0))));
@@ -277,8 +277,8 @@ public class Nightmare {
     }
 
     /**
-     * Взрыв снаряда чужой вещи (ракеты, гранаты, огненные шары из чужого оружия) во сне до прохождения: мобов сна не
-     * ранит, а лечит, блоки сна не ломает.
+     * Explosion of a foreign item's projectile (rockets, grenades, fireballs from foreign weapons) in the dream before completion: does not
+     * hurt dream mobs but heals them, does not break dream blocks.
      */
     @SubscribeEvent
     public void onDetonate(net.minecraftforge.event.world.ExplosionEvent.Detonate e) {
@@ -296,7 +296,7 @@ public class Nightmare {
         }
     }
 
-    /** Чей взрыв: метатель снаряда, стрелок, поджигатель. */
+    /** Whose explosion: the projectile's thrower, the shooter, the igniter. */
     static EntityPlayer owner(net.minecraft.world.Explosion x) {
         Entity ex = x.exploder, o = null;
         if (ex instanceof net.minecraft.entity.projectile.EntityThrowable) o = ((net.minecraft.entity.projectile.EntityThrowable) ex).getThrower();
@@ -307,28 +307,28 @@ public class Nightmare {
         return o instanceof EntityPlayer ? (EntityPlayer) o : null;
     }
 
-    /** Своя для сна цель: мобы самой Ветеи и игроки. Ванильных и чужих мобов чужое оружие бьёт как обычно. */
+    /** A target native to the dream: Vethea's own mobs and players. Vanilla and foreign mobs are hit by foreign weapons as usual. */
     static boolean nativeTarget(Entity t) {
         return t instanceof EntityPlayer || t != null && t.getClass().getName().startsWith("net.divinerpg.entities.vethea.");
     }
 
-    /** Чужое оружие во сне: вместо урона - лечение (игроков - просто не бьёт). */
+    /** A foreign weapon in the dream: instead of damage - healing (players are simply not hit). */
     static void soothe(EntityPlayer p, EntityLivingBase t, float amount) {
         if (!(t instanceof EntityPlayer)) {
             t.heal(amount);
             ((net.minecraft.world.WorldServer) p.worldObj).func_147487_a("heart", t.posX, t.posY + t.height, t.posZ, 2, 0.3, 0.2, 0.3, 0);
         }
-        com.divinerpgextended.debug.Debug.note(p, "Кошмар: чужое оружие лечит вместо урона (" + amount + ")");
+        com.divinerpgextended.debug.Debug.note(p, "Nightmare: foreign weapon heals instead of damaging (" + amount + ")");
         hint(p, "weapon");
     }
 
-    /** Наяву до победы над всеми боссами Ветеи: оружие сна не ранит, броня сна не защищает. */
+    /** In waking life until all Vethea bosses are defeated: dream weapons do not hurt, dream armor does not protect. */
     private static void awakeAttack(LivingAttackEvent e) {
         if (e.source instanceof Unarmored || e.source instanceof UnarmoredEntity) return;
         Entity src = e.source.getEntity();
         if (src instanceof EntityPlayer && awake((EntityPlayer) src) && WeaponKind.of(e.source) != null) {
             e.setCanceled(true);
-            com.divinerpgextended.debug.Debug.note(src, "Наяву: оружие сна не ранит (не все боссы Ветеи побеждены)");
+            com.divinerpgextended.debug.Debug.note(src, "Awake: dream weapon does not hurt (not all Vethea bosses defeated)");
             hint((EntityPlayer) src, "awake_weapon");
             return;
         }
@@ -342,13 +342,13 @@ public class Nightmare {
         }
         if (!dream) return;
         e.setCanceled(true);
-        com.divinerpgextended.debug.Debug.note(p, "Наяву: броня сна не защищает, удар сквозь броню");
+        com.divinerpgextended.debug.Debug.note(p, "Awake: dream armor does not protect, hit goes through armor");
         DamageSource again = e.source.getEntity() != null || e.source.getSourceOfDamage() != null ? new UnarmoredEntity(e.source) : new Unarmored(e.source);
         p.attackEntityFrom(again, e.ammount);
         hint(p, "awake_armor");
     }
 
-    /** Какую долю урона вещь сняла бы обычно: особая броня (Divine и др.) - по её свойствам, обычная - 4% за очко. */
+    /** What fraction of damage the item would normally absorb: special armor (Divine etc.) - by its properties, ordinary - 4% per point. */
     private static double protection(EntityPlayer p, ItemStack a, DamageSource s, float amount, int slot) {
         Item i = a.getItem();
         try {
@@ -357,7 +357,7 @@ public class Nightmare {
         return i instanceof ItemArmor ? ((ItemArmor) i).damageReduceAmount * 0.04 : 0;
     }
 
-    // ---------------- Еда и зелья ----------------
+    // ---------------- Food and potions ----------------
 
     @SubscribeEvent
     public void onEaten(PlayerUseItemEvent.Finish e) {
@@ -367,15 +367,15 @@ public class Nightmare {
         if (i instanceof ItemFood) {
             ItemFood f = (ItemFood) i;
             int heal = Math.max(1, f.func_150905_g(e.item));
-            p.removePotionEffect(23); // Насыщение: им кормит Печенье маны Ботании (своей сытости у него почти нет)
-            // сытость уже прибавилась - отнимаем вдвое: итог как будто еда отняла столько же
+            p.removePotionEffect(23); // Saturation: Botania's Mana Cookie feeds with it (it has almost no satiety of its own)
+            // satiety has already been added - we take away double: the result is as if the food took away as much
             NBTTagCompound t = new NBTTagCompound();
             p.getFoodStats().writeNBT(t);
             t.setInteger("foodLevel", Math.max(0, t.getInteger("foodLevel") - 2 * heal));
             t.setFloat("foodSaturationLevel", 0F);
             p.getFoodStats().readNBT(t);
             p.addPotionEffect(new PotionEffect(Potion.hunger.id, 300, 1));
-            com.divinerpgextended.debug.Debug.note(p, "Кошмар: чужая еда, сытость -" + 2 * heal);
+            com.divinerpgextended.debug.Debug.note(p, "Nightmare: foreign food, saturation -" + 2 * heal);
             hint(p, "food");
         } else if (i instanceof ItemPotion) {
             List<?> effects = ((ItemPotion) i).getEffects(e.item);
@@ -386,21 +386,21 @@ public class Nightmare {
                 if (pot == null || bad(pot)) continue;
                 p.removePotionEffect(pe.getPotionID());
                 if (pe.getPotionID() == Potion.heal.id) {
-                    p.attackEntityFrom(DamageSource.magic, 2 * (4 << pe.getAmplifier())); // уже вылечило - снимаем вдвое
+                    p.attackEntityFrom(DamageSource.magic, 2 * (4 << pe.getAmplifier())); // it already healed - we take away double
                     continue;
                 }
                 Potion inv = inverse(pot);
                 if (inv != null) p.addPotionEffect(new PotionEffect(inv.id, Math.max(pe.getDuration(), 100), pe.getAmplifier()));
                 else if (pot == Potion.fireResistance) p.setFire(Math.min(pe.getDuration() / 20, 10));
             }
-            com.divinerpgextended.debug.Debug.note(p, "Кошмар: чужое зелье перевёрнуто");
+            com.divinerpgextended.debug.Debug.note(p, "Nightmare: foreign potion inverted");
             hint(p, "potion");
         }
     }
 
     /**
-     * Плохой ли эффект. Potion.isBadEffect() в Minecraft есть только на клиенте - на сервере вызов падает, поэтому
-     * читаем само поле.
+     * Whether an effect is bad. Potion.isBadEffect() in Minecraft exists only on the client - on the server the call fails, so
+     * we read the field itself.
      */
     public static boolean bad(Potion p) {
         try {
@@ -422,18 +422,18 @@ public class Nightmare {
         return null;
     }
 
-    // ---------------- Тик брони ----------------
+    // ---------------- Armor tick ----------------
 
     /**
-     * Вызов из InventoryPlayer.decrementAnimations вместо Item.onArmorTick ({@link com.divinerpgextended.asm.ArmorTickTransformer}):
-     * во сне до прохождения чужая броня не тикает - её зелья, скорость, полёт и прочее не идут.
+     * Called from InventoryPlayer.decrementAnimations instead of Item.onArmorTick ({@link com.divinerpgextended.asm.ArmorTickTransformer}):
+     * in the dream before completion foreign armor does not tick - its potions, speed, flight and so on do not apply.
      */
     public static void armorTick(Item i, net.minecraft.world.World w, EntityPlayer p, ItemStack s) {
         if (active(p) && !vethean(s)) return;
         i.onArmorTick(w, p, s);
     }
 
-    // ---------------- Инструменты ----------------
+    // ---------------- Tools ----------------
 
     @SubscribeEvent
     public void onBreakSpeed(BreakSpeed e) {

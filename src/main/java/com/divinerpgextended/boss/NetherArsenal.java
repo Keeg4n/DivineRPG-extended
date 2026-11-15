@@ -35,17 +35,17 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Адское оружие дальнего боя - у каждого своя роль.
+ * Nether ranged weapons - each has its own role.
  * <ul>
- * <li>Пушка гаста: тяжёлый выстрел. Сбивает заряд и замах Смотрителя ({@link WatcherHunt}), у дракона орды Айрако -
- * огненное дыхание и заход в атаку (уходит на круг).</li>
- * <li>Maelstrom: очередь; снаряд пробивает насквозь до {@link #PIERCE} целей и проходит щит синего Айрако.</li>
- * <li>Sound of Music и Sound of Carols: не чаще раза в {@link #MUSIC_EVERY} тиков (звук больше не накладывается, лишний
- * клик не тратит заряд), ноты летят без падения и до {@link #BOUNCES} раз отскакивают от стен. Music по приспешникам
- * боссов - вдвое; Carols замедляет цель, по Ледяному Колоссу и Снежному Глакону - в полтора раза.</li>
- * <li>Король скорчеров - см. {@link KingRace} (там же Maelstrom и Sound of Music против него).</li>
- * <li>Перезарядка ({@link Reload}): пушка гаста + слёзы гаста, Maelstrom + фиолетовые сгустки - по {@link #RELOAD}
- * выстрелов за штуку; только тем, кто победил Короля скорчеров.</li>
+ * <li>Ghast cannon: a heavy shot. Knocks down the Watcher's charge and windup ({@link WatcherHunt}); against the Ayeraco horde dragon -
+ * fire breath and the attack approach (it goes around for another circle).</li>
+ * <li>Maelstrom: a burst; the projectile pierces up to {@link #PIERCE} targets and passes through the shield of the blue Ayeraco.</li>
+ * <li>Sound of Music and Sound of Carols: no more than once per {@link #MUSIC_EVERY} ticks (the sound no longer overlaps, an extra
+ * click does not spend a charge), the notes fly without falling and bounce off walls up to {@link #BOUNCES} times. Music deals double against boss
+ * minions; Carols slows the target, and against the Frost Colossus and Snow Glacon deals 1.5 times.</li>
+ * <li>King of Scorchers - see {@link KingRace} (Maelstrom and Sound of Music against him are described there too).</li>
+ * <li>Reload ({@link Reload}): ghast cannon + ghast tears, Maelstrom + purple clots - {@link #RELOAD}
+ * shots per piece; only for those who defeated the King of Scorchers.</li>
  * </ul>
  */
 public class NetherArsenal {
@@ -54,7 +54,7 @@ public class NetherArsenal {
     public static final float MINION_MULT = 2F, ICE_MULT = 1.5F;
     static final String PIERCED = "drePierced", BOUNCED = "dreBounced";
 
-    // ---------------------------------------------------------------- что чем стреляло
+    // ---------------------------------------------------------------- what shot with what
 
     static boolean bulletOf(DamageSource src, String tex, Item gun) {
         Entity bullet = src.getSourceOfDamage(), shooter = src.getEntity();
@@ -64,17 +64,17 @@ public class NetherArsenal {
         return shooter instanceof EntityPlayer && ((EntityPlayer) shooter).getHeldItem() != null && ((EntityPlayer) shooter).getHeldItem().getItem() == gun;
     }
 
-    /** Пуля пушки гаста. */
+    /** A ghast cannon bullet. */
     public static boolean ghastCannon(DamageSource src) {
         return bulletOf(src, "ghast", VanillaItemsWeapons.ghastCannon);
     }
 
-    /** Снаряд Maelstrom. */
+    /** A Maelstrom projectile. */
     public static boolean maelstrom(DamageSource src) {
         return bulletOf(src, "maelstrom", VanillaItemsWeapons.maelstrom);
     }
 
-    // ---------------------------------------------------------------- урон
+    // ---------------------------------------------------------------- damage
 
     @SubscribeEvent(priority = EventPriority.NORMAL)
     public void onHurt(LivingHurtEvent e) {
@@ -86,7 +86,7 @@ public class NetherArsenal {
             v.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 60, 1));
             if (v instanceof com.divinerpgextended.entity.EntityFrostColossus || v instanceof com.divinerpgextended.entity.EntitySnowGlacon) e.ammount *= ICE_MULT;
         }
-        // дракон орды: пушка гаста сбивает дыхание и заход
+        // horde dragon: the ghast cannon knocks down the breath and the approach
         if (ghastCannon(e.source) && AyeracoHorde.member(v)) {
             long now = v.worldObj.getTotalWorldTime();
             v.getEntityData().setLong(AyeracoHorde.BREATH, 0);
@@ -96,7 +96,7 @@ public class NetherArsenal {
         if (maelstrom(e.source)) pierce((EntityShooterBullet) proj, v);
     }
 
-    /** Снаряд Maelstrom пробивает цель: дальше летит такой же, пока не пробил {@link #PIERCE}. */
+    /** A Maelstrom projectile pierces the target: the next flies on the same, until it has pierced {@link #PIERCE}. */
     static void pierce(EntityShooterBullet b, EntityLivingBase hit) {
         int n = b.getEntityData().getInteger(PIERCED) + 1;
         if (n >= PIERCE || !(b.getThrower() instanceof EntityLivingBase)) return;
@@ -124,9 +124,9 @@ public class NetherArsenal {
         }
     }
 
-    // ---------------------------------------------------------------- музыкалки
+    // ---------------------------------------------------------------- music weapons
 
-    /** Последний выстрел музыкалкой (тик мира); игрок, у которого лишний выстрел только что отменён. */
+    /** The last shot with a music weapon (world tick); the player whose extra shot was just cancelled. */
     static final Map<EntityPlayer, Long> LAST_NOTE = new WeakHashMap<EntityPlayer, Long>();
     static final Map<EntityPlayer, Long> MUTE = new WeakHashMap<EntityPlayer, Long>();
 
@@ -141,13 +141,13 @@ public class NetherArsenal {
             e.setCanceled(true);
             MUTE.put(p, now);
             ItemStack held = p.getHeldItem();
-            if (held != null && held.getItemDamage() > 0) held.setItemDamage(held.getItemDamage() - 1); // заряд вернётся: дальше Divine его снимет
+            if (held != null && held.getItemDamage() > 0) held.setItemDamage(held.getItemDamage() - 1); // the charge will come back: Divine will remove it later
             return;
         }
         LAST_NOTE.put(p, now);
     }
 
-    /** Звук отменённого выстрела музыкалки - тоже не играть. */
+    /** The sound of a cancelled music weapon shot should not play either. */
     @SubscribeEvent
     public void onSound(PlaySoundAtEntityEvent e) {
         if (!(e.entity instanceof EntityPlayer) || e.entity.worldObj.isRemote || e.name == null) return;
@@ -155,7 +155,7 @@ public class NetherArsenal {
         if (m != null && m == e.entity.worldObj.getTotalWorldTime() && (e.name.contains("soundOfMusic") || e.name.contains("soundOfCarols"))) e.setCanceled(true);
     }
 
-    /** Ноты без падения и с отскоком от стен. */
+    /** Notes without falling and with bouncing off walls. */
     @SubscribeEvent
     public void onTick(TickEvent.WorldTickEvent e) {
         if (e.phase != TickEvent.Phase.END || e.world.isRemote) return;
@@ -163,12 +163,12 @@ public class NetherArsenal {
             if (!(o instanceof EntityMusic || o instanceof EntityCarol)) continue;
             EntityThrowable n = (EntityThrowable) o;
             if (n.isDead) continue;
-            n.motionY += 0.03 * 0.99; // гравитация броска - назад
+            n.motionY += 0.03 * 0.99; // throw gravity - back
             bounce(e.world, n);
         }
     }
 
-    /** Отскок ноты от блока на пути за этот тик (не больше {@link #BOUNCES} раз). */
+    /** A note bouncing off a block in its way this tick (no more than {@link #BOUNCES} times). */
     public static void bounce(World w, EntityThrowable n) {
         int b = n.getEntityData().getInteger(BOUNCED);
         if (b >= BOUNCES) return;
@@ -186,16 +186,16 @@ public class NetherArsenal {
         w.playSoundAtEntity(n, "note.pling", 0.5F, 1.2F + b * 0.3F);
     }
 
-    // ---------------------------------------------------------------- перезарядка
+    // ---------------------------------------------------------------- reload
 
-    /** Пушка гаста + слёзы гаста или Maelstrom + фиолетовые сгустки: по {@link #RELOAD} выстрелов за штуку. */
+    /** Ghast cannon + ghast tears or Maelstrom + purple clots: {@link #RELOAD} shots per piece. */
     public static class Reload implements IRecipe {
 
         static Item ammo(Item gun) {
             return gun == VanillaItemsWeapons.ghastCannon ? Items.ghast_tear : gun == VanillaItemsWeapons.maelstrom ? VanillaItemsOther.purpleBlaze : null;
         }
 
-        /** Пушка в сетке и число патронов, или null. */
+        /** The cannon in the grid and the number of rounds, or null. */
         static Object[] parse(InventoryCrafting inv) {
             ItemStack gun = null;
             int n = 0;
@@ -246,7 +246,7 @@ public class NetherArsenal {
         }
     }
 
-    /** Кто крафтит: игрок у слота результата верстака (или инвентаря). */
+    /** Who crafts: the player at the result slot of the crafting table (or inventory). */
     static EntityPlayer crafter(InventoryCrafting inv) {
         try {
             Container c = ReflectionHelper.getPrivateValue(InventoryCrafting.class, inv, "eventHandler", "field_70465_c");
@@ -254,12 +254,12 @@ public class NetherArsenal {
             for (Object o : c.inventorySlots)
                 if (o instanceof SlotCrafting) return ReflectionHelper.getPrivateValue(SlotCrafting.class, (SlotCrafting) o, "thePlayer", "field_75238_b");
         } catch (Throwable t) {
-            // чужой контейнер (автокрафт) - не знаем игрока
+            // someone else's container (autocrafting) - we don't know the player
         }
         return null;
     }
 
-    /** Для проверок: перезарядка в сетке 3x3 у этого игрока (null - не крафтится). */
+    /** For tests: reload in the 3x3 grid of this player (null - not being crafted). */
     public static ItemStack reloadFor(EntityPlayer p, ItemStack gun, ItemStack ammo, int count) {
         net.minecraft.inventory.ContainerWorkbench c = new net.minecraft.inventory.ContainerWorkbench(p.inventory, p.worldObj, 0, 0, 0) {
 

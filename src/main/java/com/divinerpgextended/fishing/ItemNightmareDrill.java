@@ -20,8 +20,8 @@ import net.minecraftforge.common.util.EnumHelper;
 import com.divinerpgextended.Config;
 
 /**
- * Кошмарный бур - реликвия рыбалки в Ветее. Кирка, лопата и топор сразу, не ломается, копает очень быстро и
- * 3x3 по плоскости удара (присев - один блок; 3x3 выключается в конфиге).
+ * Nightmare Drill - a fishing relic in Vethea. A pickaxe, shovel and axe at once, does not break, digs very fast and
+ * 3x3 across the plane of the strike (sneaking - one block; 3x3 is disabled in the config).
  */
 public class ItemNightmareDrill extends ItemPickaxe {
 
@@ -55,7 +55,7 @@ public class ItemNightmareDrill extends ItemPickaxe {
     }
 
     @Override
-    public boolean func_150897_b(Block b) { // может добыть любой блок
+    public boolean func_150897_b(Block b) { // can mine any block
         return true;
     }
 
@@ -74,7 +74,7 @@ public class ItemNightmareDrill extends ItemPickaxe {
         return EnumRarity.epic;
     }
 
-    /** Ломает соседей 3x3 в плоскости, на которую смотрит игрок, обычным путём игрока (дроп, защита привата). */
+    /** Breaks the 3x3 neighbors in the plane the player is looking at, via the regular player path (drop, claim protection). */
     @Override
     public boolean onBlockStartBreak(ItemStack s, int x, int y, int z, EntityPlayer p) {
         World w = p.worldObj;
@@ -102,7 +102,7 @@ public class ItemNightmareDrill extends ItemPickaxe {
                     Block nb = w.getBlock(nx, ny, nz);
                     if (nb.getMaterial() == Material.air || nb.getMaterial().isLiquid()) continue;
                     float h = com.divinerpgextended.perk.MiningGuard.real(nb, w, nx, ny, nz);
-                    if (h < 0 || h > center * 4 + 2) continue; // бедрок не берёт, обсидиан вокруг земли не срывает
+                    if (h < 0 || h > center * 4 + 2) continue; // does not take bedrock, does not tear obsidian off around the ground
                     ((EntityPlayerMP) p).theItemInWorldManager.tryHarvestBlock(nx, ny, nz);
                 }
             }

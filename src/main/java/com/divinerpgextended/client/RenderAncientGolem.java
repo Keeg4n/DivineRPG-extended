@@ -21,9 +21,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Древний голем: модель голема Дикого леса из Divine, крупнее и темнее, мшистая. Отбитые части не рисуются (поля модели
- * Divine не публичные - берём рефлексией), без ног корпус оседает на землю. Лесной следопыт видит суставы - искры на
- * живых частях.
+ * Ancient Golem: the Wildwood Golem model from Divine, larger and darker, mossy. Knocked-off parts are not drawn (the Divine model
+ * fields are not public - taken by reflection), without legs the body settles on the ground. The Forest Tracker sees the joints - sparks on the
+ * living parts.
  */
 @SideOnly(Side.CLIENT)
 public class RenderAncientGolem extends RenderLiving {
@@ -60,11 +60,11 @@ public class RenderAncientGolem extends RenderLiving {
             && com.divinerpgextended.perk.HomeArmor.wears(Minecraft.getMinecraft().thePlayer, TwilightWorld.WILDWOOD, false)) joints(g);
     }
 
-    /** Суставы для Лесного следопыта: плечи и колени живых частей, ядро - когда открыто. */
+    /** Joints for the Forest Tracker: shoulders and knees of the living parts, the core when open. */
     private static void joints(EntityAncientGolem g) {
         double yaw = Math.toRadians(g.renderYawOffset), cx = Math.cos(yaw), cz = Math.sin(yaw);
         double s = EntityAncientGolem.SCALE / 16.0;
-        double[][] pts = { { -12, 20 }, { 12, 20 }, { 0, 2 } }; // x модели, высота от земли в единицах модели (ноги - колени)
+        double[][] pts = { { -12, 20 }, { 12, 20 }, { 0, 2 } }; // model x, height from the ground in model units (legs - knees)
         for (int i = 0; i < 3; i++) {
             if (g.broken(i)) continue;
             double side = pts[i][0] * s, up = (i == 2 ? 8 : 44) * s;
@@ -79,7 +79,7 @@ public class RenderAncientGolem extends RenderLiving {
     protected void preRenderCallback(EntityLivingBase entity, float partial) {
         EntityAncientGolem g = (EntityAncientGolem) entity;
         GL11.glScalef(EntityAncientGolem.SCALE, EntityAncientGolem.SCALE, EntityAncientGolem.SCALE);
-        if (g.broken(EntityAncientGolem.LEGS)) GL11.glTranslatef(0, 1.0F, 0); // без ног - корпус на земле
+        if (g.broken(EntityAncientGolem.LEGS)) GL11.glTranslatef(0, 1.0F, 0); // without legs - the body is on the ground
         float glow = g.coreOpen() ? 0.85F + 0.15F * (float) Math.sin(g.ticksExisted * 0.3) : 1.0F;
         GL11.glColor4f(0.7F * glow, 0.95F * glow, 0.7F * glow, 1.0F);
     }

@@ -23,15 +23,15 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Чужая площадная ломка без события ломки - через {@link AreaBreakHooks}:
+ * Other mods' area breaking without a break event - through {@link AreaBreakHooks}:
  * <ul>
- * <li>связанные кирка, топор и лопата Blood Magic (ПКМ ломает куб вокруг): canMineBlock в onItemRightClick - защита
- * одного спавна - заменяется проверкой с событием ломки на каждый блок;</li>
- * <li>Ботания, ToolCommons.removeBlockWithDrops (Крушитель Терры, Рубитель Терры и другие площадные) и Таумкрафт,
- * BlockUtils.harvestBlock (топор потока, фокусы, стихийные инструменты): в начале - "событие ломки отменено - выйти";</li>
- * <li>Treecapitator: во сне до прохождения чужим топором isBreakingPossible отвечает "нет".</li>
+ * <li>Blood Magic bound pickaxe, axe and shovel (right click breaks a cube around): canMineBlock in onItemRightClick - the protection
+ * of a single spawn - is replaced with a check with the break event for each block;</li>
+ * <li>Botania, ToolCommons.removeBlockWithDrops (Terra Shatterer, Terra Axe and other area tools) and Thaumcraft,
+ * BlockUtils.harvestBlock (axe of the stream, foci, elemental tools): at the start - "break event cancelled - exit";</li>
+ * <li>Treecapitator: in the dream before completion isBreakingPossible answers "no".</li>
  * </ul>
- * Ломка Tinkers (молот, экскаватор, лесоруб) событие шлёт сама.
+ * Tinkers breaking (hammer, excavator, lumber axe) sends the event itself.
  */
 public class AreaBreakTransformer implements IClassTransformer, Opcodes {
 
@@ -41,7 +41,7 @@ public class AreaBreakTransformer implements IClassTransformer, Opcodes {
         "WayofTime.alchemicalWizardry.common.items.BoundAxe", "WayofTime.alchemicalWizardry.common.items.BoundShovel"));
     private static final String BOTANIA = "vazkii.botania.common.item.equipment.tool.ToolCommons", THAUM = "thaumcraft.common.lib.utils.BlockUtils",
         TREECAP = "bspkrs.treecapitator.Treecapitator";
-    /** Поправки встали: проверяет самопроверка. */
+    /** The patches are in place: checked by the selftest. */
     public static final Set<String> patched = new HashSet<String>();
 
     @Override
@@ -63,12 +63,12 @@ public class AreaBreakTransformer implements IClassTransformer, Opcodes {
                         if (!"net/minecraft/world/World".equals(c.owner) || !("func_72962_a".equals(c.name) || "canMineBlock".equals(c.name))
                             || !"(Lnet/minecraft/entity/player/EntityPlayer;III)Z".equals(c.desc)) continue;
                         if (guardBreak(m, c)) n++;
-                        else { // запасной путь: хотя бы сама проверка canMineBlock с событием
+                        else { // fallback path: at least the canMineBlock check itself with the event
                             MethodInsnNode rep = new MethodInsnNode(INVOKESTATIC, HOOKS, "canMine", "(Lnet/minecraft/world/World;Lnet/minecraft/entity/player/EntityPlayer;III)Z", false);
                             m.instructions.set(c, rep);
                             in = rep;
                             n++;
-                            LOG.warn("Площадная ломка: в {} не узнал ломку блока, проверка только в canMineBlock", transformedName);
+                            LOG.warn("Area break: block breaking not recognized in {}, check only in canMineBlock", transformedName);
                         }
                         break;
                     }
@@ -86,12 +86,12 @@ public class AreaBreakTransformer implements IClassTransformer, Opcodes {
                     m.instructions.insert(g);
                     n++;
                 } else {
-                    // ломающая перегрузка - та, где сам вызов removedByPlayer
+                    // the breaking overload is the one where the removedByPlayer call itself is
                     boolean botania = BOTANIA.equals(transformedName);
-                    // Ботания: перегрузка с самим вызовом removedByPlayer; Таумкрафт: harvestBlock(мир, игрок, x, y, z, флаг, число) - через неё ломают его инструменты и фокусы
+                    // Botania: the overload with the removedByPlayer call itself; Thaumcraft: harvestBlock(world, player, x, y, z, flag, number) - its tools and foci break through it
                     if (botania ? !"removeBlockWithDrops".equals(m.name) || !removes(m)
                         : !"harvestBlock".equals(m.name) || !"(Lnet/minecraft/world/World;Lnet/minecraft/entity/player/EntityPlayer;IIIZI)Z".equals(m.desc)) continue;
-                    // Ботания: (игрок 0, вещь 1, мир 2, x 3, y 4, z 5, ...)V; Таумкрафт: (мир 0, игрок 1, x 2, y 3, z 4, ...)Z
+                    // Botania: (player 0, item 1, world 2, x 3, y 4, z 5, ...)V; Thaumcraft: (world 0, player 1, x 2, y 3, z 4, ...)Z
                     int world = botania ? 2 : 0, player = botania ? 0 : 1, x = botania ? 3 : 2;
                     InsnList g = new InsnList();
                     LabelNode go = new LabelNode();
@@ -114,31 +114,31 @@ public class AreaBreakTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (n == 0) {
-                LOG.warn("Площадная ломка: в {} не нашлось места для проверки, класс без изменений", transformedName);
+                LOG.warn("Area break: no place for the check found in {}, class unchanged", transformedName);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
             patched.add(transformedName);
-            LOG.info("Площадная ломка: {} спрашивает событие ломки ({} мест)", transformedName, n);
+            LOG.info("Area break: {} asks the break event ({} places)", transformedName, n);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Площадная ломка: не удалось изменить " + transformedName + ", класс без изменений", t);
+            LOG.error("Area break: could not modify " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }
 
     /**
-     * Связанные инструменты Blood Magic: перед ломкой блока (сразу за проверкой canMineBlock - туда же прыгает ветка,
-     * которая проверку обходит: у топора брёвна идут мимо неё) - "событие ломки отменено - к следующему блоку".
-     * Координаты - теми же командами, что считают аргументы canMineBlock (загрузки и сложения).
+     * Blood Magic bound tools: before breaking a block (right after the canMineBlock check - the branch that bypasses
+     * the check jumps there too: for the axe logs go past it) - "break event cancelled - to the next block".
+     * Coordinates - by the same commands that compute the canMineBlock arguments (loads and additions).
      */
     private static boolean guardBreak(MethodNode m, MethodInsnNode c) {
-        // аргументы canMineBlock: мир, игрок, x, y, z - идём назад, пока не наберём 5 значений
+        // canMineBlock arguments: world, player, x, y, z - we go backwards until we collect 5 values
         java.util.LinkedList<AbstractInsnNode> args = new java.util.LinkedList<AbstractInsnNode>();
         int need = 5;
         for (AbstractInsnNode p = c.getPrevious(); p != null && need > 0; p = p.getPrevious()) {
-            if (p.getOpcode() < 0) continue; // метки, строки, кадры
+            if (p.getOpcode() < 0) continue; // labels, lines, frames
             int op = p.getOpcode();
             if (op == ALOAD || op == ILOAD || op == ICONST_M1 || op >= ICONST_0 && op <= ICONST_5 || op == BIPUSH || op == SIPUSH) need--;
             else if (op == IADD || op == ISUB) need++;
@@ -151,7 +151,7 @@ public class AreaBreakTransformer implements IClassTransformer, Opcodes {
         if (j == null || j.getOpcode() != IFEQ) return false;
         LabelNode skip = ((JumpInsnNode) j).label;
         AbstractInsnNode at = j.getNext();
-        while (at != null && at.getOpcode() < 0) at = at.getNext(); // за метку и кадр начала ломки
+        while (at != null && at.getOpcode() < 0) at = at.getNext(); // past the label and the frame of the break start
         if (at == null) return false;
         InsnList g = new InsnList();
         java.util.Map<LabelNode, LabelNode> none = java.util.Collections.emptyMap();

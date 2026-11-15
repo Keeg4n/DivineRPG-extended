@@ -29,8 +29,8 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Переноска питомцев (продаёт Торговец скотом). ПКМ по своему питомцу - он сворачивается в переноску со всем
- * (имя, здоровье, уровень дрессировки); ПКМ по блоку - выпустить. Так питомца можно унести в другой мир.
+ * Pet Carrier (sold by the Livestock Merchant). Right click your own pet - it folds into the carrier with everything
+ * (name, health, training level); right click a block - release. This way a pet can be carried to another world.
  */
 public class ItemPetCarrier extends Item {
 
@@ -56,13 +56,13 @@ public class ItemPetCarrier extends Item {
     public boolean onItemUse(ItemStack s, EntityPlayer p, World w, int x, int y, int z, int side, float hx, float hy, float hz) {
         NBTTagCompound tag = pet(s);
         if (tag == null) return false;
-        if (!p.canPlayerEdit(x, y, z, side, s)) return false; // чужой приват
+        if (!p.canPlayerEdit(x, y, z, side, s)) return false; // someone else's protected region
         if (w.isRemote) return true;
         Entity e = EntityList.createEntityFromNBT(tag, w);
         if (e == null) return false;
         e.setLocationAndAngles(x + 0.5 + Facing.offsetsXForSide[side], y + Facing.offsetsYForSide[side], z + 0.5 + Facing.offsetsZForSide[side],
             p.rotationYaw, 0);
-        if (!w.spawnEntityInWorld(e)) return false; // выпуск запрещён (приват и т.п.) - питомец остаётся в переноске
+        if (!w.spawnEntityInWorld(e)) return false; // release is forbidden (protected region etc.) - the pet stays in the carrier
         com.divinerpgextended.audit.Audit.log(p, "Pet release", e.getCommandSenderName() + " @ " + x + " " + y + " " + z);
         s.getTagCompound().removeTag(PET);
         w.playSoundAtEntity(e, "random.pop", 0.6F, 0.8F);
@@ -85,7 +85,7 @@ public class ItemPetCarrier extends Item {
 
     public static class Handler {
 
-        /** ПКМ переноской по своему питомцу - свернуть. */
+        /** Right click your own pet with the carrier - fold it. */
         @SubscribeEvent(priority = EventPriority.HIGHEST)
         public void onInteract(EntityInteractEvent e) {
             EntityPlayer p = e.entityPlayer;
@@ -93,7 +93,7 @@ public class ItemPetCarrier extends Item {
             if (held != null && held.getItem() == ModItems.petCarrier && e.target instanceof EntityTameable) {
                 EntityTameable t = (EntityTameable) e.target;
                 e.setCanceled(true);
-                if (p.worldObj.isRemote || pet(held) != null || t.isDead) return; // мёртв = уже свёрнут этим же тиком (двойной клик)
+                if (p.worldObj.isRemote || pet(held) != null || t.isDead) return; // dead = already folded this very tick (double click)
                 if (!t.isTamed() || t.getOwner() != p) {
                     p.addChatMessage(new ChatComponentTranslation("dre.chat.carrier_not_yours"));
                     return;
@@ -109,7 +109,7 @@ public class ItemPetCarrier extends Item {
                 p.inventoryContainer.detectAndSendChanges();
                 return;
             }
-            // Торговец скотом продаёт переноску (окно торговли Divine строит список на клиенте - дописываем на обеих сторонах)
+            // the Livestock Merchant sells the carrier (the Divine trading window builds the list on the client - we append on both sides)
             if (e.target instanceof EntityLivestockMerchant && !p.isSneaking()) {
                 MerchantRecipeList list = ((EntityLivestockMerchant) e.target).getRecipes(p);
                 if (list == null) return;

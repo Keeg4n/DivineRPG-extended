@@ -14,9 +14,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Лук аддона в руке от третьего лица (Цунами, Грозовой лук). Игра поворачивает "как лук" только сам ванильный лук (сравнение
- * с Items.bow), остальные луки держатся как плоская вещь - повёрнутыми. Здесь поворот плоской вещи снимается и ставится
- * поворот лука, как у ванильного (так делает и Divine для своих луков).
+ * An addon bow in hand in third person (Tsunami, Storm Bow). The game rotates "like a bow" only the vanilla bow itself (comparison
+ * with Items.bow), other bows are held like a flat item - rotated. Here the flat item rotation is removed and the
+ * bow rotation is applied, as for the vanilla one (Divine does the same for its bows).
  */
 @SideOnly(Side.CLIENT)
 public class BowRender implements IItemRenderer {
@@ -35,15 +35,15 @@ public class BowRender implements IItemRenderer {
     public void renderItem(ItemRenderType type, ItemStack item, Object... data) {
         if (data.length < 2 || !(data[1] instanceof EntityLivingBase)) return;
         EntityLivingBase e = (EntityLivingBase) data[1];
-        GL11.glPopMatrix(); // без поворота плоской вещи из ForgeHooksClient.renderEquippedItem
-        // снять поворот плоской вещи из RenderPlayer / RenderBiped
+        GL11.glPopMatrix(); // without the flat item rotation from ForgeHooksClient.renderEquippedItem
+        // remove the flat item rotation from RenderPlayer / RenderBiped
         float k = 0.375F;
         GL11.glRotatef(-20.0F, 0.0F, 0.0F, 1.0F);
         GL11.glRotatef(90.0F, 1.0F, 0.0F, 0.0F);
         GL11.glRotatef(-60.0F, 0.0F, 0.0F, 1.0F);
         GL11.glScalef(1.0F / k, 1.0F / k, 1.0F / k);
         GL11.glTranslatef(-0.25F, -0.1875F, 0.1875F);
-        // поворот лука
+        // bow rotation
         float b = 0.625F;
         GL11.glTranslatef(0.0F, 0.125F, 0.3125F);
         GL11.glRotatef(-20.0F, 0.0F, 1.0F, 0.0F);
@@ -51,10 +51,10 @@ public class BowRender implements IItemRenderer {
         GL11.glRotatef(-100.0F, 1.0F, 0.0F, 0.0F);
         GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
         draw(e, item);
-        GL11.glPushMatrix(); // вернуть уровень стека для ForgeHooksClient
+        GL11.glPushMatrix(); // restore the stack level for ForgeHooksClient
     }
 
-    /** Плоская вещь с толщиной, как ItemRenderer.renderItem (значок натяжения - от того, кто держит). */
+    /** A flat item with thickness, like ItemRenderer.renderItem (the draw icon comes from whoever holds it). */
     private static void draw(EntityLivingBase e, ItemStack s) {
         IIcon icon = e.getItemIcon(s, 0);
         if (icon == null) return;

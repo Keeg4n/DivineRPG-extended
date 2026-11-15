@@ -6,7 +6,7 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 
-/** Струя воды Лиоплевродона: летит почти прямо, бьёт и отбрасывает; видна брызгами. */
+/** Liopleurodon's Water Jet: flies almost straight, hits and knocks back; visible as spray. */
 public class EntityWaterJet extends EntityThrowable {
 
     private float damage = 12F;

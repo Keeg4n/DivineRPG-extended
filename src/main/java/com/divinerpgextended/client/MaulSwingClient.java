@@ -10,19 +10,19 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Перезарядка молотов на клиенте: раньше {@link AquatoothEffects#MAUL_COOLDOWN} тиков после замаха нажатие атаки молотом
- * съедается до того, как игра его посчитает, - нет ни замаха, ни "удара без урона".
+ * Maul cooldown on the client: for {@link AquatoothEffects#MAUL_COOLDOWN} ticks after a swing, an attack press with a maul
+ * is swallowed before the game counts it - no swing and no "hit without damage".
  * <p>
- * Клик мыши игра читает и сразу же обрабатывает в одном тике, поэтому снимать нажатие в начале тика было поздно (до 0.99.120
- * перезарядка так и не работала): клик ловится событием мыши, ещё до того, как он дойдёт до кнопки атаки. Если атака
- * переназначена на клавишу - нажатие снимается в событии клавиатуры, оно приходит раньше обработки атаки.
+ * The game reads a mouse click and processes it in the same tick, so removing the press at the start of the tick was too late (before 0.99.120
+ * the cooldown did not work at all): the click is caught by the mouse event, before it reaches the attack button. If the attack
+ * is rebound to a key, the press is removed in the keyboard event, which arrives before the attack is processed.
  */
 @SideOnly(Side.CLIENT)
 public class MaulSwingClient {
 
     private long last = -1000;
 
-    /** Можно ли махнуть сейчас; да - запомнить замах. */
+    /** Whether you can swing now; if yes - remember the swing. */
     private boolean swing() {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null || mc.theWorld == null || mc.currentScreen != null || !AquatoothEffects.maul(mc.thePlayer.getHeldItem())) return true;

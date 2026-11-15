@@ -17,8 +17,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Шестерня времени сумеречного мира: падает со стража мира, улучшает Часы Странника и нужна в рецепте брони следующего мира.
- * В верстаке не тратится - остаётся в сетке, как ключ мира.
+ * Time gear of a twilight dimension: drops from the dimension guardian, upgrades the Wanderer's Clock and is needed in the recipe of the next dimension's armor.
+ * It is not consumed in the crafting table - it stays in the grid, like a dimension key.
  */
 public class ItemTimeGear extends Item {
 
@@ -27,7 +27,7 @@ public class ItemTimeGear extends Item {
     public ItemTimeGear() {
         setHasSubtypes(true);
         setMaxDamage(0);
-        setMaxStackSize(1); // по одной: не тратится, а с двумя в ячейке лишняя выпала бы из сетки
+        setMaxStackSize(1); // one at a time: it is not consumed, and with two in a cell the extra one would fall out of the grid
         setUnlocalizedName("dre.timeGear");
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
     }
@@ -64,7 +64,7 @@ public class ItemTimeGear extends Item {
         for (CadillionWorld w : CadillionWorld.values()) list.add(new ItemStack(item, 1, w.ordinal()));
     }
 
-    /** После крафта шестерня возвращается в свою ячейку. */
+    /** After crafting the gear returns to its own cell. */
     @Override
     public boolean hasContainerItem(ItemStack stack) {
         return true;

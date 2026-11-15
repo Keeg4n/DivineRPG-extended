@@ -16,12 +16,12 @@ import net.minecraftforge.event.world.BlockEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Порченые вещи Divine - вещи тьмы: осколки порчи падают с Груи (живёт в кромешной тьме пещер) и Порабощённого драмкрикса.
+ * Corrupted Divine items - items of darkness: corruption shards drop from the Grue (lives in the pitch dark of caves) and the Enthralled Dramcryx.
  * <ul>
- * <li>Кирка, топор и лопата: чем темнее там, где стоишь, тем быстрее копают - в полной темноте в {@link #DARK_MULT} раза, к
- * свету {@link #BRIGHT_FROM} - как обычно; на ярком свету ({@link #BRIGHT_FROM} и выше) тупятся - x{@link #LIGHT_MULT}.</li>
- * <li>Глаза Груи: копаешь во тьме (свет {@link #DARK_MAX} и ниже) инструментом порчи или бьёшь во тьме мечом или молотом
- * порчи - ночное зрение, пока не перестанешь.</li>
+ * <li>Pickaxe, axe and shovel: the darker it is where you stand, the faster they dig - in total darkness {@link #DARK_MULT} times, up to
+ * light {@link #BRIGHT_FROM} - as usual; in bright light ({@link #BRIGHT_FROM} and above) they dull - x{@link #LIGHT_MULT}.</li>
+ * <li>Eyes of the Grue: digging in the dark (light {@link #DARK_MAX} and below) with a corruption tool or hitting in the dark with a corruption sword or maul -
+ * night vision, until you stop.</li>
  * </ul>
  */
 public class CorruptedGear {
@@ -37,13 +37,13 @@ public class CorruptedGear {
         return i == VanillaItemsWeapons.deathBringer || i == VanillaItemsWeapons.corruptedMaul;
     }
 
-    /** Множитель скорости копания при таком свете (0..15). */
+    /** Dig speed multiplier at this light level (0..15). */
     public static float speed(int light) {
         if (light >= BRIGHT_FROM) return LIGHT_MULT;
         return DARK_MULT - (DARK_MULT - 1F) * light / (BRIGHT_FROM - 1F);
     }
 
-    /** Свет там, где стоит игрок (на уровне головы). */
+    /** Light where the player stands (at head level). */
     public static int light(EntityPlayer p) {
         World w = p.worldObj;
         return w.getBlockLightValue(MathHelper.floor_double(p.posX), MathHelper.floor_double(p.posY + p.getEyeHeight()), MathHelper.floor_double(p.posZ));
@@ -54,9 +54,9 @@ public class CorruptedGear {
         return s == null ? null : s.getItem();
     }
 
-    /** Глаза Груи: во тьме - ночное зрение (без значка частиц), пока продолжаешь. */
+    /** Eyes of the Grue: in the dark - night vision (without the particle icon), while you keep going. */
     public static boolean sight(EntityPlayer p) {
-        if (p.worldObj.isRemote || light(p) > DARK_MAX || com.divinerpgextended.vethea.Nightmare.active(p)) return false; // во сне до прохождения порча молчит
+        if (p.worldObj.isRemote || light(p) > DARK_MAX || com.divinerpgextended.vethea.Nightmare.active(p)) return false; // in the dream before completion the corruption is silent
         p.addPotionEffect(new PotionEffect(Potion.nightVision.id, SIGHT_TICKS, 0, true));
         return true;
     }

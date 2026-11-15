@@ -8,8 +8,8 @@ import net.minecraftforge.event.entity.living.LivingEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Лунный волк: дикий - 200 здоровья (EntityStats.moonWolfHealth), а Divine при приручении ставит ему жёстко 20.
- * Приручённому возвращаем здоровье дикого (и лечим до него один раз - тем, кто уже приручён с 20).
+ * Moon Wolf: wild - 200 health (EntityStats.moonWolfHealth), and Divine hard-sets it to 20 on taming.
+ * We return the wild health to the tamed one (and heal up to it once - those already tamed with 20).
  */
 public class MoonWolfHealth {
 

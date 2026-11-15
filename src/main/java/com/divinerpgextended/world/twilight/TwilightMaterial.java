@@ -3,8 +3,8 @@ package com.divinerpgextended.world.twilight;
 import net.minecraft.entity.Entity;
 
 /**
- * Материалы мобов сумеречных миров: у каждого из трёх мобов мира свой. Номер = мета предмета twilightMaterial.
- * Идут на Зов кадиллиона ({@link #call}) и закалку брони и лука мира ({@link #ofWorld}).
+ * Twilight dimension mob materials: each of the three mobs of a world has its own. Number = meta of the twilightMaterial item.
+ * They go into the Call of the Cadillion ({@link #call}) and tempering of the world's armor and bow ({@link #ofWorld}).
  */
 public enum TwilightMaterial {
 
@@ -36,7 +36,7 @@ public enum TwilightMaterial {
         return name().toLowerCase();
     }
 
-    /** Материал, который падает с этого моба, или null. */
+    /** The material that drops from this mob, or null. */
     public static TwilightMaterial of(Entity e) {
         for (TwilightMaterial m : values()) if (m.mob == e.getClass()) return m;
         return null;
@@ -46,7 +46,7 @@ public enum TwilightMaterial {
         return values()[Math.max(0, Math.min(meta, values().length - 1))];
     }
 
-    /** Три материала мира по порядку. */
+    /** The three materials of the world in order. */
     public static TwilightMaterial[] ofWorld(TwilightWorld w) {
         TwilightMaterial[] r = new TwilightMaterial[3];
         int i = 0;
@@ -54,7 +54,7 @@ public enum TwilightMaterial {
         return r;
     }
 
-    /** Материал в Зове кадиллиона этого мира (рог или эссенция). */
+    /** The material in this world's Call of the Cadillion (horn or essence). */
     public static TwilightMaterial call(TwilightWorld w) {
         switch (w) {
             case EDEN: return HORN_SHARD;

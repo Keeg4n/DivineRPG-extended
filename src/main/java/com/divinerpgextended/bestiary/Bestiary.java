@@ -41,17 +41,17 @@ import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 
 /**
- * Бестиарий: главы по мирам, в каждой - мобы Divine этого мира (из настоящих списков спавна биомов; у Арканы - мобы
- * её спавнеров), боссов нет. Моб изучен, когда убит {@link #need} раз; глава закрыта, когда изучены все. Прогресс - в
- * постоянных данных игрока (книга только показывает его: потеря книги ничего не стоит). Книгу продаёт торговец скотом,
- * он же за каждую закрытую главу один раз выдаёт знак охотника этого мира ({@link #MARK_DMG}).
+ * Bestiary: chapters by world, each with the Divine mobs of that world (from the real biome spawn lists; for Arcana - the mobs of
+ * its spawners), no bosses. A mob is studied when killed {@link #need} times; a chapter is closed when all are studied. Progress is in the
+ * player's persistent data (the book only shows it: losing the book costs nothing). The book is sold by the Livestock Merchant,
+ * who also gives the hunter's mark of that world once for each closed chapter ({@link #MARK_DMG}).
  */
 public final class Bestiary {
 
     public enum Chapter {
         OVERWORLD(10), NETHER(10), END(5), ICEIKA(10), EDEN(10), WILDWOOD(10), APALACHIA(10), SKYTHERN(10), MORTUM(10), ARCANA(5), VETHEA(5);
 
-        /** Сколько убить обычного (частого) моба главы. */
+        /** How many ordinary (common) mobs of the chapter to kill. */
         public final int base;
 
         Chapter(int base) {
@@ -78,28 +78,28 @@ public final class Bestiary {
             }
         }
 
-        /** Знак охотника этой главы. */
+        /** Hunter's mark of this chapter. */
         public Trinket mark() {
             return Trinket.valueOf("HUNTER_" + name());
         }
     }
 
-    /** Знак охотника: урон по мобам +MARK_DMG (в своём мире +MARK_DMG_HOME), урон от мобов -MARK_DEF (дома -MARK_DEF_HOME). */
+    /** Hunter's mark: damage to mobs +MARK_DMG (in its own world +MARK_DMG_HOME), damage from mobs -MARK_DEF (at home -MARK_DEF_HOME). */
     public static final float MARK_DMG = 0.06F, MARK_DMG_HOME = 0.15F, MARK_DEF = 0.05F, MARK_DEF_HOME = 0.12F;
     public static final int PRICE_COINS = 5;
     static final String KILLS = "dreBestiary", CLAIMED = "dreBestiaryClaimed";
-    /** Враги Арканы живут в её подземельях - их ставят спавнеры, в списке спавна биома их нет. */
+    /** Arcana enemies live in its dungeons - they are placed by spawners, they are not in the biome spawn list. */
     static final String[] ARCANA_MOBS = { "DRPGDeathHound", "DRPGDeathcryx", "DRPGDungeonPrisoner", "DRPGLivingStatue", "DRPGRazorback", "DRPGRoamer" };
 
     private static Map<Chapter, List<String>> chapters;
     private static Map<String, Chapter> chapterOf;
     private static Map<String, Integer> need;
 
-    public Bestiary() {} // обработчик событий
+    public Bestiary() {} // event handler
 
-    // ---------------------------------------------------------------- главы
+    // ---------------------------------------------------------------- chapters
 
-    /** Глава биома по его классу (null - не наш мир). */
+    /** Chapter of a biome by its class (null - not our world). */
     static Chapter chapterOfBiome(BiomeGenBase b) {
         String c = b.getClass().getName();
         if (c.contains(".iceika.")) return Chapter.ICEIKA;
@@ -109,8 +109,8 @@ public final class Bestiary {
         if (c.contains(".skythern.")) return Chapter.SKYTHERN;
         if (c.contains(".mortum.")) return Chapter.MORTUM;
         if (c.contains(".vethea.")) return Chapter.VETHEA;
-        if (c.contains(".arcana.")) return null; // своя ручная глава
-        // по типу биома: Biomes O' Plenty подменяет класс ванильного Ада и добавляет свои биомы Ада и обычного мира
+        if (c.contains(".arcana.")) return null; // its own hand-made chapter
+        // by biome type: Biomes O' Plenty replaces the vanilla Nether class and adds its own Nether and Overworld biomes
         if (com.divinerpgextended.world.Biomes.nether(b)) return Chapter.NETHER;
         if (com.divinerpgextended.world.Biomes.end(b)) return Chapter.END;
         if (c.startsWith("net.divinerpg.") || c.startsWith("com.divinerpgextended.")) return null;
@@ -121,7 +121,7 @@ public final class Bestiary {
         return net.minecraft.entity.boss.IBossDisplayData.class.isAssignableFrom(c) || net.divinerpg.entities.base.EntityDivineRPGBoss.class.isAssignableFrom(c);
     }
 
-    /** Собрать главы из списков спавна (один раз; на сервере и на клиенте одинаково). */
+    /** Build chapters from spawn lists (once; the same on the server and the client). */
     public static synchronized void build() {
         if (chapters != null) return;
         Map<String, Chapter> of = new HashMap<String, Chapter>();
@@ -137,7 +137,7 @@ public final class Bestiary {
                     String name = (String) EntityList.classToStringMapping.get(s.entityClass);
                     if (name == null) continue;
                     Chapter was = of.get(name);
-                    // моб в нескольких мирах - в главе самого дальнего (паук-эндер - в Энде, а не в обычном мире)
+                    // a mob in several worlds - in the chapter of the farthest (Ender Spider - in the End, not in the Overworld)
                     if (was == null || ch != Chapter.OVERWORLD && (was == Chapter.OVERWORLD || ch == Chapter.END)) of.put(name, ch);
                     Integer w = weight.get(name);
                     weight.put(name, Math.max(w == null ? 0 : w, s.itemWeight));
@@ -176,14 +176,14 @@ public final class Bestiary {
         return chapterOf.get(mob);
     }
 
-    /** Сколько раз убить моба, чтобы он считался изученным. */
+    /** How many times to kill a mob for it to count as studied. */
     public static int need(String mob) {
         build();
         Integer n = need.get(mob);
         return n == null ? 0 : n;
     }
 
-    // ---------------------------------------------------------------- прогресс игрока
+    // ---------------------------------------------------------------- player progress
 
     static NBTTagCompound persisted(EntityPlayer p) {
         NBTTagCompound d = p.getEntityData();
@@ -201,7 +201,7 @@ public final class Bestiary {
         return persisted(p).getInteger(CLAIMED);
     }
 
-    /** Сколько мобов главы изучено (по данным kills). */
+    /** How many mobs of the chapter are studied (by kills data). */
     public static int studied(NBTTagCompound kills, Chapter c) {
         int n = 0;
         for (String m : mobs(c)) if (kills.getInteger(m) >= need(m)) n++;
@@ -212,7 +212,7 @@ public final class Bestiary {
         return !mobs(c).isEmpty() && studied(kills, c) == mobs(c).size();
     }
 
-    /** Убийство засчитать (не больше нужного). @return true, если этим убийством закрылась глава */
+    /** Count a kill (no more than needed). @return true if this kill closed the chapter */
     public static boolean count(EntityPlayer p, String mob) {
         Chapter c = chapterOf(mob);
         if (c == null) return false;
@@ -224,7 +224,7 @@ public final class Bestiary {
         return !wasDone && complete(k, c);
     }
 
-    /** Подручные боссов и поднятые боссами - не в счёт (иначе бестиарий фармится на арене). */
+    /** Boss minions and mobs raised by bosses do not count (otherwise the bestiary is farmed at the arena). */
     static boolean summoned(Entity e) {
         NBTTagCompound d = e.getEntityData();
         return com.divinerpgextended.perk.RangedRoles.bossAdd(e) || d.hasKey(com.divinerpgextended.boss.MortumArenaBosses.ARCHER_ADD)
@@ -246,9 +246,9 @@ public final class Bestiary {
         }
     }
 
-    // ---------------------------------------------------------------- знаки охотника
+    // ---------------------------------------------------------------- hunter's marks
 
-    /** Лучший надетый знак: {урон по мобам, защита от мобов}; знаки не складываются. */
+    /** Best worn mark: {damage to mobs, protection from mobs}; marks do not stack. */
     public static float[] mark(EntityPlayer p) {
         float dmg = 0, def = 0;
         for (Chapter c : Chapter.values()) {
@@ -274,21 +274,21 @@ public final class Bestiary {
         }
     }
 
-    // ---------------------------------------------------------------- торговец скотом
+    // ---------------------------------------------------------------- Livestock Merchant
 
-    /** Торговец скотом: продаёт книгу; с книгой в руке - выдаёт знаки за закрытые главы. */
+    /** Livestock Merchant: sells the book; with the book in hand - gives marks for closed chapters. */
     @SubscribeEvent
     public void onInteract(EntityInteractEvent e) {
         if (!(e.target instanceof EntityLivestockMerchant)) return;
         EntityPlayer p = e.entityPlayer;
         ItemStack held = p.getCurrentEquippedItem();
         if (held != null && held.getItem() == ModItems.bestiary) {
-            e.setCanceled(true); // с книгой - разговор о главах, не торговля
+            e.setCanceled(true); // with the book - a conversation about chapters, not trading
             if (!p.worldObj.isRemote) claim(p);
             return;
         }
         if (p.isSneaking()) return;
-        // окно торговли Divine строит список на клиенте - дописываем на обеих сторонах
+        // the Divine trading window builds the list on the client - we append on both sides
         MerchantRecipeList list = ((EntityLivestockMerchant) e.target).getRecipes(p);
         if (list == null) return;
         for (java.util.Iterator<?> it = list.iterator(); it.hasNext();) {
@@ -298,7 +298,7 @@ public final class Bestiary {
         list.add(new InfiniteTrade(new ItemStack(Items.book), new ItemStack(VanillaItemsOther.shadowCoins, PRICE_COINS), new ItemStack(ModItems.bestiary)));
     }
 
-    /** Выдать знаки за закрытые и ещё не награждённые главы. @return сколько выдано */
+    /** Give marks for closed chapters that have not been rewarded yet. @return how many were given */
     public static int claim(EntityPlayer p) {
         NBTTagCompound k = kills(p);
         int mask = claimed(p), given = 0;
@@ -310,12 +310,12 @@ public final class Bestiary {
             ChatComponentTranslation m = new ChatComponentTranslation("dre.bestiary.reward", new ChatComponentTranslation("dre.bestiary.chapter." + c.key()));
             m.getChatStyle().setColor(EnumChatFormatting.GOLD);
             p.addChatMessage(m);
-            com.divinerpgextended.audit.Audit.log(p, "Bestiary", "знак охотника: " + c.key());
+            com.divinerpgextended.audit.Audit.log(p, "Bestiary", "hunter's mark: " + c.key());
             given++;
         }
         persisted(p).setInteger(CLAIMED, mask);
         if (given == 0) {
-            // ближе всего к закрытию
+            // closest to closing
             Chapter best = null;
             double br = -1;
             for (Chapter c : Chapter.values()) {
@@ -333,19 +333,19 @@ public final class Bestiary {
         return given;
     }
 
-    // ---------------------------------------------------------------- сеть: открыть книгу
+    // ---------------------------------------------------------------- network: open the book
 
     public static void registerMessages() {
         ColdHandler.NET.registerMessage(OpenHandler.class, Open.class, 11, Side.CLIENT);
     }
 
-    /** Открыть книгу у игрока: свежий прогресс с сервера. */
+    /** Open the book for a player: fresh progress from the server. */
     public static void open(EntityPlayer p) {
         if (p instanceof EntityPlayerMP && !(p instanceof net.minecraftforge.common.util.FakePlayer))
             ColdHandler.NET.sendTo(new Open(kills(p), claimed(p)), (EntityPlayerMP) p);
     }
 
-    /** Сервер -> клиент: убийства по мобам и награждённые главы. */
+    /** Server -> client: kills per mob and rewarded chapters. */
     public static class Open implements IMessage {
 
         public NBTTagCompound kills;

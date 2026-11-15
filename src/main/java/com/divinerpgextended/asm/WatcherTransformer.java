@@ -18,10 +18,10 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Смотритель Divine в своём логове ведёт себя по правилам аддона ({@link com.divinerpgextended.boss.WatcherHunt}): в начало
- * его onLivingUpdate - "если логово - свой ход, потом только общее для всех существ (super), и выйти": дрейф и выстрел
- * Divine в логове не работают. (updateEntityActionState у мобов Divine не вызывается - у них ИИ на задачах.) Вне логова -
- * как в Divine.
+ * The Divine Watcher in its lair behaves by the addon rules ({@link com.divinerpgextended.boss.WatcherHunt}): at the start of
+ * its onLivingUpdate - "if lair - own move, then only what is common to all creatures (super), and exit": Divine's drift and shot
+ * do not work in the lair. (updateEntityActionState is not called for Divine mobs - they have task-based AI.) Outside the lair -
+ * as in Divine.
  */
 public class WatcherTransformer implements IClassTransformer, Opcodes {
 
@@ -56,10 +56,10 @@ public class WatcherTransformer implements IClassTransformer, Opcodes {
             if (patched == 0) return bytes;
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Смотритель: в логове охотится по правилам аддона (правок " + patched + ")");
+            LOG.info("Watcher: hunts by addon rules in the lair (edits " + patched + ")");
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Смотритель: охота не подключена, класс без изменений", t);
+            LOG.error("Watcher: hunting not hooked, class unchanged", t);
             return bytes;
         }
     }

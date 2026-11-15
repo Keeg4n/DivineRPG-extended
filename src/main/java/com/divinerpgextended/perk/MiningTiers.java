@@ -17,38 +17,38 @@ import com.divinerpgextended.world.twilight.TwilightWorld;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Уровни кирок сумеречных миров: 0 - божественная (и божественный шикакс), 1 - Эдема ... 5 - Мортума, 6 - халитовые кирка и
- * мультиинструмент (берут всё). Руду мира ломает только кирка этого
- * мира или выше (первую кирку мира собирают из душ его мобов), сумеречный камень в мире - кирка прошлого мира или
- * выше (в Эдеме - божественная). Слабая кирка не ломает блок и звенит о него с искрами.
+ * Pickaxe tiers of the twilight worlds: 0 - divine (and the divine shickaxe), 1 - Eden ... 5 - Mortum, 6 - halite pickaxe and
+ * multitool (break everything). A world's ore is broken only by the pickaxe of that
+ * world or higher (the first pickaxe of a world is assembled from the souls of its mobs), twilight stone in a world - by the pickaxe of the previous world or
+ * higher (in Eden - divine). A weak pickaxe does not break the block and clangs off it with sparks.
  */
 public class MiningTiers {
 
     private static final String TINK = "dreMiningTink";
 
-    /** Строка подсказки кирки цепочки: какую руду и камень берёт; null - не кирка цепочки или уровни выключены. */
+    /** Tooltip line of a chain pickaxe: which ore and stone it takes; null - not a chain pickaxe or tiers are off. */
     public static String tooltip(ItemStack s) {
         int t = tier(s);
         if (t < 0 || !Config.miningTiers) return null;
         TwilightWorld[] w = TwilightWorld.values();
-        // выше всех сумеречных миров (халит): своя строка, номера мира у неё нет
+        // above all twilight worlds (halite): its own line, it has no world number
         if (t > w.length) return StatCollector.translateToLocal("dre.tooltip.pick_all");
         String stone = StatCollector.translateToLocal("dre.world." + w[Math.min(t, w.length - 1)].key());
         return t == 0 ? StatCollector.translateToLocalFormatted("dre.tooltip.pick_stone", stone)
             : StatCollector.translateToLocalFormatted("dre.tooltip.pick_tier", StatCollector.translateToLocal("dre.world." + w[t - 1].key()), stone);
     }
 
-    /** Уровень кирки (-1 - не кирка цепочки). */
+    /** Pickaxe tier (-1 - not a chain pickaxe). */
     public static int tier(ItemStack s) {
         if (s == null) return -1;
         Item i = s.getItem();
         if (i == VanillaItemsTools.divinePickaxe || i == VanillaItemsTools.divineShickaxe) return 0;
-        if (com.divinerpgextended.halite.HaliteTools.minesJungle(s)) return TwilightWorld.values().length + 1; // халитовые - выше Мортума
+        if (com.divinerpgextended.halite.HaliteTools.minesJungle(s)) return TwilightWorld.values().length + 1; // halite ones are above Mortum
         for (TwilightWorld w : TwilightWorld.values()) if (TwilightCrafts.tools(w)[0] == i) return w.ordinal() + 1;
         return -1;
     }
 
-    /** Какой уровень кирки нужен для блока здесь (-1 - без ограничений). */
+    /** Which pickaxe tier is needed for the block here (-1 - no restriction). */
     public static int required(Block b, int dim) {
         TwilightWorld[] ws = TwilightWorld.values();
         for (TwilightWorld w : ws) if (b == w.ore()) return w.ordinal() + 1;
@@ -73,16 +73,16 @@ public class MiningTiers {
         long now = e.entityPlayer.worldObj.getTotalWorldTime();
         if (now - e.entityPlayer.getEntityData().getLong(TINK) < 5) return;
         e.entityPlayer.getEntityData().setLong(TINK, now);
-        // без текста: кирка звенит о слишком твёрдый блок и высекает искры
+        // no text: the pickaxe clangs off a block that is too hard and strikes sparks
         double x = e.x + 0.5, y = e.y + 0.5, z = e.z + 0.5;
         double dx = e.entityPlayer.posX - x, dy = e.entityPlayer.posY + e.entityPlayer.getEyeHeight() - y, dz = e.entityPlayer.posZ - z;
         double d = Math.max(0.01, Math.sqrt(dx * dx + dy * dy + dz * dz));
-        x += dx / d * 0.6; y += dy / d * 0.6; z += dz / d * 0.6; // искры на грани блока со стороны игрока
+        x += dx / d * 0.6; y += dy / d * 0.6; z += dz / d * 0.6; // sparks on the block face toward the player
         e.entityPlayer.worldObj.playSoundEffect(x, y, z, "random.anvil_land", 0.25F, 1.8F + e.entityPlayer.worldObj.rand.nextFloat() * 0.2F);
         ((net.minecraft.world.WorldServer) e.entityPlayer.worldObj).func_147487_a("crit", x, y, z, 4, 0.3, 0.3, 0.3, 0.15);
     }
 
-    /** Подстраховка: мгновенная ломка (зачарования, эффекты) тоже не проходит. */
+    /** Safety net: instant breaking (enchantments, effects) does not go through either. */
     @SubscribeEvent
     public void onBreak(BlockEvent.BreakEvent e) {
         if (blocked(e.getPlayer(), e.block)) e.setCanceled(true);

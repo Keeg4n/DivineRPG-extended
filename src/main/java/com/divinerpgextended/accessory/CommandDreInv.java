@@ -27,16 +27,16 @@ import com.divinerpgextended.station.GuiHandler;
 import com.mojang.authlib.GameProfile;
 
 /**
- * /dreinv &lt;игрок&gt; - модерация смотрит аксессуары игрока: что встроено в надетую броню (списком в чат) и, если там
- * что-то осталось, старые слоты (как /openinv). Игрок в сети - старые слоты можно и править (это тот же объект, что у
- * игрока, дюпа нет); не в сети - только просмотр из его файла playerdata (писать в файл, пока игрок может зайти,
- * опасно). Уровень оператора 2.
+ * /dreinv &lt;player&gt; - moderation views a player's accessories: what is built into the worn armor (as a list in chat) and, if
+ * something is left there, the old slots (like /openinv). If the player is online - the old slots can also be edited (it is the same object as the
+ * player's, no dupe); if offline - view only from their playerdata file (writing to the file while the player can join
+ * is dangerous). Operator level 2.
  */
 public class CommandDreInv extends CommandBase {
 
     private static final Map<UUID, Accessories> PENDING = new HashMap<UUID, Accessories>();
 
-    /** Что открыть админу (забирается при создании окна). */
+    /** What to open for the admin (taken when the window is created). */
     public static Accessories takePending(EntityPlayer p) {
         return PENDING.remove(p.getUniqueID());
     }
@@ -48,7 +48,7 @@ public class CommandDreInv extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/dreinv <игрок>";
+        return "/dreinv <player>";
     }
 
     @Override
@@ -75,7 +75,7 @@ public class CommandDreInv extends CommandBase {
             name = args[0];
             armor = offlineArmor(root);
         }
-        // гнёзда надетой брони - списком в чат (сама броня видна обычным просмотром инвентаря)
+        // sockets of the worn armor - as a list in chat (the armor itself is visible in the normal inventory view)
         for (ItemStack a : armor) {
             List<ItemStack> in = Sockets.contents(a);
             if (in.isEmpty()) continue;
@@ -85,16 +85,16 @@ public class CommandDreInv extends CommandBase {
         }
         if (!acc.leftovers()) {
             admin.addChatMessage(new ChatComponentTranslation("dre.cmd.inv_no_leftovers", name));
-            com.divinerpgextended.audit.Audit.log(admin, "dreinv", name + " - гнёзда брони (старые слоты пусты)");
+            com.divinerpgextended.audit.Audit.log(admin, "dreinv", name + " - armor sockets (old slots are empty)");
             return;
         }
         PENDING.put(admin.getUniqueID(), acc);
         admin.openGui(DivineRPGExtended.instance, GuiHandler.ACCESSORIES, admin.worldObj, acc.unlocked, acc.readOnly ? 1 : 0, 0);
         admin.addChatMessage(new ChatComponentTranslation(acc.readOnly ? "dre.cmd.inv_offline" : "dre.cmd.inv_online", name));
-        com.divinerpgextended.audit.Audit.log(admin, "dreinv", name + (acc.readOnly ? " - просмотр (не в сети)" : " - правка"));
+        com.divinerpgextended.audit.Audit.log(admin, "dreinv", name + (acc.readOnly ? " - view (offline)" : " - edit"));
     }
 
-    /** Файл игрока не в сети - world/playerdata/UUID.dat. */
+    /** Offline player's file - world/playerdata/UUID.dat. */
     private static NBTTagCompound file(MinecraftServer server, String name) {
         GameProfile gp = server.func_152358_ax().func_152655_a(name);
         if (gp == null || gp.getId() == null) throw new CommandException("dre.cmd.inv_unknown", name);
@@ -113,7 +113,7 @@ public class CommandDreInv extends CommandBase {
         }
     }
 
-    /** Снимок старых слотов игрока не в сети. */
+    /** Snapshot of an offline player's old slots. */
     private static Accessories offline(NBTTagCompound root) {
         NBTTagCompound ps = root.getCompoundTag("ForgeData").getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
         NBTTagList list = ps.getTagList(Accessories.TAG, 10);
@@ -122,7 +122,7 @@ public class CommandDreInv extends CommandBase {
         return Accessories.snapshot(list, unlocked);
     }
 
-    /** Надетая броня игрока не в сети: ячейки 100-103 его инвентаря. */
+    /** Worn armor of an offline player: cells 100-103 of his inventory. */
     private static ItemStack[] offlineArmor(NBTTagCompound root) {
         ItemStack[] out = new ItemStack[4];
         NBTTagList inv = root.getTagList("Inventory", 10);

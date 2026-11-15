@@ -13,20 +13,20 @@ import com.divinerpgextended.Config;
 import com.divinerpgextended.item.ArmorData;
 
 /**
- * Противоядие: полный сет джунглей Divine и перк "Сопротивление яду" на броне Странника (донор - тот же сет). Яд не
- * действует, а остальные плохие эффекты не снимаются, а проходят быстрее ({@link Config#jungleDebuffSpeed}) - в том
- * числе чужие, которые не снимает молоко (варп Таумкрафта: солнечная болезнь, неестественный голод и т.д.). Эффекты
- * погоды миров обновляются каждую секунду, поэтому их это почти не задевает.
+ * Antidote: the full Divine jungle set and the "Poison Resistance" perk on Wanderer armor (the donor is the same set). Poison does not
+ * work, and the other bad effects are not removed but pass faster ({@link Config#jungleDebuffSpeed}) - including
+ * foreign ones that milk does not remove (Thaumcraft warp: sun scorn, unnatural hunger, etc.). World weather
+ * effects are refreshed every second, so they are almost unaffected.
  */
 public final class Antidote {
 
-    /** Раз в столько тиков срезаем накопленное (и шлём клиенту новое время). */
+    /** Once per this many ticks we cut off the accumulated time (and send the client the new time). */
     public static final int PERIOD = 20;
     private static java.lang.reflect.Field duration;
 
     private Antidote() {}
 
-    /** Полный сет джунглей Divine. */
+    /** The full Divine jungle set. */
     public static boolean jungleSet(EntityPlayer p) {
         return is(p, 0, VanillaItemsArmor.jungleBoots) && is(p, 1, VanillaItemsArmor.jungleLegs) && is(p, 2, VanillaItemsArmor.jungleBody) && is(p, 3, VanillaItemsArmor.jungleHelmet);
     }
@@ -41,8 +41,8 @@ public final class Antidote {
     }
 
     /**
-     * Каждые {@link #PERIOD} тиков: плохим эффектам (кроме яда - его противоядие снимает) срезать ещё (скорость - 1) x
-     * PERIOD тиков. Кончились - эффект снят. Только сервер. @return сколько эффектов укорочено
+     * Every {@link #PERIOD} ticks: cut bad effects (except poison - the antidote removes it) by a further (speed - 1) x
+     * PERIOD ticks. When they run out, the effect is removed. Server only. @return how many effects were shortened
      */
     public static int tick(EntityPlayer p) {
         double speed = Config.jungleDebuffSpeed;

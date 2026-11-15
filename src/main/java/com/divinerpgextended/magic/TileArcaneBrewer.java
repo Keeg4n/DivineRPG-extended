@@ -9,13 +9,13 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntityBrewingStand;
 
 /**
- * Арканная стойка зельеварения. Слоты: 0-2 склянки, 3 ингредиент, 4 топливо (арканиум: 4 варки).
+ * Arcane Brewing Stand. Slots: 0-2 bottles, 3 ingredient, 4 fuel (arcanium: 4 brews).
  * <ul>
- * <li>склянка воды + ингредиент эффекта ({@link ArcaneEffect#ingredient}) = арканное зелье;</li>
- * <li>арканное зелье + светопыль = сильное, + редстоун = долгое, + порох = общее.</li>
+ * <li>water bottle + effect ingredient ({@link ArcaneEffect#ingredient}) = arcane potion;</li>
+ * <li>arcane potion + glowstone dust = strong, + redstone = long, + gunpowder = shared.</li>
  * </ul>
- * Варка {@link #BREW_TICKS} тиков. Наследует ванильную стойку, чтобы блок ванильной стойки (вид, разлом с выпадением
- * содержимого) работал с ней как со своей; вся логика - своя.
+ * Brewing takes {@link #BREW_TICKS} ticks. Extends the vanilla stand so that the vanilla stand's block (look, breaking with the contents
+ * dropping) works with it as its own; all the logic is its own.
  */
 public class TileArcaneBrewer extends TileEntityBrewingStand {
 
@@ -23,7 +23,7 @@ public class TileArcaneBrewer extends TileEntityBrewingStand {
     private final ItemStack[] slots = new ItemStack[5];
     public int brewTime, charges;
 
-    /** Что получится из этой склянки с этим ингредиентом (null - ничего). */
+    /** What this bottle with this ingredient will turn into (null - nothing). */
     public static ItemStack result(ItemStack bottle, ItemStack ing) {
         if (bottle == null || ing == null) return null;
         if (bottle.getItem() == Items.potionitem && bottle.getItemDamage() == 0) {
@@ -167,7 +167,7 @@ public class TileArcaneBrewer extends TileEntityBrewingStand {
         return brewTime;
     }
 
-    /** Склянки в стойке (для вида блока и компаратора): биты 0-2. */
+    /** Bottles in the stand (for the block's look and the comparator): bits 0-2. */
     @Override
     public int getFilledSlots() {
         int m = 0;
@@ -177,7 +177,7 @@ public class TileArcaneBrewer extends TileEntityBrewingStand {
 
     @Override
     public void readFromNBT(NBTTagCompound t) {
-        super.readFromNBT(t); // координаты; свои слоты ванильная стойка прочтёт в свой (пустой, ненужный) массив
+        super.readFromNBT(t); // coordinates; the vanilla stand will read its own slots into its own (empty, unneeded) array
         NBTTagList l = t.getTagList("Items", 10);
         for (int k = 0; k < l.tagCount(); k++) {
             NBTTagCompound c = l.getCompoundTagAt(k);
@@ -190,7 +190,7 @@ public class TileArcaneBrewer extends TileEntityBrewingStand {
 
     @Override
     public void writeToNBT(NBTTagCompound t) {
-        super.writeToNBT(t); // id и координаты (свой список слотов перезапишем ниже)
+        super.writeToNBT(t); // id and coordinates (our own slot list will be overwritten below)
         NBTTagList l = new NBTTagList();
         for (int i = 0; i < slots.length; i++) {
             if (slots[i] == null) continue;

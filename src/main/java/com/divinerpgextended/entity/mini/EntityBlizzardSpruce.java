@@ -12,12 +12,12 @@ import com.divinerpgextended.cold.Blizzard;
 import com.divinerpgextended.cold.ColdHandler;
 
 /**
- * Вьюжная ель, Айсика: приходит с метелью, раз за метель, и уходит вместе с ней, без добычи. Швыряет снежные комья, каждый добавляет холод, и зовёт
- * снеговиков. Как все холодные мобы боится адского оружия ({@link com.divinerpgextended.perk.ColdMobs}).
+ * Blizzard Spruce, Iceika: comes with the blizzard, once per blizzard, and leaves with it, without loot. Throws snow clumps, each adds cold, and calls
+ * snowmen. Like all cold mobs it fears infernal weapons ({@link com.divinerpgextended.perk.ColdMobs}).
  */
 public class EntityBlizzardSpruce extends EntityMiniBoss {
 
-    public static final double HEALTH = 300; // морозные мобы Айсики до 180
+    public static final double HEALTH = 300; // Iceika frost mobs up to 180
     public static final int THROW_EVERY = 60, CALL_EVERY = 300, MAX_SNOWMEN = 3;
     public static final float CLUMP_DAMAGE = 6F, CLUMP_COLD = 6F;
     private int throwTimer = THROW_EVERY, callTimer = CALL_EVERY / 3;
@@ -59,7 +59,7 @@ public class EntityBlizzardSpruce extends EntityMiniBoss {
         entityDropItem(new ItemStack(IceikaItems.iceStone, 1 + rand.nextInt(2)), 0.5F);
     }
 
-    /** Три кома веером. */
+    /** Three clumps in a fan. */
     public int throwClumps(EntityPlayer t) {
         for (int i = -1; i <= 1; i++) {
             EntitySnowClump c = new EntitySnowClump(worldObj, this, CLUMP_DAMAGE, CLUMP_COLD);
@@ -71,7 +71,7 @@ public class EntityBlizzardSpruce extends EntityMiniBoss {
         return 3;
     }
 
-    /** Метели нет: уйти без добычи. true - ушла. */
+    /** There is no blizzard: leave without loot. true - it left. */
     public boolean leaveWithStorm() {
         if (!ColdHandler.isIceika(worldObj) || Blizzard.get(worldObj).phase == Blizzard.STORM) return false;
         if (worldObj instanceof WorldServer) ((WorldServer) worldObj).func_147487_a("snowshovel", posX, posY + height / 2, posZ, 60, 1.0, 2.0, 1.0, 0.1);

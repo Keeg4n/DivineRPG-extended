@@ -7,10 +7,10 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.EnumChatFormatting;
 
-/** /drerank - ранги Divine (0-3, от них зависят мобы Divine рядом) у всех игроков онлайн и какой босс следующий. Доступна всем. */
+/** /drerank - Divine ranks (0-3, the Divine mobs nearby depend on them) of all online players and which boss is next. Available to everyone. */
 public class CommandDreRank extends CommandBase {
 
-    /** Босс, открывающий следующий ранг (null - ранг наивысший). */
+    /** The boss that unlocks the next rank (null - the rank is the highest). */
     public static Boss next(int rank) {
         switch (rank) {
             case 0: return Boss.CARCINUS;

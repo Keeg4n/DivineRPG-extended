@@ -9,21 +9,21 @@ import javax.imageio.ImageIO;
 import com.divinerpgextended.block.BlockLockedChest.Kind;
 
 /**
- * Текстуры запертых сундуков (вариант В концептов). Собираются при запуске из ванильного сундука и, для сундуков Арканы, из
- * текстур стен Арканы установленного DivineRPG - в jar их нет (лицензия Divine). Раскладка - как у ванильного сундука
- * (ModelChest, атлас 64 x 64):
+ * Textures of locked chests (variant B of the concepts). Built at startup from the vanilla chest and, for Arcana chests, from
+ * the Arcana wall textures of the installed DivineRPG - they are not in the jar (Divine license). The layout is like the vanilla chest
+ * (ModelChest, 64 x 64 atlas):
  * <ul>
- * <li>Аркана: грани крышки и короба - камень стены Арканы своего ключа (каждая грань с угла блока), рёбра граней - тот же
- * камень темнее, замок - приглушённый цвет ключа со скважиной;</li>
- * <li>реликварии миров: дерево сундука в цвет мира, окантовка граней и замок - цвет мира.</li>
+ * <li>Arcana: the lid and body faces are the Arcana wall stone of its own key (each face from a block corner), the face edges are the same
+ * stone darker, the lock is a muted key color with a keyhole;</li>
+ * <li>world reliquaries: chest wood in the world color, the face trim and lock in the world color.</li>
  * </ul>
- * Отдаёт их {@link DerivedTexturePack} по адресу {@link #path}. Без клиентских классов: автотест собирает их и на сервере.
+ * {@link DerivedTexturePack} serves them at the address {@link #path}. No client classes: selftest builds them on the server too.
  */
 public final class ChestTextures {
 
     public static final String DOMAIN = "divinerpgextended", PREFIX = "textures/entity/locked_chest/";
 
-    /** Грани коробки ModelBox (u, v, w, h, d): up, down, west, north, east, south - {x0, y0, x1, y1}. */
+    /** Faces of the ModelBox box (u, v, w, h, d): up, down, west, north, east, south - {x0, y0, x1, y1}. */
     static int[][] faces(int u, int v, int w, int h, int d) {
         return new int[][] { { u + d, v, u + d + w, v + d }, { u + d + w, v, u + 2 * w + d, v + d }, { u, v + d, u + d, v + d + h },
             { u + d, v + d, u + d + w, v + d + h }, { u + d + w, v + d, u + 2 * d + w, v + d + h }, { u + 2 * d + w, v + d, u + 2 * d + 2 * w, v + d + h } };
@@ -38,7 +38,7 @@ public final class ChestTextures {
         return PREFIX + k.key + ".png";
     }
 
-    /** Вид по пути текстуры (домен:путь) или null - не наша. */
+    /** The kind by texture path (domain:path) or null - not ours. */
     public static Kind kind(String key) {
         if (!key.startsWith(DOMAIN + ":" + PREFIX) || !key.endsWith(".png")) return null;
         String name = key.substring((DOMAIN + ":" + PREFIX).length(), key.length() - 4);
@@ -60,7 +60,7 @@ public final class ChestTextures {
         }
     }
 
-    /** Блок 16 x 16 (у анимированных - первый кадр, у текстур высокого разрешения - усреднение). */
+    /** A 16 x 16 block (for animated ones - the first frame, for high-resolution textures - an average). */
     static int[] block16(BufferedImage im) {
         int w = im.getWidth(), f = Math.max(1, w / 16);
         int[] out = new int[256];
@@ -88,18 +88,18 @@ public final class ChestTextures {
         return c & 0xff000000 | r << 16 | g << 8 | b;
     }
 
-    /** Цвет с приглушённой насыщенностью и яркостью (HSV). */
+    /** A color with muted saturation and brightness (HSV). */
     static int mute(int rgb, float sat, float val) {
         float[] hsv = java.awt.Color.RGBtoHSB(rgb >> 16 & 255, rgb >> 8 & 255, rgb & 255, null);
         return 0xff000000 | java.awt.Color.HSBtoRGB(hsv[0], hsv[1] * sat, hsv[2] * val) & 0xffffff;
     }
 
-    /** Собрать текстуру вида; null - нет ванильного сундука (не на клиенте). */
+    /** Build the texture of a kind; null - no vanilla chest (not on the client). */
     public static BufferedImage build(Kind k) throws IOException {
         return build(k, read("assets/minecraft/textures/entity/chest/normal.png"));
     }
 
-    /** Собрать текстуру вида на основе сундука 64 x 64 (null - основы нет или она другого размера). */
+    /** Build the texture of a kind based on a 64 x 64 chest (null - there is no base or it is of another size). */
     public static BufferedImage build(Kind k, BufferedImage base) throws IOException {
         if (base == null || base.getWidth() != 64 || base.getHeight() != 64) return null;
         int[] t = base.getRGB(0, 0, 64, 64, null, 0, 64);
@@ -130,7 +130,7 @@ public final class ChestTextures {
                 for (int y = r[1]; y < r[3]; y++) for (int x = r[0]; x < r[2]; x++) t[y * 64 + x] = c;
             }
             int[] n = KNOB[NORTH];
-            t[(n[1] + 1) * 64 + n[0]] = 0xff141414; // скважина
+            t[(n[1] + 1) * 64 + n[0]] = 0xff141414; // keyhole
             t[(n[1] + 2) * 64 + n[0]] = 0xff141414;
         } else {
             float[] th = java.awt.Color.RGBtoHSB(rgb(k.wood) >> 16 & 255, rgb(k.wood) >> 8 & 255, rgb(k.wood) & 255, null);
@@ -163,11 +163,11 @@ public final class ChestTextures {
         return out;
     }
 
-    // ---------------- ключи миров ----------------
+    // ---------------- world keys ----------------
 
     public static final String KEY_PREFIX = "textures/items/worldKey_";
 
-    /** Мир ключа по пути текстуры (домен:путь) или null. */
+    /** The key's world by texture path (domain:path) or null. */
     public static com.divinerpgextended.world.twilight.TwilightWorld keyWorld(String key) {
         if (!key.startsWith(DOMAIN + ":" + KEY_PREFIX) || !key.endsWith(".png")) return null;
         String name = key.substring((DOMAIN + ":" + KEY_PREFIX).length(), key.length() - 4);
@@ -176,8 +176,8 @@ public final class ChestTextures {
     }
 
     /**
-     * Ключ мира: ключ разрушенного кирпича Divine (16 x 16 в обеих версиях), перекрашенный по яркости от тёмного дерева мира к
-     * его яркому цвету. Нет текстуры Divine - простой ключ своей рисовки.
+     * World key: the Divine ruined brick key (16 x 16 in both versions), recolored by brightness from the world's dark wood to
+     * its bright color. No Divine texture - a simple key of our own drawing.
      */
     public static BufferedImage buildKey(com.divinerpgextended.world.twilight.TwilightWorld w) throws IOException {
         Kind k = Kind.of(w);
@@ -209,7 +209,7 @@ public final class ChestTextures {
         return 0xff000000 | r << 16 | g << 8 | bl;
     }
 
-    /** Свой ключ 16 x 16 на случай, если в Divine нет текстуры: кольцо внизу слева, стержень по диагонали, бородка вверху. */
+    /** Our own 16 x 16 key in case Divine has no texture: a ring at the bottom left, a shaft along the diagonal, a bit at the top. */
     static int[] ownKey() {
         String[] rows = { "................", "...........##...", "..........#OO#..", ".........#O##O#.", "........#O#..#O#", ".......#O#..#O#.",
             "......#O#.##O#..", ".....#O#..#O#...", "....#O#...##....", "..##O#..........", ".#OO#...........", "#O##O#..........", "#O#.#O#.........",
@@ -222,7 +222,7 @@ public final class ChestTextures {
         return out;
     }
 
-    /** Запасной камень, если в Divine нет текстуры стены: шум вокруг цвета. */
+    /** Fallback stone if Divine has no wall texture: noise around a color. */
     static int[] noise(int c) {
         int[] out = new int[256];
         java.util.Random r = new java.util.Random(c);

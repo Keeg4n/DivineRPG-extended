@@ -19,21 +19,21 @@ import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Отдельный инвентарь Ветеи из Divine при кошмаре не нужен (чужие вещи и так работают наоборот), а сам он ненадёжен:
- * при входе и выходе инвентарь сохраняется в одну копию и грузится из другой, старые копии не стираются, у кровати
- * кошмаров общее поле на блоке. Аддон выключает его ({@link #disableDivineSwap}) и один раз возвращает то, что Divine
- * успел запереть.
+ * Divine's separate Vethea inventory is not needed for the nightmare (foreign items already work in reverse), and it is unreliable itself:
+ * on entering and leaving, the inventory is saved in one copy and loaded from another, old copies are not erased, and the nightmare
+ * bed has a shared field on the block. The addon disables it ({@link #disableDivineSwap}) and once returns what Divine
+ * managed to lock away.
  * <p>
- * Какая копия настоящая: вне Ветеи живой инвентарь - обычный, значит в "VetheaInv" лежат ветейские вещи, а
- * "OverworldInv" - уже выданная старая копия (её не трогаем, иначе дюп). В Ветее - наоборот. Что не влезло - ждёт в
- * "dre_stash" и выдаётся, когда освободится место.
+ * Which copy is real: outside Vethea the live inventory is the normal one, so "VetheaInv" holds Vethean items, and
+ * "OverworldInv" is an old copy already handed out (we do not touch it, otherwise a dupe). In Vethea it is the opposite. What did not fit waits in
+ * "dre_stash" and is handed out when room frees up.
  */
 public class VetheaStash {
 
     private static final Logger LOG = LogManager.getLogger("divinerpgextended");
     private static final String STASH = "dre_stash";
 
-    /** Настройка vetheaInventory есть только с Divine 1.4.2: в 1.4.1.5 обмен инвентаря включён всегда. */
+    /** The vetheaInventory setting exists only since Divine 1.4.2: in 1.4.1.5 the inventory swap is always on. */
     private static final java.lang.reflect.Field SWAP_OPTION = swapOption();
 
     private static java.lang.reflect.Field swapOption() {
@@ -44,7 +44,7 @@ public class VetheaStash {
         }
     }
 
-    /** Будет ли Divine менять инвентарь при входе в Ветею и выходе из неё. */
+    /** Whether Divine will swap the inventory on entering and leaving Vethea. */
     public static boolean divineSwap() {
         if (com.divinerpgextended.asm.VetheaSwapHooks.blocked) return false;
         try {
@@ -60,10 +60,10 @@ public class VetheaStash {
         try {
             if (SWAP_OPTION != null) SWAP_OPTION.setBoolean(null, false);
         } catch (Throwable t) {
-            LOG.warn("Ветея: не удалось выключить настройку vetheaInventory", t);
+            LOG.warn("Vethea: could not turn off the vetheaInventory setting", t);
         }
-        LOG.info("Ветея: отдельный инвентарь Divine выключен{} - при кошмаре чужие вещи работают наоборот",
-            SWAP_OPTION == null ? " (Divine без настройки vetheaInventory, обмен выключен патчем)" : "");
+        LOG.info("Vethea: separate Divine inventory turned off{} - during the nightmare foreign items work in reverse",
+            SWAP_OPTION == null ? " (Divine without the vetheaInventory setting, swap turned off by the patch)" : "");
     }
 
     private static void say(EntityPlayer p, String key, Object... args) {
@@ -86,9 +86,9 @@ public class VetheaStash {
         if (ps.hasKey(STASH)) give(e.player, ps);
     }
 
-    /** Перенести запертую копию Divine в очередь выдачи (один раз), обе копии Divine убрать. */
+    /** Move Divine's locked copy to the handout queue (once), remove both Divine copies. */
     private static void migrate(EntityPlayer p) {
-        if (divineSwap()) return; // отдельный инвентарь включён намеренно - не вмешиваемся
+        if (divineSwap()) return; // the separate inventory is enabled deliberately - we do not interfere
         NBTTagCompound d = p.getEntityData();
         if (!d.hasKey(EntityPlayer.PERSISTED_NBT_TAG)) return;
         NBTTagCompound ps = d.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
@@ -108,8 +108,8 @@ public class VetheaStash {
         ps.removeTag("VetheaInv");
         ps.removeTag("OverworldInv");
         if (stash.tagCount() > 0) ps.setTag(STASH, stash);
-        LOG.info("Ветея: {} - из отдельного инвентаря Divine ({}) к возврату {} стаков", p.getCommandSenderName(), real, n);
-        com.divinerpgextended.debug.Debug.note(p, "Инвентарь Divine: к возврату " + n + " стаков из " + real);
+        LOG.info("Vethea: {} - from the separate Divine inventory ({}), {} stacks to return", p.getCommandSenderName(), real, n);
+        com.divinerpgextended.debug.Debug.note(p, "Divine inventory: to return " + n + " stacks from " + real);
         if (n > 0) say(p, "dre.vethea.stash_found", String.valueOf(n));
     }
 
@@ -121,7 +121,7 @@ public class VetheaStash {
             ItemStack s = ItemStack.loadItemStackFromNBT(stash.getCompoundTagAt(i));
             if (s == null) continue;
             int before = s.stackSize;
-            p.inventory.addItemStackToInventory(s); // уменьшает stackSize на то, что влезло
+            p.inventory.addItemStackToInventory(s); // reduces stackSize by what fit
             if (s.stackSize < before) given++;
             if (s.stackSize > 0) {
                 NBTTagCompound c = new NBTTagCompound();

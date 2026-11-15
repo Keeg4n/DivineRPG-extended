@@ -9,9 +9,9 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
 
 /**
- * Боссы Divine - не "боссы" для других модов: у их общего класса нет IBossDisplayData, как у Иссушителя и дракона, и
- * моды, которые щадят боссов, их не щадят (жертвенный кинжал Blood Magic убивает с одного удара). Добавляем интерфейс
- * классу EntityDivineRPGBoss; его методы (здоровье, наибольшее здоровье, имя) у любой живой сущности уже есть.
+ * Divine bosses are not "bosses" for other mods: their common class has no IBossDisplayData, unlike the Wither and the dragon, and
+ * mods that spare bosses do not spare them (the Blood Magic sacrificial dagger kills in one hit). We add the interface
+ * to the EntityDivineRPGBoss class; its methods (health, max health, name) already exist for any living entity.
  */
 public class BossStatusTransformer implements IClassTransformer {
 
@@ -29,10 +29,10 @@ public class BossStatusTransformer implements IClassTransformer {
             node.interfaces.add(BOSS);
             ClassWriter w = new ClassWriter(0);
             node.accept(w);
-            LOG.info("Боссы Divine: статус босса (IBossDisplayData) добавлен");
+            LOG.info("Divine bosses: boss status (IBossDisplayData) added");
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Боссы Divine: не удалось добавить статус босса, класс без изменений", t);
+            LOG.error("Divine bosses: could not add boss status, class unchanged", t);
             return bytes;
         }
     }

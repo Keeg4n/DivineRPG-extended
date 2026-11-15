@@ -11,7 +11,7 @@ import codechicken.lib.gui.GuiDraw;
 import com.divinerpgextended.fishing.FishingLoot.View;
 import com.divinerpgextended.vethea.Infusion;
 
-/** NEI: алтарь наполнения Ветеи - глыбы (сколько) + шаблон = результат; рецепты Divine и аддона (крылья, лунное оружие). */
+/** NEI: Vethea infusion altar - boulders (how many) + template = result; Divine and addon recipes (wings, lunar weapons). */
 public class InfusionHandler extends DreHandler {
 
     public static final String ID = "dre.infusion";
@@ -60,7 +60,7 @@ public class InfusionHandler extends DreHandler {
         for (Infusion.Recipe r : Infusion.all()) if (same(r.lump, s) || same(r.template, s) && tagMatch(r.template, s)) arecipes.add(page(r));
     }
 
-    /** Закалённые крылья отличаются только меткой. */
+    /** Tempered wings differ only by a tag. */
     private static boolean tagMatch(ItemStack a, ItemStack b) {
         return Infusion.tempered(a) == Infusion.tempered(b);
     }

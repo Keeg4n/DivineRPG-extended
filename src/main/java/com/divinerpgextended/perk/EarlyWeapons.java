@@ -50,18 +50,18 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Оружие обычного мира без дела в Divine - своя роль у каждого (призывы слизня и ока - {@link com.divinerpgextended.magic.AnchorSummons},
- * стопки метательного - {@link ThrowStack}):
+ * Overworld weapons with no use in Divine - each gets its own role (slime and eye summons - {@link com.divinerpgextended.magic.AnchorSummons},
+ * throwable stacks - {@link ThrowStack}):
  * <ul>
- * <li>Повреждённая пушка - чем глубже в обычном мире, тем сильнее ({@link #cannonDepth});</li>
- * <li>Золотая ярость - убитые ею мобы роняют золотые самородки и теневые монеты;</li>
- * <li>Каменно-кровавый меч - вампиризм; Ядовитая сабля - отравленный не лечится;</li>
- * <li>Палавенс, Массивенс, Фроссивенс - удар по игроку или своему питомцу лечит его вместо урона (до урона: приваты без
- * PvP его не отменяют);</li>
- * <li>Охотничий лук - снайпер; Теневой лук - инерция бега; сюрикен - серия попаданий; Подлый ураган - ядовитое облако;</li>
- * <li>Серенада смерти - спасает от смерти, как амулет жизни, и лечит по ПКМ; Серенада наполнения - аркана и Ясность;</li>
- * <li>молнии оружия не жгут добычу и не поджигают ({@link com.divinerpgextended.entity.EntitySafeLightning});</li>
- * <li>стрелковому оружию Divine - книги Бесконечности (без патронов), Прочности и Восстановления Таумкрафта на наковальне.</li>
+ * <li>Corrupted Cannon - the deeper in the Overworld, the stronger ({@link #cannonDepth});</li>
+ * <li>Golden Fury - mobs killed with it drop gold nuggets and shadow coins;</li>
+ * <li>Stone-blood sword - vampirism; Poison Saber - a poisoned target cannot heal;</li>
+ * <li>Palavence, Massivence, Frossivence - a hit on a player or one's own pet heals them instead of damaging (before damage: protected regions without
+ * PvP do not cancel it);</li>
+ * <li>Hunter's Bow - sniper; Shadow Bow - running inertia; shuriken - a chain of hits; Sneaky Hurricane - a poison cloud;</li>
+ * <li>Serenade of Death - saves from death like the life amulet, and heals on right-click; Serenade of Infusion - arcana and Clarity;</li>
+ * <li>weapon lightning does not burn loot and does not ignite ({@link com.divinerpgextended.entity.EntitySafeLightning});</li>
+ * <li>Divine ranged weapons - Thaumcraft books of Infinity (no ammo), Durability and Repair on the anvil.</li>
  * </ul>
  */
 public class EarlyWeapons {
@@ -84,12 +84,12 @@ public class EarlyWeapons {
     public static final float INFUSION_ARCANA = 50F;
     public static final int INFUSION_CLARITY = 200, REPAIR_EVERY = 40;
 
-    /** Метка снаряда: чьё это (fury, shuriken, snipe, run). */
+    /** Projectile tag: whose it is (fury, shuriken, snipe, run). */
     public static final String TAG = "dreEarly";
     static final String SX = "dreEarlyX", SY = "dreEarlyY", SZ = "dreEarlyZ", RUN_MULT = "dreRunMult";
-    /** Данные игрока: набранный бег (тики), серия сюрикена, последнее попадание. */
+    /** Player data: accumulated run (ticks), shuriken chain, last hit. */
     public static final String RUN = "dreRun", SERIES = "dreSeries", SERIES_AT = "dreSeriesAt";
-    /** Данные цели: до какого тика не лечится (Ядовитая сабля), когда лечили мечом. */
+    /** Target data: until which tick it cannot heal (Poison Saber), when it was healed by a sword. */
     public static final String NO_HEAL = "dreNoHeal", SWORD_HEAL = "dreSwordHeal";
 
     private static final List<EntityThrowable> STORMS = new ArrayList<EntityThrowable>();
@@ -114,7 +114,7 @@ public class EarlyWeapons {
         }
     }
 
-    /** После регистрации предметов: рецепт и прочность Серенады смерти, жезл циклопа без патрона (он теперь призывает). */
+    /** After items are registered: recipe and durability of the Serenade of Death, the cyclops wand without ammo (it summons now). */
     public static void postInit() {
         AquatoothEffects.removeRecipes(VanillaItemsWeapons.serenadeOfDeath);
         cpw.mods.fml.common.registry.GameRegistry.addRecipe(new ItemStack(VanillaItemsWeapons.serenadeOfDeath), " M ", "MSM", " M ", 'M', TwilightItemsOther.mortumGem, 'S',
@@ -125,20 +125,20 @@ public class EarlyWeapons {
             f.setAccessible(true);
             f.set(VanillaItemsWeapons.cyclopsianStaff, null);
         } catch (Exception ex) {
-            com.divinerpgextended.DivineRPGExtended.LOG.warn("Циклопический жезл: патрон Divine не снят - " + ex);
+            com.divinerpgextended.DivineRPGExtended.LOG.warn("Cyclops wand: Divine ammo not removed - " + ex);
         }
     }
 
-    // ---------------- Повреждённая пушка ----------------
+    // ---------------- Corrupted Cannon ----------------
 
-    /** Множитель Повреждённой пушки по высоте стрелка: в обычном мире с 64 и выше x1, к бедроку - до {@link #CANNON_DEEP}. */
+    /** Corrupted Cannon multiplier by shooter height: in the Overworld from 64 and up x1, toward bedrock - up to {@link #CANNON_DEEP}. */
     public static float cannonDepth(EntityLivingBase shooter) {
         if (shooter == null || shooter.dimension != 0) return 1F;
         double t = (CANNON_TOP - shooter.posY) / (CANNON_TOP - CANNON_BOTTOM);
         return 1F + (CANNON_DEEP - 1F) * (float) Math.max(0, Math.min(1, t));
     }
 
-    // ---------------- снаряды: метки при выстреле ----------------
+    // ---------------- projectiles: tags on firing ----------------
 
     @SubscribeEvent
     public void onJoin(EntityJoinWorldEvent e) {
@@ -148,7 +148,7 @@ public class EarlyWeapons {
             if (((EntityThrowable) b).getThrower() instanceof EntityPlayer) STORMS.add((EntityThrowable) b);
             return;
         }
-        if (b.getEntityData().hasKey(TAG)) return; // копия снаряда (пробой, рикошет)
+        if (b.getEntityData().hasKey(TAG)) return; // a copy of the projectile (piercing, ricochet)
         if (b instanceof net.divinerpg.entities.vanilla.projectile.EntityShooterBullet) {
             EntityLivingBase th = ((EntityThrowable) b).getThrower();
             ItemStack h = th instanceof EntityPlayer ? th.getHeldItem() : null;
@@ -170,17 +170,17 @@ public class EarlyWeapons {
             } else if (h.getItem() == VanillaItemsWeapons.shadowBow) {
                 d.setString(TAG, "run");
                 d.setFloat(RUN_MULT, runMult(p));
-                p.getEntityData().setInteger(RUN, 0); // разбег потрачен на этот выстрел
+                p.getEntityData().setInteger(RUN, 0); // the run-up is spent on this shot
             }
         }
     }
 
-    /** Теневой лук стреляет сам, пока зажат: на каждом полном натяге (у него вдвое быстрее обычного). */
+    /** The Shadow Bow fires by itself while held: at every full draw (twice as fast as a normal one). */
     public static final int SHADOW_AUTO = 10;
 
     /**
-     * Лук с ускоренным натяжением: через сколько тиков он натянут до упора (0 - натягивается обычно). У Divine натяжение -
-     * тики, умноженные на 72000 / срок использования (целое), полный натяг - 20, поэтому быстрее обычного всё, что короче 36001.
+     * A bow with accelerated draw: after how many ticks it is drawn fully (0 - draws normally). In Divine the draw is
+     * ticks multiplied by 72000 / use duration (an integer), a full draw is 20, so everything shorter than 36001 is faster than normal.
      */
     public static int autoDraw(net.minecraft.item.ItemStack s) {
         if (s == null || !(s.getItem() instanceof net.minecraft.item.ItemBow)) return 0;
@@ -190,7 +190,7 @@ public class EarlyWeapons {
         return k < 2 ? 0 : (20 + k - 1) / k;
     }
 
-    /** Луки с ускоренным натяжением (и Теневой) стреляют сами, пока зажата ПКМ: на каждом полном натяге - выстрел и сразу новый натяг. */
+    /** Bows with accelerated draw (and the Shadow Bow) fire by themselves while right-click is held: a shot at every full draw and a new draw at once. */
     @SubscribeEvent
     public void onBowTick(net.minecraftforge.event.entity.player.PlayerUseItemEvent.Tick e) {
         if (e.entityPlayer.worldObj.isRemote || e.item == null) return;
@@ -199,20 +199,20 @@ public class EarlyWeapons {
         int max = e.item.getMaxItemUseDuration();
         if (max - e.duration < full) return;
         e.item.getItem().onPlayerStoppedUsing(e.item, e.entityPlayer.worldObj, e.entityPlayer, e.duration);
-        e.duration = max; // и сразу натянуть снова
+        e.duration = max; // and draw again at once
     }
 
-    /** Множитель выстрела Теневого лука по набранному бегу. */
+    /** Shadow Bow shot multiplier by accumulated run. */
     public static float runMult(EntityPlayer p) {
         return 1F + (RUN_MAX - 1F) * Math.min(1F, p.getEntityData().getInteger(RUN) / (float) RUN_FULL);
     }
 
-    /** Множитель Охотничьего лука по расстоянию выстрела. */
+    /** Hunter's Bow multiplier by shot distance. */
     public static float snipeMult(double dist) {
         return 1F + (SNIPE_MAX - 1F) * (float) Math.max(0, Math.min(1, (dist - SNIPE_FROM) / (SNIPE_FULL - SNIPE_FROM)));
     }
 
-    /** Серия сюрикена: множитель этого попадания и счёт следующего. */
+    /** Shuriken chain: multiplier of this hit and the count for the next. */
     public static float series(EntityPlayer p, long now) {
         NBTTagCompound d = p.getEntityData();
         long last = d.getLong(SERIES_AT);
@@ -222,7 +222,7 @@ public class EarlyWeapons {
         return 1F + SERIES_STEP * n;
     }
 
-    /** Разбег для Теневого лука: бег набирает, шаг сбрасывает вдвое быстрее. */
+    /** Run-up for the Shadow Bow: running builds it, a step resets it twice as fast. */
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent e) {
         if (e.phase != TickEvent.Phase.END || e.player.worldObj.isRemote) return;
@@ -233,7 +233,7 @@ public class EarlyWeapons {
         if (p.ticksExisted % REPAIR_EVERY == 0) repair(p);
     }
 
-    // ---------------- урон ----------------
+    // ---------------- damage ----------------
 
     @SubscribeEvent
     public void onHurt(LivingHurtEvent e) {
@@ -244,7 +244,7 @@ public class EarlyWeapons {
             float m = cannonDepth(((EntityThrowable) src).getThrower());
             if (m > 1F) {
                 e.ammount *= m;
-                com.divinerpgextended.debug.Debug.note(v, String.format("Повреждённая пушка на глубине: x%.2f", m));
+                com.divinerpgextended.debug.Debug.note(v, String.format("Damaged cannon at depth: x%.2f", m));
             }
             return;
         }
@@ -254,26 +254,26 @@ public class EarlyWeapons {
             double dx = v.posX - d.getDouble(SX), dy = v.posY + v.height / 2 - d.getDouble(SY), dz = v.posZ - d.getDouble(SZ);
             float m = snipeMult(Math.sqrt(dx * dx + dy * dy + dz * dz));
             e.ammount *= m;
-            if (m > 1F) com.divinerpgextended.debug.Debug.note(v, String.format("Охотничий лук издалека: x%.2f", m));
+            if (m > 1F) com.divinerpgextended.debug.Debug.note(v, String.format("Hunting bow from afar: x%.2f", m));
         } else if ("run".equals(k)) {
             float m = src.getEntityData().getFloat(RUN_MULT);
             if (m > 1F) {
                 e.ammount *= m;
-                com.divinerpgextended.debug.Debug.note(v, String.format("Теневой лук с разбега: x%.2f", m));
+                com.divinerpgextended.debug.Debug.note(v, String.format("Shadow bow at a run: x%.2f", m));
             }
         } else if ("shuriken".equals(k) && atk instanceof EntityPlayer) {
             float m = series((EntityPlayer) atk, v.worldObj.getTotalWorldTime());
             e.ammount *= m;
-            if (m > 1F) com.divinerpgextended.debug.Debug.note(v, String.format("Сюрикен, серия: x%.2f", m));
+            if (m > 1F) com.divinerpgextended.debug.Debug.note(v, String.format("Shuriken, streak: x%.2f", m));
         }
-        // Ядовитая сабля: отравленный не лечится
+        // Poison Saber: a poisoned target cannot heal
         if (atk instanceof EntityPlayer && src == atk) {
             ItemStack h = ((EntityPlayer) atk).getHeldItem();
             if (h != null && h.getItem() == VanillaItemsWeapons.poisonSaber) v.getEntityData().setLong(NO_HEAL, v.worldObj.getTotalWorldTime() + NO_HEAL_TICKS);
         }
     }
 
-    /** Каменно-кровавый меч: вампиризм с прошедшего урона (последним, после всех множителей). */
+    /** Stone-blood sword: vampirism from the damage dealt (last, after all multipliers). */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onVampire(LivingHurtEvent e) {
         if (e.ammount <= 0 || e.entityLiving.worldObj.isRemote) return;
@@ -285,10 +285,10 @@ public class EarlyWeapons {
         float rate = p.getHealth() < p.getMaxHealth() / 3F ? VAMP_LOW : VAMP;
         float dealt = Math.min(e.ammount, e.entityLiving.getHealth() + e.entityLiving.getAbsorptionAmount());
         p.heal(dealt * rate);
-        com.divinerpgextended.debug.Debug.note(p, String.format("Каменно-кровавый меч: +%.1f здоровья (%.0f%%)", dealt * rate, rate * 100));
+        com.divinerpgextended.debug.Debug.note(p, String.format("Stone-blood sword: +%.1f health (%.0f%%)", dealt * rate, rate * 100));
     }
 
-    /** Отравленный Ядовитой саблей не лечится. */
+    /** A target poisoned by the Poison Saber cannot heal. */
     @SubscribeEvent
     public void onHeal(LivingHealEvent e) {
         NBTTagCompound d = e.entityLiving.getEntityData();
@@ -298,15 +298,15 @@ public class EarlyWeapons {
         else d.removeTag(NO_HEAL);
     }
 
-    /** Не лечится ли цель сейчас (Ядовитая сабля). */
+    /** Whether the target cannot heal right now (Poison Saber). */
     public static boolean noHeal(EntityLivingBase v) {
         long until = v.getEntityData().getLong(NO_HEAL), now = v.worldObj.getTotalWorldTime();
         return v.getEntityData().hasKey(NO_HEAL) && now < until && now >= until - NO_HEAL_TICKS - 1;
     }
 
-    // ---------------- лечащие мечи ----------------
+    // ---------------- healing swords ----------------
 
-    /** Лечение удара лечащим мечом (0 - не лечащий). */
+    /** Healing of a hit by a healing sword (0 - not a healing one). */
     public static float swordHeal(ItemStack h) {
         if (h == null) return 0;
         Item i = h.getItem();
@@ -316,7 +316,7 @@ public class EarlyWeapons {
         return 0;
     }
 
-    /** Свой для лечащего меча: любой другой игрок или свой приручённый (Divine пишет владельцем имя игрока, ваниль - UUID). */
+    /** Ally for a healing sword: any other player or one's own tamed animal (Divine writes the player name as owner, vanilla - the UUID). */
     public static boolean friend(EntityPlayer p, Entity t) {
         if (t instanceof EntityPlayer) return t != p;
         String owner = null;
@@ -327,9 +327,9 @@ public class EarlyWeapons {
     }
 
     /**
-     * Лечащий меч по игроку или своему питомцу: вместо удара - лечение (одна единица прочности, не чаще раза в
-     * {@link #HEAL_EVERY} тиков на цель). Раньше всех и даже после чужой отмены удара: лечит и там, где приват запрещает
-     * PvP, - удар отменяем сами, до урона дело не доходит.
+     * A healing sword on a player or one's own pet: healing instead of a hit (one unit of durability, no more often than once per
+     * {@link #HEAL_EVERY} ticks per target). Before everyone and even after someone else's hit cancellation: it heals even where a protected region forbids
+     * PvP - we cancel the hit ourselves, so it never gets to damage.
      */
     @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
     public void onSwing(AttackEntityEvent e) {
@@ -348,12 +348,12 @@ public class EarlyWeapons {
         if (p.getHeldItem() != null && p.getHeldItem().stackSize <= 0) p.destroyCurrentEquippedItem();
         p.worldObj.playSoundAtEntity(t, net.divinerpg.libs.Sounds.heal.getPrefixedName(), 0.7F, 1.2F);
         if (p.worldObj instanceof WorldServer) ((WorldServer) p.worldObj).func_147487_a("heart", t.posX, t.posY + t.height + 0.3, t.posZ, 3, 0.3, 0.1, 0.3, 0);
-        com.divinerpgextended.debug.Debug.note(t, String.format("Лечащий меч: +%.1f здоровья", heal));
+        com.divinerpgextended.debug.Debug.note(t, String.format("Healing sword: +%.1f health", heal));
     }
 
-    // ---------------- Золотая ярость ----------------
+    // ---------------- Golden Fury ----------------
 
-    /** Убитые Золотой яростью мобы роняют золото. Подручные боссов и мобы не своего этапа - ничего (их добычу чистят последними). */
+    /** Mobs killed with Golden Fury drop gold. Boss minions and mobs of the wrong stage - nothing (their loot is cleaned up last). */
     @SubscribeEvent
     public void onDrops(LivingDropsEvent e) {
         EntityLivingBase v = e.entityLiving;
@@ -365,9 +365,9 @@ public class EarlyWeapons {
         if (r.nextFloat() < FURY_COIN) e.drops.add(new EntityItem(v.worldObj, v.posX, v.posY + 0.5, v.posZ, new ItemStack(VanillaItemsOther.shadowCoins)));
     }
 
-    // ---------------- Подлый ураган ----------------
+    // ---------------- Sneaky Hurricane ----------------
 
-    /** Ураган упал - на его месте ядовитое облако; облака травят мобов в радиусе. */
+    /** The hurricane landed - a poison cloud appears in its place; clouds poison mobs in a radius. */
     @SubscribeEvent
     public void onWorldTick(TickEvent.WorldTickEvent e) {
         if (e.phase != TickEvent.Phase.END || e.world.isRemote) return;
@@ -378,7 +378,7 @@ public class EarlyWeapons {
             if (s.isDead) {
                 if (s.ticksExisted > 0) CLOUDS.add(new Cloud(e.world, s.posX, s.posY, s.posZ, now + CLOUD_TICKS, s.getThrower()));
                 it.remove();
-            } else if (s.ticksExisted > 400) it.remove(); // улетел или застрял в выгруженном чанке
+            } else if (s.ticksExisted > 400) it.remove(); // flew away or got stuck in an unloaded chunk
         }
         for (Iterator<Cloud> it = CLOUDS.iterator(); it.hasNext();) {
             Cloud c = it.next();
@@ -395,7 +395,7 @@ public class EarlyWeapons {
         }
     }
 
-    /** Отравить мобов в облаке (игроков, питомцев и мирных - нет). */
+    /** Poison mobs in the cloud (not players, pets or peaceful ones). */
     static int poisonCloud(Cloud c) {
         int n = 0;
         for (Object o : c.w.getEntitiesWithinAABB(EntityLiving.class,
@@ -409,22 +409,22 @@ public class EarlyWeapons {
         return n;
     }
 
-    /** Для автотеста: облако в точке и одна волна яда. @return сколько отравлено */
+    /** For the selftest: a cloud at a point and one wave of poison. @return how many were poisoned */
     public static int testCloud(World w, double x, double y, double z) {
         return poisonCloud(new Cloud(w, x, y, z, w.getTotalWorldTime() + CLOUD_TICKS, null));
     }
 
-    /** Висит ли облако у точки (для автотеста). */
+    /** Whether a cloud hangs at the point (for the selftest). */
     public static boolean cloudAt(World w, double x, double y, double z) {
         for (Cloud c : CLOUDS) if (c.w == w && Math.abs(c.x - x) < 1.5 && Math.abs(c.y - y) < 1.5 && Math.abs(c.z - z) < 1.5) return true;
         return false;
     }
 
-    // ---------------- серенады ----------------
+    // ---------------- serenades ----------------
 
     /**
-     * ПКМ Серенадой смерти - лечит до полного (одна единица прочности), вместо ядовитого снаряда Divine. ПКМ Серенадой
-     * наполнения - ещё и аркана с Ясностью (сама серенада Divine лечит как раньше).
+     * Right-click with the Serenade of Death heals to full (one unit of durability), instead of Divine's poison projectile. Right-click with the Serenade of
+     * Infusion also gives arcana and Clarity (Divine's serenade itself heals as before).
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onUse(PlayerInteractEvent e) {
@@ -436,7 +436,7 @@ public class EarlyWeapons {
             e.useItem = Event.Result.DENY;
             if (p.worldObj.isRemote || p.getHealth() >= p.getMaxHealth()) return;
             p.setHealth(p.getMaxHealth());
-            if (h.getItemDamage() >= h.getMaxDamage()) h.setItemDamage(h.getMaxDamage() - 1); // старые серенады с прочностью Divine (500)
+            if (h.getItemDamage() >= h.getMaxDamage()) h.setItemDamage(h.getMaxDamage() - 1); // old serenades with Divine durability (500)
             if (!p.capabilities.isCreativeMode) h.damageItem(1, p);
             if (h.stackSize <= 0) p.destroyCurrentEquippedItem();
             p.worldObj.playSoundAtEntity(p, net.divinerpg.libs.Sounds.heal.getPrefixedName(), 1F, 1F);
@@ -445,7 +445,7 @@ public class EarlyWeapons {
         if (h.getItem() == VanillaItemsWeapons.serenadeOfInfusion && !p.worldObj.isRemote && e.useItem != Event.Result.DENY && !e.isCanceled()) infuse(p);
     }
 
-    /** Серенада наполнения: +{@link #INFUSION_ARCANA} арканы и Ясность на {@link #INFUSION_CLARITY} тиков. */
+    /** Serenade of Infusion: +{@link #INFUSION_ARCANA} arcana and Clarity for {@link #INFUSION_CLARITY} ticks. */
     public static void infuse(EntityPlayer p) {
         net.divinerpg.utils.events.ArcanaHelper h = net.divinerpg.utils.events.ArcanaHelper.getProperties(p);
         if (h != null) h.setBarValue(Math.min(com.divinerpgextended.asm.ArcanaHooks.max(p), h.getBarValue() + INFUSION_ARCANA));
@@ -453,9 +453,9 @@ public class EarlyWeapons {
     }
 
     /**
-     * Серенада смерти в инвентаре спасает от смерти: полное здоровье и регенерация, серенада ломается (амулет жизни из
-     * Сумеречного леса). Раньше обработчиков смерти аддона - для них игрок не умирал. Готовый Анх фараона спасает первым
-     * (он восстанавливается, серенада - нет). В Везее не работает: там только вещи Везеи; пустота и /kill - не спасает.
+     * A Serenade of Death in the inventory saves from death: full health and regeneration, the serenade breaks (the life amulet from the
+     * Twilight Forest). Before the addon's death handlers - for them the player did not die. A ready Pharaoh's Ankh saves first
+     * (it recharges, the serenade does not). Does not work in Vethea: only Vethea items work there; the void and /kill are not saved from.
      */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onDeath(LivingDeathEvent e) {
@@ -476,22 +476,22 @@ public class EarlyWeapons {
             ChatComponentTranslation c = new ChatComponentTranslation("dre.chat.serenade_death");
             c.getChatStyle().setColor(EnumChatFormatting.GOLD);
             p.addChatMessage(c);
-            com.divinerpgextended.debug.Debug.note(p, "Серенада смерти: спасла от смерти и сломалась");
+            com.divinerpgextended.debug.Debug.note(p, "Death Serenade: saved from death and broke");
             return;
         }
     }
 
-    // ---------------- молнии ----------------
+    // ---------------- lightning ----------------
 
     /**
-     * Безопасная молния оружия бьёт только врагов: вещи, опыт, рамки, игроков, питомцев и мирных не трогает (нет сгоревшей
-     * добычи, свинозомби из свиней и ведьм из жителей). Позже пасхалки с мечом бури в молнии.
+     * A weapon's safe lightning hits only enemies: it does not touch items, experience, frames, players, pets or peaceful mobs (no burnt
+     * loot, zombie pigmen from pigs, or witches from villagers). Later, easter eggs with the storm sword in lightning.
      */
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onStruck(EntityStruckByLightningEvent e) {
         if (!(e.lightning instanceof com.divinerpgextended.entity.EntitySafeLightning)) return;
         Entity t = e.entity;
-        if (t instanceof net.minecraft.entity.player.EntityPlayer) { // чужих игроков - где можно PvP, себя - никогда
+        if (t instanceof net.minecraft.entity.player.EntityPlayer) { // other players - where PvP is allowed, yourself - never
             net.minecraft.entity.player.EntityPlayer by = ((com.divinerpgextended.entity.EntitySafeLightning) e.lightning).caster;
             if (by == null || by == t || Protection.spare(by, t)) e.setCanceled(true);
             return;
@@ -499,18 +499,18 @@ public class EarlyWeapons {
         boolean foe = t instanceof EntityLiving && (t instanceof IMob || t instanceof net.minecraft.entity.boss.IBossDisplayData)
             && !(t instanceof EntityTameable && ((EntityTameable) t).isTamed()) && !(t instanceof com.divinerpgextended.magic.AnchorSummons.Summon);
         if (!foe) e.setCanceled(true);
-        // во сне: оружие с молниями не ветейское - до прохождения ближайшего игрока молния мобов сна не бьёт
+        // in the dream: a weapon with lightning is not Vethean - until completion the lightning does not hit dream mobs near the player
         else if (com.divinerpgextended.vethea.Nightmare.inVetheaWorld(t.worldObj) && t.getClass().getName().startsWith("net.divinerpg.entities.vethea.")) {
             net.minecraft.entity.player.EntityPlayer near = t.worldObj.getClosestPlayer(e.lightning.posX, e.lightning.posY, e.lightning.posZ, 64);
             if (near != null && com.divinerpgextended.vethea.Nightmare.active(near)) e.setCanceled(true);
         }
     }
 
-    // ---------------- стопки метательного ----------------
+    // ---------------- throwable stacks ----------------
 
     /**
-     * Подобранные с земли сюрикены и слайсеры сами докладываются в собранную стопку. После обработчиков, которые запрещают
-     * подбор (личная добыча, приваты); чужую вещь с хозяином не трогаем, как и сама игра.
+     * Shurikens and slicers picked up from the ground add themselves to the gathered stack. After the handlers that forbid
+     * pickup (personal loot, protected regions); we do not touch another player's item that has an owner, just like the game itself.
      */
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onPickup(EntityItemPickupEvent e) {
@@ -527,9 +527,9 @@ public class EarlyWeapons {
         }
     }
 
-    // ---------------- наковальня и Восстановление ----------------
+    // ---------------- anvil and Repair ----------------
 
-    /** Стрелковое оружие Divine (луки, стрелки, пушки, La Vekor), кроме Везеи. */
+    /** Divine ranged weapons (bows, shooters, cannons, La Vekor), except Vethea. */
     public static boolean divineRanged(ItemStack s) {
         if (s == null || s.getItem() == VanillaItemsWeapons.cyclopsianStaff || com.divinerpgextended.vethea.Nightmare.vethean(s)) return false;
         Item i = s.getItem();
@@ -538,7 +538,7 @@ public class EarlyWeapons {
         return i instanceof net.divinerpg.items.base.ItemModBow || i instanceof net.divinerpg.items.base.ItemProjectileShooter || Ammo.of(s) != null;
     }
 
-    /** Восстановление Таумкрафта (null - Таумкрафта нет). */
+    /** Thaumcraft Repair (null - no Thaumcraft). */
     public static Enchantment tcRepair() {
         if (!tcLooked) {
             tcLooked = true;
@@ -548,7 +548,7 @@ public class EarlyWeapons {
         return tcRepair;
     }
 
-    /** Можно ли это зачарование книгой на стрелковое Divine: Бесконечность - если есть патрон, Прочность и Восстановление - если ломается. */
+    /** Whether this enchantment book can go on a Divine ranged weapon: Infinity - if it has ammo, Durability and Repair - if it breaks. */
     static boolean allowed(Enchantment en, ItemStack s) {
         if (en == Enchantment.infinity) return Ammo.of(s) != null || s.getItem() instanceof net.divinerpg.items.base.ItemModBow;
         if (en == Enchantment.unbreaking || en == tcRepair() && en != null) return s.isItemStackDamageable();
@@ -556,9 +556,9 @@ public class EarlyWeapons {
     }
 
     /**
-     * Книга Бесконечности, Прочности или Восстановления Таумкрафта на стрелковое оружие Divine (стол и сама наковальня дают
-     * Бесконечность только лукам, а Восстановление - только вещам Таумкрафта). Чары, которые наковальня кладёт сама, она и
-     * кладёт; несовместимые с уже наложенными (Восстановление и Прочность) - нет.
+     * A Thaumcraft book of Infinity, Durability or Repair on a Divine ranged weapon (the table and the anvil itself give
+     * Infinity only to bows, and Repair only to Thaumcraft items). Enchantments the anvil applies itself, it applies;
+     * ones incompatible with those already present (Repair and Durability) - no.
      */
     @SubscribeEvent
     @SuppressWarnings("unchecked")
@@ -582,7 +582,7 @@ public class EarlyWeapons {
             cost += next * 3;
             if (!en.canApply(e.left)) ours = true;
         }
-        if (!ours) return; // только то, что наковальня умеет сама, - пусть делает она
+        if (!ours) return; // only what the anvil can do by itself - let it do it
         ItemStack out = e.left.copy();
         EnchantmentHelper.setEnchantments(have, out);
         if (e.name != null && !e.name.isEmpty() && !e.name.equals(e.left.getDisplayName())) out.setStackDisplayName(e.name);
@@ -591,7 +591,7 @@ public class EarlyWeapons {
         e.materialCost = 1;
     }
 
-    /** Восстановление Таумкрафта на стрелковом Divine: сам Таумкрафт чинит только свои вещи - зовём его починку для наших (с той же платой висом). */
+    /** Thaumcraft Repair on a Divine ranged weapon: Thaumcraft itself repairs only its own items - we call its repair for ours (with the same vis cost). */
     static void repair(EntityPlayer p) {
         Enchantment r = tcRepair();
         if (r == null) return;
@@ -602,7 +602,7 @@ public class EarlyWeapons {
                 if (doRepair == null) doRepair = Class.forName("thaumcraft.common.lib.events.EventHandlerEntity").getMethod("doRepair", ItemStack.class, EntityPlayer.class);
                 doRepair.invoke(null, s, p);
             } catch (Throwable t) {
-                tcRepair = null; // другой Таумкрафт - без починки
+                tcRepair = null; // a different Thaumcraft - no repair
                 return;
             }
         }

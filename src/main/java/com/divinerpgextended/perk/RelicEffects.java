@@ -26,22 +26,22 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Эффекты вещей из реликвариев: молнии Грозового лука ({@link ItemStormBow}) и души Жатвы душ ({@link ItemSoulHarvest}).
- * Грозовая стрела бьёт молнией в цель (и +25% урона) или, промахнувшись, в место, куда воткнулась.
+ * Effects of items from reliquaries: lightning of the Storm Bow ({@link ItemStormBow}) and souls of Soul Harvest ({@link ItemSoulHarvest}).
+ * A storm arrow strikes the target with lightning (and +25% damage) or, on a miss, the place where it stuck.
  */
 public class RelicEffects {
 
     private static final List<WeakReference<EntityArrow>> ARROWS = new ArrayList<WeakReference<EntityArrow>>();
     private static java.lang.reflect.Field inGround;
-    /** Для самопроверки: сколько молний ударило и сколько взрывов душ было. */
+    /** For the selftest: how many lightning strikes and soul explosions there were. */
     public static int bolts, blasts;
 
-    /** Следить за грозовой стрелой: воткнулась в землю - молния туда. */
+    /** Track a storm arrow: stuck in the ground - lightning goes there. */
     public static void track(EntityArrow a) {
         ARROWS.add(new WeakReference<EntityArrow>(a));
     }
 
-    /** Воткнулась ли стрела (поле inGround своего класса или ванильное). */
+    /** Whether the arrow is stuck (its own class's inGround field or the vanilla one). */
     public static boolean stuck(EntityArrow a) {
         try {
             if (inGround == null) {
@@ -63,7 +63,7 @@ public class RelicEffects {
     }
 
     public static void bolt(World w, double x, double y, double z, Entity by) {
-        w.addWeatherEffect(new com.divinerpgextended.entity.EntitySafeLightning(w, x, y, z, by instanceof net.minecraft.entity.player.EntityPlayer ? (net.minecraft.entity.player.EntityPlayer) by : null)); // не жжёт добычу и не поджигает
+        w.addWeatherEffect(new com.divinerpgextended.entity.EntitySafeLightning(w, x, y, z, by instanceof net.minecraft.entity.player.EntityPlayer ? (net.minecraft.entity.player.EntityPlayer) by : null)); // does not burn loot and does not ignite
         bolts++;
     }
 
@@ -96,7 +96,7 @@ public class RelicEffects {
         }
     }
 
-    /** Взрыв душ вокруг цели: мобы (не игроки, не питомцы) получают долю урона удара. */
+    /** Soul explosion around the target: mobs (not players, not pets) take a share of the hit damage. */
     static void blast(EntityPlayer p, EntityLivingBase center, float dmg) {
         World w = center.worldObj;
         float r = ItemSoulHarvest.BLAST_RADIUS;
@@ -104,7 +104,7 @@ public class RelicEffects {
             EntityLivingBase t = (EntityLivingBase) o;
             if (t == center || t == p || t instanceof EntityPlayer || t instanceof EntityTameable && ((EntityTameable) t).isTamed() || t.getDistanceToEntity(center) > r) continue;
             t.hurtResistantTime = 0;
-            t.attackEntityFrom(DamageSource.causePlayerDamage(p).setDamageBypassesArmor().setMagicDamage(), dmg); // души проходят сквозь броню
+            t.attackEntityFrom(DamageSource.causePlayerDamage(p).setDamageBypassesArmor().setMagicDamage(), dmg); // souls pass through armor
         }
         if (w instanceof WorldServer) ((WorldServer) w).func_147487_a("witchMagic", center.posX, center.posY + center.height / 2, center.posZ, 40, r / 2, 0.5, r / 2, 0.05);
         w.playSoundAtEntity(center, "mob.wither.hurt", 0.8F, 0.6F);

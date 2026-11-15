@@ -13,7 +13,7 @@ import org.lwjgl.opengl.GL11;
 import com.divinerpgextended.accessory.Accessories;
 import com.divinerpgextended.accessory.ContainerAccessories;
 
-/** Окно старых слотов аксессуаров и боеприпасов: только забрать. Фон рисуем сами (в стиле ванильного инвентаря). */
+/** Window of the old accessory and ammo slots: take-only. We draw the background ourselves (in the style of the vanilla inventory). */
 public class GuiAccessories extends GuiContainer {
 
     private final boolean readOnly;
@@ -69,7 +69,7 @@ public class GuiAccessories extends GuiContainer {
     @SuppressWarnings("unchecked")
     protected void drawGuiContainerForegroundLayer(int mx, int my) {
         fontRendererObj.drawString(StatCollector.translateToLocal(readOnly ? "dre.accessories.view" : "dre.accessories.title"), 8, 6, 0x404040);
-        // старые слоты: что здесь лежит, больше не работает - забрать и встроить в броню на Наковальне Странника
+        // old slots: what lies here no longer works - take it and build it into armor at the Wanderer Anvil
         List<String> hint = fontRendererObj.listFormattedStringToWidth(StatCollector.translateToLocal("dre.accessories.legacy"), xSize - 16);
         for (int i = 0; i < hint.size() && i < 1; i++) fontRendererObj.drawString(hint.get(i), 8, 15, 0x8B1A1A);
         fontRendererObj.drawString(StatCollector.translateToLocal("container.inventory"), 8, 72, 0x404040);

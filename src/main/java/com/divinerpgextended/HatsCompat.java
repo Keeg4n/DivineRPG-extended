@@ -10,10 +10,10 @@ import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Hats роняет игру на спавне моба рядом с наследником ванильного спавнера (наш спавнер логова в ледяной пещере): он
- * запоминает, что класс - спавнер, но не запоминает поле его логики, если до этого встречал обычный спавнер, и потом
- * берёт логику null. Заполняем его кэш сами: для каждого наследника TileEntityMobSpawner - поле логики ванильного
- * спавнера (оно у всех одно).
+ * Hats crashes the game on a mob spawn next to a descendant of the vanilla spawner (our lair spawner in the ice cave): it
+ * remembers that the class is a spawner, but does not remember the field of its logic if it met an ordinary spawner before, and then
+ * takes the logic as null. We fill its cache ourselves: for each descendant of TileEntityMobSpawner - the logic field of the vanilla
+ * spawner (it is the same for all of them).
  */
 public final class HatsCompat {
 
@@ -30,14 +30,14 @@ public final class HatsCompat {
             Map<String, Class<?>> tiles = ReflectionHelper.getPrivateValue(TileEntity.class, null, "field_145855_i", "nameToClassMap");
             int n = 0;
             for (Class<?> c : tiles.values()) {
-                if (c == null || c == TileEntityMobSpawner.class || !TileEntityMobSpawner.class.isAssignableFrom(c)) continue; // у чужих модов бывает пустая запись
+                if (c == null || c == TileEntityMobSpawner.class || !TileEntityMobSpawner.class.isAssignableFrom(c)) continue; // other mods sometimes have an empty entry
                 logic.put(c, f);
                 spawners.put(c, Boolean.TRUE);
                 n++;
             }
-            DivineRPGExtended.LOG.info("Hats: логика спавнера записана для наследников ванильного спавнера (" + n + ") - без вылета на спавне мобов рядом");
+            DivineRPGExtended.LOG.info("Hats: spawner logic is written for subclasses of the vanilla spawner (" + n + ") - no crash when mobs spawn nearby");
         } catch (Throwable t) {
-            DivineRPGExtended.LOG.warn("Hats: не удалось поправить его кэш спавнеров", t);
+            DivineRPGExtended.LOG.warn("Hats: could not fix its spawner cache", t);
         }
     }
 }

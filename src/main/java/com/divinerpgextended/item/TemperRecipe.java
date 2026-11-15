@@ -13,13 +13,13 @@ import com.divinerpgextended.world.twilight.TwilightMaterial;
 import com.divinerpgextended.world.twilight.TwilightWorld;
 
 /**
- * Закалка вещей сумеречного мира (в любом порядке на верстаке):
+ * Tempering twilight dimension items (in any order on the crafting table):
  * <ul>
- * <li>часть брони мира + 2 первых материала мира + 2 третьих + камень мира;</li>
- * <li>лук мира + 3 первых материала (у Эдема - солнечные перья) + камень мира.</li>
+ * <li>a dimension armor piece + 2 first materials of the dimension + 2 third ones + a world stone;</li>
+ * <li>a dimension bow + 3 first materials (for Eden - sun feathers) + a world stone.</li>
  * </ul>
- * Вещь та же, но с меткой dreTempered и сиянием. Закалённый сет и лук - см. {@link com.divinerpgextended.perk.HomeArmor}
- * и {@link com.divinerpgextended.perk.HomingArrows}.
+ * The item is the same, but with the dreTempered marker and a glow. The tempered set and bow - see {@link com.divinerpgextended.perk.HomeArmor}
+ * and {@link com.divinerpgextended.perk.HomingArrows}.
  */
 public class TemperRecipe implements IRecipe {
 
@@ -29,7 +29,7 @@ public class TemperRecipe implements IRecipe {
         return s != null && s.hasTagCompound() && s.getTagCompound().getBoolean(TAG);
     }
 
-    /** Мир вещи (часть брони или лук) или null. */
+    /** The item's dimension (armor piece or bow) or null. */
     public static TwilightWorld worldOf(Item i) {
         for (TwilightWorld w : TwilightWorld.values()) {
             for (Item a : w.armor()) if (a == i) return w;
@@ -88,7 +88,7 @@ public class TemperRecipe implements IRecipe {
         out.stackSize = 1;
         if (!out.hasTagCompound()) out.setTagCompound(new NBTTagCompound());
         out.getTagCompound().setBoolean(TAG, true);
-        if (!out.getTagCompound().hasKey("ench")) out.getTagCompound().setTag("ench", new NBTTagList()); // сияние без чар
+        if (!out.getTagCompound().hasKey("ench")) out.getTagCompound().setTag("ench", new NBTTagList()); // glow without enchantments
         return out;
     }
 

@@ -37,22 +37,22 @@ import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Общие наблюдатели отладки - видят итог любой механики без правок в ней:
+ * Shared debug watchers - they see the result of any mechanic without changes to it:
  * <ul>
- * <li>все сообщения в чат игроку (ключ перевода и параметры) - так видны задания, торговцы, страж, дары, лор;</li>
- * <li>изменения инвентаря каждый тик с открытым окном - сделки, награды, траты;</li>
- * <li>смена аксессуаров, ачивки, появление боссов и торговцев рядом.</li>
+ * <li>all chat messages to the player (translation key and parameters) - so quests, merchants, the guardian, gifts and lore are visible;</li>
+ * <li>inventory changes every tick with a window open - trades, rewards, spending;</li>
+ * <li>accessory changes, achievements, the appearance of bosses and merchants nearby.</li>
  * </ul>
  */
 public class DebugWatch {
 
-    /** Живая сущность игрока (после смерти новая) - для записи из сетевого потока. */
+    /** The player's live entity (a new one after death) - for writing from the network thread. */
     private static final Map<UUID, EntityPlayerMP> LIVE = new ConcurrentHashMap<UUID, EntityPlayerMP>();
     private static final Map<UUID, Map<String, Integer>> INV = new HashMap<UUID, Map<String, Integer>>();
     private static final Map<UUID, List<String>> ACC = new HashMap<UUID, List<String>>();
     private static final Set<UUID> SEEN = Collections.newSetFromMap(new ConcurrentHashMap<UUID, Boolean>());
 
-    // ---------------- Исходящий чат ----------------
+    // ---------------- Outgoing chat ----------------
 
     private static class ChatTap extends ChannelOutboundHandlerAdapter {
 
@@ -87,7 +87,7 @@ public class DebugWatch {
         }
     }
 
-    /** Подключить перехват чата к соединению игрока (один раз). */
+    /** Attach chat interception to the player's connection (once). */
     static void tap(EntityPlayerMP p) {
         LIVE.put(p.getUniqueID(), p);
         try {
@@ -112,7 +112,7 @@ public class DebugWatch {
         ACC.remove(e.player.getUniqueID());
     }
 
-    // ---------------- Инвентарь и аксессуары ----------------
+    // ---------------- Inventory and accessories ----------------
 
     private static String key(ItemStack s) {
         return s.getDisplayName();
@@ -123,7 +123,7 @@ public class DebugWatch {
         List<ItemStack> all = new ArrayList<ItemStack>();
         Collections.addAll(all, p.inventory.mainInventory);
         Collections.addAll(all, p.inventory.armorInventory);
-        all.add(p.inventory.getItemStack()); // на курсоре - иначе перекладывание выглядит как потеря
+        all.add(p.inventory.getItemStack()); // on the cursor - otherwise moving items looks like a loss
         for (ItemStack s : all) {
             if (s == null) continue;
             Integer n = m.get(key(s));
@@ -145,7 +145,7 @@ public class DebugWatch {
         Accessories a = Accessories.of(p);
         for (int i = 0; i < a.getSizeInventory(); i++) {
             ItemStack s = a.getStackInSlot(i);
-            if (s != null) l.add("старый слот: " + s.getDisplayName() + " x" + s.stackSize);
+            if (s != null) l.add("old slot: " + s.getDisplayName() + " x" + s.stackSize);
         }
         return l;
     }
@@ -185,13 +185,13 @@ public class DebugWatch {
         List<String> on = new ArrayList<String>(now), off = new ArrayList<String>(was);
         on.removeAll(was);
         off.removeAll(now);
-        String t = "[аксессуары] " + (on.isEmpty() ? "" : "надето: " + on + " ") + (off.isEmpty() ? "" : "снято: " + off) + " | вторых гнёзд Странника "
+        String t = "[accessories] " + (on.isEmpty() ? "" : "worn: " + on + " ") + (off.isEmpty() ? "" : "removed: " + off) + " | Wanderer second sockets "
             + (Accessories.of(p).unlocked - Accessories.BASE);
         if (f.chat) Debug.chat(p, EnumChatFormatting.DARK_AQUA, t);
         if (f.file) Debug.file(p, "accessories", "", t);
     }
 
-    // ---------------- Ачивки и появление сущностей ----------------
+    // ---------------- Achievements and appearance of entities ----------------
 
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
     public void onAchievement(AchievementEvent e) {
@@ -200,8 +200,8 @@ public class DebugWatch {
         Debug.Flags f = Debug.flags(p);
         if (f == null || p.func_147099_x().hasAchievementUnlocked(e.achievement)) return;
         boolean can = p.func_147099_x().canUnlockAchievement(e.achievement);
-        Debug.file(p, "achievement", can ? "got" : "blocked", e.achievement.statId + (can ? "" : " - нет родительской ачивки")
-            + (e.isCanceled() ? " (отменено)" : ""));
+        Debug.file(p, "achievement", can ? "got" : "blocked", e.achievement.statId + (can ? "" : " - no parent achievement")
+            + (e.isCanceled() ? " (cancelled)" : ""));
     }
 
     @SubscribeEvent
@@ -216,8 +216,8 @@ public class DebugWatch {
             double d = Math.sqrt(p.getDistanceSqToEntity(en));
             if (d > 96) continue;
             Debug.Flags f = Debug.ON.get(p.getUniqueID());
-            String t = "[появился] " + en.getCommandSenderName() + (boss ? " (босс)" : merchant ? " (торговец)" : "") + " в "
-                + Math.round(d) + " блоках: " + Math.round(en.posX) + " " + Math.round(en.posY) + " " + Math.round(en.posZ);
+            String t = "[spawned] " + en.getCommandSenderName() + (boss ? " (boss)" : merchant ? " (trader)" : "") + " in "
+                + Math.round(d) + " blocks: " + Math.round(en.posX) + " " + Math.round(en.posY) + " " + Math.round(en.posZ);
             if (f.chat && (boss || merchant) && d <= 48) Debug.chat(p, EnumChatFormatting.GOLD, t);
             if (f.file) Debug.file(p, "entity_join", en.getClass().getSimpleName(), t);
         }

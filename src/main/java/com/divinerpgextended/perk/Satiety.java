@@ -13,12 +13,12 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Перк "Сытость" брони Странника (донор - сет скелета), как кольцо Одина Botania для голода:
+ * The "Satiety" perk of Wanderer armor (donor - the skeleton set), like Botania's Ring of Odin for hunger:
  * <ul>
- * <li>голод тратится в {@link #SLOWER} раза медленнее (усталость от бега, прыжков, ударов и добычи копится медленнее);</li>
- * <li>от голода не умираешь и не теряешь здоровья;</li>
- * <li>бегать можно и с пустой шкалой голода (у ванили бег отключается, когда голода 6 и меньше; это решает клиент -
- * {@link Client} на время своего тика показывает ему 7).</li>
+ * <li>hunger drains {@link #SLOWER} times slower (exhaustion from running, jumping, hitting and mining accumulates more slowly);</li>
+ * <li>you do not die of hunger or lose health;</li>
+ * <li>you can run even with an empty hunger bar (in vanilla running is disabled when hunger is 6 or less; the client decides this -
+ * {@link Client} shows it 7 for the duration of its tick).</li>
  * </ul>
  */
 public class Satiety {
@@ -51,8 +51,8 @@ public class Satiety {
     }
 
     /**
-     * Конец тика игрока на сервере: прибавка усталости с прошлого тика делится на SLOWER. Когда усталость перевалила за 4,
-     * ваниль уже сняла 4 (и единицу сытости или голода) - этот тик считаем с нуля.
+     * End of the player's tick on the server: the exhaustion gain since the last tick is divided by SLOWER. When exhaustion crossed 4,
+     * vanilla has already removed 4 (and one unit of saturation or hunger) - this tick we count from zero.
      */
     public static void tick(EntityPlayer p) {
         NBTTagCompound d = p.getEntityData();
@@ -69,14 +69,14 @@ public class Satiety {
         d.setLong(LAST_AT, now);
     }
 
-    /** От голода не ранит. */
+    /** Hunger does not hurt. */
     @SubscribeEvent
     public void onAttack(LivingAttackEvent e) {
         if (e.source == DamageSource.starve && e.entityLiving instanceof EntityPlayer && !e.entityLiving.worldObj.isRemote && has((EntityPlayer) e.entityLiving))
             e.setCanceled(true);
     }
 
-    /** Клиент: бег при голоде 6 и меньше. На время тика клиента голод 7, к отрисовке - настоящий. */
+    /** Client: running at hunger 6 or less. For the client tick hunger is 7, for rendering - the real value. */
     public static class Client {
 
         private int real = -1;
@@ -96,7 +96,7 @@ public class Satiety {
                     real = p.getFoodStats().getFoodLevel();
                     food().setInt(p.getFoodStats(), 7);
                 } else if (real >= 0) {
-                    // сервер мог за этот тик прислать новый голод - тогда он уже не 7 и трогать нечего
+                    // the server may have sent new hunger during this tick - then it is no longer 7 and there is nothing to touch
                     if (p != null && p.getFoodStats().getFoodLevel() == 7) food().setInt(p.getFoodStats(), real);
                     real = -1;
                 }

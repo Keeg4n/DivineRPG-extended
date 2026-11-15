@@ -7,15 +7,15 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
 /**
- * Метательное оружие Divine (сюрикены, Подлый ураган, сумеречные слайсеры) копится в одном предмете до {@link #MAX}: в
- * 1.7.10 стопка не бывает больше 64, а сюрикенов нужно много. Собранная стопка - один предмет с числом {@link #COUNT} в NBT
- * (две и больше штуки); вещей внутри нет, дюпать нечего.
+ * Divine throwable weapons (shurikens, Sneaky Hurricane, twilight slicers) accumulate in a single item up to {@link #MAX}: in
+ * 1.7.10 a stack cannot exceed 64, and you need a lot of shurikens. A gathered stack is one item with the number {@link #COUNT} in NBT
+ * (two or more); there are no items inside, nothing to dupe.
  * <ul>
- * <li>присесть и ПКМ - собрать в предмет в руке все такие же из инвентаря ({@link #gather});</li>
- * <li>бросок тратит одну из числа ({@link #consume}, вызывается из бросков Divine через
+ * <li>sneak and right-click - gather into the item in hand all identical ones from the inventory ({@link #gather});</li>
+ * <li>a throw spends one of the number ({@link #consume}, called from Divine's throws via
  * {@link com.divinerpgextended.asm.ThrowableTransformer});</li>
- * <li>подобранные с земли такие же сами докладываются в собранную стопку ({@link #absorb});</li>
- * <li>собранная стопка не складывается с другими (предел стопки 1), число - на значке.</li>
+ * <li>identical ones picked up from the ground add themselves to the gathered stack ({@link #absorb});</li>
+ * <li>a gathered stack does not merge with others (stack limit 1), the number is on the icon.</li>
  * </ul>
  */
 public final class ThrowStack {
@@ -33,19 +33,19 @@ public final class ThrowStack {
         return s != null && is(s.getItem());
     }
 
-    /** Число собранной стопки (0 - обычная стопка). */
+    /** Number of the gathered stack (0 - an ordinary stack). */
     public static int count(ItemStack s) {
         return s != null && s.hasTagCompound() && s.getTagCompound().hasKey(COUNT) ? Math.max(0, s.getTagCompound().getInteger(COUNT)) : 0;
     }
 
-    /** Сколько всего штук в этой стопке. */
+    /** How many pieces in total are in this stack. */
     public static int total(ItemStack s) {
         if (s == null) return 0;
         int c = count(s);
         return c > 0 ? c : s.stackSize;
     }
 
-    /** Записать число: две и больше - собранная стопка (один предмет), одна - обычный предмет, ноль - пусто. */
+    /** Write the number: two or more - a gathered stack (one item), one - an ordinary item, zero - empty. */
     public static void setTotal(ItemStack s, int n) {
         if (n >= 2) {
             if (!s.hasTagCompound()) s.setTagCompound(new NBTTagCompound());
@@ -60,13 +60,13 @@ public final class ThrowStack {
         s.stackSize = Math.max(0, n);
     }
 
-    /** Убрать n штук: из числа собранной стопки или из обычной стопки (обычная собранной не становится). */
+    /** Remove n pieces: from the number of a gathered stack or from an ordinary stack (an ordinary one does not become gathered). */
     static void take(ItemStack s, int n) {
         if (count(s) > 0) setTotal(s, count(s) - n);
         else s.stackSize -= n;
     }
 
-    /** Бросок: одна штука из числа (собранная стопка) или из стопки, как у Divine. */
+    /** A throw: one piece from the number (gathered stack) or from the stack, as in Divine. */
     public static void consume(ItemStack s) {
         if (s == null) return;
         int c = count(s);
@@ -74,12 +74,12 @@ public final class ThrowStack {
         else s.stackSize--;
     }
 
-    /** Предел стопки: собранная - 1 (не сливается с другими), обычная - как у предмета. */
+    /** Stack limit: gathered - 1 (does not merge with others), ordinary - as the item has. */
     public static int limit(Item item, ItemStack s) {
         return count(s) > 0 ? 1 : item.getItemStackLimit();
     }
 
-    /** Годится в сбор к held: тот же предмет и подвид, без своих данных (кроме числа). */
+    /** Fits for gathering into held: the same item and subtype, without its own data (except the number). */
     static boolean same(ItemStack held, ItemStack s) {
         if (s == null || s == held || s.getItem() != held.getItem() || s.getItemDamage() != held.getItemDamage() || s.stackSize <= 0) return false;
         if (!s.hasTagCompound()) return true;
@@ -88,7 +88,7 @@ public final class ThrowStack {
         return t.hasNoTags();
     }
 
-    /** Сколько можно собрать в предмет в руке (0 - нечего или некуда). */
+    /** How much can be gathered into the item in hand (0 - nothing to gather or nowhere to put it). */
     public static int gatherable(EntityPlayer p) {
         ItemStack held = p.getHeldItem();
         if (!is(held)) return 0;
@@ -97,7 +97,7 @@ public final class ThrowStack {
         return Math.max(0, Math.min(room, n));
     }
 
-    /** Собрать в предмет в руке такие же из инвентаря, пока влезает. Только сервер. @return сколько вошло */
+    /** Gather identical ones from the inventory into the item in hand while it fits. Server only. @return how much went in */
     public static int gather(EntityPlayer p) {
         if (p.worldObj.isRemote) return 0;
         ItemStack held = p.getHeldItem();
@@ -107,9 +107,9 @@ public final class ThrowStack {
         for (int i = 0; i < inv.length && have < MAX; i++) {
             if (i == p.inventory.currentItem || !same(held, inv[i])) continue;
             int n = Math.min(MAX - have, total(inv[i]));
-            take(inv[i], n); // сначала минус в источнике (обычная стопка остаётся обычной)
+            take(inv[i], n); // minus at the source first (an ordinary stack stays ordinary)
             if (inv[i].stackSize <= 0) inv[i] = null;
-            have += n; // потом плюс в руке
+            have += n; // then plus in the hand
             got += n;
         }
         if (got > 0) {
@@ -119,7 +119,7 @@ public final class ThrowStack {
         return got;
     }
 
-    /** Подобранная с земли стопка: в собранную стопку того же вида, сколько влезет. @return сколько вошло */
+    /** A stack picked up from the ground: into a gathered stack of the same kind, as much as fits. @return how much went in */
     public static int absorb(EntityPlayer p, EntityItem e) {
         ItemStack in = e.getEntityItem();
         if (!is(in) || count(in) > 0 || in.hasTagCompound()) return 0;
@@ -140,7 +140,7 @@ public final class ThrowStack {
         return got;
     }
 
-    /** Вернуть одну штуку в предмет в руке (перевязь метателя): в собранную стопку или в обычную, иначе в инвентарь. */
+    /** Return one piece into the item in hand (Thrower's Sling): into a gathered or an ordinary stack, otherwise into the inventory. */
     public static void giveBack(EntityPlayer p, ItemStack held) {
         int c = count(held);
         if (c > 0 && c < MAX) setTotal(held, c + 1);
@@ -151,7 +151,7 @@ public final class ThrowStack {
         }
     }
 
-    /** Число на значке собранной стопки (null - обычная). */
+    /** Number on the icon of a gathered stack (null - an ordinary one). */
     public static String label(ItemStack s) {
         int c = count(s);
         return c > 0 ? String.valueOf(c) : null;

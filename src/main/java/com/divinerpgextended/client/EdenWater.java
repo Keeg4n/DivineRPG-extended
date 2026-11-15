@@ -8,7 +8,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Золотая вода Эдема: регистрирует её текстуры в атласе блоков (подмена - {@link com.divinerpgextended.asm.WaterTransformer}). */
+/** Eden's golden water: registers its textures in the block atlas (the replacement is {@link com.divinerpgextended.asm.WaterTransformer}). */
 @SideOnly(Side.CLIENT)
 public class EdenWater {
 

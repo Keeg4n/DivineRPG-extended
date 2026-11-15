@@ -9,25 +9,25 @@ import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.EnumChatFormatting;
 
 /**
- * Личная добыча с боссов (кроме аксессуаров - те в {@link com.divinerpgextended.trinket.AccessorySources}): каждому бившему,
- * за первую победу (если вещь гарантирована) - наверняка, дальше с шансом. Падает у тела босса, помечена владельцем и
- * неуязвима, как аксессуары.
+ * Personal boss loot (except accessories - those are in {@link com.divinerpgextended.trinket.AccessorySources}): for every player who hit the boss,
+ * the first victory (if the item is guaranteed) - always, afterwards with a chance. Drops at the boss body, marked with the owner and
+ * invulnerable, like accessories.
  * <ul>
- * <li>Карцинус - крабовый якорь (призыв краба): первая победа наверняка, потом {@link #CRAB_ANCHOR}.</li>
- * <li>Лиоплевродон - лук Цунами: первая победа наверняка, потом {@link #TSUNAMI}; якорь лиоплевродона (призыв акулы) -
- * {@link #LIO_ANCHOR} каждый раз.</li>
+ * <li>Carcinus - crab anchor (summons a crab): guaranteed on the first victory, then {@link #CRAB_ANCHOR}.</li>
+ * <li>Liopleurodon - Tsunami Bow: guaranteed on the first victory, then {@link #TSUNAMI}; Liopleurodon Anchor (summons a shark) -
+ * {@link #LIO_ANCHOR} every time.</li>
  * </ul>
  */
 public final class BossDrops {
 
     public static final float CRAB_ANCHOR = 0.25F, TSUNAMI = 0.3F, LIO_ANCHOR = 0.3F;
     private static final String GOT = "dreBossItems";
-    /** Для самопроверки: бросок вместо случайного (меньше нуля - обычный). */
+    /** For selftest: a forced roll instead of a random one (below zero - normal). */
     public static float testRoll = -1F;
 
     private BossDrops() {}
 
-    /** Награды игроку за победу над боссом. */
+    /** Rewards for a player for defeating a boss. */
     public static void reward(EntityPlayer p, Boss b, Entity at) {
         if (p.worldObj.isRemote) return;
         if (b == Boss.CARCINUS) give(p, "crabAnchor", new ItemStack(net.divinerpg.utils.items.VanillaItemsWeapons.crabAnchor), true, CRAB_ANCHOR, at);
@@ -41,7 +41,7 @@ public final class BossDrops {
         return testRoll >= 0 ? testRoll : p.worldObj.rand.nextFloat();
     }
 
-    /** Выдать вещь: первая победа - наверняка (если first), иначе с шансом. Возвращает выпавшее или null. */
+    /** Give an item: first victory - guaranteed (if first), otherwise with a chance. Returns what dropped or null. */
     public static EntityItem give(EntityPlayer p, String key, ItemStack s, boolean first, float chance, Entity at) {
         if (s == null || s.getItem() == null) return null;
         NBTTagCompound d = p.getEntityData();

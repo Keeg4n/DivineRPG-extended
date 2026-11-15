@@ -14,8 +14,8 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 
 /**
- * Порталы Divine (сумеречные миры) на каждый вход создают DivineTeleporter, который ищет парный портал медленным
- * перебором. Подменяем создаваемый класс на {@link com.divinerpgextended.portal.FastTeleporter} (тот же конструктор).
+ * Divine portals (twilight worlds) create a DivineTeleporter on every entry, which looks for the paired portal by slow
+ * brute force. We swap the created class for {@link com.divinerpgextended.portal.FastTeleporter} (same constructor).
  */
 public class PortalTransformer implements IClassTransformer, Opcodes {
 
@@ -44,15 +44,15 @@ public class PortalTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (news == 0 || news != inits) {
-                LOG.warn("Порталы Divine: создание телепорта не найдено ({}/{}) - класс без изменений", news, inits);
+                LOG.warn("Divine portals: teleport creation not found ({}/{}) - class unchanged", news, inits);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Порталы Divine: быстрый поиск парного портала ({} мест)", news);
+            LOG.info("Divine portals: fast search for the paired portal ({} places)", news);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Порталы Divine: не удалось исправить, класс без изменений", t);
+            LOG.error("Divine portals: could not fix, class unchanged", t);
             return bytes;
         }
     }

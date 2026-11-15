@@ -10,7 +10,7 @@ import net.divinerpg.utils.config.ConfigurationHelper;
 
 import com.divinerpgextended.world.twilight.WorldWeather;
 
-/** /dreblizzard start|stop - для проверки: метель Айсики, ливень Дикого леса и камнепад Апалачии сразу. Начать (через предупреждение) или прекратить вьюгу в Iceika. */
+/** /dreblizzard start|stop - for testing: an Iceika blizzard, a Wildwood downpour and an Apalachia rockfall at once. Start (through the warning) or stop a blizzard in Iceika. */
 public class CommandBlizzard extends CommandBase {
 
     @Override
@@ -35,10 +35,10 @@ public class CommandBlizzard extends CommandBase {
         }
         boolean start = "start".equals(args[0]);
         MinecraftServer server = MinecraftServer.getServer();
-        // погода хранится в сохранении мира: мир без игроков подгружается, как при телепорте
+        // weather is stored in the world save: a world without players is loaded, as in a teleport
         Blizzard b = Blizzard.get(server.worldServerForDimension(ConfigurationHelper.iceika));
-        // старт: из затишья - следующая секунда предупреждение, через 30 секунд событие; уже идущее не трогаем.
-        // стоп: идущее (или предупреждение) кончается на следующей секунде; затишье не трогаем, чтобы не было лишнего "закончилось"
+        // start: from a lull - the next second is the warning, the event comes after 30 seconds; one already in progress is not touched.
+        // stop: the one in progress (or the warning) ends on the next second; a lull is not touched, so there is no extra "ended"
         if (start ? b.phase == Blizzard.CALM : b.phase != Blizzard.CALM) {
             b.phase = start ? Blizzard.CALM : Blizzard.STORM;
             b.timer = 20;

@@ -1,8 +1,8 @@
 package com.divinerpgextended.fishing;
 
 /**
- * Удочки и их сила рыбалки (как в Террарии: сила удочки + сила приманки решают, как быстро клюёт и насколько редкий
- * улов). У многих удочек есть особенность.
+ * Rods and their fishing power (as in Terraria: rod power + bait power decide how fast it bites and how rare the
+ * catch is). Many rods have a trait.
  */
 public enum Rod {
 
@@ -10,23 +10,23 @@ public enum Rod {
     REALMITE("realmite", 10, 0x6FA8C8),
     ARLEMITE("arlemite", 15, 0x7FD06A),
     RUPEE("rupee", 20, 0x3F7FE0),
-    /** Тыквенная удочка Джека о'Мэна: ночью +20 к силе. */
+    /** Jack O Man's Pumpkin Fishing Rod: +20 power at night. */
     JACK("jack", 25, 0xE07A1A),
-    /** Арканная удочка Леорны: половину приманок не тратит. */
+    /** Leorna's Arcana rod: does not spend half of the baits. */
     ARCANA("arcana", 30, 0x9A6AE0),
-    /** Эдемская: +10% к шансу ящика. */
+    /** Eden: +10% to the crate chance. */
     EDEN("eden", 35, 0xF0D040),
-    /** Лесная (Wildwood): клюёт на четверть быстрее. */
+    /** Wildwood: bites a quarter faster. */
     WILDWOOD("wildwood", 40, 0x3FA0C0),
-    /** Апалачская: редкий улов в полтора раза чаще. */
+    /** Apalachia: rare catch one and a half times more often. */
     APALACHIA("apalachia", 45, 0xB050E0),
-    /** Скайтернская: 20% шанс поймать сразу два. */
+    /** Skythern: 20% chance to catch two at once. */
     SKYTHERN("skythern", 50, 0xD8E8F0),
-    /** Золотая удочка - награда Леорны за задания: треть приманок не тратит, редкое чаще. */
+    /** Golden Fishing Rod - Leorna's reward for tasks: does not spend a third of the baits, rare catches more often. */
     GOLDEN("golden", 50, 0xFFD040),
-    /** Мортумская: рыбачит в лаве без огненной приманки. */
+    /** Mortum: fishes in lava without fire bait. */
     MORTUM("mortum", 55, 0x6A3030),
-    /** Удочка Голода (Vethea): ловит в лаве, двойной улов, приманки тратит реже. */
+    /** Fishing Rod of the Hunger (Vethea): catches in lava, double catch, spends baits less often. */
     HUNGER("hunger", 65, 0x40C8A0);
 
     public final String key;
@@ -43,7 +43,7 @@ public enum Rod {
         return this == MORTUM || this == HUNGER;
     }
 
-    /** Цвет лески в мире (как на текстуре удочки). */
+    /** Line color in the world (as on the rod texture). */
     public int line() {
         switch (this) {
             case REALMITE: return 0xC8D8E0;
@@ -62,12 +62,12 @@ public enum Rod {
         }
     }
 
-    /** Леска светится (не темнеет ночью и в пещерах). */
+    /** The line glows (does not darken at night and in caves). */
     public boolean glowingLine() {
         return this == ARCANA || this == SKYTHERN || this == MORTUM || this == HUNGER || this == GOLDEN;
     }
 
-    /** Доля случаев, когда приманка не тратится. */
+    /** The share of cases when the bait is not spent. */
     public float baitSave() {
         return this == ARCANA ? 0.5F : this == GOLDEN ? 0.33F : this == HUNGER ? 0.4F : 0;
     }

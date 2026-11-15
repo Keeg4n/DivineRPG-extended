@@ -15,17 +15,17 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Ритуал преображения Гайи (Blood Magic) подбирает биом по температуре и влажности, перебирая массив биомов, но
- * записывает в чанк не ID найденного биома, а его номер среди непустых ячеек массива. Пока биомы идут подряд (ванильные
- * 0-39), это совпадает; за первой дырой в массиве (у ванили - с 40) ритуал ставит чужой биом, и биомы Divine (ID 170+)
- * получить нельзя. Здесь номер заменяется на настоящий ID найденного биома.
+ * The Gaia transformation ritual (Blood Magic) picks a biome by temperature and humidity, iterating over the biome array, but
+ * writes into the chunk not the ID of the found biome but its index among the non-empty cells of the array. While biomes go in a row (vanilla
+ * 0-39), this coincides; after the first gap in the array (in vanilla - from 40) the ritual sets the wrong biome, and Divine biomes (ID 170+)
+ * cannot be obtained. Here the index is replaced with the real ID of the found biome.
  */
 public class BiomeRitualTransformer implements IClassTransformer, Opcodes {
 
     static final String CLS = "WayofTime.alchemicalWizardry.common.rituals.RitualEffectBiomeChanger";
     private static final String BIOME = "net/minecraft/world/biome/BiomeGenBase";
     private static final Logger LOG = LogManager.getLogger("divinerpgextended-core");
-    /** Исправлено при загрузке (для самопроверки). */
+    /** Fixed on load (for the selftest). */
     public static boolean patched;
 
     @Override
@@ -39,7 +39,7 @@ public class BiomeRitualTransformer implements IClassTransformer, Opcodes {
                 int biome = -1;
                 String id = null;
                 for (AbstractInsnNode i = m.instructions.getFirst(); i != null; i = i.getNext()) {
-                    // перебираемый биом: aload b; getfield temperature
+                    // the biome being iterated: aload b; getfield temperature
                     if (i.getOpcode() == GETFIELD && BIOME.equals(((FieldInsnNode) i).owner) && i.getPrevious() != null && i.getPrevious().getOpcode() == ALOAD) {
                         String f = ((FieldInsnNode) i).name;
                         if ("field_76750_F".equals(f) || "temperature".equals(f)) {
@@ -47,7 +47,7 @@ public class BiomeRitualTransformer implements IClassTransformer, Opcodes {
                             id = f.startsWith("field_") ? "field_76756_M" : "biomeID";
                         }
                     }
-                    // совпали обе разницы: fcmpg; ifge; iload номер; istore выбранный - номер заменяем на ID
+                    // both differences matched: fcmpg; ifge; iload index; istore chosen - we replace the index with the ID
                     AbstractInsnNode jump = back(i), cmp = jump == null ? null : back(jump), store = ahead(i);
                     if (biome >= 0 && i.getOpcode() == ILOAD && store != null && store.getOpcode() == ISTORE
                         && jump instanceof JumpInsnNode && jump.getOpcode() == IFGE && cmp != null && cmp.getOpcode() == FCMPG) {
@@ -60,27 +60,27 @@ public class BiomeRitualTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (n != 1) {
-                LOG.warn("Ритуал Гайи: место выбора биома не найдено однозначно ({}), класс без изменений", n);
+                LOG.warn("Gaia ritual: biome selection spot not found unambiguously ({}), class unchanged", n);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
             patched = true;
-            LOG.info("Ритуал Гайи: в чанк пишется настоящий ID биома");
+            LOG.info("Gaia ritual: the real biome ID is written to the chunk");
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Ритуал Гайи: не удалось исправить, класс без изменений", t);
+            LOG.error("Gaia ritual: could not fix, class unchanged", t);
             return bytes;
         }
     }
 
-    /** Ближайшая настоящая инструкция перед i (метки, номера строк и кадры пропускаются). */
+    /** The nearest real instruction before i (labels, line numbers and frames are skipped). */
     private static AbstractInsnNode back(AbstractInsnNode i) {
         for (i = i.getPrevious(); i != null && i.getOpcode() < 0; i = i.getPrevious()) {}
         return i;
     }
 
-    /** Ближайшая настоящая инструкция после i. */
+    /** The nearest real instruction after i. */
     private static AbstractInsnNode ahead(AbstractInsnNode i) {
         for (i = i.getNext(); i != null && i.getOpcode() < 0; i = i.getNext()) {}
         return i;

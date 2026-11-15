@@ -18,8 +18,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Материалы мобов сумеречных миров (мета - {@link TwilightMaterial}) и печати святилища (отдельный предмет, мета -
- * {@link CadillionWorld}): печать лежит в подземельях островов и нужна для Зова кадиллиона.
+ * Materials of twilight dimension mobs (meta - {@link TwilightMaterial}) and the sanctum seal (a separate item, meta -
+ * {@link CadillionWorld}): the seal lies in the island dungeons and is needed for the Cadillion Call.
  */
 public class ItemTwilightMaterial extends Item {
 

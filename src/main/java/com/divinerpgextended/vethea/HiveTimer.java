@@ -22,10 +22,10 @@ import com.divinerpgextended.boss.BossMinions;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Королева улья (первый босс Ветеи) бессмертна: убить нужно её рой. Как только игрок подходит ({@link #ENGAGE} блоков),
- * Королева выпускает рой; полоска её здоровья - сколько роя осталось перебить ({@link #need}: 20 и по 6 за каждого
- * игрока сверх первого). В последней трети рой гуще и сон давит (слабость и тошнота). Все ушли с арены - всё сначала.
- * Рой перебит - Королева гибнет (обычные трофеи с глыбами цермила для Крыльев II, засчитана тем, кто был рядом).
+ * The Hive Queen (the first Vethea boss) is immortal: her swarm must be killed. As soon as a player approaches ({@link #ENGAGE} blocks),
+ * the Queen releases the swarm; her health bar is how much of the swarm remains to be killed ({@link #need}: 20 and 6 for each
+ * player beyond the first). In the last third the swarm is thicker and the dream presses down (weakness and nausea). Everyone left the arena - start over.
+ * Swarm killed - the Queen dies (normal trophies with cermile boulders for Wings II, credited to those nearby).
  */
 public class HiveTimer {
 
@@ -49,7 +49,7 @@ public class HiveTimer {
         int left = tag.getInteger(LEFT);
         List<EntityPlayer> near = players(q, left > 0 ? LEAVE : ENGAGE);
         if (near.isEmpty()) {
-            if (left > 0) { // все ушли - сон отпустил, всё сначала
+            if (left > 0) { // everyone left - the dream let go, start over
                 tag.setInteger(LEFT, 0);
                 q.setHealth(q.getMaxHealth());
             }
@@ -62,7 +62,7 @@ public class HiveTimer {
             q.worldObj.playSoundAtEntity(q, "mob.wither.spawn", 1.0F, 1.6F);
         }
         int need = Math.max(1, tag.getInteger(NEED));
-        q.setHealth(Math.max(1, q.getMaxHealth() * left / need)); // полоска = сколько роя осталось
+        q.setHealth(Math.max(1, q.getMaxHealth() * left / need)); // bar = how much of the swarm remains
         boolean last = left * 3 <= need;
         WorldServer ws = (WorldServer) q.worldObj;
         int cap = 4 + 2 * near.size();
@@ -76,7 +76,7 @@ public class HiveTimer {
         if (q.ticksExisted % 20 == 0) ws.func_147487_a("witchMagic", q.posX, q.posY + 2, q.posZ, 6, 1, 1, 1, 0);
     }
 
-    /** Убит её приспешник (игроком) - роя меньше; последний - Королева гибнет. */
+    /** Her minion is killed (by a player) - less swarm; the last one - the Queen dies. */
     @SubscribeEvent
     public void onMinionDeath(LivingDeathEvent e) {
         EntityLivingBase m = e.entityLiving;
@@ -88,7 +88,7 @@ public class HiveTimer {
             int left = left(q);
             if (left <= 0) return;
             q.getEntityData().setInteger(LEFT, --left);
-            com.divinerpgextended.debug.Debug.note(e.source.getEntity(), "Королева улья: рой -1, осталось " + left);
+            com.divinerpgextended.debug.Debug.note(e.source.getEntity(), "Hive Queen: swarm -1, remaining " + left);
             if (left == 0) wake(q, (EntityPlayer) e.source.getEntity());
             return;
         }
@@ -110,7 +110,7 @@ public class HiveTimer {
         }
     }
 
-    /** Рой перебит: Королева гибнет от "пробуждения" - удар от лица добившего (засчитывание и трофеи как обычно). */
+    /** The swarm is killed: the Queen dies from "awakening" - a hit on behalf of the finisher (credit and trophies as usual). */
     private static void wake(EntityHiveQueen q, EntityPlayer p) {
         q.getEntityData().setBoolean(WAKE, true);
         q.hurtResistantTime = 0;
@@ -123,7 +123,7 @@ public class HiveTimer {
         p.inventoryContainer.detectAndSendChanges();
     }
 
-    /** Королеву не ранить (кроме пробуждения). */
+    /** The Queen cannot be hurt (except by awakening). */
     @SubscribeEvent
     public void onAttack(LivingAttackEvent e) {
         if (!(e.entityLiving instanceof EntityHiveQueen) || e.entityLiving.worldObj.isRemote) return;

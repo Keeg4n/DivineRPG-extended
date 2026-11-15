@@ -11,7 +11,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Стихия цветных вещей Divine и особенность бедрокового оружия - в подсказке ({@link ColorGear}). */
+/** The element of Divine colored items and the trait of Bedrock weapons - in the tooltip ({@link ColorGear}). */
 @SideOnly(Side.CLIENT)
 public class ColorTooltip {
 
@@ -37,17 +37,17 @@ public class ColorTooltip {
         if (com.divinerpgextended.perk.ColdMobs.isHellWeapon(it)) e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.hell_vs_cold"));
         if (e.itemStack.getItem() == VanillaItemsWeapons.bedrockSword) e.toolTip.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.tooltip.bedrock_sword"));
         if (e.itemStack.getItem() == VanillaItemsWeapons.bedrockMaul) e.toolTip.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.tooltip.bedrock_maul"));
-        // адское оружие дальнего боя - роль ({@link com.divinerpgextended.boss.NetherArsenal})
+        // Nether ranged weapons - the role ({@link com.divinerpgextended.boss.NetherArsenal})
         if (it == VanillaItemsWeapons.ghastCannon) e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.ghast_cannon"));
         if (it == VanillaItemsWeapons.maelstrom) e.toolTip.add(EnumChatFormatting.GOLD + StatCollector.translateToLocal("dre.tooltip.maelstrom"));
         if (it == VanillaItemsWeapons.ghastCannon || it == VanillaItemsWeapons.maelstrom)
             e.toolTip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal(it == VanillaItemsWeapons.ghastCannon ? "dre.tooltip.reload_ghast" : "dre.tooltip.reload_maelstrom"));
         if (it == net.divinerpg.utils.items.IceikaItems.soundOfMusic) e.toolTip.add(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("dre.tooltip.sound_of_music"));
         if (it == net.divinerpg.utils.items.IceikaItems.soundOfCarols) e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.sound_of_carols"));
-        // вещи порчи - вещи тьмы ({@link com.divinerpgextended.perk.CorruptedGear})
+        // corruption items - darkness items ({@link com.divinerpgextended.perk.CorruptedGear})
         if (com.divinerpgextended.perk.CorruptedGear.tool(it)) e.toolTip.add(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("dre.tooltip.corrupted_tool"));
         if (com.divinerpgextended.perk.CorruptedGear.weapon(it)) e.toolTip.add(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal("dre.tooltip.corrupted_weapon"));
-        // против Короля скорчеров ({@link com.divinerpgextended.boss.KingRace})
+        // against the King of Scorchers ({@link com.divinerpgextended.boss.KingRace})
         if (com.divinerpgextended.boss.KingRace.aquatic(it)) e.toolTip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("dre.tooltip.aquatic_vs_king"));
         if (it == net.divinerpg.utils.items.VanillaItemsArmor.infernoHelmet || it == net.divinerpg.utils.items.VanillaItemsArmor.infernoBody
             || it == net.divinerpg.utils.items.VanillaItemsArmor.infernoLegs || it == net.divinerpg.utils.items.VanillaItemsArmor.infernoBoots
@@ -94,7 +94,7 @@ public class ColorTooltip {
         return false;
     }
 
-    /** Подвид оружия обычного мира: числа сервера. Меч с обычными числами - без строки, у него ничего не меняется. */
+    /** Overworld weapon subtype: the server's numbers. A sword with ordinary numbers gets no line, nothing changes for it. */
     private static void melee(ItemTooltipEvent e) {
         com.divinerpgextended.perk.MeleeRoles.Sync s = com.divinerpgextended.perk.MeleeRoles.shown;
         com.divinerpgextended.perk.MeleeRoles.Kind k = s != null && s.on ? com.divinerpgextended.perk.MeleeRoles.kind(e.itemStack) : null;
@@ -109,7 +109,7 @@ public class ColorTooltip {
         if (s.pvp) e.toolTip.add(EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted("dre.tooltip.melee_pvp", f.format(s.windowPvp[i] / 20F), f.format(s.damagePvp[i])));
     }
 
-    /** Броня, полный сет которой защищает от взрывов (Bedrock и Ender любых цветов). */
+    /** Armor whose full set protects from explosions (Bedrock and Ender of any colors). */
     static boolean blastArmor(net.minecraft.item.Item it) {
         if (!(it instanceof net.minecraft.item.ItemArmor)) return false;
         String n = it.getUnlocalizedName();

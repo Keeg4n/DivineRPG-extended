@@ -18,14 +18,14 @@ import net.minecraftforge.event.entity.living.LivingSetAttackTargetEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Призыв кости призрака: вместо призрака Divine на 6 с - {@link EntityArcaneWraith}, пока хватает арканы. Не больше
- * {@link #CAP} призраков (с полным сетом Кормы - {@link #CAP_KORMA}), лишний - самый старый - рассеивается. Цель - то, что
- * хозяин бил последние {@link #MEMORY} тиков, иначе тот, кто нацелился на хозяина.
+ * Ghostbane summon: instead of Divine's 6-second ghost - {@link EntityArcaneWraith}, as long as arcana lasts. No more than
+ * {@link #CAP} ghosts (with a full Korma set - {@link #CAP_KORMA}), the extra one - the oldest - disperses. The target is what the
+ * owner hit in the last {@link #MEMORY} ticks, otherwise whoever targeted the owner.
  */
 public class ArcaneSummons {
 
     public static final int CAP = 2, CAP_KORMA = 3, MEMORY = 200;
-    /** Радиус агра призрака - самый большой из призывов (слизень 6 - краб 8 - око 10 - акула 12). */
+    /** Ghost aggro radius - the largest of the summons (slime 6 - crab 8 - eye 10 - shark 12). */
     public static final double AGGRO = 16;
     static final Map<UUID, List<EntityArcaneWraith>> LIVE = new HashMap<UUID, List<EntityArcaneWraith>>();
     static final Map<UUID, Object[]> TARGET = new HashMap<UUID, Object[]>();
@@ -51,7 +51,7 @@ public class ArcaneSummons {
         LIVE.remove(p.getUniqueID());
     }
 
-    /** Цель призраков хозяина (или null). */
+    /** The target of the owner's ghosts (or null). */
     static Entity target(EntityPlayer p) {
         Object[] t = TARGET.get(p.getUniqueID());
         if (t == null) return null;
@@ -65,7 +65,7 @@ public class ArcaneSummons {
         return e;
     }
 
-    /** Забыть цель призраков хозяина (свисток). */
+    /** Forget the target of the owner's ghosts (whistle). */
     public static void forget(EntityPlayer p) {
         TARGET.remove(p.getUniqueID());
     }
@@ -75,7 +75,7 @@ public class ArcaneSummons {
         TARGET.put(p.getUniqueID(), new Object[] { t, p.worldObj.getTotalWorldTime() });
     }
 
-    /** Призрак Divine с хозяином-игроком - заменить на призыв аддона (раньше фильтров спавна: это призыв, а не моб). */
+    /** A Divine ghost with a player owner - replace with the addon's summon (before spawn filters: it is a summon, not a mob). */
     @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.HIGHEST)
     public void onJoin(EntityJoinWorldEvent e) {
         if (e.world.isRemote || e.entity.getClass() != EntityWraith.class) return;
@@ -85,13 +85,13 @@ public class ArcaneSummons {
         summon(o, e.entity.posX, e.entity.posY, e.entity.posZ);
     }
 
-    /** Хозяин призрака Divine: Divine пишет в поле владельца отображаемое имя игрока, ванильный поиск ждёт UUID. */
+    /** Owner of a Divine ghost: Divine writes the player's display name into the owner field, the vanilla lookup expects a UUID. */
     static EntityPlayer owner(EntityWraith w) {
         EntityLivingBase o = w.func_70902_q();
         if (o instanceof EntityPlayer) return (EntityPlayer) o;
         String n = w.func_152113_b();
         if (n == null || n.isEmpty()) return null;
-        EntityPlayer best = null; // совпавших по имени несколько (фейковые игроки модов) - ближайший
+        EntityPlayer best = null; // several matched by name (fake players of mods) - the nearest
         for (Object x : w.worldObj.playerEntities) {
             EntityPlayer p = (EntityPlayer) x;
             if (!(n.equals(p.getDisplayName()) || n.equals(p.getCommandSenderName()) || n.equals(p.getUniqueID().toString()))) continue;
@@ -102,9 +102,9 @@ public class ArcaneSummons {
 
     public static EntityArcaneWraith summon(EntityPlayer p, double x, double y, double z) {
         List<EntityArcaneWraith> l = of(p);
-        AnchorSummons.dismissAll(p); // призывы одного хозяина - одного вида
-        int cap = AnchorSummons.summoner(p) ? CAP_KORMA : CAP; // Корма или Венец арканы R8
-        while (l.size() >= cap) l.remove(0).setDead(); // лишний - самый старый
+        AnchorSummons.dismissAll(p); // one owner's summons are of one kind
+        int cap = AnchorSummons.summoner(p) ? CAP_KORMA : CAP; // Korma or the R8 arcana Crown
+        while (l.size() >= cap) l.remove(0).setDead(); // the extra one is the oldest
         EntityArcaneWraith w = new EntityArcaneWraith(p.worldObj, p);
         w.setLocationAndAngles(x, y + 1, z, p.rotationYaw, 0);
         p.worldObj.spawnEntityInWorld(w);
@@ -113,16 +113,16 @@ public class ArcaneSummons {
         return w;
     }
 
-    /** Хозяин бьёт - призраки туда же. */
+    /** The owner hits - the ghosts go to the same target. */
     @SubscribeEvent
     public void onAttack(LivingAttackEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
         Entity a = e.source.getEntity();
         if (a instanceof EntityPlayer && LIVE.containsKey(a.getUniqueID())
-            && (!(e.entityLiving instanceof EntityPlayer) || !com.divinerpgextended.perk.Protection.spare(a, e.entityLiving))) mark((EntityPlayer) a, e.entityLiving); // игрока - где можно PvP
+            && (!(e.entityLiving instanceof EntityPlayer) || !com.divinerpgextended.perk.Protection.spare(a, e.entityLiving))) mark((EntityPlayer) a, e.entityLiving); // a player - where PvP is allowed
     }
 
-    /** На хозяина нацелились - призраки на этого врага (если хозяин сам никого не бьёт). */
+    /** The owner has been targeted - the ghosts go at this enemy (if the owner is not hitting anyone himself). */
     @SubscribeEvent
     public void onTarget(LivingSetAttackTargetEvent e) {
         if (!(e.target instanceof EntityPlayer) || !(e.entityLiving instanceof EntityLiving) || e.entityLiving.worldObj.isRemote) return;

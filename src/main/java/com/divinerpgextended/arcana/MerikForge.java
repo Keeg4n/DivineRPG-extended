@@ -29,13 +29,13 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Перековка у Капитана Мерика: присесть и ПКМ с мечом Divine в руке - цена; ещё раз в течение 5 секунд - перековать
- * за арканиум. Свойство пишется в предмет и работает в бою (см. {@link Reforge}).
+ * Reforging at Captain Merik: sneak and right click with a Divine sword in hand - the price; once more within 5 seconds - reforge
+ * for arcanium. The property is written into the item and works in combat (see {@link Reforge}).
  */
 public class MerikForge {
 
     private static final int CONFIRM_TICKS = 100;
-    private static final Map<UUID, long[]> PENDING = new HashMap<UUID, long[]>(); // время, слот
+    private static final Map<UUID, long[]> PENDING = new HashMap<UUID, long[]>(); // time, slot
 
     private static void say(EntityPlayer p, EnumChatFormatting color, String key, Object... args) {
         com.divinerpgextended.audit.Audit.say(p, key, args);
@@ -49,7 +49,7 @@ public class MerikForge {
         EntityPlayer p = e.entityPlayer;
         if (!(e.target instanceof EntityCaptianMerik) || !p.isSneaking()) return;
         ItemStack held = p.getCurrentEquippedItem();
-        if (held == null || !(held.getItem() instanceof ItemSword)) return; // присел без меча - обычная торговля
+        if (held == null || !(held.getItem() instanceof ItemSword)) return; // sneaked without a sword - ordinary trading
         e.setCanceled(true);
         if (p.worldObj.isRemote) return;
         WeaponOrigin origin = WeaponOrigin.of(held);
@@ -98,12 +98,12 @@ public class MerikForge {
         return true;
     }
 
-    /** Свойства в бою: только прямой удар игрока перекованным мечом. */
+    /** Properties in combat: only a direct hit by the player with a reforged sword. */
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onHurt(LivingHurtEvent e) {
         Entity src = e.source.getEntity();
         if (!(src instanceof EntityPlayer) || e.source.getSourceOfDamage() != src || src.worldObj.isRemote) return;
-        if (e.entityLiving instanceof EntityPlayer) return; // свойства перековки - только против мобов, не в PvP
+        if (e.entityLiving instanceof EntityPlayer) return; // reforge properties - only against mobs, not in PvP
         if (com.divinerpgextended.perk.Protection.spare(src, e.entityLiving)) return;
         EntityPlayer p = (EntityPlayer) src;
         ItemStack held = p.getCurrentEquippedItem();
@@ -150,7 +150,7 @@ public class MerikForge {
             default:
         }
         e.ammount *= mult;
-        com.divinerpgextended.debug.Debug.note(p, "Перековка " + r.name() + ": x" + mult);
+        com.divinerpgextended.debug.Debug.note(p, "Reforging " + r.name() + ": x" + mult);
         if (r == Reforge.BLOODTHIRSTY) p.heal(Math.max(0.5F, e.ammount * 0.04F));
     }
 
@@ -167,7 +167,7 @@ public class MerikForge {
         return n.contains("Glacon") || n.contains("Frost") || n.contains("Lich") || n.contains("Snow") || n.contains("Ice");
     }
 
-    /** Подсказка: свойство в имени (как в Террарии) и что оно делает. */
+    /** Tooltip: the property in the name (as in Terraria) and what it does. */
     @SubscribeEvent
     public void onTooltip(ItemTooltipEvent e) {
         Reforge r = Reforge.of(e.itemStack);

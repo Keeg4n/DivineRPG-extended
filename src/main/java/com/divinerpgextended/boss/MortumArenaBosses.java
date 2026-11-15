@@ -33,28 +33,28 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Механики боссов на аренах Мортума ({@link MortumArenas}); работают только у боссов, вызванных на своей арене
- * (у них есть дом логова - {@link LairSummons#home}).
+ * Boss mechanics in the Mortum arenas ({@link MortumArenas}); they work only for bosses summoned in their own arena
+ * (they have a lair home - {@link LairSummons#home}).
  * <ul>
- * <li>Денсос и Рейвор - близнецы, бьются по очереди ({@link #DUEL} тиков): дуэлянт затягивает цель на свою половину
- * (Денсос - светлую, Рейвор - тёмную) и шагает сквозь тень за спину ({@link #STEP_DMG}; Денсос ослепляет, Рейвор
- * замедляет); второй неуязвим, стоит у своего помоста и мешает через разлом. Убил одного - живой в ярости и сразу
- * дуэлянт; не добил его за {@link #REVIVE} тиков - брат встаёт с половиной здоровья (один раз, без трофеев).</li>
- * <li>Вечный лучник - каждые {@link #VOLLEY} тиков залп веером ({@link #VOLLEY_ARROWS} стрел) с замахом в 1.5 секунды;
- * от залпа прячутся за колоннами галереи, но каждый залп обрушивает верх колонны у цели - укрытий всё меньше.</li>
- * <li>Пожиратель душ - каждые {@link #RAISE} тиков поднимает души из целых могил погоста рядом с собой ({@link #GRAVE_R}):
- * по душе из могилы, могила при этом рассыпается. Пока жива хоть одна его душа ({@link #SOUL_R}), он неуязвим: уводи его
- * туда, где могил не осталось. Свои пауки Divine у него на арене не появляются. Разбить надгробие можно, но дорого:
- * он лечится ({@link #DESECRATE_HEAL}), из разбитой могилы сразу встаёт душа, разбившему - иссушение.</li>
- * <li>Вамачерон - рывок: замах {@link #WINDUP} тиков, потом несётся по прямой. Сбивает с ног; врезался в столб или стену -
- * оглушён на {@link #STUN} тиков и получает двойной урон.</li>
+ * <li>Densos and Reyvor are twins, fighting in turns ({@link #DUEL} ticks): the duelist pulls the target to his half
+ * (Densos - the light one, Reyvor - the dark one) and steps through the shadow behind the back ({@link #STEP_DMG}; Densos blinds, Reyvor
+ * slows); the other is invulnerable, stands at his platform and harasses across the rift. If one is killed, the living one gets enraged and is immediately
+ * the duelist; if you don't finish him within {@link #REVIVE} ticks, the brother rises with half health (once, without trophies).</li>
+ * <li>Eternal Archer - every {@link #VOLLEY} ticks a fan volley ({@link #VOLLEY_ARROWS} arrows) with a 1.5 second windup;
+ * you hide from the volley behind the gallery columns, but each volley brings down the top of the column near the target - fewer and fewer covers.</li>
+ * <li>Soul Fiend - every {@link #RAISE} ticks raises souls from the intact graves of the graveyard near himself ({@link #GRAVE_R}):
+ * one soul per grave, and the grave crumbles. While at least one of his souls is alive ({@link #SOUL_R}), he is invulnerable: lead him
+ * to where no graves are left. His own Divine spiders do not appear in his arena. A headstone can be broken, but at a price:
+ * he heals ({@link #DESECRATE_HEAL}), a soul rises at once from the broken grave, and the one who broke it gets Wither.</li>
+ * <li>Vamacheron - a charge: windup {@link #WINDUP} ticks, then he rushes in a straight line. Knocks you down; if he hits a pillar or a wall he is
+ * stunned for {@link #STUN} ticks and takes double damage.</li>
  * </ul>
  */
 public class MortumArenaBosses {
 
     /**
-     * Дуэль близнецов: по DUEL тиков поочерёдно Денсос (светлая половина, запад) и Рейвор (тёмная, восток) - дуэлянт
-     * затягивает цель на свою половину, второй неуязвим, стоит у своего помоста и мешает через разлом раз в HARASS тиков.
+     * Twin duel: for DUEL ticks in turns Densos (light half, west) and Reyvor (dark, east) - the duelist
+     * pulls the target to his half, the other is invulnerable, stands at his platform and harasses across the rift every HARASS ticks.
      */
     public static final int DUEL = 400, HARASS = 60;
     public static final float PULL = 0.8F;
@@ -62,21 +62,21 @@ public class MortumArenaBosses {
     public static final String REVIVED = "dreRevived", SOUL = "dreFiendSoul", DASH = "dreDash", WIND = "dreWind", STUNNED = "dreStun";
     public static final int VOLLEY = 160, VOLLEY_WARN = 30, VOLLEY_ARROWS = 9, RAISE = 400, SOULS = 3, CHARGE = 160, WINDUP = 20, DASH_TICKS = 40, STUN = 60;
     public static final int STEP = 160, STEP_WARN = 20, GRAVE_R = 14, SOUL_R = 40;
-    /** Разбил надгробие при живом Пожирателе: он лечится на эту долю, душа встаёт у разбившего, тому иссушение. */
+    /** Broke a headstone while the Soul Fiend is alive: he heals by this fraction, a soul rises at the one who broke it, who gets Wither. */
     public static final float DESECRATE_HEAL = 0.08F;
     public static final float VOLLEY_DMG = 6, DASH_DMG = 10, STEP_DMG = 8;
-    /** Лучник: бегуны по галерее (не больше RUNNERS, подкрепление раз в RUNNER_EVERY), дождь стрел раз в RAIN тиков. */
+    /** Archer: runners along the gallery (no more than RUNNERS, reinforcements every RUNNER_EVERY), arrow rain every RAIN ticks. */
     public static final int RUNNERS = 3, RUNNER_EVERY = 300, RAIN = 240, RAIN_WARN = 25, RAIN_ARROWS = 12, PIERCE_BLOCKS = 4;
     public static final String ARCHER_ADD = "dreArcherAdd", PIERCED = "drePierced";
-    /** Стрелы залпа, пробивающие блоки: {стрела, центр галереи x, пол, z}. */
+    /** Arrows of a volley that pierce blocks: {arrow, gallery center x, floor, z}. */
     private static final List<Object[]> PIERCING = new ArrayList<Object[]>();
-    /** Дождь стрел на взводе: {мир, x, y, z, тик, лучник}. */
+    /** Arrow rain armed: {world, x, y, z, tick, archer}. */
     private static final List<Object[]> RAINS = new ArrayList<Object[]>();
 
-    /** Ждут воскрешения: {мир, класс, живой брат, тик мира}. */
+    /** Waiting for resurrection: {world, class, living brother, world tick}. */
     private static final List<Object[]> REVIVES = new ArrayList<Object[]>();
 
-    /** Сколько близнецов ждут воскрешения (для автотеста). */
+    /** How many twins are waiting for resurrection (for selftest). */
     public static int pending() {
         return REVIVES.size();
     }
@@ -85,18 +85,18 @@ public class MortumArenaBosses {
         return LairSummons.home(e) != null;
     }
 
-    // ---------------------------------------------------------------- близнецы
+    // ---------------------------------------------------------------- twins
 
     static boolean twin(Entity e) {
         return e instanceof EntityDensos || e instanceof EntityReyvor;
     }
 
-    /** Жив ли брат этого близнеца (тогда победы над близнецами ещё нет). */
+    /** Whether this twin's brother is alive (then there is no victory over the twins yet). */
     public static boolean brotherAlive(EntityLivingBase t) {
         return brother(t, 64) != null;
     }
 
-    /** Живой брат-близнец рядом (другой класс). */
+    /** The living twin brother nearby (the other class). */
     static EntityLivingBase brother(EntityLivingBase t, double r) {
         Class<?> other = t instanceof EntityDensos ? EntityReyvor.class : EntityDensos.class;
         EntityLivingBase best = null;
@@ -112,8 +112,8 @@ public class MortumArenaBosses {
         return best;
     }
 
-    /** Чья сейчас дуэль; брат мёртв - выживший всегда дуэлянт. */
-    /** Жив ли брат (кэш на секунду: поиск по 129 блокам каждый тик у каждого близнеца - дорого). */
+    /** Whose duel it is now; if the brother is dead, the survivor is always the duelist. */
+    /** Whether the brother is alive (cached for a second: a search over 129 blocks every tick for every twin is expensive). */
     private static final java.util.Map<EntityLivingBase, long[]> HAS_BROTHER = new java.util.WeakHashMap<EntityLivingBase, long[]>();
 
     static boolean hasBrother(EntityLivingBase t) {
@@ -129,7 +129,7 @@ public class MortumArenaBosses {
         return t instanceof EntityDensos == densosTurn;
     }
 
-    /** Сторона брата: Денсос - запад (-1), Рейвор - восток (+1). */
+    /** The brother's side: Densos - west (-1), Reyvor - east (+1). */
     public static int side(EntityLivingBase t) {
         return t instanceof EntityDensos ? -1 : 1;
     }
@@ -146,16 +146,16 @@ public class MortumArenaBosses {
         EntityLivingBase v = e.entityLiving;
         if (v.worldObj.isRemote || !twin(v) || !arena(v)) return;
         EntityLivingBase b = brother(v, 64);
-        if (b == null) return; // второй уже мёртв - победа
+        if (b == null) return; // the other is already dead - victory
         v.worldObj.playSoundAtEntity(b, "mob.wither.idle", 1.5F, 0.6F);
-        // ярость живого: он теперь дуэлянт до конца боя
+        // rage of the living one: he is now the duelist until the end of the fight
         b.addPotionEffect(new PotionEffect(Potion.damageBoost.id, 20 * 600, 1));
         b.addPotionEffect(new PotionEffect(Potion.moveSpeed.id, 20 * 600, 0));
-        if (v.getEntityData().getBoolean(REVIVED)) return; // брата поднимают один раз
+        if (v.getEntityData().getBoolean(REVIVED)) return; // the brother is raised once
         REVIVES.add(new Object[] { v.worldObj, v.getClass(), b, v.worldObj.getTotalWorldTime() + REVIVE });
     }
 
-    /** Поднятые братом и бегуны лучника - без трофеев (иначе ферма). */
+    /** Those raised by the brother and the archer's runners give no trophies (otherwise it is a farm). */
     @SubscribeEvent
     public void onDrops(LivingDropsEvent e) {
         if (!e.entityLiving.worldObj.isRemote && (e.entityLiving.getEntityData().getBoolean(REVIVED) || e.entityLiving.getEntityData().hasKey(ARCHER_ADD))) e.drops.clear();
@@ -171,7 +171,7 @@ public class MortumArenaBosses {
             Object[] r = it.next();
             if (r[0] != e.world) continue;
             EntityLivingBase b = (EntityLivingBase) r[2];
-            if (!b.isEntityAlive()) { // оба мертвы
+            if (!b.isEntityAlive()) { // both are dead
                 it.remove();
                 continue;
             }
@@ -181,7 +181,7 @@ public class MortumArenaBosses {
         }
     }
 
-    /** Брат поднимает брата: рядом с собой, половина здоровья, та же арена. */
+    /** A brother raises a brother: near himself, half health, the same arena. */
     public static EntityLivingBase revive(World w, Class<?> kind, EntityLivingBase b) {
         try {
             EntityLivingBase t = (EntityLivingBase) kind.getConstructor(World.class).newInstance(w);
@@ -199,7 +199,7 @@ public class MortumArenaBosses {
         }
     }
 
-    // ---------------------------------------------------------------- ход боссов
+    // ---------------------------------------------------------------- boss turn
 
     @SubscribeEvent
     public void onUpdate(LivingEvent.LivingUpdateEvent e) {
@@ -216,20 +216,20 @@ public class MortumArenaBosses {
         return m.worldObj.getClosestVulnerablePlayerToEntity(m, r);
     }
 
-    // ---------------- близнецы: дуэль на своей половине, шаг сквозь тень
+    // ---------------- twins: a duel on their own half, a step through the shadow
 
     private void twinTick(EntityLiving t) {
         int[] h = LairSummons.home(t);
         if (h == null) return;
         double cx = h[0] + 0.5;
         int side = side(t);
-        if ((t.posX - cx) * side < 2.5) { // за разлом не заходит
+        if ((t.posX - cx) * side < 2.5) { // does not cross the rift
             t.motionX = side * 0.4;
             t.velocityChanged = true;
         }
         EntityPlayer p = target(t, 32);
         if (p == null) return;
-        if (!duelist(t)) { // второй - у своего помоста, мешает через разлом
+        if (!duelist(t)) { // the other one - at his platform, harasses across the rift
             double dx = cx + side * MortumArenas.TWINS_DAIS - t.posX, dz = h[2] + 0.5 - t.posZ;
             if (dx * dx + dz * dz > 9) t.getNavigator().tryMoveToXYZ(cx + side * MortumArenas.TWINS_DAIS, h[1], h[2] + 0.5, 1.0);
             if (t.ticksExisted % HARASS == 0) harass(t, p);
@@ -247,7 +247,7 @@ public class MortumArenaBosses {
         if (k == 0) step(t, p);
     }
 
-    /** Дуэлянт тянет цель на свою половину: цепь из частиц, цель летит к нему над разломом. */
+    /** The duelist pulls the target to his half: a chain of particles, the target flies to him over the rift. */
     public static void pull(EntityLiving t, EntityPlayer p, double cx, int side) {
         double tx = cx + side * 8, dx = tx - p.posX, dz = t.posZ - p.posZ, l = Math.max(0.5, Math.sqrt(dx * dx + dz * dz));
         p.motionX = dx / l * PULL;
@@ -263,7 +263,7 @@ public class MortumArenaBosses {
         if (t.ticksExisted % 20 == 0) t.worldObj.playSoundAtEntity(p, "mob.endermen.portal", 0.8F, t instanceof EntityDensos ? 1.4F : 0.6F);
     }
 
-    /** Второй брат мешает через разлом: теневой снаряд; Денсос ослепляет, Рейвор замедляет. */
+    /** The other brother harasses across the rift: a shadow projectile; Densos blinds, Reyvor slows. */
     public static void harass(EntityLiving t, EntityPlayer p) {
         com.divinerpgextended.entity.EntityShadowBolt b = new com.divinerpgextended.entity.EntityShadowBolt(t.worldObj, t);
         b.setThrowableHeading(p.posX - t.posX, p.posY + p.height / 2 - (t.posY + t.getEyeHeight()), p.posZ - t.posZ, 1.2F, 2);
@@ -281,10 +281,10 @@ public class MortumArenaBosses {
         }
     }
 
-    /** Шаг сквозь тень: за спину цели (2 блока), удар; Денсос ослепляет, Рейвор замедляет. false - за спиной стена. */
+    /** Step through the shadow: behind the target's back (2 blocks), a hit; Densos blinds, Reyvor slows. false - a wall is behind. */
     public static boolean step(EntityLiving t, EntityLivingBase p) {
         double yaw = Math.toRadians(p.rotationYaw);
-        double x = p.posX + Math.sin(yaw) * 2, z = p.posZ - Math.cos(yaw) * 2; // взгляд игрока - (-sin, cos)
+        double x = p.posX + Math.sin(yaw) * 2, z = p.posZ - Math.cos(yaw) * 2; // the player's look direction is (-sin, cos)
         double ox = t.posX, oy = t.posY, oz = t.posZ;
         t.setPosition(x, p.posY, z);
         if (!t.worldObj.getCollidingBoundingBoxes(t, t.boundingBox).isEmpty()) {
@@ -302,7 +302,7 @@ public class MortumArenaBosses {
         return true;
     }
 
-    // ---------------- Вечный лучник
+    // ---------------- Eternal Archer
 
     private void archer(EntityLiving a) {
         int t = a.ticksExisted % VOLLEY;
@@ -317,7 +317,7 @@ public class MortumArenaBosses {
         if (a.ticksExisted % RAIN == RAIN / 2) rain(a, p);
     }
 
-    /** Бегуны: василиски Мортума выбегают из южного входа галереи и гонят цель - на месте не отсидеться. */
+    /** Runners: Mortum baslisks run out of the southern gallery entrance and chase the target - you can't sit it out in one place. */
     @SuppressWarnings("unchecked")
     public static int runners(EntityLiving a, EntityLivingBase p) {
         int[] h = LairSummons.home(a);
@@ -332,7 +332,7 @@ public class MortumArenaBosses {
             r.setLocationAndAngles(x, h[1], z, 180, 0);
             if (!a.worldObj.getCollidingBoundingBoxes(r, r.boundingBox).isEmpty()) continue;
             r.getEntityData().setInteger(ARCHER_ADD, a.getEntityId());
-            r.getEntityData().setBoolean("dreDemonAdd", true); // успокоение арены их не уносит
+            r.getEntityData().setBoolean("dreDemonAdd", true); // calming the arena does not carry them away
             r.addPotionEffect(new PotionEffect(Potion.moveSpeed.id, 20 * 600, 1));
             r.setAttackTarget(p);
             BossMinions.mark(r, a);
@@ -345,7 +345,7 @@ public class MortumArenaBosses {
         return made;
     }
 
-    /** Дождь стрел: под ногами цели круг искр RAIN_WARN тиков, потом сверху падают RAIN_ARROWS стрел. */
+    /** Arrow rain: a circle of sparks for RAIN_WARN ticks under the target's feet, then RAIN_ARROWS arrows fall from above. */
     public static void rain(EntityLiving a, EntityLivingBase p) {
         RAINS.add(new Object[] { a.worldObj, p.posX, p.posY, p.posZ, a.worldObj.getTotalWorldTime() + RAIN_WARN, a });
         a.worldObj.playSoundAtEntity(p, "random.bow", 1.0F, 0.3F);
@@ -370,7 +370,7 @@ public class MortumArenaBosses {
         }
     }
 
-    /** Стрелы падают на круг радиусом 3 из-под потолка (не выше 10 блоков). */
+    /** Arrows fall onto a circle of radius 3 from under the ceiling (no higher than 10 blocks). */
     public static int arrowsFall(World w, EntityLivingBase a, double x, double y, double z) {
         int n = 0;
         java.util.Random rnd = w.rand;
@@ -391,7 +391,7 @@ public class MortumArenaBosses {
         return n;
     }
 
-    /** Залп веером в цель; стрелы пробивают блоки внутри галереи; потом рушит верх колонны-укрытия у цели. */
+    /** A fan volley at the target; the arrows pierce blocks inside the gallery; then the top of the cover column near the target is brought down. */
     public static int volley(EntityLiving a, EntityLivingBase p) {
         int n = 0;
         for (int i = 0; i < VOLLEY_ARROWS; i++) {
@@ -413,7 +413,7 @@ public class MortumArenaBosses {
         return n;
     }
 
-    /** Блок можно пробить залпом: внутри стен галереи, выше пола, не алтарь и не неразрушимый. */
+    /** A block can be pierced by a volley: inside the gallery walls, above the floor, not an altar and not indestructible. */
     static boolean pierceable(World w, int x, int y, int z, int cx, int floor, int cz) {
         if (Math.abs(x - cx) > MortumArenas.GALLERY_HX - 1 || Math.abs(z - cz) > MortumArenas.GALLERY_HZ - 1 || y < floor) return false;
         net.minecraft.block.Block b = w.getBlock(x, y, z);
@@ -421,7 +421,7 @@ public class MortumArenaBosses {
         return b.getBlockHardness(w, x, y, z) >= 0;
     }
 
-    /** Стрелы залпа летят сквозь блоки: блок на пути следующего шага стрелы ломается (до PIERCE_BLOCKS на стрелу). */
+    /** Volley arrows fly through blocks: the block on the arrow's next step is broken (up to PIERCE_BLOCKS per arrow). */
     public static int pierceTick(World w) {
         int broken = 0;
         for (Iterator<Object[]> it = PIERCING.iterator(); it.hasNext();) {
@@ -447,7 +447,7 @@ public class MortumArenaBosses {
         return broken;
     }
 
-    /** Верхний блок ближайшей к цели колонны (резной камень) обрушивается. */
+    /** The top block of the column nearest to the target (carved stone) is brought down. */
     public static boolean erode(World w, EntityLivingBase p) {
         int px = (int) Math.floor(p.posX), py = (int) Math.floor(p.posY), pz = (int) Math.floor(p.posZ);
         int[] best = null;
@@ -462,26 +462,26 @@ public class MortumArenaBosses {
             break;
         }
         if (best == null) return false;
-        w.func_147480_a(best[0], best[1], best[2], false); // ломается с частицами, без дропа
+        w.func_147480_a(best[0], best[1], best[2], false); // breaks with particles, without a drop
         return true;
     }
 
-    // ---------------- Пожиратель душ
+    // ---------------- Soul Fiend
 
     private void fiend(EntityLiving f) {
         if (f.ticksExisted % RAISE != 60) return;
         raise(f);
     }
 
-    /** Надгробие могилы цело (резной камень на месте) - из неё ещё можно поднять душу. */
+    /** The grave headstone is intact (carved stone in place) - a soul can still be raised from it. */
     public static boolean graveIntact(World w, int[] h, int[] g) {
         int x = h[0] + g[0], y = h[1], z = h[2] + g[1] + 1;
         return w.getBlock(x, y, z) == Blocks.stonebrick && w.getBlockMetadata(x, y, z) == 3;
     }
 
     /**
-     * Поднять души из целых могил рядом с боссом (не больше SOULS живых): по душе из могилы, надгробие рассыпается -
-     * второй раз из этой могилы не встанут.
+     * Raise souls from the intact graves near the boss (no more than SOULS alive): one soul per grave, the headstone crumbles -
+     * a second time none will rise from this grave.
      */
     public static int raise(EntityLiving f) {
         int[] h = LairSummons.home(f);
@@ -495,8 +495,8 @@ public class MortumArenaBosses {
         java.util.Collections.shuffle(graves, f.getRNG());
         for (int[] g : graves) {
             if (alive + made >= SOULS) break;
-            f.worldObj.func_147480_a(h[0] + g[0], h[1] + 1, h[2] + g[1] + 1, false); // плита надгробия
-            f.worldObj.func_147480_a(h[0] + g[0], h[1], h[2] + g[1] + 1, false); // камень надгробия
+            f.worldObj.func_147480_a(h[0] + g[0], h[1] + 1, h[2] + g[1] + 1, false); // headstone slab
+            f.worldObj.func_147480_a(h[0] + g[0], h[1], h[2] + g[1] + 1, false); // headstone stone
             net.divinerpg.entities.twilight.EntitySoulSpider s = new net.divinerpg.entities.twilight.EntitySoulSpider(f.worldObj);
             s.setLocationAndAngles(h[0] + g[0] + 0.5, h[1], h[2] + g[1] + 0.5, f.getRNG().nextFloat() * 360, 0);
             s.getEntityData().setInteger(SOUL, f.getEntityId());
@@ -519,21 +519,21 @@ public class MortumArenaBosses {
         return l;
     }
 
-    /** Живой Пожиратель на арене рядом (null - нет). */
+    /** A living Soul Fiend on the arena nearby (null - none). */
     static EntitySoulFiend fiendNear(World w, double x, double y, double z, double r) {
         for (Object o : w.getEntitiesWithinAABB(EntitySoulFiend.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(x - r, y - r / 2, z - r, x + r, y + r / 2, z + r)))
             if (((Entity) o).isEntityAlive() && arena((Entity) o)) return (EntitySoulFiend) o;
         return null;
     }
 
-    /** Свои пауки Пожирателя (Divine) на его арене не появляются - только души из могил. */
+    /** The Soul Fiend's own spiders (Divine) do not appear in his arena - only souls from graves. */
     @SubscribeEvent
     public void onJoin(net.minecraftforge.event.entity.EntityJoinWorldEvent e) {
         if (e.world.isRemote || !(e.entity instanceof net.divinerpg.entities.twilight.EntitySoulSpider) || e.entity.getEntityData().hasKey(SOUL)) return;
         if (fiendNear(e.world, e.entity.posX, e.entity.posY, e.entity.posZ, 40) != null) e.setCanceled(true);
     }
 
-    /** Разбитое надгробие на погосте при живом Пожирателе: он лечится, из могилы встаёт душа, разбившему - иссушение. */
+    /** A broken headstone in the graveyard while the Soul Fiend is alive: he heals, a soul rises from the grave, the one who broke it gets Wither. */
     @SubscribeEvent
     public void onBreak(net.minecraftforge.event.world.BlockEvent.BreakEvent e) {
         if (e.world.isRemote || e.block != Blocks.stonebrick || e.blockMetadata != 3 || e.getPlayer() == null) return;
@@ -551,7 +551,7 @@ public class MortumArenaBosses {
         e.world.playSoundEffect(e.x + 0.5, e.y + 0.5, e.z + 0.5, "mob.wither.hurt", 1.0F, 0.6F);
     }
 
-    /** Пока жива хоть одна его душа, Пожиратель неуязвим. Близнеца не в его дуэли не ранить. */
+    /** While at least one of his souls is alive, the Soul Fiend is invulnerable. A twin outside his duel can't be hurt. */
     @SubscribeEvent
     public void onAttack(LivingAttackEvent e) {
         EntityLivingBase v = e.entityLiving;
@@ -567,7 +567,7 @@ public class MortumArenaBosses {
         ((WorldServer) v.worldObj).func_147487_a("witchMagic", v.posX, v.posY + v.height / 2, v.posZ, 10, 0.5, 0.8, 0.5, 0.05);
     }
 
-    // ---------------- Вамачерон
+    // ---------------- Vamacheron
 
     private void vamacheron(EntityLiving v) {
         NBTTagCompound d = v.getEntityData();
@@ -598,7 +598,7 @@ public class MortumArenaBosses {
         if (p != null && v.ticksExisted % CHARGE == 0) startCharge(v, p);
     }
 
-    /** Замах: запомнить направление на цель. */
+    /** Windup: remember the direction to the target. */
     public static void startCharge(EntityLiving v, EntityLivingBase p) {
         double dx = p.posX - v.posX, dz = p.posZ - v.posZ, l = Math.max(0.1, Math.sqrt(dx * dx + dz * dz));
         NBTTagCompound d = v.getEntityData();
@@ -609,7 +609,7 @@ public class MortumArenaBosses {
         v.worldObj.playSoundAtEntity(v, "mob.wolf.growl", 2.0F, 0.5F);
     }
 
-    /** Ход рывка: по прямой; задел игрока - урон и отброс; упёрся - оглушён. */
+    /** Charge turn: in a straight line; if it hits a player - damage and knockback; if it hits an obstacle - stunned. */
     public static void dashTick(EntityLiving v, int dash) {
         NBTTagCompound d = v.getEntityData();
         double dx = d.getDouble("dreDashX"), dz = d.getDouble("dreDashZ");

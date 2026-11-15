@@ -11,7 +11,7 @@ import org.lwjgl.opengl.GL11;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Ледяной Колосс (голем x6, 17 блоков) и Король-лич, стоящий у него на левом плече. */
+/** Frost Colossus (golem x6, 17 blocks) and the Lich King standing on its left shoulder. */
 @SideOnly(Side.CLIENT)
 public class RenderFrostColossus extends RenderScaledBoss {
 
@@ -31,7 +31,7 @@ public class RenderFrostColossus extends RenderScaledBoss {
         bindTexture(LICH);
         GL11.glPushMatrix();
         GL11.glColor4f(1, 1, 1, 1);
-        // верх левого плеча в координатах модели голема (9 пикселей вбок, 9 вверх), лич ростом ~2.4 блока
+        // top of the left shoulder in golem model coordinates (9 pixels sideways, 9 up), the lich is about 2.4 blocks tall
         GL11.glTranslatef(0.5F, -0.5625F, 0.05F);
         float s = 2.4F / 1.8F / EntityFrostColossus.SCALE;
         GL11.glScalef(s, s, s);

@@ -31,14 +31,14 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Торговцы Арканы по прогрессу и Кристалл памяти.
+ * Arcana merchants by progress and the Memory Crystal.
  * <ul>
- * <li>Торговец появляется рядом, только если у всех игроков вокруг открыт его этап; кому рано - торговец не
- * разговаривает.</li>
- * <li>Встретил и поговорил - торговец запомнен. Пока не встречен, Аркана сама подсказывает: где-то в залах в
- * 20-40 блоках появляется именно он, и в чат приходит, с какой стороны слышен голос.</li>
- * <li>В Аркане у игрока всегда Кристалл памяти (вне Арканы он исчезает). Им зовётся встреченный торговец: он
- * приходит к игроку и уходит через 3 минуты без торговли, если игрок отошёл на 48 блоков или позвал другого.</li>
+ * <li>A merchant appears nearby only if his stage is open for all players around; for those who are too early the merchant does not
+ * talk.</li>
+ * <li>Met and talked - the merchant is remembered. Until met, Arcana itself hints: somewhere in the halls within
+ * 20-40 blocks that very one appears, and the chat says from which side the voice is heard.</li>
+ * <li>In Arcana the player always has a Memory Crystal (it vanishes outside Arcana). It summons a merchant already met: he
+ * comes to the player and leaves after 3 minutes without trading, if the player moves 48 blocks away or calls another.</li>
  * </ul>
  */
 public class ArcanaMerchants {
@@ -67,7 +67,7 @@ public class ArcanaMerchants {
         return new ChatComponentTranslation("dre.merchant." + m.key());
     }
 
-    /** Торговец не появляется рядом с тем, кому он ещё не открыт. */
+    /** A merchant does not appear near someone to whom he is not yet open. */
     @SubscribeEvent
     public void onCheckSpawn(LivingSpawnEvent.CheckSpawn e) {
         if (e.world.isRemote || !arcana(e.world)) return;
@@ -83,7 +83,7 @@ public class ArcanaMerchants {
         }
     }
 
-    /** Разговор: встреча (запоминание), отказ тем, кому рано, продление вызова. */
+    /** Conversation: the meeting (remembering), refusal to those who are too early, extending the summon. */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onInteract(EntityInteractEvent e) {
         EntityPlayer p = e.entityPlayer;
@@ -97,7 +97,7 @@ public class ArcanaMerchants {
         NBTTagCompound tag = e.target.getEntityData();
         if (m.meet(p)) say(p, EnumChatFormatting.LIGHT_PURPLE, "dre.chat.merchant_met", name(m));
         if (tag.hasKey(BEACON)) {
-            // встреча состоялась: дальше он ведёт себя как вызванный этим игроком и уйдёт по тем же правилам
+            // the meeting took place: from now on he behaves as summoned by this player and leaves by the same rules
             tag.removeTag(BEACON);
             tag.setString(OWNER, p.getUniqueID().toString());
             ACTIVE.put(p.getUniqueID(), e.target);
@@ -119,23 +119,23 @@ public class ArcanaMerchants {
         }
         if (!inArcana) FULL.remove(p.getUniqueID());
         if (inArcana && count == 0) {
-            // в творческом addItemStackToInventory при полном инвентаре "кладёт" вещь в никуда и отвечает "да": сначала свободный слот
+            // in creative addItemStackToInventory with a full inventory "puts" the item nowhere and answers "yes": free slot first
             if (p.inventory.getFirstEmptyStack() >= 0 && p.inventory.addItemStackToInventory(new ItemStack(ModItems.memoryCrystal))) {
                 say(p, EnumChatFormatting.LIGHT_PURPLE, "dre.chat.crystal_given");
                 FULL.remove(p.getUniqueID());
             } else if (FULL.add(p.getUniqueID())) {
-                // инвентарь полон: кристалл ждёт свободного слота и появится сам, говорим об этом один раз
+                // inventory is full: the crystal waits for a free slot and will appear by itself, we say so once
                 say(p, EnumChatFormatting.GRAY, "dre.chat.crystal_full");
             }
         }
-        // кто уже брал задания у Леорны, тот с ней знаком
+        // whoever already took quests from Leorna is acquainted with her
         if (inArcana && !ArcanaMerchant.LEORNA.met(p) && com.divinerpgextended.fishing.FishingEvents.quests(p) > 0) {
             ArcanaMerchant.LEORNA.meet(p);
         }
         if (inArcana && p.ticksExisted % BEACON_EVERY == 0) beacon(p);
     }
 
-    /** Первую встречу Аркана устраивает сама: не встреченный, но уже открытый торговец появляется в залах неподалёку. */
+    /** Arcana arranges the first meeting itself: a merchant that is not met but already open appears in the halls nearby. */
     private static void beacon(EntityPlayer p) {
         World w = p.worldObj;
         long now = w.getTotalWorldTime();
@@ -149,13 +149,13 @@ public class ArcanaMerchants {
             double[] spot = spot(w, p, 20, 40);
             if (v == null || spot == null) continue;
             v.setLocationAndAngles(spot[0], spot[1], spot[2], w.rand.nextFloat() * 360, 0);
-            v.func_110163_bv(); // не исчезает, пока его не встретили
+            v.func_110163_bv(); // does not vanish until he is met
             v.getEntityData().setLong(BEACON, now);
             w.spawnEntityInWorld(v);
             LAST_BEACON.put(key, now);
             say(p, EnumChatFormatting.LIGHT_PURPLE, "dre.chat.merchant_voice", name(m),
                 new ChatComponentTranslation("dre.dir." + direction(spot[0] - p.posX, spot[2] - p.posZ)));
-            return; // по одному за раз
+            return; // one at a time
         }
     }
 
@@ -168,12 +168,12 @@ public class ArcanaMerchants {
     }
 
     private static String direction(double dx, double dz) {
-        double a = Math.toDegrees(Math.atan2(dx, -dz)); // 0 - север (-z), 90 - восток (+x)
+        double a = Math.toDegrees(Math.atan2(dx, -dz)); // 0 - north (-z), 90 - east (+x)
         int i = (int) Math.round(((a % 360) + 360) % 360 / 45.0) % 8;
         return new String[] { "n", "ne", "e", "se", "s", "sw", "w", "nw" }[i];
     }
 
-    /** Место с полом и двумя блоками воздуха в кольце rMin..rMax вокруг игрока (в залах Арканы, ниже 40). */
+    /** A spot with a floor and two blocks of air in the ring rMin..rMax around the player (in the Arcana halls, below 40). */
     private static double[] spot(World w, EntityPlayer p, int rMin, int rMax) {
         for (int t = 0; t < 40; t++) {
             double a = w.rand.nextDouble() * Math.PI * 2, d = rMin + w.rand.nextDouble() * (rMax - rMin);
@@ -199,7 +199,7 @@ public class ArcanaMerchants {
         return new double[] { p.posX, p.posY, p.posZ };
     }
 
-    /** Вызов Кристаллом памяти (с проверками: в Аркане, встречен и открыт, откат). */
+    /** Summon by the Memory Crystal (with checks: in Arcana, met and open, cooldown). */
     public static void summon(EntityPlayerMP p, int index) {
         if (index < 0 || index >= ArcanaMerchant.values().length || !arcana(p.worldObj)) return;
         ArcanaMerchant m = ArcanaMerchant.values()[index];
@@ -235,9 +235,9 @@ public class ArcanaMerchants {
     }
 
     /**
-     * Сделки торговцев Divine не кончаются. В Divine сделка закрывается после 7 покупок, а сброс сломан (условие в
-     * коде Divine никогда не выполняется) - закрытая сделка больше не открывалась. Делаем на обеих сторонах: окно
-     * торговли Divine строит список на клиенте сам.
+     * Divine merchants' trades never run out. In Divine a trade closes after 7 purchases, and the reset is broken (a condition in
+     * Divine code is never met) - a closed trade never opened again. We do it on both sides: the Divine
+     * trading window builds the list on the client itself.
      */
     @SubscribeEvent
     public void onMerchantTick(LivingEvent.LivingUpdateEvent e) {
@@ -250,14 +250,14 @@ public class ArcanaMerchants {
         }
     }
 
-    /** Вызванный торговец уходит: хозяина нет рядом, долго без торговли или позвали другого. */
+    /** A summoned merchant leaves: the owner is not nearby, long without trading, or another was called. */
     @SubscribeEvent
     public void onLivingUpdate(LivingEvent.LivingUpdateEvent e) {
         Entity v = e.entityLiving;
         if (v.worldObj.isRemote || !(v instanceof EntityDivineRPGVillager) || v.ticksExisted % 20 != 0) return;
         NBTTagCompound tag = v.getEntityData();
         if (tag.hasKey(BEACON)) {
-            // не дождался встречи: через 10 минут уходит, если рядом никого
+            // did not wait for the meeting: leaves after 10 minutes if nobody is nearby
             if (v.worldObj.getTotalWorldTime() - tag.getLong(BEACON) > BEACON_LIFE
                 && v.worldObj.getClosestPlayerToEntity(v, 32) == null) vanish(v);
             return;
@@ -278,7 +278,7 @@ public class ArcanaMerchants {
         }
     }
 
-    /** Для окна кристалла. */
+    /** For the crystal window. */
     public static MerchantMessages.Open openMessage(EntityPlayer p) {
         return new MerchantMessages.Open(ArcanaMerchant.metMask(p), ArcanaMerchant.unlockedMask(p));
     }

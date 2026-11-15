@@ -24,27 +24,27 @@ import com.divinerpgextended.trinket.Trinket;
 import cpw.mods.fml.common.IWorldGenerator;
 
 /**
- * Запертые сундуки Арканы. Комнаты Арканы - шаблоны Divine (чанк - четыре этажа комнат 16 x 16, пол на y = 8, 16, 24, 32), и
- * у части шаблонов за дверью под ключ - каморка с арканитовой рудой: за дверью слизи (две комнаты), древнего кирпича, камня
- * душ. С шансом {@link Config#arcanaChestChance} руда в такой каморке заменяется сундуком под ключ этой двери: каморка
- * тупиковая, руда и так занимала место, проход не сужается (у западного и северного края чанка сундук встаёт рядом с
- * рудой, см. {@link #EDGE}). У разрушенных дверей каморок с рудой нет: это комната-крест,
- * в восьмиугольный центр которой ведут четыре разрушенные двери, - там сундук встаёт в угол восьмиугольника, в стороне от
- * прохода.
+ * Locked Arcana chests. Arcana rooms are Divine templates (a chunk is four floors of 16 x 16 rooms, floor at y = 8, 16, 24, 32), and
+ * some templates have a key-locked door leading to a closet with arcanite ore: behind the door of slime (two rooms), ancient brick, soul
+ * stone. With chance {@link Config#arcanaChestChance} the ore in such a closet is replaced by a chest locked with this door's key: the closet is
+ * a dead end, the ore took up space anyway, so the passage does not narrow (at the west and north edge of the chunk the chest goes next to
+ * the ore, see {@link #EDGE}). Ruined doors have no ore closets: that is a cross-shaped room,
+ * with four ruined doors leading to its octagonal center - there the chest goes in a corner of the octagon, off to the side of
+ * the passage.
  * <p>
- * Гарантия: мир Арканы делится на участки {@link Config#arcanaChestRegion} x {@link Config#arcanaChestRegion} (по умолчанию
- * 2048 - в любом квадрате 10000 x 10000 их не меньше девяти целых). Если на участке ещё нет сундука какого-то вида, то
- * {@link Config#arcanaChestPity}-я подходящая каморка этого вида на участке получает сундук без броска. Учёт - в данных
- * мира Арканы ({@link RegionTally}, {@link #TALLY}).
+ * Guarantee: the Arcana world is divided into regions {@link Config#arcanaChestRegion} x {@link Config#arcanaChestRegion} (default
+ * 2048 - any 10000 x 10000 square holds at least nine whole ones). If a region has no chest of some kind yet, then the
+ * {@link Config#arcanaChestPity}-th suitable closet of that kind in the region gets a chest without a roll. Tracking is in the Arcana
+ * world data ({@link RegionTally}, {@link #TALLY}).
  */
 public class ArcanaChests implements IWorldGenerator {
 
     private static final int LEVELS = 4, H = 8;
-    /** Углы восьмиугольника в центре комнаты разрушенных дверей (смещения в комнате). */
+    /** Corners of the octagon at the center of a ruined-door room (offsets within the room). */
     private static final int[][] DEGRADED_SPOTS = { { 5, 5 }, { 10, 5 }, { 5, 10 }, { 10, 10 } };
-    /** Для самопроверки: сколько сундуков поставлено и сколько по гарантии. */
+    /** For the selftest: how many chests were placed and how many by the guarantee. */
     public static int placed, forced;
-    /** Для самопроверки: последние поставленные (x, y, z, вид). */
+    /** For the selftest: the latest placed (x, y, z, kind). */
     public static final java.util.ArrayDeque<int[]> recent = new java.util.ArrayDeque<int[]>();
 
     @Override
@@ -53,7 +53,7 @@ public class ArcanaChests implements IWorldGenerator {
         for (int lv = 0; lv < LEVELS; lv++) room(w, cx * 16, (lv + 1) * H, cz * 16);
     }
 
-    /** Каморка комнаты (x0, y0 - пол, z0): {x, y, z, вид, сторона} или null. */
+    /** A room's closet (x0, y0 - floor, z0): {x, y, z, kind, side} or null. */
     public static int[] vault(World w, int x0, int y0, int z0) {
         Block d = ArcanaBlocks.degradedBrickDoor;
         if (w.getBlock(x0 + 7, y0 + 1, z0 + 3) == d && w.getBlock(x0 + 3, y0 + 1, z0 + 7) == d && w.getBlock(x0 + 12, y0 + 1, z0 + 8) == d
@@ -71,10 +71,10 @@ public class ArcanaChests implements IWorldGenerator {
         for (int y = y0 + 1; y < y0 + H - 1; y++) for (int x = x0; x < x0 + 16; x++) for (int z = z0; z < z0 + 16; z++) {
             if (w.getBlock(x, y, z) != ArcanaBlocks.arcaniumOre) continue;
             int face = open(w, x, y, z, x0, z0);
-            if (face < 0) continue; // в толще стены - не каморка
+            if (face < 0) continue; // inside the wall mass - not a closet
             Kind k = door(w, x, y, z, x0, z0);
             if (k == null) continue;
-            if (x - x0 < EDGE || z - z0 < EDGE) { // у западного или северного края чанка - рядом в той же каморке
+            if (x - x0 < EDGE || z - z0 < EDGE) { // at the west or north edge of the chunk - next to it in the same closet
                 int[] b = beside(w, x, y, z, x0, z0);
                 if (b != null) ores.add(new int[] { b[0], y, b[1], k.ordinal(), b[2] });
             } else ores.add(new int[] { x, y, z, k.ordinal(), face });
@@ -84,15 +84,15 @@ public class ArcanaChests implements IWorldGenerator {
     }
 
     /**
-     * Блок с тайлом при установке оглядывает соседей на 2 блока по сторонам (обновление компараторов, World.func_147453_f):
-     * у западного и северного края чанка это читает соседний чанк, а тот при заселении этого чанка может быть ещё не
-     * создан - игра сгенерировала бы его посреди генерации (каскад). Восточный и южный соседи при заселении уже есть.
-     * Поэтому сундук ставится не ближе {@link #EDGE} к западному и северному краю: если руда ближе - в соседнюю свободную
-     * клетку той же каморки, а руда остаётся.
+     * A block with a tile, when placed, looks over neighbors 2 blocks to the sides (comparator update, World.func_147453_f):
+     * at the west and north edge of the chunk this reads the neighboring chunk, which may not be created yet while this chunk is being populated -
+     * the game would generate it in the middle of generation (a cascade). The east and south neighbors already exist during population.
+     * So a chest is placed no closer than {@link #EDGE} to the west and north edge: if the ore is closer - in the adjacent free
+     * cell of the same closet, and the ore stays.
      */
     public static final int EDGE = 2;
 
-    /** Свободная клетка рядом с рудой не ближе {@link #EDGE} к западному и северному краю, на твёрдом полу: {x, z, сторона} или null. */
+    /** A free cell next to the ore no closer than {@link #EDGE} to the west and north edge, on a solid floor: {x, z, side} or null. */
     static int[] beside(World w, int x, int y, int z, int x0, int z0) {
         int[][] dirs = { { 1, 0 }, { 0, 1 }, { 0, -1 }, { -1, 0 } };
         for (int[] d : dirs) {
@@ -104,12 +104,12 @@ public class ArcanaChests implements IWorldGenerator {
         return null;
     }
 
-    /** Внутри комнаты (за её край не смотрим: соседний чанк может быть ещё не сгенерирован). */
+    /** Inside the room (we do not look past its edge: the neighboring chunk may not be generated yet). */
     private static boolean in(int x, int z, int x0, int z0) {
         return x >= x0 && x < x0 + 16 && z >= z0 && z < z0 + 16;
     }
 
-    /** В какую сторону от блока свободно (сторона сундука, 2-5 как у ванильного) или -1. */
+    /** Which way from the block is free (chest side, 2-5 like vanilla) or -1. */
     static int open(World w, int x, int y, int z, int x0, int z0) {
         if (in(x, z + 1, x0, z0) && w.isAirBlock(x, y, z + 1)) return 3;
         if (in(x, z - 1, x0, z0) && w.isAirBlock(x, y, z - 1)) return 2;
@@ -118,7 +118,7 @@ public class ArcanaChests implements IWorldGenerator {
         return -1;
     }
 
-    /** Вид ближайшей двери под ключ (не дальше 3 блоков по горизонтали, этаж тот же, в своей комнате) или null. */
+    /** Kind of the nearest key-locked door (within 3 blocks horizontally, same floor, in its own room) or null. */
     static Kind door(World w, int x, int y, int z, int x0, int z0) {
         Kind best = null;
         int bestD = Integer.MAX_VALUE;
@@ -151,15 +151,15 @@ public class ArcanaChests implements IWorldGenerator {
         return h;
     }
 
-    /** Участок по координате. */
+    /** Region by coordinate. */
     public static int region(int c) {
         return RegionTally.region(c, Config.arcanaChestRegion);
     }
 
-    /** Имя учёта участков в данных мира Арканы ({@link RegionTally}). */
+    /** Name of the region tally in the Arcana world data ({@link RegionTally}). */
     public static final String TALLY = "divinerpgextended_arcana_chests";
 
-    /** Комната: есть каморка - бросок шанса или гарантия участка; поставлен - true. */
+    /** Room: if there is a closet - a chance roll or the region's guarantee; placed - true. */
     public static boolean room(World w, int x0, int y0, int z0) {
         int[] v = vault(w, x0, y0, z0);
         if (v == null) return false;
@@ -176,14 +176,14 @@ public class ArcanaChests implements IWorldGenerator {
         return true;
     }
 
-    /** Поставить запертый сундук. */
+    /** Place a locked chest. */
     public static void place(World w, int x, int y, int z, Kind k, int facing) {
         w.setBlock(x, y, z, ModBlocks.lockedChest, k.ordinal(), 2);
         TileEntity te = w.getTileEntity(x, y, z);
         if (te instanceof TileLockedChest) ((TileLockedChest) te).facing = facing;
     }
 
-    // ---------------- Добыча ----------------
+    // ---------------- Loot ----------------
 
     private static ItemStack st(Item i, int n) {
         return new ItemStack(i, n);
@@ -197,7 +197,7 @@ public class ArcanaChests implements IWorldGenerator {
         return a[r.nextInt(a.length)];
     }
 
-    /** Оружие Арканы для древнего сундука. */
+    /** Arcana weapons for the ancient chest. */
     public static Item[] weapons() {
         return new Item[] { ArcanaItems.stormSword, ArcanaItems.captainsSparkler, ArcanaItems.laVekor, ArcanaItems.enderScepter, ArcanaItems.arcaniumSaber,
             ArcanaItems.reflector, ArcanaItems.shadowSword, ArcanaItems.liviciaSword, ArcanaItems.meteorMash,
@@ -205,14 +205,14 @@ public class ArcanaChests implements IWorldGenerator {
             ArcanaItems.staffStarlight, ArcanaItems.starlight, ArcanaItems.firefly, ArcanaItems.wizardBook };
     }
 
-    /** Аксессуары для сундука душ. */
+    /** Accessories for the soul chest. */
     public static final Trinket[] ACCESSORIES = { Trinket.DUNGEON_LAMP, Trinket.ARCANE_WARD, Trinket.CLARITY_CRYSTAL };
 
-    /** Добыча сундука при открытии. */
+    /** The chest's loot on opening. */
     public static List<ItemStack> loot(Kind k, Random r) {
         List<ItemStack> out = new ArrayList<ItemStack>();
         switch (k) {
-            case SLUDGE: // расходники
+            case SLUDGE: // consumables
                 out.add(st(ArcanaItems.weakArcanaPotion, n(r, 2, 4)));
                 if (r.nextInt(5) < 3) out.add(st(ArcanaItems.strongArcanaPotion, n(r, 1, 2)));
                 for (int i = n(r, 2, 3); i > 0; i--) out.add(arcanePotion(r));
@@ -222,18 +222,18 @@ public class ArcanaChests implements IWorldGenerator {
                 out.add(st(ArcanaItems.arcanium, n(r, 2, 5)));
                 out.add(st(ArcanaItems.dungeonTokens, n(r, 3, 8)));
                 break;
-            case ANCIENT: // оружие Арканы
+            case ANCIENT: // Arcana weapons
                 out.add(st(pick(r, weapons()), 1));
                 out.add(st(ArcanaItems.arcanium, n(r, 2, 4)));
                 out.add(st(ArcanaItems.dungeonTokens, n(r, 3, 6)));
                 break;
-            case SOUL: // аксессуары
+            case SOUL: // accessories
                 out.add(new ItemStack(ModItems.trinket, 1, pick(r, ACCESSORIES).ordinal()));
                 out.add(st(ArcanaItems.weakArcanaPotion, n(r, 1, 2)));
                 out.add(st(ArcanaItems.arcanium, n(r, 2, 4)));
                 out.add(st(ArcanaItems.dungeonTokens, n(r, 4, 8)));
                 break;
-            case DEGRADED: // инструменты и редкости
+            case DEGRADED: // tools and rarities
                 out.add(st(pick(r, new Item[] { ArcanaItems.attractor, ArcanaItems.staffOfEnrichment, ArcanaItems.orbOfLight }), 1));
                 out.add(st(ArcanaItems.chargedCollector, n(r, 1, 2)));
                 if (r.nextBoolean())
@@ -243,7 +243,7 @@ public class ArcanaChests implements IWorldGenerator {
                 out.add(st(ArcanaItems.arcanium, n(r, 4, 8)));
                 out.add(st(ArcanaItems.dungeonTokens, n(r, 5, 12)));
                 break;
-            default: // реликварии миров
+            default: // world reliquaries
                 out.addAll(com.divinerpgextended.world.twilight.Reliquaries.loot(k, r));
                 break;
         }

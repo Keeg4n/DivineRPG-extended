@@ -10,7 +10,7 @@ import org.lwjgl.opengl.GL11;
 import com.divinerpgextended.magic.ContainerArcaneBrewer;
 import com.divinerpgextended.magic.TileArcaneBrewer;
 
-/** Окно арканной стойки: ванильное окно стойки в лиловых тонах, слева слот арканиума и запас варок. */
+/** Arcane brewing stand window: the vanilla brewing stand window in lilac tones, with an arcanium slot and a stock of brews on the left. */
 public class GuiArcaneBrewer extends GuiContainer {
 
     private static final ResourceLocation TEX = new ResourceLocation("textures/gui/container/brewing_stand.png");
@@ -36,7 +36,7 @@ public class GuiArcaneBrewer extends GuiContainer {
         mc.getTextureManager().bindTexture(TEX);
         int k = (width - xSize) / 2, l = (height - ySize) / 2;
         drawTexturedModalRect(k, l, 0, 0, xSize, ySize);
-        // слот арканиума (в ванильном окне его нет) - рамкой
+        // arcanium slot (the vanilla window does not have it) - with a frame
         drawRect(k + 16, l + 16, k + 34, l + 34, 0xFF373737);
         drawRect(k + 17, l + 17, k + 34, l + 34, 0xFFFFFFFF);
         drawRect(k + 17, l + 17, k + 33, l + 33, 0xFF8B8B8B);

@@ -35,18 +35,18 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Ледяной Колосс - огромный (~25 блоков) ледяной голем, на плече которого стоит Король-лич.
+ * Frost Colossus - a huge (~25 blocks) ice golem with the Lich King standing on its shoulder.
  * <p>
- * Колосс бьёт кулаками, топает (кольцо шипов - перепрыгнуть) и пускает дорожки шипов. Король-лич с плеча с замахом
- * в полторы секунды готовит Воющий буран или ледяную тюрьму и поднимает мертвецов. Ниже 50% - Беспощадная зима
- * (гасит жаровни, холод вдвое, сосульки с купола), ниже 20% - ледяные глыбы. Когда Колосс падает, лич спрыгивает.
+ * The Colossus punches, stomps (a ring of spikes - jump over it) and sends out lines of spikes. The Lich King on its shoulder, with a wind-up
+ * of a second and a half, prepares a Howling Blizzard or an ice prison and raises the dead. Below 50% - Merciless Winter
+ * (puts out braziers, double cold, icicles from the dome), below 20% - ice boulders. When the Colossus falls, the lich jumps down.
  * <p>
- * Чем бить: ледяное тело держит удар (обычное оружие x0.6), а Frozen Maul, Glacier Sword и Frostking Sword
- * раскалывают его (x2.5, x2, x1.6). Луки Divine: Inferno - поджог и x1.5, но три адские стрелы за 10 секунд
- * приводят его в ярость: он хватает Хастреуса и швыряет в стрелка (Хастреус обездвиживает всех, кого видит, -
- * уворачиваться или сразу убивать). Bluefire - оглушение на 6 секунд (потом 12 секунд не действует). Snowstorm
- * срывает заклинание, если попасть во время замаха, и вносит смятение: поднятые мертвецы с ускорением и силой
- * бросаются на хозяина, новых он 8 секунд не поднимает.
+ * What to hit it with: the ice body withstands blows (regular weapons x0.6), while Frozen Maul, Glacier Sword and Frostking Sword
+ * split it (x2.5, x2, x1.6). Divine bows: Inferno - ignites and x1.5, but three hell arrows within 10 seconds
+ * send it into a rage: it grabs Hastreus and hurls him at the shooter (Hastreus immobilizes everyone he sees -
+ * dodge or kill him at once). Bluefire - stun for 6 seconds (then it has no effect for 12 seconds). Snowstorm
+ * breaks the spell if it hits during the wind-up and causes confusion: raised dead with speed and strength
+ * rush at their master, and he does not raise new ones for 8 seconds.
  */
 public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
 
@@ -62,7 +62,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
     private final List<Long> infernoHits = new ArrayList<Long>();
     private boolean winterAnnounced;
 
-    /** Кольцевые волны: {x, y, z, радиус}. Дорожки: {x, y, z, dx, dz, пройдено}. Сосульки: {x, z, тиков, y}. */
+    /** Ring waves: {x, y, z, radius}. Trails: {x, y, z, dx, dz, traveled}. Icicles: {x, z, ticks, y}. */
     private final List<double[]> waves = new ArrayList<double[]>(), lines = new ArrayList<double[]>(),
         icicles = new ArrayList<double[]>();
 
@@ -81,7 +81,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
         getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(Config.colossusHealth);
         getEntityAttribute(SharedMonsterAttributes.attackDamage).setBaseValue(Config.colossusDamage);
         getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.26D);
-        getEntityAttribute(SharedMonsterAttributes.followRange).setBaseValue(160.0D); // видит всю арену
+        getEntityAttribute(SharedMonsterAttributes.followRange).setBaseValue(160.0D); // sees the whole arena
         getEntityAttribute(SharedMonsterAttributes.knockbackResistance).setBaseValue(1.0D);
     }
 
@@ -154,8 +154,8 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
         if (source == DamageSource.inWall || source == DamageSource.cactus || source == DamageSource.fall) return false;
         Item melee = ThroneCombat.melee(source);
         float mult = ThroneCombat.vsColossus(melee);
-        if (mult == 1.0F) mult = 0.6F; // ледяное тело держит обычное оружие
-        // в смятении мобы рвут его втрое сильнее
+        if (mult == 1.0F) mult = 0.6F; // the ice body withstands regular weapons
+        // in confusion the mobs tear into it three times harder
         if (confusedLeft > 0 && source.getEntity() instanceof EntityLiving
             && !(source.getEntity() instanceof EntityPlayer)) mult = 3.0F;
         if (source.isFireDamage()) mult = 1.5F;
@@ -180,7 +180,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
         return super.attackEntityFrom(source, amount * mult);
     }
 
-    /** Snowstorm: срыв заклинания во время замаха и смятение среди мертвецов. */
+    /** Snowstorm: breaking the spell during the wind-up and confusion among the dead. */
     private void snowstormHit() {
         if (castLeft > 0) {
             castLeft = 0;
@@ -197,8 +197,8 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
     }
 
     /**
-     * Смятение: все мобы вокруг (не только поднятые мертвецы) как угорелые бросаются на босса - ускорение и сила;
-     * пока смятение длится, цель обновляется каждую секунду, чтобы они не переключались на игрока.
+     * Confusion: all mobs around (not only the raised dead) rush at the boss like mad - speed and strength;
+     * while the confusion lasts, the target is refreshed every second so they do not switch to the player.
      */
     static void turnMinions(EntityLiving boss, double r) {
         for (Object o : boss.worldObj.getEntitiesWithinAABB(EntityLiving.class, boss.boundingBox.expand(r, r / 2, r))) {
@@ -215,7 +215,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
         }
     }
 
-    /** Три адские стрелы за 10 секунд - ярость: через полторы секунды швыряет Хастреуса в стрелка. */
+    /** Three hell arrows within 10 seconds - rage: after a second and a half it hurls Hastreus at the shooter. */
     private void infernoRage(Entity shooter) {
         long now = worldObj.getTotalWorldTime();
         infernoHits.add(now);
@@ -238,7 +238,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
         EntityHastreus h = new EntityHastreus(worldObj);
         h.setLocationAndAngles(sh[0], sh[1], sh[2], rotationYaw, 0);
         double dx = rageTarget.posX - sh[0], dz = rageTarget.posZ - sh[2], d = Math.sqrt(dx * dx + dz * dz);
-        // дуга: подбираем скорость под дальность (сопротивление воздуха у мобов заметное)
+        // arc: pick the speed to match the distance (mobs have noticeable air resistance)
         double v = Math.min(3.0, 0.35 + d * 0.06);
         h.motionX = dx / Math.max(d, 0.1) * v;
         h.motionZ = dz / Math.max(d, 0.1) * v;
@@ -251,7 +251,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
         FrostPowers.tell(this, "dre.chat.hastreus_thrown");
     }
 
-    /** Точка на плече, где стоит Король-лич. */
+    /** The point on the shoulder where the Lich King stands. */
     public double[] shoulder() {
         double yaw = Math.toRadians(renderYawOffset);
         double side = 0.5 * SCALE;
@@ -290,7 +290,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
         if (target == null && worldObj.getClosestPlayerToEntity(this, 160) == null) return;
         float hp = getHealth() / getMaxHealth();
         double[] sh = shoulder();
-        // чем меньше здоровья, тем быстрее: до +80% скорости
+        // the less health, the faster: up to +80% speed
         getEntityAttribute(SharedMonsterAttributes.movementSpeed).setBaseValue(0.26D * (1 + 0.8 * (1 - hp)));
 
         if (rageLeft > 0) {
@@ -305,7 +305,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
             if (dist < SCALE * 1.25 && Math.abs(target.posY - posY) < 10 && attackCooldown == 0) smash(target);
         }
 
-        // замах заклинания лича: видно и слышно, Snowstorm может сорвать
+        // the lich's spell wind-up: visible and audible, Snowstorm can break it
         if (castLeft > 0) {
             FrostPowers.particles(worldObj, castType == CAST_BLAST ? "snowshovel" : "spell", sh[0], sh[1] + 1, sh[2], 15,
                 0.8, 0.05);
@@ -393,19 +393,19 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
         worldObj.setEntityState(this, (byte) 4);
         if (target.attackEntityFrom(DamageSource.causeMobDamage(this),
             (float) getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue())) {
-            target.motionY += 0.25; // слабый подброс: к нему должно быть можно подойти
+            target.motionY += 0.25; // weak toss: it must be possible to approach it
         }
         worldObj.playSoundAtEntity(this, "mob.irongolem.throw", 2.5F, 0.5F);
     }
 
     @Override
     public boolean attackEntityAsMob(Entity e) {
-        return false; // бьёт только своим ударом (smash), с размахом
+        return false; // hits only with its own blow (smash), with a sweep
     }
 
-    /** Поставить ледяной шип высотой 2 на поверхности возле (x, y, z). */
+    /** Place an ice spike of height 2 on the surface near (x, y, z). */
     private void spike(int x, int y, int z) {
-        if (!worldObj.blockExists(x, y, z)) return; // волна дошла до выгруженного края
+        if (!worldObj.blockExists(x, y, z)) return; // the wave reached the unloaded edge
         for (int dy = 2; dy >= -2; dy--) {
             if (worldObj.isAirBlock(x, y + dy, z) && !worldObj.isAirBlock(x, y + dy - 1, z)) {
                 Block below = worldObj.getBlock(x, y + dy - 1, z);
@@ -424,7 +424,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
         }
     }
 
-    /** Кольцо шипов от топота: расходится на 24 блока, бьёт тех, кто стоит на земле на гребне волны. */
+    /** Ring of spikes from the stomp: spreads out to 24 blocks, hits those standing on the ground at the wave crest. */
     private void tickWaves() {
         for (Iterator<double[]> it = waves.iterator(); it.hasNext();) {
             double[] w = it.next();
@@ -444,7 +444,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
         }
     }
 
-    /** Дорожка шипов к игроку (как у ледяных боссов Террарии): ползёт по земле на 30 блоков. */
+    /** Trail of spikes toward the player (like the ice bosses of Terraria): crawls along the ground for 30 blocks. */
     private void tickLines() {
         for (Iterator<double[]> it = lines.iterator(); it.hasNext();) {
             double[] l = it.next();
@@ -460,7 +460,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
         }
     }
 
-    /** Сосульки с купола: секунду на земле метка из снежной пыли, потом падение. */
+    /** Icicles from the dome: for a second there is a snow-dust marker on the ground, then the fall. */
     private void tickIcicles() {
         for (Iterator<double[]> it = icicles.iterator(); it.hasNext();) {
             double[] c = it.next();
@@ -478,7 +478,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
     public void onDeath(DamageSource source) {
         super.onDeath(source);
         if (worldObj.isRemote) return;
-        // Колосс рассыпается, Король-лич спрыгивает
+        // the Colossus crumbles, the Lich King jumps down
         double[] sh = shoulder();
         EntityLichKing lich = new EntityLichKing(worldObj);
         lich.setLocationAndAngles(sh[0], sh[1], sh[2], rotationYaw, 0);

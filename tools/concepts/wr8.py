@@ -1,7 +1,7 @@
-"""Концепты брони Странника R8 - за прохождение Ветеи (после Леди Луны). Три облика: спектральный в духе брони призрака Террарии,
-лунный (Леди Луна) и сновидец (Ветея - мир снов). Тело на пропорциях Ботании (детали wslim), плащей нет, на спине вещь по теме.
+"""Wanderer armor concepts R8 - for completing Vethea (after Lady Luna). Three looks: spectral, in the spirit of Terraria's wraith armor,
+lunar (Lady Luna) and dreamer (Vethea is the world of dreams). Body on Botania proportions (wslim details), no capes, a themed item on the back.
 
-Запуск: python3 wr8.py [ключ ...]  (без ключей - все); картинки в wconcepts.OUT.
+Run: python3 wr8.py [key ...]  (without keys - all); images go to wconcepts.OUT.
 """
 import math
 import sys
@@ -12,14 +12,14 @@ import wconcepts as w
 from wconcepts import P, box, chain, disc, mottle, rect, stripe, sym, trim
 from wslim import SIDES, belt, boot, bracer, breastplate, knee, shoulder, thigh, under, waist
 from wslim5 import KEYS, bands, diamond, slim
-import wr1  # noqa: F401  (детали: глухой шлем, кольцо на спине)
+import wr1  # noqa: F401  (parts: closed helmet, ring on the back)
 from wr1 import gate, helm
 
 MINE = len(KEYS)
 
 
 def gdiamond(faces, cu, cv, r, color):
-    """Светящийся ромб наклейкой."""
+    """A glowing diamond as a decal."""
     c = w.C(color)
 
     def d(p, face, b):
@@ -31,7 +31,7 @@ def gdiamond(faces, cu, cv, r, color):
 
 
 def tatter_alpha(wd, L):
-    """Рваная лента вниз: сужается к нижнему концу (низ коробки), край зубцами."""
+    """Ragged ribbon hanging down: tapers toward the lower end (the bottom of the box), the edge in teeth."""
     def a(p, face, b):
         x = np.abs(p[..., 0] - wd / 2) / (wd / 2)
         y = p[..., 1]
@@ -41,16 +41,16 @@ def tatter_alpha(wd, L):
 
 
 def tatter(bone, x, y, z, wd, L, paint, rx=0.0, rz=0.0):
-    """Призрачная лента: висит от точки (x, y, z) вниз."""
+    """Ghostly ribbon: hangs down from point (x, y, z)."""
     return box(bone, x - wd / 2, y, z - 0.12, wd, L, 0.24, paint, rot=(rx, 0, rz), pivot=(x, y, z))
 
 
 def ghost(color, edge, glowc, wd, L):
-    """Материал ленты: светлеет и светится к концу."""
+    """Ribbon material: gets lighter and glows toward the end."""
     return P(color, rect(('north', 'south'), -1, 99, L * 0.55, 99, glowc, glow=True), trim(0.15, edge), alpha=tatter_alpha(wd, L), bevel=0.0, noise=0.03)
 
 
-# ---- А. Призрак: светлые латы, рваные призрачные ленты, капюшон с белой маской, огоньки за спиной
+# ---- A. Wraith: light plate, ragged ghostly ribbons, a hood with a white mask, little lights behind the back
 
 SP, SP_L, SP_M, SP_D, SP_K, SP_G = '#8ccff4', '#e2f6ff', '#4f8fd0', '#22407a', '#0c1430', '#8af8ff'
 
@@ -64,19 +64,19 @@ def r8a():
     bs = under(suit, suit) + breastplate(chest) + waist(P(SP_M, trim(0.3, SP_D))) + belt(P(SP_D, trim(0.2, SP_K), rect(('north',), 3.6, 5.4, 0.4, 1.6, SP_G, glow=True)), h=1.5)
     bs += shoulder(P(SP, trim(0.3, SP_G, glow=True), mottle(SP_L, 1.6, 0.9)), h=3.0, out=0.7) + bracer(P(SP, trim(0.3, SP_D), rect(SIDES, -1, 99, 2.4, 3.0, SP_G, glow=True)))
     bs += thigh(suit) + knee(P(SP_L, trim(0.2, SP_M))) + boot(P(SP, trim(0.3, SP_D), rect(SIDES, -1, 99, 2.9, 99, SP_G, glow=True)), toe=1.2)
-    # рваные ленты от пояса: спереди, по бокам и сзади, разной длины
+    # ragged ribbons from the belt: front, sides and back, of different lengths
     for (x, z, wd, L, rx) in ((-2.7, -2.85, 2.6, 7.2, 10), (0.0, -2.85, 2.6, 8.6, 8), (2.7, -2.85, 2.6, 6.6, 10),
                               (-2.7, 2.85, 2.6, 7.8, -10), (0.0, 2.85, 2.6, 9.0, -8), (2.7, 2.85, 2.6, 7.4, -10)):
         bs.append(tatter('body', x, 11.2, z, wd, L, ghost(SP, SP_M, SP_G, wd, L), rx=rx))
     for (z, L) in ((-1.2, 6.8), (1.2, 7.6)):
         bs += sym(tatter('body', -4.45, 11.2, z, 2.2, L, ghost(SP, SP_M, SP_G, 2.2, L), rz=10))
-    # капюшон: тёмно-синий, лицо - гладкая белая маска с узкими голубыми прорезями
+    # hood: dark blue, the face is a smooth white mask with narrow light-blue slits
     hoodp = P(SP_D, trim(0.3, SP_K), stripe(('east', 'west'), 0.0, 4.6, 0.3, SP_M))
     front = P(SP_D, trim(0.3, SP_K), rect(('north',), 1.0, 8.2, 1.4, 99, SP_K), rect(('north',), 1.8, 7.4, 2.2, 8.6, SP_L),
               rect(('north',), 2.4, 4.0, 4.4, 4.9, SP_G, glow=True), rect(('north',), 5.2, 6.8, 4.4, 4.9, SP_G, glow=True), rect(('north',), 4.3, 4.9, 6.4, 7.8, '#b8d4e8'))
     bs += [box('head', -4.6, -9.1, -4.7, 9.2, 9.1, 9.4, front), box('head', -4.0, -9.8, 2.0, 8.0, 8.4, 3.0, hoodp, rot=(-14, 0, 0), pivot=(0, 0, 0)),
            box('head', -3.2, -10.3, 3.6, 6.4, 6.8, 2.6, hoodp, rot=(-28, 0, 0), pivot=(0, 0, 0))]
-    # огоньки за спиной: три светящихся сгустка дугой, у каждого хвост
+    # little lights behind the back: three glowing clots in an arc, each with a tail
     wisp = P(SP_G, trim(0.3, SP_L, glow=True), glow=True, bevel=0.0)
     tail = P(SP_L, glow=True, bevel=0.0, noise=0.02)
     for (x, y, s) in ((-4.6, -1.2, 1.5), (0.0, -3.0, 1.8), (4.6, -1.2, 1.5)):
@@ -84,14 +84,14 @@ def r8a():
     return bs
 
 
-# ---- Б. Лунная: тёмная вороненая сталь с серебряной окантовкой и сиреневым свечением; полумесяц - знаком на груди и наплечниках
-# (12.11: объёмные полумесяцы над шлемом, за спиной и гребни на плечах убраны - "перебор", латы тёмные вместо серебра)
+# ---- B. Lunar: dark blackened steel with silver trim and lilac glow; a crescent as a mark on the chest and pauldrons
+# (12.11: the 3D crescents above the helmet, behind the back and the ridges on the shoulders were removed - "too much", plate is dark instead of silver)
 
 MN, MN_M, MN_D, MN_K, LI, LI_G = '#3a3f52', '#9aa3bb', '#1e2230', '#0b0c16', '#4e3c7a', '#d6bfff'
 
 
 def crescent(faces, cu, cv, r, color, glow=False):
-    """Полумесяц наклейкой: круг без сдвинутого круга (рожки вправо-вверх)."""
+    """Crescent as a decal: a circle minus a shifted circle (horns pointing right-up)."""
     c = w.C(color)
 
     def d(p, face, b):
@@ -105,7 +105,7 @@ def crescent(faces, cu, cv, r, color, glow=False):
 
 
 def arc(bone, cx, cy, z, r, a0, a1, n, t0, t1, paint, depth=0.8):
-    """Дуга из брусков в плоскости спины, толщина от t0 к t1 (серп)."""
+    """Arc of bars in the plane of the back, thickness from t0 to t1 (sickle)."""
     out = []
     for i in range(n):
         f = (i + 0.5) / n
@@ -126,12 +126,12 @@ def r8b():
     bs += shoulder(P(MN, trim(0.3, MN_M), rect(SIDES, -1, 99, 2.0, 2.5, LI), crescent(('west',), 2.6, 1.0, 0.95, LI_G, glow=True)), top=-2.4, h=3.4, out=1.0)
     bs += bracer(P(MN, trim(0.3, MN_M), rect(SIDES, -1, 99, 2.3, 2.8, LI)))
     bs += thigh(P(LI, trim(0.3, MN_D))) + knee(silver) + boot(P(MN, trim(0.3, MN_M), rect(SIDES, -1, 99, 3.0, 99, LI_G, glow=True)), toe=1.2)
-    # шлем: гладкий, сиреневое забрало
+    # helmet: smooth, lilac visor
     bs += [helm(P(MN, trim(0.3, MN_M), rect(('north',), 1.2, 7.9, 3.8, 5.6, MN_K), rect(('north',), 1.7, 7.4, 4.3, 5.1, LI_G, glow=True), rect(('north',), 4.1, 5.0, 0.4, 3.6, MN_M)))]
     return bs
 
 
-# ---- В. Сновидец: индиго в звёздах, маска с закрытыми глазами и третьим глазом, ловец снов на спине
+# ---- V. Dreamer: indigo with stars, a mask with closed eyes and a third eye, a dreamcatcher on the back
 
 DR, DR_D, DR_L, DR_K, GOLDD, TEAL = '#3a2a6a', '#1c1438', '#6a58b0', '#0e0a1e', '#e3c46a', '#7ff0d8'
 STARS = (mottle('#f4f0ff', 5.0, 0.955), mottle(DR_L, 1.6, 0.78))
@@ -145,13 +145,13 @@ def r8c():
     bs = under(suit, suit) + breastplate(chest) + waist(P(DR_D, *STARS, trim(0.3, DR))) + belt(P(GOLDD, trim(0.2, '#8a6a20'), disc(('north',), 4.5, 0.9, 0.6, TEAL, glow=True)), h=1.4)
     bs += shoulder(P(DR, *STARS, trim(0.3, GOLDD)), h=3.2, out=0.8) + bracer(P(DR, *STARS, trim(0.3, GOLDD), rect(SIDES, -1, 99, 2.4, 2.9, GOLDD)))
     bs += thigh(cloth) + knee(P(GOLDD, trim(0.2, '#8a6a20'))) + boot(P(DR, *STARS, trim(0.3, GOLDD), rect(SIDES, -1, 99, -1, 0.8, GOLDD)), toe=1.1)
-    # маска: гладкая, закрытые глаза золотыми дугами, на лбу открытый третий глаз
+    # mask: smooth, closed eyes as golden arcs, an open third eye on the forehead
     mask = P(DR, *STARS, trim(0.3, GOLDD),
              rect(('north',), 1.8, 3.9, 4.9, 5.3, GOLDD), rect(('north',), 2.1, 3.6, 5.3, 5.6, GOLDD), rect(('north',), 5.2, 7.3, 4.9, 5.3, GOLDD), rect(('north',), 5.5, 7.0, 5.3, 5.6, GOLDD),
              diamond(('north',), 4.55, 2.5, 1.3, GOLDD), disc(('north',), 4.55, 2.5, 0.85, TEAL, glow=True), disc(('north',), 4.55, 2.5, 0.35, DR_K))
     bs += [helm(mask)]
     bs += sym(box('head', -5.0, -8.2, -1.0, 0.45, 4.0, 3.8, P(GOLDD, trim(0.2, '#8a6a20'), disc(('west', 'east'), 1.9, 2.0, 0.7, TEAL, glow=True))))
-    # ловец снов на спине: золотое кольцо, паутина нитями, бусина в центре, три пера вниз
+    # dreamcatcher on the back: a golden ring, a web of threads, a bead in the center, three feathers hanging down
     ring = P(GOLDD, trim(0.15, '#8a6a20'), bevel=0.0)
     bs += gate(0.0, 3.4, 3.0, 3.2, 14, ring)
     thread = P('#efe6c8', bevel=0.0, noise=0.0)
@@ -167,11 +167,11 @@ def r8c():
     return bs
 
 
-# ---- Призрак, второй раунд (09.11): тело и ленты как у А, капюшон цвета брони, лицо по-разному
+# ---- Wraith, second round (09.11): body and ribbons as in A, hood in the armor color, the face differs
 
 
 def ghost_body():
-    """Тело Призрака (r8a) без головы и спины."""
+    """Wraith body (r8a) without the head and back."""
     suit = P(SP_K, trim(0.25, '#050a1c'))
     glowline = (stripe(('north',), 0.0, 2.6, 0.32, SP_G, glow=True), stripe(('north',), 0.0, 6.6, 0.32, SP_G, glow=True))
     chest = P(SP, trim(0.3, SP_D), mottle(SP_L, 1.6, 0.9), *glowline, diamond(('north',), 4.6, 2.6, 1.7, SP_D), gdiamond(('north',), 4.6, 2.6, 1.1, SP_G))
@@ -199,7 +199,7 @@ HOOD = (mottle(SP_L, 1.6, 0.9),)
 
 
 def hood_back():
-    """Ступени капюшона назад, в цвет брони."""
+    """Hood steps going back, in the armor color."""
     hp = P(SP, trim(0.3, SP_D), *HOOD, stripe(('east', 'west'), 0.0, 4.6, 0.3, SP_G, glow=True))
     return [box('head', -4.0, -9.8, 2.0, 8.0, 8.4, 3.0, hp, rot=(-14, 0, 0), pivot=(0, 0, 0)), box('head', -3.2, -10.3, 3.6, 6.4, 6.8, 2.6, hp, rot=(-28, 0, 0), pivot=(0, 0, 0))]
 
@@ -226,20 +226,20 @@ def r8f():
     brow = P(SP, trim(0.3, SP_D), *HOOD, rect(('north',), -1, 99, 0.6, 1.0, SP_G, glow=True))
     scarf = P(SP, trim(0.25, SP_D), *HOOD, rect(('north', 'east', 'west'), -1, 99, -1, 0.35, SP_G, glow=True))
     bs = ghost_body()
-    bs += [box('head', -4.6, -9.1, -4.7, 9.2, 1.6, 9.4, brow)]  # шапка капюшона надо лбом
-    bs += sym(box('head', -4.6, -7.5, -4.7, 0.8, 7.5, 9.4, hp))  # бока капюшона
-    bs += [box('head', -4.6, -7.5, 3.8, 9.2, 7.5, 0.9, hp)]  # затылок
-    bs += [box('head', -4.7, -2.6, -4.85, 9.4, 2.6, 1.4, scarf)]  # шарф на нижней половине лица, только спереди
-    bs += [box('head', -0.6, -8.3, -4.95, 1.2, 1.2, 0.35, P(SP_G, glow=True))]  # огонёк на обруче
+    bs += [box('head', -4.6, -9.1, -4.7, 9.2, 1.6, 9.4, brow)]  # hood cap above the forehead
+    bs += sym(box('head', -4.6, -7.5, -4.7, 0.8, 7.5, 9.4, hp))  # hood sides
+    bs += [box('head', -4.6, -7.5, 3.8, 9.2, 7.5, 0.9, hp)]  # back of the head
+    bs += [box('head', -4.7, -2.6, -4.85, 9.4, 2.6, 1.4, scarf)]  # scarf on the lower half of the face, front only
+    bs += [box('head', -0.6, -8.3, -4.95, 1.2, 1.2, 0.35, P(SP_G, glow=True))]  # little light on the hoop
     return bs + hood_back() + ghost_wisps()
 
 
-# ---- Призрак, третий раунд (09.11): глубокий капюшон - козырёк выступает вперёд, вырез скруглён, тьма и глаза в глубине
+# ---- Wraith, third round (09.11): deep hood - the brim sticks out forward, the cutout is rounded, darkness and eyes in the depths
 
 
 def hole_mask(kind, W=9.2, H=9.1, half=3.2):
-    """Вырез в передней стенке капюшона (0 - дыра) только на лицевых гранях. kind: arch - полукруг сверху и прямые бока до низа,
-    gothic - стрельчатая арка, oval - овал с подбородком снизу."""
+    """Cutout in the front wall of the hood (0 - hole) on the front faces only. kind: arch - a semicircle on top and straight sides down to the bottom,
+    gothic - a pointed arch, oval - an oval with a chin at the bottom."""
     cu = W / 2
 
     def inside(u, v):
@@ -259,7 +259,7 @@ def hole_mask(kind, W=9.2, H=9.1, half=3.2):
         return (~inside(p[..., 0], p[..., 1])).astype(float)
 
     def rim(p, face, b):
-        """Светящаяся кромка вдоль края выреза."""
+        """Glowing edge along the rim of the cutout."""
         c = w.C(SP_G)
         if face.name not in ('north',):
             return c, 0.0, False
@@ -272,29 +272,29 @@ def hole_mask(kind, W=9.2, H=9.1, half=3.2):
 
 
 def deep_hood(kind, eyes='round', peak=False, glow_rim=True, gap=1.0, tip=False, half=3.2, depth=0.0):
-    """Капюшон в цвет брони: козырёк с вырезом на 2 вперёд от лица, тёмная подкладка, в глубине - тёмная плоскость с глазами."""
+    """Hood in the armor color: a brim with a cutout 2 forward from the face, a dark lining, and in the depths a dark plane with eyes."""
     shell = P(SP, trim(0.3, SP_D), *HOOD)
     m, rim = hole_mask(kind, half=half)
     brim = P(SP, trim(0.3, SP_D), *HOOD, *((rim,) if glow_rim else ()), alpha=m, bevel=0.0)
     dark = P('#0a1226', bevel=0.0, noise=0.02)
-    h = gap / 2  # от середины плоскости (3.6) до внутреннего края глаза
+    h = gap / 2  # from the middle of the plane (3.6) to the inner edge of the eye
     if eyes == 'round':
         e1, e2 = rect(('north',), 3.6 - h - 1.2, 3.6 - h, 3.6, 4.4, SP_G, glow=True), rect(('north',), 3.6 + h, 3.6 + h + 1.2, 3.6, 4.4, SP_G, glow=True)
-    else:  # узкие щели
+    else:  # narrow slits
         e1 = rect(('north',), 3.6 - h - 1.5, 3.6 - h, 3.9, 4.3, SP_G, glow=True)
         e2 = rect(('north',), 3.6 + h, 3.6 + h + 1.5, 3.9, 4.3, SP_G, glow=True)
     face = P('#03060f', e1, e2, bevel=0.0, noise=0.0)
-    bs = [box('head', -4.6, -9.1, -6.0 + depth, 9.2, 9.1, 0.7, brim)]              # козырёк с вырезом (depth - ближе к лицу)
-    bs += [box('head', -4.6, -9.1, -5.3, 9.2, 1.2, 10.0, shell)]                    # верх
-    bs += sym(box('head', -4.6, -7.9, -5.3, 1.0, 7.9, 10.0, shell))                 # бока
-    bs += [box('head', -4.6, -7.9, 3.7, 9.2, 7.9, 1.0, shell)]                      # затылок
-    bs += [box('head', -3.8, -9.7, -5.6, 7.6, 0.6, 9.6, shell)]                     # скругление макушки ступенькой
-    # тёмная подкладка внутри козырька и плоскость в глубине (перед лицом игрока)
+    bs = [box('head', -4.6, -9.1, -6.0 + depth, 9.2, 9.1, 0.7, brim)]              # brim with a cutout (depth - closer to the face)
+    bs += [box('head', -4.6, -9.1, -5.3, 9.2, 1.2, 10.0, shell)]                    # top
+    bs += sym(box('head', -4.6, -7.9, -5.3, 1.0, 7.9, 10.0, shell))                 # sides
+    bs += [box('head', -4.6, -7.9, 3.7, 9.2, 7.9, 1.0, shell)]                      # back of the head
+    bs += [box('head', -3.8, -9.7, -5.6, 7.6, 0.6, 9.6, shell)]                     # crown rounded with a step
+    # dark lining inside the brim and a plane in the depths (in front of the player's face)
     bs += [box('head', -3.6, -7.9, -5.3, 7.2, 0.25, 1.25, dark)] + sym(box('head', -3.6, -7.9, -5.3, 0.25, 7.9, 1.25, dark))
     bs += [box('head', -3.6, -7.9, -4.15, 7.2, 7.9, 0.1, face)]
-    if tip:  # острый хвост капюшона назад и вверх, как у назгула
+    if tip:  # sharp hood tail going back and up, like a Nazgul
         bs += chain('head', (0.0, -8.4, 3.0), ((3.2, -78, 0), (3.0, -112, 0), (2.6, -140, 0), (2.0, -160, 0)), 3.4, shell, taper=0.72)
-    if peak:  # козырёк-навес сверху, чуть вниз
+    if peak:  # canopy brim on top, slightly down
         bs += [box('head', -4.6, -9.6, -6.9, 9.2, 0.8, 1.6, shell, rot=(-12, 0, 0), pivot=(0, -9.2, -6.0))]
     return bs
 
@@ -314,13 +314,13 @@ def r8i():
     return ghost_body() + deep_hood('oval', peak=True) + hood_back() + ghost_wisps()
 
 
-# ---- Призрак, четвёртый раунд (09.11): капюшон Ж с глазами шире, верх - балахон (по мотивам Абаддона из Dota 2: назгул в балахоне)
+# ---- Wraith, fourth round (09.11): hood Zh with wider eyes, the top is a robe (inspired by Abaddon from Dota 2: a Nazgul in a robe)
 
 FOLDS = (SP, '#7fc2ea', SP, '#78b8e0')
 
 
 def robe(len_y=12.4, mantle=False, sleeves='wide', gauntlets=False):
-    """Балахон: свободная ткань складками от плеч до бёдер, верёвочный пояс, рукава; ленты подола - как у Призрака."""
+    """Robe: loose cloth in folds from shoulders to thighs, a rope belt, sleeves; hem ribbons are as for the Wraith."""
     suit = P(SP_K, trim(0.25, '#050a1c'))
     cloth = P(SP, bands(FOLDS, 1.7), trim(0.25, SP_M), bevel=0.0, noise=0.03)
     front = P(SP, bands(FOLDS, 1.7), trim(0.25, SP_M), rect(('north',), 3.9, 4.9, 0.0, 99, SP_M), gdiamond(('north',), 4.4, 1.2, 0.9, SP_G), bevel=0.0, noise=0.03)
@@ -328,15 +328,15 @@ def robe(len_y=12.4, mantle=False, sleeves='wide', gauntlets=False):
     bs += [box('body', -4.45, -0.15, -2.8, 8.9, len_y, 5.6, front)]
     rope = P('#d6eefa', trim(0.15, SP_M), bevel=0.0, noise=0.02)
     bs += [box('body', -4.65, 7.4, -3.0, 9.3, 0.7, 6.0, rope), box('body', -1.6, 8.1, -3.05, 0.5, 3.2, 0.5, rope), box('body', -0.6, 8.1, -3.05, 0.5, 2.4, 0.5, rope)]
-    bs += [box('body', -1.8, 11.0, -3.15, 0.9, 0.9, 0.9, P(SP_G, glow=True))]  # огонёк на конце верёвки
-    if sleeves == 'wide':  # широкие рукава колоколом, светящийся край
+    bs += [box('body', -1.8, 11.0, -3.15, 0.9, 0.9, 0.9, P(SP_G, glow=True))]  # little light at the end of the rope
+    if sleeves == 'wide':  # wide bell sleeves, glowing edge
         bs += sym(box('rightArm', -3.35, -2.1, -2.35, 4.7, 6.0, 4.7, cloth),
                   box('rightArm', -3.75, 3.9, -2.75, 5.5, 5.4, 5.5, P(SP, bands(FOLDS, 1.7), trim(0.25, SP_M), rect(SIDES, -1, 99, 4.7, 99, SP_G, glow=True), bevel=0.0, noise=0.03)))
-    else:  # рукав до локтя
+    else:  # sleeve to the elbow
         bs += sym(box('rightArm', -3.45, -2.1, -2.45, 4.9, 6.2, 4.9, P(SP, bands(FOLDS, 1.7), trim(0.25, SP_M), rect(SIDES, -1, 99, 5.5, 99, SP_G, glow=True), bevel=0.0, noise=0.03)))
-    if gauntlets:  # латные перчатки из-под ткани
+    if gauntlets:  # plate gloves from under the cloth
         bs += bracer(P(SP_D, trim(0.3, SP_K), rect(SIDES, -1, 99, 2.4, 3.0, SP_G, glow=True)), top=4.2)
-    if mantle:  # пелерина на плечах: два слоя, короткая (не плащ), рваный светящийся край
+    if mantle:  # mantle on the shoulders: two layers, short (not a cape), ragged glowing edge
         m1 = P(SP_M, bands((SP_M, SP_D, SP_M, '#3f7cbd'), 1.3), trim(0.2, SP_D), rect(SIDES, -1, 99, 2.6, 99, SP_G, glow=True), bevel=0.0, noise=0.03)
         bs += [box('body', -5.3, -0.6, -3.3, 10.6, 3.1, 6.6, m1), box('body', -4.9, -0.9, -3.0, 9.8, 1.3, 6.0, P(SP, trim(0.2, SP_M)))]
     bs += knee(P(SP_L, trim(0.2, SP_M))) + boot(P(SP_D if gauntlets else SP, trim(0.3, SP_K if gauntlets else SP_D), rect(SIDES, -1, 99, 2.9, 99, SP_G, glow=True)), toe=1.2)
@@ -350,7 +350,7 @@ def robe(len_y=12.4, mantle=False, sleeves='wide', gauntlets=False):
 
 
 def mist():
-    """Туман у подола и плеч, как у Абаддона: мелкие светящиеся клочья."""
+    """Mist at the hem and shoulders, like Abaddon's: small glowing wisps."""
     puff = P(SP_L, glow=True, bevel=0.0, noise=0.02)
     out = []
     for (bone, x, y, z, sz) in (('body', -5.2, 13.4, -2.2, 0.9), ('body', 4.6, 14.6, 1.6, 0.8), ('body', -3.4, 15.8, 2.8, 0.7), ('body', 2.6, 13.0, -3.3, 0.7),
@@ -374,9 +374,9 @@ def r8l():
     return robe(mantle=True, gauntlets=True) + deep_hood('arch', gap=2.2, half=3.6, depth=0.4, tip=True) + hood_back() + mist()
 
 
-# ---- Призрак для игры (11.11): облик Венца полёта на R8. Тело как у А, капюшон Ж (вырез аркой со светящейся кромкой), глаза шире;
-# без хвоста капюшона сзади и без крапин на капюшоне; внутри капюшона - сглаженный арочный тоннель от козырька к тьме, тьма и глаза
-# в глубине. В игре латы полупрозрачные (TRANSLUCENT в tools/wanderer_armor.py), тоннель и тьма - нет (коробки с solid).
+# ---- Wraith for the game (11.11): the Crown of Flight look on R8. Body as in A, hood Zh (arch cutout with a glowing edge), wider eyes;
+# without the hood tail at the back and without flecks on the hood; inside the hood a smoothed arch tunnel from the brim to the darkness, the darkness and eyes
+# in the depths. In the game the plate is translucent (TRANSLUCENT in tools/wanderer_armor.py), the tunnel and darkness are not (boxes with solid).
 
 
 def arch_inside(cu, cv, half, rv):
@@ -399,17 +399,17 @@ def solid(b):
 
 
 def ghost_hood(half=3.4, gap=2.2, layers=5):
-    """Капюшон Призрака для игры: оболочка без крапин, козырёк с арочным вырезом и кромкой, тоннель внутрь, тьма с глазами."""
+    """Wraith hood for the game: a shell without flecks, a brim with an arch cutout and edge, a tunnel inward, darkness with eyes."""
     shell = P(SP, trim(0.3, SP_D))
     m, rim = hole_mask('arch', half=half)
     brim = P(SP, trim(0.3, SP_D), rim, alpha=m, bevel=0.0)
-    bs = [box('head', -4.6, -9.1, -6.0, 9.2, 9.1, 0.7, brim)]                      # козырёк с вырезом
-    bs += [box('head', -4.6, -9.1, -5.3, 9.2, 1.2, 10.0, shell)]                    # верх
-    bs += sym(box('head', -4.6, -7.9, -5.3, 1.0, 7.9, 10.0, shell))                 # бока
-    bs += [box('head', -4.6, -7.9, 3.7, 9.2, 7.9, 1.0, shell)]                      # затылок
-    bs += [box('head', -3.8, -9.7, -5.6, 7.6, 0.6, 9.6, shell)]                     # скругление макушки ступенькой
-    # тоннель: тонкие пластины внутри оболочки (x -3.6..3.6, y -7.9..0) с тем же вырезом, к глубине вырез сужается и темнеет -
-    # стенки идут гладкой аркой без квадратных углов подкладки
+    bs = [box('head', -4.6, -9.1, -6.0, 9.2, 9.1, 0.7, brim)]                      # brim with a cutout
+    bs += [box('head', -4.6, -9.1, -5.3, 9.2, 1.2, 10.0, shell)]                    # top
+    bs += sym(box('head', -4.6, -7.9, -5.3, 1.0, 7.9, 10.0, shell))                 # sides
+    bs += [box('head', -4.6, -7.9, 3.7, 9.2, 7.9, 1.0, shell)]                      # back of the head
+    bs += [box('head', -3.8, -9.7, -5.6, 7.6, 0.6, 9.6, shell)]                     # crown rounded with a step
+    # tunnel: thin plates inside the shell (x -3.6..3.6, y -7.9..0) with the same cutout, toward the depth the cutout narrows and darkens -
+    # the walls form a smooth arch without the square corners of the lining
     z0, z1 = -5.3, -4.25
     t = (z1 - z0) / layers
     shades = ('#1d3a66', '#152c50', '#0f2040', '#0a1630', '#070f22', '#050a18')
@@ -420,7 +420,7 @@ def ghost_hood(half=3.4, gap=2.2, layers=5):
     h = gap / 2
     e1 = rect(('north',), 3.6 - h - 1.2, 3.6 - h, 3.6, 4.4, SP_G, glow=True)
     e2 = rect(('north',), 3.6 + h, 3.6 + h + 1.2, 3.6, 4.4, SP_G, glow=True)
-    bs.append(solid(box('head', -3.6, -7.9, -4.15, 7.2, 7.9, 0.1, P('#03060f', e1, e2, bevel=0.0, noise=0.0))))  # тьма с глазами
+    bs.append(solid(box('head', -3.6, -7.9, -4.15, 7.2, 7.9, 0.1, P('#03060f', e1, e2, bevel=0.0, noise=0.0))))  # darkness with eyes
     return bs
 
 
@@ -434,7 +434,7 @@ BG = {'r8a': '#2a3654', 'r8b': '#30304a', 'r8c': '#2a2448', 'r8d': '#2a3654', 'r
 
 
 def build(key):
-    """Как wconcepts.build, но фон у каждой модели свой."""
+    """Like wconcepts.build, but each model has its own background."""
     _, _, title, fn = w.CONCEPTS[key]
     model = w.mk.Model(key, w.mannequin() + fn(), atlas_width=1024)
     front, back = w.view(model, -32, 10, BG[key]), w.view(model, 148, 10, BG[key])

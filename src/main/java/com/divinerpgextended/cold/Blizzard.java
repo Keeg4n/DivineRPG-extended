@@ -18,24 +18,24 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Вьюга Iceika: затишье 10-20 минут, 30 секунд предупреждения ("ветер усиливается"), затем 2-3 минуты вьюги. Там, куда
- * достаёт ветер ({@link #exposed}), холод растёт втрое быстрее и сносит; в закрытом доме и в глубине пещеры - как обычно.
- * Состояние хранится в сохранении мира Iceika.
+ * Iceika blizzard: a lull of 10-20 minutes, 30 seconds of warning ("the wind is rising"), then 2-3 minutes of blizzard. Where
+ * the wind reaches ({@link #exposed}), the cold grows three times faster and sweeps you away; in a closed house and deep in a cave - as usual.
+ * The state is stored in the Iceika world save.
  */
 public class Blizzard extends WorldSavedData {
 
     public static final int CALM = 0, WARNING = 1, STORM = 2;
-    /** На сколько шагов по воздуху ветер заходит с открытого неба. */
+    /** How many steps through the air the wind goes in from the open sky. */
     public static final int WIND_REACH = 12;
     private static final int CHECK_EVERY = 10;
     private static final int[][] SIDES = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
-    // сервер и клиент одной игры - разные потоки, память у каждого своя
+    // the server and client of one game are different threads, each has its own memory
     private static final Map<EntityPlayer, long[]> SERVER_SEEN = new WeakHashMap<EntityPlayer, long[]>(), CLIENT_SEEN = new WeakHashMap<EntityPlayer, long[]>();
     private static final String NAME = "divinerpgextended_blizzard";
 
     public int phase = CALM, timer = 12000;
     public float windX = 1, windZ = 0;
-    /** За эту метель Вьюжная ель уже приходила. */
+    /** The Blizzard Spruce has already come for this storm. */
     public boolean spruceCame;
 
     public Blizzard(String name) {
@@ -52,8 +52,8 @@ public class Blizzard extends WorldSavedData {
     }
 
     /**
-     * Ветер достаёт игрока: метель бьёт сбоку, поэтому крыша или ёлка над головой не спасают. Спрашивают каждый тик и каждый
-     * кадр, а обход воздуха не бесплатный - ответ живёт {@link #CHECK_EVERY} тиков.
+     * The wind reaches the player: the storm hits from the side, so a roof or a spruce overhead do not save you. It is asked every tick and every
+     * frame, and the air traversal is not free - the answer lives for {@link #CHECK_EVERY} ticks.
      */
     public static boolean exposed(EntityPlayer p) {
         Map<EntityPlayer, long[]> seen = p.worldObj.isRemote ? CLIENT_SEEN : SERVER_SEEN;
@@ -68,12 +68,12 @@ public class Blizzard extends WorldSavedData {
     }
 
     /**
-     * Можно ли от этого места дойти по воздуху до открытого неба не дальше {@link #WIND_REACH} шагов. Дом с закрытой дверью и
-     * глубина пещеры укрывают, навес, крона и вход в пещеру - нет.
+     * Whether you can get from this place through the air to the open sky in no more than {@link #WIND_REACH} steps. A house with a closed door and
+     * the depth of a cave shelter, an awning, a canopy and a cave entrance do not.
      */
     public static boolean windReaches(World w, int x, int y, int z) {
         if (y >= w.getHeight()) return true;
-        if (y < 0 || w.getBlock(x, y, z).getMaterial().isLiquid()) return false; // голова под водой
+        if (y < 0 || w.getBlock(x, y, z).getMaterial().isLiquid()) return false; // head underwater
         int size = WIND_REACH * 2 + 1;
         boolean[] visited = new boolean[size * size * size];
         visited[(WIND_REACH * size + WIND_REACH) * size + WIND_REACH] = true;
@@ -96,20 +96,20 @@ public class Blizzard extends WorldSavedData {
         return false;
     }
 
-    /** Небо над местом: стекло игра считает прозрачным для неба, но ветер оно держит. */
+    /** Sky above the place: the game treats glass as transparent to the sky, but it stops the wind. */
     private static boolean openSky(World w, int x, int y, int z) {
         if (!w.canBlockSeeTheSky(x, y, z)) return false;
         for (int up = y + 1; up < w.getHeight(); up++) if (!windPasses(w, x, up, z)) return false;
         return true;
     }
 
-    /** Ветер проходит сквозь воздух, листву и всё, сквозь что можно пройти; вода, стены и закрытые двери и люки его держат. */
+    /** The wind passes through air, foliage and everything that can be walked through; water, walls and closed doors and trapdoors stop it. */
     private static boolean windPasses(World w, int x, int y, int z) {
         Block b = w.getBlock(x, y, z);
         Material m = b.getMaterial();
         if (m.isLiquid()) return false;
         if (m == Material.leaves) return true;
-        // у люка игра отвечает наоборот: для поиска пути закрытый люк - пол, по которому идут
+        // at a trapdoor the game answers the opposite: for pathfinding a closed trapdoor is a floor that can be walked on
         if (b instanceof BlockTrapDoor) return (w.getBlockMetadata(x, y, z) & 4) != 0;
         return b.getBlocksMovement(w, x, y, z);
     }
@@ -132,7 +132,7 @@ public class Blizzard extends WorldSavedData {
         tag.setBoolean("SpruceCame", spruceCame);
     }
 
-    /** Смена фаз - раз в секунду в мире Iceika. */
+    /** Phase change - once a second in the Iceika world. */
     public static class Ticker {
 
         @SubscribeEvent

@@ -23,36 +23,36 @@ import com.divinerpgextended.registry.ModBlocks;
 import cpw.mods.fml.common.IWorldGenerator;
 
 /**
- * Доработка Iceika после того, как Divine заселил чанк.
+ * Iceika refinement after Divine populates a chunk.
  * <ul>
- * <li>Руда инея в мёрзлом камне.</li>
- * <li>Подземные ледяные пещеры и ледяные озёра: петляющие полости с прожилками льда, снегом и сосульками, купола
- * с водой подо льдом, колоннами и голубыми лампами. Данжи Divine остаются спрятанными в толще: к ним надо
- * прокапываться, а пещера или озеро иногда случайно выводит к данжу.</li>
- * <li>Сундуки: пустые морозные сундуки данжей наполняем лутом подземелий, а в сундуки жителей (у Divine там только
- * мятные леденцы) добавляем еду, топливо, огниво и материалы.</li>
+ * <li>Rime Ore in frozen stone.</li>
+ * <li>Underground ice caves and ice lakes: winding cavities with ice veins, snow and icicles, domes
+ * with water under ice, columns and blue lamps. Divine's dungeons stay hidden in the mass: you have to
+ * dig to them, and a cave or lake sometimes accidentally leads to a dungeon.</li>
+ * <li>Chests: empty frozen dungeon chests are filled with dungeon loot, and villager chests (Divine has only
+ * mint candies there) get food, fuel, flint and steel and materials.</li>
  * </ul>
- * Уют в мастерских Iceika (дом торговца и мастера). Divine строит их при заселении чанка, мы сразу после этого
- * находим мастерскую по расстановке книжных шкафов и обновляем интерьер: еловый пол, очаг у задней стены с
- * каменной площадкой, коврик перед ним, два стола со стульями. Ёлка, лампы, сундуки и торговцы остаются.
+ * Coziness in Iceika workshops (the merchant's and master's house). Divine builds them when populating a chunk, and right after we
+ * find the workshop by the bookshelf layout and update the interior: a spruce floor, a hearth at the back wall with a
+ * stone platform, a rug in front of it, two tables with chairs. The tree, lamps, chests and merchants stay.
  */
 public class IceikaDecor implements IWorldGenerator {
 
     @Override
     public void generate(Random rand, int chunkX, int chunkZ, World world, IChunkProvider gen, IChunkProvider prov) {
         if (world.provider.dimensionId != ConfigurationHelper.iceika) return;
-        // руда инея: жилы по 5 в мёрзлом камне ниже y=46
+        // Rime Ore: veins of 5 in frozen stone below y=46
         for (int i = 0; i < 6; i++) {
             new WorldGenMinable(ModBlocks.rimeOre, 0, 5, IceikaBlocks.frozenStone).generate(world, rand,
                 chunkX * 16 + 8 + rand.nextInt(16), 6 + rand.nextInt(40), chunkZ * 16 + 8 + rand.nextInt(16));
         }
-        // пещеры и озёра - не внутри Ледяного Трона (прорезали бы купол и арену)
-        // пещера расходится от центра до ~30 блоков: проверяем с запасом, а не одну точку (иначе грызла стену купола)
+        // caves and lakes - not inside the Frozen Throne (they would cut the dome and the arena)
+        // a cave spreads from the center up to ~30 blocks: check with a margin, not a single point (otherwise it gnawed the dome wall)
         boolean throne = WorldGenThrone.near(world, chunkX * 16 + 16, chunkZ * 16 + 16, 36);
         if (rand.nextInt(10) == 0 && !throne) cavern(world, rand, chunkX * 16 + 16, chunkZ * 16 + 16);
         if (rand.nextInt(18) == 0 && !throne) lake(world, rand, chunkX * 16 + 16, chunkZ * 16 + 16);
         chests(world, rand, chunkX, chunkZ);
-        // угол мастерской Divine ставит в пределах своего чанка
+        // Divine places the workshop's corner within its own chunk
         for (int x = chunkX * 16; x < chunkX * 16 + 16; x++) {
             for (int z = chunkZ * 16; z < chunkZ * 16 + 16; z++) {
                 for (int y = 120; y > 10; y--) {
@@ -65,7 +65,7 @@ public class IceikaDecor implements IWorldGenerator {
         }
     }
 
-    // ---------------------------------------------------------------- подземные пещеры и озёра
+    // ---------------------------------------------------------------- underground caves and lakes
 
     private static boolean protectedBlock(Block b) {
         return b == IceikaBlocks.icyBricks || b == IceikaBlocks.icyStone || b == IceikaBlocks.rollumSpawner
@@ -75,21 +75,21 @@ public class IceikaDecor implements IWorldGenerator {
             || b instanceof net.minecraft.block.BlockContainer;
     }
 
-    /** Вырезать полость, не задевая данжи, воду и бедрок. */
+    /** Cut a cavity without touching dungeons, water and bedrock. */
     private static void carve(World w, WorldGenLairs.Carver c) {
         for (int[] p : c.cells) {
-            if (p[1] < 6 || WorldGenThrone.near(w, p[0], p[2], 6)) continue; // стены и свод Трона не трогаем
+            if (p[1] < 6 || WorldGenThrone.near(w, p[0], p[2], 6)) continue; // the Throne's walls and vault are not touched
             if (!protectedBlock(w.getBlock(p[0], p[1], p[2]))) w.setBlock(p[0], p[1], p[2], Blocks.air, 0, 2);
         }
     }
 
-    /** Сосулька из пакового льда, если под ней хватает места. */
+    /** An icicle of packed ice, if there is enough room under it. */
     private static void icicle(World w, WorldGenLairs.Carver c, int x, int y, int z, int len) {
         for (int k = 0; k <= len + 1; k++) if (!c.has(x, y - k, z) || !w.isAirBlock(x, y - k, z)) return;
         for (int k = 0; k < len; k++) w.setBlock(x, y - k, z, Blocks.packed_ice, 0, 2);
     }
 
-    /** Ледяная пещера: 3-4 широких кривых хода, прожилки льда, снег на полу, сосульки. */
+    /** An ice cave: 3-4 wide curved passages, ice veins, snow on the floor, icicles. */
     private static void cavern(World w, Random rand, int x, int z) {
         double y = 14 + rand.nextInt(30);
         WorldGenLairs.Carver c = new WorldGenLairs.Carver(x - 30, (int) y - 14, z - 30, 61, 30, 61, Integer.MAX_VALUE);
@@ -113,7 +113,7 @@ public class IceikaDecor implements IWorldGenerator {
         }
     }
 
-    /** Снег на полу, прожилки пакового льда в стенах, сосульки с потолка (каждая icicleRate-я точка свода). */
+    /** Snow on the floor, packed ice veins in the walls, icicles from the ceiling (every icicleRate-th vault point). */
     private static void decorate(World w, Random rand, WorldGenLairs.Carver c, int icicleRate, int maxLen) {
         int[][] six = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
         for (int[] p : c.cells) {
@@ -131,7 +131,7 @@ public class IceikaDecor implements IWorldGenerator {
         }
     }
 
-    /** Подземное ледяное озеро: купол, внизу вода подо льдом с полыньями, колонны, густые сосульки, голубые лампы. */
+    /** An underground ice lake: a dome, below it water under ice with ice holes, columns, dense icicles, blue lamps. */
     private static void lake(World w, Random rand, int x, int z) {
         int y = 12 + rand.nextInt(25);
         double rh = 8 + rand.nextInt(5), rv = 5 + rand.nextInt(2);
@@ -147,14 +147,14 @@ public class IceikaDecor implements IWorldGenerator {
             }
         }
         carve(w, c);
-        // вода и ледяная корка с полыньями
+        // water and an ice crust with holes
         for (int[] p : c.cells) {
             if (!w.isAirBlock(p[0], p[1], p[2])) continue;
             int dy = p[1] - y;
             if (dy < 0) w.setBlock(p[0], p[1], p[2], Blocks.water, 0, 2);
             else if (dy == 0) w.setBlock(p[0], p[1], p[2], rand.nextInt(10) < 8 ? Blocks.ice : Blocks.water, 0, 2);
         }
-        // ледяные колонны от льда до свода
+        // ice columns from the ice to the vault
         for (int k = 0; k < 2 + rand.nextInt(2); k++) {
             double a = rand.nextDouble() * Math.PI * 2, r = rh * (0.3 + rand.nextDouble() * 0.4);
             int px = x + (int) Math.round(Math.cos(a) * r), pz = z + (int) Math.round(Math.sin(a) * r);
@@ -163,13 +163,13 @@ public class IceikaDecor implements IWorldGenerator {
             }
         }
         decorate(w, rand, c, 6, 4);
-        // голубые лампы в своде
+        // blue lamps in the vault
         for (int k = 0; k < 2; k++) {
             int lx = x + rand.nextInt(ri) - ri / 2, lz = z + rand.nextInt(ri) - ri / 2, ly = y;
             while (c.has(lx, ly + 1, lz)) ly++;
             if (ly > y && !protectedBlock(w.getBlock(lx, ly + 1, lz))) w.setBlock(lx, ly + 1, lz, VanillaBlocks.lamp2, 0, 2);
         }
-        // иногда морозный сундук на берегу
+        // sometimes a frozen chest on the shore
         if (rand.nextInt(3) == 0) {
             for (int t = 0; t < 30; t++) {
                 double a = rand.nextDouble() * Math.PI * 2;
@@ -184,7 +184,7 @@ public class IceikaDecor implements IWorldGenerator {
         }
     }
 
-    // ---------------------------------------------------------------- сундуки
+    // ---------------------------------------------------------------- chests
 
     private static boolean onlyPeppermints(IInventory inv) {
         for (int i = 0; i < inv.getSizeInventory(); i++) {
@@ -199,7 +199,7 @@ public class IceikaDecor implements IWorldGenerator {
         return true;
     }
 
-    /** Наполнить сундуки, которые Divine только что поставил в этом и соседних чанках. */
+    /** Fill the chests Divine has just placed in this and neighboring chunks. */
     private static void chests(World w, Random rand, int chunkX, int chunkZ) {
         for (int i = 0; i <= 1; i++) {
             for (int k = 0; k <= 1; k++) {
@@ -220,7 +220,7 @@ public class IceikaDecor implements IWorldGenerator {
         }
     }
 
-    /** Угол (x, y, z) мастерской: по углам 2x2 книжные шкафы, в углу пола угольный камень, рядом лампа. */
+    /** The workshop's corner (x, y, z): 2x2 bookshelves in the corners, coal stone in the floor corner, a lamp next to it. */
     private static boolean isWorkshop(World w, int x, int y, int z) {
         return w.getBlock(x + 1, y + 1, z + 1) == IceikaBlocks.workshopBookcase
             && w.getBlock(x + 12, y + 1, z + 12) == IceikaBlocks.workshopBookcase
@@ -233,14 +233,14 @@ public class IceikaDecor implements IWorldGenerator {
     }
 
     private static void renovate(World w, int x, int y, int z) {
-        // еловый пол вместо пёстрых колец ковра и угольного камня
+        // a spruce floor instead of the motley rings of carpet and coal stone
         for (int i = 1; i <= 12; i++) {
             for (int k = 1; k <= 12; k++) {
                 Block b = w.getBlock(x + i, y, z + k);
                 if (b == IceikaBlocks.workshopCarpet || b == IceikaBlocks.coalstone) set(w, x + i, y, z + k, Blocks.planks, 1);
             }
         }
-        // очаг у задней стены (дверь на стороне z), каменная площадка вокруг
+        // a hearth at the back wall (the door is on the z side), a stone platform around
         for (int i = 4; i <= 9; i++) {
             for (int k = 10; k <= 12; k++) set(w, x + i, y, z + k, IceikaBlocks.coalstone, 0);
         }
@@ -249,11 +249,11 @@ public class IceikaDecor implements IWorldGenerator {
             set(w, x + i, y + 1, z + 12, fire ? ModBlocks.hearth : IceikaBlocks.coalstone, 0);
             set(w, x + i, y + 2, z + 12, IceikaBlocks.coalstone, 0);
         }
-        set(w, x + 5, y + 3, z + 12, Blocks.stone_slab, 3); // полка над очагом
+        set(w, x + 5, y + 3, z + 12, Blocks.stone_slab, 3); // a shelf above the hearth
         set(w, x + 8, y + 3, z + 12, Blocks.stone_slab, 3);
-        // красный коврик перед очагом
+        // a red rug in front of the hearth
         for (int i = 5; i <= 8; i++) for (int k = 8; k <= 9; k++) set(w, x + i, y + 1, z + k, Blocks.carpet, 14);
-        // два стола со стульями (стул спиной к двери)
+        // two tables with chairs (a chair with its back to the door)
         for (int t : new int[] { 3, 10 }) {
             set(w, x + t, y + 1, z + 6, Blocks.fence, 0);
             set(w, x + t, y + 2, z + 6, Blocks.wooden_pressure_plate, 0);

@@ -11,9 +11,9 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Руда инея плавится только в угольной печи Iceika (бесконечный жар). Рецепт плавки общий для всех печей, поэтому
- * ванильной печи, в которой лежит руда инея, раз в полсекунды сбрасываем прогресс: руда в ней не доплавится.
- * Угольная печь Divine - не наследник ванильной, её это не касается.
+ * Rime Ore smelts only in the Iceika coal furnace (infinite heat). The smelting recipe is shared by all furnaces, so
+ * in a vanilla furnace holding Rime Ore we reset progress every half second: the ore will never finish smelting in it.
+ * Divine's coal furnace is not a descendant of the vanilla one, so it is unaffected.
  */
 public class RimeSmelting {
 

@@ -26,21 +26,21 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Роли сумеречного дальнобоя (снаряды Divine у блица, фазера и слайсера одни - различаем по оружию в руке при выстреле):
+ * Roles of twilight ranged weapons (Divine's projectiles for blitz, phaser and slicer are the same - we tell them apart by the weapon in hand at the shot):
  * <ul>
- * <li>лук - дальность и точность (без изменений);</li>
- * <li>блиц - кибер-дробовик: {@link #PELLETS} снарядов веером в полную силу ({@link #PELLET_DMG}), по подручным боссов x2,
- * но редко - перезарядка {@link #BLITZ_COOLDOWN} тиков; против толпы и вблизи: дробь летит {@link #BLITZ_LIFE} тиков
- * (~10 блоков), боссов не сносит; свой звук выстрела; тратит пыль своего мира ({@link #setupDust}), как и фазер;</li>
- * <li>фазер - пробой: снаряд проходит насквозь до {@link #PIERCE} целей, по частям голема x2;</li>
- * <li>фазеры и блицы не ломаются.</li>
- * <li>слайсер - рикошет до {@link #RICOCHET} целей подряд, перерезает лиану голема, сбивает замах Короля-воина и
- * издалека заряжает ветряные тотемы (как снежки в кристаллы дракона).</li>
+ * <li>bow - range and accuracy (unchanged);</li>
+ * <li>blitz - a cyber shotgun: {@link #PELLETS} projectiles in a fan at full strength ({@link #PELLET_DMG}), x2 against boss minions,
+ * but rarely - cooldown {@link #BLITZ_COOLDOWN} ticks; for crowds and close range: pellets fly for {@link #BLITZ_LIFE} ticks
+ * (~10 blocks), do not knock bosses back; its own shot sound; uses the dust of its own world ({@link #setupDust}), like the phaser;</li>
+ * <li>phaser - piercing: the projectile passes through up to {@link #PIERCE} targets, x2 against golem parts;</li>
+ * <li>phasers and blitzes do not break.</li>
+ * <li>slicer - ricochets up to {@link #RICOCHET} targets in a row, cuts the golem's vine, interrupts the Warrior King's swing and
+ * charges Wind Totems from afar (like snowballs on dragon crystals).</li>
  * </ul>
- * Колчаны-аксессуары (как в Террарии; падают со стрелков - {@link #DROP_CHANCE}: лучники - колчан (Вечный лучник - наверняка), маг - подсумок, колдун -
- * перевязь): бездонный колчан - бесконечные стрелы лукам (лук натягивается и стреляет без стрел, ничего не кладя в
- * инвентарь; клиенту о колчане говорит {@link QuiverSync}) и +10% урона стрелами; подсумок пыли - +15% урона блица и
- * фазера (они и так бесконечные); перевязь метателя - слайсер возвращается в руку, +1 цель рикошета.
+ * Quiver accessories (as in Terraria; they drop from shooters - {@link #DROP_CHANCE}: archers - a quiver (the Eternal Archer - always), mage - a pouch, sorcerer -
+ * a sling): the Bottomless Quiver - infinite arrows for bows (the bow draws and fires without arrows, putting nothing in the
+ * inventory; the client learns about the quiver from {@link QuiverSync}) and +10% arrow damage; the Dust Pouch - +15% damage for the blitz and
+ * phaser (they are infinite anyway); the Thrower's Sling - the slicer returns to the hand, +1 ricochet target.
  */
 public class RangedRoles {
 
@@ -48,22 +48,22 @@ public class RangedRoles {
     public static final int BLITZ = 1, PHASER = 2, SLICER = 3;
     public static final int PELLETS = 5, PIERCE = 3, RICOCHET = 3;
     public static final float PELLET_DMG = 1.0F, ADD_BONUS = 2.0F;
-    /** Перезарядка блица: задержка Divine (в её единицах, x4 тика) и она же в тиках - выстрел в секунду. */
+    /** Blitz cooldown: Divine's delay (in its units, x4 ticks) and the same in ticks - one shot per second. */
     public static final int BLITZ_DELAY = 5, BLITZ_COOLDOWN = BLITZ_DELAY * 4;
     public static final String BLITZ_SOUND = "divinerpgextended:blitz_shot";
-    /** Дробь живёт столько тиков (дальность ~10 блоков); от отброса дробью остаётся доля KNOCK_KEEP - ноль: блиц не отбрасывает вовсе. */
+    /** Pellets live this many ticks (range ~10 blocks); of a pellet's knockback only the KNOCK_KEEP share remains - zero: the blitz does not knock back at all. */
     public static final int BLITZ_LIFE = 7;
     public static final double KNOCK_KEEP = 0;
-    /** Боковые дробины по боссу: доля урона (иначе пять дробин в упор выносили босса, а сет Мортума лечил за каждую). */
+    /** Side pellets against a boss: share of damage (otherwise five pellets point blank wiped out a boss, and the Mortum set healed for each). */
     public static final float BOSS_SIDE = 0.3F;
     private static final List<Entity> BLITZ_SHOTS = new ArrayList<Entity>();
-    /** Скорость жертвы до первой дробины за тик: в конце тика отброс урезается. */
+    /** The victim's velocity before the first pellet in a tick: at the end of the tick the knockback is trimmed. */
     private static final java.util.Map<EntityLivingBase, double[]> KNOCK = new java.util.HashMap<EntityLivingBase, double[]>();
-    /** Боевые бонусы колчанов: стрелы +10%, блиц и фазер +15%, слайсер +1 цель рикошета. */
+    /** Combat bonuses of quivers: arrows +10%, blitz and phaser +15%, slicer +1 ricochet target. */
     public static final float QUIVER_DMG = 1.10F, POUCH_DMG = 1.15F;
-    private static final double SPREAD = 9; // градусов между дробинами
+    private static final double SPREAD = 9; // degrees between pellets
 
-    /** Летящие слайсеры - для подзарядки тотемов. */
+    /** Flying slicers - for recharging totems. */
     private static final List<Entity> TOTEM_SHOTS = new ArrayList<Entity>();
     public static final String QUIVER_TAG = "dreQuiver";
 
@@ -75,7 +75,7 @@ public class RangedRoles {
             if (i == wp[3]) return BLITZ;
             if (i == wp[2]) return PHASER;
         }
-        if (i == TwilightItemsWeapons.haliteBlitz) return BLITZ; // халитовое - с Демона сумерек, не из крафта миров
+        if (i == TwilightItemsWeapons.haliteBlitz) return BLITZ; // halite one - from the Twilight Demon, not from world crafting
         if (i == TwilightItemsWeapons.halitePhaser) return PHASER;
         if (i == TwilightItemsWeapons.edenSlicer || i == TwilightItemsWeapons.wildwoodSlicer || i == TwilightItemsWeapons.apalachiaSlicer
             || i == TwilightItemsWeapons.skythernSlicer || i == TwilightItemsWeapons.mortumSlicer) return SLICER;
@@ -86,9 +86,9 @@ public class RangedRoles {
         return com.divinerpgextended.accessory.Accessories.wears(p, t);
     }
 
-    /** Пыль-патрон фазеров и блицев: у Divine она задана только блицам, фазеру - пыль блица того же мира. */
+    /** Dust cartridge of phasers and blitzes: Divine sets it only for blitzes, a phaser gets the dust of the blitz of the same world. */
     private static final java.util.Map<Item, Item> DUST = new java.util.HashMap<Item, Item>();
-    /** Оружие, которому на этот тик патрон выставлен под игрока (в конце тика - обратно пыль). */
+    /** Weapons whose cartridge is set for a player for this tick (at the end of the tick - dust again). */
     private static final java.util.Set<Item> ARMED = new java.util.HashSet<Item>();
     static final String SHOOT_TIME = "CanShootTime";
     private static java.lang.reflect.Field ammoField;
@@ -102,8 +102,8 @@ public class RangedRoles {
     }
 
     /**
-     * При запуске (сервер и клиент): фазеры и блицы стреляют пылью своего мира. Divine проверяет и тратит патрон, только
-     * если он задан у оружия, - фазерам задаём пыль блица того же мира. @return сколько оружия на пыли
+     * At startup (server and client): phasers and blitzes shoot the dust of their own world. Divine checks and spends a cartridge only
+     * if one is set on the weapon - so we set phasers the dust of the blitz of the same world. @return how many weapons use dust
      */
     public static int setupDust() {
         DUST.clear();
@@ -123,7 +123,7 @@ public class RangedRoles {
             }
             for (java.util.Map.Entry<Item, Item> en : DUST.entrySet()) f.set(en.getKey(), en.getValue());
         } catch (Exception ex) {
-            com.divinerpgextended.DivineRPGExtended.LOG.warn("Пыль фазеров и блицев: не удалось задать патрон Divine - " + ex);
+            com.divinerpgextended.DivineRPGExtended.LOG.warn("Phaser and blitz dust: could not set Divine ammo - " + ex);
         }
         tune();
         return DUST.size();
@@ -135,7 +135,7 @@ public class RangedRoles {
         return f;
     }
 
-    /** Фазеры и блицы не ломаются (uses = -1, как у блицев Divine); блиц стреляет раз в секунду и без звука Divine - свой даёт {@link #onJoin}. */
+    /** Phasers and blitzes do not break (uses = -1, like Divine blitzes); the blitz fires once per second and without Divine's sound - our own comes from {@link #onJoin}. */
     private static void tune() {
         for (Item i : DUST.keySet()) {
             boolean blitz = kind(new ItemStack(i)) == BLITZ;
@@ -147,12 +147,12 @@ public class RangedRoles {
                     shooterField("soundName").set(i, null);
                 }
             } catch (Exception ex) {
-                com.divinerpgextended.DivineRPGExtended.LOG.warn("Фазеры и блицы: не удалось настроить " + i.getUnlocalizedName() + " - " + ex);
+                com.divinerpgextended.DivineRPGExtended.LOG.warn("Phasers and blitzes: could not configure " + i.getUnlocalizedName() + " - " + ex);
             }
         }
     }
 
-    /** Счётчик тиков Divine (по нему перезарядка оружия; null - нет такого). */
+    /** Divine's tick counter (the weapon cooldown is based on it; null - there is none). */
     static java.lang.reflect.Field tickerField() {
         try {
             return Class.forName("net.divinerpg.utils.events.Ticker").getField("tick");
@@ -162,8 +162,8 @@ public class RangedRoles {
     }
 
     /**
-     * Счётчик Divine после 100000 тиков (~1,5 ч) сбрасывается в ноль, а записанное на оружии время следующего выстрела -
-     * нет: блиц замолкал бы на полтора часа. Время дальше перезарядки - сбрасываем.
+     * Divine's counter resets to zero after 100000 ticks (~1.5 h), but the next-shot time recorded on the weapon does
+     * not: the blitz would go silent for an hour and a half. A time beyond the cooldown gets reset.
      */
     static void fixCooldown(ItemStack held) {
         if (!held.hasTagCompound()) return;
@@ -171,64 +171,64 @@ public class RangedRoles {
         try {
             if (t != null && held.getTagCompound().getLong(SHOOT_TIME) - t.getInt(null) > BLITZ_COOLDOWN) held.getTagCompound().setLong(SHOOT_TIME, 0);
         } catch (Exception ignored) {
-            // нет счётчика - как у Divine
+            // no counter - as in Divine
         }
     }
 
-    /** Пыль-патрон этого фазера или блица (null - не они). */
+    /** Dust cartridge of this phaser or blitz (null - not one of them). */
     public static Item dust(Item weapon) {
         return DUST.get(weapon);
     }
 
-    /** Бесконечные патроны фазеру и блицу: надет подсумок пыли или на оружии Бесконечность. */
+    /** Infinite ammo for a phaser and blitz: a Dust Pouch is worn or the weapon has Infinity. */
     public static boolean infiniteDust(EntityPlayer p, ItemStack held) {
         return (p.worldObj.isRemote ? clientPouch : wears(p, com.divinerpgextended.trinket.Trinket.DUST_POUCH))
             || net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(INFINITY, held) > 0;
     }
 
     /**
-     * Перед выстрелом: патрон оружия - под этого игрока (бесконечные - без патрона, иначе пыль). Divine смотрит на патрон
-     * оружия в ту же минуту, сразу после клика; каждому клику предшествует своё событие - у каждого игрока свой расчёт. В
-     * конце тика патрон возвращается ({@link #onServerTick}). Предметы игрока не трогаются.
+     * Before a shot: the weapon's cartridge is set for this player (infinite - no cartridge, otherwise dust). Divine looks at the weapon's
+     * cartridge in the same moment, right after the click; each click is preceded by its own event - each player has their own calculation. At the
+     * end of the tick the cartridge is restored ({@link #onServerTick}). The player's items are not touched.
      */
     static void arm(EntityPlayer p, ItemStack held) {
         Item d = DUST.get(held.getItem());
         if (d == null) return;
-        if (held.getItemDamage() != 0) held.setItemDamage(0); // фазеры, поношенные до того, как перестали ломаться
+        if (held.getItemDamage() != 0) held.setItemDamage(0); // phasers worn out before they stopped breaking
         fixCooldown(held);
         boolean inf = infiniteDust(p, held);
-        // пыль из заряда оружия Divine берёт сама - через AmmoHooks
+        // Divine takes dust from the weapon's loaded ammo itself - via AmmoHooks
         try {
             ammoField().set(held.getItem(), inf ? null : d);
             ARMED.add(held.getItem());
         } catch (Exception ignored) {
-            // поле недоступно - Divine стреляет как обычно
+            // field unavailable - Divine shoots as usual
         }
     }
 
-    /** Конец тика сервера: патроны фазеров и блицев - снова пыль. */
+    /** End of server tick: cartridges of phasers and blitzes are dust again. */
     @SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent e) {
         if (e.phase == TickEvent.Phase.END) disarm();
     }
 
-    /** Вернуть пыль фазерам и блицам, которым патрон выставлялся под игрока. */
+    /** Return dust to phasers and blitzes whose cartridge was set for a player. */
     public static void disarm() {
         if (ARMED.isEmpty()) return;
         for (Item i : ARMED) try {
             ammoField().set(i, DUST.get(i));
         } catch (Exception ignored) {
-            // см. arm
+            // see arm
         }
         ARMED.clear();
     }
 
-    /** Бесконечность на фазер и блиц книгой на наковальне - общим правилом стрелкового оружия: {@link EarlyWeapons#onAnvil}. */
+    /** Infinity on a phaser and blitz by a book on the anvil - by the general rule for ranged weapons: {@link EarlyWeapons#onAnvil}. */
     public static final int ANVIL_COST = 6;
 
     /**
-     * Дробь блица бьёт по одной цели вся: неуязвимость после попадания для неё не действует. Но отброс от пяти дробин
-     * складывался и сносил даже боссов с арены - запоминаем скорость до первой дробины, в конце тика урезаем отброс.
+     * A blitz's pellets all hit one target: the invulnerability after a hit does not apply to them. But the knockback from five pellets
+     * added up and blew even bosses off the arena - we remember the velocity before the first pellet and trim the knockback at the end of the tick.
      */
     @SubscribeEvent
     public void onAttack(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
@@ -238,7 +238,7 @@ public class RangedRoles {
         if (!KNOCK.containsKey(v)) KNOCK.put(v, new double[] { v.motionX, v.motionY, v.motionZ });
     }
 
-    /** Боковая дробина блица (копия): вампиризм и прочие "за попадание" считаем только с центральной. */
+    /** A blitz's side pellet (a copy): vampirism and other "per hit" effects count only from the central one. */
     public static boolean sidePellet(Entity bullet) {
         return bullet != null && kind(bullet) == BLITZ && bullet.getEntityData().getInteger(GEN) > 0;
     }
@@ -247,14 +247,14 @@ public class RangedRoles {
         return e instanceof net.minecraft.entity.boss.IBossDisplayData || e instanceof net.divinerpg.entities.base.EntityDivineRPGBoss;
     }
 
-    /** Конец тика: дробь старше BLITZ_LIFE исчезает; отброс дробью - KNOCK_KEEP от набранного (боссам - ноль). */
+    /** End of tick: pellets older than BLITZ_LIFE vanish; pellet knockback - KNOCK_KEEP of what accumulated (zero for bosses). */
     @SubscribeEvent
     public void onBlitzTick(TickEvent.WorldTickEvent e) {
         if (e.phase != TickEvent.Phase.END || e.world.isRemote) return;
         for (Iterator<Entity> it = BLITZ_SHOTS.iterator(); it.hasNext();) {
             Entity b = it.next();
             if (b.worldObj != e.world) continue;
-            // чанк дробины выгрузили: она замерла и не стареет - убрать, а не держать в списке
+            // the pellet's chunk was unloaded: it froze and does not age - remove it rather than keep it in the list
             if (!b.isDead && !e.world.blockExists((int) Math.floor(b.posX), (int) Math.floor(b.posY), (int) Math.floor(b.posZ))) b.setDead();
             if (!b.isDead && b.ticksExisted >= BLITZ_LIFE) b.setDead();
             if (b.isDead) it.remove();
@@ -274,32 +274,32 @@ public class RangedRoles {
     }
 
     public static final float DROP_CHANCE = 0.10F, DROP_LOOTING = 0.02F;
-    /** Бесконечный колчан со стрелков: 0,4% и +0,2% за уровень Добычи, не больше 1% (с Вечного лучника - всегда). */
+    /** Infinite quiver from shooters: 0.4% and +0.2% per Looting level, no more than 1% (from the Eternal Archer - always). */
     public static final float QUIVER_CHANCE = 0.004F, QUIVER_LOOTING = 0.002F, QUIVER_MAX = 0.01F;
 
-    /** Шанс выпадения колчана этого вида с обычного стрелка при такой Добыче. */
+    /** Chance of this kind of quiver dropping from an ordinary shooter at this Looting. */
     public static float dropChance(com.divinerpgextended.trinket.Trinket t, int looting) {
         if (t == com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER) return Math.min(QUIVER_MAX, QUIVER_CHANCE + QUIVER_LOOTING * looting);
         return DROP_CHANCE + DROP_LOOTING * looting;
     }
 
-    /** Какой колчан падает с этого моба (null - никакой). */
+    /** Which quiver drops from this mob (null - none). */
     public static com.divinerpgextended.trinket.Trinket quiverOf(Entity e) {
         if (e instanceof net.divinerpg.entities.twilight.EntityEternalArcher || e instanceof net.divinerpg.entities.twilight.EntityApalachiaArcher
             || e instanceof net.divinerpg.entities.twilight.EntityMortumArcher
             || e instanceof net.divinerpg.entities.twilight.EntitySunArcher || e instanceof net.divinerpg.entities.iceika.EntityFrostArcher)
-            return com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER; // Скайтерна и сумеречный - наследники лучника Апалачии
+            return com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER; // Skythern and Twilight archers are descendants of the Apalachia archer
         if (e instanceof net.divinerpg.entities.twilight.EntityMage) return com.divinerpgextended.trinket.Trinket.DUST_POUCH;
         if (e instanceof net.divinerpg.entities.twilight.EntitySorcerer) return com.divinerpgextended.trinket.Trinket.SLICER_SLING;
         return null;
     }
 
-    /** Колчаны не крафтятся - падают со стрелков, убитых игроком. */
+    /** Quivers are not craftable - they drop from shooters killed by a player. */
     @SubscribeEvent
     public void onDrops(net.minecraftforge.event.entity.living.LivingDropsEvent e) {
         if (e.entityLiving.worldObj.isRemote || !e.recentlyHit || !(e.source.getEntity() instanceof EntityPlayer)) return;
         com.divinerpgextended.trinket.Trinket t = quiverOf(e.entityLiving);
-        // с Вечного лучника (босс) - всегда, с остальных стрелков - по шансу
+        // from the Eternal Archer (boss) - always, from other shooters - by chance
         boolean boss = e.entityLiving instanceof net.divinerpg.entities.twilight.EntityEternalArcher;
         if (t == null || !boss && e.entityLiving.worldObj.rand.nextFloat() >= dropChance(t, e.lootingLevel)) return;
         e.drops.add(new net.minecraft.entity.item.EntityItem(e.entityLiving.worldObj, e.entityLiving.posX, e.entityLiving.posY + 0.5, e.entityLiving.posZ,
@@ -307,8 +307,8 @@ public class RangedRoles {
     }
 
     /**
-     * Фазер и блиц: на клик (до выстрела) патрон оружия выставляется под игрока ({@link #arm}). Остальные стрелки и луки
-     * берут патрон сами - сначала из заряда оружия, потом из инвентаря ({@link com.divinerpgextended.asm.AmmoHooks}).
+     * Phaser and blitz: on a click (before the shot) the weapon's cartridge is set for the player ({@link #arm}). Other shooters and bows
+     * take their cartridge themselves - first from the weapon's loaded ammo, then from the inventory ({@link com.divinerpgextended.asm.AmmoHooks}).
      */
     @SubscribeEvent
     public void onUse(net.minecraftforge.event.entity.player.PlayerInteractEvent e) {
@@ -316,22 +316,22 @@ public class RangedRoles {
         EntityPlayer p = e.entityPlayer;
         ItemStack held = p.getHeldItem();
         if (held == null || held.getItem() instanceof net.minecraft.item.ItemBow || p.capabilities.isCreativeMode) return;
-        if (DUST.get(held.getItem()) != null) arm(p, held); // подсумок или Бесконечность - пыль не нужна
+        if (DUST.get(held.getItem()) != null) arm(p, held); // pouch or Infinity - dust is not needed
     }
 
-    /** Оружие сломалось в руке - заряд не сгорает, а высыпается игроку. */
+    /** The weapon broke in hand - the loaded ammo is not lost but spills to the player. */
     @SubscribeEvent
     public void onBreak(net.minecraftforge.event.entity.player.PlayerDestroyItemEvent e) {
         if (!e.entityPlayer.worldObj.isRemote && e.original != null && Ammo.loaded(e.original) > 0) Ammo.spill(e.entityPlayer, e.original);
     }
 
-    /** Клиент: надет ли колчан у своего игрока (лук натягивается без стрел и на клиенте). */
+    /** Client: whether your own player wears a quiver (the bow draws without arrows on the client too). */
     public static boolean clientQuiver;
-    /** Клиент: надет ли подсумок пыли (цифра на значке фазера и блица - "∞"). */
+    /** Client: whether a Dust Pouch is worn (the number on the phaser and blitz icon is "∞"). */
     public static boolean clientPouch;
     private static final java.util.Map<EntityPlayer, String> QUIVER_SENT = new java.util.WeakHashMap<EntityPlayer, String>();
 
-    /** Надет ли колчан: лук стреляет без стрел (на клиенте - по флагу от сервера). */
+    /** Whether a quiver is worn: the bow shoots without arrows (on the client - by a flag from the server). */
     public static boolean quiverOn(EntityPlayer p) {
         return quiver(p);
     }
@@ -341,8 +341,8 @@ public class RangedRoles {
     }
 
     /**
-     * Убрать помеченные боеприпасы (старые стрелы колчана), снять метку с патрона, одолженного до 0.99.67, и сказать
-     * клиенту про колчан и про вещи в старых слотах аксессуаров (кнопка видна, пока там что-то лежит).
+     * Remove marked ammunition (old quiver arrows), remove the tag from a cartridge borrowed before 0.99.67, and tell the
+     * client about the quiver and about items in the old accessory slots (the button is visible while something is lying there).
      */
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent e) {
@@ -411,8 +411,8 @@ public class RangedRoles {
     private static final int INFINITY = net.minecraft.enchantment.Enchantment.infinity.effectId;
 
     /**
-     * Колчан: лук (ванильный и Divine) натягивается без стрел (оба требуют стрелу даже с Бесконечностью - натягиваем
-     * сами) и стреляет как с Бесконечностью - стрелы не нужны и не тратятся.
+     * Quiver: a bow (vanilla and Divine) draws without arrows (both require an arrow even with Infinity - we draw
+     * ourselves) and shoots as with Infinity - arrows are not needed and not spent.
      */
     @SubscribeEvent
     public void onNock(net.minecraftforge.event.entity.player.ArrowNockEvent e) {
@@ -426,7 +426,7 @@ public class RangedRoles {
         if (quiver(e.entityPlayer)) lendInfinity(e.entityPlayer, e.bow);
     }
 
-    /** Повесить на лук временную Бесконечность (снимается, когда лук отпущен). */
+    /** Put a temporary Infinity on the bow (removed when the bow is released). */
     public static void lendInfinity(EntityPlayer p, ItemStack bow) {
         if (bow == null || !quiver(p)) return;
         if (net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(INFINITY, bow) > 0) return;
@@ -434,7 +434,7 @@ public class RangedRoles {
         bow.getTagCompound().setBoolean(TMP_INF, true);
     }
 
-    /** Снять временную Бесконечность с лука, который больше не натягивают. */
+    /** Remove the temporary Infinity from a bow that is no longer being drawn. */
     public static void returnInfinity(ItemStack bow) {
         if (bow == null || !bow.hasTagCompound() || !bow.getTagCompound().getBoolean(TMP_INF)) return;
         bow.getTagCompound().removeTag(TMP_INF);
@@ -454,11 +454,11 @@ public class RangedRoles {
         EntityPlayer p = e.player;
         for (int i = 0; i < p.inventory.mainInventory.length; i++) {
             ItemStack s = p.inventory.mainInventory[i];
-            if (s != null && !(p.isUsingItem() && s == p.getHeldItem())) returnInfinity(s); // натягиваемый лук не трогаем
+            if (s != null && !(p.isUsingItem() && s == p.getHeldItem())) returnInfinity(s); // we do not touch a bow being drawn
         }
     }
 
-    /** Стрелы из колчана не подбираются обратно (иначе колчан - ферма стрел). */
+    /** Arrows from the quiver are not picked back up (otherwise the quiver is an arrow farm). */
     @SubscribeEvent
     public void onArrow(EntityJoinWorldEvent e) {
         if (e.world.isRemote || !(e.entity instanceof net.minecraft.entity.projectile.EntityArrow)) return;
@@ -467,10 +467,10 @@ public class RangedRoles {
             && a.canBePickedUp == 1) a.canBePickedUp = 2;
     }
 
-    /** Пауза Морозного лучника между выстрелами (тики): у Divine - 2 тика, десять стрел в секунду. */
+    /** Frost Archer pause between shots (ticks): in Divine it is 2 ticks, ten arrows per second. */
     public static final int FROST_ARCHER_MIN = 20, FROST_ARCHER_MAX = 40;
 
-    /** Морозный лучник стреляет как скелет - раз в 1-2 секунды, а не очередью. */
+    /** The Frost Archer shoots like a skeleton - once per 1-2 seconds, not in a burst. */
     @SubscribeEvent
     public void onFrostArcher(EntityJoinWorldEvent e) {
         if (e.world.isRemote || !(e.entity instanceof net.divinerpg.entities.iceika.EntityFrostArcher)) return;
@@ -488,7 +488,7 @@ public class RangedRoles {
         return bullet == null ? 0 : bullet.getEntityData().getInteger(KIND);
     }
 
-    /** Подручный босса (по меткам призыва). */
+    /** Boss minion (by summon tags). */
     public static boolean bossAdd(Entity e) {
         NBTTagCompound d = e.getEntityData();
         return d.hasKey(com.divinerpgextended.entity.EntityGroveGuardian.ADD_TAG) || d.hasKey("dreCadillionAdd") || d.hasKey("dreDemonAdd")
@@ -512,7 +512,7 @@ public class RangedRoles {
         int k = kind(held);
         if (k == 0) return;
         if (k == SLICER && wears(pl, com.divinerpgextended.trinket.Trinket.SLICER_SLING) && !pl.capabilities.isCreativeMode) {
-            // перевязь: брошенный слайсер возвращается в руку (в собранную стопку - тоже)
+            // sling: a thrown slicer returns to the hand (into a gathered stack too)
             ThrowStack.giveBack(pl, held);
         }
         d.setInteger(KIND, k);
@@ -520,20 +520,20 @@ public class RangedRoles {
         if (k == BLITZ) {
             BLITZ_SHOTS.add(b);
             e.world.playSoundAtEntity(pl, BLITZ_SOUND, 1.3F, 0.95F + e.world.rand.nextFloat() * 0.1F);
-            // дробь: ещё PELLETS - 1 снарядов веером по горизонтали
+            // shot: another PELLETS - 1 projectiles in a horizontal fan
             for (int i = 1; i < PELLETS; i++) {
                 double ang = Math.toRadians(SPREAD * ((i + 1) / 2) * (i % 2 == 0 ? 1 : -1));
                 double c = Math.cos(ang), s = Math.sin(ang);
                 double mx = b.motionX * c - b.motionZ * s, mz = b.motionX * s + b.motionZ * c;
-                // чуть впереди стрелка, чтобы дробина не начинала путь внутри него
+                // slightly ahead of the shooter so the pellet does not start its path inside him
                 spawnClone(b, b.posX + mx * 0.6, b.posY + b.motionY * 0.6, b.posZ + mz * 0.6, mx, b.motionY + (e.world.rand.nextDouble() - 0.5) * 0.08, mz, 1);
             }
         }
     }
 
     /**
-     * Копия снаряда Divine (через NBT - текстура, урон, стрелок) с новым курсом и поколением. Создаётся тем же классом
-     * напрямую, а не через реестр сущностей: снаряд с частицами (блиц) мог не находиться по имени - боковая дробь не появлялась.
+     * A copy of a Divine projectile (via NBT - texture, damage, shooter) with a new heading and generation. It is created by the same class
+     * directly, not through the entity registry: a projectile with particles (blitz) might not be found by name - the side pellet did not appear.
      */
     public static Entity spawnClone(Entity src, double x, double y, double z, double mx, double my, double mz, int gen) {
         NBTTagCompound tag = new NBTTagCompound();
@@ -548,7 +548,7 @@ public class RangedRoles {
             c = EntityList.createEntityFromNBT(tag, src.worldObj);
         }
         if (c == null) return null;
-        // стрелок: без него копия била самого стрелка (появлялась в нём) и не считалась его выстрелом
+        // shooter: without it the copy hit the shooter himself (spawned inside him) and did not count as his shot
         if (src instanceof net.minecraft.entity.projectile.EntityThrowable && c instanceof net.minecraft.entity.projectile.EntityThrowable) {
             EntityLivingBase owner = ((net.minecraft.entity.projectile.EntityThrowable) src).getThrower();
             if (owner != null) cpw.mods.fml.relauncher.ReflectionHelper.setPrivateValue(net.minecraft.entity.projectile.EntityThrowable.class,
@@ -586,7 +586,7 @@ public class RangedRoles {
                 e.ammount *= PELLET_DMG * (bossAdd(victim) ? ADD_BONUS : 1) * (gen > 0 && boss(victim) ? BOSS_SIDE : 1);
                 break;
             case PHASER:
-                // пробой: снаряд летит дальше за спину цели
+                // piercing: the projectile flies on behind the target
                 if (gen + 1 < PIERCE) {
                     double v = Math.sqrt(b.motionX * b.motionX + b.motionY * b.motionY + b.motionZ * b.motionZ);
                     if (v > 0.01) {
@@ -595,7 +595,7 @@ public class RangedRoles {
                     }
                 }
                 break;
-            default: // слайсер: рикошет в ближайшего другого врага
+            default: // slicer: ricochet to the nearest other enemy
                 if (gen + 1 < RICOCHET + (sling ? 1 : 0)) {
                     EntityLivingBase next = nearestFoe(victim, 8);
                     if (next != null) {
@@ -624,7 +624,7 @@ public class RangedRoles {
         return best;
     }
 
-    /** Слайсеры рядом с ветряным тотемом подзаряжают его. */
+    /** Slicers near a Wind Totem recharge it. */
     @SubscribeEvent
     public void onTick(TickEvent.WorldTickEvent e) {
         if (e.phase != TickEvent.Phase.END || e.world.isRemote || TOTEM_SHOTS.isEmpty()) return;
@@ -637,7 +637,7 @@ public class RangedRoles {
             if (b.worldObj != e.world) continue;
             World w = b.worldObj;
             int bx = (int) Math.floor(b.posX), by = (int) Math.floor(b.posY), bz = (int) Math.floor(b.posZ);
-            // слайсер в выгруженном чанке (или застрял): не читать блоки там - это грузило чанк каждый тик
+            // slicer in an unloaded chunk (or stuck): do not read blocks there - that loaded the chunk every tick
             if (b.ticksExisted > 200 || !w.checkChunksExist(bx - 1, by - 1, bz - 1, bx + 1, by + 1, bz + 1)) {
                 it.remove();
                 continue;

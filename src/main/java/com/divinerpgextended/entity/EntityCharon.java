@@ -12,9 +12,9 @@ import com.divinerpgextended.world.twilight.MortumArenas;
 import com.divinerpgextended.world.twilight.TwilightWorld;
 
 /**
- * Харон - перевозчик на пристанях Леты, тёмная фигура в балахоне. Покажи ему кристалл босса Мортума - скажет, в какой
- * стороне и как далеко арена этого босса, и пустит туда дымный след. Покажи {@link #GONDOLA} душ Мортума - продаст
- * ладью (по Лете без неё не проплыть). Без того и другого - говорит, что ему показать.
+ * Charon is a ferryman at the Lethe piers, a dark figure in a robe. Show him a Mortum boss crystal and he will say in which
+ * direction and how far that boss's arena is, and send a smoke trail there. Show {@link #GONDOLA} Mortum souls and he will sell
+ * a barge (you can't cross the Lethe without one). With neither - he says what to show him.
  */
 public class EntityCharon extends EntityWanderer {
 
@@ -58,14 +58,14 @@ public class EntityCharon extends EntityWanderer {
         return true;
     }
 
-    /** Сторона света к точке (8 румбов): ключ s, sw, w, nw, n, ne, e, se. */
+    /** Compass direction to a point (8 points): key s, sw, w, nw, n, ne, e, se. */
     public static String direction(double dx, double dz) {
-        double yaw = Math.toDegrees(Math.atan2(-dx, dz)); // 0 - юг (+Z), 90 - запад, 180 - север, -90 - восток
+        double yaw = Math.toDegrees(Math.atan2(-dx, dz)); // 0 - south (+Z), 90 - west, 180 - north, -90 - east
         int i = (int) Math.floor(((yaw + 360) % 360 + 22.5) / 45) % 8;
         return DIRS[i];
     }
 
-    /** Дымный след от игрока в сторону арены. */
+    /** Smoke trail from the player toward the arena. */
     private static void trail(WorldServer w, EntityPlayer p, double nx, double nz) {
         for (int i = 2; i <= TRAIL; i++) w.func_147487_a("witchMagic", p.posX + nx * i, p.posY + 1.2, p.posZ + nz * i, 4, 0.1, 0.1, 0.1, 0.01);
         w.playSoundAtEntity(p, "ambient.cave.cave", 0.7F, 0.6F);
@@ -82,7 +82,7 @@ public class EntityCharon extends EntityWanderer {
         return hasCustomNameTag() ? getCustomNameTag() : StatCollector.translateToLocal("entity.divinerpgextended.Charon.name");
     }
 
-    /** Харон молчит. */
+    /** Charon is silent. */
     @Override
     protected String getHurtSound() {
         return null;

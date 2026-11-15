@@ -15,12 +15,12 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemSword;
 
-/** Откуда меч Divine: мир определяет цену перековки у Мерика и свойство мира. Ванильные мечи сюда не попадают. */
+/** Where a Divine sword comes from: the world determines the reforge price at Merik and the world property. Vanilla swords do not get here. */
 public enum WeaponOrigin {
 
     OVERWORLD(3), NETHER(4), ICEIKA(5), ARCANA(6), TWILIGHT(8), VETHEA(10);
 
-    /** Цена перековки в арканиуме. */
+    /** Reforge price in arcanium. */
     public final int cost;
 
     WeaponOrigin(int cost) {
@@ -32,7 +32,7 @@ public enum WeaponOrigin {
     }
 
     private static Map<Item, WeaponOrigin> origins;
-    /** Для сумеречного оружия - номер его мира (-1 у Halite: годится в любом сумеречном). */
+    /** For twilight weapons - the number of its world (-1 for Halite: fits any twilight one). */
     private static Map<Item, Integer> dims;
 
     private static synchronized void init() {
@@ -77,7 +77,7 @@ public enum WeaponOrigin {
         return origins.get(s.getItem());
     }
 
-    /** Сумеречный мир оружия или -1 (любой сумеречный). */
+    /** Twilight world of the weapon or -1 (any twilight one). */
     public static int twilightDim(ItemStack s) {
         init();
         Integer d = dims.get(s.getItem());

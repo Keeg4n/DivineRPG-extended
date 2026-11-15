@@ -21,10 +21,10 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Добыча боссов: с боссов Мортума готовых халитовых вещей нет (Divine их роняет - убираем). Каждому игроку рядом
- * ({@link Halite#SHARE_R}) - своя доля на землю: осколки, трофей, частичка души; поднять её может только он
- * ({@link #onPickup}). В инвентари ничего не кладём. Близнец, павший при живом брате, ничего не роняет - победы ещё нет.
- * Последний из стаи Айрако - частичка Края.
+ * Boss loot: the Mortum bosses have no finished halite items (Divine drops them - we remove them). Each player nearby
+ * ({@link Halite#SHARE_R}) gets their own share on the ground: shards, trophy, soul spark; only they can pick it up
+ * ({@link #onPickup}). We put nothing into inventories. A Twin that fell while its brother is alive drops nothing - there is no victory yet.
+ * The last of the Ayeraco pack - an End spark.
  */
 public class HaliteDrops {
 
@@ -49,7 +49,7 @@ public class HaliteDrops {
         return true;
     }
 
-    /** Раньше неуязвимости лута боссов - наши доли тоже станут неуязвимыми. */
+    /** Earlier than the boss loot invulnerability - our shares will become invulnerable too. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onDrops(LivingDropsEvent e) {
         EntityLivingBase v = e.entityLiving;
@@ -57,11 +57,11 @@ public class HaliteDrops {
         Boss b = Boss.of(v);
         if (mortum(b)) for (Iterator<EntityItem> it = e.drops.iterator(); it.hasNext();) if (halite(it.next().getEntityItem().getItem())) it.remove();
         if (b == Boss.TWINS && com.divinerpgextended.boss.MortumArenaBosses.brotherAlive(v)) return;
-        if (v.getEntityData().getBoolean(com.divinerpgextended.boss.MortumArenaBosses.REVIVED)) return; // поднятый братом - без трофеев
+        if (v.getEntityData().getBoolean(com.divinerpgextended.boss.MortumArenaBosses.REVIVED)) return; // picked up by the brother - no trophies
         boolean ayeraco = lastAyeraco(v);
         if (b == null && !ayeraco) return;
         for (EntityPlayer p : near(v)) {
-            if (!com.divinerpgextended.boss.ProgressSpawns.bossReady(p, v)) continue; // не дошёл до этого босса - доли нет
+            if (!com.divinerpgextended.boss.ProgressSpawns.bossReady(p, v)) continue; // did not reach this boss - no share
             List<ItemStack> share = ayeraco ? java.util.Collections.singletonList(Halite.own(Halite.spark(Halite.Spark.AYERACO), p)) : Halite.share(p, b, v.worldObj.rand);
             for (ItemStack s : share) {
                 EntityItem it = new EntityItem(v.worldObj, v.posX, v.posY + 1, v.posZ, s);
@@ -71,14 +71,14 @@ public class HaliteDrops {
         }
     }
 
-    /** Чужую долю не поднять (своя - как обычно). */
+    /** Someone else's share cannot be picked up (your own - as usual). */
     @SubscribeEvent
     public void onPickup(EntityItemPickupEvent e) {
         String o = Halite.owner(e.item.getEntityItem());
         if (o != null && !o.equals(e.entityPlayer.getUniqueID().toString())) e.setCanceled(true);
     }
 
-    /** В подсказке - чья это добыча. */
+    /** In the tooltip - whose loot it is. */
     @SubscribeEvent
     public void onTooltip(ItemTooltipEvent e) {
         String n = Halite.ownerName(e.itemStack);

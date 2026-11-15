@@ -1,11 +1,11 @@
-"""Концепты брони Странника, четвёртый раунд: стройные, по пропорциям брони Ботании (террасталь, элементий, манасталь).
+"""Wanderer armor concepts, fourth round: slim, on the proportions of Botania armor (terrasteel, elementium, manasteel).
 
-Прежняя броня раздута: торс и руки на 1.0 от тела, поверх ещё плиты на 1.2, плечи выше шеи - отсюда "холодильник". У Ботании все
-коробки раздуты на 0.2: грудь 9x6 сужается в талию 8x5, наруч и бедро ровно по руке и ноге, наплечник на 1 от руки и не выше плеча,
-сапог с носком на 1. Броня не сплошная: между наплечником и наручем, бедром и сапогом видно то, что под ней, кисть открыта.
-Шлем - шапка, щёки и короткий назатыльник, лицо открыто. Темы ступеней прежние; капюшон остался там, где он и есть образ (R5, R6).
+The previous armor is inflated: torso and arms at 1.0 from the body, plates at 1.2 on top of that, shoulders above the neck - hence the "refrigerator". In Botania all
+boxes are inflated by 0.2: the chest 9x6 narrows into a 8x5 waist, the bracer and thigh fit the arm and leg exactly, the pauldron is 1 from the arm and not above the shoulder,
+the boot with a toe at 1. The armor is not solid: between the pauldron and the bracer, the thigh and the boot, what is under it is visible, the hand is open.
+The helmet is a cap, cheeks and a short nape guard, the face is open. The tier themes are as before; the hood stayed where it is the image itself (R5, R6).
 
-Текстура - как в игре (k=2, wanderer_armor.K). Запуск: python3 wslim.py [ключ ...]  (без ключей - все); картинки в wconcepts.OUT.
+Texture as in the game (k=2, wanderer_armor.K). Run: python3 wslim.py [key ...]  (without keys - all); images go to wconcepts.OUT.
 """
 import sys
 
@@ -16,14 +16,14 @@ import wterraria as t
 from wround3 import BLUE, SKY, SKYD, SKYL
 
 KEYS = []
-S = 0.2  # раздутие, как у Ботании
-UNDER = 0.14  # поддоспешник: по телу, силуэт не меняет; в игре + PUSH из wanderer_armor.py, итог выше второго слоя скина
-HEAD_S = 0.55  # голова: иначе сквозь шапку виден второй слой скина (он раздут на 0.5)
+S = 0.2  # inflation, as in Botania
+UNDER = 0.14  # undersuit: follows the body, does not change the silhouette; in the game + PUSH from wanderer_armor.py, the result is above the second skin layer
+HEAD_S = 0.55  # head: otherwise the second skin layer shows through the cap (it is inflated by 0.5)
 SIDES = ('north', 'south', 'east', 'west')
 
 
 def slim(key, tier, title):
-    """Концепт раунда: как concept(), но коробки с текстурой игры (k=2)."""
+    """Round concept: like concept(), but boxes with the game texture (k=2)."""
     def reg(fn):
         def made():
             bs = fn()
@@ -37,11 +37,11 @@ def slim(key, tier, title):
 
 
 def bx(bone, x, y, z, wd, h, d, paint, s=S, **kw):
-    """Коробка с раздутием s, как addBox(x, y, z, w, h, d, s) у ModelRenderer."""
+    """Box with inflation s, like addBox(x, y, z, w, h, d, s) in ModelRenderer."""
     return box(bone, x - s, y - s, z - s, wd + 2 * s, h + 2 * s, d + 2 * s, paint, **kw)
 
 
-# ---- тело (y вниз, лицо в -Z)
+# ---- body (y down, face toward -Z)
 
 def breastplate(paint, front=-3.2, back=2.4, h=5.8):
     return [bx('body', -4.4, 0, front, 8.8, h, back - front, paint)]
@@ -56,7 +56,7 @@ def belt(paint, y=9.8, h=1.9):
 
 
 def under(arm, leg):
-    """Поддоспешник: виден в зазорах брони. Рукав - часть кирасы, штанина - поножей."""
+    """Undersuit: visible in the gaps of the armor. The sleeve is part of the cuirass, the trouser leg is part of the greaves."""
     return sym(bx('rightArm', -3, -2.0, -2, 4, 10.6, 4, arm, s=UNDER), bx('rightLeg', -2, 5.4, -2, 4, 3.4, 4, leg, s=UNDER))
 
 
@@ -65,12 +65,12 @@ def shoulder(paint, top=-2.0, h=3.8, out=0.9, half=2.6):
 
 
 def bracer(paint, top=3.6, bottom=9.2):
-    """Наруч вокруг предплечья; кисть открыта."""
+    """Bracer around the forearm; the hand is open."""
     return sym(bx('rightArm', -3, top, -2, 4, bottom - top, 4, paint))
 
 
 def bracer_plate(paint, top=3.4, bottom=9.2):
-    """Наруч только снаружи руки, как у манастали."""
+    """Bracer only on the outside of the arm, like manasteel."""
     return sym(bx('rightArm', -3, top, -2, 2.4, bottom - top, 4, paint))
 
 
@@ -91,33 +91,33 @@ def cape(paint, length=16.0, wd=7.6, flare=6.0, top=-0.2, z=2.65, thick=0.3):
 
 
 def collar(paint):
-    """Воротник вместо прежней накидки на плечах: не шире груди."""
+    """Collar instead of the previous cape on the shoulders: not wider than the chest."""
     return [box('body', -4.65, -0.5, -2.85, 9.3, 1.4, 5.5, paint)]
 
 
-# ---- голова
+# ---- head
 
 def cap(paint, cheeks=1.2, cheek_d=4.8, nape=2.4):
-    """Открытый шлем: шапка, щёки спереди, короткий назатыльник. Лицо и низ затылка видны."""
+    """Open helmet: cap, cheeks at the front, a short nape guard. The face and the lower back of the head are visible."""
     s = HEAD_S
     return ([box('head', -4 - s, -8 - s, -4 - s - 0.2, 8 + 2 * s, 2.6 + s, 8 + 2 * s + 0.2, paint), box('head', -4 - s, -5.4, 4, 8 + 2 * s, nape, s, paint)]
             + sym(box('head', -4 - s, -5.4, -4 - s - 0.2, cheeks, 3.8, cheek_d, paint)))
 
 
 def cowl(paint, shadow='#140f0c', tip=2.2):
-    """Капюшон по голове: стенка 0.6 вместо прежних 1.6, сзади небольшой хвостик."""
+    """Hood following the head: wall 0.6 instead of the previous 1.6, a small tail at the back."""
     s = 0.6
-    bs = [box('head', -4 - s, -8 - s, -4.1 - s, 8 + 2 * s, s, 8.1 + 2 * s, paint),  # верх
-          box('head', -4 - s, -8, 4, 8 + 2 * s, 8.3, s, paint),  # затылок
-          box('head', -4 - s, -8, -4.7, 8 + 2 * s, 1.0, 0.6, paint),  # козырёк
-          box('head', -4.0, -7.0, -4.15, 8.0, 1.1, 0.1, P(shadow, noise=0.0, bevel=0))]  # тень на лбу
-    bs += sym(box('head', -4 - s, -8, -4.7, s, 8.3, 8.7, paint))  # бока
+    bs = [box('head', -4 - s, -8 - s, -4.1 - s, 8 + 2 * s, s, 8.1 + 2 * s, paint),  # top
+          box('head', -4 - s, -8, 4, 8 + 2 * s, 8.3, s, paint),  # back of the head
+          box('head', -4 - s, -8, -4.7, 8 + 2 * s, 1.0, 0.6, paint),  # visor
+          box('head', -4.0, -7.0, -4.15, 8.0, 1.1, 0.1, P(shadow, noise=0.0, bevel=0))]  # shadow on the forehead
+    bs += sym(box('head', -4 - s, -8, -4.7, s, 8.3, 8.7, paint))  # sides
     bs.append(box('head', -1.2, -8.8, 3.6, 2.4, tip, 1.2, paint, rot=(38, 0, 0), pivot=(0, -8.6, 4.0)))
     return bs
 
 
 def feather(y, z, h, d, paint, rx=-22.0, rz=-14.0):
-    """Плоское перо сбоку шапки, плоскостью наружу (как крылышки шлема элементия). Правая сторона, зеркалить через sym."""
+    """Flat feather on the side of the cap, flat side outward (like the wings of the elementium helmet). Right side, mirror via sym."""
     return box('head', -5.0, y - h, z, 0.4, h, d, paint, rot=(rx, 0, rz), pivot=(-4.8, y, z + d / 2))
 
 
@@ -126,7 +126,7 @@ def leaf(bone, start, L, wd, rx=0.0, ry=0.0, rz=0.0, color=t.CG):
     return t.blade(bone, start, L, wd, paint, rx=rx, ry=ry, rz=rz, t=0.3)
 
 
-# ---- ступени
+# ---- tiers
 
 @slim('r1s', 1, 'Освящённая: серебряная кираса с золотым клином и алым камнем, открытый золотой шлем с крылышками, тонкий алый плащ')
 def r1s():

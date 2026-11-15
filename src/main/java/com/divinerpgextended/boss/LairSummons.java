@@ -17,16 +17,16 @@ import cpw.mods.fml.common.eventhandler.Event;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Боссов вызывают в их логовах, а не где угодно (summonOnlyInLairs). Предметы вызова Divine не трогаем - отменяем их
- * применение вне логова, клик по алтарю логова при этом работает (алтарь сам принимает предмет).
+ * Bosses are summoned in their lairs, not anywhere (summonOnlyInLairs). We do not touch Divine's summon items - we cancel their
+ * use outside a lair, while a click on a lair altar still works (the altar itself accepts the item).
  * <ul>
- * <li>Кристаллы сумеречных боссов (Сумеречный демон, Карот, Вечный лучник, Денсос и Рейвор, Пожиратель душ,
- * Вамачерон) - только на своей арене Мортума ({@link com.divinerpgextended.world.twilight.MortumArenas}).</li>
- * <li>Таинственные часы (Древняя сущность) - только на алтаре гробницы.</li>
- * <li>Зов Смотрителя, Инфернальное пламя - только в своих логовах в Аду; Рог орды Айрако - только на алтаре в центре арены
- * гнездовья в Энде ({@link WorldGenOuterLairs}).</li>
+ * <li>Twilight boss crystals (Twilight Demon, Karot, Eternal Archer, Densos and Reyvor, Soul Fiend,
+ * Vamacheron) - only in their own Mortum arena ({@link com.divinerpgextended.world.twilight.MortumArenas}).</li>
+ * <li>Mysterious Clock (Ancient Entity) - only on the tomb altar.</li>
+ * <li>Call of the Watcher, Infernal Flame - only in their own lairs in the Nether; Ayeraco Horde Horn - only on the altar in the center of the aerie
+ * arena in the End ({@link WorldGenOuterLairs}).</li>
  * </ul>
- * Правила одни для всех, и в творческом режиме тоже (иначе при проверках боссы оказывались где попало).
+ * The rules are the same for everyone, including creative mode (otherwise bosses ended up anywhere during tests).
  */
 public class LairSummons {
 
@@ -36,10 +36,10 @@ public class LairSummons {
         EntityPlayer p = e.entityPlayer;
         ItemStack held = p.getHeldItem();
         if (held == null) return;
-        if (e.world.getBlock(e.x, e.y, e.z) instanceof BlockBossAltar) return; // алтарь решает сам
+        if (e.world.getBlock(e.x, e.y, e.z) instanceof BlockBossAltar) return; // the altar decides itself
         String refuse = refusal(p, held.getItem(), e.x, e.y, e.z);
         if (refuse == null) {
-            // большие боссы арен: кристалл ставит их на свободное место арены, а не впритык к алтарю
+            // big arena bosses: the crystal places them in a free spot of the arena, not right next to the altar
             com.divinerpgextended.world.twilight.MortumArenas.Type t = held.getItem() instanceof ItemTwilightSpawner
                 ? com.divinerpgextended.world.twilight.MortumArenas.ofCrystal(held.getItem()) : null;
             int[] c = t == null ? null : com.divinerpgextended.world.twilight.MortumArenas.nearest(e.world, e.x, e.z);
@@ -53,26 +53,26 @@ public class LairSummons {
         e.useItem = Event.Result.DENY;
         p.addChatMessage(new ChatComponentTranslation(refuse));
         ((net.minecraft.world.WorldServer) e.world).func_147487_a("smoke", e.x + 0.5, e.y + 1.2, e.z + 0.5, 12, 0.2, 0.2, 0.2, 0.02);
-        e.world.playSoundEffect(e.x + 0.5, e.y + 1, e.z + 0.5, "random.fizz", 0.6F, 1.4F); // кристалл гаснет
+        e.world.playSoundEffect(e.x + 0.5, e.y + 1, e.z + 0.5, "random.fizz", 0.6F, 1.4F); // the crystal goes out
     }
 
-    // ---------------------------------------------------------------- привязь к логову
+    // ---------------------------------------------------------------- lair leash
 
     private static final String HOME = "dreLairHome";
 
-    /** Дом логова босса [x, пол, z, радиус] или null. */
+    /** Home of the boss lair [x, floor, z, radius] or null. */
     public static int[] home(net.minecraft.entity.Entity boss) {
         int[] h = boss.getEntityData().getIntArray(HOME);
         return h.length == 4 ? h : null;
     }
 
-    /** Босс вызван в логове над пропастью: не уходит за край (center, радиус, пол). */
+    /** The boss was summoned in a lair above a chasm: it does not go past the edge (center, radius, floor). */
     public static void leash(net.minecraft.entity.Entity boss, int cx, int floorY, int cz, int radius) {
         if (!boss.worldObj.isRemote) ArenaCalm.clear(boss.worldObj, cx, floorY, cz, radius);
         boss.getEntityData().setIntArray(HOME, new int[] { cx, floorY, cz, radius });
     }
 
-    /** Боссы, вызванные кристаллом на арене Мортума, - на привязь к арене (лучник - сразу на свой помост). */
+    /** Bosses summoned by a crystal in a Mortum arena are put on a leash to the arena (the archer - straight onto his platform). */
     @SubscribeEvent
     public void onJoin(net.minecraftforge.event.entity.EntityJoinWorldEvent e) {
         if (e.world.isRemote || !(e.entity instanceof net.minecraft.entity.EntityLiving) || e.entity.getEntityData().hasKey(HOME)) return;
@@ -95,17 +95,17 @@ public class LairSummons {
             if (!WorldGenOuterLairs.inside(e.world, type, e.entity.posX, e.entity.posY, e.entity.posZ)) continue;
             int[] c = WorldGenOuterLairs.nearest(e.world.getSeed(), type, e.entity.posX, e.entity.posZ);
             if (type == WorldGenOuterLairs.WATCHER && e.entity instanceof net.divinerpg.entities.vanilla.EntityTheWatcher) {
-                // логово старого вида (с завалом) - сначала в новое; сам Смотритель - над оком в центре
+                // a lair of the old kind (with a rubble pile) - first into the new one; the Watcher himself - above the eye in the center
                 com.divinerpgextended.boss.WatcherHunt.upgrade(e.world, c);
                 e.entity.setPosition(c[0] + 0.5, com.divinerpgextended.world.WatcherVault.bossY() - e.entity.height / 2, c[2] + 0.5);
             }
-            // король скорчеров в новой палате - на финишной полосе, оттуда стартует
+            // King of Scorchers in the new chamber - on the finish strip, he starts from there
             if (type == WorldGenOuterLairs.SCORCHERS && e.entity instanceof net.divinerpg.entities.vanilla.EntityKingOfScorchers
                 && com.divinerpgextended.world.ScorcherPit.isNew(e.world, c[0], c[2])) {
-                com.divinerpgextended.world.WatcherVault.seal(e.world, c[0], c[2]); // окна палат до 0.99.56 - без протечек
+                com.divinerpgextended.world.WatcherVault.seal(e.world, c[0], c[2]); // chamber windows before 0.99.56 - without leaks
                 e.entity.setPosition(c[0] + com.divinerpgextended.boss.KingRace.PIT_DX + 0.5, com.divinerpgextended.world.WatcherVault.FLOOR + 1, c[2] + 0.5);
             }
-            // орда кружит над всем островом (круг шире острова не бывает) - привязь шире зала
+            // the horde circles over the whole island (a circle wider than the island never happens) - the leash is wider than the hall
             leash(e.entity, c[0], WorldGenOuterLairs.floor(e.world, type, c) + 1, c[2], WorldGenOuterLairs.RADIUS[type] + (type == WorldGenOuterLairs.AYERACO ? 6 : -3));
             return;
         }
@@ -121,7 +121,7 @@ public class LairSummons {
         double dx = m.posX - h[0] - 0.5, dz = m.posZ - h[2] - 0.5, d = Math.sqrt(dx * dx + dz * dz);
         if (d <= h[3] && m.posY >= h[1] - 2) return;
         if (d <= h[3] + 6 && m.posY >= h[1] - 2) {
-            // чуть вышел за край - разворачиваем к центру, без телепорта
+            // stepped slightly past the edge - turn back to the center, without teleporting
             if (m instanceof net.minecraft.entity.EntityLiving) ((net.minecraft.entity.EntityLiving) m).getNavigator().clearPathEntity();
             m.motionX = -dx / d * 0.45;
             m.motionZ = -dz / d * 0.45;
@@ -131,10 +131,10 @@ public class LairSummons {
         m.fallDistance = 0;
         m.motionX = m.motionY = m.motionZ = 0;
         m.setPositionAndUpdate(h[0] + 0.5, h[1] + 0.5, h[2] + 0.5);
-        com.divinerpgextended.debug.Debug.note(m, "Босс ушёл за край логова - вернулся в центр");
+        com.divinerpgextended.debug.Debug.note(m, "The boss left the lair edge - returned to the center");
     }
 
-    /** Вызов предметом идёт в его логове (Демонический круг и арены Мортума, логова Ада и Энда). */
+    /** The summon with an item takes place in its lair (the Demonic Circle and Mortum arenas, Nether and End lairs). */
     public static boolean inLair(EntityPlayer p, Item item, int x, int y, int z) {
         if (item instanceof ItemTwilightSpawner) {
             com.divinerpgextended.world.twilight.MortumArenas.Type t = com.divinerpgextended.world.twilight.MortumArenas.ofCrystal(item);
@@ -147,7 +147,7 @@ public class LairSummons {
         return type >= 0 && WorldGenOuterLairs.enabled(type) && WorldGenOuterLairs.inside(p.worldObj, type, x + 0.5, y + 1, z + 0.5);
     }
 
-    /** Ключ отказа или null, если здесь вызывать можно. */
+    /** Refusal key or null if summoning is allowed here. */
     public static String refusal(EntityPlayer p, Item item, int x, int y, int z) {
         if (item instanceof ItemTwilightSpawner) {
             com.divinerpgextended.world.twilight.MortumArenas.Type t = com.divinerpgextended.world.twilight.MortumArenas.ofCrystal(item);

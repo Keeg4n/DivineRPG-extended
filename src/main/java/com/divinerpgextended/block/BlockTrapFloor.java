@@ -16,8 +16,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Ловушка Древней гробницы: выглядит как гладкий песчаник пола, но если на неё наступит игрок, через треть секунды
- * она и соседние такие же плиты крошатся - под ними яма. Ломается как песчаник и роняет песчаник.
+ * Ancient Tomb trap: looks like smooth sandstone of the floor, but if a player steps on it, after a third of a second
+ * it and the neighboring such slabs crumble - a pit below them. Breaks like sandstone and drops sandstone.
  */
 public class BlockTrapFloor extends Block {
 
@@ -60,7 +60,7 @@ public class BlockTrapFloor extends Block {
 
     @Override
     public void updateTick(World world, int x, int y, int z, Random rand) {
-        world.playAuxSFX(2001, x, y, z, Block.getIdFromBlock(Blocks.sandstone)); // крошки песчаника
+        world.playAuxSFX(2001, x, y, z, Block.getIdFromBlock(Blocks.sandstone)); // sandstone crumbs
         world.setBlockToAir(x, y, z);
     }
 }

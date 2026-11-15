@@ -13,10 +13,10 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 /**
- * Заселение Iceika ставит подземелья Роллума и лучников на случайную высоту ниже 50, ледяные озёра - до 128, гигантские
- * деревья: соседние чанки заселяются уже после того, как в них достроен купол Ледяного Трона, и всё это падает в него
- * (парящие озёра, дыры в своде, подземелья внутри арены). Вызовы генераторов в заселении идут через
- * {@link IceikaThroneHooks}: внутри Трона они пропускаются.
+ * Iceika population places Rollum and archer dungeons at a random height below 50, ice lakes up to 128, giant
+ * trees: neighboring chunks are populated after the Frozen Throne dome is already built in them, and all this falls into it
+ * (floating lakes, holes in the vault, dungeons inside the arena). Generator calls in the population go through
+ * {@link IceikaThroneHooks}: inside the Throne they are skipped.
  */
 public class IceikaThroneTransformer implements IClassTransformer, Opcodes {
 
@@ -38,7 +38,7 @@ public class IceikaThroneTransformer implements IClassTransformer, Opcodes {
                 for (AbstractInsnNode i = m.instructions.getFirst(); i != null; i = i.getNext()) {
                     if (i.getOpcode() != INVOKEVIRTUAL) continue;
                     MethodInsnNode c = (MethodInsnNode) i;
-                    // замерзание и снег в конце заселения ставятся прямо в мир - тоже мимо Трона
+                    // freezing and snow at the end of population are placed straight into the world - also bypassing the Throne
                     if (SET_DESC.equals(c.desc) && ("func_147465_d".equals(c.name) || "setBlock".equals(c.name))) {
                         c.setOpcode(INVOKESTATIC);
                         c.desc = "(Lnet/minecraft/world/World;" + SET_DESC.substring(1);
@@ -56,15 +56,15 @@ public class IceikaThroneTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (calls == 0) {
-                LOG.warn("Трон Iceika: вызовы генераторов не найдены - класс без изменений");
+                LOG.warn("Iceika Throne: generator calls not found - class unchanged");
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Трон Iceika: заселение не трогает Трон ({} вызовов генераторов)", calls);
+            LOG.info("Iceika Throne: population does not touch the Throne ({} generator calls)", calls);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Трон Iceika: не удалось исправить заселение, класс без изменений", t);
+            LOG.error("Iceika Throne: could not fix population, class unchanged", t);
             return bytes;
         }
     }

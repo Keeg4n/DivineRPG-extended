@@ -18,10 +18,10 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Томагавк (реликварий Апалачии): топорик на материале Апалачии Divine, не ломается. ПКМ - бросок: летит до
- * {@link EntityTomahawk#RANGE} блоков, бьёт до {@link EntityTomahawk#TARGETS} целей подряд (от первой - к ближайшей следующей) и
- * возвращается в руку; пока летит, второй раз не бросить. Брошенный издалека (дальше {@link EntityTomahawk#STUN_RANGE} блоков до
- * первой цели) оглушает её.
+ * Tomahawk (Apalachia reliquary): a hatchet on Divine's Apalachia material, does not break. Right click - throw: flies up to
+ * {@link EntityTomahawk#RANGE} blocks, hits up to {@link EntityTomahawk#TARGETS} targets in a row (from the first - to the nearest next) and
+ * returns to the hand; while it flies, it cannot be thrown a second time. Thrown from afar (farther than {@link EntityTomahawk#STUN_RANGE} blocks to the
+ * first target) it stuns it.
  */
 public class ItemTomahawk extends ItemSword {
 
@@ -40,12 +40,12 @@ public class ItemTomahawk extends ItemSword {
         return false;
     }
 
-    /** Урон броска - как удар этим оружием. */
+    /** Throw damage is like a hit with this weapon. */
     public static float throwDamage() {
         return net.divinerpg.utils.material.ToolMaterialMod.Apalachia.getDamageVsEntity() + 4.0F;
     }
 
-    /** Летит ли сейчас (метка снимается по возвращении или через {@link EntityTomahawk#LIFE} тиков). */
+    /** Whether it is flying now (the marker is removed on return or after {@link EntityTomahawk#LIFE} ticks). */
     public static boolean out(ItemStack s, long now) {
         return s.hasTagCompound() && s.getTagCompound().getLong(OUT) > now;
     }

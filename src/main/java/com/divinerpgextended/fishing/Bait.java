@@ -13,25 +13,25 @@ import net.minecraft.util.StatCollector;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Приманки. Ранние - гнилая плоть, паучий глаз и черви (червекопалкой из земли), сильные - урожай с семян Леорны
- * (Аркана). Берутся из инвентаря сами: самая сильная (в лаве без лавовой удочки - огнецвет). Без приманки ловится
- * только обычная рыба и мусор.
+ * Baits. Early ones - rotten flesh, spider eye and worms (dug from dirt with a Worm Shovel), strong ones - a harvest from Leorna's seeds
+ * (Arcana). Taken from the inventory automatically: the strongest (in lava without a lava rod - firebloom). Without bait only
+ * regular fish and junk are caught.
  */
 public enum Bait {
 
     ROTTEN_FLESH(5, false), SPIDER_EYE(10, false), WORM(15, false),
     VEILO(10, true), MARSINE(15, true), EUCALYPTUS(20, true), PINFLY(20, true), LAMONA(25, true), FIRESTOCK(25, true),
     AQUAMARINE(30, true), HITCHAK(40, true),
-    /** Солнечная блесна (из искр Эдема): сильнее аквамарина, в Эдеме вдвое чаще золотой улов. */
+    /** Sun Lure (from Eden sparks): stronger than aquamarine, in Eden the golden catch is twice as frequent. */
     SUN_LURE(35, false),
-    /** Глазок циклопа (из осколков глаза циклопа): в пещерах клюёт быстрее и ловится Пещерный удильщик. */
+    /** Cyclops Eye Bait (from cyclops eye shards): in caves bites faster and the Cave Angler can be caught. */
     CYCLOPS_EYE(20, false);
 
-    /** Глазок циклопа в пещере: ожидание поклёвки x0.6. */
+    /** Cyclops Eye Bait in a cave: bite wait x0.6. */
     public static final float CAVE_WAIT = 0.6F;
 
     public final int power;
-    /** Урожай Арканы (их Леорна даёт в награду). */
+    /** Arcana harvest (Leorna gives them as a reward). */
     public final boolean arcana;
 
     Bait(int power, boolean arcana) {
@@ -74,7 +74,7 @@ public enum Bait {
         }
     }
 
-    /** Случайная арканная приманка (награды Леорны и ящики). */
+    /** A random Arcana bait (Leorna's rewards and crates). */
     public static Bait randomArcana(java.util.Random r) {
         Bait b;
         do b = values()[r.nextInt(values().length)]; while (!b.arcana);
@@ -87,23 +87,23 @@ public enum Bait {
         return null;
     }
 
-    /** Огненная приманка позволяет рыбачить в лаве. */
+    /** Fire bait allows fishing in lava. */
     public boolean lava() {
         return this == FIRESTOCK;
     }
 
-    /** Pinfly - клюёт быстрее; Глазок циклопа - в пещере ещё быстрее. */
+    /** Pinfly - bites faster; Cyclops Eye Bait - in a cave even faster. */
     public float waitMultiplier(Zone zone) {
         if (this == CYCLOPS_EYE && zone == Zone.CAVE) return CAVE_WAIT;
         return this == PINFLY ? 0.8F : 1.0F;
     }
 
-    /** Эвкалипт - чаще ящики. */
+    /** Eucalyptus - crates more often. */
     public float crateBonus() {
         return this == EUCALYPTUS ? 0.05F : 0;
     }
 
-    /** Строка подсказки удочки: какая приманка пойдёт следующей. */
+    /** The fishing rod tooltip line: which bait will be used next. */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public static void tooltip(EntityPlayer p, List list) {
         int slot = p == null ? -1 : find(p);
@@ -116,7 +116,7 @@ public enum Bait {
             of(s.getItem()).power));
     }
 
-    /** Слот самой сильной приманки (при равенстве - первой по порядку) или -1. */
+    /** Slot of the strongest bait (on a tie - the first in order) or -1. */
     public static int find(EntityPlayer p) {
         int best = -1, bestPower = -1;
         for (int i = 0; i < p.inventory.mainInventory.length; i++) {
@@ -130,7 +130,7 @@ public enum Bait {
         return best;
     }
 
-    /** Для лавы без лавовой удочки годится только огнецвет; иначе - самая сильная. */
+    /** For lava without a lava rod only firebloom will do; otherwise - the strongest. */
     public static int find(EntityPlayer p, boolean needFire) {
         if (!needFire) return find(p);
         return slotOf(p, FIRESTOCK);

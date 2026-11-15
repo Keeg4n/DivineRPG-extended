@@ -15,14 +15,14 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Эффект арканного зелья как настоящий эффект Minecraft: виден в инвентаре со своим значком, снимается молоком,
- * сохраняется и синхронизируется как ванильный. Уровень - усиление + 1. Сами эффекты считает {@link ArcaneEffects}.
- * Номера выбираются в postInit среди свободных от 127 вниз (зелья других модов уже на местах) или берутся из конфига
- * (arcanePotionIds), массив при нужде расширяется до 128.
+ * An arcane potion effect as a real Minecraft effect: visible in the inventory with its own icon, removed by milk,
+ * saved and synced like a vanilla one. Level - amplifier + 1. The effects themselves are computed by {@link ArcaneEffects}.
+ * IDs are chosen in postInit among the free ones from 127 down (potions of other mods are already in place) or taken from the config
+ * (arcanePotionIds), the array is extended to 128 if needed.
  */
 public class PotionArcane extends Potion {
 
-    /** Номер эффекта в пакете и в сохранении игрока - знаковый байт: выше 127 клиент и загрузка ломаются. */
+    /** The effect ID in the packet and in the player's save is a signed byte: above 127 the client and loading break. */
     public static final int MAX_ID = 127;
     private static final Potion[] BY_EFFECT = new Potion[ArcaneEffect.values().length];
     @SideOnly(Side.CLIENT)
@@ -35,7 +35,7 @@ public class PotionArcane extends Potion {
         setPotionName("dre.effect." + e.key());
     }
 
-    /** Эффект Minecraft для арканного эффекта (null - зелье убрано или эффекты ещё не зарегистрированы). */
+    /** The Minecraft effect for an arcane effect (null - the potion was removed or the effects are not registered yet). */
     public static Potion of(ArcaneEffect e) {
         return BY_EFFECT[e.ordinal()];
     }
@@ -60,7 +60,7 @@ public class PotionArcane extends Potion {
         }
     }
 
-    /** Массив эффектов Minecraft - не меньше n (так же делают другие моды; уже расширенный не трогаем). */
+    /** The Minecraft effects array - at least n (other mods do the same; an already extended one is left alone). */
     private static void widen(int n) {
         if (Potion.potionTypes.length >= n) return;
         try {
@@ -81,12 +81,12 @@ public class PotionArcane extends Potion {
 
     @Override
     public boolean isReady(int duration, int amplifier) {
-        return false; // действие - в событиях урона и тиков, не по таймеру эффекта
+        return false; // the action is in damage and tick events, not by the effect timer
     }
 
     @Override
     public boolean hasStatusIcon() {
-        return false; // ванильный лист значков не наш - рисуем свой в renderInventoryEffect
+        return false; // the vanilla icon sheet is not ours - we draw our own in renderInventoryEffect
     }
 
     @Override

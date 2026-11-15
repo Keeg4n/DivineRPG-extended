@@ -4,14 +4,14 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.world.IBlockAccess;
 
-/** Вызовы из BlockLiquid ({@link WaterTransformer}) на обеих сторонах. */
+/** Calls from BlockLiquid ({@link WaterTransformer}) on both sides. */
 public final class FluidHooks {
 
     private FluidHooks() {}
 
     /**
-     * Жидкость другого мода (Forge) с тем же материалом - для ванильной воды не своя: иначе источник воды мечтаний держал
-     * ванильные потоки, и их нельзя было убрать.
+     * A liquid of another mod (Forge) with the same material - not its own for vanilla water: otherwise a Dream Water source held
+     * vanilla flows, and they could not be removed.
      */
     public static boolean foreign(IBlockAccess w, int x, int y, int z) {
         Block b = w.getBlock(x, y, z);

@@ -30,13 +30,13 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Лорд Ваттикус - знаток мира. Присесть и ПКМ: подсказка "что дальше" по убитым боссам, совет на стороне и
- * исследование мага; с аксессуаром в руке - подробный рассказ о нём. Исследование - принести материалы; за каждое +25 к максимуму арканы навсегда (8 исследований,
- * 200 -> 400). Максимум работает через {@link ArcanaHooks}.
+ * Lord Vatticus - the world expert. Sneak and right click: a "what next" hint based on killed bosses, a side tip and
+ * the mage's research; with an accessory in hand - a detailed account of it. Research means bringing materials; each gives +25 to the arcana maximum permanently (8 researches,
+ * 200 -> 400). The maximum works through {@link ArcanaHooks}.
  */
 public class Vatticus {
 
-    /** Шаги прогрессии по порядку: первый неубитый босс - следующий шаг. */
+    /** Progression steps in order: the first unkilled boss is the next step. */
     private static final Boss[] STEPS = { Boss.CARCINUS, Boss.SNOW_GLACON, Boss.LICH_KING, Boss.ANCIENT_ENTITY, Boss.WATCHER,
         Boss.CADILLION_EDEN, Boss.CADILLION_WILDWOOD, Boss.CADILLION_APALACHIA, Boss.CADILLION_SKYTHERN, Boss.TWILIGHT_DEMON,
         Boss.KAROT };
@@ -96,7 +96,7 @@ public class Vatticus {
         if (!(e.target instanceof EntityVatticus) || !p.isSneaking()) return;
         e.setCanceled(true);
         if (p.worldObj.isRemote) return;
-        // с аксессуаром в руке - рассказывает о нём (подсказка на самой вещи короткая, остальное игрок узнаёт у него)
+        // with an accessory in hand - he tells about it (the tooltip on the item itself is short, the player learns the rest from him)
         net.minecraft.item.ItemStack held = p.getHeldItem();
         if (held != null && held.getItem() == com.divinerpgextended.registry.ModItems.trinket) {
             say(p, EnumChatFormatting.GOLD, "dre.trinket." + com.divinerpgextended.trinket.ItemTrinket.of(held).key() + ".lore");
@@ -118,7 +118,7 @@ public class Vatticus {
             if (next != null) say(p, EnumChatFormatting.GRAY, "dre.vatticus.task_next", needs(next));
             return;
         }
-        // справочник: следующий шаг, совет на стороне, текущее исследование
+        // handbook: next step, side tip, current research
         say(p, EnumChatFormatting.GOLD, "dre.vatticus.step." + nextStep(p));
         String tip = tip(p);
         if (tip != null) say(p, EnumChatFormatting.YELLOW, "dre.vatticus.tip." + tip);
@@ -140,7 +140,7 @@ public class Vatticus {
         return "end";
     }
 
-    /** Совет на стороне: случайный из того, что игрок ещё не сделал. */
+    /** Side tip: a random one from what the player has not done yet. */
     private static String tip(EntityPlayer p) {
         List<String> l = new ArrayList<String>();
         if (!BossProgress.has(p, Boss.KING_OF_SCORCHERS)) l.add("scorchers");
@@ -151,7 +151,7 @@ public class Vatticus {
         return l.get(p.worldObj.rand.nextInt(l.size()));
     }
 
-    /** Клиенту - его максимум арканы (для полоски Divine). */
+    /** To the client - its arcana maximum (for the Divine bar). */
     public static void sync(EntityPlayer p) {
         if (p instanceof EntityPlayerMP) ColdHandler.NET.sendTo(new MerchantMessages.ArcanaMax(ArcanaHooks.max(p)), (EntityPlayerMP) p);
     }
@@ -161,7 +161,7 @@ public class Vatticus {
         if (e.phase == TickEvent.Phase.END && !e.player.worldObj.isRemote && e.player.ticksExisted % 40 == 0) sync(e.player);
     }
 
-    /** Divine при смене мира и возрождении ставит аркане ровно 200 (зашито) - заполняем до настоящего максимума. */
+    /** On world change and respawn Divine sets arcana to exactly 200 (hardcoded) - we fill it up to the real maximum. */
     private static void refill(EntityPlayer p) {
         if (p.worldObj.isRemote) return;
         net.divinerpg.utils.events.ArcanaHelper a = net.divinerpg.utils.events.ArcanaHelper.getProperties(p);

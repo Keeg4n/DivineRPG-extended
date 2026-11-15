@@ -27,9 +27,9 @@ eclipse
 bin/
 .classpath
 
-# чужие моды для сборки (см. README)
+# other authors' mods needed to build (see README)
 libs/*.jar
 
-# концепты брони Странника: картинки и кэш питона не храним
+# Wanderer armor concepts: images and the Python cache are not stored
 __pycache__/
 tools/concepts/wanderer_concepts/

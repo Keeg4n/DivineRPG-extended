@@ -31,26 +31,26 @@ import com.divinerpgextended.registry.ModItems;
 import com.divinerpgextended.world.CadillionWorld;
 
 /**
- * Великий кадиллион - босс сумеречного мира (Eden, Wildwood, Apalachia, Skythern). Модель кадиллиона из Divine,
- * увеличенная в 2.5 раза. С него падает шестерня времени своего мира для Часов Странника.
+ * Great Cadillion - a boss of the twilight dimensions (Eden, Wildwood, Apalachia, Skythern). The Cadillion model from Divine,
+ * enlarged 2.5 times. It drops the time gear of its own dimension for the Wanderer's Clock.
  */
 public class EntityGreatCadillion extends EntityMob implements IBossDisplayData {
 
     private static final int DW_VARIANT = 20;
     private int abilityTimer = 100;
 
-    // ---- бой: дальность и перезарядка удара, таран с оглушением
-    /** Удар достаёт на столько блоков от центра (игрок мечом - примерно на 4.2): ближний бой честный. */
+    // ---- combat: strike range and cooldown, ram with stun
+    /** The strike reaches this many blocks from the center (a player with a sword - about 4.2): melee is fair. */
     public static final double REACH = 3.6;
-    /** Перезарядка удара в тиках (ванильный ИИ 1.7.10 бьёт каждые полсекунды). */
+    /** Strike cooldown in ticks (the vanilla 1.7.10 AI hits every half second). */
     public static final int ATTACK_COOLDOWN = 25;
     public static final int IDLE = 0, WINDUP = 1, CHARGE = 2, STUNNED = 3;
     private int chargeState = IDLE, stateTimer, chargeCooldown = 120, lastAttack = -100;
     private double chargeX, chargeZ;
     private boolean chargeHit;
-    /** Рог отколот (Солнечный шахтёр киркой по оглушённому кадиллиону Эдема): таранов больше нет. */
+    /** The horn is chipped off (Sun Miner with a pickaxe on a stunned Eden Cadillion): no more rams. */
     private boolean hornBroken;
-    /** Подкрепление: мобы его мира (в том числе летучие Кори), раз в ~15 с боя, живых не больше 4. */
+    /** Reinforcements: mobs of its dimension (including flying Cori), once per ~15 s of combat, no more than 4 alive. */
     private int addsTimer = 200;
     public static final int MAX_ADDS = 4;
     private static final String ADD_TAG = "dreCadillionAdd";
@@ -93,7 +93,7 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
         return CadillionWorld.byMeta(getVariant());
     }
 
-    /** Задать мир при призыве: меняет силу и восстанавливает здоровье. */
+    /** Set the dimension on summoning: changes the strength and restores health. */
     public void setVariant(int variant) {
         dataWatcher.updateObject(DW_VARIANT, Byte.valueOf((byte) variant));
         getEntityAttribute(SharedMonsterAttributes.maxHealth)
@@ -144,7 +144,7 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
         return chargeState;
     }
 
-    /** Оглушить на ticks: не бьёт, не ходит, получает двойной урон. */
+    /** Stun for ticks: does not attack, does not walk, takes double damage. */
     public void stun(int ticks) {
         chargeState = STUNNED;
         stateTimer = ticks;
@@ -157,8 +157,8 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
     }
 
     /**
-     * Таран: раз в ~8 с, если цель в 5-20 блоках, кадиллион опускает рог (секунду стоит, искры и фырканье), потом
-     * мчится по прямой туда, где была цель. Врезался в ствол или колонну - оглушён на 4 с.
+     * Ram: once per ~8 s, if the target is within 5-20 blocks, the Cadillion lowers its horn (stands for a second, sparks and snorting), then
+     * charges in a straight line to where the target was. If it hits a trunk or a column - stunned for 4 s.
      */
     private void charge() {
         EntityLivingBase t = getAttackTarget();
@@ -191,7 +191,7 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
                 int[] home = com.divinerpgextended.boss.LairSummons.home(this);
                 if (home != null) {
                     double nx = posX + chargeX * 2 - home[0] - 0.5, nz = posZ + chargeZ * 2 - home[2] - 0.5;
-                    if (nx * nx + nz * nz > (home[3] - 1) * (home[3] - 1)) { // край поляны - тормозит, а не телепортируется
+                    if (nx * nx + nz * nz > (home[3] - 1) * (home[3] - 1)) { // edge of the glade - it brakes instead of teleporting
                         chargeState = IDLE;
                         chargeCooldown = 140 + rand.nextInt(60);
                         motionX = motionZ = 0;
@@ -223,7 +223,7 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
                     chargeCooldown = 140 + rand.nextInt(60);
                 }
                 return;
-            default: // оглушён
+            default: // stunned
                 getNavigator().clearPathEntity();
                 motionX = motionZ = 0;
                 if (ticksExisted % 4 == 0) ws.func_147487_a("crit", posX, posY + height, posZ, 6, 0.8, 0.3, 0.8, 0.1);
@@ -234,12 +234,12 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
         }
     }
 
-    /** Позвать мобов своего мира: двух рядом, если живых подручных меньше {@link #MAX_ADDS}. */
+    /** Call mobs of its dimension: two nearby, if there are fewer living minions than {@link #MAX_ADDS}. */
     public int callAdds() {
         com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.values()[getVariant()];
-        Class<? extends net.minecraft.entity.EntityLiving>[] mobs = tw.surfaceMobs(); // роща открыта небу
+        Class<? extends net.minecraft.entity.EntityLiving>[] mobs = tw.surfaceMobs(); // the grove is open to the sky
         Class<? extends net.minecraft.entity.EntityLiving> flyer = tw.flyer();
-        // считаем только своих подручных: обычных мобов мира в роще и так много
+        // we count only its own minions: there are plenty of regular dimension mobs in the grove anyway
         int alive = 0;
         for (Object o : worldObj.getEntitiesWithinAABB(net.minecraft.entity.EntityLiving.class, boundingBox.expand(40, 24, 40))) {
             if (((net.minecraft.entity.Entity) o).getEntityData().getInteger(ADD_TAG) == getEntityId()) alive++;
@@ -260,7 +260,7 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
                 ((WorldServer) worldObj).func_147487_a("portal", m.posX, m.posY + 1, m.posZ, 20, 0.5, 0.8, 0.5, 0.1);
                 made++;
             } catch (Exception ignored) {
-                // у моба нет конструктора (World)
+                // the mob has no (World) constructor
             }
         }
         if (made > 0) {
@@ -268,12 +268,12 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
             for (Object o : worldObj.getEntitiesWithinAABB(EntityPlayer.class, boundingBox.expand(30, 16, 30))) {
                 ((EntityPlayer) o).addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.cadillion_adds"));
             }
-            com.divinerpgextended.debug.Debug.note(this, "Кадиллион позвал подручных: " + made);
+            com.divinerpgextended.debug.Debug.note(this, "Cadillion summoned minions: " + made);
         }
         return made;
     }
 
-    /** Атакующий стоит вне поляны логова (стреляет издалека) - урона нет. */
+    /** The attacker stands outside the lair glade (shooting from afar) - no damage. */
     public boolean outOfLair(Entity attacker) {
         int[] home = com.divinerpgextended.boss.LairSummons.home(this);
         if (home == null || !(attacker instanceof EntityPlayer)) return false;
@@ -295,20 +295,20 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
                 posX, posY + height, posZ, 40, 0.6, 0.4, 0.6, 0.2);
             entityDropItem(new ItemStack(ModItems.twilightMaterial, 2,
                 com.divinerpgextended.world.twilight.TwilightMaterial.HORN_SHARD.ordinal()), height);
-            com.divinerpgextended.debug.Debug.note(this, "Рог кадиллиона отколот");
-            amount += getMaxHealth() * HORN_DAMAGE / 2; // ниже удваивается оглушением
+            com.divinerpgextended.debug.Debug.note(this, "Cadillion horn broken off");
+            amount += getMaxHealth() * HORN_DAMAGE / 2; // below, it is doubled by the stun
         }
         return super.attackEntityFrom(src, chargeState == STUNNED ? amount * 2 : amount);
     }
 
-    /** Доля здоровья, которую снимает скол рога. */
+    /** The share of health removed by the horn chip. */
     public static final float HORN_DAMAGE = 0.15F;
 
     public boolean hornBroken() {
         return hornBroken;
     }
 
-    /** Скол рога: кадиллион Эдема, удар киркой в полном сете Эдема (Солнечный шахтёр). */
+    /** Horn chip: the Eden Cadillion, a pickaxe hit in a full Eden set (Sun Miner). */
     private boolean breaksHorn(Entity e) {
         if (world() != CadillionWorld.EDEN || !(e instanceof EntityPlayer)) return false;
         EntityPlayer p = (EntityPlayer) e;
@@ -331,17 +331,17 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
         @SuppressWarnings("unchecked")
         List<EntityPlayer> near = worldObj.getEntitiesWithinAABB(EntityPlayer.class, boundingBox.expand(10, 6, 10));
         switch (world()) {
-            case EDEN: // вспышка: ослепление
+            case EDEN: // flash: blindness
                 for (EntityPlayer p : near) p.addPotionEffect(new PotionEffect(Potion.blindness.id, 40, 0));
                 worldObj.playSoundAtEntity(this, "random.fizz", 2.0F, 0.5F);
                 abilityTimer = 200;
                 break;
-            case WILDWOOD: // лианы: сильное замедление
+            case WILDWOOD: // vines: strong slowness
                 for (EntityPlayer p : near) p.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 70, 3));
                 worldObj.playSoundAtEntity(this, "dig.grass", 2.0F, 0.5F);
                 abilityTimer = 160;
                 break;
-            case APALACHIA: // удар о землю: подбрасывает тех, кто рядом
+            case APALACHIA: // ground slam: tosses up those nearby
                 for (EntityPlayer p : near) {
                     if (p.getDistanceSqToEntity(this) > 64) continue;
                     p.motionY = 1.1D;
@@ -352,7 +352,7 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
                 worldObj.playSoundAtEntity(this, "random.explode", 1.5F, 0.6F);
                 abilityTimer = 160;
                 break;
-            default: // Skythern: молния по цели
+            default: // Skythern: lightning on the target
                 EntityLivingBase t = getAttackTarget();
                 worldObj.addWeatherEffect(new EntityLightningBolt(worldObj, t.posX, t.posY, t.posZ));
                 abilityTimer = 240;
@@ -363,7 +363,7 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
     @Override
     protected void dropFewItems(boolean byPlayer, int looting) {
         entityDropItem(new ItemStack(ModItems.timeGear, 1, getVariant()), 0.5F);
-        entityDropItem(new ItemStack(ModItems.guardianHeart, 1, getVariant()), 0.5F); // камни врат в следующий мир
+        entityDropItem(new ItemStack(ModItems.guardianHeart, 1, getVariant()), 0.5F); // gate stones to the next dimension
         int souls = 4 + rand.nextInt(5 + looting);
         entityDropItem(new ItemStack(world().soul(), souls), 0.5F);
     }
@@ -382,7 +382,7 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
         hornBroken = tag.getBoolean("HornBroken");
     }
 
-    /** Обычный удар: только вблизи, с перезарядкой, оглушённый и в таране не бьёт. */
+    /** Regular strike: only up close, with a cooldown; a stunned one and one in a ram does not strike. */
     @Override
     public boolean attackEntityAsMob(Entity target) {
         if (chargeState != IDLE || ticksExisted - lastAttack < ATTACK_COOLDOWN) return false;

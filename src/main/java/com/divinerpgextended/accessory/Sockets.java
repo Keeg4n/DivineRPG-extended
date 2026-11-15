@@ -19,31 +19,31 @@ import com.divinerpgextended.trinket.ItemTrinket;
 import com.divinerpgextended.trinket.Trinket;
 
 /**
- * Гнёзда аксессуаров в броне. Встраивает и вынимает только Наковальня Странника ({@link com.divinerpgextended.station.AnvilLogic}):
- * внутри брони нет инвентаря и окна, только запись в её NBT, поэтому дюпать нечем - вставка работает как крафт.
+ * Accessory sockets in armor. Only the Wanderer Anvil ({@link com.divinerpgextended.station.AnvilLogic}) inserts and removes them:
+ * there is no inventory or window inside the armor, only an entry in its NBT, so there is nothing to dupe with - insertion works like a craft.
  * <ul>
- * <li>броня Divine - по гнезду в каждой части; броня Странника - по гнезду и второе за босса части ({@link #SECOND});</li>
- * <li>аксессуар встаёт только в свою часть ({@link Trinket#armorParts}), один эффект в части - один раз;</li>
- * <li>очки откровения Таума ({@link Goggles}) - только в шлем и не вместо аксессуара: у шлема Divine для них своё второе гнездо,
- * у шлема Странника они встают во второе гнездо сразу, не дожидаясь босса;</li>
- * <li>работает, пока часть надета; смерть и выпадение брони аксессуары не трогают - они внутри.</li>
+ * <li>Divine armor - one socket per part; Wanderer armor - one socket, and a second one for the part's boss ({@link #SECOND});</li>
+ * <li>an accessory fits only its own part ({@link Trinket#armorParts}), one effect per part - only once;</li>
+ * <li>Thaumcraft Goggles of Revealing ({@link Goggles}) - only in the helmet and not instead of an accessory: the Divine helmet has a separate second socket for them,
+ * in the Wanderer helmet they go into the second socket at once, without waiting for the boss;</li>
+ * <li>works while the part is worn; death and armor drops do not touch the accessories - they are inside.</li>
  * </ul>
  */
 public final class Sockets {
 
     public static final String TAG = "dreSockets";
-    /** Боссы, открывающие второе гнездо в части брони Странника: [шлем, нагрудник, поножи, ботинки]. */
+    /** Bosses that open the second socket in a Wanderer armor part: [helmet, chestplate, leggings, boots]. */
     public static final Boss[] SECOND = { Boss.KAROT, Boss.LICH_KING, Boss.WATCHER, Boss.TWILIGHT_DEMON };
     private static final Trinket[] ALL = Trinket.values();
 
-    /** Почему аксессуар не встаёт в часть брони. */
+    /** Why an accessory does not fit into an armor part. */
     public enum Fit {
         OK, PART, FULL, SAME, BOSS
     }
 
     private Sockets() {}
 
-    /** Броня с гнёздами: Странника и любая Divine (ванильная и чужих модов - без гнёзд). */
+    /** Armor with sockets: Wanderer and any Divine (vanilla and other mods' armor have no sockets). */
     public static boolean socketable(ItemStack s) {
         if (s == null || !(s.getItem() instanceof ItemArmor)) return false;
         int t = ((ItemArmor) s.getItem()).armorType;
@@ -54,13 +54,13 @@ public final class Sockets {
         return ((ItemArmor) armor.getItem()).armorType;
     }
 
-    /** Сколько гнёзд может быть у части вообще, с местом под очки (для окна и подсказки). */
+    /** How many sockets a part can have at all, with room for the goggles (for the window and the hint). */
     public static int maxCapacity(ItemStack armor) {
         if (armor.getItem() instanceof ItemWandererArmor) return 2;
         return type(armor) == 0 && Goggles.available() ? 2 : 1;
     }
 
-    /** Сколько гнёзд под аксессуары открыто этому игроку: второе у брони Странника - за босса части. */
+    /** How many accessory sockets are open for this player: the second one in Wanderer armor is for the part's boss. */
     public static int capacity(ItemStack armor, EntityPlayer p) {
         if (!(armor.getItem() instanceof ItemWandererArmor)) return 1;
         return secondOpen(p, type(armor)) ? 2 : 1;
@@ -70,12 +70,12 @@ public final class Sockets {
         return !Config.requireBossUnlocks || BossProgress.has(p, SECOND[type]);
     }
 
-    /** Аксессуар аддона, вещь Divine, которая носится как аксессуар, или очки откровения. */
+    /** An addon accessory, a Divine item worn as an accessory, or Goggles of Revealing. */
     public static boolean accessory(ItemStack s) {
         return s != null && (s.getItem() == ModItems.trinket || Accessories.divineAccessory(s) || Goggles.is(s));
     }
 
-    /** В какие части встраивается (биты {@link Trinket#HEAD}..{@link Trinket#FEET}). */
+    /** Which parts it is built into (bits {@link Trinket#HEAD}..{@link Trinket#FEET}). */
     public static int parts(ItemStack acc) {
         if (acc.getItem() == ModItems.trinket) return ItemTrinket.of(acc).armorParts();
         if (acc.getItem() == net.divinerpg.utils.items.VetheaItems.minersAmulet) return Trinket.HEAD;
@@ -84,13 +84,13 @@ public final class Sockets {
         return 0;
     }
 
-    /** Цена встраивания, уровней. */
+    /** Cost of insertion, in levels. */
     public static int levels(ItemStack acc) {
         if (acc.getItem() == ModItems.trinket) return ItemTrinket.of(acc).levels();
         return acc.getItem() == net.divinerpg.utils.items.VetheaItems.heivaBelt ? 15 : 10;
     }
 
-    /** Что внутри (копии - менять через {@link #insert} и {@link #extract}). */
+    /** What is inside (copies - change via {@link #insert} and {@link #extract}). */
     public static List<ItemStack> contents(ItemStack armor) {
         List<ItemStack> out = new ArrayList<ItemStack>();
         NBTTagList l = list(armor);
@@ -111,7 +111,7 @@ public final class Sockets {
         return armor.getTagCompound().getTagList(TAG, 10);
     }
 
-    /** Встанет ли аксессуар в эту часть (с уже запланированными в неё same). */
+    /** Whether the accessory will fit into this part (together with the same ones already planned for it). */
     public static Fit fit(ItemStack armor, ItemStack acc, EntityPlayer p, List<ItemStack> planned) {
         if (!socketable(armor) || !accessory(acc) || (parts(acc) & 1 << type(armor)) == 0) return Fit.PART;
         List<ItemStack> in = contents(armor);
@@ -122,13 +122,13 @@ public final class Sockets {
             if (Goggles.is(s)) goggles = true;
         }
         if (Goggles.is(acc)) return in.size() < maxCapacity(armor) ? Fit.OK : Fit.FULL;
-        // очки занимают место в окне, но не закрывают аксессуару его гнездо
+        // goggles take a place in the window, but do not close the accessory's socket
         int trinkets = in.size() - (goggles ? 1 : 0), rows = maxCapacity(armor) - (goggles ? 1 : 0);
         if (trinkets < Math.min(capacity(armor, p), rows)) return Fit.OK;
         return armor.getItem() instanceof ItemWandererArmor && trinkets < rows ? Fit.BOSS : Fit.FULL;
     }
 
-    /** Одинаковый эффект: та же вещь Divine или аксессуары с общим эффектом (объединённый и его часть). */
+    /** Same effect: the same Divine item, or accessories with a shared effect (the combined one and its part). */
     static boolean overlap(ItemStack a, ItemStack b) {
         if (a.getItem() != b.getItem()) return false;
         if (a.getItem() != ModItems.trinket) return true;
@@ -136,7 +136,7 @@ public final class Sockets {
         return false;
     }
 
-    /** Записать аксессуар в часть (проверка - {@link #fit}). Вызывает только наковальня на сервере. */
+    /** Write an accessory into a part (check - {@link #fit}). Called only by the anvil on the server. */
     public static void insert(ItemStack armor, ItemStack acc) {
         ItemStack one = acc.copy();
         one.stackSize = 1;
@@ -147,7 +147,7 @@ public final class Sockets {
         tag.setTag(TAG, l);
     }
 
-    /** Вынуть аксессуар из гнезда (null - пусто). Запись стирается раньше, чем вещь отдаётся. */
+    /** Take an accessory out of a socket (null - empty). The entry is erased before the item is handed out. */
     public static ItemStack extract(ItemStack armor, int index) {
         NBTTagList l = list(armor);
         if (l == null || index < 0 || index >= l.tagCount()) return null;
@@ -157,7 +157,7 @@ public final class Sockets {
         return ItemStack.loadItemStackFromNBT(c);
     }
 
-    /** Вынуть всё (броня уходит в крафт или на переплавку). */
+    /** Take everything out (the armor goes into a craft or to smelting). */
     public static List<ItemStack> extractAll(ItemStack armor) {
         List<ItemStack> out = contents(armor);
         if (armor != null && armor.hasTagCompound()) armor.getTagCompound().removeTag(TAG);
@@ -165,8 +165,8 @@ public final class Sockets {
     }
 
     /**
-     * Встроен ли аксессуар с этим эффектом в надетую броню. Спрашивают на каждом ударе и тике - читаем NBT без
-     * создания вещей.
+     * Whether an accessory with this effect is built into the worn armor. Asked on every hit and tick - we read NBT without
+     * creating items.
      */
     public static boolean wears(EntityPlayer p, Trinket t) {
         for (ItemStack armor : p.inventory.armorInventory) {
@@ -182,19 +182,19 @@ public final class Sockets {
         return false;
     }
 
-    /** Встроена ли вещь в эту часть брони (без создания вещей). */
+    /** Whether the item is built into this armor part (without creating items). */
     static boolean has(ItemStack armor, Item item) {
         NBTTagList l = list(armor);
         for (int i = 0; l != null && i < l.tagCount(); i++) if (Item.getItemById(l.getCompoundTagAt(i).getShort("id")) == item) return true;
         return false;
     }
 
-    /** Чужая броня Странника: её гнёзда на этом игроке молчат. */
+    /** Another player's Wanderer armor: its sockets are silent on this player. */
     private static boolean foreign(ItemStack armor, EntityPlayer p) {
         return armor != null && armor.getItem() instanceof ItemWandererArmor && !com.divinerpgextended.item.ArmorData.owns(armor, p);
     }
 
-    /** Встроена ли вещь (Divine-аксессуар) в надетую броню. */
+    /** Whether the item (a Divine accessory) is built into the worn armor. */
     public static boolean wearsItem(EntityPlayer p, Item item) {
         for (ItemStack armor : p.inventory.armorInventory) {
             if (foreign(armor, p)) continue;

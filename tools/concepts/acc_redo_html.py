@@ -1,4 +1,4 @@
-"""Страницы переделки: алтарь 6 (новые Г, Д, Е), посадка шарфа 22А, ковёр 28 (сейчас, А, Г, Д)."""
+"""Redo pages: altar 6 (new G, D, E), scarf 22A fit, carpet 28 (current, A, G, D)."""
 import html
 import os
 import re

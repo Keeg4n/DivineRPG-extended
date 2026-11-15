@@ -44,12 +44,12 @@ import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 
 /**
- * Обморожение ледяным оружием (мечи и молот Айсики, Фроссивенс, Морозный меч; ледяные луки, пушки и снежный сюрикен):
- * первый удар или попадание по мобу замедляет, второй - сильнее, третий - моб вмерзает в лёд на {@link #FREEZE} тиков:
- * стоит, не бьёт и не стреляет, вокруг него ледяная глыба. Ступени копятся, если удары идут не реже раза в
- * {@link #WINDOW} тиков, и не чаще раза в {@link #GAP} (скорострельное не вмораживает мгновенно). Оттаявший моб
- * {@link #IMMUNE} тиков не вмерзает снова (только сильное замедление). Боссов только замедляет, игроков и питомцев не
- * трогает.
+ * Frostbite from ice weapons (Iceika swords and maul, Frossivence, Frost Sword; ice bows, cannons and the snow shuriken):
+ * the first hit or strike on a mob slows it, the second - more, the third - the mob freezes into ice for {@link #FREEZE} ticks:
+ * it stands, does not hit or shoot, with an ice boulder around it. Stages accumulate if hits come no less often than once per
+ * {@link #WINDOW} ticks, and no more often than once per {@link #GAP} (fast-firing weapons do not freeze instantly). A thawed mob
+ * does not freeze again for {@link #IMMUNE} ticks (only strong slowness). Bosses are only slowed, players and pets are not
+ * touched.
  */
 public class FrostBite {
 
@@ -67,13 +67,13 @@ public class FrostBite {
             IceikaItems.snowflakeShuriken, VanillaItemsWeapons.frostCannon));
     }
 
-    /** Ледяное оружие (для подсказки). */
+    /** Ice weapon (for the tooltip). */
     public static boolean iceWeapon(Item i) {
         lists();
         return i != null && (melee.contains(i) || ranged.contains(i));
     }
 
-    /** Урон нанесло ледяное оружие: удар им или выстрел, пока ледяное стрелковое в руке. */
+    /** Damage was dealt by an ice weapon: a hit with it or a shot while an ice ranged weapon is in hand. */
     static boolean byIce(DamageSource s) {
         if (!(s.getEntity() instanceof EntityPlayer)) return false;
         ItemStack h = ((EntityPlayer) s.getEntity()).getHeldItem();
@@ -86,12 +86,12 @@ public class FrostBite {
     public void onHurt(LivingHurtEvent e) {
         EntityLivingBase t = e.entityLiving;
         if (!Config.iceFreeze || e.isCanceled() || t.worldObj.isRemote || e.ammount <= 0 || !(t instanceof EntityLiving)) return;
-        if (t instanceof EntityTameable && ((EntityTameable) t).isTamed()) return; // питомцев не морозим
+        if (t instanceof EntityTameable && ((EntityTameable) t).isTamed()) return; // we do not freeze pets
         if (!byIce(e.source)) return;
         hit(t, t.worldObj.getTotalWorldTime());
     }
 
-    /** Один ледяной удар по мобу в момент now: ступень после удара (1, 2) или 3 - вморожен. */
+    /** One ice hit on a mob at moment now: the stage after the hit (1, 2) or 3 - frozen. */
     public static int hit(EntityLivingBase t, long now) {
         NBTTagCompound d = t.getEntityData();
         if (now < d.getLong(UNTIL)) return 3;
@@ -105,14 +105,14 @@ public class FrostBite {
             d.setInteger(STACKS, 0);
             return 3;
         }
-        stacks = Math.min(stacks, 2); // боссы и только что оттаявшие - не больше сильного замедления
+        stacks = Math.min(stacks, 2); // bosses and just-thawed mobs - no more than strong slowness
         d.setInteger(STACKS, stacks);
         t.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, SLOW_TICKS, stacks == 1 ? 0 : 2));
         puff(t, stacks * 4);
         return stacks;
     }
 
-    /** Вморозить сразу (Серенада льда): боссов и только что оттаявших - сильное замедление. */
+    /** Freeze at once (Serenade of Ice): bosses and just-thawed mobs get strong slowness. */
     public static void freezeNow(EntityLivingBase t, long now) {
         NBTTagCompound d = t.getEntityData();
         if (now < d.getLong(UNTIL)) return;
@@ -137,7 +137,7 @@ public class FrostBite {
         if (!t.worldObj.isRemote) ColdHandler.NET.sendToAllAround(new Fx(t.getEntityId(), FREEZE), new TargetPoint(t.dimension, t.posX, t.posY, t.posZ, 80));
     }
 
-    /** Вмороженный: на месте, без цели. */
+    /** Frozen: in place, with no target. */
     private static void hold(EntityLivingBase t) {
         t.motionX = 0;
         t.motionZ = 0;
@@ -154,12 +154,12 @@ public class FrostBite {
             ((WorldServer) t.worldObj).func_147487_a("snowshovel", t.posX, t.posY + t.height * 0.6, t.posZ, n, t.width * 0.4, t.height * 0.3, t.width * 0.4, 0.02);
     }
 
-    /** Вморожен ли моб сейчас. */
+    /** Whether the mob is frozen right now. */
     public static boolean frozen(EntityLivingBase t) {
         return t.getEntityData().getLong(UNTIL) > t.worldObj.getTotalWorldTime();
     }
 
-    /** Тик моба: держать вмороженного, оттаять в срок. */
+    /** Mob tick: hold the frozen one, thaw on time. */
     public static void tick(EntityLivingBase t, long now) {
         NBTTagCompound d = t.getEntityData();
         if (!d.hasKey(UNTIL)) return;
@@ -180,16 +180,16 @@ public class FrostBite {
         if (!e.entityLiving.worldObj.isRemote && e.entityLiving instanceof EntityLiving) tick(e.entityLiving, e.entityLiving.worldObj.getTotalWorldTime());
     }
 
-    /** Вмороженный не бьёт и не стреляет: его удары и снаряды не ранят. */
+    /** A frozen mob does not hit or shoot: its hits and projectiles do not hurt. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onAttack(LivingAttackEvent e) {
         Entity a = e.source.getEntity();
         if (a instanceof EntityLiving && !a.worldObj.isRemote && frozen((EntityLivingBase) a)) e.setCanceled(true);
     }
 
-    // ---------------- клиент: ледяная глыба ----------------
+    // ---------------- client: ice boulder ----------------
 
-    /** Вмороженные на клиенте: номер сущности -> когда оттает (мс). Рисует client.FrostRender. */
+    /** Frozen on the client: entity id -> when it thaws (ms). Drawn by client.FrostRender. */
     public static final Map<Integer, Long> CLIENT = new ConcurrentHashMap<Integer, Long>();
 
     public static void register() {

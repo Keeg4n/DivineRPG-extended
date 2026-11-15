@@ -18,8 +18,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Арканное зелье (с арканной стойки зельеварения). Метаданные: младшие 5 бит - эффект ({@link ArcaneEffect}), 32 -
- * сильное (светопыль), 64 - долгое (редстоун), 128 - общее (порох: и игрокам в 8 блоках).
+ * Arcane potion (from the Arcane Brewing Stand). Metadata: the low 5 bits - the effect ({@link ArcaneEffect}), 32 -
+ * strong (glowstone dust), 64 - long (redstone), 128 - shared (gunpowder: for players within 8 blocks too).
  */
 public class ItemArcanePotion extends Item {
 
@@ -30,7 +30,7 @@ public class ItemArcanePotion extends Item {
 
     public ItemArcanePotion() {
         setHasSubtypes(true);
-        setMaxStackSize(1); // как ванильные зелья - не стакаются
+        setMaxStackSize(1); // like vanilla potions - they do not stack
         setUnlocalizedName("dre.arcanePotion");
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
     }
@@ -71,7 +71,7 @@ public class ItemArcanePotion extends Item {
         return "item.dre.arcanePotion." + ArcaneEffect.of(s.getItemDamage()).key();
     }
 
-    /** Зелье Название (общее - Общее зелье Название); сила и время - в подсказке, как у ванильных. */
+    /** Potion Name (shared - Shared Potion Name); strength and time are in the tooltip, as with vanilla ones. */
     @Override
     public String getItemStackDisplayName(ItemStack s) {
         int m = s.getItemDamage();
@@ -79,7 +79,7 @@ public class ItemArcanePotion extends Item {
             StatCollector.translateToLocal(getUnlocalizedName(s) + ".name"));
     }
 
-    /** "Эффект II (4:00)" - видно сразу; что он делает - под Shift. */
+    /** "Effect II (4:00)" - visible at once; what it does - under Shift. */
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void addInformation(ItemStack s, EntityPlayer p, List list, boolean adv) {

@@ -16,8 +16,8 @@ import com.divinerpgextended.boss.Boss;
 import com.divinerpgextended.boss.BossProgress;
 
 /**
- * Торговцы Арканы. Появляются по прогрессу (gate - босс, после которого торговец приходит в Аркану; null - сразу
- * со входом в Аркану). Кого игрок встретил и с кем поговорил, того он может звать Кристаллом памяти.
+ * Arcana merchants. They appear by progress (gate - the boss after which the merchant comes to Arcana; null - right
+ * on entering Arcana). The player can summon with the Memory Crystal whoever he has met and talked to.
  */
 public enum ArcanaMerchant {
 
@@ -66,7 +66,7 @@ public enum ArcanaMerchant {
         return (metMask(p) & 1 << ordinal()) != 0;
     }
 
-    /** @return true, если встречен впервые */
+    /** @return true if met for the first time */
     public boolean meet(EntityPlayer p) {
         int m = metMask(p);
         if ((m & 1 << ordinal()) != 0) return false;

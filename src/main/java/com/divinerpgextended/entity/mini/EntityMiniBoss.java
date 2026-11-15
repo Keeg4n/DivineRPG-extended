@@ -23,8 +23,8 @@ import com.divinerpgextended.world.twilight.TwilightCrafts;
 import com.divinerpgextended.world.twilight.TwilightWorld;
 
 /**
- * Мини-босс мира: сильнее обычных мобов, но слабее стража (здоровье не больше x3 от обычного моба), со своим приёмом. На прогресс
- * не влияет и полоски босса у него нет: имя и здоровье видны над головой. Как обычный моб исчезает, если игрок ушёл далеко.
+ * Dimension mini-boss: stronger than regular mobs but weaker than the guardian (health no more than x3 of a regular mob), with its own move. Does not
+ * affect progress and has no boss bar: the name and health are visible overhead. Like a regular mob it despawns if the player goes far away.
  */
 public abstract class EntityMiniBoss extends EntityMob {
 
@@ -48,7 +48,7 @@ public abstract class EntityMiniBoss extends EntityMob {
         setAlwaysRenderNameTag(true);
     }
 
-    /** Ключ в названиях и сообщениях. Зовётся и из конструктора родителя: только постоянные значения. */
+    /** Key in names and messages. Also called from the parent's constructor: constant values only. */
     public abstract String key();
 
     protected abstract double baseHealth();
@@ -59,10 +59,10 @@ public abstract class EntityMiniBoss extends EntityMob {
         return 0.28D;
     }
 
-    /** Добыча: всегда на землю. Публично для автотеста. */
+    /** Loot: always on the ground. Public for the selftest. */
     public abstract void loot(int looting);
 
-    /** Цвет модели: можно затемнить, чтобы показать состояние. */
+    /** Model color: can be darkened to show a state. */
     public float shade() {
         return 1F;
     }
@@ -85,7 +85,7 @@ public abstract class EntityMiniBoss extends EntityMob {
     @Override
     protected void fall(float distance) {}
 
-    /** Имя над головой - без здоровья: его показывают моды индикаторов здоровья. */
+    /** The name overhead - without health: health indicator mods show it. */
     @Override
     public String getCommandSenderName() {
         return StatCollector.translateToLocal("dre.entity.mini." + key());
@@ -121,13 +121,13 @@ public abstract class EntityMiniBoss extends EntityMob {
         return 1.2F;
     }
 
-    /** Цель, если это живой игрок рядом с тем, что видит ИИ. */
+    /** The target, if it is a live player near what the AI sees. */
     protected EntityPlayer targetPlayer() {
         EntityLivingBase t = getAttackTarget();
         return t instanceof EntityPlayer && t.isEntityAlive() ? (EntityPlayer) t : null;
     }
 
-    /** Лететь к точке: тяга гасится, скорость ограничена. */
+    /** Fly to a point: thrust is damped, speed is limited. */
     protected void steer(double x, double y, double z, double accel, double top) {
         motionX = clamp(motionX * 0.9 + Math.signum(x - posX) * Math.min(accel, Math.abs(x - posX) * 0.05), top);
         motionZ = clamp(motionZ * 0.9 + Math.signum(z - posZ) * Math.min(accel, Math.abs(z - posZ) * 0.05), top);
@@ -139,7 +139,7 @@ public abstract class EntityMiniBoss extends EntityMob {
         return Math.max(-top, Math.min(top, v));
     }
 
-    /** Позвать мобов мира рядом: без добычи и опыта, гибнут вместе с мини-боссом. Сколько появилось. */
+    /** Call dimension mobs nearby: no loot or experience, they die together with the mini-boss. How many appeared. */
     protected int call(Class<? extends EntityLiving> kind, int count) {
         int made = 0;
         for (int i = 0; i < count; i++) {
@@ -155,18 +155,18 @@ public abstract class EntityMiniBoss extends EntityMob {
                 if (worldObj instanceof WorldServer) ((WorldServer) worldObj).func_147487_a("portal", m.posX, m.posY + 1, m.posZ, 20, 0.5, 0.8, 0.5, 0.1);
                 made++;
             } catch (Exception ignored) {
-                // у моба нет конструктора (World)
+                // the mob has no (World) constructor
             }
         }
         return made;
     }
 
-    /** Сообщение всем рядом. */
+    /** A message to everyone nearby. */
     protected void tell(String key) {
         for (Object o : worldObj.getEntitiesWithinAABB(EntityPlayer.class, boundingBox.expand(32, 16, 32))) ((EntityPlayer) o).addChatMessage(new ChatComponentTranslation(key));
     }
 
-    /** Добыча сумеречного мира: камни и души мира, иногда кусок. */
+    /** Loot of a twilight dimension: world stones and souls, sometimes a piece. */
     protected void twilightLoot(TwilightWorld w, int looting) {
         entityDropItem(new ItemStack(w.gem(), 2 + rand.nextInt(2)), 0.5F);
         entityDropItem(new ItemStack(w.soul(), 3 + rand.nextInt(3 + looting)), 0.5F);

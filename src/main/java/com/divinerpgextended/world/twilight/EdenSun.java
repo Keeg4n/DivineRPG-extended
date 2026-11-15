@@ -21,9 +21,9 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Солнце Эдема не заходит: подземные мобы горят на нём, и игрок тоже перегревается. Шкала 0-100 растёт под открытым небом за
- * {@link #FULL_SECONDS} секунд, спадает в тени и быстрее в воде. Пороги: 50 - слабость, 75 - ещё и тошнота, 100 - горишь, пока не
- * остынешь. Сет Frozen и Солнечный нимб не греются вовсе; огненная броня, сет Эдема, броня Странника с Эдема и выше и перк холода - вдвое медленнее.
+ * The sun of Eden does not set: underground mobs burn in it, and the player also overheats. The 0-100 scale grows under open sky over
+ * {@link #FULL_SECONDS} seconds, falls in shade and faster in water. Thresholds: 50 - weakness, 75 - nausea as well, 100 - you burn until you
+ * cool down. The Frozen set and Sun Halo do not heat up at all; fire armor, the Eden set, Wanderer armor from Eden and up, and the cold perk - twice as slowly.
  */
 public class EdenSun {
 
@@ -45,13 +45,13 @@ public class EdenSun {
         data(p).setFloat(KEY, v);
     }
 
-    /** Во сколько раз быстрее обычного греется этот игрок на солнце. */
+    /** How many times faster than normal this player heats up in the sun. */
     public static float rate(EntityPlayer p) {
         if (PerkEffects.wears(p, FROZEN) || com.divinerpgextended.accessory.Accessories.wears(p, com.divinerpgextended.trinket.Trinket.SUN_HALO)) return 0F;
         return PerkEffects.wearsFireArmor(p) || HomeArmor.wears(p, TwilightWorld.EDEN, false) || ArmorData.equippedTier(p) >= 2 || ArmorData.hasEquippedPerk(p, Perk.COLD_AURA) ? 0.5F : 1F;
     }
 
-    /** Секунда игрока. */
+    /** One second of the player. */
     public static void step(EntityPlayer p) {
         float before = heat(p), h = before;
         boolean eden = p.dimension == ConfigurationHelper.eden && Config.edenSun && !p.capabilities.isCreativeMode;

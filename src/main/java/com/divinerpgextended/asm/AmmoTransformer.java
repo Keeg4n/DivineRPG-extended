@@ -17,11 +17,11 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 /**
- * Заряд внутри оружия ({@link com.divinerpgextended.perk.Ammo}): стрелки сами спрашивают инвентарь - "есть ли патрон" и
- * "списать патрон". В луке (ванильном и Divine), стрелках Divine, La Vekor и Пушке порчи эти два вызова идут через
- * {@link AmmoHooks}: сначала заряд оружия в руке, потом инвентарь. На клиенте так же - лук натягивается заряженным.
+ * Loaded ammo inside the weapon ({@link com.divinerpgextended.perk.Ammo}): shooters ask the inventory themselves - "is there ammo" and
+ * "consume ammo". In the bow (vanilla and Divine), Divine shooters, La Vekor and the Corruption Cannon these two calls go through
+ * {@link AmmoHooks}: first the loaded ammo of the weapon in hand, then the inventory. On the client likewise - the bow is drawn loaded.
  * <p>
- * Ванильный лук приходит сюда ещё с именами из игры (yx.b/yx.a с описанием (Ladb;)Z), классы Divine - с именами SRG.
+ * The vanilla bow arrives here still with game names (yx.b/yx.a with descriptor (Ladb;)Z), Divine classes - with SRG names.
  */
 public class AmmoTransformer implements IClassTransformer, Opcodes {
 
@@ -50,7 +50,7 @@ public class AmmoTransformer implements IClassTransformer, Opcodes {
                     if (!OWNERS.contains(c.owner) || !DESCS.contains(c.desc)) continue;
                     boolean has = HAS.contains(c.name);
                     if (!has && !CONSUME.contains(c.name)) continue;
-                    // в ванильном классе имена ещё из игры: "a"/"b" с этим описанием в InventoryPlayer только эти два
+                    // in the vanilla class the names are still the game ones: "a"/"b" with this descriptor in InventoryPlayer are only these two
                     if (c.owner.equals("yx") != c.desc.equals("(Ladb;)Z")) continue;
                     c.setOpcode(INVOKESTATIC);
                     c.owner = HOOKS;
@@ -61,15 +61,15 @@ public class AmmoTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (n == 0) {
-                LOG.warn("Заряд оружия: в {} не нашлось вопросов к инвентарю - оружие стреляет только из инвентаря", transformedName);
+                LOG.warn("Weapon charge: no inventory queries found in {} - the weapon fires from the inventory only", transformedName);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Заряд оружия: {} берёт патроны сначала из заряда ({} мест)", transformedName, n);
+            LOG.info("Weapon charge: {} takes ammo from the charge first ({} places)", transformedName, n);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Заряд оружия: не удалось подключиться к " + transformedName + ", класс без изменений", t);
+            LOG.error("Weapon charge: could not hook into " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }

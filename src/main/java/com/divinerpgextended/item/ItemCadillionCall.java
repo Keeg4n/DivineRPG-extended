@@ -19,7 +19,7 @@ import com.divinerpgextended.world.CadillionWorld;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Зов великого кадиллиона: призывает босса на алтаре его гнезда (или где угодно в его мире, если summonOnlyInLairs выключен). */
+/** Call of the Great Cadillion: summons the boss at the altar of its nest (or anywhere in its dimension if summonOnlyInLairs is off). */
 public class ItemCadillionCall extends Item {
 
     private static final int[] COLORS = { 0xF2D24B, 0x4FB848, 0xC45AD8, 0xD8E6F5 };
@@ -57,7 +57,7 @@ public class ItemCadillionCall extends Item {
             return true;
         }
         if (com.divinerpgextended.Config.summonOnlyInLairs && !player.capabilities.isCreativeMode) {
-            // алтарь гнезда сам принимает Зов (клик по нему сюда не доходит); здесь - клик мимо алтаря
+            // the nest altar accepts the Call itself (a click on it does not reach here); here - a click past the altar
             player.addChatMessage(new ChatComponentTranslation("dre.chat.call_at_nest"));
             return true;
         }
@@ -67,7 +67,7 @@ public class ItemCadillionCall extends Item {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.call_no_space"));
             return true;
         }
-        if (!com.divinerpgextended.boss.BossArena.clearField(world, x, y + 1, z)) { // вне гнезда - нужна поляна, как у Гайи
+        if (!com.divinerpgextended.boss.BossArena.clearField(world, x, y + 1, z)) { // outside the nest - a glade is needed, as with Gaia
             player.addChatMessage(new ChatComponentTranslation("dre.chat.summon_space", com.divinerpgextended.Config.bossSummonClearRadius));
             return true;
         }

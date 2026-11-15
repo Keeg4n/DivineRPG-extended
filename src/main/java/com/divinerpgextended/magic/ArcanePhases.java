@@ -21,15 +21,15 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Фазы боссов, где решает арканный урон.
+ * Boss phases where arcane damage decides.
  * <ul>
- * <li>Боссов Арканы (Драмикс, Парасекта) ранят только аркана и взрывы ({@link #hurtsArcanaBoss}); обычный удар не проходит,
- * бившему - подсказка. Ракета Мерика рядом с боссом Арканы берёт целью его, невидимость ей не мешает.</li>
- * <li>Драмикс: пока невидим (полцикла), арканный урон x{@link #DRAMIX_ARCANE}, взрывы - x{@link #DRAMIX_OTHER}.</li>
- * <li>Парасекта: на 75%, 50% и 25% здоровья закрывается хитиновым коконом до {@link #SHELL_TICKS} тиков - взрывы
- * x{@link #SHELL_OTHER}; арканный урон кокон раскалывает ({@link #CRACK} на каждого игрока рядом): кокон спадает, она
- * оглушена и {@link #EXPOSED_TICKS} тиков получает x{@link #EXPOSED}.</li>
- * <li>Души Пожирателя (пока живы, он неуязвим): от арканы гибнут втрое быстрее, от обычного урона - вдвое медленнее.</li>
+ * <li>Arcana bosses (Dramix, Parasecta) are hurt only by arcana and explosions ({@link #hurtsArcanaBoss}); a regular hit does not land,
+ * the attacker gets a hint. Merik's missile near an Arcana boss targets it, invisibility does not hinder it.</li>
+ * <li>Dramix: while invisible (half the cycle), arcane damage x{@link #DRAMIX_ARCANE}, explosions - x{@link #DRAMIX_OTHER}.</li>
+ * <li>Parasecta: at 75%, 50% and 25% health it closes in a chitin cocoon for up to {@link #SHELL_TICKS} ticks - explosions
+ * x{@link #SHELL_OTHER}; arcane damage cracks the cocoon ({@link #CRACK} per player nearby): the cocoon falls off, she is
+ * stunned and for {@link #EXPOSED_TICKS} ticks takes x{@link #EXPOSED}.</li>
+ * <li>Soul Fiend souls (while they are alive, he is invulnerable): die three times faster from arcana, twice as slowly from regular damage.</li>
  * </ul>
  */
 public class ArcanePhases {
@@ -39,7 +39,7 @@ public class ArcanePhases {
     public static final int SHELL_TICKS = 300, EXPOSED_TICKS = 100;
     static final String SHELL_UNTIL = "dreShellUntil", SHELL_LEFT = "dreShellLeft", SHELL_STAGE = "dreShellStage", EXPOSED_UNTIL = "dreExposedUntil";
 
-    /** Арканный ли это удар (снаряд арканного оружия или посоха Ветеи, удар мечом Арканы). */
+    /** Whether this is an arcane hit (a projectile of an arcane weapon or a Vethea staff, an Arcana sword hit). */
     public static boolean arcane(DamageSource s) {
         if (ArcanaCombat.ARCANE.equals(s.damageType)) return true;
         Entity src = s.getSourceOfDamage();
@@ -48,12 +48,12 @@ public class ArcanePhases {
         return t.hasKey(ArcanaCombat.DMG) || t.getBoolean(ArcanaCombat.MOB) && s.getEntity() instanceof EntityPlayer;
     }
 
-    /** Босс Арканы: ранят только аркана и взрывы. */
+    /** Arcana boss: hurt only by arcana and explosions. */
     public static boolean arcanaBoss(Entity e) {
         return e instanceof EntityDramix || e instanceof EntityParasecta;
     }
 
-    /** Проходит ли такой урон по боссу Арканы: аркана, взрыв, пустота и /kill, игрок в творческом. */
+    /** Whether such damage goes through to an Arcana boss: arcana, explosion, void and /kill, a player in creative. */
     public static boolean hurtsArcanaBoss(DamageSource s) {
         if (arcane(s) || s.isExplosion() || s == DamageSource.outOfWorld) return true;
         Entity a = s.getEntity();
@@ -62,7 +62,7 @@ public class ArcanePhases {
 
     static final String HINT_AT = "dreArcBossHint";
 
-    /** Обычный удар по боссу Арканы не проходит (ни урона, ни отброса); бившему раз в 10 с - подсказка. */
+    /** A regular hit on an Arcana boss does not land (no damage, no knockback); the attacker gets a hint once every 10 s. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onAttack(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
         if (e.entityLiving.worldObj.isRemote || !arcanaBoss(e.entityLiving) || hurtsArcanaBoss(e.source)) return;
@@ -70,10 +70,10 @@ public class ArcanePhases {
         Entity a = e.source.getEntity();
         if (!(a instanceof EntityPlayer)) return;
         EntityPlayer p = (EntityPlayer) a;
-        // меч Арканы: обычная часть удара не проходит, а арканный удар (следующим тиком) - проходит
+        // Arcana sword: the regular part of the hit does not land, while the arcane hit (on the next tick) does
         net.minecraft.item.ItemStack h = p.getHeldItem();
         if (e.source.getSourceOfDamage() == p && "player".equals(e.source.damageType) && h != null && ArcanaCombat.arcanaSword(h.getItem())) {
-            // ритм обычных ударов: событие атаки идёт на каждый клик, а босс после попадания полсекунды неуязвим
+            // rhythm of regular hits: the attack event fires on every click, while the boss is invulnerable for half a second after a hit
             EntityLivingBase b = e.entityLiving;
             if (b.hurtResistantTime > b.maxHurtResistantTime / 2 || ArcanaCombat.edgeQueued(b)) return;
             if (ArcanaCombat.edgePaidOnArcanaBoss(p, h.getItem())) ArcanaCombat.queueEdge(b, p);
@@ -108,7 +108,7 @@ public class ArcanePhases {
         EntityLivingBase t = e.entityLiving;
         if (t.worldObj.isRemote) return;
         boolean arc = arcane(e.source);
-        if (arcanaBoss(t) && !hurtsArcanaBoss(e.source)) { // мимо события атаки (шипы, чужие моды) - всё равно ноль
+        if (arcanaBoss(t) && !hurtsArcanaBoss(e.source)) { // bypassing the attack event (thorns, other mods) - still zero
             e.ammount = 0;
             return;
         }
@@ -141,7 +141,7 @@ public class ArcanePhases {
                 e.ammount *= SHELL_OTHER;
                 return;
             }
-            // кокон раскололся
+            // the cocoon cracked
             d.setLong(SHELL_UNTIL, 0);
             d.setLong(EXPOSED_UNTIL, now + EXPOSED_TICKS);
             b.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 60, 5));
@@ -150,7 +150,7 @@ public class ArcanePhases {
             say(b, "dre.chat.parasecta_cracked", EnumChatFormatting.LIGHT_PURPLE);
             return;
         }
-        // порог здоровья: 75%, 50%, 25% - кокон
+        // health threshold: 75%, 50%, 25% - cocoon
         float after = (b.getHealth() - e.ammount) / b.getMaxHealth();
         int stage = d.getInteger(SHELL_STAGE), want = after <= 0.25F ? 3 : after <= 0.5F ? 2 : after <= 0.75F ? 1 : 0;
         if (want > stage && b.getHealth() - e.ammount > 0) {
@@ -162,7 +162,7 @@ public class ArcanePhases {
         }
     }
 
-    /** Кокон Парасекты виден: частицы панциря вокруг неё. */
+    /** Parasecta's cocoon is visible: shell particles around her. */
     @SubscribeEvent
     public void onUpdate(LivingEvent.LivingUpdateEvent e) {
         EntityLivingBase b = e.entityLiving;
@@ -173,7 +173,7 @@ public class ArcanePhases {
         }
     }
 
-    /** Для автотеста: в коконе ли. */
+    /** For the autotest: whether it is in the cocoon. */
     public static boolean shelled(EntityLivingBase b) {
         return b.worldObj.getTotalWorldTime() < b.getEntityData().getLong(SHELL_UNTIL);
     }

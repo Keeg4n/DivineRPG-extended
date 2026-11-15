@@ -1,4 +1,4 @@
-"""Превью концептов дропа мобов: строка на материал - нынешний значок и три варианта. Запуск: python3 mob_drops_preview.py <png>"""
+"""Preview of mob drop concepts: a row per material - the current icon and three variants. Run: python3 mob_drops_preview.py <png>"""
 import os
 import sys
 

@@ -22,31 +22,31 @@ import com.divinerpgextended.registry.ModBlocks;
 import cpw.mods.fml.common.IWorldGenerator;
 
 /**
- * Ледяной Трон в Iceika - подземная арена до бедрока.
+ * The Frozen Throne in Iceika - an underground arena down to bedrock.
  * <p>
- * Место вычисляется из сида мира: один Трон на квадрат throneSpacing x throneSpacing. Постройка огромная (300 блоков
- * арены, шпили по 60 блоков), поэтому её не ставят разом: каждый чанк при заселении сам достраивает свою часть по
- * функции "какой блок в этой точке", прямо в хранилище чанка (без пересчёта света на каждый блок).
+ * The location is computed from the world seed: one Throne per throneSpacing x throneSpacing square. The structure is huge (300 blocks
+ * of arena, spires of 60 blocks), so it is not placed all at once: each chunk, when populated, builds its own part from
+ * the function "which block is at this point", directly in the chunk storage (without recalculating light for every block).
  * <ul>
- * <li>Наверху - цитадель (вершина купола арены): площадка с парапетом, кольцо ледяных колонн, купольный зал радиусом
- * 20 с воротами на юг, у ворот два шпиля по 60 блоков. В зале - тёплые жаровни и два люка винтовых лестниц.</li>
- * <li>Внизу - купол радиусом 150 блоков от пола у бедрока (y=5) до ~66: рёбра из ледяного кирпича, лампы в своде,
- * сосульки, внешнее кольцо колонн до свода и внутреннее кольцо пилонов по 18 блоков с площадкой (на них
- * прыгает Король-лич), 12 жаровен вокруг центра, гигантский трон на севере с алтарём призыва.</li>
- * <li>Две винтовые лестницы спускаются из зала цитадели на пол арены вокруг ледяных столбов.</li>
+ * <li>On top - the citadel (the top of the arena dome): a platform with a parapet, a ring of ice columns, a domed hall of radius
+ * 20 with a gate to the south, and two 60-block spires at the gate. In the hall - warm braziers and two hatches of spiral staircases.</li>
+ * <li>Below - a dome of radius 150 blocks from the floor at bedrock (y=5) to ~66: ribs of ice brick, lamps in the vault,
+ * icicles, an outer ring of columns up to the vault and an inner ring of pylons of 18 blocks with a platform (the
+ * Lich King jumps on them), 12 braziers around the center, a giant throne in the north with a summoning altar.</li>
+ * <li>Two spiral staircases descend from the citadel hall to the arena floor around ice pillars.</li>
  * </ul>
  */
 public class WorldGenThrone implements IWorldGenerator {
 
     public static final int R = 150, FLOOR = 6, TOP = 72, CITADEL = 34;
-    /** Алтарь стоит на помосте трона: от центра арены на ALTAR_DZ к северу, на ALTAR_DY над полом. */
+    /** The altar stands on the throne dais: ALTAR_DZ to the north of the arena center, ALTAR_DY above the floor. */
     public static final int ALTAR_DZ = 37, ALTAR_DY = 3;
     private static final int HALL_R = 20, HALL_H = 17, TOWER_X = 14;
     private static final int KEEP = -1;
 
-    // ---------------------------------------------------------------- место
+    // ---------------------------------------------------------------- location
 
-    /** Центр Трона в области (rx, rz) или null, если Троны выключены. */
+    /** Center of the Throne in area (rx, rz) or null if Thrones are disabled. */
     public static int[] center(long seed, int rx, int rz) {
         int g = Config.throneSpacing;
         if (g <= 0) return null;
@@ -56,7 +56,7 @@ public class WorldGenThrone implements IWorldGenerator {
             rz * g + margin + r.nextInt(Math.max(1, g - 2 * margin)) };
     }
 
-    /** Ближайший к точке Трон (смотрим свою и соседние области). */
+    /** The Throne nearest to the point (we look at its own and neighboring areas). */
     public static int[] nearest(long seed, double x, double z) {
         int g = Config.throneSpacing;
         if (g <= 0) return null;
@@ -77,7 +77,7 @@ public class WorldGenThrone implements IWorldGenerator {
     @Override
     public void generate(Random rand, int chunkX, int chunkZ, World world, IChunkProvider gen, IChunkProvider prov) {
         if (world.provider.dimensionId != ConfigurationHelper.iceika || Config.throneSpacing <= 0) return;
-        int x0 = chunkX * 16 + 8, z0 = chunkZ * 16 + 8; // область заселения этого чанка
+        int x0 = chunkX * 16 + 8, z0 = chunkZ * 16 + 8; // the population area of this chunk
         int[] c = nearest(world.getSeed(), x0 + 8, z0 + 8);
         if (c == null || Math.abs(c[0] - (x0 + 8)) > R + 16 || Math.abs(c[2] - (z0 + 8)) > R + 16) return;
         buildSlice(world, c[0], c[2], x0, z0);
@@ -85,9 +85,9 @@ public class WorldGenThrone implements IWorldGenerator {
     }
 
     /**
-     * Divine заселяет чанки своими данжами и деревьями со сдвигом относительно нас, и они могут залезть в уже готовую
-     * часть арены (висящий в воздухе данж со снежинками). Поэтому после каждого куска проверяем соседние готовые
-     * куски: где по чертежу воздух, а стоит блок, - убираем его. Неготовые и незагруженные чанки не трогаем.
+     * Divine populates chunks with its own dungeons and trees at an offset relative to ours, and they can intrude into the already finished
+     * part of the arena (a dungeon with snowflakes hanging in the air). So after each piece we check the neighboring finished
+     * pieces: where the blueprint has air but there is a block, we remove it. Unfinished and unloaded chunks are not touched.
      */
     private static void clean(World w, int cx, int cz, int xFrom, int zFrom, int size) {
         int[] col = new int[256 * 2];
@@ -98,7 +98,7 @@ public class WorldGenThrone implements IWorldGenerator {
                 int chx = x >> 4, chz = z >> 4;
                 if (!w.getChunkProvider()
                     .chunkExists(chx, chz)) continue;
-                // кусок, к которому относится столбец, уже построен (его чанк заселён)
+                // the piece the column belongs to is already built (its chunk is populated)
                 int ax = (x - 8) >> 4, az = (z - 8) >> 4;
                 if (!w.getChunkProvider()
                     .chunkExists(ax, az)
@@ -114,13 +114,13 @@ public class WorldGenThrone implements IWorldGenerator {
     }
 
     /**
-     * Запечатать стены и свод: после всех генераторов заселения (и чужих модов, их в сборке много) там, где по чертежу
-     * стена, свод или пол, а стоит воздух, - вернуть блок. Работает только при заселении новых чанков рядом (правки
-     * игроков в уже построенном Троне не трогает) и только в уже построенных кусках.
+     * Seal the walls and vault: after all population generators (and other mods', there are many in the modpack) where the blueprint
+     * has a wall, vault or floor but there is air, restore the block. Works only when populating new chunks nearby (player
+     * edits in an already built Throne are not touched) and only in already built pieces.
      */
     public static class Seal implements IWorldGenerator {
 
-        /** Чем генерация мира подменяла блоки Трона: жидкости и природные блоки Iceika и обычного мира. */
+        /** What world generation replaced Throne blocks with: liquids and natural blocks of Iceika and the overworld. */
         static boolean natural(Block b) {
             if (b.getMaterial().isLiquid()) return true;
             return b == net.divinerpg.utils.blocks.IceikaBlocks.frozenStone || b == net.divinerpg.utils.blocks.IceikaBlocks.frozenDirt
@@ -138,18 +138,18 @@ public class WorldGenThrone implements IWorldGenerator {
             for (int x = x0 - 16; x < x0 + 32; x++) for (int z = z0 - 16; z < z0 + 32; z++) {
                 int dx = x - c[0], dz = z - c[2];
                 if (!w.getChunkProvider().chunkExists(x >> 4, z >> 4)) continue;
-                int ax = (x - 8) >> 4, az = (z - 8) >> 4; // кусок столбца уже построен
+                int ax = (x - 8) >> 4, az = (z - 8) >> 4; // the column piece is already built
                 if (!w.getChunkProvider().chunkExists(ax, az) || !w.getChunkFromChunkCoords(ax, az).isTerrainPopulated || !column(dx, dz, col)) continue;
                 for (int y = FLOOR; y < 250; y++) {
                     int code = col[y * 2];
                     if (code == KEEP || code == LAMP || code == BRAZIER) continue;
                     Block now = w.getBlock(x, y, z);
-                    // внутри зала - убрать натёкшее и наросшее (лава, вода, замороженный камень пещер Iceika)
+                    // inside the hall - remove what has flowed in and grown (lava, water, frozen stone of Iceika caves)
                     if (code == AIR) {
                         if (natural(now)) w.setBlock(x, y, z, Blocks.air, 0, 2);
                         continue;
                     }
-                    // стена и свод: дыру - заложить, подменённый генерацией блок - вернуть по чертежу
+                    // wall and vault: fill a hole, restore a block replaced by generation according to the blueprint
                     Block want = block(code);
                     if (now != want && (w.isAirBlock(x, y, z) || natural(now))) w.setBlock(x, y, z, want, col[y * 2 + 1], 2);
                 }
@@ -157,7 +157,7 @@ public class WorldGenThrone implements IWorldGenerator {
         }
     }
 
-    // ---------------------------------------------------------------- запись в чанки
+    // ---------------------------------------------------------------- writing to chunks
 
     private static void buildSlice(World w, int cx, int cz, int x0, int z0) {
         Set<Chunk> touched = new HashSet<Chunk>();
@@ -193,7 +193,7 @@ public class WorldGenThrone implements IWorldGenerator {
             ch.setChunkModified();
         }
         for (int[] l : lights) relight(w, l[0], l[1], l[2]);
-        // свет ламп соседних, уже построенных кусков: здесь он был посчитан по старым блокам (камень там, где теперь ход) - заново
+        // light of lamps of neighboring, already built pieces: here it was computed from the old blocks (stone where there is now a passage) - again
         for (int x = x0 - 15; x < x0 + 31; x++) {
             for (int z = z0 - 15; z < z0 + 31; z++) {
                 if (x >= x0 && x < x0 + 16 && z >= z0 && z < z0 + 16 || !w.blockExists(x, 64, z) || !column(x - cx, z - cz, col)) continue;
@@ -206,8 +206,8 @@ public class WorldGenThrone implements IWorldGenerator {
     }
 
     /**
-     * Свет лампы: игра молча не считает его, если в 17 блоках есть несозданный чанк (у края строящегося Трона - всегда).
-     * Такие лампы ждут в очереди мира, пока соседи не появятся ({@link #flush}).
+     * Lamp light: the game silently does not compute it if there is an uncreated chunk within 17 blocks (at the edge of a Throne being built - always).
+     * Such lamps wait in the world queue until the neighbors appear ({@link #flush}).
      */
     private static final java.util.Map<World, Set<Long>> PENDING = new java.util.WeakHashMap<World, Set<Long>>();
 
@@ -222,21 +222,21 @@ public class WorldGenThrone implements IWorldGenerator {
     }
 
     /**
-     * Разлить свет лампы заново: игра пересчитывает только при изменении света в самой точке, а у горящей лампы он и так
-     * 15 - поэтому сначала ноль.
+     * Spread the lamp light again: the game recalculates only when the light at the point itself changes, and a burning lamp already has
+     * 15 - so zero first.
      */
     private static void spread(World w, int x, int y, int z) {
         w.setLightValue(net.minecraft.world.EnumSkyBlock.Block, x, y, z, 0);
         w.updateLightByType(net.minecraft.world.EnumSkyBlock.Block, x, y, z);
     }
 
-    /** Сколько ламп ждёт пересчёта света (для замеров и автотеста). */
+    /** How many lamps are waiting for a light recalculation (for measurements and selftest). */
     public static int pending(World w) {
         Set<Long> q = PENDING.get(w);
         return q == null ? 0 : q.size();
     }
 
-    /** Досчитать свет ламп из очереди, вокруг которых чанки уже есть. */
+    /** Finish the light of queued lamps around which the chunks already exist. */
     public static int flush(World w) {
         Set<Long> q = PENDING.get(w);
         if (q == null || q.isEmpty()) return 0;
@@ -254,7 +254,7 @@ public class WorldGenThrone implements IWorldGenerator {
         return n;
     }
 
-    /** Раз в секунду - очередь света Тронов. */
+    /** Once per second - the Throne light queue. */
     public static class Relight {
 
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
@@ -264,8 +264,8 @@ public class WorldGenThrone implements IWorldGenerator {
     }
 
     /**
-     * В Троне мобы сами не появляются (ни Iceika, ни чужие - Grimoire of Gaia и прочие): не зависит от света, в огромном
-     * куполе его не уследить во всех углах. Спавнеров там нет, боссов и их подручных вызывают отдельно.
+     * Mobs do not spawn by themselves in the Throne (neither Iceika's nor others' - Grimoire of Gaia and the rest): it does not depend on light, in the huge
+     * dome it cannot be tracked in all corners. There are no spawners, bosses and their minions are summoned separately.
      */
     public static class NoSpawns {
 
@@ -276,7 +276,7 @@ public class WorldGenThrone implements IWorldGenerator {
         }
     }
 
-    // ---------------------------------------------------------------- что где стоит
+    // ---------------------------------------------------------------- what stands where
 
     private static final int AIR = 0, ICY = 1, SNOW = 2, PACKED = 3, STONE = 4, GLASS = 5, LAMP = 6, BRAZIER = 7,
         ALTAR = 8;
@@ -318,10 +318,10 @@ public class WorldGenThrone implements IWorldGenerator {
     }
 
     /**
-     * Точка внутри Трона или впритык к нему: купол арены со сводом (с запасом на размер озера или подземелья) и цитадель
-     * со шпилями. Генераторы заселения Iceika сюда не ставят ({@link com.divinerpgextended.asm.IceikaThroneHooks}).
+     * A point inside the Throne or right next to it: the arena dome with the vault (with a margin for the size of a lake or dungeon) and the citadel
+     * with spires. Iceika population generators do not place anything here ({@link com.divinerpgextended.asm.IceikaThroneHooks}).
      */
-    /** На сколько блоков от своей точки дотягиваются генераторы заселения Iceika. */
+    /** How many blocks from their own point Iceika population generators reach. */
     static final int REACH = 32;
 
     public static boolean shields(World w, int x, int y, int z) {
@@ -329,12 +329,12 @@ public class WorldGenThrone implements IWorldGenerator {
         int[] c = nearest(w.getSeed(), x, z);
         double d = Math.sqrt((x - c[0]) * (x - c[0]) + (z - c[2]) * (z - c[2]));
         if (d <= CITADEL + 16) return y <= TOP + 64;
-        // постройки Divine (подземелье Роллума и т.п.) тянутся от точки до ~24 блоков: свод берём в самой внутренней
-        // точке, докуда они достанут (замер: подземелье в 172 блоках от центра выгрызло стену у края купола)
+        // Divine structures (the Rollum dungeon etc.) stretch from the point up to ~24 blocks: we take the vault at the innermost
+        // point they can reach (measured: a dungeon 172 blocks from the center gnawed through the wall at the edge of the dome)
         return d <= R + REACH && y <= ceil(Math.min(Math.max(d - REACH, 0), R - 1)) + 3 + 20;
     }
 
-    /** Точка в Троне или ближе margin блоков к его краю (по горизонтали, на любой высоте). */
+    /** A point in the Throne or closer than margin blocks to its edge (horizontally, at any height). */
     public static boolean near(World w, int x, int z, int margin) {
         if (w.provider.dimensionId != ConfigurationHelper.iceika || Config.throneSpacing <= 0) return false;
         int[] c = nearest(w.getSeed(), x, z);
@@ -342,13 +342,13 @@ public class WorldGenThrone implements IWorldGenerator {
         return dx * dx + dz * dz <= (double) (R + 4 + margin) * (R + 4 + margin);
     }
 
-    /** Нижняя граница свода арены над точкой на расстоянии r от центра. */
+    /** The lower boundary of the arena vault above a point at distance r from the center. */
     private static int ceil(double r) {
         if (r >= R) return FLOOR + 12;
         return FLOOR + 12 + (int) (48 * Math.sqrt(1 - (r / R) * (r / R)));
     }
 
-    /** Ближайший центр колонны кольца (радиус ring, count штук) и расстояние до него. */
+    /** The nearest center of a column of the ring (radius ring, count pieces) and the distance to it. */
     private static double ringDist(double dx, double dz, double ring, int count, double phase) {
         double a = Math.atan2(dz, dx) - phase, step = Math.PI * 2 / count;
         double k = Math.round(a / step);
@@ -357,16 +357,16 @@ public class WorldGenThrone implements IWorldGenerator {
         return Math.sqrt((dx - px) * (dx - px) + (dz - pz) * (dz - pz));
     }
 
-    /** Колонна-"песочные часы": толще у пола и у свода. */
+    /** An "hourglass" column: thicker at the floor and at the vault. */
     private static double hourglass(int y, int lo, int hi, double rMid, double rEnd) {
         double t = (y - lo) / (double) Math.max(1, hi - lo);
         return rMid + (rEnd - rMid) * Math.abs(t - 0.5) * 2;
     }
 
     /**
-     * Сверка построенного Трона с чертежом (для автотеста): {лишних блоков там, где по чертежу воздух; дыр - воздуха там,
-     * где по чертежу стена или свод; подмен - природного блока или жидкости вместо стены}; в out - первые примеры.
-     * Только столбцы в загруженных чанках.
+     * Compare the built Throne with the blueprint (for selftest): {extra blocks where the blueprint has air; holes - air where
+     * the blueprint has a wall or vault; replacements - a natural block or liquid instead of a wall}; out gets the first examples.
+     * Only columns in loaded chunks.
      */
     public static int[] audit(World w, int cx, int cz, StringBuilder out) {
         int[] col = new int[256 * 2], n = new int[3];
@@ -378,12 +378,12 @@ public class WorldGenThrone implements IWorldGenerator {
                 if (code == KEEP) continue;
                 boolean air = w.isAirBlock(x, y, z);
                 if (code == AIR && !air) {
-                    if (n[0]++ < 4) out.append("лишний ").append(dx).append(",").append(y).append(",").append(dz).append(" ")
+                    if (n[0]++ < 4) out.append("extra ").append(dx).append(",").append(y).append(",").append(dz).append(" ")
                         .append(Block.blockRegistry.getNameForObject(w.getBlock(x, y, z))).append("; ");
                 } else if (code != AIR && air && code != LAMP && code != BRAZIER) {
-                    if (n[1]++ < 4) out.append("дыра ").append(dx).append(",").append(y).append(",").append(dz).append(" код ").append(code).append("; ");
+                    if (n[1]++ < 4) out.append("hole ").append(dx).append(",").append(y).append(",").append(dz).append(" code ").append(code).append("; ");
                 } else if (code != AIR && code != LAMP && code != BRAZIER && !air && w.getBlock(x, y, z) != block(code) && Seal.natural(w.getBlock(x, y, z))) {
-                    if (n[2]++ < 4) out.append("подмена ").append(dx).append(",").append(y).append(",").append(dz).append(" ")
+                    if (n[2]++ < 4) out.append("substitution ").append(dx).append(",").append(y).append(",").append(dz).append(" ")
                         .append(Block.blockRegistry.getNameForObject(w.getBlock(x, y, z))).append("; ");
                 }
             }
@@ -391,21 +391,21 @@ public class WorldGenThrone implements IWorldGenerator {
         return n;
     }
 
-    /** Заполняет col[y] = {код блока, мета} для столбца (dx, dz) от центра. false - столбец не трогаем. */
+    /** Fills col[y] = {block code, meta} for the column (dx, dz) from the center. false - the column is not touched. */
     private static boolean column(int dx, int dz, int[] col) {
         double r = Math.sqrt(dx * dx + dz * dz);
         if (r > R + 4 && !inSpire(dx, dz)) return false;
         for (int i = 0; i < col.length; i += 2) col[i] = KEEP;
 
-        // ---- арена
+        // ---- arena
         int ce = ceil(r);
         if (r < R) {
             boolean ring = ((int) r / 8) % 2 == 0;
             put(col, FLOOR - 1, r < 12 || ring ? ICY : SNOW, 0);
-            // лампы в полу сеткой со сдвигом через 5 блоков: свет на всём полу не ниже 8, мобы (и чужие, Grimoire of Gaia) не родятся
+            // lamps in the floor in a grid shifted every 5 blocks: light on the whole floor is at least 8, mobs (including others', Grimoire of Gaia) do not spawn
             if (Math.floorMod(dx, 5) == 0 && Math.floorMod(dz + (Math.floorMod(Math.floorDiv(dx, 5), 2) == 0 ? 0 : 2), 5) == 0) put(col, FLOOR - 1, LAMP, 0);
             for (int y = FLOOR; y < ce; y++) put(col, y, AIR, 0);
-            // свод: рёбра из ледяного кирпича каждые 15 градусов, между ними паковый лёд
+            // vault: ribs of ice brick every 15 degrees, packed ice between them
             double ang = Math.toDegrees(Math.atan2(dz, dx)) + 360;
             boolean rib = ang % 15 < 1.6;
             for (int y = ce; y < ce + 3; y++) put(col, y, rib ? ICY : PACKED, 0);
@@ -414,7 +414,7 @@ public class WorldGenThrone implements IWorldGenerator {
                 int len = 1 + hash(dz, dx) % 4;
                 for (int y = ce - len; y < ce; y++) put(col, y, PACKED, 0);
             }
-            // кольца колонн
+            // rings of columns
             double pa = ringDist(dx, dz, 115, 32, 0), pb = ringDist(dx, dz, 70, 16, Math.PI / 16);
             for (int y = FLOOR; y < ce; y++) {
                 if (pa <= hourglass(y, FLOOR, ce, 2.5, 4.5)) put(col, y, y < FLOOR + 3 ? ICY : PACKED, 0);
@@ -422,27 +422,27 @@ public class WorldGenThrone implements IWorldGenerator {
             int pylon = FLOOR + 18;
             for (int y = FLOOR; y <= pylon; y++) {
                 if (pb <= 2.2 && y < pylon) put(col, y, y < FLOOR + 3 ? ICY : PACKED, 0);
-                if (pb <= 3.4 && y >= pylon - 1) put(col, y, ICY, 0); // площадка наверху
+                if (pb <= 3.4 && y >= pylon - 1) put(col, y, ICY, 0); // platform on top
             }
-            if (pb < 0.75) put(col, pylon, LAMP, 0); // и лампа в её центре
-            // жаровни вокруг центра
+            if (pb < 0.75) put(col, pylon, LAMP, 0); // and a lamp in its center
+            // braziers around the center
             if (ringDist(dx, dz, 30, 12, 0) < 0.5) {
                 put(col, FLOOR, ICY, 0);
                 put(col, FLOOR + 1, BRAZIER, 1);
             }
             throne(dx, dz, col);
         } else {
-            for (int y = FLOOR - 1; y < FLOOR + 15; y++) put(col, y, ICY, 0); // стена у края
+            for (int y = FLOOR - 1; y < FLOOR + 15; y++) put(col, y, ICY, 0); // wall at the edge
         }
 
-        // ---- цитадель наверху
+        // ---- citadel on top
         if (r <= CITADEL) {
-            for (int y = ce + 3; y < TOP; y++) put(col, y, STONE, 0); // толща между сводом и площадкой
+            for (int y = ce + 3; y < TOP; y++) put(col, y, STONE, 0); // the thickness between the vault and the platform
             boolean rim = r > CITADEL - 2;
             put(col, TOP, rim ? ICY : r < HALL_R - 1 ? ((dx + dz & 1) == 0 ? ICY : SNOW) : SNOW, 0);
             for (int y = TOP + 1; y <= TOP + 60; y++) put(col, y, AIR, 0);
             if (rim && r > CITADEL - 1 && (dx + dz) % 2 == 0) put(col, TOP + 1, ICY, 0);
-            // кольцо колонн во дворе
+            // ring of columns in the courtyard
             if (ringDist(dx, dz, 27, 12, Math.PI / 12) < 0.5 && !(dz < -24 && Math.abs(dx) < 9)) {
                 put(col, TOP + 1, ICY, 0);
                 for (int y = TOP + 2; y <= TOP + 8; y++) put(col, y, PACKED, 0);
@@ -456,7 +456,7 @@ public class WorldGenThrone implements IWorldGenerator {
         return true;
     }
 
-    /** Купольный зал цитадели с воротами на юг, лампами, сосульками и четырьмя тёплыми жаровнями. */
+    /** The citadel's domed hall with a gate to the south, lamps, icicles and four warm braziers. */
     private static void hall(int dx, int dz, double r, int[] col) {
         for (int dy = 1; dy <= HALL_H + 1; dy++) {
             double d = Math.sqrt((dx / (double) HALL_R) * (dx / (double) HALL_R) + (dy / (double) HALL_H) * (dy / (double) HALL_H)
@@ -499,7 +499,7 @@ public class WorldGenThrone implements IWorldGenerator {
         return false;
     }
 
-    /** Два шпиля у ворот: 60 блоков, у основания радиус 5. */
+    /** Two spires at the gate: 60 blocks, radius 5 at the base. */
     private static void spires(int dx, int dz, int[] col) {
         for (int side = -1; side <= 1; side += 2) {
             int sx = dx - side * 9, sz = dz + 26;
@@ -511,11 +511,11 @@ public class WorldGenThrone implements IWorldGenerator {
                 if (rr <= rad) put(col, TOP + dy, dy < h / 3 ? ICY : PACKED, 0);
             }
             if (rr < 0.5) put(col, TOP + h + 1, LAMP, 0);
-            for (int y = TOP - 6; y <= TOP; y++) if (rr <= 5) put(col, y, ICY, 0); // фундамент
+            for (int y = TOP - 6; y <= TOP; y++) if (rr <= 5) put(col, y, ICY, 0); // foundation
         }
     }
 
-    /** Винтовые лестницы вокруг ледяных столбов: из зала цитадели на пол арены. */
+    /** Spiral staircases around ice pillars: from the citadel hall to the arena floor. */
     private static void towers(int dx, int dz, int[] col) {
         for (int side = -1; side <= 1; side += 2) {
             int tx = dx - side * TOWER_X, tz = dz;
@@ -527,12 +527,12 @@ public class WorldGenThrone implements IWorldGenerator {
             if (a < 0) a += Math.PI * 2;
             int sector = (int) (a / (Math.PI * 2 / 16));
             for (int y = FLOOR; y <= TOP; y++) {
-                if (y >= ce) put(col, y, AIR, 0); // шахта сквозь свод и толщу
+                if (y >= ce) put(col, y, AIR, 0); // shaft through the vault and the thickness
                 int stepSector = ((y - FLOOR) % 16 + 16) % 16;
-                if (rt <= 1.5) put(col, y, rt > 0.9 && (y - FLOOR) % 2 == 0 ? LAMP : ICY, 0); // столб, в нём пояса ламп над ступенями
-                else if (rt <= 4.6 && sector == stepSector) put(col, y, rt > 3.6 && (y - FLOOR) % 3 == 0 ? LAMP : ICY, 0); // ступень, у края каждой третьей - лампа
+                if (rt <= 1.5) put(col, y, rt > 0.9 && (y - FLOOR) % 2 == 0 ? LAMP : ICY, 0); // pillar, with belts of lamps above the steps in it
+                else if (rt <= 4.6 && sector == stepSector) put(col, y, rt > 3.6 && (y - FLOOR) % 3 == 0 ? LAMP : ICY, 0); // step, a lamp at the edge of every third one
                 else if (rt > 4.6 && rt <= 5.4 && sector == ((y - 1 - FLOOR) % 16 + 16) % 16 && y > FLOOR) {
-                    put(col, y, PACKED, 0); // перильце
+                    put(col, y, PACKED, 0); // railing
                 }
             }
             if (rt <= 1.5) put(col, TOP + 1, ICY, 0);
@@ -540,7 +540,7 @@ public class WorldGenThrone implements IWorldGenerator {
         }
     }
 
-    /** Гигантский трон на севере арены: помост в три ступени, сиденье, подлокотники, спинка с шипами, алтарь. */
+    /** The giant throne in the north of the arena: a dais of three steps, a seat, armrests, a back with spikes, an altar. */
     private static void throne(int dx, int dz, int[] col) {
         int tz = dz - 40;
         double rd = Math.sqrt(dx * dx + tz * tz);
@@ -552,10 +552,10 @@ public class WorldGenThrone implements IWorldGenerator {
             put(col, FLOOR + ALTAR_DY + 1, AIR, 0);
         }
         int ax = Math.abs(dx);
-        if (ax <= 2 && tz >= 0 && tz <= 3) for (int y = FLOOR + 3; y <= FLOOR + 4; y++) put(col, y, PACKED, 0); // сиденье
+        if (ax <= 2 && tz >= 0 && tz <= 3) for (int y = FLOOR + 3; y <= FLOOR + 4; y++) put(col, y, PACKED, 0); // seat
         if (ax >= 3 && ax <= 4 && tz >= 0 && tz <= 3) for (int y = FLOOR + 3; y <= FLOOR + 6; y++) put(col, y, ICY, 0);
         if (ax <= 4 && tz >= 4 && tz <= 5) {
-            for (int y = FLOOR + 3; y <= FLOOR + 18; y++) put(col, y, ICY, 0); // спинка
+            for (int y = FLOOR + 3; y <= FLOOR + 18; y++) put(col, y, ICY, 0); // back
             if (tz == 4 && ax % 2 == 0) {
                 int spike = ax == 0 ? 7 : ax == 2 ? 5 : 3;
                 for (int y = FLOOR + 19; y < FLOOR + 19 + spike; y++) put(col, y, PACKED, 0);

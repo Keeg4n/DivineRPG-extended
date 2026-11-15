@@ -8,12 +8,12 @@ import net.minecraft.world.World;
 import com.divinerpgextended.world.twilight.TwilightWorld;
 
 /**
- * Небесный хват, Скайтерн: кружит над целью, пикирует, хватает и несёт строго вверх на {@link #LIFT} блоков, а там роняет на то же место.
- * Сет Терна падает мягко, защита от отброса 1.0 (Каменная стена, нерушимость) не даёт себя поднять. Сильный удар в полёте заставляет выпустить.
+ * Sky Grabber, Skythern: circles over the target, dives, grabs it and carries it straight up {@link #LIFT} blocks, and there drops it at the same spot.
+ * The Skythern set falls softly, knockback protection 1.0 (Stone Wall, indestructibility) does not let it lift you. A strong hit in flight makes it let go.
  */
 public class EntitySkyGrabber extends EntityMiniBoss {
 
-    public static final double HEALTH = 180; // моб Скайтерна 80 x2.25, страж 600
+    public static final double HEALTH = 180; // Skythern mob 80 x2.25, guardian 600
     public static final int DIVE_EVERY = 240, MAX_CARRY = 60;
     public static final double LIFT = 15, GRAB_REACH = 3;
     public static final float BREAK_HIT = 0.1F;
@@ -49,7 +49,7 @@ public class EntitySkyGrabber extends EntityMiniBoss {
         return held;
     }
 
-    /** Схватить, если цель рядом и её можно сдвинуть. */
+    /** Grab, if the target is nearby and can be moved. */
     public boolean grab(EntityPlayer t) {
         if (held != null || getDistanceToEntity(t) > GRAB_REACH) return false;
         t.attackEntityFrom(DamageSource.causeMobDamage(this), (float) baseDamage() * 0.5F);
@@ -63,7 +63,7 @@ public class EntitySkyGrabber extends EntityMiniBoss {
         return true;
     }
 
-    /** Тик полёта с добычей: вверх на месте, игрок висит под лапами. */
+    /** A flight tick with prey: straight up in place, the player hangs under the paws. */
     public void carry() {
         if (held == null) return;
         carried++;
@@ -105,6 +105,6 @@ public class EntitySkyGrabber extends EntityMiniBoss {
             return;
         }
         steer(t.posX, t.posY + 1, t.posZ, 0.12, 0.8);
-        if (!grab(t) && dive < -100) dive = DIVE_EVERY; // не догнал за 5 секунд - снова наверх
+        if (!grab(t) && dive < -100) dive = DIVE_EVERY; // did not catch up in 5 seconds - up again
     }
 }

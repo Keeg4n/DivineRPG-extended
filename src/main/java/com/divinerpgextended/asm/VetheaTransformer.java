@@ -17,12 +17,12 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Ветея у Divine, через {@link VetheaHooks}:
+ * Divine's Vethea, through {@link VetheaHooks}:
  * <ul>
- * <li>алтарь наполнения: результат и трата глыб считает аддон ({@link com.divinerpgextended.vethea.Infusion}) - глыб
- * можно положить больше нужного, есть рецепты крыльев и лунного оружия;</li>
- * <li>Лхейву бьёт кто угодно (у Divine - только с Поясом хейвы в инвентаре): кем её бить, решают слабости мобов;</li>
- * <li>Шахтёрский амулет работает из слота аксессуаров, а не из инвентаря.</li>
+ * <li>infusion altar: the result and the boulder cost are computed by the addon ({@link com.divinerpgextended.vethea.Infusion}) - more
+ * boulders than needed can be put in, there are recipes for wings and lunar weapons;</li>
+ * <li>L Heiva can be hit by anyone (in Divine - only with the Heiva Belt in the inventory): what to hit her with is decided by mob weaknesses;</li>
+ * <li>the Miner's Amulet works from the accessory slot, not from the inventory.</li>
  * </ul>
  */
 public class VetheaTransformer implements IClassTransformer, Opcodes {
@@ -45,7 +45,7 @@ public class VetheaTransformer implements IClassTransformer, Opcodes {
             int n = 0;
             for (MethodNode m : node.methods) {
                 if (transformedName.equals(TABLE) && ("func_145845_h".equals(m.name) || "updateEntity".equals(m.name)) && "()V".equals(m.desc)) {
-                    // inventory считает аддон, затем TileEntity.updateEntity
+                    // the addon computes the inventory, then TileEntity.updateEntity
                     InsnList l = new InsnList();
                     l.add(new VarInsnNode(ALOAD, 0));
                     l.add(new FieldInsnNode(GETFIELD, node.name, "inventory", "[Lnet/minecraft/item/ItemStack;"));
@@ -87,10 +87,10 @@ public class VetheaTransformer implements IClassTransformer, Opcodes {
             if (n == 0) return bytes;
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Ветея: {} - {} правок", transformedName, n);
+            LOG.info("Vethea: {} - {} edits", transformedName, n);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Ветея: не удалось исправить " + transformedName + ", класс без изменений", t);
+            LOG.error("Vethea: could not fix " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }

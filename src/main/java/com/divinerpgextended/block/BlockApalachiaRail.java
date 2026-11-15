@@ -9,9 +9,9 @@ import net.minecraft.world.World;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Рельс Апалачии на полу: обычный ванильный рельс (повороты, наклоны, любые вагонетки) с текстурой Апалачии. Рельсы
- * Апалачии Divine сделаны на основе золотых и потому не поворачивают. Ставится предметом Рельсы Апалачии
- * ({@link com.divinerpgextended.item.ItemApalachiaRails}) и в него же ломается.
+ * Apalachia Rail on the floor: an ordinary vanilla rail (turns, slopes, any minecarts) with the Apalachia texture. Divine's Apalachia
+ * Rails are made on a golden basis and so do not turn. Placed by the Apalachia Rails item
+ * ({@link com.divinerpgextended.item.ItemApalachiaRails}) and breaks back into it.
  */
 public class BlockApalachiaRail extends BlockRail {
 
@@ -19,7 +19,7 @@ public class BlockApalachiaRail extends BlockRail {
         setHardness(0.7F);
         setStepSound(soundTypeMetal);
         setBlockName("dre.apalachiaRail");
-        setBlockTextureName("divinerpgextended:apalachia_rail"); // и apalachia_rail_turned - поворот
+        setBlockTextureName("divinerpgextended:apalachia_rail"); // and apalachia_rail_turned - the turn
     }
 
     @Override

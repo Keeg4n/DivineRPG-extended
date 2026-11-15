@@ -12,7 +12,7 @@ import org.lwjgl.opengl.GL11;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Слизень слизневого меча: ванильная модель слизня (ядро и полупрозрачная оболочка), в прыжке вытягивается. */
+/** Slime of the slime sword: the vanilla slime model (core and translucent shell), stretches when jumping. */
 @SideOnly(Side.CLIENT)
 public class RenderSummonSlime extends RenderLiving {
 

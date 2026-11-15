@@ -12,7 +12,7 @@ import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 
-/** Запертый сундук: 27 ячеек, заперт ли, сторона (2-5 как у ванильного сундука), крышка открывается как у ванильного. */
+/** Locked Chest: 27 cells, whether it is locked, side (2-5 as with a vanilla chest), the lid opens as with a vanilla one. */
 public class TileLockedChest extends TileEntity implements IInventory {
 
     private final ItemStack[] items = new ItemStack[27];
@@ -25,7 +25,7 @@ public class TileLockedChest extends TileEntity implements IInventory {
         return BlockLockedChest.Kind.of(getBlockMetadata());
     }
 
-    /** Отпереть: добыча своего вида раскладывается по случайным ячейкам. */
+    /** Unlock: loot of its kind is scattered over random cells. */
     public void unlock(Random r) {
         if (!locked) return;
         locked = false;

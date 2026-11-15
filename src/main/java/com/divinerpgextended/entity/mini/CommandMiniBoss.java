@@ -5,7 +5,7 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChatComponentTranslation;
 
-/** /dreminiboss - для проверки: поставить мини-босса этого мира рядом. */
+/** /dreminiboss - for testing: place this dimension's mini-boss nearby. */
 public class CommandMiniBoss extends CommandBase {
 
     @Override

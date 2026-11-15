@@ -35,11 +35,11 @@ import com.divinerpgextended.registry.ModItems;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Джек о'Мэн:
+ * Jack O Man:
  * <ul>
- * <li>скупает ночной хлам за теневые монеты (сделки в конце списка);</li>
- * <li>охота за головами: мобы роняют головы (2% + 1% за уровень Добычи), Джек на заказ делает из голов, материала и
- * монет бижутерию. Присесть + ПКМ с головой (или тыквой) в руке - цена, ещё раз за 5 секунд - заказ.</li>
+ * <li>buys up night junk for Shadow Coins (trades at the end of the list);</li>
+ * <li>head hunting: mobs drop heads (2% + 1% per Looting level), Jack makes jewelry to order from heads, material and
+ * coins. Sneak + right-click holding a head (or a pumpkin) - price, once more within 5 seconds - order.</li>
  * </ul>
  */
 public class JackOMan {
@@ -53,7 +53,7 @@ public class JackOMan {
         p.addChatMessage(c);
     }
 
-    // ---------------- Головы ----------------
+    // ---------------- Heads ----------------
 
     @SubscribeEvent
     public void onDrops(LivingDropsEvent e) {
@@ -69,12 +69,12 @@ public class JackOMan {
             new ItemStack(Items.skull, 1, meta)));
     }
 
-    // ---------------- Джек ----------------
+    // ---------------- Jack ----------------
 
     /**
-     * Этап Джека по прогрессу: 0 - с начала (броня Skeleman); 1 - Карцинус (броня Jack o'Man, тыквенная удочка, скупка
-     * хлама); 2 - Король-лич (броня Wither Reaper, первые три вещи из голов); 3 - Древняя сущность (кольцо иссушения,
-     * тыквенный амулет).
+     * Jack's stage by progress: 0 - from the start (Skeleman armor); 1 - Carcinus (Jack o'Man armor, Pumpkin Fishing Rod, junk
+     * buying); 2 - Lich King (Wither Reaper armor, the first three items made of heads); 3 - Ancient Entity (Wither Ring,
+     * Jack's Pumpkin Amulet).
      */
     static int tier(EntityPlayer p) {
         if (ProgressSync.has(p, Boss.ANCIENT_ENTITY)) return 3;
@@ -89,7 +89,7 @@ public class JackOMan {
         return t == Trinket.WITHER_RING || t == Trinket.JACK_AMULET ? 3 : 2;
     }
 
-    /** Этап, на котором Джек начинает продавать эту вещь из своего списка Divine. */
+    /** The stage at which Jack starts selling this item from his Divine list. */
     private static int tradeTier(ItemStack sell) {
         Item i = sell.getItem();
         if (i == VanillaItemsArmor.witherReaperHelmet || i == VanillaItemsArmor.witherReaperBody || i == VanillaItemsArmor.witherReaperLegs
@@ -103,7 +103,7 @@ public class JackOMan {
     public void onInteract(EntityInteractEvent e) {
         if (!(e.target instanceof EntityJackOMan)) return;
         EntityPlayer p = e.entityPlayer;
-        // Джек торгует только ночью (проверка одинакова на клиенте и сервере - время мира общее)
+        // Jack trades only at night (the check is the same on the client and the server - world time is shared)
         if (p.worldObj.isDaytime()) {
             e.setCanceled(true);
             if (!p.worldObj.isRemote) say(p, EnumChatFormatting.GRAY, "dre.jack.day");
@@ -114,8 +114,8 @@ public class JackOMan {
             if (!p.worldObj.isRemote) order(p);
             return;
         }
-        // Окно торговли Divine строит список на клиенте: пересобираем его на обеих сторонах одинаково, по этапу игрока
-        // (клиент знает этап из ProgressSync). Берём исходный список самого Джека и оставляем то, что уже открыто.
+        // The Divine trade window builds the list on the client: we rebuild it on both sides identically, by the player's stage
+        // (the client knows the stage from ProgressSync). We take Jack's original list and keep what is already unlocked.
         EntityJackOMan jack = (EntityJackOMan) e.target;
         MerchantRecipeList list = jack.getRecipes(p);
         if (list == null) return;
@@ -135,9 +135,9 @@ public class JackOMan {
         }
     }
 
-    // ---------------- Скупка хлама ----------------
+    // ---------------- Junk buying ----------------
 
-    /** Сколько хлама Джек берёт за 1 теневую монету. Монеты дорогие (6 штук крафтятся из рупия и арлемита). */
+    /** How much junk Jack takes for 1 Shadow Coin. Coins are expensive (6 are crafted from rupee and arlemite). */
     private static int junkRate(Item i) {
         if (i == Items.bone || i == Items.rotten_flesh) return 32;
         if (i == Items.string) return 24;
@@ -146,7 +146,7 @@ public class JackOMan {
         return 0;
     }
 
-    /** Больше этого за одну ночь Джек одному игроку не платит. */
+    /** Jack pays one player no more than this in one night. */
     private static final int NIGHT_CAP = 6;
 
     private static void sellJunk(EntityPlayer p, ItemStack held) {
@@ -211,7 +211,7 @@ public class JackOMan {
         return count(p, t.material(), -1) >= t.materialCount && count(p, VanillaItemsOther.shadowCoins, -1) >= t.coins;
     }
 
-    /** Заказ: с головой (или тыквой) в руке - цена, повтор за 5 секунд - сделать. Без них - список заказов. */
+    /** Order: holding a head (or a pumpkin) - price, repeat within 5 seconds - make it. Without them - the list of orders. */
     private static void order(EntityPlayer p) {
         int tier = tier(p);
         ItemStack held = p.getCurrentEquippedItem();

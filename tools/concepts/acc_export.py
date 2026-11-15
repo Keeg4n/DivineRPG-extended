@@ -1,13 +1,13 @@
-"""Выбранные варианты аксессуаров и алтарей -> в мод (запуск в WSL: python3 acc_export.py).
+"""Chosen accessory and altar variants -> into the mod (run in WSL: python3 acc_export.py).
 
-Выбор тестера 09.11 и 10.11: буквы по PDF "Аксессуары, лут, алтари и часы - концепты" (А=0, Б=1, В=2); шарф 22 - посадка А1 из
-переделки (хвост по груди поверх брони), алтарь 6 - Г из переделки; ковёр 28 не трогаем (остаётся как в моде).
+Tester's choice of 09.11 and 10.11: letters from the PDF "Accessories, loot, altars and clock - concepts" (A=0, B=1, V=2); scarf 22 - fit A1 from the
+redo (tail across the chest over the armor), altar 6 - G from the redo; carpet 28 is left alone (stays as in the mod).
 
-Пишет:
-- textures/items/trinket_<ключ>.png - значки 16x16;
-- wear/accessories.txt - посадка на теле: для каждого профиля брони (без брони, обычная броня, 14 обликов Странника) детали
-  на костях ModelBiped: коробки (c) и плоские значки с толщиной (f) со своими спрайтами (s). Рисует client/AccessoryWear;
-- textures/blocks/altar/<имя>_side.png и _top.png - грани алтарей призыва (из ванильных текстур и своего узора).
+Writes:
+- textures/items/trinket_<key>.png - 16x16 icons;
+- wear/accessories.txt - fit on the body: for each armor profile (no armor, regular armor, 14 Wanderer looks) parts
+  on ModelBiped bones: boxes (c) and flat icons with thickness (f) with their own sprites (s). Drawn by client/AccessoryWear;
+- textures/blocks/altar/<name>_side.png and _top.png - faces of the summoning altars (from vanilla textures and a custom pattern).
 """
 import hashlib
 import os
@@ -41,7 +41,7 @@ LOOKS = {'r1': 'r1v', 'r2': 'r2s', 'r3': 'r3v', 'r4': 'r4v', 'r5': 'r5v', 'r6': 
          'r1_shadow': 'r1t', 'r1_bedrock': 'r1k', 'r1_ender': 'r1o', 'r1_corrupted': 'r1r',
          'r8_flight': 'r8m', 'r8_regen': 'r8b', 'r8_arcana': 'r8c'}
 
-# ------------------------------------------------------------------ запись деталей вместо граней
+# ------------------------------------------------------------------ writing parts instead of faces
 
 SPRITES = {}
 
@@ -108,11 +108,11 @@ for mod in (K, W, acc_items1, acc_items2, RD):
     if hasattr(mod, 'sym_x'):
         mod.sym_x = rec_sym
 
-# ------------------------------------------------------------------ профили брони
+# ------------------------------------------------------------------ armor profiles
 
 
 def bare_armor():
-    """Без брони: коробки скина ModelBiped."""
+    """No armor: ModelBiped skin boxes."""
     s = [('head', np.array((-4, -8, -4.)), np.array((4, 0, 4.))), ('body', np.array((-4, 0, -2.)), np.array((4, 12, 2.))),
          ('rightArm', np.array((-3, -2, -2.)), np.array((1, 10, 2.))), ('leftArm', np.array((-1, -2, -2.)), np.array((3, 10, 2.))),
          ('rightLeg', np.array((-2, 0, -2.)), np.array((2, 12, 2.))), ('leftLeg', np.array((-2, 0, -2.)), np.array((2, 12, 2.)))]
@@ -184,9 +184,9 @@ def main():
     open(os.path.join(RES, 'wear/accessories.txt'), 'w', encoding='utf-8').write('\n'.join(lines + body) + '\n')
     sys.path.insert(0, os.path.join(HERE, '..'))
     import relic_icons  # noqa: E402
-    relic_icons.append_halo(os.path.join(RES, 'wear/accessories.txt'))  # Солнечный нимб (реликварий Эдема): не из концептов, кольцо над головой
+    relic_icons.append_halo(os.path.join(RES, 'wear/accessories.txt'))  # Sun halo (Eden reliquary): not from the concepts, a ring above the head
     print('спрайтов', len(SPRITES), 'строк', len(body))
-    # алтари
+    # altars
     ad = os.path.join(RES, 'textures/blocks/altar')
     os.makedirs(ad, exist_ok=True)
     for i, (name, pick) in enumerate(ALTAR_PICK):

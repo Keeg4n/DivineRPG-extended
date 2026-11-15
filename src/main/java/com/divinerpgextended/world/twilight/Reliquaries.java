@@ -19,21 +19,21 @@ import com.divinerpgextended.world.RegionTally;
 import cpw.mods.fml.common.IWorldGenerator;
 
 /**
- * Реликварии сумеречных миров: запертые сундуки под ключ мира ({@link com.divinerpgextended.item.ItemWorldKey}), внутри - вещь
- * мира и материалы. Где стоят:
+ * Reliquaries of the twilight dimensions: locked chests that need a world key ({@link com.divinerpgextended.item.ItemWorldKey}), inside - a world
+ * item and materials. Where they stand:
  * <ul>
- * <li>Эдем, Дикий лес, Апалачия - в руинах на вершинах островов, рядом с сундуком руин;</li>
- * <li>Мортум - в склепе, у саркофага;</li>
- * <li>Небесный терн - на терновых кораблях в небе, в каюте ({@link Ships}).</li>
+ * <li>Eden, Wildwood, Apalachia - in ruins on island tops, next to the ruins chest;</li>
+ * <li>Mortum - in a crypt, by the sarcophagus;</li>
+ * <li>Skythern - on thorn ships in the sky, in the cabin ({@link Ships}).</li>
  * </ul>
- * В постройке реликварий появляется с шансом ({@link Config#reliquaryChance}, на кораблях {@link Config#reliquaryShipChance});
- * гарантия: если на участке {@link Config#reliquaryRegion} ещё нет реликвария, {@link Config#reliquaryPity}-я подходящая постройка
- * (на кораблях {@link Config#reliquaryShipPity}-я) получает его без броска. Учёт - в данных мира ({@link RegionTally}).
+ * In a structure a reliquary appears with a chance ({@link Config#reliquaryChance}, on ships {@link Config#reliquaryShipChance});
+ * guarantee: if there is no reliquary yet in the {@link Config#reliquaryRegion} area, the {@link Config#reliquaryPity}-th suitable structure
+ * (on ships the {@link Config#reliquaryShipPity}-th) gets it without a roll. Tracking is in the world data ({@link RegionTally}).
  */
 public final class Reliquaries {
 
     public static final String TALLY = "divinerpgextended_reliquaries";
-    /** Для самопроверки: сколько поставлено и сколько по гарантии. */
+    /** For selftest: how many were placed and how many by the guarantee. */
     public static int placed, forced;
 
     private Reliquaries() {}
@@ -50,7 +50,7 @@ public final class Reliquaries {
         return RegionTally.region(c, Config.reliquaryRegion);
     }
 
-    /** Подходящее место в постройке: бросок шанса или гарантия участка, поставлен - true. */
+    /** A suitable place in a structure: a chance roll or the area guarantee, placed - true. */
     public static boolean offer(World w, TwilightWorld tw, int x, int y, int z, int facing, int chance, int pity) {
         if (!Config.reliquaries || tw == null) return false;
         Kind k = Kind.of(tw);
@@ -63,24 +63,24 @@ public final class Reliquaries {
         return true;
     }
 
-    /** Реликварий в руинах (Эдем, Дикий лес, Апалачия): угол руин (x, z), пол base. */
+    /** A reliquary in ruins (Eden, Wildwood, Apalachia): ruins corner (x, z), floor base. */
     public static boolean inRuin(World w, TwilightWorld tw, int x, int base, int z) {
-        if (tw == TwilightWorld.SKYTHERN || tw == TwilightWorld.MORTUM) return false; // у Терна - на кораблях, у Мортума - в склепах
+        if (tw == TwilightWorld.SKYTHERN || tw == TwilightWorld.MORTUM) return false; // for Skythern - on ships, for Mortum - in crypts
         return offer(w, tw, x + 4, base + 1, z + 6, 3, Config.reliquaryChance, Config.reliquaryPity);
     }
 
-    /** Реликварий в склепе Мортума: угол склепа (x, z), пол base. Рядом с саркофагом, в стороне от входа. */
+    /** A reliquary in a Mortum crypt: crypt corner (x, z), floor base. By the sarcophagus, away from the entrance. */
     public static boolean inCrypt(World w, int x, int base, int z) {
         return offer(w, TwilightWorld.MORTUM, x + 5, base + 1, z + 2, 3, Config.reliquaryChance, Config.reliquaryPity);
     }
 
-    // ---------------- Добыча ----------------
+    // ---------------- Loot ----------------
 
     private static int n(Random r, int a, int b) {
         return a + r.nextInt(b - a + 1);
     }
 
-    /** Вещь мира из реликвария. */
+    /** The world item from a reliquary. */
     public static ItemStack relic(TwilightWorld w) {
         switch (w) {
             case EDEN: return new ItemStack(ModItems.trinket, 1, com.divinerpgextended.trinket.Trinket.SUN_HALO.ordinal());
@@ -91,7 +91,7 @@ public final class Reliquaries {
         }
     }
 
-    /** Добыча реликвария: вещь мира, камни, души и пыль мира. */
+    /** Reliquary loot: a world item, stones, souls and world dust. */
     public static List<ItemStack> loot(Kind k, Random r) {
         List<ItemStack> out = new ArrayList<ItemStack>();
         if (k.arcana()) return out;
@@ -103,13 +103,13 @@ public final class Reliquaries {
         return out;
     }
 
-    // ---------------- Терновые корабли ----------------
+    // ---------------- Thorn ships ----------------
 
     /**
-     * Терновый корабль в небе Небесного терна: корпус из досок мира {@link #L} x {@link #W} вдоль оси x (киль из брёвен, скулы в
-     * три ряда, нос и корма сужаются), фальшборт из плит, грот-мачта с большим белым парусом и фок-мачта с малым, флажок на
-     * гроте, каюта на корме - в ней реликварий Терна (с шансом и гарантией участка) и сундук с добычей руин, лампы мира на носу
-     * и в каюте. Висит в пустом небе над островами и между ними (вокруг всё пусто), строится внутри области заселения.
+     * A thorn ship in the Skythern sky: a hull of world planks {@link #L} x {@link #W} along the x axis (a keel of logs, bilges in
+     * three rows, bow and stern tapering), a bulwark of slabs, a mainmast with a large white sail and a foremast with a small one, a pennant on the
+     * mainmast, a cabin at the stern - in it the Skythern reliquary (with a chance and an area guarantee) and a ruins loot chest, world lamps at the bow
+     * and in the cabin. It hangs in empty sky above the islands and between them (everything around is empty), built inside the population area.
      */
     public static class Ships implements IWorldGenerator {
 
@@ -123,7 +123,7 @@ public final class Reliquaries {
             if (r.nextInt(Config.skythernShipRarity) != 0) return;
             int x0 = cx * 16 + 8 + 1, z0 = cz * 16 + 8 + 4;
             for (int tries = 0; tries < 4; tries++) {
-                int y0 = 120 + r.nextInt(45); // над островами (их верх - до 135) и между ними
+                int y0 = 120 + r.nextInt(45); // above the islands (their tops are up to 135) and between them
                 if (free(w, x0, y0, z0) && !WorldGenTwilightFeatures.nearLair(w, x0 + L / 2, z0 + W / 2)) {
                     build(w, r, x0, y0, z0);
                     return;
@@ -131,50 +131,50 @@ public final class Reliquaries {
             }
         }
 
-        /** Небо вокруг корабля пусто (с запасом в блок по бокам и снизу, до флажка). */
+        /** The sky around the ship is empty (with a margin of a block on the sides and below, up to the pennant). */
         public static boolean free(World w, int x0, int y0, int z0) {
             for (int x = x0 - 1; x <= x0 + L; x++) for (int z = z0 - 1; z <= z0 + W; z++) for (int y = y0 - 1; y <= y0 + TOP; y++)
                 if (!w.isAirBlock(x, y, z)) return false;
             return true;
         }
 
-        /** Половина ширины корпуса на шпангоуте i (0 - корма, L-1 - нос). */
+        /** Half the hull width at frame i (0 - stern, L-1 - bow). */
         static int half(int i) {
             return i == 0 ? 2 : i <= 15 ? 3 : i <= 17 ? 2 : i <= 19 ? 1 : 0;
         }
 
-        /** Построить корабль: угол (x0, z0), киль на y0, палуба на y0+3. Возвращает место реликвария {x, y, z}. */
+        /** Build the ship: corner (x0, z0), keel at y0, deck at y0+3. Returns the reliquary place {x, y, z}. */
         public static int[] build(World w, Random r, int x0, int y0, int z0) {
             TwilightWorld tw = TwilightWorld.SKYTHERN;
             Block planks = tw.planks(), log = tw.log(), slab = tw.slab();
-            int c = W / 2, deck = y0 + 3; // ось корабля по z, высота палубы
+            int c = W / 2, deck = y0 + 3; // ship axis along z, deck height
             for (int i = 0; i < L; i++) {
                 int h = half(i);
                 for (int k = c - h; k <= c + h; k++) {
                     int d = Math.abs(k - c);
-                    if (d == 0 && i >= 2 && i <= L - 3) w.setBlock(x0 + i, y0, z0 + k, log, 0, 2); // киль
-                    if (d <= Math.max(0, h - 2)) w.setBlock(x0 + i, y0 + 1, z0 + k, planks, 0, 2); // днище
-                    if (d <= h - 1 || h == 0) w.setBlock(x0 + i, y0 + 2, z0 + k, planks, 0, 2); // скулы
-                    w.setBlock(x0 + i, deck, z0 + k, planks, 0, 2); // палуба
-                    if (d == h && h > 0 && i >= 6) w.setBlock(x0 + i, deck + 1, z0 + k, slab, 0, 2); // фальшборт
+                    if (d == 0 && i >= 2 && i <= L - 3) w.setBlock(x0 + i, y0, z0 + k, log, 0, 2); // keel
+                    if (d <= Math.max(0, h - 2)) w.setBlock(x0 + i, y0 + 1, z0 + k, planks, 0, 2); // bottom
+                    if (d <= h - 1 || h == 0) w.setBlock(x0 + i, y0 + 2, z0 + k, planks, 0, 2); // bilges
+                    w.setBlock(x0 + i, deck, z0 + k, planks, 0, 2); // deck
+                    if (d == h && h > 0 && i >= 6) w.setBlock(x0 + i, deck + 1, z0 + k, slab, 0, 2); // bulwark
                 }
             }
-            // форштевень на носу, лампа
+            // stem at the bow, a lamp
             for (int y = deck; y <= deck + 2; y++) w.setBlock(x0 + L - 1, y, z0 + c, log, 0, 2);
             w.setBlock(x0 + L - 2, deck + 1, z0 + c, tw.lamp(), tw.lampMeta(), 2);
-            // грот-мачта: рея, большой парус, флажок
+            // mainmast: yard, large sail, pennant
             int main = x0 + 11;
             for (int y = deck + 1; y <= deck + 12; y++) w.setBlock(main, y, z0 + c, log, 0, 2);
             for (int k = 0; k < W; k++) w.setBlock(main, deck + 10, z0 + k, log, 0, 2);
             for (int y = deck + 4; y <= deck + 9; y++) for (int k = 1; k < W - 1; k++) w.setBlock(main + 1, y, z0 + k, Blocks.wool, 0, 2);
             w.setBlock(main, deck + 13, z0 + c, Blocks.wool, 3, 2);
             w.setBlock(main, deck + 13, z0 + c + 1, Blocks.wool, 3, 2);
-            // фок-мачта: рея, малый парус
+            // foremast: yard, small sail
             int fore = x0 + 16;
             for (int y = deck + 1; y <= deck + 9; y++) w.setBlock(fore, y, z0 + c, log, 0, 2);
             for (int k = 1; k < W - 1; k++) w.setBlock(fore, deck + 8, z0 + k, log, 0, 2);
             for (int y = deck + 4; y <= deck + 7; y++) for (int k = 2; k < W - 2; k++) w.setBlock(fore + 1, y, z0 + k, Blocks.wool, 0, 2);
-            // каюта на корме: стены, крыша из плит, вход к носу, окна по бортам
+            // cabin at the stern: walls, a roof of slabs, entrance toward the bow, windows on the sides
             int cab = 5;
             for (int i = 0; i <= cab; i++) for (int k = c - half(i); k <= c + half(i); k++) {
                 boolean wall = i == 0 || i == cab || Math.abs(k - c) == half(i);

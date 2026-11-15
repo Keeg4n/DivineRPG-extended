@@ -20,15 +20,15 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Луки сумеречных миров (Эдем, Вайлдвуд, Апалачия, Скайтерн, Мортум, Сумеречный, Halite) наводят стрелу на летучего
- * моба (Кори и прочие парящие): если такой есть в 24 блоках впереди (в конусе ~40 градусов), стрела плавно
- * доворачивает на него. По наземным - как обычно.
+ * Bows of the twilight worlds (Eden, Wildwood, Apalachia, Skythern, Mortum, Twilight, Halite) aim the arrow at a flying
+ * mob (Cori and other hovering ones): if there is one within 24 blocks ahead (in a cone of ~40 degrees), the arrow smoothly
+ * turns toward it. Ground mobs - as usual.
  */
 public class HomingArrows {
 
     private static final double RANGE = 24, CONE = Math.cos(Math.toRadians(40)), TURN = 0.25;
     private final Set<EntityDivineArrow> arrows = Collections.newSetFromMap(new WeakHashMap<EntityDivineArrow, Boolean>());
-    /** Стрелы из закалённого лука: доворот сильнее, дальность больше. */
+    /** Arrows from a tempered bow: stronger turn, longer range. */
     private final Set<EntityDivineArrow> strong = Collections.newSetFromMap(new WeakHashMap<EntityDivineArrow, Boolean>());
 
     static boolean twilightBow(ItemStack s) {
@@ -76,7 +76,7 @@ public class HomingArrows {
         return steer(a, false);
     }
 
-    /** Довернуть стрелу на ближайшего летучего моба впереди; strong - из закалённого лука. */
+    /** Turn the arrow toward the nearest flying mob ahead; strong - from a tempered bow. */
     public static boolean steer(EntityDivineArrow a, boolean strong) {
         double RANGE = strong ? 36 : HomingArrows.RANGE, TURN = strong ? 0.45 : HomingArrows.TURN;
         double v = Math.sqrt(a.motionX * a.motionX + a.motionY * a.motionY + a.motionZ * a.motionZ);

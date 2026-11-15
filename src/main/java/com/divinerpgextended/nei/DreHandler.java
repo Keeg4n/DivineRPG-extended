@@ -17,12 +17,12 @@ import codechicken.nei.recipe.TemplateRecipeHandler;
 
 import com.divinerpgextended.fishing.FishingLoot.View;
 
-/** Общее для страниц NEI аддона: сетка ячеек с цветной рамкой по редкости, заголовок и пояснения. */
+/** Shared by the addon's NEI pages: a grid of cells with a colored frame by rarity, a title and explanations. */
 public abstract class DreHandler extends TemplateRecipeHandler {
 
     public static final int COLS = 9, GRID_X = 3, GRID_Y = 13;
 
-    /** Строка в ячейку сетки по номеру. */
+    /** A row into a grid cell by number. */
     static int gx(int i) {
         return GRID_X + (i % COLS) * 18;
     }
@@ -31,7 +31,7 @@ public abstract class DreHandler extends TemplateRecipeHandler {
         return GRID_Y + (i / COLS) * 18;
     }
 
-    /** Высота страницы под n предметов в сетке и строки пояснений. */
+    /** Page height for n items in the grid and the explanation lines. */
     public static int height(int n, int noteLines) {
         return GRID_Y + ((n + COLS - 1) / COLS) * 18 + noteLines * 10 + 2;
     }
@@ -74,7 +74,7 @@ public abstract class DreHandler extends TemplateRecipeHandler {
         return !a.getHasSubtypes() || a.getItemDamage() == b.getItemDamage() || b.getItemDamage() == Short.MAX_VALUE;
     }
 
-    /** Страница: ячейки с цветами рамок, результат (одна из ячеек), заголовок и пояснения. */
+    /** The page: cells with frame colors, the result (one of the cells), a title and explanations. */
     public class Page extends CachedRecipe {
 
         final String title;
@@ -90,7 +90,7 @@ public abstract class DreHandler extends TemplateRecipeHandler {
             this.title = title;
         }
 
-        /** Подсказки ячеек, если NEI сам их не умеет (классический NEI). */
+        /** Cell tooltips, if NEI cannot do them itself (classic NEI). */
         final java.util.Map<PositionedStack, List<String>> tips = new java.util.IdentityHashMap<PositionedStack, List<String>>();
 
         PositionedStack add(Object stacks, int x, int y, int color, List<String> tooltip, boolean input) {
@@ -102,7 +102,7 @@ public abstract class DreHandler extends TemplateRecipeHandler {
             return ps;
         }
 
-        /** Сетка из строк таблицы; последняя становится результатом страницы. */
+        /** A grid from table rows; the last one becomes the page's result. */
         void grid(List<View> views, boolean asInputs) {
             grid(views, asInputs, 0);
         }
@@ -150,7 +150,7 @@ public abstract class DreHandler extends TemplateRecipeHandler {
         return "textures/gui/container/furnace.png";
     }
 
-    /** Невидимая зона перехода: без неё NEI не открывает вкладку по катализатору. */
+    /** An invisible transition zone: without it NEI does not open the tab by the catalyst. */
     @Override
     public void loadTransferRects() {
         transferRects.add(new RecipeTransferRect(new Rectangle(0, 0, 1, 1), getOverlayIdentifier()));
@@ -176,10 +176,10 @@ public abstract class DreHandler extends TemplateRecipeHandler {
         GuiDraw.drawRect(x, y, 1, 16, 0xFF373737);
     }
 
-    /** Ширина текста на странице NEI: строки длиннее переносятся по словам, а не уезжают за край. */
+    /** Text width on the NEI page: lines longer than this are wrapped by words rather than running off the edge. */
     static final int TEXT_W = 162;
 
-    /** Одна страница на экран: пояснения после переноса бывают в несколько строк и залезали на следующую. */
+    /** One page per screen: explanations after wrapping can take several lines and used to run onto the next one. */
     @Override
     public int recipiesPerPage() {
         return 1;
@@ -203,8 +203,8 @@ public abstract class DreHandler extends TemplateRecipeHandler {
     }
 
     /**
-     * Классический NEI: подсказка ячейки - по предмету под мышью (первая ячейка страницы с этим предметом). В NEI из GTNH
-     * подсказки уже стоят на ячейках, здесь ничего не добавляется.
+     * Classic NEI: the cell tooltip - by the item under the mouse (the first cell of the page with that item). In GTNH's NEI
+     * the tooltips are already on the cells, nothing is added here.
      */
     @Override
     public List<String> handleItemTooltip(codechicken.nei.recipe.GuiRecipe<?> gui, ItemStack stack, List<String> currenttip, int recipe) {

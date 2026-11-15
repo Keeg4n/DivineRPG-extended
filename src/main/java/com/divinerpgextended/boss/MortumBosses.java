@@ -33,18 +33,17 @@ import com.google.common.collect.Multimap;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Боссы Демонического круга Мортума:
+ * Bosses of the Mortum Demonic Circle:
  * <ul>
- * <li>Демон сумерек - маг. Пробить его можно только фазером (остальное - x{@link #NON_PHASER}); рядом с ним у луков рвётся
- * тетива. Вместо снарядов Divine (тошнота) - заклинания по очереди каждые {@link #SPELL} тиков: руны под ногами цели
- * взрываются через {@link #RUNE_FUSE} тиков (уходи), "блинк" - переносится по двору и бьёт тремя теневыми снарядами.
- * Дилемма: три фазы; на 2/3 и 1/3 здоровья он замирает ({@link #OFFER} тиков, неуязвим) и
- * предлагает разойтись. Не трогать - уходит во тьму: победа засчитана, но трофеи только этой фазы. Ударить - бой
- * продолжается, и он злее: во 2-й фазе стреляет чаще и зовёт демонов, в 3-й - тьма (слепота) и толпа. Полная победа -
- * все трофеи.</li>
- * <li>Карот - зеркало. Копирует снаряжение того, с кем дерётся: бьёт как его оружие, держит удар как его броня.
- * Пришёл в топе - тяжело, но и трофеев больше (по самому сильному снаряжению за бой); голым - легко и скромно.
- * Ступень брони против Карота не требуется ({@link BossDamage}).</li>
+ * <li>Twilight Demon is a mage. He can be hurt only by a phaser (anything else is x{@link #NON_PHASER}); bowstrings snap near him. Instead of Divine projectiles (nausea) he casts spells in turn every {@link #SPELL} ticks: runes under the target's feet
+ * explode after {@link #RUNE_FUSE} ticks (move away), a "blink" - he teleports around the courtyard and hits with three shadow projectiles.
+ * Dilemma: three phases; at 2/3 and 1/3 health he freezes ({@link #OFFER} ticks, invulnerable) and
+ * offers to part ways. If left alone, he goes into the darkness: the victory is counted, but the trophies are only for this phase. If hit, the fight
+ * continues and he is angrier: in phase 2 he shoots more often and summons demons, in phase 3 - darkness (blindness) and a crowd. A full victory gives
+ * all the trophies.</li>
+ * <li>Karot is a mirror. He copies the gear of whoever he fights: hits like his weapon, takes a blow like his armor.
+ * You came in top gear - hard, but also more trophies (by the strongest gear during the fight); naked - easy and modest.
+ * An armor tier is not required against Karot ({@link BossDamage}).</li>
  * </ul>
  */
 public class MortumBosses {
@@ -52,30 +51,30 @@ public class MortumBosses {
     public static final String PHASE = "drePhase", OFFER_LEFT = "dreOffer", MIRROR_W = "dreMirrorW", MIRROR_A = "dreMirrorA",
         MAX_POWER = "dreMirrorMax", STAGE = "dreStage", SPIRE = "dreSpire", FOCUS_OUT = "dreFocusOut", HINT = "dreHint";
     /**
-     * Бой в башне: на этих долях здоровья Демон уходит этажом выше (двор - зал - библиотека - лаборатория - покои - верхний
-     * этаж - коронный зал); этажи от пола площадки.
+     * Tower fight: at these fractions of health the Demon goes one floor up (courtyard - hall - library - laboratory - chambers - top
+     * floor - crown hall); floors are counted from the platform floor.
      */
     public static final float[] STAGE_AT = { 0.85F, 0.72F, 0.60F, 0.48F, 0.36F, 0.24F };
     public static final int[] STAGE_FLOOR = { 0, 7, 14, 21, 28, 35 };
-    /** Фокус в короне разбит - через столько тиков Демон зажигает его снова. */
+    /** The focus in the crown is broken - after this many ticks the Demon lights it again. */
     public static final int FOCUS_RELIGHT = 600;
     public static final float GUST = 1.4F;
     public static final int OFFER = 200;
     public static final float NON_PHASER = 0.1F, RUNE_DMG = 10;
     public static final int SPELL = 80, RUNE_FUSE = 30, RUNES = 3, BOLTS = 3;
-    /** Руны на взводе: {мир, x, y, z, тик взрыва, демон}. */
+    /** Runes armed: {world, x, y, z, explosion tick, demon}. */
     private static final List<Object[]> RUNE_LIST = new java.util.ArrayList<Object[]>();
-    /** Оружие с таким уроном - Карот бьёт в полную силу Divine; кулак - в 0.2, топовое оружие - до x3. */
+    /** A weapon with this damage - Karot hits with full Divine strength; a fist - 0.2, top weapons - up to x3. */
     public static final float MIRROR_REF = 10F;
     /**
-     * Карот отражает снаряды: стрелку - REFLECT от урона. Раз в GAZE_EVERY тиков уходит к зеркальной стене и GAZE тиков
-     * смотрится в зеркало - стоит, и снаряды бьют его в GAZE_DMG раза сильнее. Ближний бой - всегда.
+     * Karot reflects projectiles: to the shooter - REFLECT of the damage. Every GAZE_EVERY ticks he goes to the mirror wall and for GAZE ticks
+     * looks into the mirror - he stands still, and projectiles hit him GAZE_DMG times harder. Melee - always.
      */
     public static final int GAZE_EVERY = 160, GAZE = 60;
     public static final float REFLECT = 0.5F, GAZE_DMG = 1.5F;
     public static final String GAZE_LEFT = "dreGaze";
 
-    // ---------------- Демон сумерек ----------------
+    // ---------------- Twilight Demon ----------------
 
     public static int phase(EntityLivingBase e) {
         return e.getEntityData().getInteger(PHASE);
@@ -140,7 +139,7 @@ public class MortumBosses {
         }
     }
 
-    /** Руны вокруг цели: светятся RUNE_FUSE тиков, потом взрываются (урон и подброс тем, кто рядом; блоки целы). */
+    /** Runes around the target: they glow for RUNE_FUSE ticks, then explode (damage and launch for those nearby; blocks stay intact). */
     public static int runes(EntityTwilightDemon d, EntityLivingBase t) {
         int n = 0;
         for (int i = 0; i < RUNES; i++) {
@@ -152,9 +151,9 @@ public class MortumBosses {
         return n;
     }
 
-    // ---------------- башня: бой по этажам
+    // ---------------- tower: fight by floors
 
-    /** Центр арены-башни {x, z} (null - Демон вызван не на башне). Запоминается при первом ходе на арене. */
+    /** Center of the tower arena {x, z} (null - the Demon was not summoned at a tower). Remembered on the first turn in the arena. */
     public static int[] spire(EntityTwilightDemon d) {
         NBTTagCompound tag = d.getEntityData();
         int[] s = tag.getIntArray(SPIRE);
@@ -168,12 +167,12 @@ public class MortumBosses {
         return s;
     }
 
-    /** Пол этажа боя (stage 1..6) в мире. */
+    /** Floor of the fight stage (stage 1..6) in the world. */
     public static int floorOf(int stage) {
         return com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TOP + STAGE_FLOOR[stage - 1];
     }
 
-    /** Игрок на этаже Демона: внутри башни и между полом и потолком этажа. */
+    /** The player is on the Demon's floor: inside the tower and between the floor and the ceiling of the stage. */
     public static boolean onFloor(EntityTwilightDemon d, EntityPlayer p) {
         int stage = d.getEntityData().getInteger(STAGE);
         int[] sp = d.getEntityData().getIntArray(SPIRE);
@@ -185,7 +184,7 @@ public class MortumBosses {
             && p.posY >= fl && p.posY <= fl + 7;
     }
 
-    /** Подняться на этаж stage: дым, перенос на свободное место этажа, привязь к этажу, слово игрокам. */
+    /** Go up to floor stage: smoke, teleport to a free spot of the floor, leash to the floor, a word to the players. */
     public static boolean climb(EntityTwilightDemon d, int stage) {
         int[] sp = spire(d);
         if (sp == null) return false;
@@ -225,7 +224,7 @@ public class MortumBosses {
         return w.getBlock(sp[0] + f[0], f[1], sp[1] + f[2]) == com.divinerpgextended.world.twilight.MortumArenas.focusBlock();
     }
 
-    /** Зажечь главный фокус на пьедестале коронного зала. */
+    /** Light the main focus on the pedestal of the crown hall. */
     public static void relight(EntityTwilightDemon d, int[] sp) {
         int[] f = com.divinerpgextended.world.twilight.MortumArenas.crownFocus();
         d.worldObj.setBlock(sp[0] + f[0], f[1], sp[1] + f[2], com.divinerpgextended.world.twilight.MortumArenas.focusBlock(), 0, 3);
@@ -233,7 +232,7 @@ public class MortumBosses {
         ((WorldServer) d.worldObj).func_147487_a("witchMagic", sp[0] + f[0] + 0.5, f[1] + 0.5, sp[1] + f[2] + 0.5, 40, 0.5, 0.5, 0.5, 0.1);
     }
 
-    /** Коронный зал: от горящего фокуса к Демону тянется нить; разбитый фокус Демон через FOCUS_RELIGHT тиков зажигает снова. */
+    /** Crown hall: a thread stretches from the burning focus to the Demon; a broken focus is lit again by the Demon after FOCUS_RELIGHT ticks. */
     private void crownTick(EntityTwilightDemon d, int[] sp) {
         NBTTagCompound tag = d.getEntityData();
         int[] f = com.divinerpgextended.world.twilight.MortumArenas.crownFocus();
@@ -258,7 +257,7 @@ public class MortumBosses {
         }
     }
 
-    /** Ядовитые пары (лаборатория и выше): яд и тошнота тем, кто рядом. */
+    /** Poisonous fumes (laboratory and above): poison and nausea for those nearby. */
     public static int fumes(EntityTwilightDemon d) {
         int n = 0;
         ((WorldServer) d.worldObj).func_147487_a("mobSpell", d.posX, d.posY + 1, d.posZ, 80, 3.5, 1.2, 3.5, 0.5);
@@ -271,7 +270,7 @@ public class MortumBosses {
         return n;
     }
 
-    /** Порыв (покои и выше): отбрасывает от Демона и вверх - к окнам и лестнице. */
+    /** Gust (chambers and above): throws away from the Demon and upward - toward the windows and the stairs. */
     public static int gust(EntityTwilightDemon d) {
         int n = 0;
         ((WorldServer) d.worldObj).func_147487_a("cloud", d.posX, d.posY + 1, d.posZ, 60, 2.5, 0.8, 2.5, 0.3);
@@ -285,12 +284,12 @@ public class MortumBosses {
         return n;
     }
 
-    /** Блинк: на случайное место двора (в пределах привязи) и три теневых снаряда в цель. */
+    /** Blink: to a random spot of the courtyard (within the leash) and three shadow projectiles at the target. */
     public static int blink(EntityTwilightDemon d, EntityLivingBase t) {
         return blink(d, t, BOLTS);
     }
 
-    /** Блинк с bolts теневыми снарядами веером. */
+    /** Blink with bolts shadow projectiles in a fan. */
     public static int blink(EntityTwilightDemon d, EntityLivingBase t, int bolts) {
         int[] h = LairSummons.home(d);
         WorldServer ws = (WorldServer) d.worldObj;
@@ -321,7 +320,7 @@ public class MortumBosses {
         return n;
     }
 
-    /** Руны: искры на взводе, взрыв по сроку. */
+    /** Runes: sparks while armed, explosion on schedule. */
     @SubscribeEvent
     public void onWorldTick(cpw.mods.fml.common.gameevent.TickEvent.WorldTickEvent e) {
         if (e.phase != cpw.mods.fml.common.gameevent.TickEvent.Phase.END || e.world.isRemote || RUNE_LIST.isEmpty()) return;
@@ -352,13 +351,13 @@ public class MortumBosses {
         return w.getEntitiesWithinAABB(EntityPlayer.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(x - r, y - 1, z - r, x + r, y + 3, z + r));
     }
 
-    /** Снаряды Divine (тошнота) Демону не нужны - у него заклинания. */
+    /** Divine projectiles (nausea) are not needed by the Demon - he has spells. */
     @SubscribeEvent
     public void onJoin(net.minecraftforge.event.entity.EntityJoinWorldEvent e) {
         if (!e.world.isRemote && e.entity instanceof net.divinerpg.entities.twilight.projectile.EntityTwilightDemonShot) e.setCanceled(true);
     }
 
-    /** Рядом с Демоном у луков рвётся тетива. */
+    /** Bowstrings snap near the Demon. */
     @SubscribeEvent
     public void onLoose(net.minecraftforge.event.entity.player.ArrowLooseEvent e) {
         EntityPlayer p = e.entityPlayer;
@@ -375,7 +374,7 @@ public class MortumBosses {
             f.setAccessible(true);
             f.setInt(d, v);
         } catch (Exception ignored) {
-            // нет поля в этой версии Divine - стрельба как в Divine
+            // no such field in this version of Divine - shooting as in Divine
         }
     }
 
@@ -406,14 +405,14 @@ public class MortumBosses {
                 BossMinions.mark(m, boss);
                 boss.worldObj.spawnEntityInWorld(m);
             } catch (Exception ignored) {
-                // нет конструктора (World)
+                // no constructor (World)
             }
         }
     }
 
     /**
-     * В башне: Демона не достать, пока стоишь не на его этаже (снаружи, в окна, с лестницы); в коронном зале - пока горит
-     * главный фокус. Удар во время предложения - отказ: бой продолжается, фаза растёт. Сам удар не проходит.
+     * In the tower: the Demon can't be reached while you are not on his floor (from outside, through windows, from the stairs); in the crown hall - while the
+     * main focus burns. A hit during the offer is a refusal: the fight continues, the phase advances. The hit itself does not go through.
      */
     @SubscribeEvent
     public void onAttack(LivingAttackEvent e) {
@@ -447,7 +446,7 @@ public class MortumBosses {
         e.entityLiving.worldObj.playSoundAtEntity(e.entityLiving, "mob.wither.spawn", 1.5F, 0.6F);
     }
 
-    /** Ушёл: победа засчитана тем, кто бился, трофеи этой фазы. */
+    /** Left: the victory is counted for those who fought, trophies of this phase. */
     private static void leave(EntityTwilightDemon d) {
         int phase = d.getEntityData().getInteger(PHASE);
         say(d, "dre.chat.demon_leave");
@@ -458,7 +457,7 @@ public class MortumBosses {
         d.setDead();
     }
 
-    /** Халитовое оружие с Демона не падает (его делают, а не выбивают). Полная победа (3-я фаза) - статуя и больше душ. */
+    /** Halite weapons do not drop from the Demon (they are crafted, not farmed). A full victory (phase 3) - a statue and more souls. */
     @SubscribeEvent
     public void onDrops(LivingDropsEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
@@ -483,9 +482,9 @@ public class MortumBosses {
         e.drops.add(new EntityItem(e.entityLiving.worldObj, e.entityLiving.posX, e.entityLiving.posY + 1, e.entityLiving.posZ, s));
     }
 
-    // ---------------- Карот ----------------
+    // ---------------- Karot ----------------
 
-    /** Урон оружия в руке (как в подсказке: 1 + модификаторы урона предмета). */
+    /** Damage of the weapon in hand (as in the tooltip: 1 + the item's damage modifiers). */
     @SuppressWarnings("unchecked")
     public static float weaponDamage(EntityPlayer p) {
         ItemStack s = p.getHeldItem();
@@ -496,7 +495,7 @@ public class MortumBosses {
         return d;
     }
 
-    /** Сила зеркала: 0 - голый с кулаком, 1 - средний, 3+ - топ. */
+    /** Mirror strength: 0 - naked with a fist, 1 - average, 3+ - top. */
     public static float power(float weapon, int armor) {
         return weapon / 10F + armor / 20F;
     }
@@ -518,7 +517,7 @@ public class MortumBosses {
         tag.setFloat(MAX_POWER, Math.max(tag.getFloat(MAX_POWER), power(w, a)));
     }
 
-    /** Ход Карота: смотрится в зеркало (стоит, искры) или по расписанию уходит к зеркалу. */
+    /** Karot's turn: looks into the mirror (stands, sparks) or goes to the mirror on schedule. */
     private static void gazeTick(EntityKarot k) {
         if (LairSummons.home(k) == null) return;
         NBTTagCompound tag = k.getEntityData();
@@ -533,11 +532,11 @@ public class MortumBosses {
         if (k.ticksExisted % GAZE_EVERY == GAZE_EVERY / 2 && k.worldObj.getClosestVulnerablePlayerToEntity(k, 40) != null) gaze(k);
     }
 
-    /** Уйти к зеркальной стене и замереть: снаряды снова его ранят. */
+    /** Go to the mirror wall and freeze: projectiles hurt him again. */
     public static boolean gaze(EntityKarot k) {
         int[] h = LairSummons.home(k);
         if (h == null) return false;
-        int m = com.divinerpgextended.world.twilight.MortumArenas.MIRROR_H - 3; // Карот шириной 3.25 - ближе задевает зеркала
+        int m = com.divinerpgextended.world.twilight.MortumArenas.MIRROR_H - 3; // Karot is 3.25 wide - he touches the mirrors from closer
         int[][] spots = { { m, -4 }, { m, 4 }, { -m, -4 }, { -m, 4 }, { -4, m }, { 4, m }, { -4, -m }, { 4, -m } };
         int start = k.getRNG().nextInt(spots.length);
         double ox = k.posX, oy = k.posY, oz = k.posZ;
@@ -548,7 +547,7 @@ public class MortumBosses {
             k.setPosition(ox, oy, oz);
             ((WorldServer) k.worldObj).func_147487_a("portal", ox, oy + 1, oz, 30, 0.6, 1, 0.6, 0.5);
             k.setPositionAndUpdate(h[0] + s[0] + 0.5, h[1], h[2] + s[1] + 0.5);
-            k.rotationYaw = k.rotationYawHead = (float) Math.toDegrees(Math.atan2(s[0], -s[1])); // лицом к стене
+            k.rotationYaw = k.rotationYawHead = (float) Math.toDegrees(Math.atan2(s[0], -s[1])); // facing the wall
             k.getEntityData().setInteger(GAZE_LEFT, GAZE);
             k.worldObj.playSoundAtEntity(k, "random.glass", 1.2F, 0.6F);
             return true;
@@ -557,12 +556,12 @@ public class MortumBosses {
         return false;
     }
 
-    /** Снаряд в Карота, пока он не смотрится в зеркало, отражается в стрелка. */
+    /** A projectile at Karot while he is not looking into the mirror is reflected back at the shooter. */
     @SubscribeEvent
     public void onKarotAttack(LivingAttackEvent e) {
         if (!(e.entityLiving instanceof EntityKarot) || e.entityLiving.worldObj.isRemote || LairSummons.home(e.entityLiving) == null) return;
         Entity direct = e.source.getSourceOfDamage(), owner = e.source.getEntity();
-        if (direct == null || direct == owner || e.entityLiving.getEntityData().getInteger(GAZE_LEFT) > 0) return; // ближний бой или окно зеркала
+        if (direct == null || direct == owner || e.entityLiving.getEntityData().getInteger(GAZE_LEFT) > 0) return; // melee or the mirror window
         e.setCanceled(true);
         EntityKarot k = (EntityKarot) e.entityLiving;
         ((WorldServer) k.worldObj).func_147487_a("magicCrit", k.posX, k.posY + k.height / 2, k.posZ, 15, 0.6, 0.8, 0.6, 0.2);
@@ -571,7 +570,7 @@ public class MortumBosses {
         if (owner instanceof EntityLivingBase && owner != k) ((EntityLivingBase) owner).attackEntityFrom(DamageSource.causeThornsDamage(k), e.ammount * REFLECT);
     }
 
-    /** Карот бьёт как оружие игрока и держит удар как его броня. Демона сумерек пробивает только фазер. */
+    /** Karot hits like the player's weapon and takes a blow like the player's armor. The Twilight Demon is pierced only by a phaser. */
     @SubscribeEvent
     public void onHurt(LivingHurtEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;

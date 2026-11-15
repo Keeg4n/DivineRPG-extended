@@ -13,8 +13,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Присесть и ПКМ оружием - зарядить его из инвентаря (метательное - собрать такие же в одну стопку). Только если есть чем
- * и есть куда: иначе это обычный выстрел (стрелять присев можно, когда оружие полное или патронов в инвентаре нет).
+ * Sneak and right-click with a weapon - load it from the inventory (a throwing weapon - gather the same ones into one stack). Only if there is something
+ * to load and somewhere to load it: otherwise it is a normal shot (you can shoot while sneaking when the weapon is full or there is no ammo in the inventory).
  */
 @SideOnly(Side.CLIENT)
 public class AmmoLoadKey {
@@ -27,25 +27,25 @@ public class AmmoLoadKey {
         if (!p.worldObj.isRemote || e.action == PlayerInteractEvent.Action.LEFT_CLICK_BLOCK) return;
         if (p != Minecraft.getMinecraft().thePlayer || !p.isSneaking()) return;
         if (Ammo.loadable(p) <= 0 && com.divinerpgextended.perk.ThrowStack.gatherable(p) <= 0) {
-            if (Ammo.of(p.getHeldItem()) != null) note(p, "заряжать нечем или некуда - обычный выстрел");
+            if (Ammo.of(p.getHeldItem()) != null) note(p, "nothing to load with or nowhere to load - normal shot");
             return;
         }
         e.setCanceled(true);
-        // клик по блоку даёт два события подряд (по блоку и в воздух) - просим один раз за тик
+        // a click on a block gives two events in a row (on the block and into the air) - ask once per tick
         long t = p.worldObj.getTotalWorldTime();
         if (t == sent) return;
         sent = t;
-        note(p, "просим сервер зарядить");
+        note(p, "asking the server to load");
         ColdHandler.NET.sendToServer(new AmmoLoad.Load());
     }
 
     private long noted = -1;
 
-    /** Одна строка в журнал игры на клик (клик по блоку даёт два события). */
+    /** One line in the game log per click (a click on a block gives two events). */
     private void note(EntityPlayer p, String what) {
         long t = p.worldObj.getTotalWorldTime();
         if (t == noted) return;
         noted = t;
-        AmmoLoad.LOG.info("Зарядка (клиент): " + Ammo.describe(p) + " - " + what);
+        AmmoLoad.LOG.info("Loading (client): " + Ammo.describe(p) + " - " + what);
     }
 }

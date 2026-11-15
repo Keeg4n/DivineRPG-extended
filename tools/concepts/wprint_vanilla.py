@@ -1,5 +1,5 @@
-"""Печать обликов брони Странника как обычной брони Minecraft: по карточке на ступень - персонаж спереди/сзади и обе
-текстуры 64x32 крупно. argv: выходная папка (туда же img/ и textures/). Источник - wanderer_concepts/vanilla."""
+"""Printing Wanderer armor looks as regular Minecraft armor: a card per tier - the character from front/back and both
+64x32 textures enlarged. argv: output folder (img/ and textures/ go there too). Source - wanderer_concepts/vanilla."""
 import html
 import os
 import shutil
@@ -26,7 +26,7 @@ TIERS = [
 def big(src, dst, k=5):
     t = Image.open(src).convert('RGBA')
     bg = Image.new('RGBA', t.size, (0, 0, 0, 0))
-    for y in range(t.height):  # шахматка под прозрачным - как в редакторах
+    for y in range(t.height):  # checkerboard under transparency - as in editors
         for x in range(t.width):
             c = 58 if (x + y) % 2 else 70
             bg.putpixel((x, y), (c, c, c + 6, 255))

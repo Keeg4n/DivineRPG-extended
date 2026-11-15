@@ -12,7 +12,7 @@ import net.minecraft.util.StatCollector;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Панцирь глубин: дроп Карцинуса, ключ к алтарю Снежного Глакона. */
+/** Shell of the Deep: a Carcinus drop, the key to the Snow Glacon altar. */
 public class ItemDeepShell extends Item {
 
     public ItemDeepShell() {

@@ -34,8 +34,8 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void preInit(cpw.mods.fml.common.event.FMLPreInitializationEvent event) {
         super.preInit(event);
-        com.divinerpgextended.client.HevSounds.addPack(net.minecraft.client.Minecraft.getMinecraft().mcDataDir); // звуки Half-Life, если установлены
-        com.divinerpgextended.client.DerivedTexturePack.install(); // текстуры из текстур DivineRPG собираются здесь, в jar их нет
+        com.divinerpgextended.client.HevSounds.addPack(net.minecraft.client.Minecraft.getMinecraft().mcDataDir); // Half-Life sounds, if installed
+        com.divinerpgextended.client.DerivedTexturePack.install(); // textures from the DivineRPG textures are assembled here, they are not in the jar
     }
 
     @Override
@@ -46,7 +46,7 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void postInit(cpw.mods.fml.common.event.FMLPostInitializationEvent event) {
         super.postInit(event);
-        com.divinerpgextended.client.EasterClient.postInit(); // после Divine: обёртки его рендеров
+        com.divinerpgextended.client.EasterClient.postInit(); // after Divine: wrappers of its renders
     }
 
     @Override
@@ -55,17 +55,17 @@ public class ClientProxy extends CommonProxy {
         com.divinerpgextended.client.EasterClient.init();
         com.divinerpgextended.client.RenderWandererAnvil.register();
         com.divinerpgextended.client.RenderLockedChest.register();
-        com.divinerpgextended.client.MaulSwingClient maulSwing = new com.divinerpgextended.client.MaulSwingClient(); // перезарядка молотов
-        MinecraftForge.EVENT_BUS.register(maulSwing); // мышь
-        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(maulSwing); // клавиатура
-        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.GhostFlight()); // полёт Призрака
-        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.HevHop()); // банихоп в H.E.V.
-        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.CameraTilt.Follow()); // взгляд за вагонеткой Апалачии
+        com.divinerpgextended.client.MaulSwingClient maulSwing = new com.divinerpgextended.client.MaulSwingClient(); // maul cooldown
+        MinecraftForge.EVENT_BUS.register(maulSwing); // mouse
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(maulSwing); // keyboard
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.GhostFlight()); // Wraith flight
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.HevHop()); // bunny hop in H.E.V.
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.CameraTilt.Follow()); // view following the Apalachia Cart
         net.minecraftforge.client.MinecraftForgeClient.registerItemRenderer(com.divinerpgextended.registry.ModItems.tsunami, new com.divinerpgextended.client.BowRender());
         net.minecraftforge.client.MinecraftForgeClient.registerItemRenderer(com.divinerpgextended.registry.ModItems.stormBow, new com.divinerpgextended.client.BowRender());
-        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.FinsClient()); // ласты
-        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.ModelWandererArmor.Events()); // облики брони Странника
-        com.divinerpgextended.DreTab.sort(); // вкладки творческого режима - только на клиенте
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.FinsClient()); // fins
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.ModelWandererArmor.Events()); // Wanderer armor looks
+        com.divinerpgextended.DreTab.sort(); // creative tabs - client only
         ClientCommandHandler.instance.registerCommand(new CommandFlySpeed());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.DreBossBar());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.RenderSkyCart.Rider());
@@ -73,7 +73,7 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(dreamView);
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(dreamView);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.AccessoryButton());
-        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.AccessoryWear()); // аксессуары из гнёзд брони на теле
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.AccessoryWear()); // accessories from armor sockets on the body
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.boss.EnderGear.Client());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.TooltipShift());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.TooltipWrap());
@@ -83,10 +83,10 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.PickTierTooltip());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.InfusionTooltip());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.SocketTooltip());
-        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.perk.Satiety.Client()); // бег голодным с перком Сытость
+        cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.perk.Satiety.Client()); // running while hungry with the Satiety perk
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.AmmoLoadKey());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.EarlyWeaponsTooltip());
-        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.FrostRender()); // ледяная глыба и подсказка обморожения
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.FrostRender()); // ice block and the frostbite hint
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.client.ShadowBowMove());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.LunaWings());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.EdenWater());
@@ -121,7 +121,7 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityGondola.class, new com.divinerpgextended.client.RenderGondola());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityShadowBolt.class,
             new net.minecraft.client.renderer.entity.RenderSnowball(net.minecraft.init.Items.ender_eye));
-        // мини-боссы: увеличенные и подкрашенные модели мобов своего мира
+        // mini-bosses: enlarged and tinted models of the mobs of their own world
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.mini.EntityNoonCori.class,
             new com.divinerpgextended.client.RenderScaledBoss(new net.divinerpg.client.render.entity.twilight.model.ModelCori(), 1.6F, net.divinerpg.client.render.EntityResourceLocation.edenCori, 1.0F, 0.85F, 0.45F));
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.mini.EntityOldVerek.class,
@@ -141,7 +141,7 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityLostSoul.class,
             new net.minecraft.client.renderer.entity.RenderSnowball(net.divinerpg.utils.items.TwilightItemsOther.mortumSoul));
         RenderingRegistry.registerEntityRenderingHandler(EntityGreatCadillion.class, new RenderGreatCadillion());
-        // око-прислужник Смотрителя: уменьшенная модель Смотрителя Divine, багровое
+        // Servant Eye of the Watcher: a shrunken Divine Watcher model, crimson
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWatcherEye.class,
             new com.divinerpgextended.client.RenderScaledBoss(new net.divinerpg.client.render.entity.vanilla.model.ModelWatcher(), 1.3F,
                 new net.minecraft.util.ResourceLocation("divinerpg", "textures/mobs/watcher.png"), 1.0F, 0.55F, 0.55F));
@@ -153,7 +153,7 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityRockfall.class, new com.divinerpgextended.client.RenderBoulder(net.divinerpg.utils.blocks.TwilightBlocks.twilightStone));
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntitySkyCart.class, new com.divinerpgextended.client.RenderSkyCart());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityTomahawk.class, new com.divinerpgextended.client.RenderTomahawk());
-        // Лиоплевродон-босс: модель Divine крупнее, с короной; призывы якорей - модели краба и акулы Divine
+        // Liopleurodon boss: the Divine model is larger, with a crown; anchor summons use the Divine crab and shark models
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityLiopleurodonBoss.class,
             new RenderScaledBoss(new net.divinerpg.client.render.entity.vanilla.model.ModelLiopleurodon(), 1.5F,
                 new net.minecraft.util.ResourceLocation("divinerpg", "textures/mobs/liopleurodon.png"), 0.85F, 0.95F, 1.0F)
@@ -161,7 +161,7 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.entity.EntityWaterJet.class, new net.minecraft.client.renderer.entity.Render() {
 
             @Override
-            public void doRender(net.minecraft.entity.Entity e, double x, double y, double z, float yaw, float pt) {} // видна брызгами
+            public void doRender(net.minecraft.entity.Entity e, double x, double y, double z, float yaw, float pt) {} // visible by the splashes
 
             @Override
             protected net.minecraft.util.ResourceLocation getEntityTexture(net.minecraft.entity.Entity e) {
@@ -173,7 +173,7 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonShark.class,
             new RenderScaledBoss(new net.divinerpg.client.render.entity.vanilla.model.ModelShark(), 0.6F,
                 new net.minecraft.util.ResourceLocation("divinerpg", "textures/mobs/shark.png"), 0.8F, 0.9F, 1.0F));
-        // слизень слизневого меча - ванильный слизень; око циклопического жезла - маленький Смотритель Divine, жёлтый
+        // the slime of the slime sword is a vanilla slime; the eye of the cyclops rod is a small Divine Watcher, yellow
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonSlime.class, new com.divinerpgextended.client.RenderSummonSlime());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonEye.class,
             new RenderScaledBoss(new net.divinerpg.client.render.entity.vanilla.model.ModelWatcher(), 0.7F,
@@ -182,21 +182,21 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerBlockHandler(new com.divinerpgextended.client.RenderSkyRail());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.fishing.EntityDreHook.class,
             new com.divinerpgextended.client.RenderDreHook());
-        // Карцинус - Король крабов, увеличенный в 4 раза
+        // Carcinus is a King Crab enlarged 4 times
         RenderingRegistry.registerEntityRenderingHandler(EntityCarcinus.class,
-            new RenderScaledBoss(new ModelCrab(), 4.0F, EntityResourceLocation.crab, 1.0F, 0.85F, 0.8F) // kingCrab.png 64x64 - не под модель краба (64x32), растягивалась
-                .crown(new com.divinerpgextended.client.BossCrown("RearEnd", 1F, -4F, 0F, 5F, 0x4AB0FF))); // корона на панцире: отличить от свиты
-        // Снежный Глакон - Глакон, увеличенный и холодного оттенка
+            new RenderScaledBoss(new ModelCrab(), 4.0F, EntityResourceLocation.crab, 1.0F, 0.85F, 0.8F) // kingCrab.png is 64x64 - not for the crab model (64x32), it got stretched
+                .crown(new com.divinerpgextended.client.BossCrown("RearEnd", 1F, -4F, 0F, 5F, 0x4AB0FF))); // crown on the shell: to tell it apart from the entourage
+        // Snow Glacon is a Glacon, enlarged and with a cold tint
         RenderingRegistry.registerEntityRenderingHandler(EntitySnowGlacon.class,
             new RenderScaledBoss(new ModelGlacon(), 2.2F, EntityResourceLocation.glacon, 0.8F, 0.9F, 1.0F)
-                .crown(new com.divinerpgextended.client.BossCrown("head", 0F, -4F, -0.5F, 5F, 0xA8E8FF))); // корона на голове
+                .crown(new com.divinerpgextended.client.BossCrown("head", 0F, -4F, -0.5F, 5F, 0xA8E8FF))); // crown on the head
         RenderingRegistry.registerEntityRenderingHandler(EntityFrostCharge.class,
             new RenderSnowball(IceikaItems.snowflake));
         RenderingRegistry.registerEntityRenderingHandler(EntityFrostColossus.class, new RenderFrostColossus());
         RenderingRegistry.registerEntityRenderingHandler(EntityLichKing.class, new RenderLichKing());
         RenderingRegistry.registerEntityRenderingHandler(EntityIcicle.class,
             new RenderSnowball(Item.getItemFromBlock(Blocks.ice)));
-        // норные крабы - крабы Divine песочного оттенка, король вдвое крупнее
+        // burrow crabs are Divine crabs with a sandy tint, the king is twice as large
         RenderingRegistry.registerEntityRenderingHandler(EntityLairCrab.class,
             new RenderScaledBoss(new ModelCrab(), 1.0F, EntityResourceLocation.crab, 1.0F, 0.85F, 0.65F));
         RenderingRegistry.registerEntityRenderingHandler(EntityLairCrab.King.class,

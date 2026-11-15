@@ -20,12 +20,12 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Яйца призыва боссов аддона (как ванильные яйца: клик по блоку - босс на нём). Для администраторов и проверки: босс
- * появляется без своего логова, награды и этапы - как за обычное убийство.
+ * Boss summon eggs of the addon (like vanilla eggs: click on a block - the boss on it). For admins and testing: the boss
+ * appears without its lair, rewards and stages - as for a regular kill.
  */
 public class ItemBossEgg extends Item {
 
-    /** Босс, вариант (мир кадиллиона) и цвета яйца: скорлупа, пятна. */
+    /** Boss, variant (Cadillion dimension) and egg colors: shell, spots. */
     public enum Boss {
         CARCINUS(EntityCarcinus.class, -1, 0xC87B3A, 0x6E2A12),
         SNOW_GLACON(EntitySnowGlacon.class, -1, 0xE6F4FF, 0x5BA7D6),
@@ -70,7 +70,7 @@ public class ItemBossEgg extends Item {
         return b[Math.max(0, Math.min(s.getItemDamage(), b.length - 1))];
     }
 
-    /** Босс из яйца в точке (null - не вышло). */
+    /** The boss from the egg at a point (null - failed). */
     public static EntityLiving spawn(World w, ItemStack s, double x, double y, double z) {
         Boss b = boss(s);
         EntityLiving e;

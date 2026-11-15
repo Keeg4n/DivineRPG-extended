@@ -13,11 +13,11 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 /**
- * Генерация Ветеи у Divine тормозила сервер при быстром полёте: украшения (узоры потолка, конусы, цветы, шипы деревень,
- * постройки) ставят блоки с оповещением соседей и читают блоки соседних, ещё не созданных чанков - те создаются и
- * заселяются сами, и так по цепочке (замер: 88% времени генерации - в узорах потолка, худший шаг - 9 с). Вызовы мира в
- * классах генерации Ветеи идут через {@link VetheaGenHooks}: украшения ({@link #decor}) не трогают несозданные чанки
- * (обрезаются по краю); постройки (арены боссов, склепы, дома) строятся целиком, как раньше. Всё - без оповещения соседей.
+ * Divine's Vethea generation slowed the server down during fast flight: decorations (ceiling patterns, cones, flowers, village spikes,
+ * structures) place blocks with neighbor notification and read blocks of neighboring, not yet created chunks - those are created and
+ * populated by themselves, and so on in a chain (measured: 88% of generation time is in ceiling patterns, the worst step is 9 s). World calls in
+ * the Vethea generation classes go through {@link VetheaGenHooks}: decorations ({@link #decor}) do not touch uncreated chunks
+ * (clipped at the edge); structures (boss arenas, crypts, houses) are built whole, as before. Everything without notifying neighbors.
  */
 public class VetheaGenTransformer implements IClassTransformer, Opcodes {
 
@@ -30,7 +30,7 @@ public class VetheaGenTransformer implements IClassTransformer, Opcodes {
     @Override
     public byte[] transform(String name, String transformedName, byte[] bytes) {
         if (bytes == null || transformedName == null || !transformedName.startsWith(PKG)) return bytes;
-        // портал и сам мир - не генерация: там всё как было
+        // portal and the world itself - not generation: everything as it was
         if (transformedName.contains("Teleporter") || transformedName.contains("WorldProvider")) return bytes;
         try {
             ClassNode node = new ClassNode();
@@ -43,7 +43,7 @@ public class VetheaGenTransformer implements IClassTransformer, Opcodes {
                     MethodInsnNode c = (MethodInsnNode) i;
                     if (!WORLD.equals(c.owner)) continue;
                     String hook = hook(c.name, c.desc);
-                    if (hook != null && !decor) hook = "set".equals(hook) ? "build" : null; // постройка: только без оповещения
+                    if (hook != null && !decor) hook = "set".equals(hook) ? "build" : null; // structure: only without notification
                     if (hook == null) continue;
                     c.setOpcode(INVOKESTATIC);
                     c.owner = HOOKS;
@@ -57,21 +57,21 @@ public class VetheaGenTransformer implements IClassTransformer, Opcodes {
             node.accept(w);
             classes++;
             calls += n;
-            LOG.info("Ветея: генерация {} не трогает несозданные чанки ({} вызовов; всего {} классов, {} вызовов)", transformedName, n, classes, calls);
+            LOG.info("Vethea: generation of {} does not touch uncreated chunks ({} calls; {} classes, {} calls in total)", transformedName, n, classes, calls);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Ветея: не удалось исправить " + transformedName + ", класс без изменений", t);
+            LOG.error("Vethea: could not fix " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }
 
-    /** Украшение (узоры, конусы, цветы, деревья, шипы деревень, само заселение), а не постройка. */
+    /** Decoration (patterns, cones, flowers, trees, village spikes, population itself), not a structure. */
     static boolean decor(String cls) {
         return cls.startsWith("all.") || cls.equals("WorldGenVetheanFlower") || cls.equals("ChunkProviderVethea") || cls.endsWith("Forest")
             || cls.contains("Tree") || cls.equals("village.WorldGenVillageIsland");
     }
 
-    /** Обёртка для вызова мира (null - вызов не трогаем). */
+    /** Wrapper for a world call (null - the call is not touched). */
     static String hook(String name, String desc) {
         if (("func_147449_b".equals(name) || "setBlock".equals(name)) && "(IIILnet/minecraft/block/Block;)Z".equals(desc)) return "set";
         if (("func_147465_d".equals(name) || "setBlock".equals(name)) && "(IIILnet/minecraft/block/Block;II)Z".equals(desc)) return "set";

@@ -17,23 +17,23 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Окно Наковальни Странника. Три вкладки ({@link AnvilLogic#UPGRADE}, {@link AnvilLogic#SOCKETS},
- * {@link AnvilLogic#UNLOAD}) на одних и тех же 9 слотах: вкладка решает, какие слоты видны, где стоят и что в них
- * кладётся. При смене вкладки всё, что ей не подходит, уходит в инвентарь игрока (нет места - вкладка не меняется).
- * Под каждой частью брони во вкладке гнёзд - её гнёзда: не слоты (внутри брони нет инвентаря), а картинки; клик по
- * занятому гнезду - кнопка "вынуть" ({@link #enchantItem}, id {@link #EXTRACT} + часть * 2 + гнездо).
+ * Wanderer Anvil window. Three tabs ({@link AnvilLogic#UPGRADE}, {@link AnvilLogic#SOCKETS},
+ * {@link AnvilLogic#UNLOAD}) on the same 9 slots: the tab decides which slots are visible, where they stand and what can be
+ * placed in them. When the tab changes, everything that does not fit it goes to the player's inventory (no room - the tab does not change).
+ * Under each armor part in the sockets tab are its sockets: not slots (armor has no inventory inside) but pictures; a click on an
+ * occupied socket is the "take out" button ({@link #enchantItem}, id {@link #EXTRACT} + part * 2 + socket).
  * <p>
- * Слоты - свои у этого окна ({@link AnvilWork}), в блоке ничего не хранится: окно закрылось - всё упало на землю, как из сетки верстака.
+ * The slots are this window's own ({@link AnvilWork}), nothing is stored in the block: when the window closes, everything drops on the ground, like from a crafting grid.
  */
 public class ContainerWandererAnvil extends Container {
 
     public static final int GUI_W = 176, GUI_H = 232;
     public static final int ROW1_Y = 24, ROW2_Y = 48, FUEL_Y = 72, SOCKET_Y = 44, ACC_Y = 86, STATUS_Y = 106, INV_Y = 150, HOTBAR_Y = 208;
-    /** Кнопка "вынуть из гнезда": EXTRACT + слот брони * 2 + номер гнезда. */
+    /** The "take out of socket" button: EXTRACT + armor slot * 2 + socket number. */
     public static final int EXTRACT = 100;
-    /** Кнопка вкладки: TAB + вкладка (номер кнопки идёт байтом - меньше 128). */
+    /** Tab button: TAB + tab (the button number goes as a byte - less than 128). */
     public static final int TAB = 110;
-    /** Последняя открытая вкладка игрока (в данных сущности, до выхода из игры). */
+    /** The player's last open tab (in entity data, until leaving the game). */
     public static final String LAST_TAB = "dreAnvilTab";
     private static final int HIDDEN = -10000;
 
@@ -41,11 +41,11 @@ public class ContainerWandererAnvil extends Container {
     private final EntityPlayer player;
     private final AnvilWork work = new AnvilWork();
 
-    // синхронизируемое состояние (сервер считает, клиент показывает)
+    // synchronized state (the server computes, the client shows)
     public int status = -1, param, bossMask, fuelItem, mode, targets, fuelMeta = -1;
     private int sentMode = -1, sentTargets;
 
-    /** Слот станции: что в него кладётся, решает текущая вкладка. */
+    /** Station slot: what can be placed in it is decided by the current tab. */
     private class StationSlot extends Slot {
 
         StationSlot(int index) {
@@ -62,7 +62,7 @@ public class ContainerWandererAnvil extends Container {
             return getSlotIndex() == AnvilLogic.FUEL ? 64 : 1;
         }
 
-        /** Пустой слот брони - силуэт своей части (как в инвентаре игрока). */
+        /** An empty armor slot shows the silhouette of its part (like in the player's inventory). */
         @Override
         @SideOnly(Side.CLIENT)
         public net.minecraft.util.IIcon getBackgroundIconIndex() {
@@ -82,29 +82,29 @@ public class ContainerWandererAnvil extends Container {
             }
         }
         for (int col = 0; col < 9; col++) addSlotToContainer(new Slot(inv, col, 8 + col * 18, HOTBAR_Y));
-        int last = player.getEntityData().getInteger(LAST_TAB); // слоты при открытии пусты - открываем последнюю вкладку
+        int last = player.getEntityData().getInteger(LAST_TAB); // slots are empty on opening - open the last tab
         mode = last >= 0 && last < AnvilLogic.MODES ? last : AnvilLogic.UPGRADE;
         layout();
     }
 
-    /** Слот станции виден во вкладке: улучшение - все, гнёзда - броня и доноры, разрядка - только топливо (оружие). */
+    /** The station slot is visible in the tab: upgrade - all, sockets - armor and donors, unload - only fuel (weapon). */
     public static boolean visible(int mode, int slot) {
         return mode == AnvilLogic.UPGRADE || (mode == AnvilLogic.SOCKETS ? slot != AnvilLogic.FUEL : slot == AnvilLogic.FUEL);
     }
 
     /**
-     * Что кладётся в слот во вкладке. Броня (и донорский сет) - по частям: шлем в первый слот ряда, ботинки в
-     * последний. Топливо улучшения - что угодно, кроме оружия с зарядом; во вкладке разрядки там лежит оружие.
+     * What can be placed in a slot in the tab. Armor (and the donor set) - by parts: helmet in the first slot of the row, boots in the
+     * last. Upgrade fuel - anything except a loaded weapon; in the unload tab a weapon goes there.
      */
     public static boolean valid(int mode, int slot, ItemStack s) {
         if (s == null) return true;
         if (slot == AnvilLogic.FUEL) return mode == AnvilLogic.UNLOAD ? Ammo.of(s) != null : Ammo.of(s) == null;
         if (slot >= AnvilLogic.DONOR && mode == AnvilLogic.SOCKETS) return Sockets.accessory(s);
-        if (mode == AnvilLogic.SOCKETS && com.divinerpgextended.accessory.Goggles.is(s)) return false; // очки идут в нижний ряд, сверху они были бы бронёй без гнёзд
+        if (mode == AnvilLogic.SOCKETS && com.divinerpgextended.accessory.Goggles.is(s)) return false; // accessories go to the bottom row, on top they would be armor without sockets
         return s.getItem() instanceof ItemArmor && ((ItemArmor) s.getItem()).armorType == slot % 4;
     }
 
-    /** Расставить слоты станции под вкладку (скрытые - далеко за экраном). */
+    /** Arrange the station slots for the tab (hidden ones - far off screen). */
     private void layout() {
         for (int i = 0; i < AnvilLogic.SIZE; i++) {
             Slot s = (Slot) inventorySlots.get(i);
@@ -124,8 +124,8 @@ public class ContainerWandererAnvil extends Container {
     }
 
     /**
-     * Сменить вкладку (сервер): то, что ей не подходит, - в инвентарь игрока. Не влезло - остаётся в наковальне, вкладка
-     * прежняя. Стак уменьшается при переносе в инвентарь, остаток кладётся обратно в слот - ничего не двоится.
+     * Change the tab (server): what does not fit it goes to the player's inventory. Did not fit - stays in the anvil, the tab
+     * stays the same. The stack shrinks when moved to the inventory, the remainder is put back into the slot - nothing duplicates.
      */
     public boolean select(EntityPlayer p, int m) {
         if (m < 0 || m >= AnvilLogic.MODES) return false;
@@ -134,7 +134,7 @@ public class ContainerWandererAnvil extends Container {
         for (int i = 0; i < AnvilLogic.SIZE; i++) {
             ItemStack s = work.getStackInSlot(i);
             if (s == null || visible(m, i) && valid(m, i, s)) continue;
-            // в творческом addItemStackToInventory без места обнуляет стак, никуда не положив, - не отдаём
+            // in creative addItemStackToInventory without room zeroes the stack without placing it anywhere - we do not hand it over
             if (p.capabilities.isCreativeMode && p.inventory.getFirstEmptyStack() < 0) {
                 ok = false;
                 continue;
@@ -160,7 +160,7 @@ public class ContainerWandererAnvil extends Container {
         return tile;
     }
 
-    /** Рабочие слоты этого окна. */
+    /** Work slots of this window. */
     public AnvilWork work() {
         return work;
     }
@@ -170,7 +170,7 @@ public class ContainerWandererAnvil extends Container {
         return tile.isUseableByPlayer(p);
     }
 
-    /** Окно закрылось (в том числе ушёл далеко, сломали блок, вышел с сервера, умер) - всё из слотов падает на землю, как из верстака. */
+    /** The window closed (including walking far away, the block broken, leaving the server, death) - everything from the slots drops on the ground, like from a crafting grid. */
     @Override
     public void onContainerClosed(EntityPlayer p) {
         super.onContainerClosed(p);
@@ -217,8 +217,8 @@ public class ContainerWandererAnvil extends Container {
     }
 
     /**
-     * Кнопки приходят сюда через стандартный пакет кнопки (как у стола зачарования): 0 - главная (улучшить, встроить,
-     * разрядить), {@link #EXTRACT}.. - вынуть аксессуар из гнезда, {@link #TAB}.. - вкладка.
+     * Buttons arrive here via the standard button packet (like the enchanting table): 0 - main (upgrade, embed,
+     * unload), {@link #EXTRACT}.. - take an accessory out of a socket, {@link #TAB}.. - tab.
      */
     @Override
     public boolean enchantItem(EntityPlayer p, int id) {
@@ -253,8 +253,8 @@ public class ContainerWandererAnvil extends Container {
     }
 
     /**
-     * Shift-клик: в первый видимый слот станции, который принимает вещь (броня - в слот своей части, потом в донорский
-     * ряд; аксессуар - в свободный слот аксессуаров; топливо и оружие - в нижний слот); из станции - в инвентарь игрока.
+     * Shift-click: into the first visible station slot that accepts the item (armor - into its part's slot, then into the donor
+     * row; accessory - into a free accessory slot; fuel and weapon - into the bottom slot); from the station - into the player's inventory.
      */
     @Override
     public ItemStack transferStackInSlot(EntityPlayer p, int index) {
@@ -268,7 +268,7 @@ public class ContainerWandererAnvil extends Container {
             boolean moved = false;
             for (int i = 0; i < AnvilLogic.SIZE && !moved; i++) {
                 Slot target = (Slot) inventorySlots.get(i);
-                if (!target.isItemValid(stack)) continue; // проверка вкладки: mergeItemStack её не делает
+                if (!target.isItemValid(stack)) continue; // tab check: mergeItemStack does not do it
                 if (i == AnvilLogic.FUEL) moved = mergeItemStack(stack, i, i + 1, false);
                 else if (!target.getHasStack()) {
                     target.putStack(stack.splitStack(1));

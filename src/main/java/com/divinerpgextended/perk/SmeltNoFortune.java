@@ -21,10 +21,10 @@ import com.divinerpgextended.Config;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Автоплавка без удачи для руд из {@link Config#smeltNoFortune} (рупий, арлемит). Модификатор "Лава" Tinkers' Construct
- * сам плавит сломанную руду и бросает результат в центр блока, а с удачей на инструменте умножает его (в 1..удача+1
- * раз) - мимо обычного дропа блока. Здесь сломанный игроком блок такой руды помнится до конца тика, и результат плавки,
- * появившийся в этом блоке, урезается до одной плавки.
+ * Auto-smelting without Fortune for ores from {@link Config#smeltNoFortune} (rupee, arlemite). The Tinkers' Construct "Lava" modifier
+ * smelts the broken ore itself and drops the result at the block center, and with Fortune on the tool it multiplies it (by 1..Fortune+1
+ * times) - bypassing the block's normal drop. Here a block of such ore broken by a player is remembered until the end of the tick, and a smelt result
+ * that appears in that block is cut down to a single smelt.
  */
 public class SmeltNoFortune {
 
@@ -47,7 +47,7 @@ public class SmeltNoFortune {
         }
     }
 
-    /** Руды из конфига (разбираются при первом обращении, когда блоки уже зарегистрированы). */
+    /** Ores from the config (parsed on first access, when the blocks are already registered). */
     public static Set<Block> ores() {
         if (ores != null) return ores;
         Set<Block> s = new HashSet<Block>();

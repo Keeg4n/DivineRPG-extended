@@ -23,10 +23,10 @@ import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 
 /**
- * Отладка для сборки: /dredebug. У включившего игрока подробности урона, лечения, эффектов и механик аддона идут в
- * чат, а всё (плюс действия, клавиши и снимки состояния) - в CSV в logs/dre-debug.
+ * Debugging for the modpack: /dredebug. For the player who turned it on, details of damage, healing, effects and addon mechanics go to
+ * chat, and everything (plus actions, keys and state snapshots) goes to a CSV in logs/dre-debug.
  * <p>
- * Механики аддона сообщают о себе через {@link #note}: это дёшево, пока отладку никто не включил.
+ * Addon mechanics report themselves through {@link #note}: this is cheap while nobody has turned debugging on.
  */
 public final class Debug {
 
@@ -38,7 +38,7 @@ public final class Debug {
     }
 
     static final Map<UUID, Flags> ON = new ConcurrentHashMap<UUID, Flags>();
-    /** Клиент: сервер включил отладку этому игроку - писать клавиши и окна. */
+    /** Client: the server turned debugging on for this player - record keys and windows. */
     static volatile boolean clientOn;
     private static DebugLog log;
 
@@ -64,8 +64,8 @@ public final class Debug {
         log = null;
     }
 
-    /** Сработала механика аддона: прицепится к текущему удару или уйдёт отладчику отдельной строкой. */
-    /** Заметка о мобе (боссе) - в лог игрокам рядом. */
+    /** An addon mechanic fired: it attaches to the current hit or goes to the debugger as a separate line. */
+    /** A note about a mob (boss) - into the log for players nearby. */
     public static void noteNear(Entity mob, double r, String text) {
         if (ON.isEmpty() || mob == null || mob.worldObj.isRemote) return;
         for (Object o : mob.worldObj.getEntitiesWithinAABB(net.minecraft.entity.player.EntityPlayer.class, mob.boundingBox.expand(r, r, r)))
@@ -77,7 +77,7 @@ public final class Debug {
         DebugEvents.note(who, text);
     }
 
-    /** Строка отладки в чате: перехват исходящего чата её не пишет в файл второй раз. */
+    /** A debug line in chat: the outgoing chat interception does not write it to the file a second time. */
     public static class DebugText extends ChatComponentText {
 
         public DebugText(String text) {
@@ -95,7 +95,7 @@ public final class Debug {
         log().write(who, category, event, details);
     }
 
-    // ---------------- Клиенту: писать ли клавиши ----------------
+    // ---------------- To the client: whether to record keys ----------------
 
     public static class State implements IMessage {
 

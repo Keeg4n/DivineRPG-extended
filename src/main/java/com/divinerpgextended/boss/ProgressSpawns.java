@@ -28,44 +28,44 @@ import cpw.mods.fml.common.eventhandler.Event;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Мобы Divine в обычном мире, аду и Энде открываются по рангу игрока.
+ * Divine mobs in the Overworld, the Nether and the End unlock by the player's rank.
  * <ul>
- * <li>Ранг 0 (начало): только крабы.</li>
- * <li>Ранг 1 (убит Карцинус): в аду Wildfire и адские пауки, в снегах Глаконы и Фросты, в океане акулы, киты и
- * лиоплевродоны.</li>
- * <li>Ранг 2 (убит Король-лич): остальные мобы Divine этих миров (пустыня, джунгли, равнины, лес, подземелья,
- * ад).</li>
- * <li>Ранг 3 (убита Древняя сущность): мобы Энда - эндер-пауки, тройняшки и эндер-смотрители (с них глаз для
- * призыва Смотрителя, а Смотритель открывает Аркану).</li>
+ * <li>Rank 0 (start): crabs only.</li>
+ * <li>Rank 1 (Carcinus killed): in the Nether Wildfire and Hell Spiders, in the snow Glacons and Frosts, in the ocean sharks, whales and
+ * liopleurodons.</li>
+ * <li>Rank 2 (Lich King killed): the remaining Divine mobs of these worlds (desert, jungle, plains, forest, dungeons,
+ * Nether).</li>
+ * <li>Rank 3 (Ancient Entity killed): End mobs - Ender Spiders, Ender Triplets and Ender Watchers (they drop the eye for
+ * summoning the Watcher, and the Watcher unlocks Arcana).</li>
  * </ul>
- * В Энде наоборот - решает самый сильный: моб появляется, если рядом есть хоть один игрок нужного ранга (игрок ниже
- * рангом не может нарочно мешать фарму; его самого такие мобы не трогают).
- * Моб появляется, только если у всех игроков, вокруг которых игра вообще спавнит мобов (8 чанков от чанка игрока -
- * до ~180 блоков по диагонали; раньше было 128 блоков, и мобы рождались за этим кругом и приходили), ранг не ниже нужного - решает самый слабый, чтобы тот,
- * кто не качает Divine, не страдал из-за соседа. Если моб уже есть, а рядом игрок ниже рангом, моб его не трогает.
- * Игрок может такого моба убить (чтобы не мешал, если забрёл к нему домой), но дроп и опыт с него не падают
- * (lowRankNoDrops в конфиге) - бесплатного фарма не до своей ступени нет.
- * Мирные мобы и торговцы Divine, боссы с призыва и Iceika это не затрагивает.
+ * In the End it is the other way round - the strongest decides: a mob spawns if there is at least one player of the needed rank nearby (a player of a lower
+ * rank can't deliberately interfere with farming; such mobs do not touch him).
+ * A mob spawns only if all players around whom the game spawns mobs at all (8 chunks from the player's chunk -
+ * up to ~180 blocks diagonally; it used to be 128 blocks, and mobs were born beyond that circle and came over) have a rank no lower than needed - the weakest decides, so that someone
+ * who is not leveling Divine does not suffer because of a neighbor. If the mob already exists and a player of a lower rank is nearby, the mob does not touch him.
+ * A player can kill such a mob (so it does not get in the way if it wandered to his home), but no drops or experience fall from it
+ * (lowRankNoDrops in the config) - no free farming before your own tier.
+ * Peaceful mobs and Divine merchants, summoned bosses and Iceika are not affected.
  * <p>
- * Отсекается на уровне выбора: игра берёт вид моба для стаи из списка биома ({@code WorldServer.spawnRandomCreature}), и
- * виды выше допустимого ранга из этого списка убираются ({@link #candidates}, через {@link com.divinerpgextended.asm.SpawnTransformer}) -
- * стая выбирается из разрешённых, плотность спавна не проседает. Так же отбираются существа, которых игра селит при
- * генерации чанка (SpawnerAnimals.performWorldGenSpawning) - там проверки при появлении нет вовсе, и раньше так у
- * игрока ранга 0 появлялись Глаконы (Divine прописывает их ещё и как существ). Раньше моб выбирался из всего списка и отклонялся уже
- * при появлении - вся попытка стаи пропадала. Отказ при появлении ({@link #onCheckSpawn}) остался страховкой: спавнеры,
- * зов факелом, чужие спавнеры модов, моб стаи у границы зоны другого игрока.
+ * It is cut off at the selection level: the game picks the mob kind for a pack from the biome list ({@code WorldServer.spawnRandomCreature}), and
+ * kinds above the allowed rank are removed from this list ({@link #candidates}, via {@link com.divinerpgextended.asm.SpawnTransformer}) -
+ * the pack is chosen from the allowed ones, the spawn density does not drop. Creatures that the game places during
+ * chunk generation (SpawnerAnimals.performWorldGenSpawning) are filtered the same way - there is no spawn-time check at all, and previously
+ * a rank 0 player got Glacons that way (Divine also registers them as creatures). Previously a mob was chosen from the whole list and rejected only
+ * on spawn - the whole pack attempt was lost. The refusal on spawn ({@link #onCheckSpawn}) remains as a safety net: spawners,
+ * torch calls, other mods' spawners, a pack mob at the border of another player's zone.
  */
 public class ProgressSpawns {
 
     private static final Map<Class<?>, Integer> TIER = new HashMap<Class<?>, Integer>();
 
     static {
-        // ранг 1: Карцинус повержен
+        // rank 1: Carcinus defeated
         for (Class<?> c : new Class<?>[] { EntityWildfire.class, EntityHellSpider.class, EntityGlacon.class,
             EntityFrost.class, EntityShark.class, EntityWhale.class, EntityLiopleurodon.class }) {
             TIER.put(c, 1);
         }
-        // ранг 2: Король-лич повержен
+        // rank 2: Lich King defeated
         for (Class<?> c : new Class<?>[] { EntityDesertCrawler.class, EntityAridWarrior.class, EntitySaguaroWorm.class,
             EntityJungleBat.class, EntityJungleSpider.class, EntityJungleDramcryx.class, EntityKobblin.class,
             EntityCyclops.class, EntityPumpkinSpider.class, EntityMiner.class, EntityCaveCrawler.class,
@@ -73,30 +73,30 @@ public class ProgressSpawns {
             EntityCaveclops.class, EntityHellPig.class, EntityScorcher.class }) {
             TIER.put(c, 2);
         }
-        // ранг 3: Древняя сущность повержена
+        // rank 3: Ancient Entity defeated
         for (Class<?> c : new Class<?>[] { EntityEnderSpider.class, EntityEnderTriplets.class, EntityEnderWatcher.class }) {
             TIER.put(c, 3);
         }
     }
 
-    /** Ранг игрока по убитым боссам. */
+    /** Player rank by killed bosses. */
     public static int rank(EntityPlayer p) {
         if (BossProgress.has(p, Boss.LICH_KING)) return BossProgress.has(p, Boss.ANCIENT_ENTITY) ? 3 : 2;
         if (BossProgress.has(p, Boss.CARCINUS)) return 1;
         return 0;
     }
 
-    /** Нужный рангу моба или 0, если моб не ограничен. */
+    /** The rank the mob needs, or 0 if the mob is not restricted. */
     public static int tier(Entity e) {
         if (e == null) return 0;
         Integer t = TIER.get(e.getClass());
         return t == null ? 0 : t;
     }
 
-    /** Радиус в чанках, в котором игра спавнит мобов вокруг игрока (SpawnerAnimals: 8). */
+    /** Radius in chunks in which the game spawns mobs around the player (SpawnerAnimals: 8). */
     public static final int SPAWN_CHUNKS = 8;
 
-    /** Убирать запрещённых из выбора вида (выключается только самопроверкой - для сравнения со старым способом). */
+    /** Remove the forbidden ones from the kind selection (turned off only by selftest - for comparison with the old way). */
     public static boolean filterCandidates = true;
 
     private static boolean gated(World w) {
@@ -109,19 +109,19 @@ public class ProgressSpawns {
         if (denied(event.world, event.entityLiving, event.x, event.z)) event.setResult(Event.Result.DENY);
     }
 
-    /** Нельзя ли сейчас появиться этому мобу в этой точке по рангам игроков рядом (и для естественного спавна, и для зова факелом). */
+    /** Whether this mob can't spawn at this point right now by the ranks of players nearby (both for natural spawning and for a torch call). */
     public static boolean denied(World w, Entity mob, double x, double z) {
         if (w.isRemote) return false;
-        if (Config.liopleurodonBoss && mob.getClass() == EntityLiopleurodon.class) return true; // лиоплевродон - только босс на наживку
+        if (Config.liopleurodonBoss && mob.getClass() == EntityLiopleurodon.class) return true; // liopleurodon - only a bait boss
         if (!gated(w)) return false;
         int need = tier(mob);
         return need > 0 && need > allowedRank(w, MathHelper.floor_double(x) >> 4, MathHelper.floor_double(z) >> 4);
     }
 
     /**
-     * До какого ранга мобы могут появиться в чанке: у игроков, вокруг которых игра спавнит мобов в этом чанке, - у самого
-     * слабого; в Энде - у самого сильного (игрок ниже рангом не мешает спавну тому, кому эти мобы нужны, его самого они не
-     * трогают). Игроков рядом нет - без ограничений.
+     * Up to which rank mobs can spawn in a chunk: that of the weakest of the players around whom the game spawns mobs in this chunk; in the End -
+     * that of the strongest (a player of a lower rank does not interfere with the spawn for the one who needs these mobs; they do not touch him).
+     * No players nearby - no restrictions.
      */
     public static int allowedRank(World w, int cx, int cz) {
         boolean end = w.provider.dimensionId == 1, any = false;
@@ -138,8 +138,8 @@ public class ProgressSpawns {
     public static final int MAX_RANK = 3;
 
     /**
-     * Из каких видов игра выбирает моба для стаи в точке (x, z): список биома без видов выше допустимого ранга. Список
-     * биома не меняется - если убирать нечего, он и возвращается, иначе копия.
+     * Which kinds the game picks a mob from for a pack at the point (x, z): the biome list without the kinds above the allowed rank. The biome
+     * list is not changed - if there is nothing to remove, it is returned as is, otherwise a copy.
      */
     public static List<BiomeGenBase.SpawnListEntry> candidates(World w, int x, int z, List<BiomeGenBase.SpawnListEntry> list) {
         if (list == null || list.isEmpty() || !filterCandidates || w.isRemote || !gated(w)) return list;
@@ -153,13 +153,13 @@ public class ProgressSpawns {
         return out;
     }
 
-    /** Нужный ранг для вида моба (0 - не ограничен). */
+    /** The required rank for a mob kind (0 - not restricted). */
     public static int tierOf(Class<?> c) {
         Integer t = TIER.get(c);
         return t == null ? 0 : t;
     }
 
-    /** Моб не выбирает целью игрока ниже своего ранга. */
+    /** A mob does not target a player below its rank. */
     @SubscribeEvent
     public void onTarget(LivingSetAttackTargetEvent event) {
         if (!(event.target instanceof EntityPlayer) || !(event.entityLiving instanceof EntityLiving)
@@ -170,7 +170,7 @@ public class ProgressSpawns {
         if (m instanceof EntityCreature) ((EntityCreature) m).setTarget(null);
     }
 
-    /** Моб не наносит урона игроку ниже своего ранга (и не дошедшему до его мира). */
+    /** A mob does not damage a player below its rank (or one who has not reached its world). */
     @SubscribeEvent
     public void onAttack(LivingAttackEvent event) {
         if (!(event.entityLiving instanceof EntityPlayer) || event.entityLiving.worldObj.isRemote
@@ -178,31 +178,31 @@ public class ProgressSpawns {
         Entity src = event.source.getEntity();
         if (src != null && !(src instanceof EntityPlayer) && !ready((EntityPlayer) event.entityLiving, src)) {
             event.setCanceled(true);
-            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Моб выше твоего ранга: урон отменён");
+            com.divinerpgextended.debug.Debug.note(event.entityLiving, "Mob above your rank: damage cancelled");
         }
     }
 
     private static final String NO_DROPS = "dreNoDrops";
 
-    /** Убийца - игрок (напрямую, стрелой) или тот, кто последним ранил моба (если добило пламя и т.п.). */
+    /** The killer is a player (directly, by an arrow) or the one who last wounded the mob (if flame etc. finished it). */
     private static EntityPlayer killer(EntityLivingBase dead, Entity source) {
         if (source instanceof EntityPlayer) return (EntityPlayer) source;
         EntityLivingBase last = dead.getAITarget();
         return last instanceof EntityPlayer ? (EntityPlayer) last : null;
     }
 
-    /** Убит игроком ниже ранга: без опыта и (в onDrops) без дропа. */
+    /** Killed by a player below the rank: no experience and (in onDrops) no drop. */
     @SubscribeEvent
     public void onDeath(LivingDeathEvent event) {
         if (!Config.lowRankNoDrops || event.entityLiving.worldObj.isRemote || !gated(event.entityLiving.worldObj)
             || !(event.entityLiving instanceof EntityLiving)) return;
-        if (tier(event.entityLiving) == 0 && foreign(event.entityLiving) == null) return; // боссов решает BossTracker
+        if (tier(event.entityLiving) == 0 && foreign(event.entityLiving) == null) return; // bosses are decided by BossTracker
         EntityPlayer k = killer(event.entityLiving, event.source.getEntity());
         if (k == null || ready(k, event.entityLiving)) return;
         markNoDrops(event.entityLiving);
     }
 
-    /** Без дропа и опыта (дроп убирает {@link #onDrops} последним). */
+    /** No drop and no experience (the drop is removed by {@link #onDrops} last). */
     public static void markNoDrops(EntityLivingBase e) {
         e.getEntityData().setBoolean(NO_DROPS, true);
         if (e instanceof EntityLiving) ObfuscationReflectionHelper.setPrivateValue(EntityLiving.class, (EntityLiving) e, 0, "experienceValue", "field_70728_aV");
@@ -212,9 +212,9 @@ public class ProgressSpawns {
         return e != null && e.getEntityData().getBoolean(NO_DROPS);
     }
 
-    // ---------------------------------------------------------------- мобы других миров Divine в обычном мире и боссы
+    // ---------------------------------------------------------------- mobs of other Divine worlds in the Overworld, and bosses
 
-    /** Мир Divine, откуда моб, по пакету класса (сумеречный - по главе бестиария); null - обычный мир, Ад, Край или не Divine. */
+    /** The Divine world the mob is from, by the class package (Twilight - by the bestiary chapter); null - Overworld, Nether, End or not Divine. */
     public static com.divinerpgextended.bestiary.Bestiary.Chapter home(Entity e) {
         String c = e.getClass().getName();
         if (!c.startsWith("net.divinerpg.entities.")) return null;
@@ -232,8 +232,8 @@ public class ProgressSpawns {
     }
 
     /**
-     * Моб другого мира Divine, попавший в обычный мир (спавнер, яйцо, портал): мир, до которого должен дойти игрок, чтобы
-     * этот моб его замечал и что-то с него падало. Боссы (их решает {@link BossTracker}), торговцы и приручённые - null.
+     * A mob of another Divine world that ended up in the Overworld (spawner, egg, portal): the world the player must reach for
+     * this mob to notice him and drop something. Bosses (decided by {@link BossTracker}), merchants and tamed ones - null.
      */
     public static com.divinerpgextended.bestiary.Bestiary.Chapter foreign(Entity e) {
         if (e == null || e.worldObj == null || e.worldObj.provider.dimensionId != 0 || !Config.foreignMobsByStage || !(e instanceof EntityLiving)) return null;
@@ -242,13 +242,13 @@ public class ProgressSpawns {
         return home(e);
     }
 
-    /** Шесть боссов Мортума: частички трёх разных - Дух сумерек. */
+    /** The six Mortum bosses: soul sparks of three different ones - Twilight Spirit. */
     static final Boss[] MORTUM_SIX = { Boss.TWILIGHT_DEMON, Boss.KAROT, Boss.ETERNAL_ARCHER, Boss.TWINS, Boss.SOUL_FIEND, Boss.VAMACHERON };
 
     /**
-     * Дошёл ли игрок до мира: Айсика - после Карцинуса (как снежные мобы обычного мира), Эдем и Аркана - после Смотрителя,
-     * следующий сумеречный мир - после стража предыдущего (его шестерня открывает портал), Ветея - когда побеждены боссы
-     * Духа вселенной (три босса Мортума, Драмикс, Парасекта, Древняя сущность, Король Скорчеров; Айрако победой не пишется).
+     * Whether the player has reached the world: Iceika - after Carcinus (like the snow mobs of the Overworld), Eden and Arcana - after the Watcher,
+     * the next Twilight world - after the guardian of the previous one (its gear opens the portal), Vethea - when the Spirit of the Universe bosses are defeated
+     * (three Mortum bosses, Dramix, Parasecta, Ancient Entity, King of Scorchers; Ayeraco is not recorded as a victory).
      */
     public static boolean reached(EntityPlayer p, com.divinerpgextended.bestiary.Bestiary.Chapter ch) {
         switch (ch) {
@@ -269,7 +269,7 @@ public class ProgressSpawns {
         }
     }
 
-    /** Кого победить раньше, чтобы дойти до мира (ключ перевода). */
+    /** Whom to defeat first to reach the world (translation key). */
     public static String needKey(com.divinerpgextended.bestiary.Bestiary.Chapter ch) {
         switch (ch) {
             case ICEIKA: return Boss.CARCINUS.langKey();
@@ -282,7 +282,7 @@ public class ProgressSpawns {
         }
     }
 
-    /** Замечает ли моб игрока и падает ли с него что-то: ранг для мобов обычного мира, Ада и Края, мир - для чужих в обычном мире. */
+    /** Whether the mob notices the player and whether something drops from it: rank for Overworld, Nether and End mobs, world - for foreign ones in the Overworld. */
     public static boolean ready(EntityPlayer p, Entity mob) {
         int t = tier(mob);
         if (t > 0) return rank(p) >= t;
@@ -290,7 +290,7 @@ public class ProgressSpawns {
         return ch == null || reached(p, ch);
     }
 
-    /** Этап босса: мир, до которого надо дойти (null - ранг по {@link #bossRank} или без условий). */
+    /** Boss stage: the world to reach (null - rank by {@link #bossRank} or no conditions). */
     public static com.divinerpgextended.bestiary.Bestiary.Chapter bossWorld(Boss b) {
         switch (b) {
             case CADILLION_EDEN: return com.divinerpgextended.bestiary.Bestiary.Chapter.EDEN;
@@ -301,12 +301,12 @@ public class ProgressSpawns {
                 return com.divinerpgextended.bestiary.Bestiary.Chapter.MORTUM;
             case DRAMIX: case PARASECTA: return com.divinerpgextended.bestiary.Bestiary.Chapter.ARCANA;
             case WRECK: case RAGLOK: case LADY_LUNA: return com.divinerpgextended.bestiary.Bestiary.Chapter.VETHEA;
-            case LIOPLEURODON: return com.divinerpgextended.bestiary.Bestiary.Chapter.SKYTHERN; // после стража Апалачии
+            case LIOPLEURODON: return com.divinerpgextended.bestiary.Bestiary.Chapter.SKYTHERN; // after the Apalachia guardian
             default: return null;
         }
     }
 
-    /** Ранг, нужный боссу обычного мира, Ада и Края: цепочка Карцинус - Король-лич - Древняя сущность - Смотритель. */
+    /** The rank an Overworld, Nether and End boss needs: the chain Carcinus - Lich King - Ancient Entity - Watcher. */
     static int bossRank(Boss b) {
         switch (b) {
             case SNOW_GLACON: case LICH_KING: return 1;
@@ -317,18 +317,18 @@ public class ProgressSpawns {
     }
 
     /**
-     * Босс в обычном мире, Аду или Крае: дошёл ли игрок до его этапа. Не дошёл - ни доли добычи, ни победы
-     * ({@link BossTracker}, {@link com.divinerpgextended.halite.HaliteDrops}). В остальных мирах - всегда да.
+     * A boss in the Overworld, the Nether or the End: whether the player has reached its stage. If not - no share of the loot and no victory
+     * ({@link BossTracker}, {@link com.divinerpgextended.halite.HaliteDrops}). In other worlds - always yes.
      */
     public static boolean bossReady(EntityPlayer p, Entity boss) {
         if (boss == null || boss.worldObj == null || !gated(boss.worldObj)) return true;
         Boss b = Boss.of(boss);
-        if (b == null) return !(boss instanceof EntityAyeraco) || rank(p) >= 3; // орда Айрако в Крае - после Древней сущности
+        if (b == null) return !(boss instanceof EntityAyeraco) || rank(p) >= 3; // the Ayeraco horde in the End - after the Ancient Entity
         com.divinerpgextended.bestiary.Bestiary.Chapter ch = bossWorld(b);
         return ch != null ? reached(p, ch) : rank(p) >= bossRank(b);
     }
 
-    /** Кого победить раньше этого босса (ключ перевода; null - условий нет). */
+    /** Whom to defeat before this boss (translation key; null - no conditions). */
     public static String bossNeedKey(Entity boss) {
         Boss b = Boss.of(boss);
         if (b == null) return boss instanceof EntityAyeraco ? Boss.ANCIENT_ENTITY.langKey() : null;
@@ -338,16 +338,16 @@ public class ProgressSpawns {
         return r == 1 ? Boss.CARCINUS.langKey() : r == 2 ? Boss.LICH_KING.langKey() : r == 3 ? Boss.ANCIENT_ENTITY.langKey() : null;
     }
 
-    /** Последним: что бы ни добавили другие обработчики, у помеченного ничего не падает. */
+    /** Last: whatever other handlers add, nothing drops from a marked one. */
     @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.LOWEST)
     public void onDrops(LivingDropsEvent event) {
         if (event.entityLiving.getEntityData()
             .getBoolean(NO_DROPS)) {
             event.drops.clear();
-            com.divinerpgextended.debug.Debug.note(event.source.getEntity(), "Убит не на своём этапе: дроп и опыт не выпали");
+            com.divinerpgextended.debug.Debug.note(event.source.getEntity(), "Killed at the wrong stage: no drop or experience");
             return;
         }
-        // эндер-смотритель у Divine в половине случаев не роняет ничего, а его глаз нужен на призыв Смотрителя - хоть один набор
+        // Divine's Ender Watcher drops nothing half of the time, and its eye is needed to summon the Watcher - at least one set
         if (event.entityLiving instanceof EntityEnderWatcher && event.recentlyHit && event.drops.isEmpty() && !event.entityLiving.worldObj.isRemote) {
             EntityLivingBase w = event.entityLiving;
             event.drops.add(new net.minecraft.entity.item.EntityItem(w.worldObj, w.posX, w.posY, w.posZ, new net.minecraft.item.ItemStack(net.divinerpg.utils.items.VanillaItemsOther.enderShards, 2)));

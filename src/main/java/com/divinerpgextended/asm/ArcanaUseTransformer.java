@@ -14,9 +14,9 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 /**
- * Траты арканы в коде Divine идут через правила аддона ({@code com.divinerpgextended.magic.ArcanaRules}): каждый вызов
- * ArcanaHelper.useBar(F) и forceRegen(F) в классах Divine (кроме самого ArcanaHelper) заменяется вызовом правила с
- * именем вызывающего класса - по нему правило знает, какое это оружие или броня (цена, откат, зелье).
+ * Arcana spending in Divine code goes through the addon rules ({@code com.divinerpgextended.magic.ArcanaRules}): every call to
+ * ArcanaHelper.useBar(F) and forceRegen(F) in Divine classes (except ArcanaHelper itself) is replaced with a rule call with
+ * the name of the calling class - by it the rule knows which weapon or armor it is (price, cooldown, potion).
  */
 public class ArcanaUseTransformer implements IClassTransformer, Opcodes {
 
@@ -28,7 +28,7 @@ public class ArcanaUseTransformer implements IClassTransformer, Opcodes {
     public byte[] transform(String name, String transformedName, byte[] bytes) {
         if (bytes == null || transformedName == null || !transformedName.startsWith("net.divinerpg.")
             || transformedName.equals("net.divinerpg.utils.events.ArcanaHelper")) return bytes;
-        // дёшево отсеять классы без вызовов арканы
+        // cheaply filter out classes without arcana calls
         if (!contains(bytes, "useBar") && !contains(bytes, "forceRegen")) return bytes;
         try {
             ClassNode node = new ClassNode();
@@ -53,10 +53,10 @@ public class ArcanaUseTransformer implements IClassTransformer, Opcodes {
             if (patched == 0) return bytes;
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Аркана: траты {} идут через правила аддона (вызовов {})", transformedName, patched);
+            LOG.info("Arcana: spending in {} goes through the addon rules ({} calls)", transformedName, patched);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Аркана: не удалось перенаправить траты " + transformedName + ", класс без изменений", t);
+            LOG.error("Arcana: could not redirect spending in " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }

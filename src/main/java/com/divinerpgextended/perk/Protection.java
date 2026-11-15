@@ -11,18 +11,18 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 
 /**
- * Приваты с выключенным PvP: эффекты оружия и брони аддона (поджог, яд, замедление, волна, отражение урона) не трогают
- * там игроков и мирных или нейтральных существ (свинозомби и пауки - не в счёт, их бить можно).
+ * Protected regions with PvP disabled: addon weapon and armor effects (ignite, poison, slowness, wave, damage reflection) do not affect
+ * players or peaceful or neutral creatures there (zombie pigmen and spiders do not count, they can be hit).
  * <p>
- * Эффекты накладываются в LivingHurtEvent, а приват (WorldGuard на гибридном сервере) отменяет урон позже - поэтому
- * спрашиваем сами: PvP выключен на всём сервере, флаг pvp WorldGuard в точке цели или плагин отменил пробный удар
- * игрока по игроку. Без Bukkit и WorldGuard остаётся только настройка сервера.
+ * Effects are applied in LivingHurtEvent, while a region (WorldGuard on a hybrid server) cancels the damage later - so
+ * we ask ourselves: PvP is off on the whole server, the WorldGuard pvp flag at the target's position, or a plugin cancelled a trial hit
+ * from player to player. Without Bukkit and WorldGuard only the server setting remains.
  */
 public final class Protection {
 
-    /** Для автотеста: true - считать, что цель в привате без PvP. */
+    /** For the selftest: true - assume the target is in a region without PvP. */
     public static boolean testNoPvp;
-    /** Для автотеста: true - считать, что строить здесь нельзя (чужой приват). */
+    /** For the selftest: true - assume building here is not allowed (someone else's region). */
     public static boolean testNoBuild;
     private static boolean placeChecked;
     private static java.lang.reflect.Constructor<?> placeEvent;
@@ -30,9 +30,9 @@ public final class Protection {
     private static Object faceDown;
 
     /**
-     * Можно ли игроку поставить блок в точке, если вещь ставит его сама, мимо обычной установки: спавн-защита и режим
-     * приключения ({@link EntityPlayer#canPlayerEdit}), а на гибридном сервере - пробное событие установки блока Bukkit, его
-     * отменяют плагины привата (WorldGuard, GriefPrevention...). Сам блок не ставится.
+     * Whether the player may place a block at the point, when an item places it itself, bypassing normal placement: spawn protection and adventure
+     * mode ({@link EntityPlayer#canPlayerEdit}), and on a hybrid server - a trial Bukkit block place event, which region
+     * plugins (WorldGuard, GriefPrevention...) cancel. The block itself is not placed.
      */
     public static boolean canBuild(EntityPlayer p, int x, int y, int z) {
         if (p == null || !p.canPlayerEdit(x, y, z, 1, p.getHeldItem())) return false;
@@ -68,14 +68,14 @@ public final class Protection {
 
     private Protection() {}
 
-    /** Кого бережёт приват: игроков и не враждебных существ, кроме свинозомби и пауков. */
+    /** Whom the region protects: players and non-hostile creatures, except zombie pigmen and spiders. */
     public static boolean shielded(Entity victim) {
         if (victim instanceof EntityPlayer) return true;
         if (!(victim instanceof EntityLivingBase) || victim instanceof EntityPigZombie || victim instanceof EntitySpider) return false;
         return !(victim instanceof IMob);
     }
 
-    /** true - эффект от attacker по victim запрещён приватом (attacker - игрок, носитель брони или null). */
+    /** true - the effect from attacker on victim is forbidden by the region (attacker - a player, an armor wearer or null). */
     public static boolean spare(Entity attacker, Entity victim) {
         if (victim == null || victim.worldObj.isRemote || victim == attacker || !shielded(victim)) return false;
         if (testNoPvp) return true;
@@ -90,14 +90,14 @@ public final class Protection {
         }
     }
 
-    /** Флаг pvp WorldGuard в точке существа: deny. */
+    /** WorldGuard pvp flag at the creature's position: deny. */
     private static boolean noPvpAt(Entity e) throws Exception {
         if (!wgChecked) worldGuard();
         if (pvpFlag == null) return false;
         Object world = bukkitWorld.invoke(e.worldObj);
         Object loc = locationClass.getConstructor(Class.forName("org.bukkit.World"), double.class, double.class, double.class)
             .newInstance(world, e.posX, e.posY, e.posZ);
-        if (wgQuery != null) { // WorldGuard 6: RegionQuery.queryState(место, null, PVP)
+        if (wgQuery != null) { // WorldGuard 6: RegionQuery.queryState(location, null, PVP)
             Object arr = java.lang.reflect.Array.newInstance(wgQuery.getParameterTypes()[2].getComponentType(), 1);
             java.lang.reflect.Array.set(arr, 0, pvpFlag);
             return wgQuery.invoke(wgQuerySource, loc, null, arr) == deny;
@@ -106,7 +106,7 @@ public final class Protection {
         return manager != null && !(Boolean) wgAllows.invoke(wgRegions.invoke(manager, loc), pvpFlag);
     }
 
-    /** Пробный удар без урона: плагины привата (WorldGuard, GriefPrevention...) его отменяют. */
+    /** A trial hit with no damage: region plugins (WorldGuard, GriefPrevention...) cancel it. */
     private static boolean cancelled(Entity attacker, Entity victim) throws Exception {
         Object ev = damageEventClass.getConstructor(entityClass, entityClass, damageCause.getClass(), double.class)
             .newInstance(bukkitEntity.invoke(attacker), bukkitEntity.invoke(victim), damageCause, 0.0D);
@@ -116,13 +116,13 @@ public final class Protection {
 
     private static boolean wgChecked;
 
-    /** Флаг pvp WorldGuard: классы плагина берём его загрузчиком. */
+    /** WorldGuard pvp flag: we take the plugin classes with its class loader. */
     private static synchronized void worldGuard() {
         if (wgChecked) return;
         try {
-            // классы плагина видит только его загрузчик: Class.forName из мода их не находит
+            // plugin classes are visible only to its class loader: Class.forName from the mod does not find them
             Object plugin = pluginManager.getClass().getMethod("getPlugin", String.class).invoke(pluginManager, "WorldGuard");
-            if (plugin == null) { // без WorldGuard - только пробные события Bukkit; на старте сервера плагин мог ещё не загрузиться
+            if (plugin == null) { // without WorldGuard - only Bukkit trial events; at server start the plugin may not be loaded yet
                 MinecraftServer srv = MinecraftServer.getServer();
                 if (srv == null || srv.getTickCounter() > 600) wgChecked = true;
                 return;
@@ -144,11 +144,11 @@ public final class Protection {
                 wgRegions = wgManager.getReturnType().getMethod("getApplicableRegions", locationClass);
                 wgAllows = wgRegions.getReturnType().getMethod("allows", sf);
             }
-            com.divinerpgextended.DivineRPGExtended.LOG.info("Приваты: эффекты оружия сверяются с флагом pvp WorldGuard");
+            com.divinerpgextended.DivineRPGExtended.LOG.info("Claims: weapon effects are checked against the WorldGuard pvp flag");
         } catch (Throwable t) {
             wgChecked = true;
             pvpFlag = null;
-            com.divinerpgextended.DivineRPGExtended.LOG.warn("Приваты: флаг pvp WorldGuard не прочитать, остаются пробные события Bukkit", t);
+            com.divinerpgextended.DivineRPGExtended.LOG.warn("Claims: WorldGuard pvp flag cannot be read, Bukkit probe events remain", t);
         }
     }
 

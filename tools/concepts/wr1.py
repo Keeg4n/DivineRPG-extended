@@ -1,7 +1,7 @@
-"""Концепты брони Странника, вилка R1: ступень куётся из финального сета обычного мира, и у каждого сета свой облик. Божественная - r1v из пятого раунда, здесь
-Тень, Бедрок, Энд и Порча. Тело на пропорциях Ботании (детали wslim), плащей нет, на спине вещь по теме семейства. Цвета сняты с текстур брони Divine.
+"""Wanderer armor concepts, R1 fork: the tier is forged from the final set of a regular world, and each set has its own look. Divine is r1v from the fifth round, here are
+Shadow, Bedrock, End and Corruption. Body on Botania proportions (wslim details), no capes, an item on the back themed to the family. Colors taken from Divine armor textures.
 
-Запуск: python wr1.py [ключ ...]  (без ключей - все); картинки в wconcepts.OUT.
+Run: python wr1.py [key ...]  (without keys - all); images go to wconcepts.OUT.
 """
 import sys
 
@@ -16,12 +16,12 @@ MINE = len(KEYS)
 
 
 def helm(paint):
-    """Закрытый шлем по голове, как у r3v и r7z."""
+    """Closed helmet following the head, like r3v and r7z."""
     return box('head', -4.55, -8.55, -4.75, 9.1, 8.4, 9.3, paint)
 
 
 def blade_mask(wd, L):
-    """Клинок: сужается к кончику (кончик - верх коробки)."""
+    """Blade: tapers toward the tip (the tip is the top of the box)."""
     def a(p, face, b):
         x = np.abs(p[..., 0] - wd / 2) / (wd / 2)
         return (x <= np.clip(p[..., 1] / (L * 0.16), 0, 1) + 0.01).astype(float)
@@ -29,20 +29,20 @@ def blade_mask(wd, L):
 
 
 def fin(bone, start, L, wd, paint, rx=0.0, rz=0.0):
-    """Плоский плавник или шип: от точки start к кончику, наклон вокруг неё."""
+    """Flat fin or spike: from point start to the tip, tilt around it."""
     sx, sy, sz = start
     return box(bone, sx - 0.15, sy - L, sz - wd / 2, 0.3, L, wd, paint, rot=(rx, 0, rz), pivot=(sx, sy, sz))
 
 
 def fin_mask(wd, L):
-    """Плавник вдоль оси z: узкий вверху, срезан назад."""
+    """Fin along the z axis: narrow at the top, cut off at the back."""
     def a(p, face, b):
         z = p[..., 2] / wd
         return (z >= 1.0 - np.clip(p[..., 1] / L, 0, 1) - 0.01).astype(float)
     return a
 
 
-# ---- Тень: скорость. Чёрное с серым, белая прорезь глаз, всё зализано назад
+# ---- Shadow: speed. Black with gray, white eye slit, everything swept back
 
 SH, SH_D, SH_M, SH_L, SH_E = '#2e2e2e', '#101010', '#474747', '#9a9a9a', '#eef4ff'
 
@@ -53,23 +53,23 @@ def r1t():
     light = P(SH_M, trim(0.25, SH_D))
     suit = P(SH_D, trim(0.25, '#000000'))
     bar = P(SH_L, trim(0.12, SH_M), bevel=0.0, noise=0.03)
-    # грудь: два шеврона вниз, как стрелка скорости
+    # chest: two chevrons pointing down, like a speed arrow
     chest = P(SH, trim(0.25, SH_D), stripe(('north',), 0.85, 0.3, 0.4, SH_L), stripe(('north',), -0.85, 8.9, 0.4, SH_L), stripe(('north',), 0.85, -1.9, 0.3, SH_M), stripe(('north',), -0.85, 11.1, 0.3, SH_M))
     bs = under(suit, suit) + breastplate(chest, front=-2.9) + waist(suit) + belt(P(SH_M, trim(0.25, SH_D), rect(('north',), 3.7, 5.0, 0.4, 1.9, SH_L)), h=1.4)
     bs += shoulder(light, h=2.4, out=0.5, half=2.3) + bracer(P(SH, trim(0.25, SH_D), rect(SIDES, -1, 99, 1.9, 2.5, SH_L))) + thigh(lean) + knee(light)
     bs += boot(P(SH, trim(0.25, SH_D), rect(SIDES, -1, 99, -1, 0.7, SH_L)), toe=1.2)
-    # тонкие планки, зализанные назад: на плечах, предплечьях и пятках
+    # thin plates swept back: on shoulders, forearms and heels
     for (bone, x, y, z, dz, a) in (('rightArm', -3.55, -1.4, 1.6, 3.6, 10), ('rightArm', -3.55, -0.2, 1.6, 2.8, 10), ('rightArm', -3.55, 6.2, 1.8, 3.2, 14), ('rightArm', -3.55, 7.4, 1.8, 2.4, 14),
                                  ('rightLeg', -2.55, 8.6, 1.6, 3.2, 16), ('rightLeg', -2.55, 9.8, 1.6, 2.4, 16)):
         bs += sym(box(bone, x, y, z, 0.3, 0.8, dz, bar, rot=(a, 0, 0), pivot=(x, y + 0.4, z)))
-    # шлем: узкая светящаяся прорезь, под ней тёмная маска, на макушке узкий гребень назад
+    # helmet: a narrow glowing slit, a dark mask under it, a narrow crest pointing back on the crown
     bs += [helm(P(SH, trim(0.25, SH_D), rect(('north',), 0.7, 8.4, 3.4, 5.9, SH_D), rect(('north',), 1.2, 7.9, 4.3, 5.1, SH_E, glow=True), rect(('north',), 3.8, 5.3, 6.2, 8.4, SH_M), rect(('up',), 3.8, 5.3, -1, 99, SH_L)))]
     wing = P(SH_L, trim(0.15, SH_M), rect('all', -1, 99, -1, 0.8, '#c4c8d0'), bevel=0.0, noise=0.03)
     bs += sym(side_feather(-4.6, -0.6, 5.6, 1.4, wing, rx=-64, rz=-4), side_feather(-3.4, 0.2, 4.6, 1.2, wing, rx=-74, rz=-4), side_feather(-2.2, 1.0, 3.6, 1.0, wing, rx=-84, rz=-4))
     return bs
 
 
-# ---- Бедрок: стойкость. Крапчатая порода, рубленые плиты, глухой шлем с прорезью
+# ---- Bedrock: resilience. Speckled rock, hewn plates, a closed helmet with a slit
 
 BR, BR_D, BR_L, BR_K, BR_E = '#525252', '#2e2e2e', '#7c7c7c', '#191919', '#c4ccd4'
 
@@ -82,15 +82,15 @@ def stone(*decals):
 def r1k():
     suit = P(BR_K, trim(0.3, '#0a0a0a'))
     dark = P(BR_D, mottle(BR_K, 1.0, 0.7), trim(0.3, BR_K))
-    # грудь: крупные плиты со швом и вставка из светлого камня
+    # chest: large plates with a seam and an inset of light stone
     chest = stone(rect(('north',), 4.3, 4.9, -1, 99, BR_K), rect(('north',), -1, 99, 2.9, 3.4, BR_K), rect(('north',), 3.3, 5.9, 1.4, 4.7, BR_K), rect(('north',), 3.7, 5.5, 1.8, 4.3, BR_L))
     bs = under(suit, suit) + breastplate(chest, front=-3.5, back=2.7) + waist(dark) + belt(P(BR_K, trim(0.2, '#050505'), rect(('north',), 3.1, 6.0, 0.2, 2.1, BR_L), rect(('north',), 3.7, 5.4, 0.7, 1.6, BR_K)), h=2.2)
-    # наплечники: две ступени породы, верхняя шире
+    # pauldrons: two steps of rock, the upper one wider
     bs += shoulder(stone(rect(SIDES, -1, 99, 2.0, 2.5, BR_K)), top=-2.6, h=4.6, out=1.4, half=3.1)
     bs += sym(bx('rightArm', -4.8, -3.2, -2.1, 3.0, 1.0, 4.2, stone()))
     bs += bracer(stone(rect(SIDES, -1, 99, 1.6, 2.1, BR_K)), top=3.0) + thigh(stone(rect(('north', 'south'), 1.7, 2.3, -1, 99, BR_K))) + knee(P(BR_L, mottle(BR_D, 1.2, 0.7), trim(0.25, BR_K)))
     bs += boot(stone(rect(SIDES, -1, 99, 1.8, 2.2, BR_K)), toe=1.4, top=7.8)
-    # шлем: глухой, прорезь Т, сверху рубленый венец
+    # helmet: closed, T-shaped slit, a hewn crown on top
     bs += [helm(stone(rect(('north',), 1.4, 7.7, 3.8, 5.0, BR_K), rect(('north',), 3.8, 5.3, 3.8, 8.3, BR_K), rect(('north',), 1.9, 3.3, 4.1, 4.7, BR_E, glow=True), rect(('north',), 5.8, 7.2, 4.1, 4.7, BR_E, glow=True)))]
     crown = stone()
     bs += [box('head', -3.6, -9.8, -3.6, 7.2, 1.3, 7.2, crown), box('head', -1.9, -10.8, -1.9, 3.8, 1.0, 3.8, P(BR_L, mottle(BR_D, 1.2, 0.7), trim(0.25, BR_K)))]
@@ -98,14 +98,14 @@ def r1k():
     return bs
 
 
-# ---- Энд: пустотный шаг. Синие гладкие латы с белыми искрами, шлем с большим глазом, на спине кольцо портала
+# ---- End: void step. Blue smooth plate with white sparks, a helmet with a big eye, a portal ring on the back
 
 EN, EN_D, EN_M, EN_L, EN_W, EN_G, EN_K = '#1674d0', '#0a3a78', '#0e60aa', '#5ab4f4', '#e4ecf4', '#6cf0d8', '#051c40'
 SPARK = (mottle(EN_W, 5.0, 0.955),)
 
 
 def gate(cx, cy, z, r, n, paint):
-    """Кольцо в плоскости спины: брусья по кругу."""
+    """Ring in the plane of the back: bars around a circle."""
     out = []
     L = 2 * np.pi * r / n * 1.12
     for i in range(n):
@@ -131,12 +131,12 @@ def r1n():
     bs = under(suit, suit) + breastplate(chest) + waist(panel) + belt(P(EN_W, trim(0.25, EN_L), rect(('north',), 3.5, 5.5, 0.4, 1.9, EN_G, glow=True)))
     bs += shoulder(P(EN, *SPARK, trim(0.3, EN_D), rect(SIDES, -1, 99, 2.2, 3.0, EN_W))) + bracer(P(EN, *SPARK, trim(0.3, EN_D), rect(SIDES, -1, 99, 2.2, 2.9, EN_W))) + thigh(plate) + knee(white)
     bs += boot(P(EN, *SPARK, trim(0.3, EN_D), rect(SIDES, -1, 99, 2.7, 99, EN_W)))
-    # шлем: тёмное забрало и большой глаз посередине лба, плавники на висках вверх
+    # helmet: dark visor and a big eye in the middle of the forehead, fins on the temples pointing up
     bs += [helm(P(EN, *SPARK, trim(0.3, EN_D), diamond(('north',), 4.55, 4.3, 4.1, EN_W), diamond(('north',), 4.55, 4.3, 3.6, EN_K), disc(('north',), 4.55, 4.3, 1.5, EN_G, glow=True), disc(('north',), 4.55, 4.3, 0.6, EN_K),
                 rect(('up',), 3.9, 5.2, -1, 99, EN_W), rect(('south',), 3.9, 5.2, -1, 99, EN_W)))]
     up = P(EN_L, trim(0.2, EN_D), rect('all', -1, 99, -1, 1.1, EN_W), bevel=0.0)
     bs += sym(side_feather(-4.4, -2.4, 6.6, 2.4, up, rx=-16, rz=-16), side_feather(-4.4, 0.0, 4.8, 2.0, up, rx=-30, rz=-16))
-    # кольцо портала на спине: синяя оправа, внутри тёмная пустота в искрах, четыре жемчужины на оправе
+    # portal ring on the back: blue rim, dark void with sparks inside, four pearls on the rim
     wd = 8.8
     bs += [box('body', -wd / 2, 4.6 - wd / 2, 2.95, wd, wd, 0.25, P(EN_K, mottle(EN_W, 5.0, 0.93), mottle(EN_G, 4.0, 0.955), alpha=circle_mask(wd), bevel=0.0, noise=0.02))]
     bs += gate(0.0, 4.6, 3.1, 4.9, 18, P(EN_L, trim(0.15, EN_D), bevel=0.0))
@@ -146,7 +146,7 @@ def r1n():
     return bs
 
 
-# ---- Порча: дальний бой и тьма. Сине-фиолетовая плоть с пурпурными прожилками, шлем с глазами Груи, шипы, на спине пушка порчи
+# ---- Corruption: ranged combat and darkness. Blue-violet flesh with purple veins, a helmet with Grue eyes, spikes, a corruption cannon on the back
 
 CO, CO_D, CO_M, CO_L, CO_P, CO_W, CO_K = '#594d9a', '#2a2150', '#4b3b82', '#7a6cc4', '#c040c0', '#d8d8d8', '#120c24'
 FLESH = (mottle(CO_P, 2.0, 0.91), mottle(CO_K, 2.2, 0.945))
@@ -154,7 +154,7 @@ BONE_C = '#b4accc'
 
 
 def eye(cu, cv, r):
-    """Глаз Груи: белок, пурпурная радужка, тёмный зрачок."""
+    """Grue eye: white, purple iris, dark pupil."""
     return (disc(('north',), cu, cv, r * 1.35, CO_K), disc(('north',), cu, cv, r, CO_W), disc(('north',), cu, cv, r * 0.72, CO_P, glow=True), disc(('north',), cu, cv, r * 0.3, CO_K))
 
 
@@ -168,17 +168,17 @@ def r1p():
     bs = under(suit, suit) + breastplate(chest) + waist(dark) + belt(P(CO_K, trim(0.25, CO_M), rect(('north',), 3.5, 5.5, 0.4, 1.9, CO_L), disc(('north',), 4.5, 1.15, 0.5, CO_P, glow=True)))
     bs += shoulder(P(CO, *FLESH, trim(0.3, CO_D), rect(('up',), 1.0, 3.8, 1.0, 4.2, CO_L))) + bracer(P(CO, *FLESH, trim(0.3, CO_D), zigzag(SIDES, 2.2, 0.8, 1.6, 0.25, CO_P))) + thigh(plate) + knee(P(CO_L, trim(0.25, CO_D)))
     bs += boot(P(CO, *FLESH, trim(0.3, CO_D), rect(SIDES, -1, 99, -1, 0.8, CO_K)))
-    # шипы из кости на плечах и вдоль предплечья
+    # bone spikes on the shoulders and along the forearm
     for (z, L, rz, rx) in ((-1.6, 2.6, -26, -12), (0.0, 3.4, -34, 0), (1.6, 2.4, -24, 12)):
         bs += sym(spike('rightArm', (-3.4, -2.0, z), L, 1.5, BONE_C, rx=rx, rz=rz))
     for z in (-1.0, 1.0):
         bs += sym(spike('rightArm', (-3.2, 5.6, z), 1.9, 1.1, BONE_C, rz=-74))
-    # шлем: закрытый, в тёмной маске три глаза, сверху и у висков шипы
+    # helmet: closed, three eyes in a dark mask, spikes on top and at the temples
     bs += [helm(P(CO, *FLESH, trim(0.3, CO_D), *eye(4.55, 2.2, 1.15), *eye(2.4, 4.6, 1.05), *eye(6.7, 4.6, 1.05), rect(('north',), 2.6, 6.5, 7.0, 7.5, CO_K), rect(('north',), 3.3, 3.7, 6.6, 8.0, CO_K), rect(('north',), 5.4, 5.8, 6.6, 8.0, CO_K)))]
     for (x, L, rz) in ((-1.5, 3.2, -14), (1.5, 3.2, 14)):
         bs += [spike('head', (x, -8.4, -0.8), L, 1.6, BONE_C, rx=-22, rz=rz)]
     bs += sym(*chain('head', (-4.6, -6.4, 0.2), ((2.2, 10, -26), (2.0, 20, -8), (1.6, 30, 12)), 1.1, P(BONE_C, trim(0.1, CO_D), bevel=0.0), taper=0.72))
-    # ремень через грудь и пушка наискось за спиной: дуло над плечом светится
+    # strap across the chest and a cannon slanted behind the back: the muzzle above the shoulder glows
     bs += [box('body', -4.7, -0.4, 2.55, 9.4, 1.0, 0.2, P(CO_K), rot=(0, 0, -36), pivot=(0, 4.8, 2.6))]
     s0, L, a = (4.8, 11.4, 4.0), 17.0, -26
     barrel = P(CO_L, trim(0.15, CO_D), rect(SIDES, -1, 99, 2.2, 3.0, CO_K), rect(SIDES, -1, 99, 8.0, 8.8, CO_K), rect(SIDES, -1, 99, 13.0, 13.8, CO_K), bevel=0.0)
@@ -191,10 +191,10 @@ def r1p():
     return bs
 
 
-# ---- варианты Б и В: другие образы тех же сетов
+# ---- variants B and V: other images of the same sets
 
 def between(bone, a, b, t, paint):
-    """Брусок между двумя точками в одной плоскости z."""
+    """A bar between two points in one z plane."""
     a, b = np.asarray(a, float), np.asarray(b, float)
     v = b - a
     L = float(np.linalg.norm(v))
@@ -204,7 +204,7 @@ def between(bone, a, b, t, paint):
 
 
 def path(bone, start, segs, t, paint, taper=1.0):
-    """Ломаная из брусков: (длина, rz). Возвращает коробки и конец."""
+    """Polyline of bars: (length, rz). Returns the boxes and the end."""
     out, s = [], np.asarray(start, float)
     for (L, rz) in segs:
         out.append(rod(bone, tuple(s), L, t, paint, rz=rz))
@@ -214,13 +214,13 @@ def path(bone, start, segs, t, paint, taper=1.0):
 
 
 def tri_mask(wd, L):
-    """Треугольник: кончик наверху коробки."""
+    """Triangle: the tip at the top of the box."""
     def a(p, face, b):
         return (np.abs(p[..., 0] - wd / 2) / (wd / 2) <= np.clip(p[..., 1] / L, 0, 1) + 0.01).astype(float)
     return a
 
 
-# Тень Б: ворон. Перья, клюв, теневой лук за спиной
+# Shadow B: raven. Feathers, beak, a shadow bow behind the back
 
 @slim('r1u', 1, 'Тень, ворон: чёрная чешуя перьев на груди, шлем с клювом и круглыми белыми глазами, перья на плечах и затылке, за спиной теневой лук')
 def r1u():
@@ -238,7 +238,7 @@ def r1u():
     bs += [box('head', -1.9, -5.2, -6.1, 3.8, 3.2, 1.5, beak, **bk), box('head', -1.4, -4.8, -7.5, 2.8, 2.4, 1.6, beak, **bk), box('head', -0.9, -4.4, -8.9, 1.8, 1.7, 1.6, beak_d, **bk), box('head', -0.45, -4.0, -10.1, 0.9, 1.1, 1.4, beak_d, **bk)]
     for (x, L, rx, rz) in ((-3.0, 5.0, -44, -12), (-1.0, 6.2, -38, -4), (1.0, 6.2, -38, 4), (3.0, 5.0, -44, 12)):
         bs.append(flat_feather('head', (x, -8.3, 1.6), L, 2.2, SH_L, '#c4c8d0', SH_D, rx=rx, rz=rz))
-    # лук наискось: рукоять посередине спины, плечи изгибаются, тетива прямая
+    # bow slanted: the grip in the middle of the back, limbs curved, straight string
     wood = P(SH_M, bands((SH_M, '#383838'), 1.2, axis=1), trim(0.1, SH_D), bevel=0.0)
     c, t0 = (0.0, 5.0, 3.1), -30.0
     a = (-24.0, -10.0, 6.0, 26.0)
@@ -249,7 +249,7 @@ def r1u():
     return bs
 
 
-# Тень В: призрак. Белая маска, ткань в обмотках, большой сюрикен
+# Shadow V: ghost. White mask, cloth in wraps, a big shuriken
 
 def shuriken(bone, cx, cy, z, r, wd, steel, hub):
     out = []
@@ -279,7 +279,7 @@ def r1w():
     return bs
 
 
-# Бедрок Б: бастион. Кладка, зубцы, ростовой щит, холодное свечение рун
+# Bedrock B: bastion. Masonry, crenellations, a full-height shield, cold glow of runes
 
 RUNE = '#8fd8ff'
 
@@ -302,14 +302,14 @@ def r1l():
     bs += [helm(P('#686868', mottle(BR_D, 2.0, 0.86), mottle(BR_L, 2.2, 0.86), seams(3.0, BR_K, axis=1, faces=('east', 'west', 'south')), trim(0.3, BR_K), rect(('north',), 1.1, 8.0, 3.7, 5.0, BR_K), rect(('north',), 1.6, 7.5, 4.1, 4.6, RUNE, glow=True)))]
     for (x, z) in ((-4.5, -4.7), (-1.2, -4.7), (2.1, -4.7), (-4.5, -1.3), (2.1, -1.3), (-4.5, 2.1), (-1.2, 2.1), (2.1, 2.1)):
         bs.append(box('head', x, -9.8, z, 2.4, 1.4, 2.4, merlon))
-    # щит: плита с окантовкой и руной, за спиной почти во весь рост
+    # shield: a slab with a border and a rune, behind the back almost full height
     plate = P('#5e5e5e', mottle(BR_D, 2.0, 0.84), mottle(BR_L, 2.2, 0.88), trim(0.55, BR_K), rect(('south',), 1.1, 8.5, 1.1, 1.8, BR_L), rect(('south',), 1.1, 8.5, 12.2, 12.9, BR_L), rect(('south',), 1.1, 1.8, 1.1, 12.9, BR_L), rect(('south',), 7.8, 8.5, 1.1, 12.9, BR_L),
               rect(('south',), 2.8, 6.8, 4.5, 9.5, RUNE, glow=True), rect(('south',), 3.5, 6.1, 5.2, 8.8, '#2e2e2e'), rect(('south',), 4.4, 5.2, 6.6, 7.4, RUNE, glow=True), rect(('south',), 4.5, 5.1, 2.6, 4.0, RUNE, glow=True), rect(('south',), 4.5, 5.1, 10.0, 11.4, RUNE, glow=True))
     bs += [box('body', -4.8, -0.8, 2.95, 9.6, 14.0, 1.1, plate)]
     return bs
 
 
-# Бедрок В: недра. Чёрная порода, лава в трещинах, рога, каменные шипы и раскалённое ядро на спине
+# Bedrock V: depths. Black rock, lava in the cracks, horns, stone spikes and a glowing-hot core on the back
 
 ROCK, ROCK_D, ROCK_M, LAVA, LAVA_L = '#2c2a2a', '#121010', '#403c3a', '#ff7a1c', '#ffc24a'
 
@@ -334,7 +334,7 @@ def r1m():
     return bs
 
 
-# Энд Б: ходок Края. Почти чёрное тело, длинные глаза как у эндермена, светящиеся линии, кристалл Края на спине
+# End B: Edge walker. Almost black body, long enderman-like eyes, glowing lines, an End crystal on the back
 
 VO, VO_D, VO_M = '#0c1426', '#04070e', '#16233e'
 VSTAR = (mottle(EN_W, 5.0, 0.975),)
@@ -351,24 +351,24 @@ def r1o():
     chest = void(rect(('north',), 4.3, 4.9, -1, 99, EN_L, glow=True), disc(('north',), 4.6, 2.6, 1.5, VO_D), disc(('north',), 4.6, 2.6, 1.05, EN_G, glow=True))
     bs = under(suit, suit) + breastplate(chest, front=-2.9) + waist(void()) + belt(P(VO_M, trim(0.2, EN_M), rect(('north',), 3.5, 5.5, 0.5, 1.5, EN_L, glow=True)), h=1.6)
     bs += shoulder(void(rect(SIDES, -1, 99, 2.3, 2.7, EN_L, glow=True)), h=2.8, out=0.6, half=2.3) + bracer(void(line(1.8, 2.2))) + thigh(void(line(1.8, 2.2))) + knee(P(VO_M, trim(0.2, EN_M))) + boot(void(rect(SIDES, -1, 99, -1, 0.5, EN_L, glow=True)), toe=1.4)
-    # глаза во всю ширину лица, как у эндермена
+    # eyes across the whole width of the face, like an enderman
     bs += [helm(P(VO, *VSTAR, trim(0.25, EN_M), rect(('north',), 0.7, 3.9, 3.7, 5.0, EN_L, glow=True), rect(('north',), 5.2, 8.4, 3.7, 5.0, EN_L, glow=True), rect(('north',), 1.5, 3.2, 4.1, 4.7, EN_W, glow=True), rect(('north',), 5.9, 7.6, 4.1, 4.7, EN_W, glow=True)))]
     claw = P(VO_D, rect('all', -1, 99, 1.9, 99, EN_L, glow=True), bevel=0.0)
     bs += sym(*[box('rightArm', x, 9.4, -1.5 + i * 1.3, 0.6, 3.2, 0.6, claw) for i, x in enumerate((-2.6, -1.0, 0.4))])
-    # кристалл: рамка ромбом, внутри светится куб, над ним жемчужина
+    # crystal: a diamond frame, a glowing cube inside, a pearl above it
     fr, r0 = P(EN_L, trim(0.15, EN_D), bevel=0.0), dict(rot=(0, 0, 45), pivot=(0, 4.2, 3.3))
     bs += [box('body', -3.6, 0.2, 3.0, 7.2, 0.8, 0.6, fr, **r0), box('body', -3.6, 7.4, 3.0, 7.2, 0.8, 0.6, fr, **r0), box('body', -3.6, 0.6, 3.0, 0.8, 7.2, 0.6, fr, **r0), box('body', 2.8, 0.6, 3.0, 0.8, 7.2, 0.6, fr, **r0)]
     bs += [box('body', -1.8, 2.4, 2.95, 3.6, 3.6, 2.0, P(EN_G, facets('#ffffff', 0.3), trim(0.15, '#ffffff'), glow=True, bevel=0.1), rot=(0, 0, 45), pivot=(0, 4.2, 3.95))]
     return bs
 
 
-# Энд В: дракон. Синяя чешуя, рогатый шлем с пастью, кожистые крылья
+# End V: dragon. Blue scales, a horned helmet with a maw, leathery wings
 
 DR_E = '#e848f0'
 
 
 def fan_mask(wd, L):
-    """Сектор крыла: острый угол внизу коробки, у лопатки."""
+    """Wing sector: the sharp angle at the bottom of the box, at the shoulder blade."""
     def a(p, face, b):
         return (np.abs(p[..., 0] - wd / 2) / (wd / 2) <= 1.0 - np.clip(p[..., 1] / L, 0, 1) + 0.01).astype(float)
     return a
@@ -385,13 +385,13 @@ def r1q():
     for (z, L, rz, rx) in ((-1.7, 2.8, -24, -12), (0.0, 3.8, -30, 0), (1.7, 2.8, -22, 12)):
         bs += sym(spike('rightArm', (-3.4, -2.2, z), L, 1.5, EN_W, rx=rx, rz=rz))
     bs += sym(spike('rightArm', (-3.2, 5.2, 0.0), 2.2, 1.3, EN_W, rz=-76), spike('rightLeg', (-2.1, 8.8, 1.0), 2.2, 1.3, EN_W, rz=-80))
-    # шлем: чешуя, пурпурные глаза, вперёд выдаётся морда с зубами, рога назад
+    # helmet: scales, purple eyes, a snout with teeth protruding forward, horns pointing back
     bs += [helm(P(EN_M, scales(('east', 'west', 'south', 'up'), (-1, 99, -1, 99), sc, s=1.3), trim(0.3, EN_K), rect(('north',), 0.9, 8.2, 2.9, 4.6, EN_K), rect(('north',), 1.5, 3.5, 3.2, 4.2, DR_E, glow=True), rect(('north',), 5.6, 7.6, 3.2, 4.2, DR_E, glow=True)))]
     bs += [box('head', -3.0, -4.3, -6.5, 6.0, 2.0, 1.9, P(EN_M, trim(0.25, EN_K), rect(('up',), 2.5, 3.5, -1, 99, EN_W))), box('head', -3.0, -2.1, -6.3, 6.0, 1.6, 1.7, P(EN_K, trim(0.2, EN_D), zigzag(('north',), 0.1, 0.8, 1.2, 0.26, EN_W)))]
     bone_c = P(EN_W, trim(0.1, '#8a98ac'), bevel=0.0)
     bs += sym(box('head', -4.7, -6.2, -5.1, 3.8, 0.8, 0.5, bone_c, rot=(0, 0, 12), pivot=(-2.8, -5.8, -5)))
     bs += sym(*chain('head', (-3.6, -8.2, 0.6), ((3.0, -44, -14), (3.0, -60, -10), (2.6, -78, -6), (2.0, -92, -2)), 1.6, bone_c, taper=0.78))
-    # крылья: веером вверх и в стороны от лопатки, четыре кости и три сектора перепонки
+    # wings: fanned up and to the sides from the shoulder blade, four bones and three membrane sectors
     root = (-1.0, 3.4, 3.1)
     ribs = (-100, -72, -44, -16)
     Ls = (12.5, 14.5, 14.0, 11.5)
@@ -407,7 +407,7 @@ def r1q():
     return bs
 
 
-# Порча Б: охотник. Широкополая шляпа, глаза в тени, патронташ, колчан со светящимися стрелами
+# Corruption B: hunter. Wide-brimmed hat, eyes in shadow, a bandolier, a quiver with glowing arrows
 
 @slim('r1r', 1, 'Порча, охотник: широкополая шляпа с пурпурной лентой, лицо в тени и светятся только глаза, тёмная кожа с патронташем, за спиной колчан со светящимися стрелами')
 def r1r():
@@ -420,12 +420,12 @@ def r1r():
     bs += shoulder(P(CO, trim(0.3, CO_D), rect(SIDES, -1, 99, 2.2, 3.0, CO_L)), h=3.0, out=0.6, half=2.4) + bracer(P(CO_M, trim(0.3, CO_D), rect(SIDES, -1, 99, 1.0, 1.5, CO_L), rect(SIDES, -1, 99, 3.6, 4.1, CO_L))) + thigh(coat) + knee(P(CO_L, trim(0.25, CO_D)))
     bs += boot(P(CO_D, trim(0.25, CO_K), rect(SIDES, -1, 99, 1.0, 1.6, CO_L)), toe=1.0)
     bs += [box('rightLeg', -2.75, 1.2, -1.5, 0.8, 3.6, 3.0, P(CO_K, trim(0.2, CO_D), disc(('west', 'east'), 1.5, 1.8, 0.7, CO_P, glow=True)))]
-    # голова: шляпа с широкими полями, под ней тень, глаза, снизу лицо закрыто шарфом
+    # head: a hat with a wide brim, shadow under it, eyes, the lower face covered by a scarf
     bs += [helm(P(CO_K, trim(0.2, CO_D), rect(('north',), 1.6, 3.5, 3.1, 4.0, CO_P, glow=True), rect(('north',), 5.6, 7.5, 3.1, 4.0, CO_P, glow=True), rect(('north', 'east', 'west', 'south'), -1, 99, 5.0, 99, CO_M), rect(('north', 'east', 'west', 'south'), -1, 99, 5.0, 5.5, CO_L)))]
     bs += [box('head', -7.4, -7.6, -7.4, 14.8, 0.8, 14.8, P(CO_D, trim(0.4, CO_K), rect(('up',), 2.8, 12.0, 2.8, 12.0, CO_D))),
            box('head', -4.7, -12.2, -4.7, 9.4, 4.8, 9.4, P(CO_D, trim(0.25, CO_K), rect(SIDES, -1, 99, 3.2, 4.4, CO_P, glow=True)))]
     bs += [flat_feather('head', (4.9, -8.0, 0.8), 6.0, 2.2, CO_L, CO_P, CO_K, rx=-30, rz=14)]
-    # колчан наискось, стрелы над плечом
+    # quiver slanted, arrows above the shoulder
     s0, L, a = (-0.8, 9.8, 3.6), 10.5, -26
     bs += [rod('body', s0, L, 3.0, P(CO_D, trim(0.2, CO_K), rect(SIDES, -1, 99, 1.0, 1.7, CO_L), rect(SIDES, -1, 99, 8.4, 9.1, CO_L)), rz=a)]
     top = tip(s0, L - 0.5, rz=a)
@@ -437,7 +437,7 @@ def r1r():
     return bs
 
 
-# Порча В: Грю. Пасть на груди, огромные глаза, щупальца с глазами на спине
+# Corruption V: Grue. A maw on the chest, huge eyes, tentacles with eyes on the back
 
 @slim('r1x', 1, 'Порча, Грю: тёмная плоть с зубастой пастью на груди, шлем-голова с огромными глазами и второй пастью, глаза на плечах, из спины растут щупальца с глазами')
 def r1x():
@@ -449,7 +449,7 @@ def r1x():
     side_eye = (disc(('west', 'east'), 2.6, 1.9, 1.35, CO_K), disc(('west', 'east'), 2.6, 1.9, 1.0, CO_W), disc(('west', 'east'), 2.6, 1.9, 0.72, CO_P, glow=True), disc(('west', 'east'), 2.6, 1.9, 0.3, CO_K))
     bs += shoulder(P(CO_D, mottle(CO_M, 2.0, 0.72), trim(0.3, CO_K), *side_eye)) + bracer(fl) + thigh(fl) + knee(P(CO_M, trim(0.25, CO_K))) + boot(fl, toe=1.2)
     bs += [helm(P(CO_D, mottle(CO_M, 2.0, 0.72), trim(0.3, CO_K), *eye(2.5, 2.9, 1.5), *eye(6.6, 2.9, 1.5), rect(('north',), 1.0, 8.1, 5.0, 7.6, CO_K), zigzag(('north',), 5.0, 0.8, 1.2, 0.3, CO_W), zigzag(('north',), 6.5, 0.8, 1.2, 0.3, CO_W)))]
-    # щупальца: по два с каждой стороны, сужаются, на конце глаз
+    # tentacles: two on each side, tapering, an eye at the end
     tent = P(CO_M, bands((CO_M, CO_D), 1.0, axis=1), trim(0.1, CO_K), bevel=0.0)
     ball = P(CO_W, trim(0.1, CO_K), disc(('south', 'north', 'west', 'east'), 1.0, 1.0, 0.75, CO_P, glow=True), disc(('south', 'north', 'west', 'east'), 1.0, 1.0, 0.3, CO_K), bevel=0.0)
     for (start, segs) in (((-1.4, 1.6, 3.1), ((3.2, -34), (3.0, -58), (2.8, -40), (2.4, -8))), ((-1.4, 5.0, 3.1), ((3.2, -78), (3.0, -100), (2.8, -118), (2.4, -92)))):
@@ -463,7 +463,7 @@ BG = {'r1t': '#585c6c', 'r1u': '#585c6c', 'r1w': '#585c6c', 'r1k': '#585c6c', 'r
 
 
 def build(key):
-    """Как wconcepts.build, но фон у каждой модели свой."""
+    """Like wconcepts.build, but each model has its own background."""
     _, _, title, fn = w.CONCEPTS[key]
     model = w.mk.Model(key, w.mannequin() + fn(), atlas_width=1024)
     front, back = w.view(model, -32, 10, BG[key]), w.view(model, 148, 10, BG[key])

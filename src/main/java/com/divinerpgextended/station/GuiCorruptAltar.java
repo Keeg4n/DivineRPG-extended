@@ -31,9 +31,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Окно алтаря порчи: ванильный стол зачарования (текстура и книга), но две ячейки - вещь и оплата, а слева от каждого
- * слота кнопка "узнать" с ценой (осколки, камень или рупии - по виду вещи). Узнанные чары пишутся в слоте вместо
- * галактических рун, полный список - в подсказке.
+ * Corruption altar window: the vanilla enchanting table (texture and book), but two cells - item and payment, and to the left of each
+ * slot a "reveal" button with a price (shards, stone or rupees - by item kind). Revealed enchantments are written in the slot instead of
+ * galactic runes, the full list is in the tooltip.
  */
 @SideOnly(Side.CLIENT)
 public class GuiCorruptAltar extends GuiContainer {
@@ -41,14 +41,14 @@ public class GuiCorruptAltar extends GuiContainer {
     private static final ResourceLocation TEX = new ResourceLocation("textures/gui/container/enchanting_table.png");
     private static final ResourceLocation BOOK = new ResourceLocation("textures/entity/enchanting_table_book.png");
     private static final ModelBook BOOK_MODEL = new ModelBook();
-    /** Кнопка "узнать" (18x18) и сам слот: ванильный ряд 108 точек, здесь он уже - слева место под кнопку. */
+    /** The "reveal" button (18x18) and the slot itself: the vanilla row is 108 points, here it is narrower - room on the left for the button. */
     static final int EYE_X = 58, ROW_X = 78, ROW_W = 90, ROW_Y = 14, ROW_H = 19;
 
     private final ContainerCorruptAltar container;
     private final Random rand = new Random();
     private long nameSeed;
     private ItemStack lastItem;
-    // книга, как у ванильного стола
+    // book, like the vanilla table
     private float flip, oFlip, flipT, flipA, open, oOpen;
 
     public GuiCorruptAltar(InventoryPlayer inv, World w, int x, int y, int z) {
@@ -93,7 +93,7 @@ public class GuiCorruptAltar extends GuiContainer {
         return container.levels[i] > 0 && container.knownCount[i] < 0 && paid(i);
     }
 
-    /** Узнанные чары слота: "Защита IV". */
+    /** Revealed slot enchantments: "Protection IV". */
     private List<String> names(int i) {
         List<String> out = new ArrayList<String>();
         for (int k = 0; k < container.knownCount[i] && k < ContainerCorruptAltar.SHOWN; k++) {
@@ -139,7 +139,7 @@ public class GuiCorruptAltar extends GuiContainer {
         String title = EnumChatFormatting.getTextWithoutFormattingCodes(t("tile.altarOfCorruption.name"));
         fontRendererObj.drawString(title, 12, 5, 0x404040);
         fontRendererObj.drawString(t("container.inventory"), 8, ySize - 96 + 2, 0x404040);
-        // цена "узнать": осколки, камень или рупии по виду вещи; узнано или нечем платить - притушено
+        // "reveal" price: shards, stone or rupees by item kind; revealed or nothing to pay with - dimmed
         RenderHelper.enableGUIStandardItemLighting();
         GL11.glEnable(GL12.GL_RESCALE_NORMAL);
         for (int i = 0; i < AltarLogic.SLOTS; i++) {
@@ -179,13 +179,13 @@ public class GuiCorruptAltar extends GuiContainer {
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
         mc.getTextureManager().bindTexture(TEX);
         drawTexturedModalRect(l, t, 0, 0, xSize, ySize);
-        // ванильная ячейка вещи - под две: вещь и оплата
+        // the vanilla item cell - split into two: item and payment
         drawRect(l + 24, t + 46, l + 42, t + 64, 0xFFC6C6C6);
         for (int s = 0; s < ContainerCorruptAltar.SIZE; s++) {
             Slot slot = (Slot) container.inventorySlots.get(s);
             frame(l + slot.xDisplayPosition, t + slot.yDisplayPosition);
         }
-        // кнопки "узнать"
+        // "reveal" buttons
         for (int i = 0; i < AltarLogic.SLOTS; i++) {
             int x = l + EYE_X, y = t + ROW_Y + ROW_H * i;
             boolean shut = container.levels[i] <= 0, known = container.knownCount[i] >= 0;
@@ -225,13 +225,13 @@ public class GuiCorruptAltar extends GuiContainer {
         }
     }
 
-    /** Строка по ширине; не влезла - с ".." (полный список - в подсказке). */
+    /** A line fitted to the width; if it does not fit - with ".." (the full list is in the tooltip). */
     private String fit(String s, int w) {
         if (fontRendererObj.getStringWidth(s) <= w) return s;
         return fontRendererObj.trimStringToWidth(s, w - fontRendererObj.getStringWidth("..")) + "..";
     }
 
-    /** Книга над ячейками - как у ванильного стола. */
+    /** The book above the cells - like the vanilla table. */
     private void drawBook(float partial) {
         GL11.glPushMatrix();
         GL11.glMatrixMode(GL11.GL_PROJECTION);
@@ -273,7 +273,7 @@ public class GuiCorruptAltar extends GuiContainer {
         return Math.max(0.0F, Math.min(1.0F, (f - MathHelper.truncateDoubleToInt(f)) * 1.6F - 0.3F));
     }
 
-    /** Подсказки: слот - узнанные чары или "скрыты", цена; кнопка - что стоит узнать; пустая оплата - чем платить. */
+    /** Tooltips: slot - revealed enchantments or "hidden", price; button - what is worth revealing; empty payment - what to pay with. */
     @Override
     @SuppressWarnings("unchecked")
     public void drawScreen(int mx, int my, float partial) {
@@ -315,7 +315,7 @@ public class GuiCorruptAltar extends GuiContainer {
             }
         }
         if (tip.isEmpty()) return;
-        // drawHoveringText строки не переносит: длинная подсказка уходила за экран
+        // drawHoveringText does not wrap lines: a long tooltip went off screen
         int room = Math.min(200, Math.max(width - mx, mx) - 24);
         List<String> lines = new ArrayList<String>();
         for (String s : tip) lines.addAll(fontRendererObj.listFormattedStringToWidth(s, room));

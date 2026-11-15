@@ -26,11 +26,11 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Алтарь призыва босса в логове: Карцинус (4 крабовые клешни), Снежный Глакон (Панцирь глубин) или Ледяной Колосс
- * с Королём-личом (снежинки; алтарь у трона, Колосс встаёт в центре зала), Древняя сущность (Таинственные часы;
- * алтарь в погребальном зале гробницы, босс встаёт в центре зала), Великий кадиллион (Зов своего мира; алтарь на
- * помосте гнезда, босс встаёт в центре гнезда), орда Айрако (Рог орды; алтарь в центре арены гнездовья в Энде). Неразрушим в
- * выживании; если его всё же сломал особый инструмент - ничего не роняет ({@link com.divinerpgextended.boss.AltarGuard}).
+ * Boss summoning altar in a lair: Carcinus (4 crab claws), Snow Glacon (Shell of the Deep) or Frost Colossus
+ * with the Lich King (snowflakes; the altar is at the throne, the Colossus stands in the center of the hall), Ancient Entity (Mysterious Clock;
+ * the altar is in the burial hall of the tomb, the boss stands in the center of the hall), Great Cadillion (Call of its world; the altar is on the
+ * dais of the nest, the boss stands in the center of the nest), Ayeraco horde (Horde Horn; the altar is in the center of the aerie arena in the End). Unbreakable in
+ * survival; if a special tool still broke it - it drops nothing ({@link com.divinerpgextended.boss.AltarGuard}).
  */
 public class BlockBossAltar extends Block {
 
@@ -39,7 +39,7 @@ public class BlockBossAltar extends Block {
         "dre.nestAltar", "dre.jungleAltar", "dre.ayeracoAltar" };
     private static final String[] TEXTURES = { "minecraft:stonebrick_carved", "minecraft:lapis_block",
         "minecraft:diamond_block", "minecraft:gold_block", "minecraft:emerald_block", "minecraft:stonebrick_mossy", "minecraft:quartz_block_chiseled" };
-    /** Свои грани (textures/blocks/altar/<имя>_side и _top); null - ванильная текстура из TEXTURES. */
+    /** Own faces (textures/blocks/altar/<name>_side and _top); null - the vanilla texture from TEXTURES. */
     private static final String[] FACES = { "carcinus", "glacon", "throne", "tomb", "nest", "jungle", null };
     private final int type;
     @SideOnly(Side.CLIENT)
@@ -52,7 +52,7 @@ public class BlockBossAltar extends Block {
         setResistance(6000000.0F);
         setLightLevel(0.6F);
         setBlockName(NAMES[type]);
-        // ледяные алтари яркие, чтобы не терялись среди льда и мёрзлого камня
+        // ice altars are bright so they do not get lost among ice and frozen stone
         setBlockTextureName(TEXTURES[type]);
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
     }
@@ -76,24 +76,24 @@ public class BlockBossAltar extends Block {
         return s <= 1 ? top : side;
     }
 
-    /** Над алтарём Глакона кружат снежные искры. */
+    /** Snow sparks swirl above the Glacon altar. */
     @Override
     @SideOnly(Side.CLIENT)
     public void randomDisplayTick(World world, int x, int y, int z, Random rand) {
         if (type == CARCINUS) return;
-        if (type == AYERACO) { // фиолетовые искры Края
+        if (type == AYERACO) { // purple End sparks
             for (int i = 0; i < 2; i++) world.spawnParticle("portal", x + rand.nextDouble(), y + 1.0 + rand.nextDouble() * 0.8, z + rand.nextDouble(), 0, 0.2, 0);
             return;
         }
-        if (type == JUNGLE) { // зелёные споры
+        if (type == JUNGLE) { // green spores
             world.spawnParticle("happyVillager", x + rand.nextDouble(), y + 1.0 + rand.nextDouble() * 0.6, z + rand.nextDouble(), 0, 0, 0);
             return;
         }
-        if (type == NEST) { // зелёные искры над гнездом
+        if (type == NEST) { // green sparks above the nest
             world.spawnParticle("happyVillager", x + rand.nextDouble(), y + 1.0 + rand.nextDouble() * 0.6, z + rand.nextDouble(), 0, 0, 0);
             return;
         }
-        if (type == TOMB) { // золотая пыль
+        if (type == TOMB) { // golden dust
             world.spawnParticle("reddust", x + rand.nextDouble(), y + 1.0 + rand.nextDouble() * 0.6, z + rand.nextDouble(),
                 1.0, 0.85, 0.2);
             return;
@@ -116,8 +116,8 @@ public class BlockBossAltar extends Block {
     }
 
     /**
-     * Алтарь гнезда Великого кадиллиона: нужен Зов этого мира; кадиллион встаёт в центре гнезда (алтарь на помосте в
-     * {@link com.divinerpgextended.world.twilight.WorldGenNests#ALTAR_DZ} блоках к северу от центра).
+     * Great Cadillion nest altar: needs the Call of this world; the cadillion stands in the center of the nest (the altar on the dais is
+     * {@link com.divinerpgextended.world.twilight.WorldGenNests#ALTAR_DZ} blocks north of the center).
      */
     private boolean nest(World world, int x, int y, int z, EntityPlayer player) {
         com.divinerpgextended.world.CadillionWorld w = null;
@@ -139,10 +139,10 @@ public class BlockBossAltar extends Block {
         net.minecraft.entity.EntityLiving boss = com.divinerpgextended.entity.EntityGroveGuardian.create(world, w);
         com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.values()[w.ordinal()];
         int dzOff = com.divinerpgextended.world.twilight.WorldGenNests.altarDz(tw);
-        // на кургане центр занят курганом - Король встаёт на пол сбоку от алтаря, мимо лестницы
+        // on the mound the center is taken by the mound - the King stands on the floor beside the altar, past the stairs
         boolean mound = tw == com.divinerpgextended.world.twilight.TwilightWorld.APALACHIA;
         boss.setLocationAndAngles(x + 0.5 + (mound ? 4 : 0), y - 1, z + 0.5 + (mound ? 3 : dzOff), 0, 0);
-        if (!com.divinerpgextended.boss.BossArena.roomFor(boss)) { // место появления застроили
+        if (!com.divinerpgextended.boss.BossArena.roomFor(boss)) { // the spawn spot has been built over
             player.addChatMessage(new ChatComponentTranslation("dre.chat.summon_blocked"));
             return true;
         }
@@ -150,13 +150,13 @@ public class BlockBossAltar extends Block {
         com.divinerpgextended.boss.LairSummons.leash(boss, x, y - 1, z + dzOff, com.divinerpgextended.world.twilight.WorldGenNests.leashRadius(tw));
         world.spawnEntityInWorld(boss);
         world.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, "mob.wither.spawn", 0.6F, 0.8F);
-        com.divinerpgextended.audit.Audit.log(player, "Summon", "Страж рощи (" + w.key() + ") на алтаре гнезда");
+        com.divinerpgextended.audit.Audit.log(player, "Summon", "Grove Guardian (" + w.key() + ") at the nest altar");
         return true;
     }
 
     /**
-     * Алтарь орды Айрако: Рог орды (в творческом - и пустой рукой) работает только здесь. Сам вызов делает рог Divine - как
-     * если бы им щёлкнули по алтарю: над алтарём появляется знак призыва, из него вылетает орда.
+     * Ayeraco horde altar: the Horde Horn (in creative - an empty hand too) works only here. The summon itself is done by the Divine horn - as
+     * if it were clicked on the altar: a summoning sign appears above the altar, and the horde flies out of it.
      */
     private boolean horde(World world, int x, int y, int z, EntityPlayer player) {
         Item horn = VanillaItemsOther.hordeHorn;
@@ -178,7 +178,7 @@ public class BlockBossAltar extends Block {
         return true;
     }
 
-    // сломанный особым инструментом - пропадает без следа
+    // broken by a special tool - vanishes without a trace
     @Override
     public Item getItemDropped(int meta, Random rand, int fortune) {
         return null;
@@ -223,27 +223,27 @@ public class BlockBossAltar extends Block {
             : type == THRONE ? new EntityFrostColossus(world)
                 : type == TOMB ? new net.divinerpg.entities.vanilla.EntityAncientEntity(world) : new EntitySnowGlacon(world);
         if (type == JUNGLE) {
-            // алтарь у северного края помоста, Древний драмкрикс встаёт в центре зала
+            // the altar is at the north edge of the dais, the Ancient Dramcryx stands in the center of the hall
             int dz = com.divinerpgextended.world.WorldGenJungleLair.ALTAR_DZ;
             boss.setLocationAndAngles(x + 0.5, y - 1, z + 0.5 + dz, 0, 0);
             leashAt = new int[] { x, y - 1, z + dz, com.divinerpgextended.world.WorldGenJungleLair.BOSS_R - 2 };
         } else if (type == TOMB) {
-            // алтарь на помосте у восточной стены погребального зала, сущность встаёт в центре зала
+            // the altar is on the dais at the east wall of the burial hall, the entity stands in the center of the hall
             boss.setLocationAndAngles(x + 0.5 - com.divinerpgextended.world.WorldGenTomb.ALTAR_DX,
                 y - com.divinerpgextended.world.WorldGenTomb.ALTAR_DY + 1, z + 0.5, 270, 0);
         } else if (type == THRONE) {
-            // алтарь стоит на помосте у трона (север), Колосс поднимается в центре арены
+            // the altar stands on the dais at the throne (north), the Colossus rises in the center of the arena
             boss.setLocationAndAngles(x + 0.5, y - com.divinerpgextended.world.WorldGenThrone.ALTAR_DY,
                 z + 0.5 - com.divinerpgextended.world.WorldGenThrone.ALTAR_DZ, 180, 0);
-            // арена - весь купол до стены (Король-лич её унаследует); до 0.99.126 - только до пилонов, и игрока отталкивало посреди зала
+            // the arena is the whole dome up to the wall (the Lich King inherits it); before 0.99.126 - only up to the pylons, and the player was pushed back in the middle of the hall
             com.divinerpgextended.boss.BossArena.set(boss, x, y - com.divinerpgextended.world.WorldGenThrone.ALTAR_DY,
                 z - com.divinerpgextended.world.WorldGenThrone.ALTAR_DZ, com.divinerpgextended.world.WorldGenThrone.R - 3);
         } else {
             boss.setLocationAndAngles(x + 0.5, y + 1, z + 0.5, world.rand.nextFloat() * 360, 0);
-            // Глакон встаёт на алтарь в центре гнезда: арена - весь купол пещеры до стены (раньше - только озеро, отталкивало раньше стены)
+            // the Glacon stands on the altar in the center of the nest: the arena is the whole cave dome up to the wall (before - only the lake, pushing back before the wall)
             if (type == SNOW_GLACON) com.divinerpgextended.boss.BossArena.set(boss, x, y - 3, z, com.divinerpgextended.world.LairDomes.G_R - 3);
         }
-        if (!com.divinerpgextended.boss.BossArena.roomFor(boss)) { // место появления застроили
+        if (!com.divinerpgextended.boss.BossArena.roomFor(boss)) { // the spawn spot has been built over
             player.addChatMessage(new ChatComponentTranslation("dre.chat.summon_blocked"));
             return true;
         }

@@ -41,16 +41,16 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Роли печей Divine (Даттикон). У каждой печи свой шанс удвоить руду (чем быстрее печь, тем выше), у некоторых свой
- * фирменный материал, который удваивается всегда. Модули Даттикона ставятся в печь (присесть + ПКМ модулем по печи):
- * удвоение +15% за модуль, ускорение - лишний шаг готовки за модуль; по 2 каждого. Сломал печь - модули выпадают.
+ * Roles of Divine furnaces (Datticon). Each furnace has its own chance to double ore (the faster the furnace, the higher), some have their own
+ * signature material that is always doubled. Datticon modules are installed into a furnace (sneak + right click the furnace with a module):
+ * doubling +15% per module, speed - an extra cooking step per module; 2 of each. If the furnace is broken, the modules drop.
  */
 public class FurnaceRoles {
 
     public static final int MAX_MODULES = 2;
     public static final float MODULE_CHANCE = 0.15F;
 
-    /** Роль печи по её классу. */
+    /** Furnace role by its class. */
     public enum Role {
         COALSTONE("TileEntityCoalstoneFurnace", 0.10F),
         MOLTEN("TileEntityMoltenFurnace", 0.15F),
@@ -72,7 +72,7 @@ public class FurnaceRoles {
             return name().toLowerCase();
         }
 
-        /** Фирменное: этот вход удваивается всегда. */
+        /** Signature: this input is always doubled. */
         boolean signature(ItemStack in, ItemStack out) {
             Item i = in.getItem();
             switch (this) {
@@ -101,7 +101,7 @@ public class FurnaceRoles {
         }
     }
 
-    // ---------------- Модули в печах (хранятся в мире) ----------------
+    // ---------------- Modules in furnaces (stored in the world) ----------------
 
     public static class Modules extends WorldSavedData {
 
@@ -135,7 +135,7 @@ public class FurnaceRoles {
             return x + "," + y + "," + z;
         }
 
-        /** [удвоение, ускорение] */
+        /** [doubling, speed] */
         int[] at(int x, int y, int z) {
             int[] a = data.getIntArray(key(x, y, z));
             return a.length == 2 ? a : new int[2];
@@ -163,7 +163,7 @@ public class FurnaceRoles {
         p.addChatMessage(c);
     }
 
-    /** Присесть + ПКМ модулем по печи Divine - поставить модуль. */
+    /** Sneak + right click a Divine furnace with a module - install the module. */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onUse(PlayerInteractEvent e) {
         if (e.isCanceled() || e.action != PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK || !e.entityPlayer.isSneaking()) return;
@@ -171,7 +171,7 @@ public class FurnaceRoles {
         if (held == null || held.getItem() != ModItems.furnaceModule) return;
         TileEntity te = e.world.getTileEntity(e.x, e.y, e.z);
         if (te == null || !isFurnace(te)) return;
-        if (!e.entityPlayer.canPlayerEdit(e.x, e.y, e.z, e.face, held)) return; // чужая печь в привате
+        if (!e.entityPlayer.canPlayerEdit(e.x, e.y, e.z, e.face, held)) return; // another player's furnace in a protected region
         e.setCanceled(true);
         if (e.world.isRemote) return;
         Role role = Role.of(te);
@@ -193,8 +193,8 @@ public class FurnaceRoles {
     }
 
     /**
-     * Сломал печь - модули выпадают. Самым последним и только если ломание не отменено (приват и т.п.): иначе печь
-     * осталась бы с модулями, а модули ещё и выпали бы - дюп.
+     * Breaking a furnace - the modules drop. Last of all and only if the break is not cancelled (protected region etc.): otherwise the furnace
+     * would keep the modules and the modules would drop as well - a dupe.
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onBreak(BlockEvent.BreakEvent e) {
@@ -211,9 +211,9 @@ public class FurnaceRoles {
         m.set(e.x, e.y, e.z, new int[2]);
     }
 
-    // ---------------- Удвоение и ускорение ----------------
+    // ---------------- Doubling and speed ----------------
 
-    /** Снимок печи с прошлого тика: что было на входе и сколько. */
+    /** Snapshot of the furnace from the previous tick: what the input was and how much. */
     private static final Map<TileEntity, ItemStack> LAST_IN = new WeakHashMap<TileEntity, ItemStack>();
 
     @SubscribeEvent
@@ -239,8 +239,8 @@ public class FurnaceRoles {
     }
 
     /**
-     * Печь исчезла не ломанием (взрыв, команда, другой мод) - её модули пропадают вместе с ней, а не достаются новой
-     * печи на том же месте.
+     * The furnace vanished without being broken (explosion, command, another mod) - its modules vanish with it instead of going to
+     * a new furnace in the same place.
      */
     private static void cleanup(World w) {
         Modules m = Modules.get(w);
@@ -269,7 +269,7 @@ public class FurnaceRoles {
         return b != null && b != Blocks.air && b.getClass().getSimpleName().toLowerCase().contains("ore");
     }
 
-    /** Одна переплавка случилась: может, положить ещё один результат. */
+    /** One smelt happened: maybe put one more result. */
     private static void bonus(TileEntity te, IInventory inv, ItemStack input, int modules) {
         ItemStack result = FurnaceRecipes.smelting().getSmeltingResult(input);
         Role role = Role.of(te);
@@ -291,9 +291,9 @@ public class FurnaceRoles {
         te.markDirty();
     }
 
-    // ---------------- Даттикон ----------------
+    // ---------------- Datticon ----------------
 
-    /** Присесть + ПКМ по Даттикону - справка о печах; без приседания - торговля с модулями в конце списка. */
+    /** Sneak + right click on Datticon - furnace help; without sneaking - trading with the modules at the end of the list. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onInteract(EntityInteractEvent e) {
         if (!(e.target instanceof EntityDatticon)) return;
@@ -309,7 +309,7 @@ public class FurnaceRoles {
             say(p, EnumChatFormatting.GRAY, "dre.furnace.modules_hint");
             return;
         }
-        // окно торговли Divine строит список на клиенте - модули дописываем на обеих сторонах одинаково
+        // the Divine trading window builds the list on the client - we append the modules identically on both sides
         MerchantRecipeList list = ((EntityDatticon) e.target).getRecipes(p);
         if (list == null) return;
         for (Iterator<?> it = list.iterator(); it.hasNext();) {

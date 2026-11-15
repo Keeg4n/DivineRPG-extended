@@ -14,8 +14,8 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Призыв Айрако у Divine пишет о каждом луче и о появлении боссов всему серверу. Вызовы Util.sendMessageToAll в
- * TileEntityAyeracoSpawn идут через {@link NearChatHooks#near}: сообщение получают только игроки рядом с местом призыва.
+ * The Divine Ayeraco summon writes about every beam and the appearance of bosses to the whole server. Util.sendMessageToAll calls in
+ * TileEntityAyeracoSpawn go through {@link NearChatHooks#near}: only players near the summon spot receive the message.
  */
 public class NearChatTransformer implements IClassTransformer, Opcodes {
 
@@ -37,7 +37,7 @@ public class NearChatTransformer implements IClassTransformer, Opcodes {
                     if (i.getOpcode() != INVOKESTATIC) continue;
                     MethodInsnNode c = (MethodInsnNode) i;
                     if (!UTIL.equals(c.owner) || !"sendMessageToAll".equals(c.name) || !("(" + MSG + ")V").equals(c.desc)) continue;
-                    m.instructions.insertBefore(c, new VarInsnNode(ALOAD, 0)); // тайл - откуда считать "рядом"
+                    m.instructions.insertBefore(c, new VarInsnNode(ALOAD, 0)); // the tile - from where to count "near"
                     c.owner = "com/divinerpgextended/asm/NearChatHooks";
                     c.name = "near";
                     c.desc = "(" + MSG + "Ljava/lang/Object;)V";
@@ -45,15 +45,15 @@ public class NearChatTransformer implements IClassTransformer, Opcodes {
                 }
             }
             if (calls == 0) {
-                LOG.warn("Сообщения Айрако: вызовы не найдены - класс без изменений");
+                LOG.warn("Ayeraco messages: calls not found - class unchanged");
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Сообщения Айрако: только игрокам рядом ({} вызовов)", calls);
+            LOG.info("Ayeraco messages: only to nearby players ({} calls)", calls);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Сообщения Айрако: не удалось исправить, класс без изменений", t);
+            LOG.error("Ayeraco messages: could not fix, class unchanged", t);
             return bytes;
         }
     }

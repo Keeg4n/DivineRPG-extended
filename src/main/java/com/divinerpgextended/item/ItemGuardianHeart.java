@@ -17,7 +17,7 @@ import com.divinerpgextended.world.CadillionWorld;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Сердце стража (мета - {@link CadillionWorld}): трофей Великого кадиллиона, из него собирают камни врат. */
+/** Guardian Heart (meta - {@link CadillionWorld}): a trophy of the Great Cadillion, gate stones are assembled from it. */
 public class ItemGuardianHeart extends Item {
 
     private IIcon[] icons;

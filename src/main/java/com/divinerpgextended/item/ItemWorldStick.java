@@ -16,7 +16,7 @@ import com.divinerpgextended.world.twilight.WorldWood;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Палка мира (мета - {@link WorldWood}): из досок дерева мира, годится и как обычная палка (stickWood). */
+/** World Stick (meta - {@link WorldWood}): made from the planks of the dimension's wood, also works as a regular stick (stickWood). */
 public class ItemWorldStick extends Item {
 
     private IIcon[] icons;

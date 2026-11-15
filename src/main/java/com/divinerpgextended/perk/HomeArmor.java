@@ -11,16 +11,16 @@ import com.divinerpgextended.world.twilight.TwilightWorld;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Броня дома: сет сумеречного мира в своём мире (Эдем в Эдеме, Вайлдвуд в Вайлдвуде...) снижает урон от мобов - полный
- * на {@link #CUT}, закалённый ({@link com.divinerpgextended.item.TemperRecipe}) - на {@link #TEMPERED_CUT}; считается по
- * частям (четверть за часть). Сет прошлого мира цепочки (в Эдеме - божественный) даёт полуступень - вдвое меньше.
- * Полный закалённый сет защищает от приёма кадиллиона своего мира.
+ * Home armor: a twilight world set in its own world (Eden in Eden, Wildwood in Wildwood...) reduces mob damage - a full one
+ * by {@link #CUT}, a tempered one ({@link com.divinerpgextended.item.TemperRecipe}) - by {@link #TEMPERED_CUT}; counted
+ * per piece (a quarter per piece). A set of the previous world in the chain (in Eden - divine) gives a half tier - half as much.
+ * A full tempered set protects against the cadillion move of its own world.
  */
 public class HomeArmor {
 
     public static final float CUT = 0.3F, TEMPERED_CUT = 0.5F;
 
-    /** Полный сет этого мира на игроке; tempered - и все части закалены. */
+    /** A full set of this world on the player; tempered - and all pieces are tempered. */
     public static boolean wears(EntityPlayer p, TwilightWorld tw, boolean tempered) {
         Item[] set = tw.armor();
         for (int i = 0; i < 4; i++) {
@@ -31,7 +31,7 @@ public class HomeArmor {
         return true;
     }
 
-    /** Насколько броня снижает урон мобов в этом мире: части своего мира и, вдвое слабее, прошлого мира цепочки. */
+    /** How much the armor reduces mob damage in this world: pieces of its own world and, half as strong, of the previous world in the chain. */
     public static float cut(EntityPlayer p) {
         TwilightWorld tw = TwilightWorld.of(p.dimension);
         if (tw == null) return 0;
@@ -52,15 +52,15 @@ public class HomeArmor {
         return tw != null && wears(p, tw, false);
     }
 
-    /** Закалённый сет какого мира надет (или null). */
+    /** Which world's tempered set is worn (or null). */
     public static TwilightWorld temperedSet(EntityPlayer p) {
         for (TwilightWorld w : TwilightWorld.values()) if (wears(p, w, true)) return w;
         return null;
     }
 
     /**
-     * Закалённый сет защищает от приёма кадиллиона своего мира: Эдем - от ослепления, Вайлдвуд - от замедления
-     * лианами, Скайтерн - от молнии (см. onHurt), Мортум - от иссушения; Апалачия - от урона при падении.
+     * A tempered set protects against the cadillion move of its own world: Eden - against blinding, Wildwood - against slowing by
+     * vines, Skythern - against lightning (see onHurt), Mortum - against wither; Apalachia - against fall damage.
      */
     @cpw.mods.fml.common.eventhandler.SubscribeEvent
     public void onUpdate(net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent e) {
@@ -89,6 +89,6 @@ public class HomeArmor {
         float cut = cut(p);
         if (cut <= 0) return;
         e.ammount *= 1 - cut;
-        com.divinerpgextended.debug.Debug.note(e.entityLiving, "Броня дома: урон мобов x" + (1 - cut));
+        com.divinerpgextended.debug.Debug.note(e.entityLiving, "Home armor: mob damage x" + (1 - cut));
     }
 }

@@ -19,13 +19,13 @@ import org.objectweb.asm.tree.TryCatchBlockNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Спавнеры Арканы для копателей неломаемые, а переносить их можно ({@link com.divinerpgextended.perk.MiningGuard}).
+ * Arcana spawners are unbreakable for miners, but they can be moved ({@link com.divinerpgextended.perk.MiningGuard}).
  * <ul>
- * <li>Набалдашник "Перемещение" (Thaumic Tinkerer) отказывает при прочности меньше нуля: его единственное чтение прочности
- * заменяется на MiningGuard.forMover.</li>
- * <li>Телепозер Blood Magic сам прочность не читает, но в сборках, где запрет добавлен (RedServer), неизвестно, где он стоит: в самом
- * телепозере, в обработчике его события или в другом моде. Поэтому обновление TETeleposer оборачивается в MiningGuard.beginMove и
- * endMove: пока оно идёт, спавнеры показывают настоящую прочность кому угодно. Другие блоки и обмен блоков ритуалами это не задевает.</li>
+ * <li>The "Relocation" focus (Thaumic Tinkerer) refuses at durability below zero: its only durability read
+ * is replaced with MiningGuard.forMover.</li>
+ * <li>The Blood Magic Teleposer does not read durability itself, but in modpacks where the ban is added (RedServer) it is unknown where it sits: in the
+ * teleposer itself, in the handler of its event or in another mod. So the TETeleposer update is wrapped in MiningGuard.beginMove and
+ * endMove: while it runs, spawners show their real durability to anyone. Other blocks and block swaps by rituals are not affected.</li>
  * </ul>
  */
 public class MoverTransformer implements IClassTransformer, Opcodes {
@@ -35,7 +35,7 @@ public class MoverTransformer implements IClassTransformer, Opcodes {
     private static final String GUARD = "com/divinerpgextended/perk/MiningGuard";
     private static final String RENAMED = "dre$update";
     private static final Logger LOG = LogManager.getLogger("divinerpgextended-core");
-    /** Поправки встали: проверяет самопроверка. */
+    /** The patches are in place: checked by the selftest. */
     public static boolean focusPatched, teleposerPatched;
 
     @Override
@@ -51,10 +51,10 @@ public class MoverTransformer implements IClassTransformer, Opcodes {
             node.accept(w);
             if (focus) focusPatched = true;
             else teleposerPatched = true;
-            LOG.info("Перенос спавнеров: {} исправлен", transformedName);
+            LOG.info("Spawner moving: {} fixed", transformedName);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Перенос спавнеров: не удалось изменить " + transformedName + ", класс без изменений", t);
+            LOG.error("Spawner moving: could not modify " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }
@@ -71,16 +71,16 @@ public class MoverTransformer implements IClassTransformer, Opcodes {
                 count++;
             }
         }
-        if (count != 1) LOG.warn("Перенос спавнеров: у набалдашника чтений прочности {} вместо одного, класс без изменений", count);
+        if (count != 1) LOG.warn("Spawner moving: found {} strength reads in the knob instead of one, class unchanged", count);
         return count == 1;
     }
 
-    /** Старое обновление под новым именем, на его месте обёртка: begin; try { старое } finally { end }. */
+    /** The old update under a new name, with a wrapper in its place: begin; try { old } finally { end }. */
     private static boolean teleposer(ClassNode node) {
         MethodNode update = null;
         for (MethodNode m : node.methods) if ("()V".equals(m.desc) && ("func_145845_h".equals(m.name) || "updateEntity".equals(m.name))) update = m;
         if (update == null) {
-            LOG.warn("Перенос спавнеров: обновление телепозера не найдено, класс без изменений");
+            LOG.warn("Spawner moving: teleposer update not found, class unchanged");
             return false;
         }
         MethodNode wrapper = new MethodNode(ACC_PUBLIC, update.name, "()V", null, null);

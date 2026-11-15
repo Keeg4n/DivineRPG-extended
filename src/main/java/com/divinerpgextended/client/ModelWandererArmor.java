@@ -18,10 +18,10 @@ import com.divinerpgextended.item.ItemWandererArmor;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Облик брони Странника по ступени R1-R7, ядру первой ступени и Венцу R8: меш и атлас из tools/wanderer_armor.py. Поза - как у брони игрока (кости
- * ModelBiped), на каждой кости - детали надетой части (helmet, chest, legs, boots), как у костюма H.E.V. Светящиеся детали
- * - вторым проходом: тот же меш с маской r&lt;N&gt;_glow.png на полной яркости. Крашеная часть - ещё проход перед свечением:
- * серая маска основного материала r&lt;N&gt;_dye.png, умноженная на цвет.
+ * Wanderer armor look by tier R1-R7, the first tier core and the Crown R8: mesh and atlas from tools/wanderer_armor.py. The pose is like the player's armor (ModelBiped
+ * bones), on each bone are the details of the worn part (helmet, chest, legs, boots), like the H.E.V. suit. Glowing details
+ * are the second pass: the same mesh with the mask r&lt;N&gt;_glow.png at full brightness. The dyed part is one more pass before the glow:
+ * the gray mask of the main material r&lt;N&gt;_dye.png, multiplied by the color.
  */
 public class ModelWandererArmor extends ModelBiped {
 
@@ -44,14 +44,14 @@ public class ModelWandererArmor extends ModelBiped {
 
     private int tier = 1;
     private String piece = "chest";
-    /** Цвет покраски 0xRRGGBB или -1. */
+    /** Dye color 0xRRGGBB or -1. */
     private int color = -1;
 
     private ModelWandererArmor() {
         super(0F);
     }
 
-    /** Модель части брони (armorType 0-3) ступени tier для мобов и стоек: поза без предметов в руках и приседа. */
+    /** Model of an armor part (armorType 0-3) of tier tier for mobs and stands: a pose without items in hands and without sneaking. */
     public static ModelBiped forMob(int tier, int armorType, int color) {
         ModelWandererArmor m = select(tier, armorType, color);
         m.heldItemLeft = m.heldItemRight = 0;
@@ -70,8 +70,8 @@ public class ModelWandererArmor extends ModelBiped {
     public void render(Entity e, float f, float f1, float f2, float f3, float f4, float scale) {
         setRotationAngles(f, f1, f2, f3, f4, scale, e);
         EasterMesh mesh = MESH[tier];
-        // Призрак R8: основа полупрозрачная (альфа в атласе), свечение и тьма под капюшоном - нет. Только в обычном проходе: в проходе
-        // блеска зачарования смешивание своё
+        // Wraith R8: the base is translucent (alpha in the atlas), the glow and the darkness under the hood are not. Only in the normal pass: in the pass
+        // of the enchantment glint the blending is its own
         boolean glass = ItemWandererArmor.translucent(tier) && bound(TEX[tier]), wasBlend = glass && GL11.glIsEnabled(GL11.GL_BLEND);
         if (glass) {
             GL11.glEnable(GL11.GL_BLEND);
@@ -79,7 +79,7 @@ public class ModelWandererArmor extends ModelBiped {
         }
         draw(mesh, scale);
         if (glass && !wasBlend) GL11.glDisable(GL11.GL_BLEND);
-        // покраска и свечение - только в обычном проходе (в проходе блеска зачарования привязана другая текстура)
+        // dye and glow only in the normal pass (in the enchantment glint pass a different texture is bound)
         if (!bound(TEX[tier])) return;
         TextureManager tm = Minecraft.getMinecraft().getTextureManager();
         if (color >= 0 && has(DYE, HAS_DYE, tier)) {
@@ -120,7 +120,7 @@ public class ModelWandererArmor extends ModelBiped {
         return t != null && GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D) == t.getGlTextureId();
     }
 
-    /** Есть ли у облика эта текстура (маски свечения и покраски есть не у всех). */
+    /** Whether the look has this texture (not all of them have glow and dye masks). */
     private static boolean has(ResourceLocation[] tex, Boolean[] known, int tier) {
         if (known[tier] == null) {
             try {
@@ -133,16 +133,16 @@ public class ModelWandererArmor extends ModelBiped {
         return known[tier];
     }
 
-    /** На игроке: поза и текстура - как у костюма H.E.V. (номер прохода в событии задом наперёд, часть - по вещи). */
+    /** On the player: the pose and texture are like the H.E.V. suit (the pass number in the event goes backwards, the part is by item). */
     public static class Events {
 
-        /** Пустой скин: тело не рисуется, а всё, что держится на его костях (вещь в руке, аксессуары), остаётся на месте. */
+        /** An empty skin: the body is not drawn, while everything held on its bones (the item in hand, accessories) stays in place. */
         private static final ResourceLocation CLEAR = new ResourceLocation(D, "textures/entity/clear_skin.png");
         private static java.lang.reflect.Field skin;
         private net.minecraft.client.entity.AbstractClientPlayer hidden;
         private ResourceLocation saved;
 
-        /** Полный сет Призрака (Венец полёта R8). */
+        /** Full Wraith set (Crown of Flight R8). */
         static boolean ghost(net.minecraft.entity.player.EntityPlayer p) {
             for (int i = 0; i < 4; i++) {
                 net.minecraft.item.ItemStack s = p.getCurrentArmor(i);
@@ -152,8 +152,8 @@ public class ModelWandererArmor extends ModelBiped {
         }
 
         /**
-         * Призрак полупрозрачный: сквозь латы должен быть виден мир, а не скин игрока. На время отрисовки игрока в полном сете его
-         * скин - пустая текстура (тело - ничего, вместо скрытия частей модели: на их костях держатся вещь в руке и аксессуары).
+         * The Wraith is translucent: the world must be visible through the plate, not the player's skin. While drawing a player in the full set his
+         * skin is an empty texture (the body is nothing, instead of hiding the model parts: the item in hand and accessories are held on their bones).
          */
         @SubscribeEvent
         public void onPre(RenderPlayerEvent.Pre e) {
@@ -179,9 +179,9 @@ public class ModelWandererArmor extends ModelBiped {
         }
 
         /**
-         * Стойка для брони BiblioCraft рисует броню со своей моделью через фальшивого игрока, а его яркость всегда полная (днём и
-         * ночью, на свету и в темноте) - броня выходила пересвеченной. Ставим свет по месту самой стойки: фальшивый игрок стоит
-         * в координатах отрисовки (мир минус камера).
+         * The BiblioCraft armor stand draws armor with its own model through a fake player, and his brightness is always full (day and
+         * night, in light and in darkness) - the armor came out overlit. We set the light by the stand's own position: the fake player stands
+         * in render coordinates (world minus camera).
          */
         static void standLight(net.minecraft.entity.player.EntityPlayer steve) {
             if (steve.worldObj == null) return;

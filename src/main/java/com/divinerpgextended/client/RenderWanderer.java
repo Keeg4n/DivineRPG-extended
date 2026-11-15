@@ -7,7 +7,7 @@ import net.minecraft.util.ResourceLocation;
 import com.divinerpgextended.entity.EntityWanderer;
 import com.divinerpgextended.world.twilight.TwilightWorld;
 
-/** Странник со скином своего мира (плащ и навершие посоха цвета мира). */
+/** The Wanderer with the skin of its world (the cloak and staff head in the world color). */
 public class RenderWanderer extends RenderBiped {
 
     private static final ResourceLocation[] SKINS = new ResourceLocation[TwilightWorld.values().length];
@@ -16,7 +16,7 @@ public class RenderWanderer extends RenderBiped {
             SKINS[w.ordinal()] = new ResourceLocation("divinerpgextended", "textures/entity/wanderer_" + w.key() + ".png");
     }
 
-    /** Странник без мира - в зелёной робе. */
+    /** A Wanderer without a world - in a green robe. */
     private static final ResourceLocation STRAY = new ResourceLocation("divinerpgextended", "textures/entity/wanderer_stray.png");
 
     public RenderWanderer() {

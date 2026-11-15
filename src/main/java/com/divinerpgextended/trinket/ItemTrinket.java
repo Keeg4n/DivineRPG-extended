@@ -15,8 +15,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Аксессуары: работают только встроенными в надетую броню ({@link com.divinerpgextended.accessory.Sockets}, вставка - на
- * Наковальне Странника), в рюкзаке не работают. Эффекты - в {@link TrinketEffects}.
+ * Accessories: work only embedded in worn armor ({@link com.divinerpgextended.accessory.Sockets}, inserted at the
+ * Wanderer Anvil), do not work in the backpack. Effects are in {@link TrinketEffects}.
  */
 public class ItemTrinket extends Item {
 
@@ -76,13 +76,13 @@ public class ItemTrinket extends Item {
         list.add(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal("dre.trinket.ask"));
     }
 
-    /** "Встраивается в ботинки на Наковальне Странника: 20 ур." - и для вещей Divine-аксессуаров. */
+    /** "Embeds into boots at the Wanderer Anvil: 20 lvl." - also for Divine accessory items. */
     public static net.minecraft.util.IChatComponent howTo(ItemStack s) {
         return new net.minecraft.util.ChatComponentTranslation("dre.trinket.how", partNames(com.divinerpgextended.accessory.Sockets.parts(s)),
             com.divinerpgextended.accessory.Sockets.levels(s));
     }
 
-    /** Названия частей брони по битам: "шлем или нагрудник". */
+    /** Armor part names by bits: "helmet or chestplate". */
     public static net.minecraft.util.IChatComponent partNames(int mask) {
         net.minecraft.util.IChatComponent out = new net.minecraft.util.ChatComponentText("");
         boolean first = true;
@@ -95,7 +95,7 @@ public class ItemTrinket extends Item {
         return out;
     }
 
-    /** ПКМ вещью в руке - подсказка, куда и где она встраивается. */
+    /** Right-click with the item in hand - a hint where and how it embeds. */
     @Override
     public ItemStack onItemRightClick(ItemStack s, net.minecraft.world.World w, EntityPlayer p) {
         if (!w.isRemote) p.addChatMessage(howTo(s));

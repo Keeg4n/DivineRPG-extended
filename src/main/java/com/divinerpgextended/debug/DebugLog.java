@@ -12,12 +12,12 @@ import java.util.Date;
 import net.minecraft.entity.Entity;
 
 /**
- * CSV-журнал отладки: logs/dre-debug/дата-время-сторона.csv. Разделитель ";" и UTF-8 с BOM - Excel открывает
- * кириллицу и колонки сам. Пишется, пока у кого-то включена отладка; сбрасывается на диск раз в секунду.
+ * CSV debug log: logs/dre-debug/date-time-side.csv. The separator is ";" and UTF-8 with BOM - Excel opens
+ * Cyrillic and columns by itself. Written while anyone has debugging on; flushed to disk once a second.
  */
 public final class DebugLog {
 
-    private static final String HEAD = "время;тик;сторона;игрок;мир;x;y;z;категория;событие;подробности";
+    private static final String HEAD = "time;tick;side;player;world;x;y;z;category;event;details";
     private final File file;
     private BufferedWriter out;
     private final String side;
@@ -52,7 +52,7 @@ public final class DebugLog {
             b.append(who != null ? who.worldObj.getTotalWorldTime() : "").append(';').append(side).append(';');
             b.append(cell(who != null ? who.getCommandSenderName() : "")).append(';');
             b.append(who != null ? who.dimension : "").append(';');
-            // y по ногам: у клиентского игрока posY - уровень глаз
+            // y by the feet: for the client player posY is the eye level
             b.append(who != null ? String.format("%.1f;%.1f;%.1f", who.posX, who.boundingBox.minY, who.posZ) : ";;").append(';');
             b.append(cell(category)).append(';').append(cell(event)).append(';').append(cell(details));
             out.write(b.toString());

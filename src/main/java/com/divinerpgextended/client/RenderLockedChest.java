@@ -21,7 +21,7 @@ import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Запертый сундук: модель ванильного сундука со своей текстурой вида ({@link ChestTextures}), крышка открывается как у ванильного. */
+/** Locked chest: a vanilla chest model with its own texture of the kind ({@link ChestTextures}), the lid opens like the vanilla one. */
 @SideOnly(Side.CLIENT)
 public class RenderLockedChest extends TileEntitySpecialRenderer implements IItemRenderer {
 
@@ -38,7 +38,7 @@ public class RenderLockedChest extends TileEntitySpecialRenderer implements IIte
         MinecraftForgeClient.registerItemRenderer(Item.getItemFromBlock(ModBlocks.lockedChest), r);
     }
 
-    /** Сундук в кубе 0..1 от текущей точки: сторона как у ванильного (2 - север, 3 - юг, 4 - запад, 5 - восток), крышка 0..1. */
+    /** A chest in the cube 0..1 from the current point: the side like the vanilla one (2 - north, 3 - south, 4 - west, 5 - east), the lid 0..1. */
     private static void draw(Kind k, int facing, float lid) {
         Minecraft.getMinecraft().getTextureManager().bindTexture(TEX[k.ordinal()]);
         GL11.glPushMatrix();
@@ -84,7 +84,7 @@ public class RenderLockedChest extends TileEntitySpecialRenderer implements IIte
     @Override
     public void renderItem(ItemRenderType type, ItemStack item, Object... data) {
         GL11.glPushMatrix();
-        // в руке предмет рисуется в кубе 0..1, в инвентаре и на земле - вокруг центра; поворот как у ванильного сундука
+        // in hand an item is drawn in the cube 0..1, in the inventory and on the ground - around the center; the rotation is like the vanilla chest's
         if (type == ItemRenderType.EQUIPPED || type == ItemRenderType.EQUIPPED_FIRST_PERSON) GL11.glTranslatef(0.5F, 0.5F, 0.5F);
         GL11.glRotatef(90F, 0F, 1F, 0F);
         GL11.glTranslatef(-0.5F, -0.5F, -0.5F);

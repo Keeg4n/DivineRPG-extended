@@ -15,25 +15,25 @@ import net.minecraftforge.event.terraingen.InitMapGenEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Пирамиды и храмы джунглей обычного мира - и в биомах Biomes O' Plenty. Ванильный генератор ставит их только в ванильных
- * пустыне и джунглях, а BoP их вытесняет (замер на сборке: в квадрате 10000 x 10000 ни одних джунглей, а гробница и логово
- * Древнего драмкрикса строятся под ними). Здесь тот же генератор (те же места по сиду, те же постройки), но биом - по
- * словарю Forge:
+ * Overworld pyramids and jungle temples - in Biomes O' Plenty biomes too. The vanilla generator places them only in vanilla
+ * desert and jungle, and BoP displaces them (measured on the modpack: in a 10000 x 10000 square no jungles at all, yet the tomb and the lair of the
+ * Ancient Dramcryx are built under them). Here is the same generator (the same sites by seed, the same structures), but the biome is by
+ * the Forge dictionary:
  * <ul>
- * <li>жаркий песок - пустынная пирамида (над ней гробница {@link WorldGenTomb});</li>
- * <li>джунгли любого мода - храм джунглей (под ним логово {@link WorldGenJungleLair}); если джунглей в мире у спавна нет
- * совсем - храм в тёплых зелёных биомах (саванна, тёплый лес, влажные земли);</li>
- * <li>болото - хижина ведьмы, как в ванилле.</li>
+ * <li>hot sand - a desert pyramid (the tomb {@link WorldGenTomb} is above it);</li>
+ * <li>jungle of any mod - a jungle temple (the lair {@link WorldGenJungleLair} is under it); if there are no jungles at all
+ * near spawn - the temple in warm green biomes (savanna, warm forest, wet lands);</li>
+ * <li>swamp - a witch hut, as in vanilla.</li>
  * </ul>
- * Подменяется событием Forge при создании генератора мира.
+ * Substituted by a Forge event when the world generator is created.
  */
 public class ScatterGen extends MapGenScatteredFeature {
 
     public static final int NONE = -1, DESERT = 0, JUNGLE = 1, SWAMP = 2;
-    /** Шаг и наименьшее расстояние ванильного генератора (в чанках) и его соль сида. */
+    /** Step and minimum distance of the vanilla generator (in chunks) and its seed salt. */
     static final int MAX = 32, MIN = 8, SALT = 14357617;
 
-    /** Есть ли джунгли в квадрате 10000 x 10000 у спавна (считается один раз на мир). */
+    /** Whether there are jungles in the 10000 x 10000 square at spawn (computed once per world). */
     private Boolean jungles;
 
     public static void register() {
@@ -44,20 +44,20 @@ public class ScatterGen extends MapGenScatteredFeature {
         return BiomeDictionary.isBiomeOfType(b, t);
     }
 
-    /** Жаркий песок (не пляж): пустыня ванильная и BoP. */
+    /** Hot sand (not a beach): vanilla and BoP desert. */
     public static boolean desert(BiomeGenBase b) {
         if (b == null) return false;
         if (b == BiomeGenBase.desert || b == BiomeGenBase.desertHills) return true;
         return is(b, Type.SANDY) && is(b, Type.HOT) && !is(b, Type.BEACH) && !Biomes.ocean(b) && !is(b, Type.RIVER) && !is(b, Type.MESA);
     }
 
-    /** Тёплые зелёные земли - вместо джунглей, если их нет. */
+    /** Warm green lands - instead of jungle, if there is none. */
     static boolean warmGreen(BiomeGenBase b) {
         if (b == null || Biomes.ocean(b) || Biomes.beach(b) || is(b, Type.RIVER) || is(b, Type.SANDY) || is(b, Type.SWAMP) || is(b, Type.MOUNTAIN)) return false;
         return b.temperature >= 0.8F && (is(b, Type.SAVANNA) || is(b, Type.FOREST) || is(b, Type.LUSH) || is(b, Type.WET) || is(b, Type.PLAINS));
     }
 
-    /** Какая постройка в этом биоме (jungles - есть ли в мире джунгли). */
+    /** Which structure in this biome (jungles - whether the world has jungles). */
     public static int kind(BiomeGenBase b, boolean jungles) {
         if (b == null) return NONE;
         if (Biomes.jungle(b)) return JUNGLE;
@@ -68,8 +68,8 @@ public class ScatterGen extends MapGenScatteredFeature {
     }
 
     /**
-     * Хватает ли джунглей у спавна: хотя бы {@link #MIN_TEMPLES} мест сетки храмов в квадрате 10000 x 10000 попадают в
-     * джунгли (иначе храмы джунглей встают и в тёплых зелёных землях). Пятно джунглей, куда не попало ни одно место, не в счёт.
+     * Whether there are enough jungles at spawn: at least {@link #MIN_TEMPLES} temple grid sites in the 10000 x 10000 square fall into
+     * jungle (otherwise jungle temples also stand in warm green lands). A jungle patch that no site fell into does not count.
      */
     public static boolean hasJungles(World w) {
         net.minecraft.world.biome.WorldChunkManager wcm = w.getWorldChunkManager();
@@ -88,7 +88,7 @@ public class ScatterGen extends MapGenScatteredFeature {
         return jungles;
     }
 
-    /** Чанк постройки в регионе (rx, rz) ванильной сетки (как у MapGenScatteredFeature; свой Random - мировой не трогаем). */
+    /** The structure chunk in region (rx, rz) of the vanilla grid (as in MapGenScatteredFeature; its own Random - the world one is not touched). */
     public static int[] spot(World w, int rx, int rz) {
         Random r = new Random(rx * 341873128712L + rz * 132897987541L + w.getWorldInfo().getSeed() + SALT);
         return new int[] { rx * MAX + r.nextInt(MAX - MIN), rz * MAX + r.nextInt(MAX - MIN) };
@@ -96,22 +96,22 @@ public class ScatterGen extends MapGenScatteredFeature {
 
     private static final java.util.Map<World, Boolean> JUNGLES = new java.util.WeakHashMap<World, Boolean>();
 
-    /** Есть ли в мире джунгли (по настройке и замеру у спавна, один раз на мир). */
+    /** Whether the world has jungles (by setting and measurement at spawn, once per world). */
     public static boolean jungles(World w) {
         Boolean has = JUNGLES.get(w);
         if (has == null) JUNGLES.put(w, has = !com.divinerpgextended.Config.scatterInModBiomes || hasJungles(w));
         return has;
     }
 
-    /** Вид постройки в регионе (rx, rz). */
+    /** The structure kind in region (rx, rz). */
     public static int kindAt(World w, int rx, int rz) {
         int[] s = spot(w, rx, rz);
         return kind(w.getWorldChunkManager().getBiomeGenAt(s[0] * 16 + 8, s[1] * 16 + 8), jungles(w));
     }
 
     /**
-     * Пирамида или храм джунглей (с логовом под ними) в регионе (rx, rz) разрешены: нет такого же вида ближе
-     * {@link com.divinerpgextended.Config#lairGap} блоков с более высоким приоритетом региона. Хижины ведьм не ограничены.
+     * A pyramid or jungle temple (with a lair under them) in region (rx, rz) is allowed: no same kind closer than
+     * {@link com.divinerpgextended.Config#lairGap} blocks with a higher region priority. Witch huts are not limited.
      */
     public static boolean allowed(World w, int rx, int rz) {
         long key = (w.getSeed() * 31 + rx) * 0x9E3779B97F4A7C15L ^ rz * 0xC2B2AE3D27D4EB4FL ^ com.divinerpgextended.Config.lairGap;
@@ -164,7 +164,7 @@ public class ScatterGen extends MapGenScatteredFeature {
         return new Start(worldObj, rand, cx, cz, kind(worldObj.getBiomeGenForCoords(cx * 16 + 8, cz * 16 + 8), jungles()));
     }
 
-    /** Постройка: те же ванильные детали, что у MapGenScatteredFeature.Start, но по виду из {@link #kind}. */
+    /** The structure: the same vanilla parts as MapGenScatteredFeature.Start, but by the kind from {@link #kind}. */
     public static class Start extends StructureStart {
 
         public Start() {}
@@ -179,7 +179,7 @@ public class ScatterGen extends MapGenScatteredFeature {
         }
     }
 
-    /** Подмена генератора построек обычного мира. */
+    /** Substitution of the overworld structure generator. */
     public static class Init {
 
         @SubscribeEvent

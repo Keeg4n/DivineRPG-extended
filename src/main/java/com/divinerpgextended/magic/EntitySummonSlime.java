@@ -5,8 +5,8 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
 
 /**
- * Слизень слизневого меча ({@link AnchorSummons}): первый призыв - прыгает по земле за хозяином, бьёт его цель и ближних
- * врагов (радиус агра {@link AnchorSummons.Kind#SLIME} - самый маленький), держится на 1 аркане в секунду.
+ * Slime of the Slime Sword ({@link AnchorSummons}): the first summon - hops along the ground after the owner, hits his target and nearby
+ * enemies (aggro radius {@link AnchorSummons.Kind#SLIME} - the smallest), lives on 1 arcana per second.
  */
 public class EntitySummonSlime extends EntitySummonCrab {
 
@@ -30,7 +30,7 @@ public class EntitySummonSlime extends EntitySummonCrab {
         worldObj.playSoundAtEntity(this, "mob.slime.attack", 0.5F, 1.2F);
     }
 
-    /** Ходит прыжками, как слизень. */
+    /** Moves in hops, like a slime. */
     @Override
     protected void updateAITasks() {
         super.updateAITasks();

@@ -13,9 +13,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Подсказки переносятся по словам: Minecraft 1.7.10 сам их не переносит, и длинная строка уезжает за край экрана. Не
- * только у предметов аддона - он дописывает строки и к предметам Divine (броня и оружие Энда) и к ванильным. Название
- * (первая строка) не трогаем. Ширина - до 220 пикселей, на узком окне меньше; цвет строки сохраняется на переносах.
+ * Tooltips are wrapped by words: Minecraft 1.7.10 does not wrap them itself, and a long line goes off the screen edge. Not
+ * only for addon items - it appends lines to Divine items (End armor and weapons) and to vanilla ones too. The name
+ * (the first line) is not touched. The width is up to 220 pixels, less in a narrow window; the line color is kept across wraps.
  */
 @SideOnly(Side.CLIENT)
 public class TooltipWrap {
@@ -23,7 +23,7 @@ public class TooltipWrap {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onTooltip(ItemTooltipEvent e) {
         if (e.itemStack == null) return;
-        TooltipShift.apply(e); // сначала спрятать описания, потом переносить то, что осталось
+        TooltipShift.apply(e); // first hide the descriptions, then wrap what is left
         Minecraft mc = Minecraft.getMinecraft();
         ScaledResolution r = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
         int width = Math.max(120, Math.min(220, r.getScaledWidth() / 2 - 20));

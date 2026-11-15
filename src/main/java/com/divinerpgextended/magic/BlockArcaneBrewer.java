@@ -13,7 +13,7 @@ import net.minecraft.world.World;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Арканная стойка зельеварения: вид ванильной стойки в цветах Арканы, своя варка ({@link TileArcaneBrewer}). Продаёт Лорд Ваттикус. */
+/** Arcane Brewing Stand: the look of a vanilla stand in Arcana colors, its own brewing ({@link TileArcaneBrewer}). Sold by Lord Vatticus. */
 public class BlockArcaneBrewer extends BlockBrewingStand {
 
     @SideOnly(Side.CLIENT)

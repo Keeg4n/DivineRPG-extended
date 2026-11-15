@@ -4,15 +4,15 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 
-/** Вызовы из телепортирующих предметов Divine ({@link TeleportTransformer}). */
+/** Calls from Divine teleporting items ({@link TeleportTransformer}). */
 public final class TeleportHooks {
 
     private TeleportHooks() {}
 
-    /** true - телепорт предметом запрещён (приват): предмет не срабатывает. Точка - куда предмет перенёс бы. */
+    /** true - teleporting by an item is forbidden (protected region): the item does not work. The point is where the item would take you. */
     public static boolean deny(EntityPlayer p, Object item) {
         if (p == null || p.worldObj.isRemote) return false;
-        if (com.divinerpgextended.perk.EnderGear.pinned(p)) { // прибит эндер-оружием
+        if (com.divinerpgextended.perk.EnderGear.pinned(p)) { // pinned by an ender weapon
             p.addChatMessage(new net.minecraft.util.ChatComponentTranslation("dre.chat.teleport_pinned"));
             return true;
         }
@@ -22,14 +22,14 @@ public final class TeleportHooks {
 
     static double[] target(EntityPlayer p, Object item) {
         if (item.getClass().getName().endsWith("ItemEnderScepter")) {
-            // как у скипетра: луч взгляда на 50 блоков, точка у грани блока
+            // like the scepter: a view ray of 50 blocks, the point at the block face
             Vec3 from = Vec3.createVectorHelper(p.posX, p.posY + p.getEyeHeight(), p.posZ);
             Vec3 look = p.getLookVec();
             MovingObjectPosition hit = p.worldObj.rayTraceBlocks(from, from.addVector(look.xCoord * 50, look.yCoord * 50, look.zCoord * 50));
-            if (hit == null || hit.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) return null; // скипетр и сам не сработает
+            if (hit == null || hit.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) return null; // the scepter would not work either
             return new double[] { hit.hitVec.xCoord, hit.hitVec.yCoord, hit.hitVec.zCoord };
         }
-        // кристалл: на точку возрождения обычного мира
+        // crystal: to the Overworld respawn point
         net.minecraft.util.ChunkCoordinates s = net.minecraft.server.MinecraftServer.getServer().worldServerForDimension(0).getSpawnPoint();
         return new double[] { s.posX + 0.5, s.posY, s.posZ + 0.5 };
     }

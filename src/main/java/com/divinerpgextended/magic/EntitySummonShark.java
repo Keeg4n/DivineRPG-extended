@@ -9,8 +9,8 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.world.World;
 
 /**
- * Акула якоря лиоплевродона ({@link AnchorSummons}): летает за хозяином сквозь блоки, как призрак, кусает цель хозяина
- * арканным уроном, держится на аркане хозяина. Не ранится, не сохраняется.
+ * Shark of the Liopleurodon Anchor ({@link AnchorSummons}): flies after the owner through blocks, like the ghost, bites the owner's target
+ * for arcane damage, lives on the owner's arcana. Cannot be hurt, is not saved.
  */
 public class EntitySummonShark extends EntityLiving implements AnchorSummons.Summon {
 
@@ -39,12 +39,12 @@ public class EntitySummonShark extends EntityLiving implements AnchorSummons.Sum
         return AnchorSummons.Kind.SHARK;
     }
 
-    /** Укус прошёл: звук своего вида (у ока - ещё и отброс). */
+    /** The bite went through: the sound of its own kind (for the eye - knockback too). */
     protected void onHit(EntityLivingBase t, EntityPlayer o) {
         worldObj.playSoundAtEntity(this, "random.splash", 0.4F, 1.6F);
     }
 
-    /** Круг без цели: радиус и высота над хозяином. */
+    /** A circle without a target: radius and height above the owner. */
     protected double orbitRadius() {
         return 1.8;
     }
@@ -53,7 +53,7 @@ public class EntitySummonShark extends EntityLiving implements AnchorSummons.Sum
         return 1.6;
     }
 
-    /** Без тяжести и трения о землю: только своя скорость. */
+    /** No gravity and no ground friction: only its own speed. */
     @Override
     public void moveEntityWithHeading(float strafe, float forward) {
         moveEntity(motionX, motionY, motionZ);
@@ -76,7 +76,7 @@ public class EntitySummonShark extends EntityLiving implements AnchorSummons.Sum
             setDead();
             return;
         }
-        // платит первый в списке хозяина - за всех сразу
+        // the first in the owner's list pays - for all at once
         if (++life % 20 == 0 && AnchorSummons.index(this, o) == 0 && !AnchorSummons.pay(o, AnchorSummons.of(o).size())) {
             AnchorSummons.dismissAll(o);
             return;
@@ -123,7 +123,7 @@ public class EntitySummonShark extends EntityLiving implements AnchorSummons.Sum
             setDead();
             return true;
         }
-        if (AnchorSummons.rivalHit(owner(), s)) return super.attackEntityFrom(s, a); // чужой игрок, где можно PvP
+        if (AnchorSummons.rivalHit(owner(), s)) return super.attackEntityFrom(s, a); // another player, where PvP is allowed
         return false;
     }
 
@@ -153,7 +153,7 @@ public class EntitySummonShark extends EntityLiving implements AnchorSummons.Sum
     @Override
     protected void fall(float d) {}
 
-    /** ПКМ хозяина - убрать; клик не уходит в предмет в руке (якорь не зовёт нового). */
+    /** Owner right click - dismiss; the click does not go to the item in hand (the anchor does not summon a new one). */
     @Override
     public boolean interact(EntityPlayer p) {
         if (!worldObj.isRemote && owner() == p) AnchorSummons.dismiss(this);

@@ -9,8 +9,8 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 
 /**
- * Снаряды Ледяного Трона. Сосулька (тип 0) падает с купола и бьёт того, на кого упала; ледяная глыба (тип 1)
- * летит дугой и при ударе взрывается холодом: урон и сильное замедление вокруг, блоки не ломает.
+ * Frozen Throne projectiles. The icicle (type 0) falls from the dome and hits whoever it lands on; the ice boulder (type 1)
+ * flies in an arc and on impact explodes with cold: damage and strong slowness around it, does not break blocks.
  */
 public class EntityIcicle extends EntityThrowable {
 
@@ -26,7 +26,7 @@ public class EntityIcicle extends EntityThrowable {
         setType(type);
     }
 
-    /** Сосулька, падающая с высоты в точку. */
+    /** An icicle falling from a height to a point. */
     public EntityIcicle(World world, double x, double y, double z) {
         super(world, x, y, z);
         setType(ICICLE);

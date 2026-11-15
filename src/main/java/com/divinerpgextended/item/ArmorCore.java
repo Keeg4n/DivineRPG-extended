@@ -9,13 +9,13 @@ import net.minecraft.item.ItemStack;
 import com.divinerpgextended.Config;
 
 /**
- * Ядро брони Странника: финальный сет обычного мира, из которого скована первая ступень. Свойство сета остаётся в броне на
- * всех ступенях, облик первой ступени у каждого ядра свой. Ядро хранится в NBT каждой части; старая броня без записи -
- * божественная, она и была единственным входом.
+ * Wanderer armor core: the final set of the Overworld from which the first tier is forged. The set's property stays in the armor on
+ * all tiers, the look of the first tier is different for each core. The core is stored in the NBT of each piece; old armor without a record is
+ * Divine, it was the only entry.
  * <p>
- * Сеты стоят очень по-разному (божественные осколки падают только с боссов, Бедрок крафтится из рупия и обсидиана),
- * поэтому у остальных сетов за ковку плата божественными камнями ({@link Config#coreForgeStones}). Смена ядра - тот же
- * сет и та же плата.
+ * The sets are very different in cost (divine shards drop only from bosses, Bedrock is crafted from rupee and obsidian),
+ * so for the other sets the forging costs divine stones ({@link Config#coreForgeStones}). Changing the core is the same
+ * set and the same cost.
  */
 public enum ArmorCore {
 
@@ -25,7 +25,7 @@ public enum ArmorCore {
         return name().toLowerCase();
     }
 
-    /** Варианты сета (у Энда - цвета): [вариант][шлем, нагрудник, поножи, ботинки]. Поля Divine читаются при вызове: они заполняются в её preInit. */
+    /** Set variants (End has colors): [variant][helmet, chestplate, leggings, boots]. Divine's fields are read at call time: they are filled in its preInit. */
     private Item[][] sets() {
         switch (this) {
             case SHADOW:
@@ -46,12 +46,12 @@ public enum ArmorCore {
         }
     }
 
-    /** Варианты сета снаружи (NEI): [вариант][шлем, нагрудник, поножи, ботинки]. */
+    /** Set variants from outside (NEI): [variant][helmet, chestplate, leggings, boots]. */
     public Item[][] variants() {
         return sets();
     }
 
-    /** Полный сет: armor = [шлем, нагрудник, поножи, ботинки]; цвета Края можно мешать, как и в свойствах самого сета. */
+    /** Full set: armor = [helmet, chestplate, leggings, boots]; End colors can be mixed, as in the properties of the set itself. */
     public boolean matches(Item[] armor) {
         Item[][] sets = sets();
         for (int slot = 0; slot < 4; slot++) {
@@ -62,13 +62,13 @@ public enum ArmorCore {
         return true;
     }
 
-    /** Какое ядро даёт такой сет (null - никакое). */
+    /** Which core such a set gives (null - none). */
     public static ArmorCore ofSet(Item[] armor) {
         for (ArmorCore c : values()) if (c.matches(armor)) return c;
         return null;
     }
 
-    /** Чем платить за ковку и смену ядра: у божественной - прежние слитки реалмита, её камни уже в самом сете. */
+    /** What to pay for forging and changing the core: for Divine - the former realmite ingots, its stones are already in the set itself. */
     public Item fuel() {
         return this == DIVINE ? VanillaItemsOther.realmiteIngot : VanillaItemsOther.divineStone;
     }
@@ -83,7 +83,7 @@ public enum ArmorCore {
         return DIVINE;
     }
 
-    /** Ядро надетого полного сета Странника (null - не полный сет, чужой или части с разным ядром). */
+    /** The core of the worn full Wanderer set (null - not a full set, someone else's, or pieces with different cores). */
     public static ArmorCore worn(EntityPlayer p) {
         ArmorCore core = null;
         for (int i = 0; i < 4; i++) {
@@ -96,7 +96,7 @@ public enum ArmorCore {
         return core;
     }
 
-    /** Финальный сет Divine, надетый целиком (null - не он): для боссов он равен первой ступени. */
+    /** The final Divine set worn in full (null - not it): for bosses it equals the first tier. */
     public static ArmorCore wornSet(EntityPlayer p) {
         Item[] a = new Item[4];
         for (int i = 0; i < 4; i++) {

@@ -8,8 +8,8 @@ import net.minecraft.world.World;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Навесные рельсы арканы: как навесные рельсы Апалачии, но разгоняют вагонетку Апалачии (как золотые, только без
- * редстоуна). Ставятся предметом Рельсы арканы на стену и потолок, на пол - рельсы арканы Divine.
+ * Arcana overhead rails: like Apalachia overhead rails, but they accelerate the Apalachia Cart (like golden ones, only without
+ * redstone). Placed by the Arcana Rails item on a wall and ceiling, on the floor - Divine arcana rails.
  */
 public class BlockSkyBoostRail extends BlockSkyRail {
 

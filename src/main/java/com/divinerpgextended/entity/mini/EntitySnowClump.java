@@ -11,7 +11,7 @@ import net.minecraft.world.WorldServer;
 
 import com.divinerpgextended.cold.ColdHandler;
 
-/** Снежный ком Вьюжной ели и её снеговиков: немного урона и холод. Мобов не трогает, блоков не ломает. */
+/** Snow clump of the Blizzard Spruce and its snowmen: a little damage and cold. Does not touch mobs, does not break blocks. */
 public class EntitySnowClump extends EntityThrowable {
 
     private float damage = 2F, cold = 6F;
@@ -31,7 +31,7 @@ public class EntitySnowClump extends EntityThrowable {
         return 0.03F;
     }
 
-    /** Попал в игрока. */
+    /** Hit a player. */
     public void strike(EntityPlayer p) {
         p.attackEntityFrom(DamageSource.causeThrownDamage(this, getThrower()), damage);
         ColdHandler.addCold(p, cold);

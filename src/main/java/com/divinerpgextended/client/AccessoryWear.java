@@ -24,10 +24,10 @@ import com.divinerpgextended.trinket.ItemTrinket;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Аксессуары видны на теле, как фенечки Ботании: вещи из гнёзд надетой брони рисуются поверх модели игрока (и чужих
- * игроков - броня с гнёздами приходит клиенту вместе с NBT). Посадка - {@link WearData}: для каждой кости берётся профиль той
- * части брони, что её закрывает (голова - шлем, торс и руки - нагрудник, ноги - ботинки, иначе поножи): облик Странника, другая
- * броня или без брони. Грани кости собираются в список OpenGL один раз.
+ * Accessories are visible on the body, like Botania's baubles: items from the sockets of worn armor are drawn over the player model (and other
+ * players - armor with sockets reaches the client together with its NBT). The fit is {@link WearData}: for each bone the profile of the
+ * armor piece that covers it is used (head - helmet, torso and arms - chestplate, legs - boots, otherwise leggings): the Wanderer look, other
+ * armor or no armor. The bone faces are compiled into an OpenGL list once.
  */
 public class AccessoryWear {
 
@@ -68,7 +68,7 @@ public class AccessoryWear {
         GL11.glColor4f(1F, 1F, 1F, 1F);
     }
 
-    /** Ключи аксессуаров в гнёздах надетой брони (без повторов). */
+    /** Keys of the accessories in the sockets of worn armor (no repeats). */
     static List<String> worn(EntityPlayer p) {
         List<String> out = new ArrayList<String>();
         for (ItemStack armor : p.inventory.armorInventory) {
@@ -82,7 +82,7 @@ public class AccessoryWear {
         return out;
     }
 
-    /** Профиль посадки для части брони: облик Странника, другая броня (divine) или без брони (bare). */
+    /** Fit profile for an armor piece: the Wanderer look, other armor (divine) or no armor (bare). */
     static String profile(ItemStack armor) {
         if (armor == null) return "bare";
         if (armor.getItem() instanceof ItemWandererArmor) return ItemWandererArmor.lookName(ItemWandererArmor.look(armor));

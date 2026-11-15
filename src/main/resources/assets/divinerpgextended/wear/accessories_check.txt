@@ -1,4 +1,4 @@
-# ключ профиль кость граней сумма_x сумма_y сумма_z (по всем вершинам граней концепта)
+# key profile bone faces sum_x sum_y sum_z (over all face vertices of the concept)
 bone_ring bare rightArm 12 -48.000 418.800 -57.600
 bone_ring divine rightArm 12 -48.000 418.800 -57.600
 bone_ring r1 rightArm 12 -48.000 418.800 -62.400

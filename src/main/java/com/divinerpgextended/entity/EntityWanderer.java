@@ -20,17 +20,17 @@ import com.divinerpgextended.registry.ModItems;
 import com.divinerpgextended.world.twilight.TwilightWorld;
 
 /**
- * Странник - торговец лагерей сумеречных миров: путник в плаще цвета мира, с рюкзаком и посохом. За камни мира
- * продаёт то, что не скрафтить или долго искать: карту к логову, саженцы, факелы и стрелы мира, еду и лечение;
- * меняет материалы мобов мира друг на друга. Сделки не кончаются и не меняются. Не размножается.
+ * Wanderer - the trader of the twilight dimension camps: a traveler in a cloak the color of the dimension, with a backpack and a staff. For world stones
+ * sells what cannot be crafted or takes long to find: a map to the lair, saplings, torches and arrows of the dimension, food and healing;
+ * trades the materials of the dimension's mobs for one another. Trades never run out and never change. Does not breed.
  */
 public class EntityWanderer extends EntityVillager {
 
-    /** Мир, где разбит лагерь (номер {@link TwilightWorld}); -1 - взять из мира, где стоит. Синхронизируется на клиент (скин). */
+    /** The dimension where the camp is set up (number of {@link TwilightWorld}); -1 - take from the world it stands in. Synced to the client (skin). */
     private static final int DW_HOME = 23;
     private MerchantRecipeList trades;
 
-    /** Здоровье Странника (у жителя - 20: в лагере его убивал любой случайный моб). */
+    /** Wanderer's health (a villager has 20: in the camp any random mob killed him). */
     public static final double HEALTH = 1000;
 
     public EntityWanderer(World w) {
@@ -49,7 +49,7 @@ public class EntityWanderer extends EntityVillager {
         dataWatcher.addObject(DW_HOME, Byte.valueOf((byte) -1));
     }
 
-    /** Странник без мира (призван яйцом не в родном биоме сумеречного мира): зелёная роба, сделок нет. */
+    /** A Wanderer without a dimension (spawned by egg outside the native biome of a twilight dimension): green robe, no trades. */
     public static final int STRAY = -2;
 
     public void setHome(TwilightWorld tw) {
@@ -66,7 +66,7 @@ public class EntityWanderer extends EntityVillager {
         return dataWatcher.getWatchableObjectByte(DW_HOME) == STRAY;
     }
 
-    /** Без мира торговать нечем: окно торговли не открывается. */
+    /** Without a dimension there is nothing to trade: the trade window does not open. */
     @Override
     public boolean interact(EntityPlayer p) {
         if (!stray()) return super.interact(p);
@@ -87,35 +87,35 @@ public class EntityWanderer extends EntityVillager {
         return trades;
     }
 
-    /** Цена печати святилища в камнях мира. */
+    /** Price of the sanctum seal in world stones. */
     public static final int SEAL_PRICE = 4;
 
     public static MerchantRecipeList trades(TwilightWorld w) {
         MerchantRecipeList l = new MerchantRecipeList();
         Item gem = w.gem();
-        if (w == TwilightWorld.MORTUM) { // карта к каждой арене Мортума
+        if (w == TwilightWorld.MORTUM) { // a map to every Mortum arena
             for (com.divinerpgextended.world.twilight.MortumArenas.Type t : com.divinerpgextended.world.twilight.MortumArenas.Type.values())
                 l.add(new MerchantRecipe(new ItemStack(gem, 2), new ItemStack(ModItems.lairMap, 1, ItemLairMap.arenaMap(t))));
         } else {
             l.add(new MerchantRecipe(new ItemStack(gem, 2), new ItemStack(ModItems.lairMap, 1, ItemLairMap.NEST)));
-            // печать святилища: в подземельях островов она лежит всегда, но в мирах с тонкими островами (Апалачия) их мало
+            // sanctum seal: in the island dungeons it is always there, but in dimensions with thin islands (Apalachia) there are few of them
             l.add(new MerchantRecipe(new ItemStack(gem, SEAL_PRICE), new ItemStack(ModItems.sanctumSeal, 1, w.ordinal())));
         }
         l.add(new MerchantRecipe(new ItemStack(gem, 1), new ItemStack(ModBlocks.worldTorch[w.ordinal()], 8)));
         if (w.arrow() != null) l.add(new MerchantRecipe(new ItemStack(gem, 1), new ItemStack(w.arrow(), 16)));
         l.add(new MerchantRecipe(new ItemStack(gem, 1), new ItemStack(w.sapling(), 2)));
-        // материалы мобов мира друг на друга: не везёт с одним мобом - добери другим (2 к 1)
+        // materials of the dimension's mobs for one another: unlucky with one mob - make up with another (2 to 1)
         TwilightMaterial[] m = TwilightMaterial.ofWorld(w);
         for (int i = 0; i < 3; i++) {
             l.add(new MerchantRecipe(new ItemStack(ModItems.twilightMaterial, 2, m[i].ordinal()),
                 new ItemStack(ModItems.twilightMaterial, 1, m[(i + 1) % 3].ordinal())));
         }
         l.add(new MerchantRecipe(new ItemStack(gem, 1), new ItemStack(Items.cooked_beef, 4)));
-        l.add(new MerchantRecipe(new ItemStack(gem, 2), new ItemStack(Items.potionitem, 1, 8229))); // лечение II
+        l.add(new MerchantRecipe(new ItemStack(gem, 2), new ItemStack(Items.potionitem, 1, 8229))); // Healing II
         return l;
     }
 
-    /** Сделка не кончается: после обмена сразу снова доступна. Звенит монетой, а не голосом жителя. */
+    /** The trade does not run out: after an exchange it is immediately available again. Jingles like a coin, not with a villager's voice. */
     @Override
     public void useRecipe(MerchantRecipe r) {
         r.incrementToolUses();
@@ -123,7 +123,7 @@ public class EntityWanderer extends EntityVillager {
         playSound("random.orb", 0.5F, 0.8F + rand.nextFloat() * 0.3F);
     }
 
-    // странник - не житель деревни: без "хмм" жителя
+    // the Wanderer is not a village villager: without the villager's "hmm"
     @Override
     protected String getLivingSound() {
         return null;
@@ -139,7 +139,7 @@ public class EntityWanderer extends EntityVillager {
         return "game.neutral.die";
     }
 
-    /** Житель ворчит, когда в окне торговли кладут предмет, - странник нет. */
+    /** A villager grumbles when an item is put into the trade window - the Wanderer does not. */
     @Override
     public void func_110297_a_(ItemStack s) {}
 
@@ -167,7 +167,7 @@ public class EntityWanderer extends EntityVillager {
     @Override
     public void readEntityFromNBT(NBTTagCompound tag) {
         super.readEntityFromNBT(tag);
-        // уже стоящие Странники (сохранены с 20 здоровья) - до полного
+        // Wanderers already standing (saved with 20 health) - up to full
         net.minecraft.entity.ai.attributes.IAttributeInstance hp = getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth);
         if (hp.getBaseValue() < HEALTH) {
             hp.setBaseValue(HEALTH);

@@ -18,10 +18,10 @@ import com.divinerpgextended.registry.ModItems;
 import com.divinerpgextended.world.ArmorTier;
 
 /**
- * NEI: Наковальня Странника, слоты как в ней самой: сверху броня, ниже донорский сет, внизу топливо, справа - что получится.
- * Ковка R1: финальный сет обычного мира (у Края цвета перебираются) и его плата. Закалка R2-R7: сет Странника прошлой ступени,
- * сет брони следующего мира в доноре, камни мира. R8: сет R7, сет свойства Венца в доноре, Дух вселенной. Страница открывается с той
- * частью, которую искали.
+ * NEI: Wanderer Anvil, slots as in the anvil itself: armor on top, the donor set below, fuel at the bottom, on the right - the result.
+ * R1 forging: the final set of the Overworld (for End the colors are cycled) and its cost. R2-R7 tempering: the previous-tier Wanderer set,
+ * the next dimension's armor set as the donor, world stones. R8: the R7 set, the Crown property's set as the donor, Spirit of the Universe. The page opens with the
+ * piece that was searched for.
  */
 public class AnvilHandler extends DreHandler {
 
@@ -85,7 +85,7 @@ public class AnvilHandler extends DreHandler {
         return p;
     }
 
-    /** Четыре части результата квадратом; искомая - результат страницы. */
+    /** Four result pieces in a square; the searched one is the page's result. */
     private void outputs(Page p, int tier, ArmorCore core, int want) {
         outputs(p, tier, core, want, null);
     }
@@ -126,7 +126,7 @@ public class AnvilHandler extends DreHandler {
     @Override
     public void loadUsageRecipes(ItemStack s) {
         if (s == null) return;
-        if (s.getItem() instanceof ItemWandererArmor) { // броня Странника идёт только в закалку следующей ступени
+        if (s.getItem() instanceof ItemWandererArmor) { // Wanderer armor goes only into tempering the next tier
             ArmorTier next = ArmorTier.next(ArmorData.tier(s));
             if (next != null) arecipes.add(upgrade(next, ((ItemWandererArmor) s.getItem()).armorType));
             if (ArmorData.tier(s) == 7) for (com.divinerpgextended.item.ArmorCrown c : com.divinerpgextended.item.ArmorCrown.values())
@@ -136,7 +136,7 @@ public class AnvilHandler extends DreHandler {
         for (Page p : pages(1)) if (p.has(s)) arecipes.add(p);
     }
 
-    /** Пустые ячейки донора и топлива тоже видны: страница похожа на саму наковальню. */
+    /** Empty donor and fuel cells are visible too: the page looks like the anvil itself. */
     @Override
     public void drawBackground(int recipe) {
         Page p = (Page) arecipes.get(recipe);

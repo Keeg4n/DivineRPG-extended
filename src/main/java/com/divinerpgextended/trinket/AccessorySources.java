@@ -36,14 +36,14 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Откуда берутся аксессуары (кроме заказов Джека):
+ * Where accessories come from (besides Jack's orders):
  * <ul>
- * <li>боссы: за первую победу - гарантированно, потом 10% с каждой (Айрако - когда пал последний из пяти);</li>
- * <li>Капитан Мерик - Ножны мастера, торговец мастерской Айсики - Тёплый шарф (сделки дописываются на обеих сторонах:
- * окно Divine строит список на клиенте);</li>
- * <li>мобы Арканы - Лампа подземелий (1% + 0.5% за уровень Добычи);</li>
- * <li>мастер мастерской Айсики объединяет два аксессуара в один (присесть + ПКМ с одним из них в руке, второй в рюкзаке,
- * повтор за 5 секунд - сделать; 16 снежинок).</li>
+ * <li>bosses: guaranteed for the first victory, then 10% from each (Ayeraco - when the last of the five falls);</li>
+ * <li>Captain Merik - Master Scabbard, Iceika workshop merchant - Warm Scarf (trades are appended on both sides:
+ * the Divine window builds the list on the client);</li>
+ * <li>Arcana mobs - Dungeon Lamp (1% + 0.5% per Looting level);</li>
+ * <li>the Iceika workshop master merges two accessories into one (sneak + right-click holding one of them, the other in the backpack,
+ * repeat within 5 seconds - do it; 16 snowflakes).</li>
  * </ul>
  */
 public class AccessorySources {
@@ -67,7 +67,7 @@ public class AccessorySources {
         if (!p.inventory.addItemStackToInventory(s)) p.worldObj.spawnEntityInWorld(new EntityItem(p.worldObj, p.posX, p.posY + 0.5, p.posZ, s));
     }
 
-    // ---------------- Боссы ----------------
+    // ---------------- Bosses ----------------
 
     public static Trinket forBoss(Boss b) {
         switch (b) {
@@ -84,15 +84,15 @@ public class AccessorySources {
         }
     }
 
-    /** Второй аксессуар за босса: ковёр-самолёт - с Древней сущности, к первому сумеречному миру. */
+    /** A second accessory for a boss: Flying Carpet - from the Ancient Entity, to the first twilight world. */
     public static Trinket extraForBoss(Boss b) {
         return b == Boss.ANCIENT_ENTITY ? Trinket.MAGIC_CARPET : null;
     }
 
     /**
-     * Аксессуар за босса: первый раз (для этого игрока) - наверняка, дальше 10%. В инвентарь не кладётся: падает у тела
-     * босса (at; null - у игрока), помечен владельцем - поднять может только он, неуязвим, как вся добыча боссов.
-     * @return выпавший предмет (null - не выпал)
+     * Accessory for a boss: the first time (for this player) - guaranteed, then 10%. Not put into the inventory: it drops by the boss's
+     * body (at; null - at the player), marked with an owner - only they can pick it up, invulnerable, like all boss loot.
+     * @return the dropped item (null - did not drop)
      */
     public static EntityItem reward(EntityPlayer p, Trinket t, net.minecraft.entity.Entity at) {
         if (t == null || p.worldObj.isRemote) return null;
@@ -102,10 +102,10 @@ public class AccessorySources {
         long got = ps.getLong(GOT), bit = 1L << t.ordinal();
         boolean first = (got & bit) == 0;
         if (!first && p.worldObj.rand.nextFloat() >= 0.1F) {
-            com.divinerpgextended.debug.Debug.note(p, "Аксессуар " + t.name().toLowerCase() + ": не выпал (повторная победа, шанс 10%)");
+            com.divinerpgextended.debug.Debug.note(p, "Accessory " + t.name().toLowerCase() + ": did not drop (repeat win, chance 10%)");
             return null;
         }
-        com.divinerpgextended.debug.Debug.note(p, "Аксессуар " + t.name().toLowerCase() + ": выпал" + (first ? " (первая победа)" : " (повторная, 10%)"));
+        com.divinerpgextended.debug.Debug.note(p, "Accessory " + t.name().toLowerCase() + ": dropped" + (first ? " (first win)" : " (repeat, 10%)"));
         ps.setLong(GOT, got | bit);
         ItemStack s = com.divinerpgextended.halite.Halite.own(stack(t), p);
         net.minecraft.entity.Entity src = at != null && at.worldObj == p.worldObj ? at : p;
@@ -113,7 +113,7 @@ public class AccessorySources {
         it.delayBeforeCanPickup = 10;
         NBTTagCompound tag = new NBTTagCompound();
         it.writeToNBT(tag);
-        tag.setBoolean("Invulnerable", true); // как у {@link com.divinerpgextended.boss.BossLoot}
+        tag.setBoolean("Invulnerable", true); // as in {@link com.divinerpgextended.boss.BossLoot}
         it.readFromNBT(tag);
         p.worldObj.spawnEntityInWorld(it);
         say(p, EnumChatFormatting.LIGHT_PURPLE, "dre.chat.accessory_drop", s.getDisplayName());
@@ -121,8 +121,8 @@ public class AccessorySources {
     }
 
     /**
-     * Колосс не отдельный босс в учёте (засчитывается вместе с Королём-личом), его наплечник - тем, кто рядом.
-     * Айрако - пять драконов: крыло дают, когда пал последний из стаи.
+     * The Colossus is not a separate boss in the records (counted together with the Lich King), its pauldron goes to those nearby.
+     * Ayeraco is five dragons: the wing is given when the last of the pack falls.
      */
     @SubscribeEvent
     public void onDeath(LivingDeathEvent e) {
@@ -144,7 +144,7 @@ public class AccessorySources {
         for (EntityPlayer p : near) reward(p, t, e.entityLiving);
     }
 
-    /** Лампа подземелий - редкий дроп мобов Арканы. */
+    /** Dungeon Lamp is a rare drop from Arcana mobs. */
     @SubscribeEvent
     public void onDrops(LivingDropsEvent e) {
         if (e.entityLiving.worldObj.isRemote || !e.recentlyHit || !(e.source.getEntity() instanceof EntityPlayer)) return;
@@ -155,7 +155,7 @@ public class AccessorySources {
             stack(Trinket.DUNGEON_LAMP)));
     }
 
-    // ---------------- Торговцы ----------------
+    // ---------------- Merchants ----------------
 
     private static void trade(MerchantRecipeList list, MerchantRecipe offer) {
         if (list == null) return;
@@ -174,7 +174,7 @@ public class AccessorySources {
             if (!p.worldObj.isRemote) combine(p);
             return;
         }
-        if (p.isSneaking()) return; // присесть - это заказы и услуги торговцев, не торговля
+        if (p.isSneaking()) return; // sneaking means Jack's orders and merchant services, not trading
         if (e.target instanceof EntityCaptianMerik) {
             trade(((EntityCaptianMerik) e.target).getRecipes(p), new InfiniteTrade(new ItemStack(ArcanaItems.arcanium, 30),
                 new ItemStack(ArcanaItems.dungeonTokens, 10), stack(Trinket.MASTER_SCABBARD)));
@@ -184,7 +184,7 @@ public class AccessorySources {
         }
     }
 
-    // ---------------- Объединение у мастера мастерской ----------------
+    // ---------------- Merging at the workshop master ----------------
 
     private static int find(EntityPlayer p, Trinket t, int skipSlot) {
         for (int i = 0; i < p.inventory.mainInventory.length; i++) {
@@ -241,7 +241,7 @@ public class AccessorySources {
             say(p, EnumChatFormatting.RED, "dre.tinker.no_money", String.valueOf(COMBINE_SNOWFLAKES));
             return;
         }
-        // обе вещи забираем из конкретных слотов (их наличие только что проверено), потом выдаём результат
+        // both items are taken from specific slots (their presence was just checked), then the result is handed out
         p.inventory.setInventorySlotContents(hand, null);
         p.inventory.setInventorySlotContents(other, null);
         if (!p.capabilities.isCreativeMode) {

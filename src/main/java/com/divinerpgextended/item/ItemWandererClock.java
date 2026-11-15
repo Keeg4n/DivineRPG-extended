@@ -16,8 +16,8 @@ import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
 /**
- * Часы Странника I-V: зажигают порталы сумеречных миров, как сумеречные часы Divine, но только до своего уровня.
- * I - Eden, II - Wildwood, III - Apalachia, IV - Skythern, V - Mortum. Уровень растёт шестернями времени.
+ * Wanderer's Clock I-V: light the portals of the twilight dimensions, like Divine's twilight clock, but only up to their own level.
+ * I - Eden, II - Wildwood, III - Apalachia, IV - Skythern, V - Mortum. The level grows with time gears.
  */
 public class ItemWandererClock extends Item {
 
@@ -31,7 +31,7 @@ public class ItemWandererClock extends Item {
         setCreativeTab(com.divinerpgextended.DreTab.TAB);
     }
 
-    /** Значок по уровню: карманные часы, металл корпуса и камни миров меняются с уровнем. */
+    /** Icon by level: a pocket watch, the case metal and the dimension stones change with the level. */
     @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
     private net.minecraft.util.IIcon[] icons;
 
@@ -73,7 +73,7 @@ public class ItemWandererClock extends Item {
         return s;
     }
 
-    /** Какой уровень часов нужен, чтобы поджечь портал из этого блока (0 - не портальный блок). */
+    /** Which clock level is needed to light a portal from this block (0 - not a portal block). */
     private static int requiredTier(Block block) {
         if (block == VanillaBlocks.divineRock) return 1;
         if (com.divinerpgextended.Config.gateStones) {
@@ -107,7 +107,7 @@ public class ItemWandererClock extends Item {
             world.setBlock(x, y + 1, z, TwilightBlocks.blueFire);
             return true;
         }
-        // камни врат синий огонь Divine не знает - портал зажигаем сами
+        // Divine does not know the gate stones' blue fire - we light the portal ourselves
         if (!world.isRemote) {
             if (portal.tryCreatePortal(world, x, y + 1, z)) world.playSoundEffect(x + 0.5, y + 1.5, z + 0.5, "portal.trigger", 0.6F, 1.2F);
             else player.addChatMessage(new ChatComponentTranslation("dre.chat.gate_incomplete"));

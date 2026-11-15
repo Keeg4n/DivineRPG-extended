@@ -15,7 +15,7 @@ import org.lwjgl.opengl.GL11;
 import com.divinerpgextended.fishing.EntityDreHook;
 import com.divinerpgextended.fishing.Rod;
 
-/** Поплавок как у ванильной удочки, но со своим спрайтом и цветной (у поздних - светящейся) леской; в воде мечтаний - вверх ногами. */
+/** A bobber like the vanilla fishing rod's, but with its own sprite and a colored (for late ones - glowing) line; in Dream Water - upside down. */
 public class RenderDreHook extends Render {
 
     private static final ResourceLocation VANILLA = new ResourceLocation("textures/particle/particles.png");
@@ -43,7 +43,7 @@ public class RenderDreHook extends Render {
         if (rod.glowingLine()) OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240F, 240F);
         GL11.glRotatef(180.0F - renderManager.playerViewY, 0.0F, 1.0F, 0.0F);
         GL11.glRotatef(-renderManager.playerViewX, 1.0F, 0.0F, 0.0F);
-        boolean flip = hook.dreamWaterAbove(); // у глади озера в потолке поплавок висит вверх ногами
+        boolean flip = hook.dreamWaterAbove(); // at the surface of the lake in the ceiling the bobber hangs upside down
         if (flip) GL11.glRotatef(180.0F, 0.0F, 0.0F, 1.0F);
         Tessellator t = Tessellator.instance;
         t.startDrawingQuads();
@@ -59,7 +59,7 @@ public class RenderDreHook extends Render {
         EntityPlayer p = hook.field_146042_b;
         if (p == null) return;
         float swing = MathHelper.sin(MathHelper.sqrt_float(p.getSwingProgress(pt)) * (float) Math.PI);
-        // перевёрнутый в воде мечтаний: экран повёрнут на 180 - рука на экране там же, значит в мире - напротив
+        // inverted in Dream Water: the screen is rotated by 180 - the hand on the screen is in the same place, so in the world it is opposite
         boolean inv = com.divinerpgextended.block.BlockDreamWater.inverted(p);
         Vec3 v = inv ? Vec3.createVectorHelper(0.5, -0.03, 0.8) : Vec3.createVectorHelper(-0.5, 0.03, 0.8);
         v.rotateAroundX(-(p.prevRotationPitch + (p.rotationPitch - p.prevRotationPitch) * pt) * (float) Math.PI / 180.0F);
@@ -73,17 +73,17 @@ public class RenderDreHook extends Render {
         if (renderManager.options.thirdPersonView > 0 || p != Minecraft.getMinecraft().thePlayer) {
             float body = (p.prevRenderYawOffset + (p.renderYawOffset - p.prevRenderYawOffset) * pt) * (float) Math.PI / 180.0F;
             double s = MathHelper.sin(body), c = MathHelper.cos(body);
-            double side = inv ? -1 : 1; // модель перевёрнута вокруг оси взгляда: рука на другой стороне и внизу
+            double side = inv ? -1 : 1; // the model is flipped around the look axis: the hand is on the other side and below
             hx = p.prevPosX + (p.posX - p.prevPosX) * pt - side * c * 0.35 - s * 0.85;
             hy = p.prevPosY + eye + (p.posY - p.prevPosY) * pt - 0.45;
-            if (inv) { // от середины хитбокса - зеркально по высоте
+            if (inv) { // from the middle of the hitbox - mirrored in height
                 double feet = p.prevPosY + (p.posY - p.prevPosY) * pt - p.yOffset, mid = feet + p.height / 2;
                 hy = 2 * mid - (feet + 1.62 - 0.45);
             }
             hz = p.prevPosZ + (p.posZ - p.prevPosZ) * pt - side * s * 0.35 + c * 0.85;
         }
         double bx = hook.prevPosX + (hook.posX - hook.prevPosX) * pt;
-        double tip = flip ? -0.25 : 0.25; // леска - к верху спрайта, у перевёрнутого он внизу
+        double tip = flip ? -0.25 : 0.25; // the line goes to the top of the sprite, for an inverted one it is at the bottom
         double by = hook.prevPosY + (hook.posY - hook.prevPosY) * pt + tip;
         double bz = hook.prevPosZ + (hook.posZ - hook.prevPosZ) * pt;
         double dx = (float) (hx - bx), dy = (float) (hy - by), dz = (float) (hz - bz);

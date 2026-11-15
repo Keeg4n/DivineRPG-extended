@@ -6,7 +6,7 @@ import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 
-/** Сервер -> клиент: перегрев игрока (0-100) и фаза погоды его мира. */
+/** Server -> client: player overheating (0-100) and the weather phase of their world. */
 public class WorldStateMessage implements IMessage {
 
     public float heat;
@@ -31,7 +31,7 @@ public class WorldStateMessage implements IMessage {
         buf.writeByte(phase);
     }
 
-    /** Клиентская копия для экрана и дождя. */
+    /** Client copy for the screen and the rain. */
     public static float clientHeat;
     public static int clientPhase;
 

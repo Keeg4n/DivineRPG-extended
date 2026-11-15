@@ -25,21 +25,21 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Цвет вещей Divine (божественные и эндер-мечи, эндер- и рупиевая броня) - стихия, одна и та же у оружия и брони.
- * Бесцветные - без стихии. Броню можно мешать: каждая часть цвета даёт четверть эффекта, полный сет цвета - ещё бонус.
+ * The color of Divine items (divine and ender swords, ender and rupee armor) is an element, the same for weapon and armor.
+ * Colorless ones have no element. Armor can be mixed: each piece of a color gives a quarter of the effect, a full set of a color gives an extra bonus.
  * <ul>
- * <li>красный (огонь): меч поджигает, по уже горящим +{@link #RED_BONUS}; броня - огонь слабее на четверть за часть,
- * полный сет поджигает бьющих в ближнем бою;</li>
- * <li>синий (вода и лёд): меч замедляет; броня - утопление слабее на четверть за часть, полный сет - воздух не кончается;</li>
- * <li>зелёный (природа): меч отравляет (нежить и пауков, которым яд нипочём, бьёт на {@link #GREEN_BONUS} сильнее); броня - яд слабее на четверть за часть, полный сет снимает яд и лечит раз в
- * {@link #REGEN_TICKS} тиков;</li>
- * <li>жёлтый (свет): удар ускоряет бьющего (игрока-цель - ослепляет); броня - +{@link #SPEED_PER_PIECE} скорости за часть,
- * полный сет - ночное зрение;</li>
- * <li>серый (камень): удар сбивает с ног - сильный отброс и миг оглушения (боссов не двигает); броня - отбрасывание
- * меньше на четверть за часть, полный сет - снаряды на {@link #GRAY_ARROWS} слабее.</li>
+ * <li>red (fire): the sword ignites, +{@link #RED_BONUS} against targets already burning; armor - fire is weaker by a quarter per piece,
+ * a full set ignites melee attackers;</li>
+ * <li>blue (water and ice): the sword slows; armor - drowning is weaker by a quarter per piece, a full set - air never runs out;</li>
+ * <li>green (nature): the sword poisons (undead and spiders, which are immune to poison, take {@link #GREEN_BONUS} more); armor - poison is weaker by a quarter per piece, a full set removes poison and heals once every
+ * {@link #REGEN_TICKS} ticks;</li>
+ * <li>yellow (light): a hit speeds up the attacker (a player target is blinded); armor - +{@link #SPEED_PER_PIECE} speed per piece,
+ * a full set - night vision;</li>
+ * <li>gray (stone): a hit knocks down - strong knockback and a moment of stun (bosses are not moved); armor - knockback is
+ * reduced by a quarter per piece, a full set - projectiles are weaker by {@link #GRAY_ARROWS}.</li>
  * </ul>
- * Бедрок - несдвигаемый: с бедроковым мечом в руке не отбрасывает; бедроковая булава бьёт волной - мобы в
- * {@link #WAVE_R} блоках от цели получают {@link #WAVE_DMG} урона удара, но не отлетают (отброс всех вокруг мешал).
+ * Bedrock is immovable: with a bedrock sword in hand you are not knocked back; the bedrock mace hits with a wave - mobs within
+ * {@link #WAVE_R} blocks of the target take {@link #WAVE_DMG} of the hit damage, but do not fly away (knocking back everything around was a nuisance).
  */
 public class ColorGear {
 
@@ -57,7 +57,7 @@ public class ColorGear {
     private static final UUID SPEED = UUID.fromString("2f6c1d8e-4b7a-4e21-9c3d-7a5b8e1f0c21"), STEADY = UUID.fromString(
         "5d9e2a71-3c4b-4f8d-a6e2-1b7c9d0e4f32"), BEDROCK = UUID.fromString("8a1b3c5d-7e9f-4a2b-8c4d-6e8f0a2b4c43");
     private static final Map<Item, Hue> HUE = new HashMap<Item, Hue>();
-    /** Удар волной булавы - сам волну не порождает. */
+    /** A hit by the mace wave - it does not spawn a wave itself. */
     private static boolean inWave;
 
     public static void setup() {
@@ -83,7 +83,7 @@ public class ColorGear {
         for (Item i : items) if (i != null) HUE.put(i, h);
     }
 
-    /** Стихия вещи (null - бесцветная или не из этих семейств). */
+    /** The element of an item (null - colorless or not from these families). */
     public static Hue hue(ItemStack s) {
         return s == null ? null : HUE.get(s.getItem());
     }
@@ -92,18 +92,18 @@ public class ColorGear {
         return s != null && s.getItem() instanceof net.minecraft.item.ItemSword;
     }
 
-    /** Сколько надетых частей этого цвета. */
+    /** How many worn pieces are of this color. */
     public static int pieces(EntityLivingBase e, Hue h) {
-        // во сне до прохождения броня яви молчит (ветейской среди цветной нет)
+        // in the dream before completion the Overworld armor is silent (there is no Vethea armor among the colored ones)
         if (e instanceof EntityPlayer && com.divinerpgextended.vethea.Nightmare.active((EntityPlayer) e)) return 0;
         int n = 0;
         for (int i = 1; i <= 4; i++) if (hue(e.getEquipmentInSlot(i)) == h) n++;
         return n;
     }
 
-    // ---------------- удары ----------------
+    // ---------------- hits ----------------
 
-    /** Ближний удар игрока (не снаряд): оружие в руке. */
+    /** A player's melee hit (not a projectile): the weapon in hand. */
     private static EntityPlayer meleePlayer(DamageSource s) {
         Entity a = s.getEntity();
         return a instanceof EntityPlayer && s.getSourceOfDamage() == a ? (EntityPlayer) a : null;
@@ -132,7 +132,7 @@ public class ColorGear {
             case BLUE:
                 v.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 60, 1));
                 break;
-            case GREEN: // нежить и пауки яда не боятся - их природа бьёт сильнее
+            case GREEN: // undead and spiders do not fear poison - their nature hits harder
                 PotionEffect poison = new PotionEffect(Potion.poison.id, 80, 0);
                 if (v.isPotionApplicable(poison)) v.addPotionEffect(poison);
                 else e.ammount *= GREEN_BONUS;
@@ -157,9 +157,9 @@ public class ColorGear {
     }
 
     /**
-     * Кого задевает волна: того же рода, что и цель (бьёшь враждебного - только враждебных, жителей и големов деревни не
-     * трогает; бьёшь голема или животное - остальных не враждебных). Игроков, жителей и прирученных - никогда: питомец
-     * считается прирученным и при хозяине не в сети (хозяин записан в питомце), лошадь - по своему признаку приручения.
+     * Whom the wave affects: the same kind as the target (hit a hostile - only hostiles, villagers and village golems are not
+     * touched; hit a golem or an animal - the other non-hostiles). Players, villagers and tamed animals - never: a pet
+     * counts as tamed even when its owner is offline (the owner is recorded in the pet), a horse - by its own tame flag.
      */
     static boolean sameKind(EntityLivingBase o, EntityLivingBase center) {
         if (o instanceof EntityPlayer || o instanceof net.minecraft.entity.passive.EntityVillager) return false;
@@ -177,14 +177,14 @@ public class ColorGear {
         return false;
     }
 
-    /** Волна бедроковой булавы: мобы вокруг цели (не игроки) получают долю удара; отброса нет - и ванильный от удара гасим. */
+    /** Bedrock mace wave: mobs around the target (not players) take a share of the hit; no knockback - and we suppress the vanilla one from the hit. */
     private static void wave(EntityPlayer p, EntityLivingBase center, float dmg) {
         @SuppressWarnings("unchecked")
         List<EntityLivingBase> l = center.worldObj.getEntitiesWithinAABB(EntityLivingBase.class, center.boundingBox.expand(WAVE_R, 1.5, WAVE_R));
         inWave = true;
         try {
             for (EntityLivingBase o : l) {
-                // манекен: цель удара - его призрак, волна по самому манекену посчитала бы один удар дважды и сбила окно
+                // dummy: the hit target is its ghost, a wave on the dummy itself would count one hit twice and break the window
                 if (o == center || o == p || o instanceof EntityPlayer || o instanceof com.divinerpgextended.dummy.EntityTrainingDummy || !o.isEntityAlive() || o.getDistanceToEntity(center) > WAVE_R + 1) continue;
                 if (!sameKind(o, center) || Protection.spare(p, o)) continue;
                 o.hurtResistantTime = 0;
@@ -201,7 +201,7 @@ public class ColorGear {
         center.worldObj.playSoundAtEntity(center, "random.explode", 0.4F, 1.6F);
     }
 
-    // ---------------- броня ----------------
+    // ---------------- armor ----------------
 
     private static void defend(EntityPlayer p, LivingHurtEvent e) {
         DamageSource s = e.source;
@@ -219,7 +219,7 @@ public class ColorGear {
         update((EntityPlayer) e.entityLiving);
     }
 
-    /** Раз в полсекунды: модификаторы скорости и устойчивости по цвету брони и бедроку в руке, эффекты полных сетов. */
+    /** Every half second: speed and resistance modifiers by armor color and bedrock in hand, effects of full sets. */
     public static void update(EntityPlayer p) {
         modifier(p.getEntityAttribute(SharedMonsterAttributes.movementSpeed), SPEED, "dre.yellow", SPEED_PER_PIECE * pieces(p, Hue.YELLOW), 1);
         modifier(p.getEntityAttribute(SharedMonsterAttributes.knockbackResistance), STEADY, "dre.gray", KNOCK_PER_PIECE * pieces(p, Hue.GRAY), 0);

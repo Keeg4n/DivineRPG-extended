@@ -15,10 +15,10 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 /**
- * Цифра патронов на значке оружия: в начало RenderItem.renderItemOverlayIntoGUI(шрифт, текстуры, вещь, x, y, текст)
- * подставляем текст из {@link AmmoCountHooks#text}, если его не передали. Игра сама рисует его там же, где число в стопке.
- * Имена: a (игра), func_94148_a или renderItemOverlayIntoGUI (разработка); узнаём по шести аргументам с int, int, String в
- * конце. При любой ошибке класс остаётся как был.
+ * The ammo digit on the weapon icon: at the start of RenderItem.renderItemOverlayIntoGUI(font, textures, item, x, y, text)
+ * we substitute the text from {@link AmmoCountHooks#text} if none was passed. The game itself draws it in the same place as the stack count.
+ * Names: a (game), func_94148_a or renderItemOverlayIntoGUI (development); found by the six arguments ending with int, int, String. On
+ * any error the class stays as it was.
  */
 public class AmmoCountTransformer implements IClassTransformer, Opcodes {
 
@@ -46,15 +46,15 @@ public class AmmoCountTransformer implements IClassTransformer, Opcodes {
                 found++;
             }
             if (found != 1) {
-                LOG.warn("Цифра патронов: найдено методов {} из 1 - оставляю RenderItem без изменений", found);
+                LOG.warn("Ammo count: found {} of 1 methods - leaving RenderItem unchanged", found);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Цифра патронов на значке оружия подключена (RenderItem)");
+            LOG.info("Ammo count on the weapon icon hooked (RenderItem)");
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Цифра патронов: не удалось подключить, класс без изменений", t);
+            LOG.error("Ammo count: could not hook, class unchanged", t);
             return bytes;
         }
     }

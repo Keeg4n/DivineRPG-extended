@@ -22,15 +22,15 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Запертый сундук: сундуки Арканы под ключи Divine (слизь, древний кирпич, камень душ, разрушенный кирпич) и реликварии
- * сумеречных миров. Нерушим всегда (и после открытия): не ломается, взрывы не берут, переносчики не двигают (прочность
- * меньше нуля), особыми кирками сломанный ничего не роняет ({@link com.divinerpgextended.boss.AltarGuard}). Открывается
- * своим ключом в руке - ключ тратится, внутри появляется добыча, дальше это обычный сундук. В творческом режиме открывается
- * без ключа. Вид - meta, сторона - в тайле.
+ * Locked Chest: Arcana chests for Divine keys (slime, ancient brick, soul stone, degraded brick) and twilight world
+ * reliquaries. Always indestructible (also after opening): it does not break, explosions do not take it, movers do not shift it (durability
+ * below zero), broken by special pickaxes it drops nothing ({@link com.divinerpgextended.boss.AltarGuard}). Opened with
+ * its key in hand - the key is consumed, loot appears inside, and then it is an ordinary chest. In creative mode it opens
+ * without a key. The kind is meta, the side is in the tile.
  */
 public class BlockLockedChest extends BlockContainer {
 
-    /** Вид сундука: стена Арканы или дерево мира, цвет замка и окантовки, ключ. */
+    /** Chest kind: Arcana wall or world wood, lock and trim color, key. */
     public enum Kind {
         SLUDGE("sludge", "soulSludge", null, "#9aa6b8"), ANCIENT("ancient", "ancientBrick", null, "#33cfd4"), SOUL("soul", "soulStone", null, "#9a86ff"),
         DEGRADED("degraded", "degradedBrick", null, "#5a92f0"), EDEN("eden", null, "#8a6a1a", "#f4cc3a"), WILDWOOD("wildwood", null, "#1f3a6a", "#4a96ff"),
@@ -54,17 +54,17 @@ public class BlockLockedChest extends BlockContainer {
             return v[meta >= 0 && meta < v.length ? meta : 0];
         }
 
-        /** Мир реликвария (по порядку TwilightWorld, он же мета ключа мира) или -1 у сундуков Арканы. */
+        /** World of the reliquary (in TwilightWorld order, also the meta of the world key) or -1 for Arcana chests. */
         public int world() {
             return arcana() ? -1 : ordinal() - EDEN.ordinal();
         }
 
-        /** Вид реликвария мира. */
+        /** Kind of world reliquary. */
         public static Kind of(com.divinerpgextended.world.twilight.TwilightWorld w) {
             return values()[EDEN.ordinal() + w.ordinal()];
         }
 
-        /** Ключ, которым открывается (null - нет предмета ключа). */
+        /** Key that opens it (null - no key item). */
         public ItemStack keyStack() {
             switch (this) {
                 case SLUDGE: return stack(net.divinerpg.utils.items.ArcanaItems.sludgeKey, 0);
@@ -79,7 +79,7 @@ public class BlockLockedChest extends BlockContainer {
             return i == null ? null : new ItemStack(i, 1, meta);
         }
 
-        /** Подходит ли этот предмет как ключ. */
+        /** Whether this item fits as a key. */
         public boolean opens(ItemStack s) {
             ItemStack k = keyStack();
             return s != null && k != null && s.getItem() == k.getItem() && (arcana() || s.getItemDamage() == k.getItemDamage());
@@ -136,7 +136,7 @@ public class BlockLockedChest extends BlockContainer {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister reg) {
-        blockIcon = reg.registerIcon("minecraft:planks_oak"); // частицы
+        blockIcon = reg.registerIcon("minecraft:planks_oak"); // particles
     }
 
     @Override
@@ -180,7 +180,7 @@ public class BlockLockedChest extends BlockContainer {
         p.addChatMessage(m);
     }
 
-    /** Предмет сундука: вид по мете, подсказка - каким ключом открывается. */
+    /** Chest item: kind by meta, tooltip - which key opens it. */
     public static class ItemLockedChest extends net.minecraft.item.ItemBlock {
 
         public ItemLockedChest(net.minecraft.block.Block b) {

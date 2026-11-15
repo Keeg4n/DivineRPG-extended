@@ -6,8 +6,8 @@ import net.minecraft.block.material.Material;
 import com.divinerpgextended.world.CadillionWorld;
 
 /**
- * Камень врат: рамка портала в следующий сумеречный мир (камень врат Эдема - в Дикий лес и т.д.). Собирается из
- * блоков камней мира вокруг сердца стража - его роняет Великий кадиллион этого мира.
+ * Gate Stone: the portal frame to the next twilight world (the Eden Gate Stone - to Wildwood and so on). Assembled from
+ * blocks of the world's stones around the guardian heart - dropped by the Great Cadillion of that world.
  */
 public class BlockGateStone extends Block {
 

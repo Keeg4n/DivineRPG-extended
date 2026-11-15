@@ -17,9 +17,9 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Рыболовный ящик зоны (мета = номер в {@link Zone}): правый клик - открыть, добро зоны падает в инвентарь. Шахтёрские
- * ящики пещер - мета {@link FishingLoot#CRATE_MINE} + ярус (верхние, средние, глубины); старый ящик пещер открывается как
- * шахтёрский средних пещер.
+ * Zone fishing crate (meta = number in {@link Zone}): right click - open, the zone's goods drop into the inventory. Cave miner's
+ * crates - meta {@link FishingLoot#CRATE_MINE} + tier (upper, middle, depths); the old cave crate opens as
+ * the miner's crate of the middle caves.
  */
 public class ItemCrate extends Item {
 
@@ -42,7 +42,7 @@ public class ItemCrate extends Item {
         return Zone.values()[m >= 0 && m < Zone.values().length ? m : 0];
     }
 
-    /** Ярус шахтёрского ящика (мета CRATE_MINE + ярус) или -1. */
+    /** Tier of the miner's crate (meta CRATE_MINE + tier) or -1. */
     private static int mineTier(int m) {
         return m >= FishingLoot.CRATE_MINE && m < FishingLoot.CRATE_MINE + FishingLoot.TIERS ? m - FishingLoot.CRATE_MINE : -1;
     }
@@ -90,7 +90,7 @@ public class ItemCrate extends Item {
     @SideOnly(Side.CLIENT)
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void getSubItems(Item item, CreativeTabs tab, List list) {
-        list.addAll(FishingLoot.crateKinds()); // вместо ящика пещер - три шахтёрских
+        list.addAll(FishingLoot.crateKinds()); // instead of the cave crate - three miner's ones
     }
 
     @Override

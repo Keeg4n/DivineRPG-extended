@@ -19,8 +19,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Вмороженный моб ({@link FrostBite}) - в полупрозрачной ледяной глыбе по размеру тела, как замороженные ледогрибом
- * зомби; к концу глыба тает (прозрачнее). Плюс строка про обморожение в подсказке ледяного оружия.
+ * A frozen-in mob ({@link FrostBite}) is in a translucent block of ice the size of its body, like zombies frozen by the ice mushroom;
+ * toward the end the block melts (becomes more transparent). Plus a frostbite line in the tooltip of ice weapons.
  */
 @SideOnly(Side.CLIENT)
 public class FrostRender {
@@ -34,7 +34,7 @@ public class FrostRender {
             FrostBite.CLIENT.remove(e.entity.getEntityId());
             return;
         }
-        float alpha = 0.62F * Math.min(1F, left / 500F); // последние полсекунды тает
+        float alpha = 0.62F * Math.min(1F, left / 500F); // melts during the last half second
         double w = e.entity.width / 2 + 0.15, h = e.entity.height + 0.15;
         IIcon ice = Blocks.ice.getIcon(0, 0);
         double u0 = ice.getMinU(), u1 = ice.getMaxU(), v0 = ice.getMinV(), v1 = ice.getMaxV();
@@ -49,7 +49,7 @@ public class FrostRender {
         GL11.glColor4f(0.85F, 0.95F, 1F, alpha);
         Tessellator t = Tessellator.instance;
         t.startDrawingQuads();
-        // четыре стены, крыша и дно
+        // four walls, a roof and a bottom
         t.addVertexWithUV(-w, 0, -w, u0, v1); t.addVertexWithUV(-w, h, -w, u0, v0); t.addVertexWithUV(w, h, -w, u1, v0); t.addVertexWithUV(w, 0, -w, u1, v1);
         t.addVertexWithUV(w, 0, w, u0, v1); t.addVertexWithUV(w, h, w, u0, v0); t.addVertexWithUV(-w, h, w, u1, v0); t.addVertexWithUV(-w, 0, w, u1, v1);
         t.addVertexWithUV(-w, 0, w, u0, v1); t.addVertexWithUV(-w, h, w, u0, v0); t.addVertexWithUV(-w, h, -w, u1, v0); t.addVertexWithUV(-w, 0, -w, u1, v1);

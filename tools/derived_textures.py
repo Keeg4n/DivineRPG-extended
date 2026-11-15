@@ -1,5 +1,5 @@
-"""Таблицы производных текстур: наш рисунок = текстура Divine + замена цветов (+ отдельные пиксели).
-Пишет assets/divinerpgextended/derived_textures.txt и проверяет точную сборку. Файлы-оригиналы не трогает."""
+"""Tables of derived textures: our image = a Divine texture + color replacement (+ individual pixels).
+Writes assets/divinerpgextended/derived_textures.txt and checks the exact build. Does not touch the original files."""
 import os, hashlib
 from PIL import Image
 import numpy as np
@@ -7,12 +7,12 @@ import numpy as np
 D = '//wsl.localhost/Ubuntu/tmp/dvtex/assets'
 O = '//wsl.localhost/Ubuntu/root/mc/dre/src/main/resources/assets'
 OUT = O + '/divinerpgextended/derived_textures.txt'
-ORIG = 'orig_derived'  # сохранённые наши картинки (из jar они удалены)
+ORIG = 'orig_derived'  # saved images of ours (removed from the jar)
 
 OWN_ART = ('spiritSpark_', 'worldSpirit_', 'mortumTrophy_twins',
-           # с 0.99.108 свои значки из концептов аксессуаров (tools/concepts/acc_export.py)
+           # since 0.99.108 our own icons from the accessory concepts (tools/concepts/acc_export.py)
            'trinket_arcane_ward', 'trinket_clarity_crystal')
-# если исходник не тот (другая версия DivineRPG): перекраска запасного по палитре
+# if the source is different (another DivineRPG version): recolor the fallback by palette
 FALLBACK = {'divinerpgextended/textures/items/haliteMultitool.png': ['divinerpg/textures/items/divineShickaxe.png'],
             'divinerpgextended/textures/items/trinket_clarity_crystal.png': ['divinerpg/textures/items/baseSpawnCrystal.png'],
             'divinerpgextended/textures/items/trinket_arcane_ward.png': ['divinerpg/textures/items/arcaniumAttractor.png']}
@@ -34,7 +34,7 @@ def md5(v):
     return hashlib.md5(v.astype('>u4').tobytes()).hexdigest()
 
 
-# кандидаты по маске прозрачности
+# candidates by transparency mask
 div = {}
 for root, _, files in os.walk(D):
     for f in files:
@@ -107,7 +107,7 @@ def lum(c):
 
 
 def palette(ours):
-    # наши цвета (непрозрачные) по яркости с числом пикселей - для перекраски чужой версии текстуры
+    # our colors (opaque) by brightness with pixel counts - for recoloring a foreign version of the texture
     vals, counts = np.unique(ours[ours != 0], return_counts=True)
     pairs = sorted(zip(vals.tolist(), counts.tolist()), key=lambda vc: (lum(vc[0]), vc[0]))
     return ','.join('%08xx%d' % (v, c) for v, c in pairs)

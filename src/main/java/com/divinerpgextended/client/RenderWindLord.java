@@ -15,7 +15,7 @@ import com.divinerpgextended.entity.EntityWindLord;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Повелитель ветров: изверг Скайтерна из Divine, крупный, бледно-голубой и полупрозрачный, как облако. */
+/** Wind Lord: the Divine Skythern fiend, large, pale blue and translucent, like a cloud. */
 @SideOnly(Side.CLIENT)
 public class RenderWindLord extends RenderLiving {
 

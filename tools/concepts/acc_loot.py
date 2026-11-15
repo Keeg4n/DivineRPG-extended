@@ -1,4 +1,4 @@
-"""Новый лут с боссов и Часы Странника: значки 16x16."""
+"""New boss loot and the Wanderer's Clock: 16x16 icons."""
 import math
 
 from acc_kit import DISC, ELL, RING, RECT, POLY, LINE, PATH, SYM, DIAMOND, HEART, GEAR, Ic, icon, hexc
@@ -9,7 +9,7 @@ LOOT = []
 
 
 def loot(key, name, src, *vs):
-    """vs - три варианта (название, значок); значок - функция Ic или список функций, если предмет бывает разный по мирам или боссам."""
+    """vs - three variants (name, icon); the icon is an Ic function or a list of functions if the item differs per world or boss."""
     LOOT.append((key, name, src, vs))
 
 
@@ -22,7 +22,7 @@ def per(fn, table):
     return [lambda c, r=r: fn(c, r) for _, r in table]
 
 
-# ------------------------------------------------------------------ сердца стражей
+# ------------------------------------------------------------------ guardian hearts
 def heart_vessels(c, r):
     c.f(HEART(8, 8.5, 6.6), r)
     c.f(RECT(5, 0, 6, 4), RED)
@@ -52,7 +52,7 @@ loot('guardian_heart', 'Сердце стража', 'стражи миров, п
      ('Живое, с сосудами', per(heart_vessels, WORLDS)), ('Огранённый камень', per(heart_gem, WORLDS)), ('В железной оправе', per(heart_frame, WORLDS)))
 
 
-# ------------------------------------------------------------------ шестерни времени
+# ------------------------------------------------------------------ time gears
 def gear_hands(c, r):
     c.f(GEAR(8, 8, 7.8, 8, 1.8), r)
     c.c(DISC(8, 8, 3.6), BONE[3])
@@ -79,7 +79,7 @@ loot('time_gear', 'Шестерня времени', 'стражи миров, �
      ('С циферблатом', per(gear_hands, WORLDS)), ('Пара шестерён', per(gear_double, WORLDS)), ('Расколотая, с камнем', per(gear_broken, WORLDS)))
 
 
-# ------------------------------------------------------------------ частички души
+# ------------------------------------------------------------------ soul fragments
 def spark_wisp(c, r):
     c.f(POLY((8, 0), (11, 4), (13, 8), (12, 12), (8, 15), (4, 12), (3, 8), (6, 6), (6, 3)), r)
     c.f(POLY((8, 6), (10, 9), (9, 13), (7, 13), (6, 9)), r[2:])
@@ -102,7 +102,7 @@ def spark_orb(c, r):
 loot('spirit_spark', 'Частичка души', '12 боссов, у каждого свой цвет',
      ('Огонёк', per(spark_wisp, SPARKS)), ('Звезда', per(spark_star, SPARKS)), ('Падающая искра', per(spark_orb, SPARKS)))
 
-# ------------------------------------------------------------------ трофеи Мортума
+# ------------------------------------------------------------------ Mortum trophies
 loot('trophy_demon', 'Сердце сумерек', 'Демон сумерек',
      ('Чёрное сердце в пламени', lambda c: (c.f(POLY((3, 8), (2, 2), (5, 5), (8, 0), (11, 5), (14, 2), (13, 8)), MAG), c.f(HEART(8, 9, 5.4), OBS), c.d(MAG[4], 6, 8, 7, 10))),
      ('Сумеречная звезда', lambda c: (c.f(POLY((8, 0), (10, 6), (16, 8), (10, 10), (8, 16), (6, 10), (0, 8), (6, 6)), PUR), c.f(DIAMOND(8, 8, 2.6), MAG), c.d(WHITE[4], 8, 7))),
@@ -128,7 +128,7 @@ loot('trophy_karot', 'Зеркальное ядро', 'Карот',
      ('Гранёное ядро', lambda c: (c.f(DIAMOND(8, 8, 7.8), SILV), c.l(8, 1, 8, 14, IRON[2]), c.l(1, 8, 14, 8, IRON[2]), c.d(WHITE[4], 6, 5, 5, 6), c.d(ARC[3], 10, 10, 11, 9))),
      ('Ядро в осколках', lambda c: (c.f(DISC(8, 8, 4.4), ARC), c.d(WHITE[4], 7, 6), c.f(POLY((0, 2), (4, 1), (3, 5)), SILV), c.f(POLY((15, 3), (12, 0), (11, 4)), SILV), c.f(POLY((1, 14), (5, 12), (4, 15)), SILV), c.f(POLY((15, 13), (11, 11), (12, 15)), SILV))))
 
-# ------------------------------------------------------------------ остальное
+# ------------------------------------------------------------------ the rest
 loot('deep_shell_loot', 'Панцирь глубин', 'Карцинус',
      ('Наутилус', lambda c: (c.f(DISC(8.5, 8, 7), SAND), c.c(PATH((8, 2), (13, 5), (13, 10), (9, 12), (5, 10), (6, 6), (9, 6), (10, 8)), SAND[0]), c.f(POLY((1, 9), (4, 6), (5, 13), (2, 13)), ORG), c.d(SAND[4], 5, 3))),
      ('Шипастый панцирь', lambda c: ([c.f(POLY((x, 6), (x + 3, 6), (x + 1.5, 0)), TEAL) for x in (1.5, 6.5, 11.5)], c.f(ELL(8, 10, 7.6, 5), LAP), c.l(8, 6, 8, 14, LAP[0]), c.l(4, 8, 4, 13, LAP[0]), c.l(12, 8, 12, 13, LAP[0]), c.d(CYAN[4], 3, 7, 4, 6))),
@@ -156,14 +156,14 @@ loot('lunar_shard', 'Лунный осколок', 'Леди Луна',
      ('Камень со звёздами', lambda c: (c.f(POLY((2, 13), (1, 6), (6, 1), (13, 2), (15, 9), (10, 15)), OBS), [c.d(WHITE[4], x, y) for x, y in ((5, 5), (10, 4), (12, 9), (7, 10), (4, 11))], c.d(ICE[3], 8, 7, 11, 12), c.f(DISC(8, 7, 1), ICE))))
 
 
-# ------------------------------------------------------------------ Часы Странника: один предмет, 5 уровней
+# ------------------------------------------------------------------ Wanderer's Clock: one item, 5 levels
 GEMS = [EDEN, WILD, APAL, SKYT, MORT]
 CASE = [COP, SILV, GOLD, SKY, OBS]
 GEM_HIGHLIGHT = [EDEN[4], WILD[4], APAL[4], SKYT[4], RED[3]]
 
 
 def clock_pocket(t):
-    """Карманные часы: корпус меняет металл, по кругу пять гнёзд, на каждом уровне загорается камень следующего мира."""
+    """Pocket watch: the case changes metal, five sockets around the circle, each level lights the stone of the next world."""
     def fn(c):
         case = CASE[t - 1]
         c.f(RECT(7, 0, 8, 1), case)
@@ -181,7 +181,7 @@ def clock_pocket(t):
 
 
 def clock_sand(t):
-    """Песочные часы: песок цвета мира, рамка растёт с уровнем."""
+    """Hourglass: sand in the world's color, the frame grows with the level."""
     def fn(c):
         sand = GEMS[t - 1]
         fr = [WOOD, WOOD, SILV, GOLD, OBS][t - 1]
@@ -203,7 +203,7 @@ def clock_sand(t):
 
 
 def clock_wheel(t):
-    """Круг миров: циферблат из пяти секторов, новый уровень зажигает следующий; стрелка указывает на текущий мир."""
+    """World circle: a dial of five sectors, a new level lights the next one; the hand points to the current world."""
     def fn(c):
         c.f(RECT(7, 0, 8, 1), GOLD)
         c.f(DISC(8, 8.5, 7.4), GOLD)

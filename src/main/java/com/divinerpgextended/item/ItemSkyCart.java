@@ -12,7 +12,7 @@ import net.minecraft.world.World;
 import com.divinerpgextended.entity.EntitySkyCart;
 import com.divinerpgextended.registry.ModBlocks;
 
-/** Вагонетка Апалачии: ставится на рельс Апалачии (правый клик по нему). */
+/** Apalachia Cart: placed on an Apalachia rail (right click on it). */
 public class ItemSkyCart extends Item {
 
     public ItemSkyCart() {
@@ -27,7 +27,7 @@ public class ItemSkyCart extends Item {
         if (!com.divinerpgextended.block.BlockSkyRail.track(w.getBlock(x, y, z))) return false;
         if (!w.isRemote) {
             w.spawnEntityInWorld(new EntitySkyCart(w, x, y, z, p.rotationYaw));
-            com.divinerpgextended.debug.Debug.note(p, "Вагонетка Апалачии поставлена на " + x + " " + y + " " + z);
+            com.divinerpgextended.debug.Debug.note(p, "Apalachia Cart placed at " + x + " " + y + " " + z);
             if (!p.capabilities.isCreativeMode) s.stackSize--;
         }
         return true;

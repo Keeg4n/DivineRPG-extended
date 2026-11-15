@@ -15,10 +15,10 @@ import net.minecraft.world.World;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Спавнер логова: выглядит и крутится как обычный, но мобов логова ставит при любом свете. Обычный спавнер
- * спрашивает моба, можно ли ему здесь появиться, и Глакон на свету отказывается - а логово освещено целиком, чтобы
- * в нём не появлялись чужие мобы (на серверах мобы Grimoire of Gaia живут во всех мирах). Работает, только когда
- * игрок в 16 блоках; рядом не больше {@link #MAX_NEAR} своих мобов.
+ * Lair spawner: looks and spins like an ordinary one, but places the lair's mobs at any light level. An ordinary spawner
+ * asks the mob whether it may appear here, and the Glacon refuses in light - while the lair is lit throughout so that
+ * no outside mobs appear in it (on servers Grimoire of Gaia mobs live in all worlds). Works only when a
+ * player is within 16 blocks; no more than {@link #MAX_NEAR} of its mobs nearby.
  */
 public class BlockLairSpawner extends BlockMobSpawner {
 
@@ -57,7 +57,7 @@ public class BlockLairSpawner extends BlockMobSpawner {
         public void updateSpawner() {
             World w = getSpawnerWorld();
             if (w.isRemote) {
-                super.updateSpawner(); // клиент: только вращение и искры
+                super.updateSpawner(); // client: only rotation and sparks
                 return;
             }
             double cx = te.xCoord + 0.5, cy = te.yCoord + 0.5, cz = te.zCoord + 0.5;
@@ -69,12 +69,12 @@ public class BlockLairSpawner extends BlockMobSpawner {
             if (cls == null) return;
             List<?> near = w.getEntitiesWithinAABB(cls, AxisAlignedBB.getBoundingBox(cx - 8, cy - 4, cz - 8, cx + 8, cy + 4, cz + 8));
             int room = MAX_NEAR - near.size(), spawned = 0;
-            for (int n = 0; n < 16 && spawned < Math.min(2, room); n++) { // в узких ходах многие точки в стене
+            for (int n = 0; n < 16 && spawned < Math.min(2, room); n++) { // in narrow passages many points are in a wall
                 Entity e = EntityList.createEntityByName(name, w);
                 if (!(e instanceof EntityLiving)) return;
                 double x = te.xCoord + w.rand.nextInt(7) - 3 + 0.5, y = te.yCoord + 1 + w.rand.nextInt(2), z = te.zCoord + w.rand.nextInt(7) - 3 + 0.5;
                 e.setLocationAndAngles(x, y, z, w.rand.nextFloat() * 360F, 0F);
-                // место свободно, не в жидкости; свет не важен
+                // the spot is free, not in liquid; light does not matter
                 if (!w.checkNoEntityCollision(e.boundingBox) || !w.getCollidingBoundingBoxes(e, e.boundingBox).isEmpty() || w.isAnyLiquid(e.boundingBox)) continue;
                 w.spawnEntityInWorld(e);
                 ((EntityLiving) e).onSpawnWithEgg(null);

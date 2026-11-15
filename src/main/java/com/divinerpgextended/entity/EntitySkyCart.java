@@ -15,44 +15,44 @@ import com.divinerpgextended.block.SkyTrack;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Вагонетка Апалачии: едет по рельсам Апалачии - по полу, вверх по стене и по потолку (заготовка под американские
- * горки). Путь - ломаная "середина рельса - стык - середина следующего" ({@link SkyTrack}): прямо, если можно, иначе
- * на другой соседний рельс; на углу пол - стена - горкой. С игроком едет, как ванильная: только пока жмут "вперёд" и
- * туда, куда он смотрит (смотрит против хода - разворот); отпустил - катится по инерции. Путь кончился - едет обратно.
- * Седок сидит внутри и поворачивается вместе с ней (клиент рисует его по нормали пути).
+ * Apalachia Cart: rides on Apalachia Rails - on the floor, up the wall and on the ceiling (a blank for roller
+ * coasters). The path is a polyline "middle of the rail - joint - middle of the next" ({@link SkyTrack}): straight if possible, otherwise
+ * onto another neighboring rail; at a floor - wall corner - in an arc. With a player it rides like a vanilla one: only while "forward" is held and
+ * where he looks (looking against the direction - a turn around); when released - it coasts by inertia. When the path ends - it goes back.
+ * The rider sits inside and turns together with it (the client draws him along the path normal).
  */
 public class EntitySkyCart extends Entity {
 
     public static final double SPEED = 0.35;
-    /** Рельсы арканы разгоняют до MAX_SPEED на BOOST за тик; без них скорость спадает к обычной на DRAG за тик. */
+    /** Arcana Rails accelerate to MAX_SPEED by BOOST per tick; without them the speed decays to normal by DRAG per tick. */
     public static final double MAX_SPEED = 0.9, BOOST = 0.06, DRAG = 0.005;
-    /** Торможение кнопкой "назад" за тик. */
+    /** Braking with the "back" button per tick. */
     public static final double BRAKE = 0.03;
     private double speed = SPEED;
-    /** Разгон от толчка (без игрока внутри): катится по инерции и тормозит, как ванильная вагонетка. */
+    /** Acceleration from a push (without a player inside): coasts by inertia and brakes, like a vanilla minecart. */
     private double momentum;
-    /** На прошлом тике ехала (газ или инерция): трогаться по взгляду - только с места. */
+    /** It was moving on the previous tick (throttle or inertia): starting off by the view direction - only from a standstill. */
     private boolean moving;
     public static final double PUSH = 0.25, FRICTION = 0.006;
-    /** Середина вагонетки над точкой касания колёс; глаза седока над серединой (как у ванильной вагонетки). */
+    /** The middle of the cart above the wheel contact point; the rider's eyes above the middle (like a vanilla minecart). */
     public static final double BODY = 0.4, EYES = 0.82, SEAT = 0.8;
-    private static final int DW_N = 20, DW_F = 23; // нормаль и курс: по три float
+    private static final int DW_N = 20, DW_F = 23; // normal and heading: three floats each
     /**
-     * Клиент подводит вагонетку к позиции с сервера за столько тиков. Ванильные 4 на полном ходу (0.9 блока за тик) срезали
-     * внешнее ребро горки хордой - камера седока проходила сквозь блок; за 2 тика путь держится, рывков нет.
+     * The client brings the cart to the server position over this many ticks. Vanilla 4 at full speed (0.9 blocks per tick) cut
+     * the outer edge of the loop with a chord - the rider's camera passed through a block; over 2 ticks the path holds, no jerks.
      */
     public static final int CLIENT_LERP = 2;
 
     private int cx, cy, cz, nx, ny, nz;
     private double t;
     private boolean placed;
-    /** Направление первого шага при постановке (по взгляду игрока). */
+    /** Direction of the first step on placement (by the player's view). */
     private int sx = 1, sz;
-    /** Кто сидел на прошлом тике: слез - поставить в безопасное место (не в потолок и не в стену). */
+    /** Who was sitting on the previous tick: got off - put in a safe place (not in the ceiling or a wall). */
     private Entity lastRider;
-    /** Клиент: нормаль на прошлом тике - для плавного поворота между тиками. */
+    /** Client: the normal on the previous tick - for a smooth turn between ticks. */
     public float[] prevNormal = { 0, 1, 0 };
-    /** Клиент: куда подвести вагонетку (позиция с сервера), за сколько тиков; сглаженные нормаль и курс. */
+    /** Client: where to bring the cart (position from the server), over how many ticks; smoothed normal and heading. */
     private double lx, ly, lz;
     private int lerp;
     private float[] smoothN = { 0, 1, 0 }, smoothF = { 1, 0, 0 };
@@ -61,7 +61,7 @@ public class EntitySkyCart extends Entity {
         super(w);
         setSize(0.98F, 0.7F);
         preventEntitySpawning = true;
-        noClip = true; // едет вплотную к стене и потолку
+        noClip = true; // rides right up against the wall and ceiling
     }
 
     public EntitySkyCart(World w, int x, int y, int z, float yaw) {
@@ -83,7 +83,7 @@ public class EntitySkyCart extends Entity {
         for (int i = 0; i < 6; i++) dataWatcher.addObject(DW_N + i, Float.valueOf(i == 1 ? 1 : 0));
     }
 
-    /** Нормаль пути; на клиенте - сглаженная вслед за позицией. */
+    /** Path normal; on the client - smoothed following the position. */
     public float[] normal() {
         return worldObj.isRemote ? smoothN.clone() : watchedNormal();
     }
@@ -104,7 +104,7 @@ public class EntitySkyCart extends Entity {
         return BlockSkyRail.track(worldObj.getBlock(x, y, z));
     }
 
-    /** Первый шаг: по взгляду игрока, если туда есть путь, иначе любой. */
+    /** First step: by the player's view if there is a path that way, otherwise any. */
     private void start() {
         List<int[]> ex = SkyTrack.exits(worldObj, cx, cy, cz);
         int[] pick = null;
@@ -117,13 +117,13 @@ public class EntitySkyCart extends Entity {
         }
     }
 
-    /** Доехали до (cx,cy,cz) из (px,py,pz): дальше прямо, иначе на другой выход; тупик - обратно (false). */
+    /** Arrived at (cx,cy,cz) from (px,py,pz): onward straight, otherwise to another exit; dead end - back (false). */
     private boolean pickNext(int px, int py, int pz) {
         int dx = cx - px, dy = cy - py, dz = cz - pz;
         boolean flat = dx != 0 || dz != 0;
         int[] best = null;
         for (int[] o : SkyTrack.exits(worldObj, cx, cy, cz)) {
-            if (cx + o[0] == px && cy + o[1] == py && cz + o[2] == pz) continue; // назад
+            if (cx + o[0] == px && cy + o[1] == py && cz + o[2] == pz) continue; // back
             if (!rail(cx + o[0], cy + o[1], cz + o[2])) continue;
             boolean straight = flat ? o[0] == dx && o[2] == dz : o[0] == 0 && o[2] == 0 && o[1] == dy;
             if (best == null || straight) best = o;
@@ -151,7 +151,7 @@ public class EntitySkyCart extends Entity {
         return l < 1e-6 ? new double[] { 0, 1, 0 } : new double[] { a[0] / l, a[1] / l, a[2] / l };
     }
 
-    /** Позиция на ломаной: первая половина шага - от середины рельса к стыку, вторая - от стыка к середине следующего. */
+    /** Position on the polyline: the first half of the step - from the middle of the rail to the joint, the second - from the joint to the middle of the next. */
     private void updatePos() {
         double[] ca = SkyTrack.contact(worldObj, cx, cy, cz), na = SkyTrack.normal(worldObj, cx, cy, cz);
         double[] p, n, f;
@@ -177,7 +177,7 @@ public class EntitySkyCart extends Entity {
             dataWatcher.updateObject(DW_N + i, Float.valueOf((float) n[i]));
             dataWatcher.updateObject(DW_F + i, Float.valueOf((float) f[i]));
         }
-        // середина вагонетки - над точкой касания по нормали; posY - низ рамки
+        // the middle of the cart is above the contact point along the normal; posY - bottom of the frame
         setPosition(p[0] + n[0] * BODY, p[1] + n[1] * BODY - height / 2, p[2] + n[2] * BODY);
     }
 
@@ -195,39 +195,39 @@ public class EntitySkyCart extends Entity {
             placed = true;
             start();
         }
-        if (!rail(cx, cy, cz)) { // рельс убрали - вагонетка выпадает предметом
-            com.divinerpgextended.debug.Debug.noteNear(this, 32, "Вагонетка Апалачии: под ней нет рельса (" + cx + " " + cy + " " + cz + ") - выпала предметом");
+        if (!rail(cx, cy, cz)) { // the rail was removed - the cart drops as an item
+            com.divinerpgextended.debug.Debug.noteNear(this, 32, "Apalachia Cart: no rail below (" + cx + " " + cy + " " + cz + ") - dropped as an item");
             dropAsItem();
             return;
         }
         if (lastRider != null && riddenByEntity != lastRider) safeDismount(lastRider);
-        if (riddenByEntity instanceof EntityPlayer && riddenByEntity != lastRider) { // сел - стоит, пока не нажмёт "вперёд"
+        if (riddenByEntity instanceof EntityPlayer && riddenByEntity != lastRider) { // seated - stands until "forward" is pressed
             momentum = 0;
             moving = false;
         }
         lastRider = riddenByEntity;
         EntityPlayer pilot = riddenByEntity instanceof EntityPlayer ? (EntityPlayer) riddenByEntity : null;
-        // игрок газует кнопкой "вперёд", по взгляду: стоит - трогается туда, едет против взгляда - разворот
+        // the player throttles with the "forward" button, by view: standing - starts that way, moving against the view - turns around
         boolean driven = pilot != null && pilot.moveForward > 0;
-        if (driven && !moving) { // трогается: туда, куда смотрит (на ходу не разворачивается - на мёртвой петле взгляд не вдоль пути)
+        if (driven && !moving) { // starting: where it looks (does not turn while moving - on a loop the view is not along the path)
             net.minecraft.util.Vec3 look = pilot.getLookVec();
-            if (t == 0) { // у середины рельса - выбрать выход заново
+            if (t == 0) { // at the middle of the rail - choose the exit anew
                 nx = cx;
                 ny = cy;
                 nz = cz;
             }
             push(look.xCoord, look.yCoord, look.zCoord);
-            if (nx == cx && ny == cy && nz == cz) driven = false; // туда, куда смотрит, пути нет
-        } else if (!driven && pilot != null && moving && momentum < 0.01 && speed > 0.01) momentum = speed; // отпустил газ на ходу - по инерции
-        // (только на ходу: у стоящей вагонетки speed с прошлой поездки или начальный - раньше она трогалась сама, едва сядешь)
-        // тормоз: "назад" на ходу гасит инерцию, вагонетка встаёт и стоит, пока её снова не толкнут
+            if (nx == cx && ny == cy && nz == cz) driven = false; // there is no path where it looks
+        } else if (!driven && pilot != null && moving && momentum < 0.01 && speed > 0.01) momentum = speed; // released the throttle while moving - coasting by inertia
+        // (only while moving: a standing cart has the speed from the previous ride or the initial one - before, it started by itself as soon as you sat down)
+        // brake: "back" while moving kills inertia, the cart stops and stands until pushed again
         if (pilot != null && !driven && pilot.moveForward < 0 && moving) momentum = momentum > BRAKE ? momentum - BRAKE : 0;
         if (pilot != null && !driven) speed = Math.max(0, Math.min(speed, momentum));
         if (riddenByEntity != null) riddenByEntity.fallDistance = 0;
         moving = driven || momentum > 0.01;
         if (moving) {
             boolean still = nx == cx && ny == cy && nz == cz;
-            if (!driven && pilot == null && still || !rail(nx, ny, nz)) { // стояла без пути или следующий рельс убрали - искать заново
+            if (!driven && pilot == null && still || !rail(nx, ny, nz)) { // stood without a path or the next rail was removed - search anew
                 nx = cx;
                 ny = cy;
                 nz = cz;
@@ -249,9 +249,9 @@ public class EntitySkyCart extends Entity {
                     cy = ny;
                     cz = nz;
                     if (!pickNext(px, py, pz)) {
-                        com.divinerpgextended.debug.Debug.noteNear(this, 32, "Вагонетка Апалачии: конец пути в " + cx + " " + cy + " " + cz + ", обратно");
+                        com.divinerpgextended.debug.Debug.noteNear(this, 32, "Apalachia Cart: end of track at " + cx + " " + cy + " " + cz + ", turning back");
                         if (nx == cx && ny == cy && nz == cz) t = 0;
-                        if (!driven) momentum *= 0.5; // отскок от тупика
+                        if (!driven) momentum *= 0.5; // bounce off a dead end
                     }
                 }
             }
@@ -259,17 +259,17 @@ public class EntitySkyCart extends Entity {
         updatePos();
     }
 
-    /** Седок сидит внутри: глаза - над серединой по нормали пути (на стене - в сторону от стены, на потолке - вниз). */
+    /** The rider sits inside: eyes above the middle along the path normal (on a wall - away from the wall, on a ceiling - downward). */
     @Override
     public void updateRiderPosition() {
         if (riddenByEntity == null) return;
         float[] n = normal();
         double my = posY + height / 2;
-        // у игрока на клиенте posY - глаза, на сервере - ноги: getYOffset() это учитывает (как у ванильной вагонетки)
+        // for a player on the client posY is the eyes, on the server it is the feet: getYOffset() accounts for this (like a vanilla minecart)
         riddenByEntity.setPosition(posX + n[0] * EYES, my + n[1] * EYES - 1.62 + 0.5 + riddenByEntity.getYOffset(), posZ + n[2] * EYES);
     }
 
-    /** Грань опоры по нормали (для высадки). */
+    /** The face of the support along the normal (for dismounting). */
     private ForgeDirection face() {
         float[] n = normal();
         float ax = Math.abs(n[0]), ay = Math.abs(n[1]), az = Math.abs(n[2]);
@@ -278,7 +278,7 @@ public class EntitySkyCart extends Entity {
         return n[2] > 0 ? ForgeDirection.NORTH : ForgeDirection.SOUTH;
     }
 
-    /** Высадка: на потолке - под вагонетку, на стене - шаг от стены, на полу - рядом. */
+    /** Dismount: on a ceiling - under the cart, on a wall - a step from the wall, on the floor - next to it. */
     private void safeDismount(Entity e) {
         if (e.isDead || e.ridingEntity != null) return;
         ForgeDirection f = face();
@@ -290,9 +290,9 @@ public class EntitySkyCart extends Entity {
     }
 
     /**
-     * Клиент: позицию с сервера не ставить сразу, а подводить за несколько тиков (как ванильная вагонетка) - иначе
-     * вагонетка дёргалась рывками. Ванильную версию не зовём: она выталкивает сущность вверх из блоков, а вагонетка на
-     * стене и потолке прижата к ним - её подбрасывало на верх стены вместе с седоком.
+     * Client: do not set the server position at once, but bring it over several ticks (like a vanilla minecart) - otherwise
+     * the cart jerked. We do not call the vanilla version: it pushes the entity up out of blocks, while a cart on
+     * a wall and ceiling is pressed against them - it was tossed to the top of the wall together with the rider.
      */
     @Override
     @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
@@ -304,7 +304,7 @@ public class EntitySkyCart extends Entity {
         setRotation(yaw, pitch);
     }
 
-    /** Клиент: шаг подвода к позиции с сервера; нормаль и курс догоняют свои значения с той же скоростью. */
+    /** Client: step of approach to the server position; the normal and heading catch up to their values at the same rate. */
     private void clientSmooth() {
         prevNormal = smoothN.clone();
         float[] tn = watchedNormal(), tf = watchedCourse();
@@ -329,15 +329,15 @@ public class EntitySkyCart extends Entity {
         return !isDead;
     }
 
-    /** Её можно толкать (иначе игрок и мобы проходят сквозь, не задевая). */
+    /** It can be pushed (otherwise players and mobs pass through without touching it). */
     @Override
     public boolean canBePushed() {
         return true;
     }
 
     /**
-     * Как ванильная вагонетка: задели - покатилась вдоль рельса в сторону толчка; движущаяся пустая вагонетка сажает
-     * в себя моба, которого задела (не игрока и не железного голема).
+     * Like a vanilla minecart: bumped - it rolls along the rail in the direction of the push; a moving empty cart seats
+     * the mob it bumped into (not a player or an iron golem).
      */
     @Override
     public void applyEntityCollision(net.minecraft.entity.Entity e) {
@@ -350,14 +350,14 @@ public class EntitySkyCart extends Entity {
         push(posX - e.posX, posY - e.posY, posZ - e.posZ);
     }
 
-    /** Толчок в сторону (dx, dy, dz): разгон вдоль рельса; толкнули против хода - едет обратно. */
+    /** Push in a direction (dx, dy, dz): acceleration along the rail; pushed against the direction - goes back. */
     public void push(double dx, double dy, double dz) {
         double l = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (l < 1e-4) return;
         dx /= l;
         dy /= l;
         dz /= l;
-        if (nx == cx && ny == cy && nz == cz) { // стояла: ехать к соседу, который лучше всего по толчку
+        if (nx == cx && ny == cy && nz == cz) { // was standing: go to the neighbor that is best by the push
             int[] best = null;
             double bd = 0.2;
             for (int[] o : SkyTrack.exits(worldObj, cx, cy, cz)) {
@@ -374,7 +374,7 @@ public class EntitySkyCart extends Entity {
             t = 0;
         } else {
             float[] f = watchedCourse();
-            if (f[0] * dx + f[1] * dy + f[2] * dz < -0.2) { // против хода - разворот на том же отрезке
+            if (f[0] * dx + f[1] * dy + f[2] * dz < -0.2) { // against the direction - turn around on the same segment
                 int ox = cx, oy = cy, oz = cz;
                 cx = nx;
                 cy = ny;
@@ -388,12 +388,12 @@ public class EntitySkyCart extends Entity {
         momentum = Math.max(momentum, PUSH);
     }
 
-    /** Разгон от толчков (для замеров и автотеста). */
+    /** Acceleration from pushes (for measurements and the selftest). */
     public double momentum() {
         return momentum;
     }
 
-    /** Средняя кнопка в творческом - предмет вагонетки. */
+    /** Middle button in creative - the cart item. */
     @Override
     public ItemStack getPickedResult(net.minecraft.util.MovingObjectPosition target) {
         return new ItemStack(ModItems.skyCart);
@@ -404,8 +404,8 @@ public class EntitySkyCart extends Entity {
         if (riddenByEntity != null && riddenByEntity != p) return true;
         if (!worldObj.isRemote) {
             p.mountEntity(riddenByEntity == p ? null : this);
-            com.divinerpgextended.debug.Debug.note(p, "Вагонетка Апалачии: " + (riddenByEntity == p ? "сел" : "слез") + " на " + cx + " " + cy + " " + cz
-                + ", дальше " + nx + " " + ny + " " + nz + ", выходов " + SkyTrack.exits(worldObj, cx, cy, cz).size());
+            com.divinerpgextended.debug.Debug.note(p, "Apalachia Cart: " + (riddenByEntity == p ? "boarded" : "got off") + " at " + cx + " " + cy + " " + cz
+                + ", next " + nx + " " + ny + " " + nz + ", exits " + SkyTrack.exits(worldObj, cx, cy, cz).size());
         }
         return true;
     }
@@ -414,7 +414,7 @@ public class EntitySkyCart extends Entity {
     public boolean attackEntityFrom(DamageSource src, float amount) {
         if (worldObj.isRemote || isDead) return true;
         if (src.getEntity() instanceof EntityPlayer) {
-            if (((EntityPlayer) src.getEntity()).capabilities.isCreativeMode) { // как ванильная: в творческом просто исчезает
+            if (((EntityPlayer) src.getEntity()).capabilities.isCreativeMode) { // like a vanilla one: in creative it simply disappears
                 if (riddenByEntity != null) riddenByEntity.mountEntity(null);
                 setDead();
             } else dropAsItem();
@@ -443,7 +443,7 @@ public class EntitySkyCart extends Entity {
             placed = true;
             return;
         }
-        c = tag.getIntArray("Rail"); // старый формат: только текущий рельс
+        c = tag.getIntArray("Rail"); // old format: only the current rail
         if (c.length == 6) {
             cx = nx = c[0];
             cy = ny = c[1];

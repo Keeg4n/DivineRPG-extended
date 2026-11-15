@@ -16,27 +16,27 @@ import com.mojang.authlib.GameProfile;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * Скрытая копия игрока для манекена: тот же путь урона, что у игрока (броня и её сеты, аксессуары, зелья, аркана, все
- * события урона Divine и аддона), но вне мира: не появляется, не сохраняется, не умирает и ничего не роняет. Снимок
- * игрока ({@link #snapshot}) - только надетое, данные игрока (аксессуары, эффекты, прогресс), эффекты зелий и аркана;
- * инвентарь и вещь в руке не копируются.
+ * A hidden copy of the player for the dummy: the same damage path as the player's (armor and its sets, accessories, potions, arcana, all
+ * Divine and addon damage events), but outside the world: does not spawn, is not saved, does not die and drops nothing. The player
+ * snapshot ({@link #snapshot}) is only what is worn, the player data (accessories, effects, progress), potion effects and arcana;
+ * the inventory and the item in hand are not copied.
  */
 public class DummyGhost extends FakePlayer {
 
-    /** Манекен этой копии: отложенные удары по копии (арканный удар мечей Арканы) идут в него, иначе он их не увидит. */
+    /** The dummy of this copy: delayed hits on the copy (the arcana strike of Arcana swords) go to it, otherwise it will not see them. */
     public EntityTrainingDummy owner;
 
-    /** Запас здоровья копии: чтобы любой удар измерялся целиком. */
+    /** The copy's health reserve: so that any hit is measured in full. */
     static final float HEALTH = 100000F;
     private static Method damageEntity;
 
     DummyGhost(WorldServer w, UUID id) {
         super(w, new GameProfile(id, "dre_dummy"));
-        // глухое соединение: обычные пакеты копии (чат, эффекты) уходят в никуда, а не роняют сервер
+        // a dead connection: the copy's ordinary packets (chat, effects) go nowhere instead of crashing the server
         new Deaf(w.func_73046_m(), this);
     }
 
-    /** Соединение копии: ничего не отправляет. */
+    /** The copy's connection: sends nothing. */
     static class Deaf extends net.minecraft.network.NetHandlerPlayServer {
         Deaf(net.minecraft.server.MinecraftServer s, DummyGhost g) {
             super(s, new net.minecraft.network.NetworkManager(false), g);
@@ -46,7 +46,7 @@ public class DummyGhost extends FakePlayer {
         public void sendPacket(net.minecraft.network.Packet p) {}
     }
 
-    /** Аркана копии - прямо в поле (setBarValue Divine шлёт пакет своей сетью, а у копии соединения нет). */
+    /** The copy's arcana - straight into the field (Divine's setBarValue sends a packet over its own network, and the copy has no connection). */
     public static void setBar(net.divinerpg.utils.events.ArcanaHelper h, float v) {
         try {
             ReflectionHelper.setPrivateValue(net.divinerpg.utils.events.ArcanaHelper.class, h, v, "barValue");
@@ -61,7 +61,7 @@ public class DummyGhost extends FakePlayer {
     @Override
     public void onDeath(DamageSource s) {}
 
-    /** Снимок игрока для манекена. */
+    /** A player snapshot for the dummy. */
     public static NBTTagCompound snapshot(EntityPlayer p) {
         NBTTagCompound t = new NBTTagCompound();
         t.setTag("Data", p.getEntityData().copy());
@@ -83,7 +83,7 @@ public class DummyGhost extends FakePlayer {
         return t;
     }
 
-    /** Копия игрока по снимку. */
+    /** A copy of the player from a snapshot. */
     static DummyGhost build(WorldServer w, UUID id, NBTTagCompound snap, int dim, double x, double y, double z) {
         DummyGhost g = new DummyGhost(w, id);
         g.dimension = dim;
@@ -100,11 +100,11 @@ public class DummyGhost extends FakePlayer {
         return g;
     }
 
-    /** Аркана копии до последнего удара и сколько её снял щит арканы. */
+    /** The copy's arcana before the last hit and how much of it the arcane ward removed. */
     float arcanaBefore, arcanaSpent;
 
-    /** Сколько урона дошло бы до игрока от этого удара (0 - уклонился или удар отменён). */
-    /** Пауза восстановления арканы после последнего удара (её ставит щит арканы). */
+    /** How much damage would reach the player from this hit (0 - dodged or the hit was cancelled). */
+    /** The arcana regeneration pause after the last hit (set by the arcane ward). */
     int arcanaDelay;
 
     float measure(DamageSource s, float amount, float arcana, int delay) {
@@ -115,8 +115,8 @@ public class DummyGhost extends FakePlayer {
         hurtResistantTime = 0;
         net.divinerpg.utils.events.ArcanaHelper h = net.divinerpg.utils.events.ArcanaHelper.getProperties(this);
         if (h != null) {
-            setBar(h, arcana); // сколько арканы у манекена сейчас: щит её тратит, а не берёт каждый раз заново
-            h.regenDelay = delay; // и пауза восстановления - та, что идёт у манекена
+            setBar(h, arcana); // how much arcana the dummy has now: the ward spends it instead of taking it anew every time
+            h.regenDelay = delay; // and the regeneration pause is the one the dummy has going
         }
         arcanaBefore = h != null ? h.getBarValue() : 0;
         arcanaDelay = delay;
@@ -131,7 +131,7 @@ public class DummyGhost extends FakePlayer {
                 arcanaDelay = h.regenDelay;
             }
         } catch (Throwable t) {
-            com.divinerpgextended.DivineRPGExtended.LOG.warn("Манекен: удар не посчитан как по игроку, показан как есть: " + t);
+            com.divinerpgextended.DivineRPGExtended.LOG.warn("Dummy: hit not counted as a player hit, shown as is: " + t);
             return amount;
         }
         return HEALTH - getHealth();

@@ -7,7 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.item.Item;
 
-/** Сумеречные миры для построек аддона: блоки мира, его души и камни, мобы для стражи и спавнеров. */
+/** Twilight dimensions for addon structures: world blocks, its souls and stones, mobs for guards and spawners. */
 public enum TwilightWorld {
 
     EDEN, WILDWOOD, APALACHIA, SKYTHERN, MORTUM;
@@ -101,7 +101,7 @@ public enum TwilightWorld {
         }
     }
 
-    /** Блок из камней мира (edenBlock и т.п.). */
+    /** A block from world stones (edenBlock etc.). */
     public Block gemBlock() {
         switch (this) {
             case EDEN: return TwilightBlocks.edenBlock;
@@ -142,7 +142,7 @@ public enum TwilightWorld {
         }
     }
 
-    /** Лампа мира: у Эдема - лампа Divine (lamp1, мета {@link #lampMeta}), у остальных - лампы аддона. */
+    /** World lamp: for Eden - a Divine lamp (lamp1, meta {@link #lampMeta}), for the others - addon lamps. */
     public Block lamp() {
         return this == EDEN ? net.divinerpg.utils.blocks.VanillaBlocks.lamp1 : com.divinerpgextended.registry.ModBlocks.worldLamp[ordinal()];
     }
@@ -155,7 +155,7 @@ public enum TwilightWorld {
         return b == lamp();
     }
 
-    /** Пыль мира (из его цветов): огонь в факелах мира. */
+    /** World dust (from its flowers): fire in world torches. */
     public Item dust() {
         switch (this) {
             case EDEN: return TwilightItemsOther.edenDust;
@@ -176,7 +176,7 @@ public enum TwilightWorld {
         }
     }
 
-    /** Стрелы мира Divine (есть у Эдема, Дикого леса и Мортума) или null. */
+    /** Divine world arrows (Eden, Wildwood and Mortum have them) or null. */
     public Item arrow() {
         switch (this) {
             case EDEN: return net.divinerpg.utils.items.TwilightItemsWeapons.edenArrow;
@@ -186,12 +186,12 @@ public enum TwilightWorld {
         }
     }
 
-    /** Мобы, которые горят на солнце: для стражи под открытым небом и подручных босса не годятся. */
+    /** Mobs that burn in the sun: not suitable for guards under open sky and boss minions. */
     public static boolean burnsInSun(Class<?> c) {
         return c == net.divinerpg.entities.twilight.EntityGreenfeet.class || c == net.divinerpg.entities.twilight.EntityApalachiaWarrior.class;
     }
 
-    /** Мобы мира, которым не страшно солнце. */
+    /** World mobs that are not afraid of the sun. */
     @SuppressWarnings("unchecked")
     public Class<? extends EntityLiving>[] surfaceMobs() {
         java.util.List<Class<? extends EntityLiving>> l = new java.util.ArrayList<Class<? extends EntityLiving>>();
@@ -199,7 +199,7 @@ public enum TwilightWorld {
         return l.toArray(new Class[l.size()]);
     }
 
-    /** Летучий моб мира (Кори) или null. */
+    /** The world's flying mob (Cori) or null. */
     public Class<? extends EntityLiving> flyer() {
         switch (this) {
             case EDEN: return net.divinerpg.entities.twilight.EntityEdenCori.class;
@@ -208,7 +208,7 @@ public enum TwilightWorld {
         }
     }
 
-    /** Полный сет брони этого мира: шлем, нагрудник, поножи, ботинки. */
+    /** The full armor set of this world: helmet, chestplate, leggings, boots. */
     public Item[] armor() {
         switch (this) {
             case EDEN: return new Item[] { net.divinerpg.utils.items.TwilightItemsArmor.edenHelmet, net.divinerpg.utils.items.TwilightItemsArmor.edenChestplate,
@@ -224,7 +224,7 @@ public enum TwilightWorld {
         }
     }
 
-    /** Мобы мира для стражи руин и спавнеров подземелий. */
+    /** World mobs for ruins guards and dungeon spawners. */
     @SuppressWarnings("unchecked")
     public Class<? extends EntityLiving>[] mobs() {
         switch (this) {

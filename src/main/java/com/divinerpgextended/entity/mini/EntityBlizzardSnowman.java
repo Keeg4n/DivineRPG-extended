@@ -9,7 +9,7 @@ import net.minecraft.entity.monster.IMob;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
 
-/** Снеговик Вьюжной ели: ванильный снеговик, который бросает комья не в чудовищ, а в игроков; каждый ком добавляет холод. */
+/** Blizzard Spruce's Snowman: a vanilla snowman that throws clumps not at monsters but at players; each clump adds cold. */
 public class EntityBlizzardSnowman extends EntitySnowman implements IMob {
 
     public static final float CLUMP_DAMAGE = 2F, CLUMP_COLD = 8F;

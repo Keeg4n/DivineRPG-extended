@@ -15,7 +15,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Крылья Леди Луны во второй фазе (полёт): два машущих светящихся крыла за спиной. */
+/** Lady Luna's wings in the second phase (flight): two flapping glowing wings on the back. */
 @SideOnly(Side.CLIENT)
 public class LunaWings {
 

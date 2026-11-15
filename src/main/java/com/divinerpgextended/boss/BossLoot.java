@@ -8,9 +8,9 @@ import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Добыча с любого босса (наши, Divine и ванильные - все, у кого полоска здоровья босса) неуязвима, как звезда Незера
- * с иссушителя, только надёжнее: её не уничтожают ни взрывы, ни огонь, ни лава. Флаг Invulnerable хранится в NBT
- * предмета на земле и переживает перезагрузку мира; исчезает такой лут через обычные 5 минут.
+ * Loot from any boss (ours, Divine and vanilla - everything with a boss health bar) is invulnerable, like the Nether star
+ * from the Wither, only more reliable: neither explosions, nor fire, nor lava destroy it. The Invulnerable flag is stored in the NBT
+ * of the item on the ground and survives a world reload; such loot disappears after the usual 5 minutes.
  */
 public class BossLoot {
 

@@ -10,7 +10,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.EnumHelper;
 
-/** Набор рыбака (шляпа, жилет, штаны) - награды Леорны: каждая часть добавляет силу рыбалки. */
+/** Angler set (hat, vest, pants) - Leorna's rewards: each piece adds fishing power. */
 public class ItemAnglerArmor extends ItemArmor {
 
     public static final ArmorMaterial MATERIAL = EnumHelper.addArmorMaterial("DRE_ANGLER", 12, new int[] { 2, 4, 3, 1 }, 15);

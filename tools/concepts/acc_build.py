@@ -1,4 +1,4 @@
-"""Лист выбора: аксессуары (значок и вид на двух бронях), лут с боссов, алтари, Часы Странника. Запуск: python3 acc_build.py <папка>; картинки в <папка>/img, рядом HTML для печати."""
+"""Selection sheet: accessories (icon and look on two armors), boss loot, altars, Wanderer's Clock. Run: python3 acc_build.py <folder>; images go to <folder>/img, with an HTML for printing next to them."""
 import html
 import os
 import re
@@ -34,7 +34,7 @@ def rend(a, parts, frame, view, name):
     K.shot(a, parts, frame, view, w.POSE).save(os.path.join(IMG, name + '.jpg'), quality=90)
 
 
-# ------------------------------------------------------------------ картинки
+# ------------------------------------------------------------------ images
 dv, wa = K.divine_armor(w.POSE), K.wanderer_armor(w.POSE)
 for n, (key, name, slot, vs) in enumerate(acc_items1.ITEMS):
     for j, (label, fn, wear, frame, view) in enumerate(vs):
@@ -57,7 +57,7 @@ for n, (title, boss, cost, now, vs) in enumerate(AL.ALTARS):
         AL.flat_tex(t, os.path.join(IMG, 'b%d_%d_t.png' % (n, j)))
 print('картинки готовы')
 
-# ------------------------------------------------------------------ страницы
+# ------------------------------------------------------------------ pages
 CSS = """
 @page { size: A4 portrait; margin: 0; }
 * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }

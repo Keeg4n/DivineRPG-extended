@@ -16,32 +16,32 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Окно алтаря порчи ({@link AltarLogic}). Слоты свои у окна ({@link AnvilWork}, как у Наковальни Странника): вещь и
- * оплата; окно закрылось - всё вернулось игроку. Кнопки идут стандартным пакетом кнопки стола зачарования: 0-2 -
- * зачаровать слот, {@link #REVEAL}..+2 - узнать его чары.
+ * Corruption altar window ({@link AltarLogic}). The window has its own slots ({@link AnvilWork}, like the Wanderer Anvil): item and
+ * payment; when the window closes, everything returns to the player. Buttons arrive via the standard enchanting table button packet: 0-2 -
+ * enchant the slot, {@link #REVEAL}..+2 - reveal its enchantments.
  * <p>
- * Чары бросаются на сервере, когда вещь кладут в алтарь, и живут, пока она там лежит. Клиенту уходят только цены и уже
- * оплаченные чары - даром не подсмотреть.
+ * Enchantments are rolled on the server when an item is placed in the altar and live while it lies there. Only prices and already
+ * paid enchantments go to the client - no free peeking.
  */
 public class ContainerCorruptAltar extends Container {
 
     public static final int ITEM = 0, PAY = 1, SIZE = 2;
     public static final int REVEAL = 3;
-    /** Сколько чаров слота показывает окно (на вещь ложатся все). */
+    /** How many slot enchantments the window shows (all go on the item). */
     public static final int SHOWN = 8;
-    // поля окна: цены слотов, сколько чаров узнано (-1 - не узнаны), цена "узнать", сами чары
+    // window fields: slot prices, how many enchantments are revealed (-1 - not revealed), "reveal" price, the enchantments themselves
     private static final int LEVEL = 0, COUNT = 3, PRICE = 6, LIST = 9, FIELDS = LIST + AltarLogic.SLOTS * SHOWN;
 
     private final World world;
     private final int x, y, z;
     private final AnvilWork work = new AnvilWork("tile.altarOfCorruption.name", SIZE);
 
-    // клиент: что показывать
+    // client: what to show
     public final int[] levels = new int[AltarLogic.SLOTS], price = new int[AltarLogic.SLOTS], knownCount = { -1, -1, -1 };
-    /** Узнанные чары слота: номер чара << 5 | уровень. */
+    /** Revealed slot enchantments: enchantment number << 5 | level. */
     public final int[][] known = new int[AltarLogic.SLOTS][SHOWN];
 
-    // сервер: бросок для вещи в алтаре, что из него узнано, что уже отправлено
+    // server: the roll for the item in the altar, what has been revealed from it, what has already been sent
     private List<List<EnchantmentData>> rolls;
     private ItemStack rolledFor;
     private boolean stale = true;
@@ -80,12 +80,12 @@ public class ContainerCorruptAltar extends Container {
         for (int col = 0; col < 9; col++) addSlotToContainer(new Slot(inv, col, 8 + col * 18, 142));
     }
 
-    /** Рабочие слоты этого окна. */
+    /** Work slots of this window. */
     public AnvilWork work() {
         return work;
     }
 
-    /** Бросок слота для вещи в алтаре (сервер): другая вещь или та же, но положенная заново, - новые чары, узнанное забыто. */
+    /** Slot roll for the item in the altar (server): a different item, or the same one placed again, - new enchantments, revealed ones forgotten. */
     public List<EnchantmentData> rolled(int slot) {
         ItemStack s = work.getStackInSlot(ITEM);
         if (stale || s != rolledFor) {
@@ -97,7 +97,7 @@ public class ContainerCorruptAltar extends Container {
         return rolls.get(slot);
     }
 
-    /** Чары слота уже оплачены (сервер). */
+    /** The slot's enchantments are already paid for (server). */
     public boolean revealed(int slot) {
         rolled(slot);
         return seen[slot];
@@ -112,14 +112,14 @@ public class ContainerCorruptAltar extends Container {
         return AltarLogic.altar(world, x, y, z) && p.getDistanceSq(x + 0.5, y + 0.5, z + 0.5) <= 64.0;
     }
 
-    /** Окно закрылось (в том числе выход с сервера и смерть) - вещь и оплата вернулись игроку. */
+    /** The window closed (including leaving the server and death) - the item and payment returned to the player. */
     @Override
     public void onContainerClosed(EntityPlayer p) {
         super.onContainerClosed(p);
         if (!p.worldObj.isRemote) work.giveBack(p);
     }
 
-    /** Что сейчас должно быть в окне (сервер). */
+    /** What should be in the window now (server). */
     private int[] state() {
         int[] v = new int[FIELDS];
         ItemStack s = work.getStackInSlot(ITEM);
@@ -195,7 +195,7 @@ public class ContainerCorruptAltar extends Container {
         return true;
     }
 
-    /** Shift-клик: оплата - в ячейку оплаты, остальное - в слот вещи (одну штуку); из алтаря - в инвентарь. */
+    /** Shift-click: payment - into the payment cell, the rest - into the item slot (one piece); from the altar - into the inventory. */
     @Override
     public ItemStack transferStackInSlot(EntityPlayer p, int index) {
         Slot slot = (Slot) inventorySlots.get(index);

@@ -1,4 +1,4 @@
-"""Аксессуары, часть 1: кольца, амулеты, пояса, вещи с боссов. V(название, значок, посадка, кадр, ракурс); посадка - lambda (броня, значок)."""
+"""Accessories, part 1: rings, amulets, belts, boss items. V(name, icon, fit, frame, angle); fit is a lambda (armor, icon)."""
 from acc_kit import DISC, ELL, RING, RECT, POLY, LINE, PATH, SYM, DIAMOND, HEART, GEAR, cube, sym_x
 import acc_wear as W
 from acc_pal import *
@@ -27,7 +27,7 @@ def ring_band(c, ramp, cy=10.5, r=4.6, t=1.7):
     c.f(RING(8, cy, r, t), ramp)
 
 
-# ------------------------------------------------------------------ кольца
+# ------------------------------------------------------------------ rings
 item('bone_ring', 'Кольцо костяного стрелка', 'рука',
      V('Черепок на ободке', lambda c: (ring_band(c, BONE), skull(c, 8, 4)), lambda a, i: W.ring(a, BONE[2], BONE[3], big=True), 'hand', 'hand'),
      V('Наконечник стрелы', lambda c: (ring_band(c, BONE, 11, 4.2), c.f(POLY((8, .5), (12, 7), (8, 5.6), (4, 7)), SILV), c.l(8, 2, 8, 5, SILV[4])), lambda a, i: W.ring(a, BONE[2], SILV[2], big=True), 'hand', 'hand'),
@@ -42,7 +42,7 @@ item('eternal_ice_ring', 'Кольцо вечного льда', 'рука',
      V('Ободок изо льда в инее', lambda c: (c.f(RING(8, 8, 6, 2.6), ICE), c.d(WHITE[4], 3, 3, 13, 5, 5, 13, 11, 12, 1, 8, 14, 9), c.d(ICE[4], 4, 5, 11, 3)), lambda a, i: W.ring(a, ICE[3], WHITE[3]), 'hand', 'hand'),
      V('Ледяная спираль', lambda c: (c.f(PATH((3, 12), (3, 5), (6, 2), (11, 2), (13, 5), (13, 10), (10, 12), (7, 11), (6, 8), (8, 6), (10, 8), w=2), ICE), c.d(WHITE[4], 3, 7, 7, 2, 13, 7)), lambda a, i: W.ring(a, ICE[2], ICE[4], 'L'), 'handL', 'hand'))
 
-# ------------------------------------------------------------------ амулеты на шее
+# ------------------------------------------------------------------ neck amulets
 item('dead_amulet', 'Амулет мертвеца', 'шея',
      V('Усохшая голова', lambda c: (cords(c), c.f(RECT(4, 5, 11, 13), ROT), c.d(K, 6, 8, 9, 8), c.d(K, 5, 12, 7, 12, 9, 12), c.d(ROT[0], 6, 11, 8, 11, 10, 11), c.d(RED[3], 6, 7)), lambda a, i: W.pendant(a, i, BRN[1])),
      V('Гробик на шнурке', lambda c: (cords(c, 2), c.f(POLY((6, 2), (10, 2), (12.5, 6), (10.5, 15.5), (5.5, 15.5), (3.5, 6)), WOOD), c.l(8, 5, 8, 12, GOLD[3]), c.l(6, 7, 10, 7, GOLD[3])), lambda a, i: W.pendant(a, i, '#22303a')),
@@ -60,7 +60,7 @@ item('pharaoh_ankh', 'Анх фараона', 'торс',
      V('Анх с крыльями', lambda c: (c.f(RING(8, 4, 3.2, 1.6), GOLD), c.f(RECT(7, 6, 8, 15), GOLD), c.f(POLY((7, 8), (0, 6), (1, 9), (3, 11), (7, 11)), LAP), c.f(POLY((9, 8), (16, 6), (15, 9), (13, 11), (9, 11)), LAP), c.d(GOLD[3], 2, 7, 13, 7, 4, 9, 11, 9)), lambda a, i: W.pendant(a, i, GOLD[1], px=.34)),
      V('Скарабей', lambda c: (c.f(ELL(8, 8.5, 5, 6), TEAL), c.l(8, 3, 8, 14, TEAL[0]), c.f(RECT(6, 1, 9, 3), GOLD), c.d(K, 6, 2, 9, 2), c.l(3, 6, 1, 4, GOLD[2]), c.l(12, 6, 14, 4, GOLD[2]), c.l(3, 11, 1, 13, GOLD[2]), c.l(12, 11, 14, 13, GOLD[2]), c.d(GOLD[3], 6, 7, 9, 7, 6, 10, 9, 10)), lambda a, i: W.pin(a, i, 0, 3, .32)))
 
-# ------------------------------------------------------------------ пояса
+# ------------------------------------------------------------------ belts
 TNT = lambda a: sum([cube('body', x, 7.6, W.waist(a, 9)[2] - .6, .9, 3.8, .6, RED[2]) + cube('body', x, 7.6, W.waist(a, 9)[2] - .62, .9, .7, .62, BONE[3]) for x in (-3.5, -2.2, 1.3, 2.6)], [])
 item('blast_belt', 'Пояс укротителя криперов', 'пояс',
      V('Шашки на ремне', lambda c: (c.f(RECT(0, 7, 15, 10), BRN), [c.f(RECT(x, 3, x + 1, 12), RED) for x in (1, 4, 10, 13)], [c.c(RECT(x, 3, x + 1, 3), BONE[3]) for x in (1, 4, 10, 13)], c.f(RECT(6, 6, 9, 11), IRON), c.d(IRON[4], 7, 7)), lambda a, i: W.belt(a, BRN[2], BRN[1], IRON[3]) + TNT(a), 'waist'),
@@ -71,7 +71,7 @@ item('steadfast_belt', 'Несокрушимый пояс', 'пояс и пле�
      V('Ремень через плечо', lambda c: (c.f(RECT(0, 10, 15, 13), BRN), c.f(LINE(2, 10, 13, 1, 2), BRN), c.f(RECT(11, 0, 15, 5), ICE), c.f(RECT(6, 9, 9, 14), SILV), c.d(ICE[4], 12, 1)), lambda a, i: W.belt(a, BRN[2], BRN[1], SILV[3]) + W.strap(a, BRN[2]) + W.pauldron(a, ICE[2], SILV[3]), 'chest'),
      V('Шипы инея', lambda c: (c.f(RECT(0, 7, 15, 11), SILV), [c.f(POLY((x, 7), (x + 3, 7), (x + 1.5, 1)), ICE) for x in (0, 4, 8, 12)], [c.d(K, x, 9) for x in (2, 6, 10, 14)]), lambda a, i: W.belt(a, SILV[2], ICE[3], ICE[2], buckle_w=5) + W.pauldron(a, SILV[2], ICE[3], spikes=ICE[3]), 'chest'))
 
-# ------------------------------------------------------------------ с боссов
+# ------------------------------------------------------------------ from bosses
 item('carcinus_shell', 'Панцирь Карцинуса', 'торс, спина',
      V('Панцирь со спины краба', lambda c: (c.f(ELL(8, 7.5, 7.5, 5.5), ORG), c.d(ORG[4], 4, 4, 5, 3), c.l(5, 7, 11, 7, ORG[0]), c.d(ORG[0], 8, 4, 8, 10), [c.l(x, 12, x + d, 15, ORG[1]) for x, d in ((3, -2), (6, -1), (9, 1), (12, 2))]), lambda a, i: W.plate_back(a, i), 'up', 'back'),
      V('Клешня-наруч', lambda c: (c.f(POLY((1, 15), (5, 15), (8, 11), (5, 8), (1, 11)), ORG), c.f(POLY((7, 10), (12, 10), (15, 7), (15, 10), (12, 13), (7, 13)), COP), c.f(POLY((4, 9), (3, 4), (7, 1), (13, 1), (15, 4), (11, 3), (8, 4), (8, 8)), ORG), c.d(ORG[4], 5, 3, 8, 2)), lambda a, i: W.spur(a, i, .4), 'hand', 'hand'),

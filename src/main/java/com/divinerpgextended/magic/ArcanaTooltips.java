@@ -13,7 +13,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Подсказки арканного оружия Divine: цена, арканный урон (с ростом по этапу) и откат по правилам аддона вместо строк Divine. */
+/** Tooltips of Divine's arcane weapons: price, arcane damage (with stage growth) and cooldown by the addon's rules instead of Divine's lines. */
 @SideOnly(Side.CLIENT)
 public class ArcanaTooltips {
 
@@ -21,7 +21,7 @@ public class ArcanaTooltips {
     public void onTooltip(ItemTooltipEvent e) {
         if (e.itemStack == null || e.itemStack.getItem() instanceof ItemMageStaff) return;
         Item i = e.itemStack.getItem();
-        if (com.divinerpgextended.boss.EnderColors.ender(i)) { // броня Энда: против какого Айрако и что даёт сет
+        if (com.divinerpgextended.boss.EnderColors.ender(i)) { // End armor: against which Ayeraco and what the set gives
             com.divinerpgextended.boss.AyeracoHorde.Hue h = com.divinerpgextended.boss.EnderColors.hue(i);
             e.toolTip.add(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(h == null ? "dre.tooltip.ender_gray"
                 : "dre.tooltip.ender_vs." + h.name().toLowerCase()));
@@ -32,7 +32,7 @@ public class ArcanaTooltips {
         ArcaneEffect ing = ArcaneEffect.byIngredient(i);
         if (ing != null) e.toolTip.add(EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocalFormatted("dre.tooltip.potion_ingredient",
             ItemArcanePotion.of(ing, false, false, false).getDisplayName()));
-        if (i == ArcanaItems.weakArcanaPotion || i == ArcanaItems.strongArcanaPotion) { // не мгновенная аркана, а эффект
+        if (i == ArcanaItems.weakArcanaPotion || i == ArcanaItems.strongArcanaPotion) { // not instant arcana, but an effect
             boolean strong = i == ArcanaItems.strongArcanaPotion;
             strip(e);
             e.toolTip.add(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocalFormatted("dre.tooltip.arcana_potion", strong ? 3 : 2,
@@ -58,7 +58,7 @@ public class ArcanaTooltips {
         }
     }
 
-    /** Убрать строки Divine про аркану и урон (кроме названия - с F3+H в нём ещё номер - и имени мода). */
+    /** Remove Divine's lines about arcana and damage (except the name - with F3+H it also has a number - and the mod name). */
     private static void strip(ItemTooltipEvent e) {
         Iterator<String> it = e.toolTip.iterator();
         if (it.hasNext()) it.next();

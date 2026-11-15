@@ -9,10 +9,10 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent;
 
 /**
- * Рабочие слоты Наковальни Странника: у каждого открытого окна свои, в блоке и в мире ничего не хранится (как сетка
- * верстака). Окно наковальни закрылось - всё падает на землю перед игроком, как из сетки верстака; алтарь порчи
- * возвращает вещи в инвентарь, что не влезло - на землю у ног. Окно закрывается и при выходе с сервера, и при смерти,
- * поэтому вещи не остаются в забытом окне.
+ * Work slots of the Wanderer Anvil: each open window has its own, nothing is stored in the block or the world (like a crafting
+ * grid). When the anvil window closes, everything drops on the ground in front of the player, like from a crafting grid; the corruption altar
+ * returns items to the inventory, what did not fit - onto the ground at the feet. The window also closes on leaving the server and on death,
+ * so items do not stay in a forgotten window.
  */
 public class AnvilWork extends InventoryBasic {
 
@@ -20,12 +20,12 @@ public class AnvilWork extends InventoryBasic {
         this("tile.dre.wandererAnvil.name", AnvilLogic.SIZE);
     }
 
-    /** Такие же слоты другого окна (алтарь порчи). */
+    /** The same slots of another window (corruption altar). */
     public AnvilWork(String name, int size) {
         super(name, false, size);
     }
 
-    /** Вернуть всё игроку (только сервер). Вещь сначала уходит из слота, потом выдаётся - второй вызов ничего не даст. */
+    /** Return everything to the player (server only). The item first leaves the slot, then is handed out - a second call gives nothing. */
     public void giveBack(EntityPlayer p) {
         for (int i = 0; i < getSizeInventory(); i++) {
             ItemStack s = getStackInSlotOnClosing(i);
@@ -33,7 +33,7 @@ public class AnvilWork extends InventoryBasic {
         }
     }
 
-    /** Выбросить всё перед игроком, как сетка верстака (только сервер). Вещь сначала уходит из слота, потом падает - второй вызов ничего не даст. */
+    /** Drop everything in front of the player, like a crafting grid (server only). The item first leaves the slot, then drops - a second call gives nothing. */
     public void dropAll(EntityPlayer p) {
         for (int i = 0; i < getSizeInventory(); i++) {
             ItemStack s = getStackInSlotOnClosing(i);
@@ -41,13 +41,13 @@ public class AnvilWork extends InventoryBasic {
         }
     }
 
-    /** В инвентарь, остаток - на землю у ног. В творческом без места addItemStackToInventory стак обнуляет - туда не кладём. */
+    /** Into the inventory, the rest onto the ground at the feet. In creative without room addItemStackToInventory zeroes the stack - we do not put it there. */
     static void give(EntityPlayer p, ItemStack s) {
         if (!(p.capabilities.isCreativeMode && p.inventory.getFirstEmptyStack() < 0)) p.inventory.addItemStackToInventory(s);
         if (s.stackSize > 0) p.dropPlayerItemWithRandomChoice(s, false);
     }
 
-    /** Выход с сервера и смерть с открытой наковальней или алтарём порчи - закрыть окно, пока вещи игрока ещё на месте. */
+    /** Leaving the server and death with an open anvil or corruption altar - close the window while the player's items are still in place. */
     public static class Events {
 
         @SubscribeEvent

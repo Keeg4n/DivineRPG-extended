@@ -21,8 +21,8 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 
 /**
- * Молнии Ударной серенады и Меча бури Divine - безопасные ({@link com.divinerpgextended.entity.EntitySafeLightning}): new
- * EntityLightningBolt в их коде заменяется на свою молнию с тем же конструктором.
+ * Lightning of Divine's Shock Serenade and Storm Sword is safe ({@link com.divinerpgextended.entity.EntitySafeLightning}): new
+ * EntityLightningBolt in their code is replaced with our own lightning with the same constructor.
  */
 public class LightningTransformer implements IClassTransformer, Opcodes {
 
@@ -52,20 +52,20 @@ public class LightningTransformer implements IClassTransformer, Opcodes {
                 if (has) caster(m);
             }
             if (n == 0) {
-                LOG.warn("Молнии оружия: в {} не нашлось молний - бьют как в Divine", transformedName);
+                LOG.warn("Weapon lightning: no lightning found in {} - strikes as in Divine", transformedName);
                 return bytes;
             }
             ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             node.accept(w);
-            LOG.info("Молнии оружия: {} бьёт безопасной молнией ({} мест)", transformedName, n);
+            LOG.info("Weapon lightning: {} strikes with safe lightning ({} places)", transformedName, n);
             return w.toByteArray();
         } catch (Throwable t) {
-            LOG.error("Молнии оружия: не удалось подключиться к " + transformedName + ", класс без изменений", t);
+            LOG.error("Weapon lightning: could not hook into " + transformedName + ", class unchanged", t);
             return bytes;
         }
     }
 
-    /** В начале метода записать игрока из аргументов как хозяина молний (EntitySafeLightning.cast). */
+    /** At the start of the method record the player from the arguments as the lightning owner (EntitySafeLightning.cast). */
     private static void caster(MethodNode m) {
         int slot = (m.access & ACC_STATIC) != 0 ? 0 : 1;
         for (Type a : Type.getArgumentTypes(m.desc)) {
@@ -78,6 +78,6 @@ public class LightningTransformer implements IClassTransformer, Opcodes {
             }
             slot += a.getSize();
         }
-        LOG.warn("Молнии оружия: в {} нет игрока среди аргументов - молнии без хозяина", m.name);
+        LOG.warn("Weapon lightning: no player among the arguments in {} - lightning without an owner", m.name);
     }
 }

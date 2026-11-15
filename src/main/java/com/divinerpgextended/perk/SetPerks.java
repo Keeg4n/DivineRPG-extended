@@ -18,16 +18,16 @@ import com.divinerpgextended.world.twilight.TwilightWorld;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Перки полных сетов сумеречных миров (сверх эффектов Divine):
+ * Perks of full twilight world sets (on top of Divine's effects):
  * <ul>
- * <li>Эдем, Солнечный шахтёр: x4 к сумеречной руде (Divine); киркой откалывает рог оглушённому кадиллиону Эдема;</li>
- * <li>Дикий лес, Лесной следопыт: регенерация под водой (Divine, только с головой в воде) и в листве - когда голова в
- * кроне;</li>
- * <li>Апалачия, Каменная стена: не отбрасывает, {@link #REFLECT} ближнего урона возвращается атакующему;</li>
- * <li>Скайтерн, Хозяин ветров: ковёр летит вверх и вниз по взгляду, запас ковра вдвое больше
+ * <li>Eden, Sun Miner: x4 twilight ore (Divine); with a pickaxe it chips a horn off a stunned Eden Cadillion;</li>
+ * <li>Wildwood, Forest Tracker: regeneration underwater (Divine, only with the head in water) and in foliage - when the head is in
+ * the canopy;</li>
+ * <li>Apalachia, Stone Wall: no knockback, {@link #REFLECT} of melee damage is returned to the attacker;</li>
+ * <li>Skythern, Wind Master: the carpet flies up and down by look direction, the carpet reserve is twice as large
  * ({@link com.divinerpgextended.trinket.DoubleJump});</li>
- * <li>Мортум, Пожиратель тьмы: удар с шансом {@link #DRAIN_CHANCE} (в темноте {@link #DRAIN_CHANCE_DARK}) возвращает здоровьем
- * {@link #DRAIN} нанесённого урона, не больше {@link #DRAIN_MAX} - отхил, а не бессмертие против боссов-рукопашников.</li>
+ * <li>Mortum, Darkness Devourer: a hit with a {@link #DRAIN_CHANCE} chance ({@link #DRAIN_CHANCE_DARK} in the dark) returns {@link #DRAIN} of the
+ * damage dealt as health, no more than {@link #DRAIN_MAX} - a heal, not immortality against melee bosses.</li>
  * </ul>
  */
 public class SetPerks {
@@ -39,7 +39,7 @@ public class SetPerks {
         return HomeArmor.wears(p, w, false);
     }
 
-    /** Темно там, где стоит игрок (свет блока и неба с учётом времени суток ниже 8). */
+    /** It is dark where the player stands (block and sky light accounting for time of day below 8). */
     public static boolean dark(EntityLivingBase e) {
         int x = MathHelper.floor_double(e.posX), y = MathHelper.floor_double(e.posY), z = MathHelper.floor_double(e.posZ);
         return e.worldObj.getBlockLightValue(x, y, z) < 8;
@@ -50,17 +50,17 @@ public class SetPerks {
         if (!(e.entityLiving instanceof EntityPlayer) || e.entityLiving.worldObj.isRemote) return;
         EntityPlayer p = (EntityPlayer) e.entityLiving;
         if (p.ticksExisted % 10 != 0) return;
-        // Каменная стена: модификатор держится, пока надет сет
+        // Stone Wall: the modifier is held while the set is worn
         IAttributeInstance kb = p.getEntityAttribute(SharedMonsterAttributes.knockbackResistance);
         boolean wall = wears(p, TwilightWorld.APALACHIA);
         AttributeModifier cur = kb.getModifier(STEADY);
         if (wall && cur == null) kb.applyModifier(new AttributeModifier(STEADY, "dre.stone_wall", 1.0, 0));
         else if (!wall && cur != null) kb.removeModifier(cur);
-        // Лесной следопыт: раз в 2 с полсердца, если голова в листве (под водой лечит Divine); трава не лечит - её везде много
+        // Forest Tracker: half a heart every 2 s if the head is in foliage (underwater Divine heals); grass does not heal - there is too much of it everywhere
         if (p.ticksExisted % 40 == 0 && p.getHealth() < p.getMaxHealth() && wears(p, TwilightWorld.WILDWOOD) && inNature(p)) p.heal(1.0F);
     }
 
-    /** Голова игрока внутри листвы (в кроне). */
+    /** The player's head is inside foliage (in the canopy). */
     public static boolean inNature(EntityPlayer p) {
         int x = MathHelper.floor_double(p.posX), y = MathHelper.floor_double(p.posY + p.getEyeHeight()), z = MathHelper.floor_double(p.posZ);
         return p.worldObj.getBlock(x, y, z).getMaterial() == Material.leaves;
@@ -69,13 +69,13 @@ public class SetPerks {
     @SubscribeEvent
     public void onHurt(LivingHurtEvent e) {
         if (e.entityLiving.worldObj.isRemote || e.ammount <= 0) return;
-        // Каменная стена: вернуть часть ближнего урона
+        // Stone Wall: return part of the melee damage
         if (e.entityLiving instanceof EntityPlayer && wears((EntityPlayer) e.entityLiving, TwilightWorld.APALACHIA)
             && e.source.getSourceOfDamage() instanceof EntityLivingBase && e.source.getSourceOfDamage() == e.source.getEntity()
             && !"thorns".equals(e.source.getDamageType()) && !Protection.spare(e.entityLiving, e.source.getEntity())) {
             ((EntityLivingBase) e.source.getEntity()).attackEntityFrom(DamageSource.causeThornsDamage(e.entityLiving), e.ammount * REFLECT);
         }
-        // Пожиратель тьмы: вампиризм
+        // Darkness Devourer: vampirism
         if (e.source.getEntity() instanceof EntityPlayer && !(e.entityLiving instanceof EntityPlayer)) {
             EntityPlayer p = (EntityPlayer) e.source.getEntity();
             if (wears(p, TwilightWorld.MORTUM) && !com.divinerpgextended.perk.RangedRoles.sidePellet(e.source.getSourceOfDamage())

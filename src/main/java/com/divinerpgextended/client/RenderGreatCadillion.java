@@ -16,8 +16,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Рисует великого кадиллиона моделью и текстурами кадиллионов Divine (берутся из самого Divine во время игры).
- * В Skythern своего кадиллиона нет - берём текстуру Eden и подкрашиваем в холодный цвет.
+ * Draws the Great Cadillion with the model and textures of Divine's cadillions (taken from Divine itself during the game).
+ * Skythern has no cadillion of its own - we take the Eden texture and tint it a cold color.
  */
 @SideOnly(Side.CLIENT)
 public class RenderGreatCadillion extends RenderLiving {
@@ -30,7 +30,7 @@ public class RenderGreatCadillion extends RenderLiving {
 
     @Override
     public void doRender(EntityLiving entity, double x, double y, double z, float yaw, float partial) {
-        DreBossBar.show((EntityGreatCadillion) entity); // полоска в стиле Divine
+        DreBossBar.show((EntityGreatCadillion) entity); // bar in the Divine style
         super.doRender(entity, x, y, z, yaw, partial);
     }
 

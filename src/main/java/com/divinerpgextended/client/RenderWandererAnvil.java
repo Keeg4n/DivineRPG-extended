@@ -19,17 +19,17 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Наковальня Странника: своя модель вместо куба (с 0.99.108 - простая, в стиле моделей Divine: 6 коробок, атлас 64x64) -
- * тёмное железо с рогом, реалмитовые пояса, фиолетовые камни-гнёзда спереди и сзади светятся. Модель - models/wanderer_anvil.mesh с атласом
- * textures/models/wanderer_anvil.png (собирает anvil_model.py). В мире поворот по мете (камнем к тому, кто ставил), в руке и
- * в инвентаре - та же модель.
+ * Wanderer Anvil: its own model instead of a cube (since 0.99.108 - simple, in the style of Divine models: 6 boxes, a 64x64 atlas) -
+ * dark iron with a horn, Realmite belts, purple socket stones at the front and back glow. The model is models/wanderer_anvil.mesh with the atlas
+ * textures/models/wanderer_anvil.png (built by anvil_model.py). In the world it rotates by metadata (stone toward whoever placed it), in hand and
+ * in the inventory - the same model.
  */
 @SideOnly(Side.CLIENT)
 public class RenderWandererAnvil extends TileEntitySpecialRenderer implements IItemRenderer {
 
     static final ResourceLocation TEX = new ResourceLocation("divinerpgextended", "textures/models/wanderer_anvil.png");
     static final EasterMesh MESH = new EasterMesh(new ResourceLocation("divinerpgextended", "models/wanderer_anvil.mesh"));
-    /** Поворот по мете 0-3 - как у дивана: лицом к игроку, который ставил. */
+    /** Rotation by metadata 0-3 - like the sofa: facing the player who placed it. */
     static final float[] YAW = { 180F, 90F, 0F, 270F };
 
     public static void register() {
@@ -38,10 +38,10 @@ public class RenderWandererAnvil extends TileEntitySpecialRenderer implements II
         MinecraftForgeClient.registerItemRenderer(Item.getItemFromBlock(ModBlocks.wandererAnvil), r);
     }
 
-    /** Модель вокруг начала координат: пол блока на y = -0.5, середина на y = 0. */
+    /** The model around the origin: the floor of the block at y = -0.5, the middle at y = 0. */
     private static void draw() {
         GL11.glTranslatef(0F, 1.0F, 0F);
-        GL11.glRotatef(180F, 0, 0, 1); // модель в координатах Minecraft-моделей: y вниз
+        GL11.glRotatef(180F, 0, 0, 1); // the model is in Minecraft model coordinates: y points down
         Minecraft.getMinecraft().getTextureManager().bindTexture(TEX);
         MESH.render("anvil", "body", 0.0625F);
         EasterClient.glow(true);
@@ -73,9 +73,9 @@ public class RenderWandererAnvil extends TileEntitySpecialRenderer implements II
     @Override
     public void renderItem(ItemRenderType type, ItemStack item, Object... data) {
         GL11.glPushMatrix();
-        // в руке предмет рисуется в кубе 0..1, в инвентаре и на земле - вокруг центра
+        // in hand an item is drawn in the cube 0..1, in the inventory and on the ground - around the center
         if (type == ItemRenderType.EQUIPPED || type == ItemRenderType.EQUIPPED_FIRST_PERSON) GL11.glTranslatef(0.5F, 0.5F, 0.5F);
-        else GL11.glRotatef(180F, 0, 1, 0); // в инвентаре - камнем и рогом к зрителю
+        else GL11.glRotatef(180F, 0, 1, 0); // in the inventory - with the stone and the horn toward the viewer
         draw();
         GL11.glPopMatrix();
     }

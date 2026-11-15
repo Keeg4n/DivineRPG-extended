@@ -11,7 +11,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Подсказки цепочки: у кирки - какую руду и камень она берёт; у сумеречной брони - перк полного сета. */
+/** Chain tooltips: for a pickaxe - which ore and stone it mines; for Twilight armor - the full set perk. */
 @SideOnly(Side.CLIENT)
 public class PickTierTooltip {
 

@@ -11,21 +11,21 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Белый список естественного спавна в мирах Divine (Iceika, сумеречные миры, Аркана, Ветея): сами по себе там появляются
- * только мобы Divine и аддона и то, что указано в {@link Config#divineSpawnWhitelist}. Слизни Tinkers' Construct, мобы
- * Grimoire of Gaia и прочих модов, которые прописаны "во все биомы", туда не лезут - и не нужно гасить их лампами.
- * Спавнеры и призыв не затронуты (событие проверки естественного спавна они не вызывают).
+ * Whitelist of natural spawning in Divine worlds (Iceika, the twilight dimensions, Arcana, Vethea): only Divine and addon
+ * mobs and whatever is listed in {@link Config#divineSpawnWhitelist} appear on their own there. Tinkers' Construct slimes, Grimoire of Gaia
+ * mobs and mobs of other mods that register "in all biomes" stay out - no need to suppress them with lamps.
+ * Spawners and summons are not affected (they do not fire the natural spawn check event).
  */
 public class DivineSpawns {
 
-    /** Мир Divine. */
+    /** A Divine world. */
     public static boolean divine(int dim) {
         return dim == ConfigurationHelper.iceika || dim == ConfigurationHelper.eden || dim == ConfigurationHelper.wildwood
             || dim == ConfigurationHelper.apalachia || dim == ConfigurationHelper.skythern || dim == ConfigurationHelper.mortum
             || dim == ConfigurationHelper.arcana || dim == ConfigurationHelper.vethea;
     }
 
-    /** Может ли этот моб сам появиться в мире Divine: класс Divine/аддона или из белого списка (класс, имя сущности или modid). */
+    /** Whether this mob may appear on its own in a Divine world: a Divine/addon class or from the whitelist (class, entity name or modid). */
     public static boolean allowed(Class<?> c) {
         String n = c.getName();
         if (n.startsWith("net.divinerpg.") || n.startsWith("com.divinerpgextended.")) return true;

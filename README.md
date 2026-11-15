@@ -1,51 +1,52 @@
 # DivineRPG Extended
 
-Аддон для [DivineRPG](https://modrinth.com/mod/divinerpg) 1.4.2.3 под Minecraft 1.7.10 (Forge 10.13.4.1614). Превращает Divine в связную RPG-прогрессию: миры открываются по порядку, одна броня растёт всю игру, а боссы открывают способности и новых торговцев.
+An add-on for [DivineRPG](https://modrinth.com/mod/divinerpg) 1.4.2.3 for Minecraft 1.7.10 (Forge 10.13.4.1614). It turns DivineRPG into a connected RPG progression: dimensions open in order, one armor set grows with you through the whole game, and bosses unlock abilities and new merchants.
 
-## Что внутри
+## Features
 
-- **Прогрессия боссов.** Свои боссы раннего этапа (Карцинус, Снежный Глакон, Ледяной Колосс и Король-лич) с логовами. Ранги спавна: мобы Divine появляются по мере побед. Вход в Аркану только для тех, кто убил Смотрителя.
-- **Броня Странника.** Одна броня закаляется мирами (R1-R7) на Наковальне Странника, сеты Divine становятся донорами перков.
-- **Айсика.** Холод, вьюги, Ледяной Трон, руда инея.
-- **Рыбалка как в Террарии.** 12 удочек, приманки, зоны, ящики, задания Леорны, реликвии.
-- **Торговцы Арканы.** Приходят по прогрессу и зовутся Кристаллом памяти. У Мерика перековка, у Генерала Зал славы и приказы, у Ваттикуса справочник и исследования арканы, у Даттикона роли печей, у Зелуса дрессировка питомцев.
-- **Джек о'Мэн и Торговец скотом.** Ночная торговля по этапам, аксессуары из голов мобов, умения питомцев оверворлда, переноска.
-- **Слоты аксессуаров** как в Террарии, открываются за боссов.
-- **Интеграция с NEI** (вкладки рыбалки, ящиков и торговцев) и своя вкладка в творческом режиме.
+- **Boss progression.** New early-game bosses (Carcinus, Snow Glacon, Frost Colossus and the Lich King) with their own lairs. Spawn ranks: DivineRPG mobs start appearing as you defeat bosses (`/drerank` shows the ranks of online players). Only players who have killed The Watcher can enter Arcana.
+- **Wanderer armor.** A single armor set is tempered by every dimension (R1-R8) at the Wanderer's Anvil; DivineRPG armor sets become perk donors.
+- **Iceika.** Cold, blizzards, the Frozen Throne, Rime Ore.
+- **Terraria-style fishing.** 12 fishing rods, baits, zones, crates, Leorna's quests, relics.
+- **Arcana merchants.** They arrive as you progress and can be called with the Memory Crystal. Captain Merik reforges weapons, the War General has the Hall of Fame and orders, Lord Vatticus has a handbook and arcana research, Datticon gives furnace roles, Zelus trains pets.
+- **Jack o'Man and the Livestock Merchant.** Night trading by stage, accessories made from mob heads, skills for Overworld pets, pet carrying.
+- **Accessory slots** like in Terraria, unlocked by bosses.
+- **NEI integration** (fishing, crate and merchant tabs) and a creative tab of its own.
 
-## Установка
+## Installation
 
-В папку `mods` рядом с аддоном нужно положить DivineRPG 1.4.2.3. NEI по желанию.
+Put DivineRPG 1.4.2.3 into the `mods` folder next to the add-on (DivineRPG 1.4.1.5 is supported as well). NEI is optional.
 
-В конфиге Divine должно стоять `Vethea Inventory = false`.
+The DivineRPG config must have `Vethea Inventory = false`.
 
-## Сборка
+## Building
 
-Нужен JDK 8.
+Requires JDK 8.
 
-1. Положи в `libs/` (в репозиторий они не входят, это чужие моды):
+1. Put into `libs/` (they are not in the repository - these are other authors' mods):
    - `DivineRPG-1.4.2.3.jar`
    - `NotEnoughItems-2.8.160-GTNH.jar`
    - `CodeChickenCore-1.4.22.jar`
-2. Выполни `./gradlew build`. Готовый jar появится в `build/libs/`.
+2. Run `./gradlew build`. The jar appears in `build/libs/`.
 
-## Версии
+## Versions
 
-Собранные jar всех версий лежат в `releases/`: каждая версия добавлена отдельным коммитом. Исходники в репозитории соответствуют последней версии.
+Built jars of all versions are in `releases/`: every version is added in its own commit. The sources in the repository match the latest version.
 
-## Команды для админов
+## Commands
 
-| Команда | Что делает |
+| Command | What it does |
 |---|---|
-| `/dreboss list\|grant\|revoke <босс\|all> [игрок]` | посмотреть, засчитать или снять убитых боссов |
-| `/dreinv <игрок>` | аксессуары игрока: в сети можно править, не в сети только просмотр |
-| `/dreblizzard` | вьюга в Айсике |
-| `/dredebug [on|off|status]`, `/dredebug <chat|file|mobs> <on|off>` | отладка для себя: урон по шагам, эффекты, лечение и срабатывания механик в чат; действия, клавиши и снимки состояния в CSV в `logs/dre-debug` |
+| `/drerank` | Divine ranks (0-3) of all online players and the boss that opens the next rank (available to everyone) |
+| `/dreboss list\|grant\|revoke <boss\|all> [player]` | view, grant or revoke killed bosses (admins) |
+| `/dreinv <player>` | a player's accessories: editable while online, view-only while offline (admins) |
+| `/dreblizzard start\|stop` | start or stop the Iceika blizzard, the Wildwood downpour and the Apalachia rockfall (admins) |
+| `/dredebug [on\|off\|status]`, `/dredebug <chat\|file\|mobs> <on\|off>` | personal debugging: step-by-step damage, effects, healing and mechanic triggers in chat; actions, keys and state snapshots as CSV in `logs/dre-debug` (admins) |
 
-## Лицензия
+## License
 
-Неофициальное дополнение к DivineRPG: код и ресурсы Divine в него не входят. Можно играть, ставить на серверы, включать в сборки и делать свои аддоны; нельзя перезаливать, публиковать изменённые версии и копировать код или ресурсы в другие проекты. Полный текст: [LICENSE.md](LICENSE.md).
+An unofficial add-on for DivineRPG: it contains no DivineRPG code or assets. You may play it, run it on servers, include it in modpacks and make your own add-ons; you may not re-host it, publish modified versions or copy its code or assets into other projects. Full text: [LICENSE.md](LICENSE.md).
 
-## Журнал для админов
+## Audit log for admins
 
-Действия, которых не видят плагины журналов (это хранилища и механики мода, а не блоки), пишутся в `logs/dre-audit.log`: аксессуары (кто, у кого, что было и что стало, в том числе правки через `/dreinv`), переноска питомцев, сделки и услуги торговцев (Джек, мастер мастерской, Мерик, Генерал, Ваттикус, Зелус, модули печей), задания Леорны, дары сна, возврат вещей и страж Ветеи. Если на сервере стоит HawkEye, те же действия уходят в него записями типа OTHER с действием `DRE ...`: `/hawk search p:Игрок`. Выключается в конфиге, раздел `audit`.
+Actions that logging plugins cannot see (they happen in the mod's own storages and mechanics, not in blocks) are written to `logs/dre-audit.log`: accessories (who, whose, what it was and what it became, including edits through `/dreinv`), pet carrying, merchant trades and services (Jack, the workshop master, Merik, the General, Vatticus, Zelus, furnace modules), Leorna's quests, dream gifts, item returns and the Vethea guard. If HawkEye is installed on the server, the same actions go there as OTHER records with the action `DRE ...`: `/hawk search p:Player`. It can be turned off in the config, section `audit`.

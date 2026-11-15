@@ -1,6 +1,6 @@
-# Посадка аксессуаров на теле (tools/concepts/acc_export.py). Координаты - пиксели модели в кости ModelBiped, y вниз.
-# s <спрайт> <палитра AARRGGBB через запятую> <256 знаков: индекс палитры, . - пусто>
-# a <ключ>; p <профиль>; c <кость> x y z w h d RRGGBB [rx ry rz px py pz]; f <кость> ox oy oz uxx uxy uxz uyx uyy uyz <спрайт> px t
+# Accessory placement on the body (tools/concepts/acc_export.py). Coordinates are model pixels in a ModelBiped bone, y points down.
+# s <sprite> <palette AARRGGBB, comma separated> <256 chars: palette index, . - empty>
+# a <key>; p <profile>; c <bone> x y z w h d RRGGBB [rx ry rz px py pz]; f <bone> ox oy oz uxx uxy uxz uyx uyy uyz <sprite> px t
 s b441907655 ff1a1320,ff704822,ffd0a468,ff80562a,ffa87a42,fff6d25e,ff5a381a,ff34200e ..01100..00110.....0111001110.......00222300........02443330.......0244333330......0243353360......0233353370......0235555570......0233353370......0433353670......0333356670.......04335670........04365670........04666670........06777770.........000000.....
 s 966e16d66c ff1a1320,ff704822,fff8ecc0,ffc8aa62,ffe4cc8c,ff9c8040,ff6a5226,fffffbe8,ffa6c4fa,ff2f55c8,ffece2c6,ffcdbf9c,ffa08f6a,ff101f5c,ff6a5a3c ..01100..00110.....0111001110.......00111100.......0022222300.....022433333430....024333333350...02633333333360..02337789ab3360..0237a8999cc360..023ab990dce560..0233bc9dee5560..03333333355560...0633333555660...035333555660.....0036666600........000000.....
 s d73cfe3308 ff1a1320,fffff3b4,ffd39a2a,ff9a6a1c,ff5c3a0e,fff6d25e,ff5a84ea ......0000...........011120.........01233220........01300240.......0230..0530.......05200540........02255340.......0002154000.....011115555530....053333444440.....0000130000.........0660............0540............0660............0540............0340......

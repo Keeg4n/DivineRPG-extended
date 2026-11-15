@@ -15,8 +15,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Рельсы Апалачии: плоская текстура у грани опоры (с обеих сторон), сама соединяется с соседями
- * ({@link BlockSkyRail#links}): прямой рельс - вдоль соседа, два соседа под углом - поворот.
+ * Apalachia Rails: a flat texture at the support face (on both sides), connects to its neighbors by itself
+ * ({@link BlockSkyRail#links}): a straight rail - along the neighbor, two neighbors at an angle - a turn.
  */
 @SideOnly(Side.CLIENT)
 public class RenderSkyRail implements ISimpleBlockRenderingHandler {
@@ -33,9 +33,9 @@ public class RenderSkyRail implements ISimpleBlockRenderingHandler {
         ForgeDirection cr = SkyTrack.corner(w, x, y, z);
         if (cr != ForgeDirection.UNKNOWN) return renderRamp(w, x, y, z, block, rb, n, cr);
         ForgeDirection[] links = BlockSkyRail.links(w, x, y, z);
-        ForgeDirection a, b; // текстура: +u к a, +v к b
+        ForgeDirection a, b; // texture: +u toward a, +v toward b
         boolean turn = false;
-        // рельсы арканы, как золотые, не гнутся: на повороте рисуются прямыми вдоль первого соседа
+        // Arcana rails, like golden ones, do not bend: on a turn they are drawn straight along the first neighbor
         if (links.length >= 2 && links[0] != links[1].getOpposite() && !(block instanceof com.divinerpgextended.block.BlockSkyBoostRail)) {
             a = links[0];
             b = links[1];
@@ -43,7 +43,7 @@ public class RenderSkyRail implements ISimpleBlockRenderingHandler {
         } else {
             ForgeDirection along = links.length > 0 ? links[0] : BlockSkyRail.defaultAxis(meta);
             b = along;
-            a = along.getRotation(n); // поперёк, в той же плоскости
+            a = along.getRotation(n); // across, in the same plane
         }
         IIcon icon = rb.hasOverrideBlockTexture() ? rb.overrideBlockTexture : turn ? BlockSkyRail.turnedIcon : block.getIcon(0, 0);
         Tessellator t = Tessellator.instance;
@@ -63,10 +63,10 @@ public class RenderSkyRail implements ISimpleBlockRenderingHandler {
         return true;
     }
 
-    /** Горка во внутреннем углу: по диагонали блока от края у пола до края у рельса на стене, как ванильный рельс на блок выше. */
+    /** A slope in an inside corner: along the block diagonal from the edge at the floor to the edge at the rail on the wall, like a vanilla rail one block higher. */
     private boolean renderRamp(IBlockAccess w, int x, int y, int z, Block block, RenderBlocks rb, ForgeDirection n, ForgeDirection d) {
         IIcon icon = rb.hasOverrideBlockTexture() ? rb.overrideBlockTexture : block.getIcon(0, 0);
-        ForgeDirection u = d.getRotation(n); // поперёк горки
+        ForgeDirection u = d.getRotation(n); // across the slope
         Tessellator t = Tessellator.instance;
         t.setBrightness(block.getMixedBrightnessForBlock(w, x, y, z));
         t.setColorOpaque_F(1, 1, 1);
@@ -75,8 +75,8 @@ public class RenderSkyRail implements ISimpleBlockRenderingHandler {
         double[][] uv = new double[4][];
         double[][] ab = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } };
         for (int i = 0; i < 4; i++) {
-            double ku = ab[i][0] - 0.5, kv = ab[i][1]; // kv 0 - низ горки, 1 - верх
-            double sn = 0.5 - kv, sd = kv - 0.5; // по опоре: от края грани к противоположному; к стене: от -0.5 до 0.5
+            double ku = ab[i][0] - 0.5, kv = ab[i][1]; // kv 0 - bottom of the slope, 1 - top
+            double sn = 0.5 - kv, sd = kv - 0.5; // along the support: from the edge of the face to the opposite one; toward the wall: from -0.5 to 0.5
             p[i] = new double[] { x + 0.5 + n.offsetX * (sn + lift) + d.offsetX * (sd + lift) + u.offsetX * ku,
                 y + 0.5 + n.offsetY * (sn + lift) + d.offsetY * (sd + lift) + u.offsetY * ku,
                 z + 0.5 + n.offsetZ * (sn + lift) + d.offsetZ * (sd + lift) + u.offsetZ * ku };

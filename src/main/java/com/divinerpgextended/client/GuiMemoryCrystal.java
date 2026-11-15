@@ -13,7 +13,7 @@ import com.divinerpgextended.arcana.ArcanaMerchant;
 import com.divinerpgextended.arcana.MerchantMessages;
 import com.divinerpgextended.cold.ColdHandler;
 
-/** Окно Кристалла памяти: портреты торговцев Арканы, встреченных можно позвать. */
+/** Memory Crystal window: portraits of the Arcana merchants, the ones met can be called. */
 public class GuiMemoryCrystal extends GuiScreen {
 
     private static final int CARD_W = 104, CARD_H = 112, COLS = 3, GAP = 8;
@@ -79,7 +79,7 @@ public class GuiMemoryCrystal extends GuiScreen {
                 GuiInventory.func_147046_a(x + CARD_W / 2, y + 74, 26, x + CARD_W / 2 - mx, y + 40 - my, e);
             }
             if (!known) {
-                // модель рисуется ближе к экрану - затемнение и подсказку выносим поверх неё
+                // the model is drawn closer to the screen - we move the dimming and the tooltip on top of it
                 GL11.glPushMatrix();
                 GL11.glTranslatef(0, 0, 300);
                 drawRect(x + 1, y + 14, x + CARD_W - 1, y + CARD_H - 26, 0xC8000000);

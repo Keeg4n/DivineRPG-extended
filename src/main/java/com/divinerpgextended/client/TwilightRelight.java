@@ -20,30 +20,30 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Фризы при исследовании Эдема и Вайлдвуда. Получив чанк по сети, клиент для любого мира, кроме обычного, перепроверяет
- * в нём свет (воздух рядом с блоками) - сервер при генерации досчитывает свет у краёв не до конца, клиент поправляет.
- * Minecraft делает это шагами по 128 пересчётов света подряд; у летающих островов и огромных крон один такой шаг
- * тянет на полсекунды, и прервать его нельзя.
+ * Freezes while exploring Eden and Wildwood. After receiving a chunk over the network, the client re-checks light in it
+ * for any world except the Overworld (air next to blocks) - the server does not fully finish the light at the edges during generation, the client corrects it.
+ * Minecraft does this in steps of 128 light recalculations in a row; for floating islands and huge canopies one such step
+ * takes half a second, and it can't be interrupted.
  * <p>
- * Поэтому перепроверку делаем сами, той же логикой Minecraft, но по одному блоку: после каждого пересчёта смотрим на
- * часы и не тратим больше {@link #BUDGET_NS} за тик, ближние чанки первыми. Чанки прячем от Minecraft (счётчик
- * "проверено"), досчёт по перепадам высот (recheckGaps, тоже целыми столбами) отдаём сюда же. Свет выходит тот же.
+ * So we do the re-check ourselves, with the same Minecraft logic, but one block at a time: after each recalculation we look at the
+ * clock and spend no more than {@link #BUDGET_NS} per tick, nearby chunks first. We hide chunks from Minecraft (the "checked"
+ * counter), and the finishing pass by height differences (recheckGaps, also in whole columns) is handed over here too. The light comes out the same.
  */
 @SideOnly(Side.CLIENT)
 public class TwilightRelight {
 
     private static final int DONE = 4096;
-    /** Перепроверка Minecraft идёт только в активных чанках вокруг игрока (радиус 7) - берём с запасом. */
+    /** Minecraft's re-check runs only in active chunks around the player (radius 7) - we take with a margin. */
     private static final int RADIUS = 8;
     private static final long BUDGET_NS = 2000000L;
 
     private Field queued, gaps;
-    /** Чанк -> позиция перепроверки: шаг Minecraft (0..4095) * 16 + блок в столбике шага (0..15). */
+    /** Chunk -> re-check position: Minecraft's step (0..4095) * 16 + the block in the step's column (0..15). */
     private final java.util.Map<Chunk, Integer> pending = new java.util.WeakHashMap<Chunk, Integer>();
 
     /**
-     * Тик своего игрока: он идёт после приёма пакетов (новые чанки уже сброшены Minecraft), но до тика мира, где
-     * Minecraft проверил бы их пачкой - перехватываем ровно между ними.
+     * Tick of the own player: it goes after packet reception (new chunks are already reset by Minecraft) but before the world tick, where
+     * Minecraft would check them in a batch - we intercept exactly between them.
      */
     @SubscribeEvent
     public void onTick(TickEvent.PlayerTickEvent e) {
@@ -61,7 +61,7 @@ public class TwilightRelight {
                 gaps = ReflectionHelper.findField(Chunk.class, "isGapLightingUpdated", "field_76650_s");
             }
             final int px = (int) Math.floor(mc.thePlayer.posX) >> 4, pz = (int) Math.floor(mc.thePlayer.posZ) >> 4;
-            // новые (сброшенные Minecraft) чанки забираем себе
+            // new chunks (reset by Minecraft) are taken for ourselves
             for (int x = px - RADIUS; x <= px + RADIUS; x++)
                 for (int z = pz - RADIUS; z <= pz + RADIUS; z++) {
                     Chunk c = mc.theWorld.getChunkFromChunkCoords(x, z);
@@ -72,7 +72,7 @@ public class TwilightRelight {
                         queued.setInt(c, DONE);
                     }
                 }
-            // досчёт по перепадам высот - той же перепроверкой (во всей дальности прорисовки)
+            // the finishing pass by height differences - with the same re-check (across the whole render distance)
             int far = mc.gameSettings.renderDistanceChunks + 1;
             for (int x = px - far; x <= px + far; x++)
                 for (int z = pz - far; z <= pz + far; z++) {
@@ -94,25 +94,25 @@ public class TwilightRelight {
             long deadline = System.nanoTime() + BUDGET_NS;
             for (Chunk c : order) {
                 if (!c.isChunkLoaded) {
-                    pending.remove(c); // выгружен - придёт заново, тогда и проверим
+                    pending.remove(c); // unloaded - will come again, we will check then
                     continue;
                 }
                 int pos = relight(mc.theWorld, c, pending.get(c), deadline);
                 if (pos >= DONE * 16) pending.remove(c);
                 else {
                     pending.put(c, pos);
-                    break; // время тика кончилось
+                    break; // tick time is over
                 }
             }
         } catch (Throwable t) {
-            queued = null; // другой клиент (поля не нашлись) - не мешаем, Minecraft проверит сам
+            queued = null; // another client (the fields were not found) - we do not interfere, Minecraft will check by itself
             pending.clear();
         }
     }
 
     /**
-     * Перепроверка света чанка с позиции pos до срока deadline - как Chunk.enqueueRelightChecks, но по блоку.
-     * Возвращает позицию, где остановились (DONE * 16 - чанк проверен).
+     * Re-check the chunk's light from position pos until deadline - like Chunk.enqueueRelightChecks, but per block.
+     * Returns the position where we stopped (DONE * 16 - the chunk is checked).
      */
     static int relight(World w, Chunk c, int pos, long deadline) {
         ExtendedBlockStorage[] arr = c.getBlockStorageArray();

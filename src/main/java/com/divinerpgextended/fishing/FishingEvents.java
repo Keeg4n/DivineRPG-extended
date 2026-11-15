@@ -33,12 +33,12 @@ import com.divinerpgextended.registry.ModItems;
 import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
-/** Рыбалка: замена ванильного поплавка, удочки у торговцев, подсказки приманок, задания Леорны. */
+/** Fishing: replacement of the vanilla bobber, rods at traders, bait hints, Leorna's tasks. */
 public class FishingEvents {
 
     private static final String QUESTS = "dre_fish_quests", QUEST_DAY = "dre_fish_quest_day";
 
-    /** Ванильная удочка тоже рыбачит по нашим правилам (сила 5, приманки, зоны). */
+    /** The vanilla rod also fishes by our rules (power 5, baits, zones). */
     @SubscribeEvent
     public void onJoin(EntityJoinWorldEvent e) {
         if (e.world.isRemote || e.entity.getClass() != EntityFishHook.class) return;
@@ -61,10 +61,10 @@ public class FishingEvents {
         EntityPlayer p = e.entityPlayer;
         if (!(e.target instanceof EntityDivineRPGVillager)) return;
         EntityDivineRPGVillager v = (EntityDivineRPGVillager) e.target;
-        // Окно торговли Divine строит список на клиенте сам (с сервера его не получает), поэтому удочки
-        // дописываем на обеих сторонах одинаково: в конец списка, номера сделок совпадают.
+        // Divine's trade window builds the list on the client itself (it does not get it from the server), so the rods
+        // are appended on both sides identically: at the end of the list, trade numbers match.
         if (p.worldObj.isRemote) {
-            if (v instanceof EntityLeorna && (p.isSneaking() || holdsFish(p))) return; // это задание, не торговля
+            if (v instanceof EntityLeorna && (p.isSneaking() || holdsFish(p))) return; // this is a task, not a trade
         } else if (v instanceof EntityLeorna && quest(p)) {
             e.setCanceled(true);
             return;
@@ -84,8 +84,8 @@ public class FishingEvents {
     }
 
     /**
-     * Генерал войны: арканитовая кирка за арканиум - тем, кто победил всех боссов Мортума; после всех боссов Divine - обмен
-     * обычной кирки и арканиума на заряженную.
+     * War General: the Arcanite Pickaxe for arcanium - for those who defeated all the Mortum bosses; after all the Divine bosses - an exchange
+     * of a regular pickaxe and arcanium for the charged one.
      */
     private static void arcanePick(EntityDivineRPGVillager v, EntityPlayer p) {
         MerchantRecipeList list = v.getRecipes(p);
@@ -100,10 +100,10 @@ public class FishingEvents {
             com.divinerpgextended.item.ItemArcanePick.CHARGE_PRICE), new ItemStack(ModItems.arcanePick), new ItemStack(ModItems.arcanePickCharged)));
     }
 
-    /** Цена кости призрака у Капитана Мерика (арканиум). */
+    /** Price of the ghost bone from Captain Merik (arcanium). */
     public static final int WRAITHBANE_PRICE = 12;
 
-    /** Капитан Мерик: кость призрака (призыв призрака) - только тем, кто победил Повелителя ветров (страж Небесного терна). */
+    /** Captain Merik: ghost bone (summons a ghost) - only for those who defeated the Wind Lord (guardian of Skythern). */
     private static void wraithbane(EntityDivineRPGVillager v, EntityPlayer p) {
         MerchantRecipeList list = v.getRecipes(p);
         if (list == null) return;
@@ -118,8 +118,8 @@ public class FishingEvents {
     public static final int HEIVA_BELT_PRICE = 30, WINGS_TEMPLATE_PRICE = 8, MIDNIGHT_TEMPLATE_PRICE = 8;
 
     /**
-     * Голод: Пояс хейвы - за 30 красного (полированного) жемчуга вместо 25 фиолетового (сделка на своём месте, номера не
-     * сдвигаются), шаблоны Крыльев сна (8 серого жемчуга) и Крыльев полуночи (8 голубого) - в конец, как удочки.
+     * The Hunger: the Hive Belt - for 30 red (polished) pearls instead of 25 purple (the trade stays in its place, the numbers do not
+     * shift), templates of Dream Wings (8 gray pearls) and Midnight Wings (8 light blue) - at the end, like the rods.
      */
     private static void hunger(EntityDivineRPGVillager v, EntityPlayer p) {
         MerchantRecipeList list = v.getRecipes(p);
@@ -149,8 +149,8 @@ public class FishingEvents {
     }
 
     /**
-     * Удочку в список торговца кладём заново при каждом разговоре: список у Divine хранится в NBT обычными сделками
-     * (с лимитом использований), а так она всегда бесконечная и с актуальной ценой.
+     * We put the rod into the trader's list anew at every conversation: Divine keeps the list in NBT as ordinary trades
+     * (with a use limit), and this way it is always infinite and with the current price.
      */
     private static void trade(EntityDivineRPGVillager v, EntityPlayer p, MerchantRecipe offer) {
         MerchantRecipeList list = v.getRecipes(p);
@@ -172,7 +172,7 @@ public class FishingEvents {
         return w.getWorldTime() / 24000L;
     }
 
-    /** Рыба дня: одна на мир, меняется каждые сутки. */
+    /** Fish of the day: one per world, changes every day. */
     public static Fish questFish(World w) {
         List<Fish> l = FishingLoot.questFish();
         long d = day(w);
@@ -180,7 +180,7 @@ public class FishingEvents {
         return l.get(Math.abs(h) % l.size());
     }
 
-    /** Присев - узнать задание; с рыбой дня в руке - сдать. Возвращает true, если Леорна занята заданием. */
+    /** Sneaking - learn the task; with the fish of the day in hand - hand it in. Returns true if Leorna is busy with a task. */
     private static boolean quest(EntityPlayer p) {
         World w = p.worldObj;
         Fish f = questFish(w);
@@ -193,16 +193,16 @@ public class FishingEvents {
         String zone = StatCollector.translateToLocal("dre.zone." + f.zone.key());
         if (doneToday) {
             say(p, EnumChatFormatting.GRAY, "dre.quest.done_today");
-            com.divinerpgextended.debug.Debug.note(p, "Леорна: задание на сегодня уже сдано (день " + day(w) + ")");
+            com.divinerpgextended.debug.Debug.note(p, "Leorna: today's task already handed in (day " + day(w) + ")");
             return true;
         }
         if (!holdsFish || held.getItemDamage() != f.ordinal()) {
             say(p, EnumChatFormatting.LIGHT_PURPLE, "dre.quest.ask", name, zone);
-            com.divinerpgextended.debug.Debug.note(p, "Леорна: рыба дня " + f + " (" + f.zone + ")" + (holdsFish ? ", в руке не та рыба" : ""));
+            com.divinerpgextended.debug.Debug.note(p, "Leorna: fish of the day " + f + " (" + f.zone + ")" + (holdsFish ? ", wrong fish in hand" : ""));
             progress(p);
             return true;
         }
-        int pay = FishingLoot.gilded(held) ? 3 : 1; // золотой улов Эдема - Леорна платит втрое
+        int pay = FishingLoot.gilded(held) ? 3 : 1; // Eden's golden catch - Leorna pays triple
         if (!p.capabilities.isCreativeMode) held.stackSize--;
         if (held.stackSize <= 0) p.inventory.setInventorySlotContents(p.inventory.currentItem, null);
         int n = tag.getInteger(QUESTS) + 1;
@@ -213,8 +213,8 @@ public class FishingEvents {
         give(p, new ItemStack(b.item(), (3 + w.rand.nextInt(4)) * pay));
         if (pay > 1) say(p, EnumChatFormatting.GOLD, "dre.quest.gilded");
         say(p, EnumChatFormatting.GREEN, "dre.quest.thanks", String.valueOf(n));
-        com.divinerpgextended.debug.Debug.note(p, "Леорна: задание сдано, всего " + n + ", награда арканиум и приманка " + b
-            + (n % 5 == 0 ? " + ящик" : "") + (milestone(n) != null ? " + веха " + milestone(n).getDisplayName() : ""));
+        com.divinerpgextended.debug.Debug.note(p, "Leorna: task handed in, total " + n + ", reward arcanium and bait " + b
+            + (n % 5 == 0 ? " + crate" : "") + (milestone(n) != null ? " + milestone " + milestone(n).getDisplayName() : ""));
         if (n % 5 == 0) {
             ItemStack crate = new ItemStack(ModItems.crate, 1, f.zone.ordinal());
             give(p, crate.copy());
@@ -231,7 +231,7 @@ public class FishingEvents {
         return true;
     }
 
-    /** Лестница наград Леорны: номер задания -> подарок (плюс ящик за каждое 5-е и арканиум с приманками за каждое). */
+    /** Leorna's reward ladder: task number -> gift (plus a crate for every 5th and arcanium with baits for each). */
     public static final int[] MILESTONES = { 3, 10, 15, 20, 25, 30, 50 };
 
     public static ItemStack milestone(int n) {
@@ -251,7 +251,7 @@ public class FishingEvents {
         return persisted(p).getInteger(QUESTS);
     }
 
-    /** "Выполнено N, следующая награда - X на M-м задании". */
+    /** "Completed N, next reward - X at task M". */
     public static void progress(EntityPlayer p) {
         int n = quests(p);
         for (int m : MILESTONES) {

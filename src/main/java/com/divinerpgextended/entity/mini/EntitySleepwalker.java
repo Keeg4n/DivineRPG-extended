@@ -13,9 +13,9 @@ import net.minecraft.world.WorldServer;
 import com.divinerpgextended.vethea.WeaponKind;
 
 /**
- * Сомнамбула, этажи 1-3 Ветеи: уязвимый вид оружия меняется каждые {@link #SHIFT} тиков, цвет частиц подсказывает какой (красный - ближний бой,
- * зелёный - дальний, фиолетовый - аркана). Правила те же, что у особых мобов Ветеи: своему виду x2, остальным x0.25, добитый своим
- * видом роняет добычу дважды ({@link com.divinerpgextended.vethea.VetheaCombat}).
+ * Sleepwalker, Vethea floors 1-3: the vulnerable weapon type changes every {@link #SHIFT} ticks, the particle color hints which (red - melee,
+ * green - ranged, purple - arcana). The rules are the same as for Vethea's special mobs: x2 to its own type, x0.25 to the rest, when finished off with its own
+ * type it drops loot twice ({@link com.divinerpgextended.vethea.VetheaCombat}).
  */
 public class EntitySleepwalker extends EntityMiniBoss {
 
@@ -50,7 +50,7 @@ public class EntitySleepwalker extends EntityMiniBoss {
         return DAMAGE[0];
     }
 
-    /** Этаж 1-3 задаёт силу и добычу. */
+    /** Floor 1-3 sets the strength and loot. */
     public void setFloor(int f) {
         floor = Math.max(1, Math.min(3, f));
         getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(HEALTH[floor - 1]);
@@ -62,14 +62,14 @@ public class EntitySleepwalker extends EntityMiniBoss {
         return dataWatcher.getWatchableObjectByte(DW_GROUP);
     }
 
-    /** Текущая уязвимость: группа ролей шлемов Ветеи. */
+    /** Current vulnerability: a group of Vethea helmet roles. */
     public EnumSet<WeaponKind> weak() {
         EnumSet<WeaponKind> set = EnumSet.noneOf(WeaponKind.class);
         for (WeaponKind k : WeaponKind.values()) if (k.group() == group()) set.add(k);
         return set;
     }
 
-    /** Сменить уязвимость на следующую. */
+    /** Switch the vulnerability to the next one. */
     public void shift() {
         int next = (group() + 1) % 3;
         dataWatcher.updateObject(DW_GROUP, Byte.valueOf((byte) next));

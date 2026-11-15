@@ -17,7 +17,7 @@ import com.divinerpgextended.registry.ModItems;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Брошенный томагавк: значок предмета с толщиной, вертится вокруг оси поперёк полёта. */
+/** A thrown Tomahawk: an item icon with thickness, spins around an axis across the flight. */
 @SideOnly(Side.CLIENT)
 public class RenderTomahawk extends Render {
 

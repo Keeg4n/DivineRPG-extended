@@ -5,17 +5,17 @@ import net.minecraft.item.ItemStack;
 
 import com.divinerpgextended.perk.ThrowStack;
 
-/** Вызовы из бросков Divine, исправленных {@link ThrowableTransformer}. */
+/** Calls from Divine throws patched by {@link ThrowableTransformer}. */
 public final class ThrowHooks {
 
     private ThrowHooks() {}
 
-    /** Вместо stack.stackSize-- при броске. */
+    /** Instead of stack.stackSize-- on a throw. */
     public static void consume(ItemStack s) {
         ThrowStack.consume(s);
     }
 
-    /** Предел стопки метательного предмета. */
+    /** Stack limit of a throwable item. */
     public static int limit(Item item, ItemStack s) {
         return ThrowStack.limit(item, s);
     }

@@ -33,46 +33,46 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Смотритель в своём логове ({@link WatcherVault}) - глаз, которого бьют издалека. Вместо его поведения из Divine (через
+ * The Watcher in his lair ({@link WatcherVault}) is an eye that is hit from afar. Instead of his behavior from Divine (via
  * {@link com.divinerpgextended.asm.WatcherTransformer}).
  * <ul>
- * <li>Первая фаза: висит над залом и смотрит на ближайшего бойца. Видит - заряжает выстрел ({@link #CHARGE} тиков, тянется
- * луч, за треть до выстрела прицел замирает). Пока заряжается, глаз открыт: снаряды бьют его вдвое сильнее. Боец спрятался
- * за колонну - выпускает оков-прислужников ({@link EntityWatcherEye}): они летят за укрытие и кусают вплотную.</li>
- * <li>На половине здоровья ревёт и крутится ({@link #ROAR} тиков, неуязвим), выпускает стаю глаз и переходит во вторую
- * фазу - рывки. Замах ({@link #WIND} тиков, глаз открыт), рывок к бойцу; задел - урон и отброс, врезался в колонну - оглушён
- * и перегрет. После {@link #DASHES} рывков - передышка с одним выстрелом. Ниже 20% - рывков больше, замах короче.</li>
- * <li>Перегретый (после выстрела, оглушения, удара о колонну) получает двойной урон.</li>
- * <li>Адское оружие ({@link #onHurt}): пуля пушки гаста в открытый глаз (заряд или замах) сбивает его и оглушает на
- * {@link #STUN} тиков; пушка гаста, Maelstrom и адское оружие ближнего боя бьют в полтора раза сильнее; огненные мечи и
- * стрелы Inferno копят жар - {@link #WARMTH} подряд перегревают; стрела Bluefire ослепляет на {@link #BLIND} тиков.</li>
- * <li>Во второй фазе (тараны) снаряды наносят лишь {@link #RAM_RANGED} урона - бить надо вплотную; лучше всего мечами Энда и
- * бедроковым оружием ({@link #RAM_MELEE}, в обеих фазах).</li>
- * <li>Взрывы в логове блоков не ломают, предметы и опыт на земле не трогают, урон от взрыва бойцу - не больше
+ * <li>First phase: hangs above the hall and watches the nearest fighter. If he sees one - charges a shot ({@link #CHARGE} ticks, a
+ * beam stretches, the aim freezes a third before the shot). While charging, the eye is open: projectiles hit him twice as hard. If the fighter hid
+ * behind a column - he releases servant eyes ({@link EntityWatcherEye}): they fly behind the cover and bite at point blank.</li>
+ * <li>At half health he roars and spins ({@link #ROAR} ticks, invulnerable), releases a flock of eyes and moves to the second
+ * phase - dashes. Windup ({@link #WIND} ticks, eye open), a dash at the fighter; if he hits - damage and knockback, if he crashes into a column - stunned
+ * and overheated. After {@link #DASHES} dashes - a breather with one shot. Below 20% - more dashes, shorter windup.</li>
+ * <li>An overheated one (after a shot, a stun, a hit against a column) takes double damage.</li>
+ * <li>Nether weapons ({@link #onHurt}): a ghast cannon bullet into an open eye (charge or windup) knocks it down and stuns it for
+ * {@link #STUN} ticks; the ghast cannon, Maelstrom and Nether melee weapons hit 1.5 times harder; fire swords and
+ * Inferno arrows build up heat - {@link #WARMTH} in a row overheat him; a Bluefire arrow blinds for {@link #BLIND} ticks.</li>
+ * <li>In the second phase (rams) projectiles deal only {@link #RAM_RANGED} of the damage - you have to hit at point blank; best of all with End swords and
+ * Bedrock weapons ({@link #RAM_MELEE}, in both phases).</li>
+ * <li>Explosions in the lair do not break blocks, do not touch items and experience on the ground, and explosion damage to a fighter is at most
  * {@link #BLAST_CAP} ({@link #onDetonate}).</li>
  * </ul>
- * Логово старого вида (с завалом) перестраивается в новое, когда туда зашёл игрок, а Смотрителя нет ({@link #tidy}).
+ * A lair of the old kind (with a rubble pile) is rebuilt into the new one when a player enters it and the Watcher is absent ({@link #tidy}).
  */
 public class WatcherHunt {
 
     public static final int CHARGE = 30, COOLDOWN = 45, HEAT = 40, STUN = 30, BLIND = 60, WARMTH = 4, CHASE_RANGE = 48;
-    /** Прислужники: боец не виден столько тиков - выпустить; пауза между выпусками; не больше стольких сразу. */
+    /** Servants: the fighter is not visible for this many ticks - release; pause between releases; no more than this many at once. */
     public static final int HIDE_TICKS = 25, EYES_EVERY = 90, EYES_MAX = 5, EYES_MAX_2 = 6;
-    /** Переход во вторую фазу; рывки: замах, длительность, число до передышки, передышка, оглушение о колонну. */
+    /** Transition to the second phase; dashes: windup, duration, number before the breather, breather, stun from a column. */
     public static final int ROAR = 40, WIND = 18, WIND_LOW = 13, DASH = 14, DASHES = 3, DASHES_LOW = 4, REST = 50, CRASH = 50;
     public static final float PHASE2 = 0.5F, LOW = 0.2F, SHOT_SPEED = 1.3F, DASH_SPEED = 1.25F, DASH_HIT = 10F, BLAST_CAP = 14F;
-    /** Множители: открытый глаз - снарядам; перегретому - всему; адскому оружию. */
+    /** Multipliers: open eye - for projectiles; overheated - for everything; for Nether weapons. */
     public static final float OPEN_MULT = 2.0F, HEAT_MULT = 2.0F, NETHER_MULT = 1.5F;
-    /** Вторая фаза (тараны): снаряды - доля урона; мечи Энда и бедроковое оружие - множитель. */
+    /** Second phase (rams): projectiles - a share of the damage; End swords and Bedrock weapons - a multiplier. */
     public static final float RAM_RANGED = 0.15F, RAM_MELEE = 2.0F;
 
-    /** Оружие, которым Смотрителя лучше всего бить вплотную: мечи Энда (любого цвета) и бедроковые меч и молот. */
+    /** The weapons best for hitting the Watcher at point blank: End swords (of any color) and Bedrock sword and maul. */
     public static boolean ramBreaker(net.minecraft.item.Item i) {
         return com.divinerpgextended.perk.EnderGear.enderSword(new net.minecraft.item.ItemStack(i)) || i == net.divinerpg.utils.items.VanillaItemsWeapons.bedrockSword
             || i == net.divinerpg.utils.items.VanillaItemsWeapons.bedrockMaul;
     }
 
-    /** Состояние боя (на время жизни босса; сохранять не нужно). */
+    /** Fight state (for the boss's lifetime; no need to save). */
     static final class State {
         int phase = 1, charge, cooldown = 40, heat, stun, blind, warmth, hidden, eyesTimer, roar;
         int wind, dash, dashes, rest, hoverTimer;
@@ -83,7 +83,7 @@ public class WatcherHunt {
     }
 
     static final Map<Entity, State> STATES = new WeakHashMap<Entity, State>();
-    /** Логова, уже нового вида (за этот запуск сервера): x и z центра. */
+    /** Lairs that are already of the new kind (during this server run): center x and z. */
     static final Set<Long> TIDY = new HashSet<Long>();
 
     static State state(Entity e) {
@@ -96,7 +96,7 @@ public class WatcherHunt {
         return (long) c[0] << 32 ^ (c[2] & 0xffffffffL);
     }
 
-    /** Центр логова Смотрителя, где он сейчас (или null - не в логове). */
+    /** Center of the Watcher's lair where he currently is (or null - not in a lair). */
     public static int[] vault(World w, double x, double y, double z) {
         if (!WorldGenOuterLairs.enabled(WorldGenOuterLairs.WATCHER) || w.provider.dimensionId != WorldGenOuterLairs.dim(WorldGenOuterLairs.WATCHER)) return null;
         int[] c = WorldGenOuterLairs.nearest(w.getSeed(), WorldGenOuterLairs.WATCHER, x, z);
@@ -109,9 +109,9 @@ public class WatcherHunt {
         return vault(e.worldObj, e.posX, e.posY + e.height / 2, e.posZ) != null;
     }
 
-    // ---------------------------------------------------------------- для проверок
+    // ---------------------------------------------------------------- for tests
 
-    /** Фаза: 1, 2 или 0 - рёв перехода. */
+    /** Phase: 1, 2 or 0 - the transition roar. */
     public static int phase(Entity e) {
         State s = STATES.get(e);
         return s == null ? 1 : s.roar > 0 ? 0 : s.phase;
@@ -142,7 +142,7 @@ public class WatcherHunt {
         return s != null && s.heat > 0;
     }
 
-    /** Скольких бойцов задел последний рывок. */
+    /** How many fighters the last dash hit. */
     public static int dashHits(Entity e) {
         State s = STATES.get(e);
         return s == null ? 0 : s.hitThisDash.size();
@@ -161,7 +161,7 @@ public class WatcherHunt {
         s.locked = false;
     }
 
-    /** Сразу во вторую фазу, в замах рывка. */
+    /** Straight to the second phase, to the dash windup. */
     public static void startWind(EntityTheWatcher w) {
         State s = state(w);
         s.phase = 2;
@@ -174,19 +174,19 @@ public class WatcherHunt {
         STATES.remove(e);
     }
 
-    /** Для проверок: забыть, какие логова уже нового вида. */
+    /** For tests: forget which lairs are already of the new kind. */
     public static void forgetTidy() {
         TIDY.clear();
     }
 
-    // ---------------------------------------------------------------- ход
+    // ---------------------------------------------------------------- turn
 
-    /** Смотритель в своём логове (на сервере): его собственный полёт и выстрел из Divine отключены. */
+    /** The Watcher in his lair (on the server): his own flight and shot from Divine are disabled. */
     public static boolean lair(EntityTheWatcher w) {
         return !w.worldObj.isRemote && inVault(w);
     }
 
-    /** Ход Смотрителя (вместо его хода из Divine); false - не в логове, ведёт себя как в Divine. */
+    /** The Watcher's turn (instead of his turn from Divine); false - not in a lair, behaves as in Divine. */
     public static boolean act(EntityTheWatcher w) {
         if (w.worldObj.isRemote) return false;
         int[] c = vault(w.worldObj, w.posX, w.posY + w.height / 2, w.posZ);
@@ -196,13 +196,13 @@ public class WatcherHunt {
         double ex = w.posX, ey = w.posY + w.height * 0.5, ez = w.posZ;
         if (s.heat > 0 && --s.heat % 4 == 0) ws.func_147487_a("smoke", ex, ey + 1, ez, 6, 1.0, 0.8, 1.0, 0.02);
         if (s.eyesTimer > 0) s.eyesTimer--;
-        if (s.stun > 0) { // оглушён: висит, искрит
+        if (s.stun > 0) { // stunned: hangs, sparks
             s.stun--;
             damp(w, 0.5);
             if (s.stun % 3 == 0) ws.func_147487_a("crit", ex, ey, ez, 8, 1.2, 1.2, 1.2, 0.1);
             return true;
         }
-        if (s.phase == 1 && w.getHealth() <= w.getMaxHealth() * PHASE2) { // рёв: переход во вторую фазу
+        if (s.phase == 1 && w.getHealth() <= w.getMaxHealth() * PHASE2) { // roar: transition to the second phase
             s.phase = 2;
             s.roar = ROAR;
             s.charge = 0;
@@ -220,7 +220,7 @@ public class WatcherHunt {
             }
             return true;
         }
-        if (s.blind > 0) { // ослеплён Bluefire: цель потеряна, плывёт куда глаза глядят
+        if (s.blind > 0) { // blinded by Bluefire: lost the target, drifts aimlessly
             s.blind--;
             s.charge = s.wind = s.dash = 0;
             if (s.blind % 20 == 0) newHover(w, s, c);
@@ -228,7 +228,7 @@ public class WatcherHunt {
             return true;
         }
         EntityPlayer target = nearestFighter(w.worldObj, w);
-        if (target == null) { // никого - висит над оком
+        if (target == null) { // nobody - hangs above the eye
             s.charge = s.wind = s.dash = 0;
             fly(w, c[0] + 0.5, WatcherVault.bossY() - w.height / 2 + 0.5, c[2] + 0.5, 0.08);
             return true;
@@ -239,7 +239,7 @@ public class WatcherHunt {
         boolean sight = hit == null || hit.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK;
         s.hidden = sight ? 0 : s.hidden + 1;
         int max = s.phase == 1 ? EYES_MAX : EYES_MAX_2;
-        if (s.hidden >= HIDE_TICKS && s.eyesTimer == 0) { // спрятался - за ним летят глаза
+        if (s.hidden >= HIDE_TICKS && s.eyesTimer == 0) { // hid - the eyes fly after him
             spawnEye(w, s, max);
             spawnEye(w, s, max);
             s.eyesTimer = s.phase == 1 ? EYES_EVERY : EYES_EVERY + 40;
@@ -249,7 +249,7 @@ public class WatcherHunt {
         return true;
     }
 
-    /** Первая фаза: парит над залом, заряжает выстрел, когда видит бойца. */
+    /** First phase: hovers above the hall, charges a shot when he sees a fighter. */
     static void phaseOne(EntityTheWatcher w, WorldServer ws, State s, int[] c, boolean sight, double tx, double ty, double tz, double ex, double ey, double ez) {
         if (--s.hoverTimer <= 0 || Math.abs(w.posX - s.hoverX) + Math.abs(w.posZ - s.hoverZ) < 1) newHover(w, s, c);
         fly(w, s.hoverX, s.hoverY, s.hoverZ, 0.11);
@@ -267,10 +267,10 @@ public class WatcherHunt {
         }
     }
 
-    /** Вторая фаза: замах - рывок - снова; после серии передышка с одним выстрелом. */
+    /** Second phase: windup - dash - again; after a series a breather with one shot. */
     static void phaseTwo(EntityTheWatcher w, WorldServer ws, State s, int[] c, boolean sight, boolean low, double tx, double ty, double tz, double ex, double ey,
         double ez) {
-        if (s.rest > 0) { // передышка: парит, один быстрый выстрел
+        if (s.rest > 0) { // breather: hovers, one quick shot
             s.rest--;
             if (--s.hoverTimer <= 0) newHover(w, s, c);
             fly(w, s.hoverX, s.hoverY, s.hoverZ, 0.12);
@@ -307,7 +307,7 @@ public class WatcherHunt {
                     p.velocityChanged = true;
                 }
             }
-            if (w.isCollidedHorizontally && s.dash < DASH - 2) { // врезался в колонну или стену
+            if (w.isCollidedHorizontally && s.dash < DASH - 2) { // crashed into a column or a wall
                 s.dash = 0;
                 s.stun = CRASH;
                 s.heat = Math.max(s.heat, CRASH + 20);
@@ -323,7 +323,7 @@ public class WatcherHunt {
             }
             return;
         }
-        if (s.wind > 0) { // замах: глаз открыт, трясётся, ищет бойца
+        if (s.wind > 0) { // windup: eye open, shaking, looking for a fighter
             s.wind--;
             damp(w, 0.5);
             w.motionX += (w.getRNG().nextDouble() - 0.5) * 0.12;
@@ -332,7 +332,7 @@ public class WatcherHunt {
             if (s.wind == 0) {
                 double dx = tx - ex, dy = ty - ey, dz = tz - ez, d = Math.max(0.1, Math.sqrt(dx * dx + dy * dy + dz * dz));
                 s.dirX = dx / d;
-                s.dirY = Math.max(-0.4, Math.min(0.4, dy / d)); // в пол и в свод не ныряет
+                s.dirY = Math.max(-0.4, Math.min(0.4, dy / d)); // does not dive into the floor or the vault
                 s.dirZ = dz / d;
                 s.dash = DASH;
                 s.hitThisDash.clear();
@@ -343,7 +343,7 @@ public class WatcherHunt {
         s.wind = low ? WIND_LOW : WIND;
     }
 
-    /** Рывок кончился (или сбит): следующий замах или передышка после серии. */
+    /** The dash is over (or knocked down): the next windup or a breather after a series. */
     static void afterDash(State s, boolean low) {
         if (++s.dashes >= (low ? DASHES_LOW : DASHES)) {
             s.rest = REST;
@@ -352,7 +352,7 @@ public class WatcherHunt {
         } else s.wind = (low ? WIND_LOW : WIND) + 8;
     }
 
-    /** Притормозить по горизонтали и зависнуть (тяга вниз от игры каждый тик гасится). */
+    /** Slow down horizontally and hang (the downward pull from the game is cancelled every tick). */
     static void damp(EntityTheWatcher w, double k) {
         w.motionX *= k;
         w.motionY = 0;
@@ -364,7 +364,7 @@ public class WatcherHunt {
         w.rotationPitch = (float) (-Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)) * 180 / Math.PI);
     }
 
-    /** Новая точка парения: над оком, не дальше 8 от центра (колонны не задевает), под сводом. */
+    /** A new hover point: above the eye, no further than 8 from the center (does not touch the columns), under the vault. */
     static void newHover(EntityTheWatcher w, State s, int[] c) {
         double a = w.getRNG().nextDouble() * Math.PI * 2, r = 3 + w.getRNG().nextDouble() * 5;
         s.hoverX = c[0] + 0.5 + Math.cos(a) * r;
@@ -377,7 +377,7 @@ public class WatcherHunt {
         for (Iterator<EntityWatcherEye> it = s.eyes.iterator(); it.hasNext();) if (it.next().isDead) it.remove();
     }
 
-    /** Выпустить око-прислужника из Смотрителя (если их меньше max). */
+    /** Release a servant eye from the Watcher (if there are fewer than max). */
     static EntityWatcherEye spawnEye(EntityTheWatcher w, State s, int max) {
         prune(s);
         if (s.eyes.size() >= max) return null;
@@ -394,12 +394,12 @@ public class WatcherHunt {
         return e;
     }
 
-    /** Для проверок: выпустить око. */
+    /** For tests: release an eye. */
     public static EntityWatcherEye spawnEyeFor(EntityTheWatcher w) {
         return spawnEye(w, state(w), EYES_MAX_2);
     }
 
-    /** Ближайший живой боец в логове Смотрителя (для босса и его прислужников; творческий режим не в счёт). */
+    /** The nearest living fighter in the Watcher's lair (for the boss and his servants; creative mode does not count). */
     public static EntityPlayer nearestFighter(World world, Entity from) {
         EntityPlayer best = null;
         double bd = CHASE_RANGE * CHASE_RANGE;
@@ -416,8 +416,8 @@ public class WatcherHunt {
     }
 
     /**
-     * К точке со скоростью speed * 3 блока за тик, у цели - медленнее. Скорость задаётся целиком каждый тик: Смотритель у
-     * Divine - не летун, игра после хода тянет его вниз и тормозит, это не должно копиться.
+     * To a point at speed * 3 blocks per tick, slower near the target. The velocity is set in full every tick: the Watcher in
+     * Divine is not a flier, the game pulls him down after the turn and brakes him, and this must not accumulate.
      */
     static void fly(EntityTheWatcher w, double x, double y, double z, double speed) {
         double dx = x - w.posX, dy = y - w.posY, dz = z - w.posZ, d = Math.sqrt(dx * dx + dy * dy + dz * dz);
@@ -437,7 +437,7 @@ public class WatcherHunt {
         s.aimZ = tz;
     }
 
-    /** Луч от глаза к прицелу: краснеет, пока прицел ещё ведёт, белеет, когда замер. */
+    /** A beam from the eye to the aim: turns red while the aim is still tracking, turns white when it froze. */
     static void beam(WorldServer ws, double ex, double ey, double ez, State s) {
         if (s.charge % 2 != 0) return;
         double dx = s.aimX - ex, dy = s.aimY - ey, dz = s.aimZ - ez, d = Math.sqrt(dx * dx + dy * dy + dz * dz);
@@ -445,7 +445,7 @@ public class WatcherHunt {
         for (double t = 2.0; t < d; t += 0.8) ws.func_147487_a(part, ex + dx / d * t, ey + dy / d * t, ez + dz / d * t, 1, 0, 0, 0, 0);
     }
 
-    /** Выстрел снарядом Смотрителя по прицелу (с поправкой на падение снаряда). */
+    /** A shot with the Watcher's projectile at the aim (compensating for the projectile's drop). */
     static void fire(EntityTheWatcher w, State s, double ex, double ey, double ez, int cooldown) {
         EntityWatcherShot shot = new EntityWatcherShot(w.worldObj, w);
         double dx = s.aimX - ex, dz = s.aimZ - ez, flat = Math.sqrt(dx * dx + dz * dz);
@@ -461,7 +461,7 @@ public class WatcherHunt {
         s.locked = false;
     }
 
-    // ---------------------------------------------------------------- урон
+    // ---------------------------------------------------------------- damage
 
     static final Set<net.minecraft.item.Item> FIRE_SWORDS = new HashSet<net.minecraft.item.Item>();
 
@@ -474,12 +474,12 @@ public class WatcherHunt {
         return i != null && FIRE_SWORDS.contains(i);
     }
 
-    /** Глаз открыт: заряд выстрела или замах рывка. */
+    /** The eye is open: shot charge or dash windup. */
     static boolean open(State s) {
         return s.charge > 0 || s.wind > 0;
     }
 
-    /** Рёв перехода: неуязвим. */
+    /** Transition roar: invulnerable. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void onAttack(LivingAttackEvent e) {
         if (!(e.entityLiving instanceof EntityTheWatcher) || e.entityLiving.worldObj.isRemote) return;
@@ -487,7 +487,7 @@ public class WatcherHunt {
         if (s != null && s.roar > 0 && e.source != DamageSource.outOfWorld) e.setCanceled(true);
     }
 
-    /** Адское оружие против Смотрителя (только в логове), открытый глаз, перегрев; урон взрывом по бойцам - с потолком. */
+    /** Nether weapons against the Watcher (only in the lair), the open eye, overheating; explosion damage to fighters is capped. */
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onHurt(LivingHurtEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
@@ -502,11 +502,11 @@ public class WatcherHunt {
         WorldServer ws = (WorldServer) w.worldObj;
         double ex = w.posX, ey = w.posY + w.height / 2, ez = w.posZ;
         float mult = 1F;
-        boolean hot = s.heat > 0, wasOpen = open(s); // перегрев и открытый глаз от этого же удара - со следующего
+        boolean hot = s.heat > 0, wasOpen = open(s); // overheating and the open eye from this same hit - from the next one
         net.minecraft.item.Item melee = com.divinerpgextended.entity.ThroneCombat.melee(e.source);
         if (NetherArsenal.ghastCannon(e.source)) {
             mult = NETHER_MULT;
-            if (wasOpen) { // сбил заряд или замах: оглушён и перегрет
+            if (wasOpen) { // knocked down the charge or windup: stunned and overheated
                 s.charge = 0;
                 s.wind = 0;
                 s.locked = false;
@@ -532,14 +532,14 @@ public class WatcherHunt {
         }
         if (melee != null && com.divinerpgextended.arcana.WeaponOrigin.of(new net.minecraft.item.ItemStack(melee)) == com.divinerpgextended.arcana.WeaponOrigin.NETHER)
             mult = Math.max(mult, NETHER_MULT);
-        if (melee != null && ramBreaker(melee)) mult = Math.max(mult, RAM_MELEE); // лучшее против него вплотную - Энд и бедрок
+        if (melee != null && ramBreaker(melee)) mult = Math.max(mult, RAM_MELEE); // the best against him at point blank - End and Bedrock
         if (wasOpen && e.source.isProjectile()) mult *= OPEN_MULT;
-        if (s.phase != 1 && e.source.isProjectile()) mult = RAM_RANGED; // на таранах снаряды почти не берут: только вплотную
+        if (s.phase != 1 && e.source.isProjectile()) mult = RAM_RANGED; // on the rams projectiles barely work: only at point blank
         if (hot) mult *= HEAT_MULT;
         e.ammount *= mult;
     }
 
-    /** Взрывы в логове: блоки целы, предметы и опыт на земле не страдают, Смотритель и его глаза - тоже. */
+    /** Explosions in the lair: blocks stay intact, items and experience on the ground are unharmed, and so are the Watcher and his eyes. */
     @SubscribeEvent
     public void onDetonate(ExplosionEvent.Detonate e) {
         World w = e.world;
@@ -555,7 +555,7 @@ public class WatcherHunt {
         e.getAffectedBlocks().clear();
     }
 
-    // ---------------------------------------------------------------- старые логова
+    // ---------------------------------------------------------------- old lairs
 
     @SubscribeEvent
     public void onTick(TickEvent.WorldTickEvent e) {
@@ -565,7 +565,7 @@ public class WatcherHunt {
         tidy(e.world);
     }
 
-    /** Игрок в логове старого вида, а Смотрителя там нет - перестроить зал в новый. */
+    /** A player in a lair of the old kind and the Watcher is not there - rebuild the hall into the new one. */
     public static int tidy(World world) {
         int changed = 0;
         for (Object o : world.playerEntities) {
@@ -574,7 +574,7 @@ public class WatcherHunt {
                 && WorldGenOuterLairs.inside(world, WorldGenOuterLairs.SCORCHERS, p.posX, p.posY + 1, p.posZ)) {
                 int[] k = WorldGenOuterLairs.nearest(world.getSeed(), WorldGenOuterLairs.SCORCHERS, p.posX, p.posZ);
                 if (k != null && com.divinerpgextended.world.ScorcherPit.isNew(world, k[0], k[2]) && TIDY.add(key(k)))
-                    changed += WatcherVault.seal(world, k[0], k[2]); // палата скорчеров до 0.99.56 - залатать окна
+                    changed += WatcherVault.seal(world, k[0], k[2]); // Scorcher chamber before 0.99.56 - patch the windows
             }
             int[] c = vault(world, p.posX, p.posY + 1, p.posZ);
             if (c == null || TIDY.contains(key(c)) || bossIn(world, c)) continue;
@@ -583,7 +583,7 @@ public class WatcherHunt {
         return changed;
     }
 
-    /** Перестроить логово, если оно старого вида (бойцам - карманы); запомнить, что оно уже новое. */
+    /** Rebuild the lair if it is of the old kind (pockets for fighters); remember that it is already new. */
     public static int upgrade(World world, int[] c) {
         TIDY.add(key(c));
         if (!WatcherVault.old(world, c[0], c[2])) return WatcherVault.seal(world, c[0], c[2]);

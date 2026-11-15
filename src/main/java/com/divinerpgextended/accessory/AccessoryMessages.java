@@ -13,7 +13,7 @@ import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.relauncher.Side;
 
-/** Клиент просит открыть окно старых слотов (кнопка в инвентаре, пока там что-то лежит). */
+/** Client asks to open the old slots window (a button in the inventory while something lies there). */
 public final class AccessoryMessages {
 
     private AccessoryMessages() {}

@@ -1,25 +1,25 @@
-"""Сборка детальных моделей пасхалок для аддона Divine: коробки (с поворотом) -> HD-атлас + меш для игры + превью.
+"""Builder of detailed easter-egg models for the Divine addon: boxes (with rotation) -> HD atlas + mesh for the game + preview.
 
-Координаты - как у моделей Minecraft: единица = 1/16 блока, y вниз, лицо игрока смотрит в -Z. Каждая коробка принадлежит
-кости (head, body, rightArm, leftArm, rightLeg, leftLeg или item) и части (piece) - в игре рисуются части по слоту брони.
-Раскраска - функция в координатах самой коробки (до поворота): так лямбда, полосы и панели рисуются в 3D, а игра и превью
-берут одну и ту же текстуру. Порядок вершин граней - как у ModelBox (отсечение задних граней совпадает с ванилью).
+Coordinates are as in Minecraft models: one unit = 1/16 of a block, y down, the player's face looks toward -Z. Each box belongs
+to a bone (head, body, rightArm, leftArm, rightLeg, leftLeg or item) and a piece (piece) - the game draws pieces by armor slot.
+Painting is a function in the coordinates of the box itself (before rotation): this way the lambda, stripes and panels are drawn in 3D, and the game and the preview
+use the same texture. The vertex order of the faces is as in ModelBox (back-face culling matches vanilla).
 
-Меш (.mesh, текст): строка "p <часть> <кость>" начинает группу, затем "q nx ny nz  x y z u v  x y z u v  ..." - четырёхугольник.
+Mesh (.mesh, text): a line "p <piece> <bone>" starts a group, then "q nx ny nz  x y z u v  x y z u v  ..." is a quadrilateral.
 """
 import math
 
 import numpy as np
 from PIL import Image
 
-BONES = {  # точка поворота кости в позе по умолчанию (как в ModelBiped)
+BONES = {  # bone pivot point in the default pose (as in ModelBiped)
     'head': (0, 0, 0), 'body': (0, 0, 0), 'rightArm': (-5, 2, 0), 'leftArm': (5, 2, 0), 'rightLeg': (-1.9, 12, 0),
     'leftLeg': (1.9, 12, 0), 'item': (0, 0, 0),
 }
 
 
 def rot_matrix(rx, ry, rz):
-    """Как glRotate Z, затем Y, затем X у ModelRenderer: v' = Rz * Ry * Rx * v (градусы)."""
+    """Like glRotate Z, then Y, then X in ModelRenderer: v' = Rz * Ry * Rx * v (degrees)."""
     a, b, c = (math.radians(t) for t in (rx, ry, rz))
     Rx = np.array([[1, 0, 0], [0, math.cos(a), -math.sin(a)], [0, math.sin(a), math.cos(a)]])
     Ry = np.array([[math.cos(b), 0, math.sin(b)], [0, 1, 0], [-math.sin(b), 0, math.cos(b)]])
@@ -40,14 +40,14 @@ class Box:
         self.mirrored = False
 
     def mirror(self):
-        """Копия, отражённая по X (левая сторона из правой)."""
+        """A copy mirrored along X (left side from the right one)."""
         b = Box(self.piece, MIRROR_BONE.get(self.bone, self.bone), -(self.p0[0] + self.size[0]), self.p0[1], self.p0[2],
                 *self.size, self.paint, (self.rot[0], -self.rot[1], -self.rot[2]), (-self.pivot[0], self.pivot[1], self.pivot[2]), self.k, self.name)
         b.mirrored = not self.mirrored
         return b
 
     def faces(self):
-        """6 граней: имя, 4 вершины (в координатах коробки, до поворота), нормаль, размер текстуры (ширина, высота) в единицах."""
+        """6 faces: name, 4 vertices (in box coordinates, before rotation), normal, texture size (width, height) in units."""
         x1, y1, z1 = 0.0, 0.0, 0.0
         x2, y2, z2 = self.size
         v7, v0, v1, v2 = (x1, y1, z1), (x2, y1, z1), (x2, y2, z1), (x1, y2, z1)
@@ -63,7 +63,7 @@ class Box:
         ]
 
     def to_bone(self, pts):
-        """Точки коробки -> координаты кости (сдвиг и поворот вокруг pivot)."""
+        """Box points -> bone coordinates (shift and rotation around pivot)."""
         R = rot_matrix(*self.rot)
         p = np.asarray(pts, float) + self.p0
         return (p - self.pivot) @ R.T + self.pivot
@@ -76,7 +76,7 @@ MIRROR_BONE = {'rightArm': 'leftArm', 'leftArm': 'rightArm', 'rightLeg': 'leftLe
 
 
 class Face:
-    """Грань в атласе: прямоугольник и точки текселей в координатах коробки."""
+    """A face in the atlas: a rectangle and texel points in box coordinates."""
 
     def __init__(self, box, name, verts, normal, dims):
         self.box, self.name, self.verts, self.normal = box, name, np.array(verts, float), np.array(normal, float)
@@ -86,7 +86,7 @@ class Face:
         self.x = self.y = 0
 
     def texel_points(self):
-        """(ph, pw, 3): точки центров текселей. Вершины: 0 -> (право, верх), 1 -> (лево, верх), 2 -> (лево, низ), 3 -> (право, низ)."""
+        """(ph, pw, 3): texel center points. Vertices: 0 -> (right, top), 1 -> (left, top), 2 -> (left, bottom), 3 -> (right, bottom)."""
         s = (np.arange(self.pw) + 0.5) / self.pw
         t = (np.arange(self.ph) + 0.5) / self.ph
         S, T = np.meshgrid(s, t)
@@ -97,7 +97,7 @@ class Face:
 
 
 class Poly:
-    """Набор произвольных четырёхугольников (вершины - сразу в координатах кости) с одной раскраской: трубы и т.п."""
+    """A set of arbitrary quadrilaterals (vertices directly in bone coordinates) with one painting: tubes and the like."""
 
     def __init__(self, piece, bone, quads, paint, k=8.0, name=''):
         self.piece, self.bone, self.quads, self.paint, self.k, self.name = piece, bone, quads, paint, k, name
@@ -122,15 +122,15 @@ class Poly:
 
 
 def outward(q, out_dir):
-    """Порядок вершин так, чтобы (P1-P0)x(P2-P1) смотрел наружу (как у ModelBox - иначе грань отсечётся)."""
+    """Vertex order such that (P1-P0)x(P2-P1) points outward (as in ModelBox - otherwise the face is culled)."""
     q = [np.asarray(v, float) for v in q]
     n = np.cross(q[1] - q[0], q[2] - q[1])
     return q if np.dot(n, out_dir) >= 0 else [q[1], q[0], q[3], q[2]]
 
 
 def tube(piece, bone, pts, radii, paints, sides=8, k=10.0, up=(0, 0, 1)):
-    """Цельная труба по ломаной в плоскости XY: кольца-восьмиугольники (rn - поперёк в плоскости, rz - по оси up), торцы.
-    paints[i] - раскраска отрезка i (между точками i и i+1); торцы - как крайние отрезки. Без перекрытий - без ряби."""
+    """A solid tube along a polyline in the XY plane: octagon rings (rn - across in the plane, rz - along the up axis), end caps.
+    paints[i] - painting of segment i (between points i and i+1); end caps are like the end segments. No overlaps - no shimmering."""
     pts = [np.asarray(p, float) for p in pts]
     up = np.asarray(up, float)
     N = len(pts)
@@ -165,7 +165,7 @@ def tube(piece, bone, pts, radii, paints, sides=8, k=10.0, up=(0, 0, 1)):
 
 
 def check_overlaps(boxes, eps=0.02):
-    """Совпадающие грани (одна плоскость, одна сторона, перекрываются) у неповёрнутых коробок одной кости - будет рябь."""
+    """Coinciding faces (same plane, same side, overlapping) of unrotated boxes of one bone - will shimmer."""
     faces = []
     for b in boxes:
         if not isinstance(b, Box) or any(abs(r) > 1e-6 for r in b.rot):
@@ -189,7 +189,7 @@ def check_overlaps(boxes, eps=0.02):
 
 
 def pack(faces, width):
-    """Полки: высокие грани первыми, отступ 1 тексель."""
+    """Shelf packing: tall faces first, 1 texel padding."""
     order = sorted(faces, key=lambda f: (-f.ph, -f.pw))
     x = y = shelf = 0
     for f in order:
@@ -210,7 +210,7 @@ class Model:
         self.name = name
         self.boxes = boxes
         self.faces = [Face(b, *f) for b in boxes for f in b.faces()]
-        self.warp = None  # необязательная правка вершин: warp(коробка, вершины в кости) -> вершины (атлас не меняет)
+        self.warp = None  # optional vertex tweak: warp(box, vertices in bone) -> vertices (does not change the atlas)
         self.W = atlas_width
         self.H = pack(self.faces, self.W)
         self.img = np.zeros((self.H, self.W, 4), np.uint8)
@@ -218,7 +218,7 @@ class Model:
             pts, fu, fv = f.texel_points()
             p = pts.copy()
             name = f.name
-            if f.box.mirrored:  # рисуем как у исходной (правой) коробки: отражаем x внутри коробки, восток <-> запад
+            if f.box.mirrored:  # paint as for the original (right) box: mirror x inside the box, east <-> west
                 p[..., 0] = f.box.size[0] - p[..., 0]
                 f.name = {'east': 'west', 'west': 'east'}.get(name, name)
             col = f.box.paint(p, f, f.box)
@@ -227,14 +227,14 @@ class Model:
             rgba = np.concatenate([col[..., :3], np.ones(col.shape[:2] + (1,))], -1) if col.shape[-1] == 3 else col
             block = (rgba * 255 + 0.5).astype(np.uint8)
             self.img[f.y:f.y + f.ph, f.x:f.x + f.pw] = block
-            # кромка в 1 тексель - тем же цветом (без швов)
+            # 1 texel edge - in the same color (no seams)
             self.img[f.y - 1, f.x:f.x + f.pw] = block[0]
             self.img[f.y + f.ph, f.x:f.x + f.pw] = block[-1]
             self.img[f.y - 1:f.y + f.ph + 1, f.x - 1] = self.img[f.y - 1:f.y + f.ph + 1, f.x]
             self.img[f.y - 1:f.y + f.ph + 1, f.x + f.pw] = self.img[f.y - 1:f.y + f.ph + 1, f.x + f.pw - 1]
 
     def quads(self, piece=None):
-        """[(piece, bone, verts(4,3) в кости, uv(4,2), normal)]"""
+        """[(piece, bone, verts(4,3) in bone, uv(4,2), normal)]"""
         out = []
         for f in self.faces:
             b = f.box
@@ -264,9 +264,9 @@ class Model:
                     fh.write('\n')
 
 
-# ---------------------------------------------------------------- превью (программный растеризатор)
+# ---------------------------------------------------------------- preview (software rasterizer)
 
-LIGHTS = [np.array([0.2, -1.0, -0.7]), np.array([-0.2, -1.0, 0.7])]  # как у Minecraft (y вниз)
+LIGHTS = [np.array([0.2, -1.0, -0.7]), np.array([-0.2, -1.0, 0.7])]  # as in Minecraft (y down)
 LIGHTS = [l / np.linalg.norm(l) for l in LIGHTS]
 
 
@@ -276,16 +276,16 @@ def shade(n):
 
 
 def render(tris, tex, size, scale, center, yaw=0.0, pitch=0.0, bg=(30, 30, 34)):
-    """tris: [(verts(3,3) в пространстве сцены, uv(3,2), normal)]; ортографическая камера спереди (из -Z), x вправо, y вниз."""
+    """tris: [(verts(3,3) in scene space, uv(3,2), normal)]; orthographic camera from the front (from -Z), x right, y down."""
     img = np.zeros((size[1], size[0], 3), float)
     img[:] = np.array(bg) / 255.0
     zb = np.full((size[1], size[0]), np.inf)
-    R = rot_matrix(pitch, 0, 0) @ rot_matrix(0, yaw, 0)  # сначала поворот модели, потом наклон камеры
+    R = rot_matrix(pitch, 0, 0) @ rot_matrix(0, yaw, 0)  # first the model rotation, then the camera tilt
     th, tw = tex.shape[:2]
     for v, uv, n in tris:
         p = (np.asarray(v) - center) @ R.T
         nn = R @ n
-        if nn[2] > 1e-6:  # смотрит от камеры
+        if nn[2] > 1e-6:  # faces away from the camera
             continue
         sx = p[:, 0] * scale + size[0] / 2
         sy = p[:, 1] * scale + size[1] / 2
@@ -322,7 +322,7 @@ def render(tris, tex, size, scale, center, yaw=0.0, pitch=0.0, bg=(30, 30, 34)):
 
 
 def scene_tris(quads, pose=None):
-    """Четырёхугольники костей -> треугольники сцены (кости на своих местах)."""
+    """Bone quadrilaterals -> scene triangles (bones in their places)."""
     tris = []
     for piece, bone, v, uv, n in quads:
         off = np.array(BONES[bone], float)
@@ -334,7 +334,7 @@ def scene_tris(quads, pose=None):
     return tris
 
 
-# ---------------------------------------------------------------- раскраска
+# ---------------------------------------------------------------- painting
 
 def rgb(h):
     h = h.lstrip('#')
@@ -342,19 +342,19 @@ def rgb(h):
 
 
 def hash_noise(p, scale=1.0, seed=0):
-    """Детерминированный шум 0..1 по точке (для фактуры)."""
+    """Deterministic noise 0..1 at a point (for texture)."""
     q = np.floor(p * scale * 4.0)
     v = np.sin(q[..., 0] * 12.9898 + q[..., 1] * 78.233 + q[..., 2] * 37.719 + seed * 4.1) * 43758.5453
     return v - np.floor(v)
 
 
 def edge_dist(fu, fv, face):
-    """Расстояние (в единицах) до края грани."""
+    """Distance (in units) to the edge of the face."""
     return np.minimum(np.minimum(fu, face.wu - fu), np.minimum(fv, face.hu - fv))
 
 
 def material(color, bevel=0.22, bevel_dark=0.72, noise=0.05, top_light=1.06, grad=0.0):
-    """Сплошной материал: тёмная фаска по краям граней, лёгкий шум, верхние грани чуть светлее; grad - затемнение книзу."""
+    """Solid material: dark bevel along the face edges, light noise, top faces slightly lighter; grad - darkening toward the bottom."""
     base = rgb(color) if isinstance(color, str) else np.asarray(color, float)
 
     def paint(p, face, box):
@@ -372,7 +372,7 @@ def material(color, bevel=0.22, bevel_dark=0.72, noise=0.05, top_light=1.06, gra
 
 
 def with_decal(base_paint, decal):
-    """decal(p, face, box) -> (rgb (..,3), alpha (..)) поверх материала."""
+    """decal(p, face, box) -> (rgb (..,3), alpha (..)) on top of the material."""
     def paint(p, face, box):
         col = base_paint(p, face, box)
         dc, da = decal(p, face, box)

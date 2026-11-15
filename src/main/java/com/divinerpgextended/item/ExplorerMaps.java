@@ -12,26 +12,26 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Карта логова как карта исследователя: найденное логово - обычная карта Minecraft с центром на логове и красной
- * меткой на нём. Местность на ней сначала не нарисована и прорисовывается, когда игрок туда приходит. Метку игра не
- * хранит - возвращаем её на карты в инвентаре ({@link Marks}).
+ * The lair map as an explorer map: a found lair is a regular Minecraft map centered on the lair with a red
+ * marker on it. The terrain on it is not drawn at first and gets drawn as the player arrives there. The game does not
+ * store the marker - we put it back on the maps in the inventory ({@link Marks}).
  */
 public final class ExplorerMaps {
 
-    /** Тег цели на карте: {x, z}. */
+    /** Target tag on the map: {x, z}. */
     public static final String TARGET = "dreLairTarget";
-    /** Ключ метки в списке значков карты; тип 2 - красная стрелка. */
+    /** Key of the marker in the map's icon list; type 2 - a red arrow. */
     private static final String MARK = "dreLair";
     private static final byte RED = 2;
-    /** Масштаб 2: 1 пиксель - 4 блока, карта 512 x 512 блоков. */
+    /** Scale 2: 1 pixel - 4 blocks, the map is 512 x 512 blocks. */
     private static final byte SCALE = 2;
 
-    /** Идёт клик картой: тратить ту, что в руке, не освобождая слот (игра затрёт его после клика). */
+    /** A click with the map is in progress: spend the one in hand without freeing the slot (the game will wipe it after the click). */
     static boolean inClick;
 
     private ExplorerMaps() {}
 
-    /** Карта к логову (x, z): лишняя карта логова этого вида тратится; такая карта у игрока уже есть - новой не даём. */
+    /** A map to the lair (x, z): an extra map of this lair kind is spent; if the player already has such a map - we do not give a new one. */
     public static void give(World w, EntityPlayer p, int type, String name, int x, int z) {
         for (ItemStack s : p.inventory.mainInventory) if (target(s) != null && target(s)[0] == x && target(s)[1] == z) return;
         int id = w.getUniqueDataId("map");
@@ -46,7 +46,7 @@ public final class ExplorerMaps {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setIntArray(TARGET, new int[] { x, z });
         map.setTagCompound(tag);
-        map.setStackDisplayName(net.minecraft.util.EnumChatFormatting.RESET + StatCollector.translateToLocal(name)); // без курсива переименованных
+        map.setStackDisplayName(net.minecraft.util.EnumChatFormatting.RESET + StatCollector.translateToLocal(name)); // without the italics of renamed ones
         mark(d, x, z);
         if (!p.capabilities.isCreativeMode) consume(p, type);
         if (!p.inventory.addItemStackToInventory(map)) p.dropPlayerItemWithRandomChoice(map, false);
@@ -56,7 +56,7 @@ public final class ExplorerMaps {
     private static void consume(EntityPlayer p, int type) {
         ItemStack held = p.getHeldItem();
         if (inClick && held != null && held.getItem() == com.divinerpgextended.registry.ModItems.lairMap && held.getItemDamage() == type) {
-            held.stackSize--; // пустой стек уберёт сама игра после клика; новая карта ляжет в другой слот
+            held.stackSize--; // the game itself will remove the empty stack after the click; the new map will go to another slot
             return;
         }
         ItemStack[] inv = p.inventory.mainInventory;
@@ -67,14 +67,14 @@ public final class ExplorerMaps {
         }
     }
 
-    /** Цель карты {x, z} или null. */
+    /** The map's target {x, z} or null. */
     public static int[] target(ItemStack s) {
         if (s == null || s.getItem() != Items.filled_map || !s.hasTagCompound() || !s.getTagCompound().hasKey(TARGET)) return null;
         int[] t = s.getTagCompound().getIntArray(TARGET);
         return t.length == 2 ? t : null;
     }
 
-    /** Метка логова на карте (координаты значка - в пикселях карты от центра, по 2 на пиксель). */
+    /** The lair marker on the map (icon coordinates are in map pixels from the center, 2 per pixel). */
     @SuppressWarnings("unchecked")
     static void mark(MapData d, int x, int z) {
         int k = 1 << d.scale;
@@ -82,12 +82,12 @@ public final class ExplorerMaps {
         d.playersVisibleOnMap.put(MARK, d.new MapCoord(RED, (byte) mx, (byte) mz, (byte) 8));
     }
 
-    /** Есть ли на карте метка логова (для автотеста). */
+    /** Whether the map has a lair marker (for the autotest). */
     public static boolean marked(MapData d) {
         return d != null && d.playersVisibleOnMap.containsKey(MARK);
     }
 
-    /** Возвращает метку на карты логов в инвентаре: значки игра пересобирает и не сохраняет. */
+    /** Puts the marker back on the lair maps in the inventory: the game rebuilds icons and does not save them. */
     public static class Marks {
 
         @SubscribeEvent

@@ -12,12 +12,12 @@ import net.minecraft.world.WorldServer;
 import com.divinerpgextended.world.twilight.TwilightWorld;
 
 /**
- * Плакальщик, Мортум: каждая смерть моба в {@link #REACH} блоках его усиливает и лечит, до {@link #MAX_GRIEF} раз. Сам зовёт свиту,
- * поэтому её выгодно увести и убить подальше от него.
+ * Mourner, Mortum: every mob death within {@link #REACH} blocks of it strengthens and heals it, up to {@link #MAX_GRIEF} times. It calls a retinue itself,
+ * so it pays to lure the retinue away and kill it far from him.
  */
 public class EntityMourner extends EntityMiniBoss {
 
-    public static final double HEALTH = 400; // демон Мортума 200 x2
+    public static final double HEALTH = 400; // Mortum demon 200 x2
     public static final double REACH = 16, DAMAGE_PER_GRIEF = 0.1;
     public static final int MAX_GRIEF = 5, CALL_EVERY = 400;
     public static final float HEAL_PER_GRIEF = 0.05F;
@@ -52,7 +52,7 @@ public class EntityMourner extends EntityMiniBoss {
         return grief;
     }
 
-    /** Рядом кто-то умер. */
+    /** Someone died nearby. */
     public void feed() {
         if (!isEntityAlive() || grief >= MAX_GRIEF) return;
         grief++;
