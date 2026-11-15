@@ -45,8 +45,10 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 public class RangedRoles {
 
     public static final String KIND = "dreRanged", GEN = "dreRangedGen";
-    public static final int BLITZ = 1, PHASER = 2, SLICER = 3;
+    public static final int BLITZ = 1, PHASER = 2, SLICER = 3, CANNON = 4;
     public static final int PELLETS = 5, PIERCE = 3, RICOCHET = 3;
+    /** Guns of the Overworld, the Nether, Iceika and the rest: a shotgun like the blitz, but with this many pellets per shot. */
+    public static final int CANNON_PELLETS = 3;
     public static final float PELLET_DMG = 1.0F, ADD_BONUS = 2.0F;
     /** Blitz cooldown: Divine's delay (in its units, x4 ticks) and the same in ticks - one shot per second. */
     public static final int BLITZ_DELAY = 5, BLITZ_COOLDOWN = BLITZ_DELAY * 4;
@@ -79,7 +81,24 @@ public class RangedRoles {
         if (i == TwilightItemsWeapons.halitePhaser) return PHASER;
         if (i == TwilightItemsWeapons.edenSlicer || i == TwilightItemsWeapons.wildwoodSlicer || i == TwilightItemsWeapons.apalachiaSlicer
             || i == TwilightItemsWeapons.skythernSlicer || i == TwilightItemsWeapons.mortumSlicer) return SLICER;
-        return 0;
+        return cannon(i) ? CANNON : 0;
+    }
+
+    /**
+     * A gun that fires like a blitz: a Divine projectile shooter named a cannon (Ice, Frostclaw, Fractite, Ghast, Crabclaw and Bowhead
+     * cannons), except Vethea weapons (the dream has its own rules). Staffs, Maelstrom and Golden Fury keep their own roles; the
+     * Corrupted Cannon already fires several bullets by itself.
+     */
+    public static boolean cannon(Item i) {
+        if (!(i instanceof net.divinerpg.items.base.ItemProjectileShooter) || i instanceof net.divinerpg.items.vanilla.ItemAnchor) return false;
+        if (i.getClass().getName().startsWith("net.divinerpg.items.vethea.")) return false;
+        Object name = Item.itemRegistry.getNameForObject(i);
+        return name != null && name.toString().toLowerCase().endsWith("cannon");
+    }
+
+    /** Shotgun kinds: their pellets live briefly, all hit one target, do not knock back and are weaker against bosses from the sides. */
+    public static boolean shotgun(int kind) {
+        return kind == BLITZ || kind == CANNON;
     }
 
     public static boolean wears(EntityPlayer p, com.divinerpgextended.trinket.Trinket t) {
@@ -233,14 +252,14 @@ public class RangedRoles {
     @SubscribeEvent
     public void onAttack(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
         EntityLivingBase v = e.entityLiving;
-        if (v.worldObj.isRemote || kind(e.source.getSourceOfDamage()) != BLITZ) return;
+        if (v.worldObj.isRemote || !shotgun(kind(e.source.getSourceOfDamage()))) return;
         v.hurtResistantTime = 0;
         if (!KNOCK.containsKey(v)) KNOCK.put(v, new double[] { v.motionX, v.motionY, v.motionZ });
     }
 
     /** A blitz's side pellet (a copy): vampirism and other "per hit" effects count only from the central one. */
     public static boolean sidePellet(Entity bullet) {
-        return bullet != null && kind(bullet) == BLITZ && bullet.getEntityData().getInteger(GEN) > 0;
+        return bullet != null && shotgun(kind(bullet)) && bullet.getEntityData().getInteger(GEN) > 0;
     }
 
     static boolean boss(Entity e) {
@@ -509,7 +528,7 @@ public class RangedRoles {
         NBTTagCompound d = b.getEntityData();
         if (d.hasKey(KIND)) {
             if (d.getInteger(KIND) == SLICER) TOTEM_SHOTS.add(b);
-            if (d.getInteger(KIND) == BLITZ) BLITZ_SHOTS.add(b);
+            if (shotgun(d.getInteger(KIND))) BLITZ_SHOTS.add(b);
             return;
         }
         EntityLivingBase thrower = ((EntityShooterBullet) b).getThrower();
@@ -524,11 +543,12 @@ public class RangedRoles {
         }
         d.setInteger(KIND, k);
         if (k == SLICER) TOTEM_SHOTS.add(b);
-        if (k == BLITZ) {
+        if (shotgun(k)) {
             BLITZ_SHOTS.add(b);
-            e.world.playSoundAtEntity(pl, BLITZ_SOUND, 1.3F, 0.95F + e.world.rand.nextFloat() * 0.1F);
-            // shot: another PELLETS - 1 projectiles in a horizontal fan
-            for (int i = 1; i < PELLETS; i++) {
+            if (k == BLITZ) e.world.playSoundAtEntity(pl, BLITZ_SOUND, 1.3F, 0.95F + e.world.rand.nextFloat() * 0.1F); // guns keep their own sound
+            // shot: another PELLETS - 1 projectiles in a horizontal fan (3 in total for guns)
+            int pellets = k == BLITZ ? PELLETS : CANNON_PELLETS;
+            for (int i = 1; i < pellets; i++) {
                 double ang = Math.toRadians(SPREAD * ((i + 1) / 2) * (i % 2 == 0 ? 1 : -1));
                 double c = Math.cos(ang), s = Math.sin(ang);
                 double mx = b.motionX * c - b.motionZ * s, mz = b.motionX * s + b.motionZ * c;
@@ -590,6 +610,7 @@ public class RangedRoles {
         int gen = b.getEntityData().getInteger(GEN);
         switch (k) {
             case BLITZ:
+            case CANNON:
                 e.ammount *= PELLET_DMG * (bossAdd(victim) ? ADD_BONUS : 1) * (gen > 0 && boss(victim) ? BOSS_SIDE : 1);
                 break;
             case PHASER:

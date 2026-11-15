@@ -10544,6 +10544,48 @@ public class SelfTest {
                 + ", old charge returned as ordinary arrows " + refundOk);
             return "Storm Bow: charge - Wildwood arrows, does not take ordinary ones; fires charge first; old charge returns to the player as ordinary arrows";
         });
+        t("Progression", "Guns fire like blitzes: 3 pellets per shot", () -> {
+            StringBuilder list = new StringBuilder();
+            Item sample = null;
+            int n = 0;
+            for (Object o : Item.itemRegistry) {
+                if (!(o instanceof net.divinerpg.items.base.ItemProjectileShooter)) continue;
+                Item it = (Item) o;
+                int gk = com.divinerpgextended.perk.RangedRoles.kind(new ItemStack(it));
+                list.append(Item.itemRegistry.getNameForObject(it)).append('=').append(gk == com.divinerpgextended.perk.RangedRoles.CANNON ? "gun"
+                    : gk == com.divinerpgextended.perk.RangedRoles.BLITZ ? "blitz" : gk == com.divinerpgextended.perk.RangedRoles.PHASER ? "phaser" : "-").append(' ');
+                if (gk == com.divinerpgextended.perk.RangedRoles.CANNON) {
+                    n++;
+                    if (sample == null || it == net.divinerpg.utils.items.VanillaItemsWeapons.frostCannon) sample = it;
+                }
+            }
+            // a shot: the gun's projectile and two more pellets in a fan
+            WorldServer w = server.worldServerForDimension(0);
+            loadAround(w, 9740, 9840, 1);
+            TestPlayer gp = join(player(0, "TestGunPellets", 9740.5, 120, 9840.5), true);
+            gp.inventory.clearInventory(null, -1);
+            int shots = -1;
+            if (sample != null) {
+                ItemStack gun = new ItemStack(sample);
+                gp.inventory.currentItem = 0;
+                gp.inventory.mainInventory[0] = gun;
+                Item ammo = com.divinerpgextended.perk.Ammo.of(gun);
+                if (ammo != null) gp.inventory.mainInventory[1] = new ItemStack(ammo, 64);
+                int before = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, gp.boundingBox.expand(8, 8, 8)).size();
+                try {
+                    sample.onItemRightClick(gun, w, gp);
+                } catch (NullPointerException ex) {
+                    // Divine sends the inventory over the network after a shot - the test player has no network
+                }
+                java.util.List<?> bl = w.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.projectile.EntityShooterBullet.class, gp.boundingBox.expand(8, 8, 8));
+                shots = bl.size() - before;
+                for (Object o : bl) ((net.minecraft.entity.Entity) o).setDead();
+            }
+            gp.inventory.clearInventory(null, -1);
+            check(n > 0 && shots == com.divinerpgextended.perk.RangedRoles.CANNON_PELLETS,
+                "guns " + n + ", sample " + (sample == null ? null : Item.itemRegistry.getNameForObject(sample)) + " fired " + shots + " pellets; all shooters: " + list);
+            return "guns " + n + " fire " + shots + " pellets like a blitz; shooters: " + list.toString().trim();
+        });
         t("Progression", "Self-firing fast bows, Endless Quiver chance, ranks", () -> {
             // bows with accelerated draw - who shoots by themselves and after how many ticks
             StringBuilder fast = new StringBuilder();
