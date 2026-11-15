@@ -1,7 +1,7 @@
 package com.divinerpgextended.fishing;
 
 /**
- * Rods and their fishing power (as in Terraria: rod power + bait power decide how fast it bites and how rare the
+ * Rods and their fishing power (rod power + bait power decide how fast it bites and how rare the
  * catch is). Many rods have a trait.
  */
 public enum Rod {

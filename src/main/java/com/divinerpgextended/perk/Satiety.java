@@ -13,7 +13,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 
 /**
- * The "Satiety" perk of Wanderer armor (donor - the skeleton set), like Botania's Ring of Odin for hunger:
+ * The "Satiety" perk of Wanderer armor (donor - the skeleton set):
  * <ul>
  * <li>hunger drains {@link #SLOWER} times slower (exhaustion from running, jumping, hitting and mining accumulates more slowly);</li>
  * <li>you do not die of hunger or lose health;</li>

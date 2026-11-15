@@ -20,8 +20,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Easter egg sounds straight from the player's installed Half-Life and Half-Life 2 (Steam), like "mounting" games in Garry's Mod:
- * the Valve files are not part of the mod and are not copied anywhere. Half-Life is a scattering of WAVs in valve/sound, Half-Life 2 is VPK archives
+ * Easter egg sounds read from the player's own installed games, only from the Steam libraries listed in the halfLifePath
+ * setting: the game files are not part of the mod and are not copied anywhere. Half-Life is a scattering of WAVs in valve/sound, Half-Life 2 is VPK archives
  * (hl2_sound_misc). Any WAV is converted to mono 16-bit PCM (Minecraft plays it with its WAV codec). No games - ordinary sounds.
  * <p>
  * File names for resources: {@code hl1/<path>} and {@code hl2/<path>} without extension (the path is from the sound folder).
@@ -129,31 +129,14 @@ public final class HalfLifeMount {
         }
     }
 
-    /** Steam libraries: the path from the settings, the usual Steam locations and all libraries from libraryfolders.vdf. */
+    /**
+     * Steam libraries: only the folders the player listed in the halfLifePath setting (or the dre.steamLibrary system property)
+     * and the libraries listed in their libraryfolders.vdf. Nothing else on the computer is searched or read.
+     */
     public static List<File> libraries() {
         Set<File> roots = new LinkedHashSet<File>();
         String custom = System.getProperty("dre.steamLibrary", com.divinerpgextended.Config.halfLifePath);
         if (custom != null && !custom.trim().isEmpty()) for (String s : custom.split(";")) roots.add(new File(s.trim()));
-        String home = System.getProperty("user.home", "");
-        String os = System.getProperty("os.name", "").toLowerCase();
-        if (os.contains("win")) {
-            String reg = registrySteamPath();
-            if (reg != null) roots.add(new File(reg));
-            roots.add(new File("C:/Program Files (x86)/Steam"));
-            roots.add(new File("C:/Program Files/Steam"));
-            for (File r : File.listRoots()) {
-                roots.add(new File(r, "SteamLibrary"));
-                roots.add(new File(r, "Steam"));
-                roots.add(new File(r, "Games/Steam"));
-            }
-        } else if (os.contains("mac")) {
-            roots.add(new File(home, "Library/Application Support/Steam"));
-        } else {
-            roots.add(new File(home, ".steam/steam"));
-            roots.add(new File(home, ".local/share/Steam"));
-            roots.add(new File(home, ".var/app/com.valvesoftware.Steam/.local/share/Steam"));
-            for (char c = 'c'; c <= 'z'; c++) roots.add(new File("/mnt/" + c + "/SteamLibrary")); // WSL
-        }
         List<File> out = new ArrayList<File>();
         for (File r : roots) {
             if (!r.isDirectory()) continue;
@@ -173,17 +156,6 @@ public final class HalfLifeMount {
             while (m.find()) out.add(new File(m.group(1).replace("\\\\", "\\")));
         } catch (IOException ignored) {}
         return out;
-    }
-
-    static String registrySteamPath() {
-        try {
-            Process p = new ProcessBuilder("reg", "query", "HKCU\\Software\\Valve\\Steam", "/v", "SteamPath").redirectErrorStream(true).start();
-            String s = new String(readAll(p.getInputStream()), Charset.forName("UTF-8"));
-            Matcher m = Pattern.compile("SteamPath\\s+REG_SZ\\s+(.+)").matcher(s);
-            return m.find() ? m.group(1).trim() : null;
-        } catch (Throwable t) {
-            return null;
-        }
     }
 
     // ------------------------------------------------------------------ files

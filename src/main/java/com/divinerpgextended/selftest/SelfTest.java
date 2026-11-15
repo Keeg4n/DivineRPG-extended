@@ -6263,7 +6263,15 @@ public class SelfTest {
             boolean plainStruck = MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.EntityStruckByLightningEvent(plainSword, bolt));
             boolean musou = struck && com.divinerpgextended.easter.Easter.musou(ms) && (net.minecraft.util.EnumChatFormatting.RESET + com.divinerpgextended.easter.Easter.MUSOU_NAME).equals(ms.getDisplayName()) && ser.isImmuneToFire()
                 && !plainStruck && ms.getItem() == net.divinerpg.utils.items.ArcanaItems.stormSword && ms.getItem() instanceof net.minecraft.item.ItemSword;
-            // sounds from Valve games: if the games are installed (on this machine - /mnt/d/SteamLibrary), events are collected, WAV - mono 16 bit
+            // nothing on the computer is searched on its own: without a configured library the games are not found
+            String pathWas = com.divinerpgextended.Config.halfLifePath;
+            com.divinerpgextended.Config.halfLifePath = "";
+            com.divinerpgextended.easter.HalfLifeMount.reset();
+            boolean noScan = System.getProperty("dre.steamLibrary") != null
+                || com.divinerpgextended.easter.HalfLifeMount.halfLife() == null && com.divinerpgextended.easter.HalfLifeMount.halfLife2() == null;
+            // with the library listed in the setting (on this machine - /mnt/d/SteamLibrary) events are collected, WAV - mono 16 bit
+            if (new java.io.File("/mnt/d/SteamLibrary").isDirectory()) com.divinerpgextended.Config.halfLifePath = "/mnt/d/SteamLibrary";
+            com.divinerpgextended.easter.HalfLifeMount.reset();
             java.io.File hl1 = com.divinerpgextended.easter.HalfLifeMount.halfLife(), hl2 = com.divinerpgextended.easter.HalfLifeMount.halfLife2();
             int events = 0;
             for (String[][] v : com.divinerpgextended.easter.HalfLifeMount.EVENTS.values()) {
@@ -6275,6 +6283,9 @@ public class SelfTest {
             byte[] cbar = com.divinerpgextended.easter.HalfLifeMount.wav("hl1/weapons/cbar_hit1"), sprint = com.divinerpgextended.easter.HalfLifeMount.wav("hl2/player/suit_sprint");
             boolean wavOk = cbar == null || (cbar[22] == 1 && cbar[34] == 16 && cbar.length > 1000);
             boolean sounds = (hl1 == null || cbar != null && wavOk && events >= 15) && (hl2 == null || sprint != null && sprint[22] == 1);
+            com.divinerpgextended.Config.halfLifePath = pathWas;
+            com.divinerpgextended.easter.HalfLifeMount.reset();
+            check(noScan, "the games were found without a configured Steam library - the mod searched the computer on its own");
             check(names && logon && once && morphine && cooldown && fracture && placed && halves && sits && gone && style && meshes && sounds && musou,
                 "names " + names + ", logon " + logon + " (once " + once + "), morphine " + morphine + ", cooldown " + cooldown + ", fracture " + fracture
                     + "; couch placed " + placed + ", both halves " + halves + ", sat and stood up " + sits + ", broke one half - the whole thing vanished " + gone + "; chat " + hp.chat
@@ -11616,7 +11627,7 @@ public class SelfTest {
                 int[] lb = com.divinerpgextended.boss.BossArena.bounds(lich);
                 boolean inherits = lb[0] == x0 && lb[2] == z0 && lb[3] == 20 && lich.getEntityData().getBoolean(com.divinerpgextended.boss.BossArena.ON);
 
-                // 0 - at once, like Gaia; -1 - never; creative mode does not start the fight
+                // 0 - at once; -1 - never; creative mode does not start the fight
                 com.divinerpgextended.Config.bossArenaLeaveSeconds = 0;
                 f.setPosition(x0 + 60.5, y0 + 1, z0 + 0.5);
                 com.divinerpgextended.boss.BossArena.tick(host);
@@ -11643,7 +11654,7 @@ public class SelfTest {
                 for (net.minecraft.entity.EntityLiving m : made) m.setDead();
             }
         });
-        t("Lairs", "Summoning a boss outside a lair - only on a free site, like the Gaia Guardian", () -> {
+        t("Lairs", "Summoning a boss outside a lair - only on a free site", () -> {
             com.divinerpgextended.world.CadillionWorld cw = com.divinerpgextended.world.CadillionWorld.byMeta(0);
             WorldServer w = server.worldServerForDimension(cw.dimension());
             int x0 = 9300, y0 = 200, z0 = 9300;
@@ -14805,7 +14816,7 @@ public class SelfTest {
             return "the horde circles under the addon's control and teleports only over the island; red hits x1.5 (red End armor removes it), blue deflects arrows "
                 + "(blue pierces); color armor +50% against its own Ayeraco, gray +10%; full set: a step of " + f((float) moved) + " blocks for 25 arcana, not into the void, rescue from the void";
         });
-        t("Lairs", "Ayeraco horde like the Hydra: approach in turns, fire breath, lobbed projectile, beams cleared", () -> {
+        t("Lairs", "Ayeraco horde: approach in turns, fire breath, lobbed projectile, beams cleared", () -> {
             int type = com.divinerpgextended.world.WorldGenOuterLairs.AYERACO;
             WorldServer w = server.worldServerForDimension(1);
             int[] c = com.divinerpgextended.world.WorldGenOuterLairs.nearest(w.getSeed(), type, 0, 0);

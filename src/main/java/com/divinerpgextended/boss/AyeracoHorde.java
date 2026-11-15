@@ -33,7 +33,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * The Ayeraco aerie horde (far End island) - a fight like the Hydra of the Twilight Forest: five dragons circle in a wide
+ * The Ayeraco aerie horde (far End island) - five dragons circle in a wide
  * circle high above the island and swoop at the player in turn. A swooping one stays near for {@link #ENGAGE_TICKS} ticks,
  * circling the target, and attacks:
  * <ul>

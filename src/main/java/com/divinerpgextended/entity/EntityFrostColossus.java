@@ -444,7 +444,7 @@ public class EntityFrostColossus extends EntityMob implements IBossDisplayData {
         }
     }
 
-    /** Trail of spikes toward the player (like the ice bosses of Terraria): crawls along the ground for 30 blocks. */
+    /** Trail of spikes toward the player: crawls along the ground for 30 blocks. */
     private void tickLines() {
         for (Iterator<double[]> it = lines.iterator(); it.hasNext();) {
             double[] l = it.next();

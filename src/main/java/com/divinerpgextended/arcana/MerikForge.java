@@ -167,7 +167,7 @@ public class MerikForge {
         return n.contains("Glacon") || n.contains("Frost") || n.contains("Lich") || n.contains("Snow") || n.contains("Ice");
     }
 
-    /** Tooltip: the property in the name (as in Terraria) and what it does. */
+    /** Tooltip: the property in the name and what it does. */
     @SubscribeEvent
     public void onTooltip(ItemTooltipEvent e) {
         Reforge r = Reforge.of(e.itemStack);

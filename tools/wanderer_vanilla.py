@@ -6,7 +6,7 @@ the face normal and takes the color of the first part of the look with the same 
 transparent if less than half is covered). Protruding details (horns, halo, wings) land on the face by projection.
 UV layout as in ModelBox (the vertex order of meshkit faces matches TexturedQuad).
 
-Run: python3 tools/wanderer_vanilla.py [tier ...]. Writes to tools/concepts/wanderer_concepts/vanilla.
+Run: python3 tools/wanderer_vanilla.py [tier ...]. Writes to wanderer_concepts/vanilla in the concept library (outside the repository, $DRE_CONCEPTS or ~/mc/dre-concepts).
 """
 import math
 import os
@@ -16,14 +16,14 @@ import numpy as np
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, 'concepts'))
+sys.path.insert(0, os.environ.get('DRE_CONCEPTS', os.path.expanduser('~/mc/dre-concepts')))
 sys.path.insert(0, HERE)
 
 import meshkit as mk  # noqa: E402
 import wconcepts as w  # noqa: E402
 from wanderer_armor import TIERS, slot  # noqa: E402
 
-OUT = os.path.join(HERE, 'concepts', 'wanderer_concepts', 'vanilla')
+OUT = os.path.join(os.environ.get('DRE_CONCEPTS', os.path.expanduser('~/mc/dre-concepts')), 'wanderer_concepts', 'vanilla')
 SS = 4  # rays per pixel along each axis
 
 # (layer, bone, armor part, texture offset, sizes w h d, ModelBiped box angle, inflation)

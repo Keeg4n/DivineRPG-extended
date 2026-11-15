@@ -21,7 +21,7 @@ import net.minecraft.item.ItemStack;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * What is caught. As in Terraria: fishing power (rod + bait) shortens the wait and raises the chance of a rare catch and
+ * What is caught. Fishing power (rod + bait) shortens the wait and raises the chance of a rare catch and
  * crates; the tables depend on the place (zones). Without bait - only regular fish and junk.
  */
 public final class FishingLoot {

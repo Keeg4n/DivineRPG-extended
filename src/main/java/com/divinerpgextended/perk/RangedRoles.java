@@ -37,7 +37,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * <li>slicer - ricochets up to {@link #RICOCHET} targets in a row, cuts the golem's vine, interrupts the Warrior King's swing and
  * charges Wind Totems from afar (like snowballs on dragon crystals).</li>
  * </ul>
- * Quiver accessories (as in Terraria; they drop from shooters - {@link #DROP_CHANCE}: archers - a quiver (the Eternal Archer - always), mage - a pouch, sorcerer -
+ * Quiver accessories (they drop from shooters - {@link #DROP_CHANCE}: archers - a quiver (the Eternal Archer - always), mage - a pouch, sorcerer -
  * a sling): the Bottomless Quiver - infinite arrows for bows (the bow draws and fires without arrows, putting nothing in the
  * inventory; the client learns about the quiver from {@link QuiverSync}) and +10% arrow damage; the Dust Pouch - +15% damage for the blitz and
  * phaser (they are infinite anyway); the Thrower's Sling - the slicer returns to the hand, +1 ricochet target.

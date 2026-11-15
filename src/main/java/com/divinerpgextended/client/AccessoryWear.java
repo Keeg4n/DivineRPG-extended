@@ -24,7 +24,7 @@ import com.divinerpgextended.trinket.ItemTrinket;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /**
- * Accessories are visible on the body, like Botania's baubles: items from the sockets of worn armor are drawn over the player model (and other
+ * Accessories are visible on the body: items from the sockets of worn armor are drawn over the player model (and other
  * players - armor with sockets reaches the client together with its NBT). The fit is {@link WearData}: for each bone the profile of the
  * armor piece that covers it is used (head - helmet, torso and arms - chestplate, legs - boots, otherwise leggings): the Wanderer look, other
  * armor or no armor. The bone faces are compiled into an OpenGL list once.

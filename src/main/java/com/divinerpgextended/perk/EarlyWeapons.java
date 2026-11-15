@@ -192,7 +192,7 @@ public class EarlyWeapons {
 
     /**
      * Bows with accelerated draw (and the Shadow Bow) fire by themselves while right-click is held: a shot at every full draw and
-     * a new draw at once, like Thaumcraft's Bone Bow. The shot is the server's; the client restarts the draw at the same moment, so
+     * a new draw at once. The shot is the server's; the client restarts the draw at the same moment, so
      * the bow in hand visibly pulls again after every shot instead of staying fully drawn.
      */
     @SubscribeEvent

@@ -7,10 +7,10 @@ An add-on for [DivineRPG](https://modrinth.com/mod/divinerpg) 1.4.2.3 for Minecr
 - **Boss progression.** New early-game bosses (Carcinus, Snow Glacon, Frost Colossus and the Lich King) with their own lairs. Spawn ranks: DivineRPG mobs start appearing as you defeat bosses (`/drerank` shows the ranks of online players). Only players who have killed The Watcher can enter Arcana.
 - **Wanderer armor.** A single armor set is tempered by every dimension (R1-R8) at the Wanderer's Anvil; DivineRPG armor sets become perk donors.
 - **Iceika.** Cold, blizzards, the Frozen Throne, Rime Ore.
-- **Terraria-style fishing.** 12 fishing rods, baits, zones, crates, Leorna's quests, relics.
+- **Fishing.** 12 fishing rods, baits, zones, crates, Leorna's quests, relics.
 - **Arcana merchants.** They arrive as you progress and can be called with the Memory Crystal. Captain Merik reforges weapons, the War General has the Hall of Fame and orders, Lord Vatticus has a handbook and arcana research, Datticon gives furnace roles, Zelus trains pets.
 - **Jack o'Man and the Livestock Merchant.** Night trading by stage, accessories made from mob heads, skills for Overworld pets, pet carrying.
-- **Accessory slots** like in Terraria, unlocked by bosses.
+- **Accessory slots**, unlocked by bosses.
 - **NEI integration** (fishing, crate and merchant tabs) and a creative tab of its own.
 
 ## Installation

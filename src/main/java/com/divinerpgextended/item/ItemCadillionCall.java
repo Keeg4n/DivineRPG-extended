@@ -67,7 +67,7 @@ public class ItemCadillionCall extends Item {
             player.addChatMessage(new ChatComponentTranslation("dre.chat.call_no_space"));
             return true;
         }
-        if (!com.divinerpgextended.boss.BossArena.clearField(world, x, y + 1, z)) { // outside the nest - a glade is needed, as with Gaia
+        if (!com.divinerpgextended.boss.BossArena.clearField(world, x, y + 1, z)) { // outside the nest - a free glade is needed
             player.addChatMessage(new ChatComponentTranslation("dre.chat.summon_space", com.divinerpgextended.Config.bossSummonClearRadius));
             return true;
         }

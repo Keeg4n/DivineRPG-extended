@@ -31,14 +31,14 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Boss arena - like the Guardian of Gaia in Botania:
+ * Boss arena:
  * <ul>
  * <li>A summon outside a lair - only on a flat free area ({@link #clearField}); in a lair the place is set by the structure,
  * we only check that the boss spawn point has not been built over ({@link #roomFor}).</li>
  * <li>Fighters are players (not in creative mode) who have been in the arena while the boss is alive. At the arena edge a fighter is pushed
  * back to the center ({@link Config#bossArenaHold}); teleport, death, leaving the game - leaving the arena.</li>
  * <li>No fighters left in the arena - the boss waits {@link Config#bossArenaLeaveSeconds} seconds and vanishes without trophies
- * (0 - at once, like Gaia; -1 - does not vanish). Someone came back - the wait resets. The leave time is stored in the boss,
+ * (0 - at once; -1 - does not vanish). Someone came back - the wait resets. The leave time is stored in the boss,
  * so leaving until the chunk unloads and coming back later does not work either.</li>
  * </ul>
  * The arena is the lair leash ({@link LairSummons#home}) with a margin {@link #MARGIN}, otherwise a circle of {@link Config#bossArenaRadius}
@@ -273,7 +273,7 @@ public class BossArena {
         return all == 0 ? 0 : (double) busy / all;
     }
 
-    /** Summon outside a lair: around the point (floor - y) there is a flat free area, like Gaia's. */
+    /** Summon outside a lair: around the point (floor - y) there is a flat free area. */
     public static boolean clearField(World w, int x, int y, int z) {
         return Config.bossSummonClearRadius <= 0 || clutter(w, x, y, z, Config.bossSummonClearRadius) <= FIELD_CLUTTER;
     }

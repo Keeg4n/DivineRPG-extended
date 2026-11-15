@@ -1,8 +1,8 @@
-"""Wanderer armor looks for the game: a tier concept (tools/concepts) -> mesh, atlas and glow mask. Part icons - tools/wanderer_icons.py.
+"""Wanderer armor looks for the game: a tier concept -> mesh, atlas and glow mask. Part icons - tools/wanderer_icons.py.
 
-Tier -> concept (fifth round, concepts/wslim5.py, proportions as in Botania armor): R1 divine with a shield on the back,
+Tier -> concept (fifth round, wslim5.py, slim proportions): R1 divine with a shield on the back,
 R2 petals and halo, R3 wooden plate with a plus-shaped slit and a staff, R4 feather headdress and beads, R5 closed helmet and wings,
-R6 cultist hood and a bone spine, R7 chlorophyte. The look of the first tier depends on the core (concepts/wr1.py): r1_shadow,
+R6 deep hood and a bone spine, R7 green crystal plates. The look of the first tier depends on the core (wr1.py): r1_shadow,
 r1_bedrock, r1_ender, r1_corrupted. Boxes are split by armor part, as in the H.E.V. suit:
 helmet - everything on the head, chest - torso and arms, legs - belt and thighs (on the body - below y=9), boots - shins below y=6.5.
 Glowing texels (alpha 0.6 in the concept atlas) go into a separate mask r<N>_glow.png: in the game it is drawn in a second
@@ -21,7 +21,7 @@ import numpy as np
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, 'concepts'))
+sys.path.insert(0, os.environ.get('DRE_CONCEPTS', os.path.expanduser('~/mc/dre-concepts')))  # the concept library is kept outside the repository
 
 import meshkit as mk  # noqa: E402
 import wconcepts as w  # noqa: E402

@@ -32,7 +32,7 @@ public class Config {
     public static int blitzDustPerShot = 5;
     /** The ammo reserve digit on the ranged weapon icon in the inventory (client). */
     public static boolean ammoCountOnIcon = true;
-    /** Accessories from armor sockets are visible on the body (like Botania baubles). */
+    /** Accessories from armor sockets are visible on the body. */
     public static boolean accessoriesOnBody = true;
     /** Antidote (jungle set, perk "Poison Resistance"): how many times faster bad effects pass. */
     public static double jungleDebuffSpeed = 2.0;
@@ -347,17 +347,17 @@ public class Config {
         bossNoFly = cfg.getBoolean("bossNoFly", b, bossNoFly,
             "Near a living boss (48 blocks) flying is disabled - except for Skythern and creative mode. false - flying is allowed");
         bossArenaLeaveSeconds = cfg.getInt("bossArenaLeaveSeconds", b, bossArenaLeaveSeconds, -1, 3600,
-            "Boss arena: if no fighters are left on it (left, teleported, died, logged out), the boss waits this many seconds and disappears without trophies. If even one returns, the wait starts over. 0 - disappears immediately, like the Gaia Guardian in Botania; -1 - never disappears");
+            "Boss arena: if no fighters are left on it (left, teleported, died, logged out), the boss waits this many seconds and disappears without trophies. If even one returns, the wait starts over. 0 - disappears immediately; -1 - never disappears");
         easterEggs = cfg.getBoolean("easterEggs", b, easterEggs,
-            "Easter eggs: realmite armor named H.E.V - Half-Life suit (model, voice, sounds), realmite sword crowbar - crowbar, Merik's rocket launcher rpg - RPG-7, a couch with an RPG in the underground jungle city. false - disabled: items are ordinary, the couch is not placed in new chunks. The server's setting applies to all players");
+            "Easter eggs: a few renamed items get their own look, and a special couch appears in new chunks. false - disabled: items are ordinary, the couch is not placed. The server's setting applies to all players");
         halfLifePath = cfg.getString("halfLifePath", b, halfLifePath,
-            "H.E.V. easter egg: sounds are taken directly from installed Half-Life and Half-Life 2 (they are not part of the mod). Usually the games are found automatically (Steam and its libraries); if not - the path to the Steam library containing steamapps (several - separated by ;), e.g. D:/SteamLibrary");
+            "Easter egg sounds: the mod reads them only from the Steam library folders listed here (the folder that contains steamapps; several - separated by ;), e.g. D:/SteamLibrary. Nothing is searched on its own. Empty - no such sounds");
         bossArenaHold = cfg.getBoolean("bossArenaHold", b, bossArenaHold,
             "While the boss is alive, a fighter at the arena edge is pushed back to the center (the only way out is teleport). false - leaving is allowed, only the bossArenaLeaveSeconds rule remains");
         bossArenaRadius = cfg.getInt("bossArenaRadius", b, bossArenaRadius, 8, 128,
             "Radius of a boss arena for a boss summoned outside an addon lair (Arcana, Vethea, summoned anywhere); for lairs the arena is their hall, for the Frozen Throne - the dome up to the ring of pylons (80)");
         bossSummonClearRadius = cfg.getInt("bossSummonClearRadius", b, bossSummonClearRadius, 0, 32,
-            "Boss summon outside a lair (summonOnlyInLairs=false, lairs disabled): within this radius around the summon point, 4 blocks up must be empty, like for the Gaia Guardian (up to 10% of columns may be occupied). 0 - no check. In a lair only the boss spawn spot is checked to not be built over");
+            "Boss summon outside a lair (summonOnlyInLairs=false, lairs disabled): within this radius around the summon point, 4 blocks up must be empty (up to 10% of columns may be occupied). 0 - no check. In a lair only the boss spawn spot is checked to not be built over");
         summonOnlyInLairs = cfg.getBoolean("summonOnlyInLairs", b, summonOnlyInLairs,
             "Bosses can be summoned only in their lairs: Cadillion call - at the nest altar, Mortum crystals - in the Demonic Circle, Mysterious Clock - at the tomb altar. false - anywhere, as in Divine");
         worldCrafts = cfg.getBoolean("worldCrafts", b, worldCrafts,

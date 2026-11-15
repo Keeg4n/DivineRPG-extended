@@ -9,7 +9,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 
 /**
- * Reforge properties at Captain Merik (like Terraria modifiers). Only for Divine swords. There are bad ones (a risk when
+ * Reforge properties at Captain Merik. Only for Divine swords. There are bad ones (a risk when
  * reforging), common good ones, a weapon world property (drops only for a sword of that world) and a rare Legendary one.
  */
 public enum Reforge {

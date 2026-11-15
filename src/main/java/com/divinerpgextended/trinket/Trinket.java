@@ -10,7 +10,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
 /**
- * Accessories (slots like in Terraria). The number in the list = the item's metadata: add new ones only at the end.
+ * Accessories. The number in the list = the item's metadata: add new ones only at the end.
  * <ul>
  * <li>the first five are made by Jack O Man to order from mob heads (heads: 0 skeleton, 1 wither skeleton, 2 zombie, 4 creeper);</li>
  * <li>then - from bosses, from merchants and from chests;</li>
@@ -45,7 +45,7 @@ public enum Trinket {
     MAGIC_CARPET,
     /** Dream Wings (Vethea only): takeoff and passage to floors 2, 3, 4. Crafted from pearl and floor ingots. */
     DREAM_WINGS_1, DREAM_WINGS_2, DREAM_WINGS_3,
-    /** Quivers (like in Terraria), crafted from Eden materials: infinite ammo only for their own weapon kind. */
+    /** Quivers, crafted from Eden materials: infinite ammo only for their own weapon kind. */
     ENDLESS_QUIVER, DUST_POUCH, SLICER_SLING,
     /** Hunter's marks - for closed bestiary chapters (from the Livestock Merchant): stronger in their own world ({@link com.divinerpgextended.bestiary.Bestiary}). */
     HUNTER_OVERWORLD, HUNTER_NETHER, HUNTER_END, HUNTER_ICEIKA, HUNTER_EDEN, HUNTER_WILDWOOD, HUNTER_APALACHIA, HUNTER_SKYTHERN, HUNTER_MORTUM,

@@ -10,7 +10,7 @@ OUT = O + '/divinerpgextended/derived_textures.txt'
 ORIG = 'orig_derived'  # saved images of ours (removed from the jar)
 
 OWN_ART = ('spiritSpark_', 'worldSpirit_', 'mortumTrophy_twins',
-           # since 0.99.108 our own icons from the accessory concepts (tools/concepts/acc_export.py)
+           # since 0.99.108 our own icons from the accessory concepts (the accessory concept export)
            'trinket_arcane_ward', 'trinket_clarity_crystal')
 # if the source is different (another DivineRPG version): recolor the fallback by palette
 FALLBACK = {'divinerpgextended/textures/items/haliteMultitool.png': ['divinerpg/textures/items/divineShickaxe.png'],

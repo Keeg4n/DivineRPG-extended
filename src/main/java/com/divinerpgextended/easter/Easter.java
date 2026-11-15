@@ -20,7 +20,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Easter eggs (like Excalibur in Botania - a renamed item changes only the look): the item stays the same Divine item
+ * Easter eggs (a renamed item changes only the look): the item stays the same Divine item
  * with all its properties, the look and sounds follow the name given on the anvil.
  * <ul>
  * <li>Realmite armor named "H.E.V" - the H.E.V. suit from Half-Life: its own model (the helmet has two looks - the Mark IV helmet or

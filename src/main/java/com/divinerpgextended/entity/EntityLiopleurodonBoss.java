@@ -23,7 +23,7 @@ import com.divinerpgextended.Config;
 import com.divinerpgextended.registry.ModItems;
 
 /**
- * Liopleurodon, the fish boss (modeled on Duke Fishron from Terraria): optional, between Apalachia and Skythern. Summoned with
+ * Liopleurodon, the fish boss: optional, between Apalachia and Skythern. Summoned with
  * Bloody Bait in the ocean of the Overworld ({@link com.divinerpgextended.fishing.EntityDreHook}). Swims without gravity, helpless
  * on land.
  * <ul>
