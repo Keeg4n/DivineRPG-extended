@@ -306,13 +306,17 @@ public class AnchorSummons {
         summon(p, k);
     }
 
-    /** The owner hits - the summons go to the same target. */
+    /** The owner hits - the summons go to the same target; the owner is hit - they go at the attacker. */
     @SubscribeEvent
     public void onAttack(LivingAttackEvent e) {
         if (e.entityLiving.worldObj.isRemote) return;
         Entity a = e.source.getEntity();
         if (a instanceof EntityPlayer && LIVE.containsKey(a.getUniqueID())
             && (!(e.entityLiving instanceof EntityPlayer) || !com.divinerpgextended.perk.Protection.spare(a, e.entityLiving))) mark((EntityPlayer) a, e.entityLiving); // a player - where PvP is allowed
+        // someone hits the owner - the summons go at the attacker (many mobs use the old AI and never announce their target);
+        // a projectile counts by its shooter, a player only where PvP is allowed
+        if (e.entityLiving instanceof EntityPlayer && a instanceof net.minecraft.entity.EntityLivingBase && a != e.entityLiving && LIVE.containsKey(e.entityLiving.getUniqueID())
+            && !(a instanceof EntityPlayer && com.divinerpgextended.perk.Protection.spare(a, e.entityLiving))) mark((EntityPlayer) e.entityLiving, a);
     }
 
     /** The owner has been targeted - the summons go at this enemy (if the owner is not hitting anyone himself). */

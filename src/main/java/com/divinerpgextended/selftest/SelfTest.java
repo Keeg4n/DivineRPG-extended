@@ -4144,8 +4144,19 @@ public class SelfTest {
                 c2.setPosition(sp.posX + 10, sp.posY, sp.posZ);
                 int called = com.divinerpgextended.item.ItemPetWhistle.call(sp);
                 boolean near = c2.getDistanceToEntity(sp) < 3;
+                // a zombie hits the owner - the summons take it as their target (old-AI mobs never announce a target)
+                net.minecraft.entity.monster.EntityZombie zb = new net.minecraft.entity.monster.EntityZombie(w);
+                zb.setPosition(sp.posX + 3, sp.posY, sp.posZ);
+                w.spawnEntityInWorld(zb);
+                sp.hurtResistantTime = 0;
+                sp.attackEntityFrom(net.minecraft.util.DamageSource.causeMobDamage(zb), 1F);
+                java.lang.reflect.Method tm = com.divinerpgextended.magic.AnchorSummons.class.getDeclaredMethod("target", EntityPlayer.class);
+                tm.setAccessible(true);
+                boolean defends = tm.invoke(null, sp) == zb;
+                zb.setDead();
                 ok = crabsAfterGhost == 0 && ghosts == 1 && crabsAfterSlime == 0 && slimes == 1 && ghostsAfter == 0 && kormaCap == 3 && strangerKept && ownerDismissed && pet
-                    && called >= 1 && near;
+                    && called >= 1 && near && defends;
+                rep.append("; a zombie hit the owner - target of the summons ").append(defends).append(" ");
                 rep.append("2 crabs, then a ghost: crabs ").append(crabsAfterGhost).append(", ghosts ").append(ghosts).append("; then a slime: crabs ").append(crabsAfterSlime)
                     .append(", slimes ").append(slimes).append(", ghosts ").append(ghostsAfter).append("; with Korma crabs up to ").append(kormaCap).append("; right click by a stranger ").append(strangerKept)
                     .append(", owner ").append(ownerDismissed).append("; whistle: pet ").append(pet).append(", called ").append(called).append(", nearby ").append(near);
