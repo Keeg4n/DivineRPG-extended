@@ -15586,6 +15586,104 @@ public class SelfTest {
             check(ok, rep.toString());
             return rep.toString();
         });
+        t("Liopleurodon", "Scorcher Brand and Ayeraco Prism: recipes, scorcher sets on fire, Ayeraco blinks to the target, scale drop", () -> {
+            WorldServer w = ow;
+            double px = sx + 330.5, py = 200, pz = sz + 0.5;
+            loadAround(w, (int) px, (int) pz, 2);
+            TestPlayer ap = join(player(0, "TestSummonNew", px, py, pz), true);
+            ap.theItemInWorldManager.setGameType(net.minecraft.world.WorldSettings.GameType.SURVIVAL);
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            EntityZombie z = new EntityZombie(w);
+            try {
+                boolean brandRecipe = false, prismRecipe = false;
+                for (Object ro : net.minecraft.item.crafting.CraftingManager.getInstance().getRecipeList()) {
+                    ItemStack out = ((net.minecraft.item.crafting.IRecipe) ro).getRecipeOutput();
+                    if (out == null) continue;
+                    brandRecipe |= out.getItem() == com.divinerpgextended.registry.ModItems.scorcherBrand;
+                    prismRecipe |= out.getItem() == com.divinerpgextended.registry.ModItems.ayeracoPrism;
+                }
+                // the brand from Fury Fire, the prism from the six Ender swords around a scale
+                net.minecraft.inventory.InventoryCrafting grid = new net.minecraft.inventory.InventoryCrafting(new net.minecraft.inventory.Container() {
+                    @Override
+                    public boolean canInteractWith(net.minecraft.entity.player.EntityPlayer pl) {
+                        return true;
+                    }
+                }, 3, 3);
+                Item[] prism = { VanillaItemsWeapons.redEnderSword, VanillaItemsWeapons.yellowEnderSword, VanillaItemsWeapons.greenEnderSword,
+                    VanillaItemsWeapons.blueEnderSword, com.divinerpgextended.registry.ModItems.ayeracoScale, VanillaItemsWeapons.enderSword,
+                    net.minecraft.init.Items.ender_eye, VanillaItemsWeapons.grayEnderSword, net.minecraft.init.Items.ender_eye };
+                for (int n = 0; n < 9; n++) grid.setInventorySlotContents(n, new ItemStack(prism[n]));
+                ItemStack crafted = net.minecraft.item.crafting.CraftingManager.getInstance().findMatchingRecipe(grid, w);
+                boolean prismCrafts = crafted != null && crafted.getItem() == com.divinerpgextended.registry.ModItems.ayeracoPrism;
+                boolean kinds = com.divinerpgextended.magic.AnchorSummons.kind(com.divinerpgextended.registry.ModItems.scorcherBrand) == com.divinerpgextended.magic.AnchorSummons.Kind.SCORCHER
+                    && com.divinerpgextended.magic.AnchorSummons.kind(com.divinerpgextended.registry.ModItems.ayeracoPrism) == com.divinerpgextended.magic.AnchorSummons.Kind.AYERACO;
+                ok &= brandRecipe && prismRecipe && prismCrafts && kinds;
+                rep.append("recipes: brand ").append(brandRecipe).append(", prism ").append(prismRecipe).append(" (crafts from the swords ").append(prismCrafts)
+                    .append("), items summon their kinds ").append(kinds);
+                ArcanaHelper ah = ArcanaHelper.getProperties(ap);
+                ah.setBarValue(200);
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
+                // right click into the air with the brand - a scorcher
+                hold(ap, new ItemStack(com.divinerpgextended.registry.ModItems.scorcherBrand));
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerInteractEvent(ap,
+                    net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR, 0, 0, 0, -1, w));
+                int scorchers = com.divinerpgextended.magic.AnchorSummons.count(ap, com.divinerpgextended.magic.AnchorSummons.Kind.SCORCHER);
+                ok &= scorchers == 1;
+                rep.append("; brand click: scorchers ").append(scorchers);
+                z.setLocationAndAngles(px + 3, py, pz, 0, 0);
+                w.spawnEntityInWorld(z);
+                z.getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(100000);
+                z.setHealth(z.getMaxHealth());
+                z.extinguish();
+                net.minecraft.entity.EntityLiving sc = (net.minecraft.entity.EntityLiving) w.getEntitiesWithinAABB(com.divinerpgextended.magic.EntitySummonScorcher.class, ap.boundingBox.expand(4, 4, 4)).get(0);
+                com.divinerpgextended.magic.AnchorSummons.mark(ap, z);
+                sc.setPosition(z.posX + 1.0, z.posY, z.posZ);
+                for (int n = 0; n < 20; n++) sc.onUpdate();
+                boolean burns = z.isBurning(), immune = sc.isImmuneToFire();
+                ok &= burns && immune;
+                rep.append("; scorcher hit: target burns ").append(burns).append(", scorcher fire immune ").append(immune);
+                // the Ayeraco far from its target - a blink right next to it
+                z.extinguish();
+                z.setPosition(px + 10, py, pz);
+                net.minecraft.entity.EntityLiving ay = com.divinerpgextended.magic.AnchorSummons.summon(ap, com.divinerpgextended.magic.AnchorSummons.Kind.AYERACO);
+                int left = com.divinerpgextended.magic.AnchorSummons.count(ap, com.divinerpgextended.magic.AnchorSummons.Kind.SCORCHER);
+                ay.setPosition(px - 1, py + 1.5, pz);
+                com.divinerpgextended.magic.AnchorSummons.mark(ap, z);
+                double before = ay.getDistanceToEntity(z), after = before;
+                int ticks = 0;
+                for (; ticks < 5 && after > 3; ticks++) {
+                    ay.onUpdate();
+                    after = ay.getDistanceToEntity(z);
+                }
+                boolean blinked = before > 8 && after < 3;
+                int h0 = com.divinerpgextended.magic.EntitySummonAyeraco.hue(ay, 0);
+                ay.ticksExisted += com.divinerpgextended.magic.EntitySummonAyeraco.HUE_TICKS;
+                boolean shifts = com.divinerpgextended.magic.EntitySummonAyeraco.hue(ay, 0) != h0;
+                ok &= blinked && shifts && left == 0;
+                rep.append("; Ayeraco: from ").append(f((float) before)).append(" to ").append(f((float) after)).append(" blocks in ").append(ticks)
+                    .append(" ticks, color shifts ").append(shifts).append(", scorchers left on the Ayeraco call ").append(left);
+                // a player's kill of an Ayeraco - a scale; no player - none
+                net.divinerpg.entities.vanilla.EntityAyeracoPurple dragon = new net.divinerpg.entities.vanilla.EntityAyeracoPurple(w);
+                dragon.setPosition(px, py, pz);
+                int[] got = new int[2];
+                for (int n = 0; n < 2; n++) {
+                    java.util.ArrayList<net.minecraft.entity.item.EntityItem> drops = new java.util.ArrayList<net.minecraft.entity.item.EntityItem>();
+                    MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(dragon, DamageSource.causePlayerDamage(ap), drops, 0, n == 0, 0));
+                    for (net.minecraft.entity.item.EntityItem it : drops) if (it.getEntityItem().getItem() == com.divinerpgextended.registry.ModItems.ayeracoScale) got[n]++;
+                }
+                ok &= got[0] == 1 && got[1] == 0;
+                rep.append("; scales from an Ayeraco: by a player ").append(got[0]).append(", without ").append(got[1]);
+            } finally {
+                com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
+                z.setDead();
+                hold(ap, null);
+                server.getConfigurationManager().playerEntityList.remove(ap);
+                w.removeEntity(ap);
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
         t("Overworld weapons", "Throwing weapon stacks up to 256", () -> {
             WorldServer w = ow;
             TestPlayer tp = player(0, "TestThrowStack", sx + 0.5, sy + 1, sz + 0.5);
@@ -16082,11 +16180,11 @@ public class SelfTest {
             }
             for (com.divinerpgextended.halite.Halite.Trophy tr : com.divinerpgextended.halite.Halite.Trophy.values()) need.add("mortumTrophy_" + tr.key());
             for (int tier = 1; tier <= com.divinerpgextended.item.ItemWandererClock.MAX_TIER; tier++) need.add("wanderer_clock_" + tier);
-            for (String n : new String[] { "deep_shell", "frozenHeart", "throneShard", "watcherEye", "dreamItem_lunar_shard" }) need.add(n);
+            for (String n : new String[] { "deep_shell", "frozenHeart", "throneShard", "watcherEye", "dreamItem_lunar_shard", "scorcherBrand", "ayeracoPrism", "ayeracoScale" }) need.add(n);
             List<String> missing = new ArrayList<String>();
             for (String n : need) if (SelfTest.class.getResource("/assets/divinerpgextended/textures/items/" + n + ".png") == null) missing.add(n);
             check(missing.isEmpty(), "no images: " + missing);
-            return need.size() + " icons in place: 15 mob materials, guardian hearts and time gears per world, 6 Mortum trophies, Shell of the Deep, Frozen Heart, Frozen Throne Shard, Eye of the Watcher, Lunar Shard, clock I-V";
+            return need.size() + " icons in place: 15 mob materials, guardian hearts and time gears per world, 6 Mortum trophies, Shell of the Deep, Frozen Heart, Frozen Throne Shard, Eye of the Watcher, Lunar Shard, Scorcher Brand, Ayeraco Prism and Scale, clock I-V";
         });
     }
 

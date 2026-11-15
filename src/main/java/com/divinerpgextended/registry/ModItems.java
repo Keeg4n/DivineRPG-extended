@@ -50,6 +50,7 @@ public final class ModItems {
     public static Item rimePick;
     public static Item rimeIngot;
     public static Item watcherEye;
+    public static Item scorcherBrand, ayeracoPrism, ayeracoScale;
     public static Item frozenHeart;
     public static Item throneShard;
     public static Item fish;
@@ -121,6 +122,14 @@ public final class ModItems {
         GameRegistry.registerItem(rimeIngot, "rimeIngot");
         watcherEye = new ItemTrophy("dre.watcherEye", "divinerpgextended:watcherEye", "dre.tooltip.watcher_eye", true);
         GameRegistry.registerItem(watcherEye, "watcherEye");
+        scorcherBrand = new Item().setUnlocalizedName("dre.scorcherBrand").setTextureName("divinerpgextended:scorcherBrand").setMaxStackSize(1)
+            .setCreativeTab(com.divinerpgextended.DreTab.TAB).setFull3D();
+        GameRegistry.registerItem(scorcherBrand, "scorcherBrand");
+        ayeracoPrism = new Item().setUnlocalizedName("dre.ayeracoPrism").setTextureName("divinerpgextended:ayeracoPrism").setMaxStackSize(1)
+            .setCreativeTab(com.divinerpgextended.DreTab.TAB).setFull3D();
+        GameRegistry.registerItem(ayeracoPrism, "ayeracoPrism");
+        ayeracoScale = new ItemTrophy("dre.ayeracoScale", "divinerpgextended:ayeracoScale", "dre.tooltip.ayeraco_scale", false);
+        GameRegistry.registerItem(ayeracoScale, "ayeracoScale");
         frozenHeart = new ItemTrophy("dre.frozenHeart", "divinerpgextended:frozenHeart", "dre.tooltip.frozen_heart", true);
         GameRegistry.registerItem(frozenHeart, "frozenHeart");
         throneShard = new ItemTrophy("dre.throneShard", "divinerpgextended:throneShard", "dre.tooltip.throne_shard", false);
@@ -291,6 +300,8 @@ public final class ModItems {
         EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntitySummonShark.class, "SummonShark", 39, DivineRPGExtended.instance, 64, 2, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntitySummonSlime.class, "SummonSlime", 40, DivineRPGExtended.instance, 64, 3, true);
         EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntitySummonEye.class, "SummonEye", 41, DivineRPGExtended.instance, 64, 2, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntitySummonScorcher.class, "SummonScorcher", 42, DivineRPGExtended.instance, 64, 3, true);
+        EntityRegistry.registerModEntity(com.divinerpgextended.magic.EntitySummonAyeraco.class, "SummonAyeraco", 43, DivineRPGExtended.instance, 64, 2, true);
         listForMinimap();
         bossEgg = new com.divinerpgextended.item.ItemBossEgg();
         GameRegistry.registerItem(bossEgg, "bossEgg");

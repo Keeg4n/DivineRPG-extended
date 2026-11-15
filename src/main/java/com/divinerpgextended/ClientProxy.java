@@ -173,11 +173,23 @@ public class ClientProxy extends CommonProxy {
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonShark.class,
             new RenderScaledBoss(new net.divinerpg.client.render.entity.vanilla.model.ModelShark(), 0.6F,
                 new net.minecraft.util.ResourceLocation("divinerpg", "textures/mobs/shark.png"), 0.8F, 0.9F, 1.0F));
-        // the slime of the slime sword is a vanilla slime; the eye of the cyclops rod is a small Divine Watcher, yellow
+        // the slime of the slime sword is a vanilla slime; the eye of the cyclops rod is our own veined eye
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonSlime.class, new com.divinerpgextended.client.RenderSummonSlime());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonEye.class,
-            new RenderScaledBoss(new net.divinerpg.client.render.entity.vanilla.model.ModelWatcher(), 0.7F,
-                new net.minecraft.util.ResourceLocation("divinerpg", "textures/mobs/watcher.png"), 1.0F, 0.95F, 0.6F));
+            new RenderScaledBoss(new com.divinerpgextended.client.ModelSummonEye(), 1.0F,
+                new net.minecraft.util.ResourceLocation("divinerpgextended", "textures/entity/summon_eye.png"), 1.0F, 1.0F, 1.0F));
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonScorcher.class,
+            new RenderScaledBoss(new net.divinerpg.client.render.entity.vanilla.model.ModelScorcher(), 0.6F, EntityResourceLocation.scorcher, 1.0F, 1.0F, 1.0F));
+        // the small Ayeraco goes through the five horde colors
+        final net.minecraft.util.ResourceLocation[] ayeraco = { EntityResourceLocation.ayeraco_Purple, EntityResourceLocation.ayeraco_Blue,
+            EntityResourceLocation.ayeraco_Green, EntityResourceLocation.ayeraco_Yellow, EntityResourceLocation.ayeraco_Red };
+        RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.magic.EntitySummonAyeraco.class,
+            new RenderScaledBoss(new net.divinerpg.client.render.entity.vanilla.model.ModelAyeraco(), 0.45F, ayeraco[0], 1.0F, 1.0F, 1.0F) {
+                @Override
+                protected net.minecraft.util.ResourceLocation getEntityTexture(net.minecraft.entity.Entity e) {
+                    return ayeraco[com.divinerpgextended.magic.EntitySummonAyeraco.hue(e, 0)];
+                }
+            });
         com.divinerpgextended.block.BlockSkyRail.renderId = RenderingRegistry.getNextAvailableRenderId();
         RenderingRegistry.registerBlockHandler(new com.divinerpgextended.client.RenderSkyRail());
         RenderingRegistry.registerEntityRenderingHandler(com.divinerpgextended.fishing.EntityDreHook.class,

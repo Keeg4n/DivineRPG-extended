@@ -53,6 +53,9 @@ public class EntitySummonShark extends EntityLiving implements AnchorSummons.Sum
         return 1.6;
     }
 
+    /** Called every tick while there is a target, before moving (the Ayeraco teleports here). */
+    protected void chase(Entity t, EntityPlayer o) {}
+
     /** No gravity and no ground friction: only its own speed. */
     @Override
     public void moveEntityWithHeading(float strafe, float forward) {
@@ -84,6 +87,7 @@ public class EntitySummonShark extends EntityLiving implements AnchorSummons.Sum
         Entity t = aim.pick(o, AnchorSummons.target(o), kind().aggro);
         double tx, ty, tz, speed;
         if (t != null) {
+            chase(t, o);
             tx = t.posX;
             ty = t.posY + t.height * 0.5;
             tz = t.posZ;

@@ -76,6 +76,7 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcanePhases());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcaneSummons());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.AnchorSummons()); // summon anchors: crab and shark
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.AyeracoScales());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.AquatoothEffects()); // toothed weapons, maul cooldown
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.FrostBite()); // frostbite from ice weapons
         com.divinerpgextended.perk.EarlyWeapons early = new com.divinerpgextended.perk.EarlyWeapons(); // Overworld weapons: roles, serenades, anvil
@@ -492,6 +493,14 @@ public class CommonProxy {
             GameRegistry.addRecipe(new ItemStack(net.divinerpg.utils.blocks.VanillaBlocks.altarOfCorruption), "sss", "dEd", "ddd", 's',
                 VanillaItemsOther.corruptedStone, 'd', net.divinerpg.utils.blocks.VanillaBlocks.darkStone, 'E', ModItems.watcherEye);
         }
+
+        // summoners: the Scorcher Brand from Fury Fire, the Ayeraco Prism from the six Ender swords around an Ayeraco Scale
+        GameRegistry.addRecipe(new ItemStack(ModItems.scorcherBrand), "BMB", "MFM", "BMB", 'B', Items.blaze_rod, 'M', Items.magma_cream, 'F',
+            VanillaItemsOther.furyFire);
+        GameRegistry.addRecipe(new ItemStack(ModItems.ayeracoPrism), "RYG", "BSP", "EAE", 'R', net.divinerpg.utils.items.VanillaItemsWeapons.redEnderSword,
+            'Y', net.divinerpg.utils.items.VanillaItemsWeapons.yellowEnderSword, 'G', net.divinerpg.utils.items.VanillaItemsWeapons.greenEnderSword,
+            'B', net.divinerpg.utils.items.VanillaItemsWeapons.blueEnderSword, 'P', net.divinerpg.utils.items.VanillaItemsWeapons.enderSword,
+            'A', net.divinerpg.utils.items.VanillaItemsWeapons.grayEnderSword, 'S', ModItems.ayeracoScale, 'E', Items.ender_eye);
 
         com.divinerpgextended.world.twilight.TwilightCrafts.postInit();
         com.divinerpgextended.perk.AquatoothEffects.postInit(); // toothed weapon damage, summon anchors without recipes
