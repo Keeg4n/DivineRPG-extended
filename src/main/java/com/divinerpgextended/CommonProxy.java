@@ -77,6 +77,9 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.ArcaneSummons());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.magic.AnchorSummons()); // summon anchors: crab and shark
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.boss.AyeracoScales());
+        com.divinerpgextended.perk.ArrowCleanup arrows = new com.divinerpgextended.perk.ArrowCleanup(); // arrows nobody can pick up vanish in 5 s
+        MinecraftForge.EVENT_BUS.register(arrows);
+        FMLCommonHandler.instance().bus().register(arrows);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.AquatoothEffects()); // toothed weapons, maul cooldown
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.FrostBite()); // frostbite from ice weapons
         com.divinerpgextended.perk.EarlyWeapons early = new com.divinerpgextended.perk.EarlyWeapons(); // Overworld weapons: roles, serenades, anvil

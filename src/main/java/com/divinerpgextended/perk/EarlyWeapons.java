@@ -193,11 +193,12 @@ public class EarlyWeapons {
     /**
      * Bows with accelerated draw (and the Shadow Bow) fire by themselves while right-click is held: a shot at every full draw and
      * a new draw at once. The shot is the server's; the client restarts the draw at the same moment, so
-     * the bow in hand visibly pulls again after every shot instead of staying fully drawn.
+     * the bow in hand visibly pulls again after every shot instead of staying fully drawn. While Shift is held the bow is an ordinary one:
+     * draw and release by hand.
      */
     @SubscribeEvent
     public void onBowTick(net.minecraftforge.event.entity.player.PlayerUseItemEvent.Tick e) {
-        if (e.item == null) return;
+        if (e.item == null || e.entityPlayer.isSneaking()) return;
         int full = e.item.getItem() == VanillaItemsWeapons.shadowBow ? SHADOW_AUTO : autoDraw(e.item);
         if (full <= 0) return;
         int max = e.item.getMaxItemUseDuration();

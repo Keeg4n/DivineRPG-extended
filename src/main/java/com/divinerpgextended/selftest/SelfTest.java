@@ -10614,7 +10614,7 @@ public class SelfTest {
                     break;
                 }
             }
-            boolean autoFired = true;
+            boolean autoFired = true, sneakHolds = true;
             String fastName = "none";
             if (fastBow != null) {
                 fastName = String.valueOf(Item.itemRegistry.getNameForObject(fastBow.getItem()));
@@ -10625,6 +10625,13 @@ public class SelfTest {
                 int full = com.divinerpgextended.perk.EarlyWeapons.autoDraw(fastBow);
                 int max = fastBow.getMaxItemUseDuration();
                 int before = w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, bp.boundingBox.expand(8, 8, 8)).size();
+                // with Shift held - an ordinary bow: no shot by itself, the draw goes on
+                bp.setSneaking(true);
+                net.minecraftforge.event.entity.player.PlayerUseItemEvent.Tick sneakTick = new net.minecraftforge.event.entity.player.PlayerUseItemEvent.Tick(bp, fastBow, max - full);
+                MinecraftForge.EVENT_BUS.post(sneakTick);
+                bp.setSneaking(false);
+                sneakHolds = sneakTick.duration == max - full
+                    && w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, bp.boundingBox.expand(8, 8, 8)).size() == before;
                 net.minecraftforge.event.entity.player.PlayerUseItemEvent.Tick tick = new net.minecraftforge.event.entity.player.PlayerUseItemEvent.Tick(bp, fastBow, max - full);
                 MinecraftForge.EVENT_BUS.post(tick);
                 java.util.List<?> fl = w.getEntitiesWithinAABB(net.minecraft.entity.Entity.class, bp.boundingBox.expand(8, 8, 8));
@@ -10643,9 +10650,9 @@ public class SelfTest {
             boolean rankOk = com.divinerpgextended.boss.CommandDreRank.next(0) == Boss.CARCINUS && com.divinerpgextended.boss.CommandDreRank.next(2) == Boss.ANCIENT_ENTITY
                 && com.divinerpgextended.boss.CommandDreRank.next(3) == null && net.minecraft.util.StatCollector.canTranslate("dre.chat.rank_up");
             bp.inventory.clearInventory(null, -1);
-            check(vanillaSlow && shadow && nFast > 0 && autoFired && quiverOk && rankOk, "fast bows " + nFast + " (" + fast + "), ordinary slow " + vanillaSlow
-                + ", Shadow " + shadow + ", fired itself " + fastName + " " + autoFired + "; quiver " + q0 + "/" + q3 + "/" + q5 + ", pouch " + pouch + "; ranks " + rankOk);
-            return "fast bows " + nFast + ": " + fast.toString().trim() + "; quiver 0,4% (+0,2% per Looting, up to 1%); /drerank";
+            check(vanillaSlow && shadow && nFast > 0 && autoFired && sneakHolds && quiverOk && rankOk, "fast bows " + nFast + " (" + fast + "), ordinary slow " + vanillaSlow
+                + ", Shadow " + shadow + ", fired itself " + fastName + " " + autoFired + ", with Shift holds the draw " + sneakHolds + "; quiver " + q0 + "/" + q3 + "/" + q5 + ", pouch " + pouch + "; ranks " + rankOk);
+            return "fast bows " + nFast + ": " + fast.toString().trim() + "; with Shift they do not fire by themselves; quiver 0,4% (+0,2% per Looting, up to 1%); /drerank";
         });
         t("Progression", "Apalachia minecart: arcana and ordinary rails", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);
@@ -15750,6 +15757,57 @@ public class SelfTest {
                 com.divinerpgextended.magic.AnchorSummons.dismissAll(ap);
                 z.setDead();
                 hold(ap, null);
+                server.getConfigurationManager().playerEntityList.remove(ap);
+                w.removeEntity(ap);
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+        t("Overworld weapons", "Arrows nobody can pick up vanish 5 seconds after sticking", () -> {
+            WorldServer w = ow;
+            double px = sx + 390.5, py = 200, pz = sz + 0.5;
+            loadAround(w, (int) px, (int) pz, 1);
+            TestPlayer ap = join(player(0, "TestArrowCleanup", px, py, pz), true);
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            java.util.List<net.minecraft.entity.Entity> made = new java.util.ArrayList<net.minecraft.entity.Entity>();
+            try {
+                // vanilla: Infinity (2) by a player, a normal one (1), a never-pickup one (0) by a player and without a shooter (a skeleton)
+                int[] modes = { 2, 1, 0, 0 };
+                boolean[] byPlayer = { true, true, true, false };
+                boolean[] gone = { true, false, true, false };
+                for (int n = 0; n < modes.length; n++) {
+                    net.minecraft.entity.projectile.EntityArrow a = new net.minecraft.entity.projectile.EntityArrow(w, px + n, py + 3, pz);
+                    if (byPlayer[n]) a.shootingEntity = ap;
+                    a.canBePickedUp = modes[n];
+                    w.spawnEntityInWorld(a);
+                    made.add(a);
+                }
+                // Divine arrow with Infinity
+                net.divinerpg.entities.base.EntityDivineArrow da = new net.divinerpg.entities.base.EntityDivineArrow(w, ap, 1F, 1F, 1F, "arrow");
+                da.setPosition(px, py + 3, pz + 2);
+                w.spawnEntityInWorld(da);
+                java.lang.reflect.Field dp = cpw.mods.fml.relauncher.ReflectionHelper.findField(net.divinerpg.entities.base.EntityDivineArrow.class, "field_70251_a", "canBePickedUp");
+                dp.setInt(da, 2);
+                made.add(da);
+                // 4 s in the ground - all still here
+                for (net.minecraft.entity.Entity a : made) com.divinerpgextended.perk.ArrowCleanup.setGroundTicks(a, 80);
+                com.divinerpgextended.perk.ArrowCleanup.sweep();
+                boolean earlyKept = true;
+                for (net.minecraft.entity.Entity a : made) earlyKept &= !a.isDead;
+                // 5 s - the ones nobody can pick up vanish
+                for (net.minecraft.entity.Entity a : made) com.divinerpgextended.perk.ArrowCleanup.setGroundTicks(a, com.divinerpgextended.perk.ArrowCleanup.GROUND_TICKS);
+                com.divinerpgextended.perk.ArrowCleanup.sweep();
+                StringBuilder st = new StringBuilder();
+                for (int n = 0; n < modes.length; n++) {
+                    boolean dead = made.get(n).isDead;
+                    ok &= dead == gone[n];
+                    st.append(n == 0 ? "" : ", ").append("vanilla pickup ").append(modes[n]).append(byPlayer[n] ? " by a player" : " no shooter").append(dead ? " gone" : " stays");
+                }
+                ok &= da.isDead && earlyKept;
+                rep.append("after 4 s all stay ").append(earlyKept).append("; after 5 s: ").append(st).append(", Divine with Infinity ").append(da.isDead ? "gone" : "stays");
+            } finally {
+                for (net.minecraft.entity.Entity a : made) a.setDead();
                 server.getConfigurationManager().playerEntityList.remove(ap);
                 w.removeEntity(ap);
             }
