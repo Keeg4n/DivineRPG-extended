@@ -274,7 +274,7 @@ public class RangedRoles {
     }
 
     public static final float DROP_CHANCE = 0.10F, DROP_LOOTING = 0.02F;
-    /** Infinite quiver from shooters: 0.4% and +0.2% per Looting level, no more than 1% (from the Eternal Archer - always). */
+    /** Endless Quiver from any monster killed by a player: 0.4% and +0.2% per Looting level, no more than 1% (from the Eternal Archer - always). */
     public static final float QUIVER_CHANCE = 0.004F, QUIVER_LOOTING = 0.002F, QUIVER_MAX = 0.01F;
 
     /** Chance of this kind of quiver dropping from an ordinary shooter at this Looting. */
@@ -294,14 +294,21 @@ public class RangedRoles {
         return null;
     }
 
-    /** Quivers are not craftable - they drop from shooters killed by a player. */
+    /**
+     * Quivers are not craftable. The Endless Quiver drops from any monster killed by a player with the same chance
+     * ({@link #dropChance}), the Eternal Archer always gives his; the dust pouch and the slicer sling - from mages and sorcerers.
+     */
     @SubscribeEvent
     public void onDrops(net.minecraftforge.event.entity.living.LivingDropsEvent e) {
         if (e.entityLiving.worldObj.isRemote || !e.recentlyHit || !(e.source.getEntity() instanceof EntityPlayer)) return;
-        com.divinerpgextended.trinket.Trinket t = quiverOf(e.entityLiving);
-        // from the Eternal Archer (boss) - always, from other shooters - by chance
+        com.divinerpgextended.trinket.Trinket q = com.divinerpgextended.trinket.Trinket.ENDLESS_QUIVER, t = quiverOf(e.entityLiving);
         boolean boss = e.entityLiving instanceof net.divinerpg.entities.twilight.EntityEternalArcher;
-        if (t == null || !boss && e.entityLiving.worldObj.rand.nextFloat() >= dropChance(t, e.lootingLevel)) return;
+        java.util.Random r = e.entityLiving.worldObj.rand;
+        if (boss || e.entityLiving instanceof net.minecraft.entity.monster.IMob && r.nextFloat() < dropChance(q, e.lootingLevel)) drop(e, q);
+        if (t != null && t != q && r.nextFloat() < dropChance(t, e.lootingLevel)) drop(e, t);
+    }
+
+    private static void drop(net.minecraftforge.event.entity.living.LivingDropsEvent e, com.divinerpgextended.trinket.Trinket t) {
         e.drops.add(new net.minecraft.entity.item.EntityItem(e.entityLiving.worldObj, e.entityLiving.posX, e.entityLiving.posY + 0.5, e.entityLiving.posZ,
             new ItemStack(com.divinerpgextended.registry.ModItems.trinket, 1, t.ordinal())));
     }

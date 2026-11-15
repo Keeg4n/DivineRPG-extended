@@ -3616,6 +3616,31 @@ public class SelfTest {
     }
 
     private void summonTests(final TestPlayer p) {
+        t("Arcana", "Arcana Flow: summon upkeep does not pause arcana regeneration, two summons stay for good", () -> {
+            reset(p);
+            ArcanaHelper a = ArcanaHelper.getProperties(p);
+            int[] paid = new int[2];
+            for (int k = 0; k < 2; k++) {
+                reset(p);
+                if (k == 1) {
+                    wearCrown(p, com.divinerpgextended.item.ArmorCrown.ARCANA);
+                    for (int i = 0; i < 4; i++) com.divinerpgextended.item.ArmorData.bind(p.inventory.armorInventory[i], p);
+                }
+                com.divinerpgextended.magic.ArcanaRules.resetCooldowns();
+                a.setBarValue(200);
+                a.regenDelay = 0;
+                // a minute: Divine regenerates 1 a tick (when there is no pause), two summons are paid once a second
+                for (int tick = 1; tick <= 1200; tick++) {
+                    a.regen(1.0F);
+                    if (a.getBarValue() > 200) a.setBarValue(200);
+                    if (tick % 20 == 0 && com.divinerpgextended.magic.ArcanaRules.useBar(a, 2 * com.divinerpgextended.magic.AnchorSummons.UPKEEP, "Summon")) paid[k]++;
+                }
+            }
+            for (int i = 0; i < 4; i++) p.inventory.armorInventory[i] = null;
+            a.setBarValue(200);
+            check(paid[0] < 30 && paid[1] == 60, "payments for two summons in a minute: without the flow " + paid[0] + ", with the R8 arcana Crown " + paid[1] + " of 60");
+            return "without Arcana Flow two summons last " + paid[0] + " s on 200 arcana; with the R8 arcana Crown all 60 payments of the minute go through - summons stay";
+        });
         t("Arcana", "Ghost Bone: the summoned ghost flies through walls and hits the owner's target", () -> {
             reset(p);
             net.minecraft.world.World w = p.worldObj;
@@ -10497,7 +10522,7 @@ public class SelfTest {
                 + ", old charge returned as ordinary arrows " + refundOk);
             return "Storm Bow: charge - Wildwood arrows, does not take ordinary ones; fires charge first; old charge returns to the player as ordinary arrows";
         });
-        t("Progression", "Fast-bow crossbow, Endless Quiver chance, ranks", () -> {
+        t("Progression", "Self-firing fast bows, Endless Quiver chance, ranks", () -> {
             // bows with accelerated draw - who shoots by themselves and after how many ticks
             StringBuilder fast = new StringBuilder();
             int nFast = 0;
@@ -10615,7 +10640,7 @@ public class SelfTest {
                 "arrow without quiver " + got[0] + ", with quiver " + got[1] + ", phaser with pouch " + hp.ammount);
             return "quiver: arrows +10%; pouch: phaser +15%";
         });
-        t("Progression", "Quivers from shooters", () -> {
+        t("Progression", "Quivers: the Endless Quiver from any monster, pouch and sling from mages", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.eden);
             TestPlayer dv2 = player(ConfigurationHelper.eden, "TestQuiverDrop", 9484.5, 120, 9820.5);
             net.divinerpg.entities.twilight.EntitySunArcher arch = new net.divinerpg.entities.twilight.EntitySunArcher(w);
@@ -10651,10 +10676,22 @@ public class SelfTest {
                 MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(eternal, net.minecraft.util.DamageSource.causePlayerDamage(dv2), bd, 0, true, 0));
                 for (net.minecraft.entity.item.EntityItem d : bd) if (d.getEntityItem().getItem() == com.divinerpgextended.registry.ModItems.trinket) bossGot++;
             }
+            // the same chance from any monster (a zombie), none from a peaceful mob (a pig)
+            int[] fromMob = new int[2];
+            net.minecraft.entity.EntityLiving[] mobs = { new net.minecraft.entity.monster.EntityZombie(w), new net.minecraft.entity.passive.EntityPig(w) };
+            for (int m = 0; m < 2; m++) {
+                for (int i = 0; i < 5000; i++) {
+                    java.util.ArrayList<net.minecraft.entity.item.EntityItem> md = new java.util.ArrayList<net.minecraft.entity.item.EntityItem>();
+                    MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDropsEvent(mobs[m], net.minecraft.util.DamageSource.causePlayerDamage(dv2), md, 0, true, 0));
+                    for (net.minecraft.entity.item.EntityItem d : md)
+                        if (d.getEntityItem().getItem() == com.divinerpgextended.registry.ModItems.trinket && d.getEntityItem().getItemDamage() == Trinket.ENDLESS_QUIVER.ordinal()) fromMob[m]++;
+                }
+            }
             // 0.4% without Looting: 20 out of 5000 on average
-            check(got >= 6 && got <= 40 && other == 0 && craft == null && skyQuiver && bossGot == 20,
-                "quivers from 5000 solar archers " + got + ", others' " + other + ", craft " + craft + ", Skythern archer " + skyQuiver + ", from Eternal Archer " + bossGot + " of 20");
-            return "quiver drops from archers (0.4%: " + got + " of 5000), from the Eternal Archer always, not craftable";
+            check(got >= 6 && got <= 40 && fromMob[0] >= 6 && fromMob[0] <= 40 && fromMob[1] == 0 && other == 0 && craft == null && skyQuiver && bossGot == 20,
+                "quivers from 5000 solar archers " + got + ", from 5000 zombies " + fromMob[0] + ", from 5000 pigs " + fromMob[1] + ", others' " + other + ", craft " + craft
+                    + ", Skythern archer " + skyQuiver + ", from Eternal Archer " + bossGot + " of 20");
+            return "Endless Quiver from any monster (0.4%: archers " + got + ", zombies " + fromMob[0] + " of 5000), not from peaceful mobs, from the Eternal Archer always, not craftable";
         });
         t("Progression", "Rails like in the game: floor, slope, wall, ceiling", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.apalachia);

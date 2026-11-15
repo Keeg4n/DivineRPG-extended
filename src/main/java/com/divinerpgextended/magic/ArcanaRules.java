@@ -140,7 +140,7 @@ public final class ArcanaRules {
         if (h.getBarValue() < c) return false; // not enough - we do not touch the recovery delay
         int was = h.regenDelay;
         if (!h.useBar(c)) return false; // Divine sets its own pause of 50 ticks - we replace it below
-        h.regenDelay = swordSpend(s) && swordFlow(p) ? was : delay(p);
+        h.regenDelay = flowSpend(s) && swordFlow(p) ? was : delay(p);
         if (key != null) {
             if (LAST_USE.size() > 5000) LAST_USE.clear();
             LAST_USE.put(key, now);
@@ -153,7 +153,16 @@ public final class ArcanaRules {
         return "ItemArcaniumSaber".equals(s) || "ItemArcaniteBlade".equals(s) || "ItemShadowSword".equals(s) || "ArcaneEdge".equals(s);
     }
 
-    /** Full Korma set or the Arcana Flow perk: Arcana sword hits do not stop arcana recovery. */
+    /**
+     * Spends that Arcana Flow lets through without a recovery pause: Arcana sword hits and the upkeep of summons (one payment a
+     * second, {@link AnchorSummons#pay}). With the pause gone, regeneration (20 a second) covers two summons, with the Korma discount
+     * even more - summons stay as long as the owner keeps the flow.
+     */
+    static boolean flowSpend(String s) {
+        return swordSpend(s) || "Summon".equals(s);
+    }
+
+    /** Full Korma set, the Arcana Flow perk or the R8 arcana Crown: Arcana sword hits and summon upkeep do not stop arcana recovery. */
     public static boolean swordFlow(EntityPlayer p) {
         return p != null && (korma(p) || com.divinerpgextended.item.ArmorData.hasEquippedPerk(p, com.divinerpgextended.perk.Perk.ARCANA_FLOW));
     }

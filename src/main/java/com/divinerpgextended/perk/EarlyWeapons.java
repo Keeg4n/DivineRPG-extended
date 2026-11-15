@@ -190,16 +190,20 @@ public class EarlyWeapons {
         return k < 2 ? 0 : (20 + k - 1) / k;
     }
 
-    /** Bows with accelerated draw (and the Shadow Bow) fire by themselves while right-click is held: a shot at every full draw and a new draw at once. */
+    /**
+     * Bows with accelerated draw (and the Shadow Bow) fire by themselves while right-click is held: a shot at every full draw and
+     * a new draw at once, like Thaumcraft's Bone Bow. The shot is the server's; the client restarts the draw at the same moment, so
+     * the bow in hand visibly pulls again after every shot instead of staying fully drawn.
+     */
     @SubscribeEvent
     public void onBowTick(net.minecraftforge.event.entity.player.PlayerUseItemEvent.Tick e) {
-        if (e.entityPlayer.worldObj.isRemote || e.item == null) return;
+        if (e.item == null) return;
         int full = e.item.getItem() == VanillaItemsWeapons.shadowBow ? SHADOW_AUTO : autoDraw(e.item);
         if (full <= 0) return;
         int max = e.item.getMaxItemUseDuration();
         if (max - e.duration < full) return;
-        e.item.getItem().onPlayerStoppedUsing(e.item, e.entityPlayer.worldObj, e.entityPlayer, e.duration);
-        e.duration = max; // and draw again at once
+        if (!e.entityPlayer.worldObj.isRemote) e.item.getItem().onPlayerStoppedUsing(e.item, e.entityPlayer.worldObj, e.entityPlayer, e.duration);
+        e.duration = max; // and draw again at once (on both sides)
     }
 
     /** Shadow Bow shot multiplier by accumulated run. */
