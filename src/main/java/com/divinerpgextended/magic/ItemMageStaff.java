@@ -27,7 +27,8 @@ public class ItemMageStaff extends Item {
     public static final String OWNER = "ItemMageStaff";
     static final String[] KEYS = { "wildwood", "apalachia", "skythern", "mortum" };
     static final String[] MAGES = { "EntityMage", "EntitySpellbinder", "EntityMystic", "EntitySorcerer" };
-    static final float[] DAMAGE = { 12F, 16F, 20F, 24F };
+    /** База урона; растёт с этапом Арканы (до x2.2) - Мортум в конце игры ~31, ниже Арксианского посоха Везеи (36). */
+    static final float[] DAMAGE = { 8F, 10F, 12F, 14F };
     static final int[][] COLOR = { { 62, 212, 254 }, { 180, 90, 255 }, { 235, 235, 255 }, { 200, 40, 50 } };
 
     @SideOnly(Side.CLIENT)

@@ -2105,7 +2105,7 @@ public class SelfTest {
                     ((net.minecraft.entity.Entity) o).setDead();
                 }
             }
-            float expect = 24F * com.divinerpgextended.magic.ArcanaRules.stage(p);
+            float expect = 14F * com.divinerpgextended.magic.ArcanaRules.stage(p);
             check(!potions && ward && clarity && starPrice.startsWith("15 ") && near(200 - a.getBarValue(), 8) && near(shotDmg, expect) && w.loadedEntityList.size() >= before,
                 "у Ваттикуса зелья " + potions + ", щит " + ward + ", кристалл " + clarity + "; посох звёзд у Мерика за " + starPrice + "; посох колдуна: аркана "
                     + f(200 - a.getBarValue()) + ", урон заряда " + f(shotDmg) + " (ждали " + f(expect) + ")");
@@ -2291,6 +2291,53 @@ public class SelfTest {
                     + " (было 10), манекен цел " + alive + "; чужой не убрал " + stays + ", урон не рукой при присевшем хозяине не убрал " + petStays + ", хозяин убрал " + d.isDead + " и получил " + got + "; /kill: убит " + d2.isDead
                     + ", вещей рядом " + items0 + " -> " + items1);
             return "удар 10 по копии в алмазе: " + f(shown) + " - как по самому игроку; колючки не ранят бьющего; убрать может только хозяин и получает 1 манекен; /kill - без добычи";
+        });
+        t("Прохождение", "Манекен: аркана кончается и восстанавливается, чужая броня Странника защищает", () -> {
+            reset(p);
+            net.minecraft.world.World w = p.worldObj;
+            TestPlayer a = join(player(p.dimension, "TestDummyArc", p.posX + 3, p.posY, p.posZ), true);
+            // аркана: у игрока 30 - щит тратит её удар за ударом, а не берёт каждый раз заново
+            ArcanaHelper ph = ArcanaHelper.getProperties(p);
+            ph.setBarValue(30);
+            com.divinerpgextended.dummy.EntityTrainingDummy d = new com.divinerpgextended.dummy.EntityTrainingDummy(w);
+            d.setPosition(p.posX + 2, p.posY, p.posZ);
+            d.copy(p);
+            w.spawnEntityInWorld(d);
+            float[] arc = new float[4];
+            for (int i = 0; i < 4; i++) {
+                d.hurtResistantTime = 0;
+                d.attackEntityFrom(com.divinerpgextended.magic.ArcanaCombat.arcaneSource(a, d), 20F);
+                arc[i] = d.arcana();
+            }
+            boolean drains = arc[0] < 30 && arc[1] < arc[0] && arc[3] <= 0.01F;
+            // пауза, потом +1 за тик
+            for (int t = 0; t < com.divinerpgextended.magic.ArcanaRules.DELAY + 20; t++) d.onLivingUpdate();
+            float regen = d.arcana();
+            boolean regens = regen > 5 && regen <= 21;
+            w.removeEntity(d);
+            // броня Странника чужого игрока: на манекене защищает как своя
+            float[] taken = new float[2];
+            for (int k = 0; k < 2; k++) {
+                for (int i = 0; i < 4; i++) {
+                    ItemStack piece = new ItemStack(ModItems.wanderer[3 - i]);
+                    com.divinerpgextended.item.ArmorData.bind(piece, k == 0 ? p : a);
+                    p.inventory.armorInventory[i] = piece;
+                }
+                com.divinerpgextended.dummy.EntityTrainingDummy dd = new com.divinerpgextended.dummy.EntityTrainingDummy(w);
+                dd.setPosition(p.posX + 2, p.posY, p.posZ);
+                dd.copy(p);
+                w.spawnEntityInWorld(dd);
+                dd.attackEntityFrom(DamageSource.causePlayerDamage(a), 10F);
+                taken[k] = dd.lastHit();
+                w.removeEntity(dd);
+            }
+            for (int i = 0; i < 4; i++) p.inventory.armorInventory[i] = null;
+            boolean foreignOk = taken[0] > 0 && taken[0] < 10 && near(taken[0], taken[1]);
+            server.getConfigurationManager().playerEntityList.remove(a);
+            w.removeEntity(a);
+            check(drains && regens && foreignOk, "аркана манекена по ударам " + f(arc[0]) + " " + f(arc[1]) + " " + f(arc[2]) + " " + f(arc[3]) + " (было 30), через "
+                + (com.divinerpgextended.magic.ArcanaRules.DELAY + 20) + " тиков " + f(regen) + "; удар 10 в своей броне Странника " + f(taken[0]) + ", в чужой " + f(taken[1]));
+            return "аркана манекена тратится щитом и восстанавливается после паузы; броня Странника на манекене защищает, чья бы ни была";
         });
         t("Прохождение", "Манекен: урон оружия Divine (мечи, снаряды, взрывы), несколько манекенов в мире", () -> {
             reset(p);

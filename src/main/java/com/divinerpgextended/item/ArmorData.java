@@ -115,6 +115,7 @@ public final class ArmorData {
         String o = owner(stack);
         if (o == null) return true;
         if (p == null) return false;
+        if (p instanceof com.divinerpgextended.dummy.DummyGhost) return true; // копия на манекене меряет защиту, привязка не в счёт
         if (o.equals(p.getUniqueID().toString())) return true;
         return p.worldObj != null && p.worldObj.isRemote && p.getCommandSenderName().equals(ownerName(stack));
     }

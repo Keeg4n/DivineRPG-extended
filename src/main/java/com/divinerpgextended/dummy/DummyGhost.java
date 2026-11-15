@@ -104,22 +104,32 @@ public class DummyGhost extends FakePlayer {
     float arcanaBefore, arcanaSpent;
 
     /** Сколько урона дошло бы до игрока от этого удара (0 - уклонился или удар отменён). */
-    float measure(DamageSource s, float amount, NBTTagCompound snap) {
+    /** Пауза восстановления арканы после последнего удара (её ставит щит арканы). */
+    int arcanaDelay;
+
+    float measure(DamageSource s, float amount, float arcana, int delay) {
         net.minecraft.entity.ai.attributes.IAttributeInstance hp = getEntityAttribute(net.minecraft.entity.SharedMonsterAttributes.maxHealth);
         hp.setBaseValue(HEALTH);
         setHealth(HEALTH);
         setAbsorptionAmount(0);
         hurtResistantTime = 0;
         net.divinerpg.utils.events.ArcanaHelper h = net.divinerpg.utils.events.ArcanaHelper.getProperties(this);
-        if (h != null) setBar(h, snap.getFloat("Arcana")); // каждый удар - с той аркановой защитой, что была у игрока
+        if (h != null) {
+            setBar(h, arcana); // сколько арканы у манекена сейчас: щит её тратит, а не берёт каждый раз заново
+            h.regenDelay = delay; // и пауза восстановления - та, что идёт у манекена
+        }
         arcanaBefore = h != null ? h.getBarValue() : 0;
+        arcanaDelay = delay;
         arcanaSpent = 0;
         try {
             if (net.minecraftforge.common.ForgeHooks.onLivingAttack(this, s, amount)) return 0;
             if (damageEntity == null) damageEntity = ReflectionHelper.findMethod(net.minecraft.entity.EntityLivingBase.class, this,
                 new String[] { "damageEntity", "func_70665_d" }, DamageSource.class, float.class);
             damageEntity.invoke(this, s, amount);
-            if (h != null) arcanaSpent = Math.max(0, arcanaBefore - h.getBarValue());
+            if (h != null) {
+                arcanaSpent = Math.max(0, arcanaBefore - h.getBarValue());
+                arcanaDelay = h.regenDelay;
+            }
         } catch (Throwable t) {
             com.divinerpgextended.DivineRPGExtended.LOG.warn("Манекен: удар не посчитан как по игроку, показан как есть: " + t);
             return amount;

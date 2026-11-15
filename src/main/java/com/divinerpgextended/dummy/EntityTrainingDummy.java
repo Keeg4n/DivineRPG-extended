@@ -38,6 +38,10 @@ public class EntityTrainingDummy extends EntityLiving {
 
     private UUID placer;
     private NBTTagCompound snap = new NBTTagCompound();
+    /** Аркана манекена: со снимка игрока, тратится щитом, восстанавливается как у игрока Divine (+1 за тик после паузы, до 200). */
+    float arcana = -1;
+    int arcanaDelay;
+    public static final float ARCANA_MAX = 200F, ARCANA_REGEN = 1F;
     private DummyGhost ghost;
     private final ArrayDeque<long[]> hits = new ArrayDeque<long[]>();
     private boolean removed, listed;
@@ -103,6 +107,9 @@ public class EntityTrainingDummy extends EntityLiving {
     public void copy(EntityPlayer p) {
         snap = DummyGhost.snapshot(p);
         ghost = null;
+        arcana = snap.getFloat("Arcana");
+        arcanaDelay = 0;
+        dataWatcher.updateObject(DW_ARC, Float.valueOf(arcana));
         dataWatcher.updateObject(DW_NAME, p.getCommandSenderName());
         dataWatcher.updateObject(DW_UUID, p.getUniqueID().toString());
         for (int i = 0; i < 4; i++) {
@@ -195,12 +202,18 @@ public class EntityTrainingDummy extends EntityLiving {
         Guard guard = attacker instanceof EntityPlayer ? new Guard((EntityPlayer) attacker) : null;
         float dealt;
         try {
-            dealt = g.measure(s, counted, snap);
+            if (arcana < 0) arcana = snap.getFloat("Arcana");
+            dealt = g.measure(s, counted, arcana, arcanaDelay);
+            net.divinerpg.utils.events.ArcanaHelper gh = net.divinerpg.utils.events.ArcanaHelper.getProperties(g);
+            if (gh != null) {
+                arcana = gh.getBarValue();
+                arcanaDelay = g.arcanaDelay;
+            }
         } finally {
             if (guard != null) guard.restore();
         }
         record(dealt);
-        dataWatcher.updateObject(DW_ARC, Float.valueOf(g.arcanaBefore));
+        dataWatcher.updateObject(DW_ARC, Float.valueOf(arcana));
         dataWatcher.updateObject(DW_ARC_SPENT, Float.valueOf(g.arcanaSpent));
         if (attacker instanceof EntityPlayer) callPets((EntityPlayer) attacker);
         worldObj.setEntityState(this, (byte) 2); // вздрогнуть
@@ -303,6 +316,11 @@ public class EntityTrainingDummy extends EntityLiving {
         if (motionY > 0) motionY = 0;
         super.onLivingUpdate();
         if (!worldObj.isRemote && getHealth() < getMaxHealth()) setHealth(getMaxHealth());
+        if (!worldObj.isRemote && arcana >= 0 && arcana < ARCANA_MAX) {
+            if (arcanaDelay > 0) arcanaDelay--;
+            else arcana = Math.min(ARCANA_MAX, arcana + ARCANA_REGEN);
+            if (ticksExisted % 5 == 0 || arcana >= ARCANA_MAX) dataWatcher.updateObject(DW_ARC, Float.valueOf(arcana));
+        }
         if (!worldObj.isRemote && !hits.isEmpty() && worldObj.getTotalWorldTime() - hits.peekLast()[0] > WINDOW) resetStats();
         if (!worldObj.isRemote && !pets.isEmpty() && worldObj.getTotalWorldTime() - ownerHit > WINDOW) releasePets();
         if (!worldObj.isRemote && !listed && !isDead) { // стоявшие до 0.99.33 - в счёт при первом тике
@@ -401,6 +419,8 @@ public class EntityTrainingDummy extends EntityLiving {
     public void writeEntityToNBT(NBTTagCompound t) {
         super.writeEntityToNBT(t);
         t.setTag("DreSnapshot", snap);
+        t.setFloat("DreArcana", arcana);
+        t.setInteger("DreArcanaDelay", arcanaDelay);
         if (placer != null) t.setString("DrePlacer", placer.toString());
     }
 
@@ -408,6 +428,9 @@ public class EntityTrainingDummy extends EntityLiving {
     public void readEntityFromNBT(NBTTagCompound t) {
         super.readEntityFromNBT(t);
         snap = t.getCompoundTag("DreSnapshot");
+        arcana = t.hasKey("DreArcana") ? t.getFloat("DreArcana") : snap.getFloat("Arcana");
+        arcanaDelay = t.getInteger("DreArcanaDelay");
+        dataWatcher.updateObject(DW_ARC, Float.valueOf(arcana));
         dataWatcher.updateObject(DW_NAME, snap.getString("Name"));
         dataWatcher.updateObject(DW_UUID, snap.getString("UUID"));
         try {
