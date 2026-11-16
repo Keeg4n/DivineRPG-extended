@@ -28,6 +28,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * <li>Frossivence (a healing sword): heals no more often than once per 2 seconds (more often - the healing is cancelled), in a Frozen or
  * Santa set - for half health. Each healing chills the blood: hypothermia accumulates (slowness, then
  * weakness and damage), ice sets accumulate it more slowly, but not to zero. It fades on its own.</li>
+ * <li>Ice blasts (Fractite shot, Frost Charge, ice boulder) do not destroy items and experience on the ground.</li>
  * </ul>
  */
 public class IceikaCombat {
@@ -98,6 +99,33 @@ public class IceikaCombat {
         if (d.getFloat(CHILL) < 7 && chill >= 7) p.addChatMessage(new ChatComponentTranslation("dre.chat.frossivence_chill"));
         d.setFloat(CHILL, Math.min(12, chill));
         FrostPowers.particles(p.worldObj, "snowshovel", p.posX, p.posY + 1.2, p.posZ, 8, 0.4, 0.05);
+    }
+
+    /**
+     * Ice blasts spare the ground: the Fractite's shot (Divine), the Frost Charge of Snow Glacon and the Lich King and the Frost
+     * Colossus' ice boulder do not destroy items and experience orbs. They never broke blocks, but a vanilla explosion kills every
+     * item within twice its strength, so a Fractite firing into a fight blew up the drops and a dead player's things. Each of
+     * them explodes before setDead, so the projectile is still alive at the explosion point.
+     */
+    @SubscribeEvent
+    public void onDetonate(net.minecraftforge.event.world.ExplosionEvent.Detonate e) {
+        if (e.world.isRemote || !iceBlast(e.world, e.explosion)) return;
+        for (java.util.Iterator<Entity> it = e.getAffectedEntities().iterator(); it.hasNext();) {
+            Entity en = it.next();
+            if (en instanceof net.minecraft.entity.item.EntityItem || en instanceof net.minecraft.entity.item.EntityXPOrb) it.remove();
+        }
+    }
+
+    /** The explosion comes from an ice projectile: a live one sits at its center. */
+    public static boolean iceBlast(net.minecraft.world.World w, net.minecraft.world.Explosion ex) {
+        net.minecraft.util.AxisAlignedBB box = net.minecraft.util.AxisAlignedBB.getBoundingBox(ex.explosionX - 1, ex.explosionY - 1, ex.explosionZ - 1,
+            ex.explosionX + 1, ex.explosionY + 1, ex.explosionZ + 1);
+        for (Object o : w.getEntitiesWithinAABB(Entity.class, box)) {
+            Entity en = (Entity) o;
+            if (!en.isDead && (en instanceof net.divinerpg.entities.iceika.projectile.EntityFractiteShot
+                || en instanceof com.divinerpgextended.entity.EntityFrostCharge || en instanceof com.divinerpgextended.entity.EntityIcicle)) return true;
+        }
+        return false;
     }
 
     /** Once a second we process hypothermia. */

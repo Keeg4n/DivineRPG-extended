@@ -552,6 +552,21 @@ public class SelfTest {
             for (int k = -r - 1; k <= r + 1; k++) w.theChunkProviderServer.loadChunk((x >> 4) + i, (z >> 4) + k);
     }
 
+    /** The projectile's real onImpact (throwable or fireball), by the SRG name in the pack and the MCP name in dev. */
+    private static void impact(net.minecraft.entity.Entity shot, net.minecraft.util.MovingObjectPosition mop) throws Exception {
+        Class<?> base = shot instanceof net.minecraft.entity.projectile.EntityFireball ? net.minecraft.entity.projectile.EntityFireball.class
+            : net.minecraft.entity.projectile.EntityThrowable.class;
+        String srg = base == net.minecraft.entity.projectile.EntityFireball.class ? "func_70227_a" : "func_70184_a";
+        java.lang.reflect.Method m;
+        try {
+            m = base.getDeclaredMethod(srg, net.minecraft.util.MovingObjectPosition.class);
+        } catch (NoSuchMethodException nsm) {
+            m = base.getDeclaredMethod("onImpact", net.minecraft.util.MovingObjectPosition.class);
+        }
+        m.setAccessible(true);
+        m.invoke(shot, mop);
+    }
+
     /** Give the player exactly this rank (0-3) by killed bosses. */
     private static void rankTo(EntityPlayer p, int r) {
         for (Boss b : Boss.values()) BossProgress.revoke(p, b);
@@ -11606,6 +11621,52 @@ public class SelfTest {
             w.removeEntity(fp);
             check(arrows >= 2 && arrows <= 6, "arrows in 5 seconds: " + arrows);
             return "in 5 seconds at a player within 6 blocks - " + arrows + " arrows (Divine would have about 50)";
+        });
+        t("Lairs", "Iceika: ice blasts do not destroy items and experience", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.iceika);
+            int x0 = 9900, y0 = 70, z0 = 9900;
+            loadAround(w, x0, z0, 1);
+            for (int x = x0 - 8; x <= x0 + 8; x++) for (int z = z0 - 8; z <= z0 + 8; z++) for (int y = y0 - 1; y <= y0 + 5; y++)
+                w.setBlock(x, y, z, y == y0 - 1 ? Blocks.stone : Blocks.air);
+            String[] kinds = { "plain explosion of strength 3", "Fractite shot", "Frost Charge", "ice boulder" };
+            boolean[] item = new boolean[4], orb = new boolean[4];
+            boolean floor = true;
+            net.minecraft.entity.monster.EntityZombie thrower = new net.minecraft.entity.monster.EntityZombie(w);
+            thrower.setPosition(x0 + 0.5, y0, z0 - 5.5);
+            java.util.List<net.minecraft.entity.Entity> made = new ArrayList<net.minecraft.entity.Entity>();
+            try {
+                for (int n = 0; n < 4; n++) {
+                    double cx = x0 + 0.5, cy = y0 + 0.5, cz = z0 + 0.5;
+                    net.minecraft.entity.item.EntityItem it = new net.minecraft.entity.item.EntityItem(w, cx + 1.5, y0 + 0.1, cz, new ItemStack(Items.diamond));
+                    net.minecraft.entity.item.EntityXPOrb xp = new net.minecraft.entity.item.EntityXPOrb(w, cx - 1.5, y0 + 0.1, cz, 5);
+                    it.motionX = it.motionY = it.motionZ = xp.motionX = xp.motionY = xp.motionZ = 0;
+                    w.spawnEntityInWorld(it);
+                    w.spawnEntityInWorld(xp);
+                    made.add(it);
+                    made.add(xp);
+                    if (n == 0) w.createExplosion(null, cx, cy, cz, 3F, false); // exactly what the Fractite shot calls, but without the shot
+                    else {
+                        net.minecraft.entity.Entity shot = n == 1 ? new net.divinerpg.entities.iceika.projectile.EntityFractiteShot(w)
+                            : n == 2 ? new com.divinerpgextended.entity.EntityFrostCharge(w, thrower)
+                                : new com.divinerpgextended.entity.EntityIcicle(w, thrower, com.divinerpgextended.entity.EntityIcicle.BOULDER);
+                        shot.setPosition(cx, cy, cz);
+                        shot.motionX = shot.motionY = shot.motionZ = 0;
+                        w.spawnEntityInWorld(shot);
+                        made.add(shot);
+                        impact(shot, new net.minecraft.util.MovingObjectPosition(x0, y0 - 1, z0, 1, net.minecraft.util.Vec3.createVectorHelper(cx, cy, cz)));
+                    }
+                    item[n] = !it.isDead && it.getEntityItem().stackSize == 1;
+                    orb[n] = !xp.isDead;
+                    floor &= w.getBlock(x0, y0 - 1, z0) == Blocks.stone;
+                }
+            } finally {
+                for (net.minecraft.entity.Entity en : made) en.setDead();
+            }
+            StringBuilder rep = new StringBuilder();
+            for (int n = 0; n < 4; n++) rep.append(n == 0 ? "" : "; ").append(kinds[n]).append(": item ").append(item[n] ? "kept" : "destroyed")
+                .append(", experience ").append(orb[n] ? "kept" : "destroyed");
+            check(!item[0] && !orb[0] && item[1] && orb[1] && item[2] && orb[2] && item[3] && orb[3] && floor, rep + "; floor intact " + floor);
+            return rep + "; blocks are not broken";
         });
         t("Lairs", "No flying near a boss (except Skythern)", () -> {
             String log = "";
