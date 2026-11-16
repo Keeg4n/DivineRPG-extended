@@ -245,10 +245,21 @@ public class ProgressSpawns {
     /** The six Mortum bosses: soul sparks of three different ones - Twilight Spirit. */
     static final Boss[] MORTUM_SIX = { Boss.TWILIGHT_DEMON, Boss.KAROT, Boss.ETERNAL_ARCHER, Boss.TWINS, Boss.SOUL_FIEND, Boss.VAMACHERON };
 
+    /** Vethea: the bosses of the Spirit of the Universe sparks besides the Mortum ones (Ayeraco is not recorded as a victory). */
+    static final Boss[] VETHEA_NEED = { Boss.ANCIENT_ENTITY, Boss.JUNGLE_KING, Boss.KING_OF_SCORCHERS, Boss.DRAMIX, Boss.PARASECTA };
+    /** How many different Mortum bosses Vethea needs - as many as sparks in the Twilight Spirit. */
+    static final int VETHEA_MORTUM = com.divinerpgextended.halite.RecipeTwilightSpirit.NEED;
+
+    static int mortumBosses(EntityPlayer p) {
+        int m = 0;
+        for (Boss b : MORTUM_SIX) if (BossProgress.has(p, b)) m++;
+        return m;
+    }
+
     /**
      * Whether the player has reached the world: Iceika - after Carcinus (like the snow mobs of the Overworld), Eden and Arcana - after the Watcher,
      * the next Twilight world - after the guardian of the previous one (its gear opens the portal), Vethea - when the Spirit of the Universe bosses are defeated
-     * (three Mortum bosses, Dramix, Parasecta, Ancient Entity, King of Scorchers; Ayeraco is not recorded as a victory).
+     * ({@link #VETHEA_NEED} and three different Mortum bosses). Portals and the Nightmare Bed let in by the same rule ({@link WorldGates}).
      */
     public static boolean reached(EntityPlayer p, com.divinerpgextended.bestiary.Bestiary.Chapter ch) {
         switch (ch) {
@@ -259,11 +270,8 @@ public class ProgressSpawns {
             case SKYTHERN: return BossProgress.has(p, Boss.CADILLION_APALACHIA);
             case MORTUM: return BossProgress.has(p, Boss.CADILLION_SKYTHERN);
             case VETHEA: {
-                if (!BossProgress.has(p, Boss.DRAMIX) || !BossProgress.has(p, Boss.PARASECTA) || !BossProgress.has(p, Boss.ANCIENT_ENTITY)
-                    || !BossProgress.has(p, Boss.KING_OF_SCORCHERS)) return false;
-                int m = 0;
-                for (Boss b : MORTUM_SIX) if (BossProgress.has(p, b)) m++;
-                return m >= 3;
+                for (Boss b : VETHEA_NEED) if (!BossProgress.has(p, b)) return false;
+                return mortumBosses(p) >= VETHEA_MORTUM;
             }
             default: return true;
         }

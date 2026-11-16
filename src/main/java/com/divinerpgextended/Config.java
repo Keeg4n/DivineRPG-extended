@@ -112,7 +112,7 @@ public class Config {
     public static boolean dungeonSpawners = false;
     public static int divineTorchRadius = 24;
     public static int mapWorldSize = 10000;
-    public static boolean worldCrafts = true, gateStones = true, miningTiers = true;
+    public static boolean worldCrafts = true, gateStones = true, miningTiers = true, worldGates = true;
     /** Ores for which tool auto-smelt does not multiply ingots with Fortune ({@link com.divinerpgextended.perk.SmeltNoFortune}). */
     public static String[] smeltNoFortune = { "divinerpg:rupeeOre", "divinerpg:arlemiteOre" };
     /** Structures of the twilight worlds: 1 per N chunks (0 - none). */
@@ -368,6 +368,8 @@ public class Config {
             "Ores (modid:name) for which auto-smelting while digging (Tinkers' Construct \"Lava\" modifier) does not multiply ingots with Fortune: one smelt per block. Empty list - Fortune works everywhere");
         gateStones = cfg.getBoolean("gateStones", b, gateStones,
             "Wildwood..Mortum portal frames - gate stones from the guardian heart (Great Cadillion trophy) instead of previous world stone blocks. Old frames made of stone blocks will stop working");
+        worldGates = cfg.getBoolean("worldGates", b, worldGates,
+            "Personal passes: twilight portals and the Nightmare Bed let in only players who reached the world themselves (Eden - after the Watcher, the next twilight world - after the guardian of the previous one, Vethea - after the Spirit of the Universe bosses), even if someone else lit the portal. false - anyone walks through a lit portal. Arcana is always gated");
         throneSpacing = cfg.getInt("throneSpacing", "worldgen", throneSpacing, 0, 100000,
             "Frozen Throne in Iceika: one per N x N block square, the place is chosen from the world seed (0 - do not generate). Do not set below 1024: the arena is 300 blocks");
         carcinusSpacing = cfg.getInt("carcinusSpacing", "worldgen", carcinusSpacing, 0, 100000,

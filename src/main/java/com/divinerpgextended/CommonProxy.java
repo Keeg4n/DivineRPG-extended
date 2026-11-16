@@ -197,13 +197,13 @@ public class CommonProxy {
         MinecraftForge.EVENT_BUS.register(new BossDamage());
         MinecraftForge.EVENT_BUS.register(new BossLoot());
         MinecraftForge.EVENT_BUS.register(new ProgressSpawns());
-        com.divinerpgextended.boss.ArcanaGate arcanaGate = new com.divinerpgextended.boss.ArcanaGate();
-        MinecraftForge.EVENT_BUS.register(arcanaGate);
+        com.divinerpgextended.boss.WorldGates worldGates = new com.divinerpgextended.boss.WorldGates();
+        MinecraftForge.EVENT_BUS.register(worldGates);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.halite.HaliteDrops());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.block.BlockJungleOre.Handler());
         FMLCommonHandler.instance()
             .bus()
-            .register(arcanaGate);
+            .register(worldGates);
         MinecraftForge.EVENT_BUS.register(new ColdMobs());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.ArmorSets());
         com.divinerpgextended.perk.OverHealth overHealth = new com.divinerpgextended.perk.OverHealth();

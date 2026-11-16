@@ -11668,6 +11668,119 @@ public class SelfTest {
             check(!item[0] && !orb[0] && item[1] && orb[1] && item[2] && orb[2] && item[3] && orb[3] && floor, rep + "; floor intact " + floor);
             return rep + "; blocks are not broken";
         });
+        t("Progression", "World passes: twilight portals and the Nightmare Bed let in only those who reached the world themselves", () -> {
+            com.divinerpgextended.boss.WorldGates gates = new com.divinerpgextended.boss.WorldGates();
+            WorldServer gow = server.worldServerForDimension(0), ew = server.worldServerForDimension(ConfigurationHelper.eden);
+            int x0 = 9800, y0 = 120, z0 = 9800;
+            java.util.List<int[]> placed = new ArrayList<int[]>();
+            StringBuilder log = new StringBuilder();
+            boolean ok = true;
+            try {
+                for (WorldServer w : new WorldServer[] { gow, ew }) {
+                    loadAround(w, x0, z0, 1);
+                    for (int x = x0 - 6; x <= x0 + 6; x++) for (int z = z0 - 6; z <= z0 + 6; z++) for (int y = y0 - 1; y <= y0 + 3; y++)
+                        w.setBlock(x, y, z, y == y0 - 1 ? Blocks.stone : Blocks.air, 0, 2);
+                }
+                // 1. the Eden portal in the Overworld: without the Watcher - a pause and a refusal, with him - passes
+                gow.setBlock(x0 + 1, y0, z0, net.divinerpg.utils.blocks.TwilightBlocks.edenPortal, 0, 2);
+                placed.add(new int[] { 0, x0 + 1, y0, z0 });
+                TestPlayer a = player(0, "TestGateA", x0 + 0.5, y0, z0 + 0.5);
+                a.onGround = true;
+                a.ticksExisted = 60;
+                gates.onPlayerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, a));
+                Object[] who = ((net.minecraft.util.ChatComponentTranslation) com.divinerpgextended.boss.WorldGates.refusal(a,
+                    com.divinerpgextended.bestiary.Bestiary.Chapter.EDEN)).getFormatArgs();
+                boolean edenShut = a.timeUntilPortal == 20, edenTold = a.heard("dre.chat.world_locked") && who.length == 2
+                    && who[1] instanceof net.minecraft.util.ChatComponentTranslation && "dre.boss.watcher".equals(((net.minecraft.util.ChatComponentTranslation) who[1]).getKey());
+                BossProgress.grant(a, Boss.WATCHER);
+                a.timeUntilPortal = 0;
+                a.ticksExisted = 64;
+                gates.onPlayerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, a));
+                boolean edenOpen = a.timeUntilPortal == 0;
+                ok &= edenShut && edenTold && edenOpen;
+                log.append("Eden portal: without the Watcher shut ").append(edenShut).append(" (told ").append(edenTold).append("), with him open ").append(edenOpen);
+                // 2. in Eden: the Wildwood portal - after the Eden guardian; the Eden portal leads out - always open
+                ew.setBlock(x0 + 1, y0, z0, net.divinerpg.utils.blocks.TwilightBlocks.wildwoodPortal, 0, 2);
+                ew.setBlock(x0 - 4, y0, z0, net.divinerpg.utils.blocks.TwilightBlocks.edenPortal, 0, 2);
+                placed.add(new int[] { ConfigurationHelper.eden, x0 + 1, y0, z0 });
+                placed.add(new int[] { ConfigurationHelper.eden, x0 - 4, y0, z0 });
+                TestPlayer b = player(ConfigurationHelper.eden, "TestGateB", x0 + 0.5, y0, z0 + 0.5);
+                BossProgress.grant(b, Boss.WATCHER);
+                b.ticksExisted = 4;
+                gates.onPlayerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, b));
+                boolean wildShut = b.timeUntilPortal == 20 && com.divinerpgextended.boss.WorldGates.stray(b) == null;
+                BossProgress.grant(b, Boss.CADILLION_EDEN);
+                b.timeUntilPortal = 0;
+                b.ticksExisted = 8;
+                gates.onPlayerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, b));
+                boolean wildOpen = b.timeUntilPortal == 0;
+                TestPlayer c = player(ConfigurationHelper.eden, "TestGateC", x0 - 3.5, y0, z0 + 0.5);
+                BossProgress.grant(c, Boss.WATCHER);
+                c.ticksExisted = 4;
+                gates.onPlayerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, c));
+                boolean outOpen = c.timeUntilPortal == 0;
+                ok &= wildShut && wildOpen && outOpen;
+                log.append("; Wildwood portal in Eden: without the Eden guardian shut ").append(wildShut).append(", with him open ").append(wildOpen)
+                    .append("; the Eden portal in Eden (way out) open ").append(outOpen);
+                // 3. got into Mortum without the Skythern guardian - is returned to the last safe place
+                TestPlayer d = player(0, "TestGateD", x0 + 5.5, y0, z0 + 5.5);
+                d.onGround = true;
+                d.ticksExisted = 80;
+                gates.onPlayerTick(new TickEvent.PlayerTickEvent(TickEvent.Phase.START, d));
+                TestPlayer dm = player(ConfigurationHelper.mortum, "TestGateD", 0.5, 100, 0.5);
+                boolean strayM = com.divinerpgextended.boss.WorldGates.stray(dm) == com.divinerpgextended.bestiary.Bestiary.Chapter.MORTUM;
+                double[] back = com.divinerpgextended.boss.WorldGates.backTarget(dm);
+                boolean backOk = back[0] == 0 && Math.abs(back[1] - (x0 + 5.5)) < 0.01 && Math.abs(back[3] - (z0 + 5.5)) < 0.01;
+                BossProgress.grant(dm, Boss.CADILLION_SKYTHERN);
+                boolean strayM2 = com.divinerpgextended.boss.WorldGates.stray(dm) != null;
+                ok &= strayM && backOk && !strayM2;
+                log.append("; in Mortum without the Skythern guardian returned ").append(strayM).append(" to the last safe place ").append(backOk)
+                    .append(", with him stays ").append(!strayM2);
+                // 4. the Nightmare Bed: the Spirit of the Universe bosses, including the Ancient Dramcryx and three Mortum bosses
+                gow.setBlock(x0 - 3, y0, z0 - 3, net.divinerpg.utils.blocks.VetheaBlocks.nightmareBedBlock, 0, 2);
+                placed.add(new int[] { 0, x0 - 3, y0, z0 - 3 });
+                TestPlayer v = player(0, "TestGateV", x0 - 2.5, y0, z0 - 1.5);
+                Boss[] need = { Boss.ANCIENT_ENTITY, Boss.KING_OF_SCORCHERS, Boss.DRAMIX, Boss.PARASECTA, Boss.TWILIGHT_DEMON, Boss.KAROT };
+                for (Boss bb : need) BossProgress.grant(v, bb);
+                String[] stage = { "without the Dramcryx and the third Mortum boss", "without the third Mortum boss", "everyone" };
+                boolean[] cancelled = new boolean[3];
+                for (int n = 0; n < 3; n++) {
+                    if (n == 1) BossProgress.grant(v, Boss.JUNGLE_KING);
+                    if (n == 2) BossProgress.grant(v, Boss.SOUL_FIEND);
+                    v.chat.clear();
+                    net.minecraftforge.event.entity.player.PlayerInteractEvent use = new net.minecraftforge.event.entity.player.PlayerInteractEvent(v,
+                        net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, x0 - 3, y0, z0 - 3, 1, gow);
+                    gates.onInteract(use);
+                    cancelled[n] = use.isCanceled();
+                    log.append(n == 0 ? "; Nightmare Bed: " : ", ").append(stage[n]).append(cancelled[n] ? " - refused" : " - lets in");
+                    if (n == 0) { // whom the refusal names: only the missing ones
+                        StringBuilder keys = new StringBuilder();
+                        for (Object o : com.divinerpgextended.boss.WorldGates.refusal(v, com.divinerpgextended.bestiary.Bestiary.Chapter.VETHEA).getSiblings()) {
+                            if (!(o instanceof net.minecraft.util.ChatComponentTranslation)) continue;
+                            net.minecraft.util.ChatComponentTranslation tr = (net.minecraft.util.ChatComponentTranslation) o;
+                            keys.append(tr.getKey());
+                            for (Object f : tr.getFormatArgs()) keys.append('/').append(f);
+                            keys.append(' ');
+                        }
+                        ok &= v.heard("dre.chat.vethea_locked") && "dre.boss.jungle_king dre.chat.vethea_mortum/1/3 ".equals(keys.toString());
+                        log.append(" (names: ").append(keys.toString().trim()).append(")");
+                    }
+                }
+                ok &= cancelled[0] && cancelled[1] && !cancelled[2];
+                // 5. worldGates=false: twilight portals are free, Arcana stays gated
+                com.divinerpgextended.Config.worldGates = false;
+                boolean freeTw = com.divinerpgextended.boss.WorldGates.portalTo(net.divinerpg.utils.blocks.TwilightBlocks.mortumPortal) == null
+                    && com.divinerpgextended.boss.WorldGates.portalTo(net.divinerpg.utils.blocks.ArcanaBlocks.arcanaPortal) == com.divinerpgextended.bestiary.Bestiary.Chapter.ARCANA;
+                com.divinerpgextended.Config.worldGates = true;
+                ok &= freeTw;
+                log.append("; worldGates=false: twilight portals free and Arcana gated ").append(freeTw);
+            } finally {
+                com.divinerpgextended.Config.worldGates = true;
+                for (int[] pq : placed) server.worldServerForDimension(pq[0]).setBlock(pq[1], pq[2], pq[3], Blocks.air, 0, 2);
+            }
+            check(ok, log.toString());
+            return log.toString();
+        });
         t("Lairs", "No flying near a boss (except Skythern)", () -> {
             String log = "";
             boolean ok = true;
