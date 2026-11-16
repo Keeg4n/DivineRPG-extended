@@ -352,6 +352,7 @@ public class CommonProxy {
 
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.WorldGenJungleLair(), 50);
         GameRegistry.registerWorldGenerator(new IceikaDecor(), 100);
+        MinecraftForge.EVENT_BUS.register(new IceikaDecor.Events());
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.vethea.VetheaLakes(), 100);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.ArcanaFountain(), 100);
         GameRegistry.registerWorldGenerator(new com.divinerpgextended.world.IceikaXmasTree(), 101);

@@ -32,6 +32,16 @@ public class EntitySafeLightning extends EntityLightningBolt {
         caster = by;
     }
 
+    /** A boss's lightning: hits like an ordinary one (players included), only does not set blocks on fire - no fire in someone's base by the lair. */
+    public boolean boss;
+
+    public static EntitySafeLightning boss(World w, double x, double y, double z) {
+        EntitySafeLightning l = new EntitySafeLightning(w, x, y, z);
+        l.boss = true;
+        l.caster = null;
+        return l;
+    }
+
     /** Called from a Divine weapon at the start of the method with lightning. */
     public static void cast(EntityPlayer p) {
         CASTER.set(p);

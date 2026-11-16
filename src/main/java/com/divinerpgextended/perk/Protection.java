@@ -29,15 +29,34 @@ public final class Protection {
     private static Method getBlockAt, getState, getRelative, itemInHand;
     private static Object faceDown;
 
+    /** Our own trial block events are being posted: addon listeners with side effects (furnace modules dropping) ignore them. */
+    public static boolean probing;
+    private static java.lang.reflect.Constructor<?> breakEvent;
+    private static boolean warnedBuild, warnedBreak, warnedHit;
+
+    private static void warn(String what, Throwable t) {
+        com.divinerpgextended.DivineRPGExtended.LOG.warn("Claims: " + what + " cannot be checked - it is refused everywhere (" + t + ")");
+    }
+
+    /** Spawn protection and adventure mode. */
+    private static boolean vanillaEdit(EntityPlayer p, int x, int y, int z) {
+        return p.canPlayerEdit(x, y, z, 1, p.getHeldItem()) && p.worldObj.canMineBlock(p, x, y, z);
+    }
+
     /**
      * Whether the player may place a block at the point, when an item places it itself, bypassing normal placement: spawn protection and adventure
-     * mode ({@link EntityPlayer#canPlayerEdit}), and on a hybrid server - a trial Bukkit block place event, which region
-     * plugins (WorldGuard, GriefPrevention...) cancel. The block itself is not placed.
+     * mode, and on a hybrid server - a trial Bukkit block place event, which region plugins (WorldGuard, GriefPrevention...) cancel; on plain
+     * Forge - a trial Forge place event for claim mods. The block itself is not placed. If the check breaks (another core), placing is refused.
      */
     public static boolean canBuild(EntityPlayer p, int x, int y, int z) {
-        if (p == null || !p.canPlayerEdit(x, y, z, 1, p.getHeldItem())) return false;
+        if (p == null || !vanillaEdit(p, x, y, z)) return false;
         if (testNoBuild) return false;
-        if (p.worldObj.isRemote || !bukkit()) return true;
+        if (p.worldObj.isRemote) return true;
+        if (!bukkit()) {
+            net.minecraftforge.event.world.BlockEvent.PlaceEvent ev = new net.minecraftforge.event.world.BlockEvent.PlaceEvent(
+                net.minecraftforge.common.util.BlockSnapshot.getBlockSnapshot(p.worldObj, x, y, z), p.worldObj.getBlock(x, y - 1, z), p);
+            return !post(ev);
+        }
         try {
             if (!placeChecked) {
                 placeChecked = true;
@@ -50,14 +69,90 @@ public final class Protection {
                 placeEvent = Class.forName("org.bukkit.event.block.BlockPlaceEvent").getConstructor(bb, Class.forName("org.bukkit.block.BlockState"), bb,
                     Class.forName("org.bukkit.inventory.ItemStack"), Class.forName("org.bukkit.entity.Player"), boolean.class);
             }
-            if (placeEvent == null) return true;
+            if (placeEvent == null) return false;
             Object world = bukkitWorld.invoke(p.worldObj), block = getBlockAt.invoke(world, x, y, z), player = bukkitEntity.invoke(p);
             Object ev = placeEvent.newInstance(block, getState.invoke(block), getRelative.invoke(block, faceDown), itemInHand.invoke(player), player, true);
             callEvent.invoke(pluginManager, ev);
-            return !(Boolean) ev.getClass().getMethod("isCancelled").invoke(ev);
+            if ((Boolean) ev.getClass().getMethod("isCancelled").invoke(ev)) return false;
+            return (Boolean) ev.getClass().getMethod("canBuild").invoke(ev); // some plugins forbid through setBuild(false)
         } catch (Throwable t) {
             placeEvent = null;
-            return true;
+            if (!warnedBuild) warn("placing blocks by addon items", t);
+            warnedBuild = true;
+            return false;
+        }
+    }
+
+    /**
+     * Whether the player may remove or replace the block at the point, when the addon does it itself (not by mining): spawn protection and adventure
+     * mode, and on a hybrid server - a trial Bukkit block break event, on plain Forge - a trial Forge break event. Air - as placing.
+     */
+    public static boolean canBreak(EntityPlayer p, int x, int y, int z) {
+        if (p == null || !vanillaEdit(p, x, y, z)) return false;
+        if (testNoBuild) return false;
+        if (p.worldObj.isRemote) return true;
+        if (p.worldObj.isAirBlock(x, y, z)) return canBuild(p, x, y, z);
+        if (!bukkit()) {
+            net.minecraftforge.event.world.BlockEvent.BreakEvent ev = new net.minecraftforge.event.world.BlockEvent.BreakEvent(x, y, z, p.worldObj,
+                p.worldObj.getBlock(x, y, z), p.worldObj.getBlockMetadata(x, y, z), p);
+            return !post(ev);
+        }
+        try {
+            if (breakEvent == null) {
+                breakEvent = Class.forName("org.bukkit.event.block.BlockBreakEvent").getConstructor(Class.forName("org.bukkit.block.Block"),
+                    Class.forName("org.bukkit.entity.Player"));
+                if (getBlockAt == null) getBlockAt = Class.forName("org.bukkit.World").getMethod("getBlockAt", int.class, int.class, int.class);
+            }
+            Object world = bukkitWorld.invoke(p.worldObj), block = getBlockAt.invoke(world, x, y, z), player = bukkitEntity.invoke(p);
+            Object ev = breakEvent.newInstance(block, player);
+            callEvent.invoke(pluginManager, ev);
+            return !(Boolean) ev.getClass().getMethod("isCancelled").invoke(ev);
+        } catch (Throwable t) {
+            if (!warnedBreak) warn("removing blocks by addon items", t);
+            warnedBreak = true;
+            return false;
+        }
+    }
+
+    private static final java.util.Map<String, long[]> BUILD = new java.util.HashMap<String, long[]>();
+
+    /** {@link #canBuild} remembered for 2 seconds: for checks every tick (a magnet, a pet collecting items). */
+    public static boolean canBuildCached(EntityPlayer p, int x, int y, int z) {
+        if (testNoBuild) return false; // the selftest's imitation is not remembered
+        MinecraftServer s = MinecraftServer.getServer();
+        int now = s == null ? 0 : s.getTickCounter();
+        String key = p.getEntityId() + ":" + p.dimension + ":" + x + "," + y + "," + z;
+        long[] c = BUILD.get(key);
+        if (c != null && now - c[0] >= 0 && now - c[0] < 40) return c[1] != 0;
+        boolean r = canBuild(p, x, y, z);
+        if (BUILD.size() > 4096) BUILD.clear();
+        BUILD.put(key, new long[] { now, r ? 1 : 0 });
+        return r;
+    }
+
+    /** An item on the ground may be pulled or brought to the player: not someone else's boss loot share, not out of someone else's region. */
+    public static boolean mayFetch(EntityPlayer p, net.minecraft.entity.item.EntityItem it) {
+        String own = com.divinerpgextended.halite.Halite.owner(it.getEntityItem());
+        if (own != null && !own.equals(p.getUniqueID().toString())) return false;
+        String vanillaOwner = it.func_145798_i();
+        if (vanillaOwner != null && !vanillaOwner.isEmpty() && !vanillaOwner.equals(p.getCommandSenderName()) && it.lifespan - it.age > 200) return false;
+        return canBuildCached(p, net.minecraft.util.MathHelper.floor_double(it.posX), net.minecraft.util.MathHelper.floor_double(it.posY),
+            net.minecraft.util.MathHelper.floor_double(it.posZ));
+    }
+
+    /** Placing a block in place of another one: both. */
+    public static boolean canReplace(EntityPlayer p, int x, int y, int z) {
+        return canBreak(p, x, y, z) && (p.worldObj.isAirBlock(x, y, z) || canBuild(p, x, y, z));
+    }
+
+    /** A trial Forge event: true - cancelled. Addon listeners know it is a probe ({@link #probing}). */
+    private static boolean post(cpw.mods.fml.common.eventhandler.Event ev) {
+        boolean was = probing;
+        probing = true;
+        try {
+            return net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(ev);
+        } finally {
+            probing = was;
         }
     }
 
@@ -75,19 +170,59 @@ public final class Protection {
         return !(victim instanceof IMob);
     }
 
-    /** true - the effect from attacker on victim is forbidden by the region (attacker - a player, an armor wearer or null). */
+    /** The player responsible for the attacker: the player himself, the owner of a pet or summon, the shooter of a projectile; otherwise null. */
+    public static EntityPlayer playerOf(Entity a) {
+        for (int i = 0; i < 3 && a != null; i++) {
+            if (a instanceof EntityPlayer) return (EntityPlayer) a;
+            EntityPlayer pet = com.divinerpgextended.item.ItemPetWhistle.owner(a); // tamed Divine pets (owner by name), ghosts, arcana summons
+            if (pet != null) return pet;
+            Entity next = null;
+            if (a instanceof net.minecraft.entity.IEntityOwnable) {
+                Entity o = ((net.minecraft.entity.IEntityOwnable) a).getOwner();
+                next = o;
+            }
+            if (next == null && a instanceof net.minecraft.entity.projectile.EntityThrowable) next = ((net.minecraft.entity.projectile.EntityThrowable) a).getThrower();
+            if (next == null && a instanceof net.minecraft.entity.projectile.EntityArrow) next = ((net.minecraft.entity.projectile.EntityArrow) a).shootingEntity;
+            if (next == null && a instanceof net.minecraft.entity.projectile.EntityFireball) next = ((net.minecraft.entity.projectile.EntityFireball) a).shootingEntity;
+            if (next == null && a instanceof com.divinerpgextended.entity.EntityTomahawk) next = ((com.divinerpgextended.entity.EntityTomahawk) a).owner();
+            a = next;
+        }
+        return null;
+    }
+
+    /** Trial hits for one attacker - victim pair are remembered for half a second: one hit asks several times, summons ask every tick. */
+    private static final java.util.Map<Long, long[]> HITS = new java.util.HashMap<Long, long[]>();
+
+    /**
+     * true - the effect from attacker on victim is forbidden by the region (attacker - a player, his pet, summon or projectile, an armor wearer or null).
+     * The region plugin itself decides by a trial hit from the responsible player: it knows the pvp flag for players, the build rights and
+     * damage-animals for creatures, the claim trust. Before, creatures were checked only by the pvp flag, which is not set in an ordinary region -
+     * the bleeding, fire and poison of addon weapons reached villagers and animals in someone else's region. If the check breaks, the effect
+     * is refused.
+     */
     public static boolean spare(Entity attacker, Entity victim) {
         if (victim == null || victim.worldObj.isRemote || victim == attacker || !shielded(victim)) return false;
         if (testNoPvp) return true;
         MinecraftServer s = MinecraftServer.getServer();
         if (victim instanceof EntityPlayer && s != null && !s.isPVPEnabled()) return true;
         if (!bukkit()) return false;
+        EntityPlayer p = playerOf(attacker);
+        if (p == victim) return false;
+        long key = (long) (p != null ? p.getEntityId() : attacker != null ? attacker.getEntityId() : -1) << 32 | victim.getEntityId() & 0xFFFFFFFFL;
+        int now = s == null ? 0 : s.getTickCounter();
+        long[] c = HITS.get(key);
+        if (c != null && now - c[0] >= 0 && now - c[0] < 10) return c[1] != 0;
+        boolean r;
         try {
-            if (noPvpAt(victim)) return true;
-            return attacker instanceof EntityPlayer && victim instanceof EntityPlayer && cancelled(attacker, victim);
+            r = noPvpAt(victim) || p != null && cancelled(p, victim);
         } catch (Throwable t) {
-            return false;
+            if (!warnedHit) warn("addon weapon effects on players and peaceful creatures", t);
+            warnedHit = true;
+            r = true;
         }
+        if (HITS.size() > 4096) HITS.clear();
+        HITS.put(key, new long[] { now, r ? 1 : 0 });
+        return r;
     }
 
     /** WorldGuard pvp flag at the creature's position: deny. */

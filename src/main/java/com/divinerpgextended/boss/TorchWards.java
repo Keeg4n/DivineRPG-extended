@@ -145,7 +145,7 @@ public class TorchWards {
 
     @SubscribeEvent
     public void onBreak(BlockEvent.BreakEvent e) {
-        if (!e.world.isRemote && isTorch(e.block)) remove(e.world, e.x, e.y, e.z);
+        if (!e.world.isRemote && !com.divinerpgextended.perk.Protection.probing && isTorch(e.block)) remove(e.world, e.x, e.y, e.z);
     }
 
     @SubscribeEvent

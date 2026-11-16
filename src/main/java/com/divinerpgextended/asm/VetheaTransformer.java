@@ -55,6 +55,39 @@ public class VetheaTransformer implements IClassTransformer, Opcodes {
                     l.add(new InsnNode(RETURN));
                     replace(m, l);
                     n++;
+                } else if (transformedName.equals(TABLE) && ("func_70298_a".equals(m.name) || "decrStackSize".equals(m.name))
+                    && "(II)Lnet/minecraft/item/ItemStack;".equals(m.desc)) {
+                    // taking the result charges its cost; changing the inputs recomputes the result at once
+                    InsnList l = new InsnList();
+                    l.add(new VarInsnNode(ALOAD, 0));
+                    l.add(new FieldInsnNode(GETFIELD, node.name, "inventory", "[Lnet/minecraft/item/ItemStack;"));
+                    l.add(new VarInsnNode(ILOAD, 1));
+                    l.add(new VarInsnNode(ILOAD, 2));
+                    l.add(new MethodInsnNode(INVOKESTATIC, HOOKS, "infusionDecr", "([Lnet/minecraft/item/ItemStack;II)Lnet/minecraft/item/ItemStack;", false));
+                    l.add(new InsnNode(ARETURN));
+                    replace(m, l);
+                    n++;
+                } else if (transformedName.equals(TABLE) && ("func_70299_a".equals(m.name) || "setInventorySlotContents".equals(m.name))
+                    && "(ILnet/minecraft/item/ItemStack;)V".equals(m.desc)) {
+                    InsnList l = new InsnList();
+                    l.add(new VarInsnNode(ALOAD, 0));
+                    l.add(new VarInsnNode(ALOAD, 0));
+                    l.add(new FieldInsnNode(GETFIELD, node.name, "inventory", "[Lnet/minecraft/item/ItemStack;"));
+                    l.add(new VarInsnNode(ILOAD, 1));
+                    l.add(new VarInsnNode(ALOAD, 2));
+                    l.add(new MethodInsnNode(INVOKESTATIC, HOOKS, "infusionSet",
+                        "(Lnet/minecraft/inventory/IInventory;[Lnet/minecraft/item/ItemStack;ILnet/minecraft/item/ItemStack;)V", false));
+                    l.add(new InsnNode(RETURN));
+                    replace(m, l);
+                    n++;
+                } else if (transformedName.equals(TABLE) && ("func_94041_b".equals(m.name) || "isItemValidForSlot".equals(m.name))
+                    && "(ILnet/minecraft/item/ItemStack;)Z".equals(m.desc)) {
+                    InsnList l = new InsnList();
+                    l.add(new VarInsnNode(ILOAD, 1));
+                    l.add(new MethodInsnNode(INVOKESTATIC, HOOKS, "infusionValid", "(I)Z", false));
+                    l.add(new InsnNode(IRETURN));
+                    replace(m, l);
+                    n++;
                 } else if (transformedName.equals(SLOT) && ("func_75208_c".equals(m.name) || "onCrafting".equals(m.name))
                     && "(Lnet/minecraft/item/ItemStack;)V".equals(m.desc)) {
                     InsnList l = new InsnList();
@@ -82,6 +115,26 @@ public class VetheaTransformer implements IClassTransformer, Opcodes {
                         c.itf = false;
                         n++;
                     }
+                }
+            }
+            if (transformedName.equals(TABLE)) {
+                // markDirty: the inputs changed in place (a stack topped up or partly shift-clicked out) - recompute the result at once
+                boolean srg = false, has = false;
+                for (MethodNode m : node.methods) {
+                    if (m.name.startsWith("func_")) srg = true;
+                    if (("func_70296_d".equals(m.name) || "markDirty".equals(m.name)) && "()V".equals(m.desc)) has = true;
+                }
+                if (!has) {
+                    String dirty = srg ? "func_70296_d" : "markDirty";
+                    MethodNode md = new MethodNode(ACC_PUBLIC, dirty, "()V", null, null);
+                    md.instructions.add(new VarInsnNode(ALOAD, 0));
+                    md.instructions.add(new FieldInsnNode(GETFIELD, node.name, "inventory", "[Lnet/minecraft/item/ItemStack;"));
+                    md.instructions.add(new MethodInsnNode(INVOKESTATIC, HOOKS, "infusionUpdate", "([Lnet/minecraft/item/ItemStack;)V", false));
+                    md.instructions.add(new VarInsnNode(ALOAD, 0));
+                    md.instructions.add(new MethodInsnNode(INVOKESPECIAL, "net/minecraft/tileentity/TileEntity", dirty, "()V", false));
+                    md.instructions.add(new InsnNode(RETURN));
+                    node.methods.add(md);
+                    n++;
                 }
             }
             if (n == 0) return bytes;

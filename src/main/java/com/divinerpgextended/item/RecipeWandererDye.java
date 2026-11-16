@@ -97,7 +97,7 @@ public class RecipeWandererDye implements IRecipe {
             if (s == null || !(s.getItem() instanceof ItemWandererArmor) || ArmorData.color(s) < 0) return;
             if (e.world.getBlock(e.x, e.y, e.z) != Blocks.cauldron) return;
             int level = e.world.getBlockMetadata(e.x, e.y, e.z);
-            if (level <= 0) return;
+            if (level <= 0 || !com.divinerpgextended.perk.Protection.canBuild(e.entityPlayer, e.x, e.y, e.z)) return; // not someone else's cauldron
             ArmorData.clearColor(s);
             e.world.setBlockMetadataWithNotify(e.x, e.y, e.z, level - 1, 2);
             e.setCanceled(true);

@@ -38,7 +38,12 @@ public class ItemLetheBucket extends ItemBucket {
             // Lethe and dream water: both have the water material, a vanilla bucket would scoop plain water
             Item full = com.divinerpgextended.block.BlockLethe.isSource(e.world, x, y, z) ? com.divinerpgextended.registry.ModItems.letheBucket
                 : com.divinerpgextended.block.BlockDreamWater.isSource(e.world, x, y, z) ? com.divinerpgextended.registry.ModItems.dreamWaterBucket : null;
-            if (full == null || !e.entityPlayer.canPlayerEdit(x, y, z, e.target.sideHit, e.current)) return;
+            if (full == null) return;
+            // our ALLOW skips the server's own bucket checks (spawn protection, the plugin bucket event) - so we ask ourselves
+            if (!e.entityPlayer.canPlayerEdit(x, y, z, e.target.sideHit, e.current) || !com.divinerpgextended.perk.Protection.canBreak(e.entityPlayer, x, y, z)) {
+                e.setCanceled(true); // and not scooped as plain water either
+                return;
+            }
             e.world.setBlockToAir(x, y, z);
             e.result = new ItemStack(full);
             e.setResult(Event.Result.ALLOW);

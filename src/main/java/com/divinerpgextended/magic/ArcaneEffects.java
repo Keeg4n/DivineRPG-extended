@@ -124,12 +124,13 @@ public class ArcaneEffects {
         }
     }
 
-    /** Steady Hand: chance that the arrow returns. */
+    /** Steady Hand: chance that the arrow returns - only for a real shot that spent an arrow ({@link com.divinerpgextended.trinket.TrinketEffects#realShot}). */
     @SubscribeEvent
-    public void onLoose(ArrowLooseEvent e) {
-        EntityPlayer p = e.entityPlayer;
+    public void onArrow(net.minecraftforge.event.entity.EntityJoinWorldEvent e) {
+        EntityPlayer p = com.divinerpgextended.trinket.TrinketEffects.realShot(e);
+        if (p == null) return;
         int l = level(p, ArcaneEffect.STEADY_HAND);
-        if (l == 0 || p.worldObj.isRemote || p.capabilities.isCreativeMode) return;
+        if (l == 0) return;
         if (p.worldObj.rand.nextFloat() < (l == 1 ? 0.2F : 0.3F)) p.inventory.addItemStackToInventory(new ItemStack(Items.arrow));
     }
 

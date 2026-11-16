@@ -86,7 +86,7 @@ public class VetheaStash {
         if (ps.hasKey(STASH)) give(e.player, ps);
     }
 
-    /** Move Divine's locked copy to the handout queue (once), remove both Divine copies. */
+    /** Return Divine's locked copy at once (once), remove both Divine copies. */
     private static void migrate(EntityPlayer p) {
         if (divineSwap()) return; // the separate inventory is enabled deliberately - we do not interfere
         NBTTagCompound d = p.getEntityData();
@@ -95,46 +95,35 @@ public class VetheaStash {
         if (!ps.hasKey("VetheaInv") && !ps.hasKey("OverworldInv")) return;
         String real = p.dimension == ConfigurationHelper.vethea ? "OverworldInv" : "VetheaInv";
         NBTTagList locked = ps.getTagList(real, 10);
-        NBTTagList stash = ps.getTagList(STASH, 10);
-        int n = 0;
-        for (int i = 0; i < locked.tagCount(); i++) {
-            ItemStack s = ItemStack.loadItemStackFromNBT(locked.getCompoundTagAt(i));
-            if (s == null) continue;
-            NBTTagCompound c = new NBTTagCompound();
-            s.writeToNBT(c);
-            stash.appendTag(c);
-            n++;
-        }
         ps.removeTag("VetheaInv");
         ps.removeTag("OverworldInv");
-        if (stash.tagCount() > 0) ps.setTag(STASH, stash);
-        LOG.info("Vethea: {} - from the separate Divine inventory ({}), {} stacks to return", p.getCommandSenderName(), real, n);
-        com.divinerpgextended.debug.Debug.note(p, "Divine inventory: to return " + n + " stacks from " + real);
-        if (n > 0) say(p, "dre.vethea.stash_found", String.valueOf(n));
+        int n = give(p, locked);
+        LOG.info("Vethea: {} - from the separate Divine inventory ({}), {} stacks returned", p.getCommandSenderName(), real, n);
+        com.divinerpgextended.debug.Debug.note(p, "Divine inventory: returned " + n + " stacks from " + real);
+        if (n > 0) say(p, "dre.vethea.stash_done");
     }
 
+    /**
+     * Hand the stacks out right now: into the inventory, what does not fit - on the ground at the player's feet. Nothing waits in the player's data:
+     * items outside an inventory are lost or doubled when a server rolls back the inventory and the rest of the data differently.
+     */
+    private static int give(EntityPlayer p, NBTTagList list) {
+        int n = 0;
+        for (int i = 0; i < list.tagCount(); i++) {
+            ItemStack s = ItemStack.loadItemStackFromNBT(list.getCompoundTagAt(i));
+            if (s == null) continue;
+            n++;
+            p.inventory.addItemStackToInventory(s); // reduces stackSize by what fit
+            if (s.stackSize > 0) p.dropPlayerItemWithRandomChoice(s, false);
+        }
+        p.inventoryContainer.detectAndSendChanges();
+        return n;
+    }
+
+    /** What older versions left waiting in the player's data - hand it out the same way and remove the queue. */
     private static void give(EntityPlayer p, NBTTagCompound ps) {
         NBTTagList stash = ps.getTagList(STASH, 10);
-        NBTTagList left = new NBTTagList();
-        int given = 0;
-        for (int i = 0; i < stash.tagCount(); i++) {
-            ItemStack s = ItemStack.loadItemStackFromNBT(stash.getCompoundTagAt(i));
-            if (s == null) continue;
-            int before = s.stackSize;
-            p.inventory.addItemStackToInventory(s); // reduces stackSize by what fit
-            if (s.stackSize < before) given++;
-            if (s.stackSize > 0) {
-                NBTTagCompound c = new NBTTagCompound();
-                s.writeToNBT(c);
-                left.appendTag(c);
-            }
-        }
-        if (left.tagCount() == 0) ps.removeTag(STASH);
-        else ps.setTag(STASH, left);
-        if (given > 0) {
-            p.inventoryContainer.detectAndSendChanges();
-            if (left.tagCount() == 0) say(p, "dre.vethea.stash_done");
-        }
-        if (left.tagCount() > 0 && p.ticksExisted % 600 == 0) say(p, "dre.vethea.stash_wait", String.valueOf(left.tagCount()));
+        ps.removeTag(STASH);
+        if (give(p, stash) > 0) say(p, "dre.vethea.stash_done");
     }
 }

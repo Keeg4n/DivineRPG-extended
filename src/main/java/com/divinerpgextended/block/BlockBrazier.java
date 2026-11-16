@@ -65,6 +65,7 @@ public class BlockBrazier extends Block {
         if (held == null || isLit(world, x, y, z)
             || held.getItem() != Items.flint_and_steel && held.getItem() != Items.fire_charge) return false;
         if (world.isRemote) return true;
+        if (!com.divinerpgextended.perk.Protection.canBuild(player, x, y, z)) return true; // not someone else's brazier in his region
         world.setBlockMetadataWithNotify(x, y, z, 1, 3);
         world.playSoundEffect(x + 0.5, y + 1, z + 0.5, "fire.ignite", 1.0F, 0.9F);
         if (!player.capabilities.isCreativeMode) {

@@ -143,7 +143,7 @@ public class AquatoothEffects {
         if (v.worldObj.isRemote || v.ticksExisted % 20 != 0) return;
         long until = v.getEntityData().getLong(BLEED);
         if (until == 0) return;
-        if (v.worldObj.getTotalWorldTime() > until || v instanceof EntityPlayer && !bleedPvp((EntityPlayer) v)) {
+        if (v.worldObj.getTotalWorldTime() > until || Protection.shielded(v) && !bleedPvp(v)) {
             v.getEntityData().removeTag(BLEED);
             return;
         }
@@ -153,8 +153,11 @@ public class AquatoothEffects {
             ((WorldServer) v.worldObj).func_147487_a("reddust", v.posX, v.posY + v.height * 0.6, v.posZ, 8, v.width * 0.4, v.height * 0.3, v.width * 0.4, 0);
     }
 
-    /** A player bleeds while the attacker is nearby in the world and PvP between them is allowed (moved into a protected region - the bleeding stops). */
-    private static boolean bleedPvp(EntityPlayer v) {
+    /**
+     * A player, a villager or an animal bleeds while the attacker is in the world and the region allows him to hurt it (moved into someone else's
+     * region - the bleeding stops).
+     */
+    private static boolean bleedPvp(EntityLivingBase v) {
         String by = v.getEntityData().getString(BLEED_BY);
         EntityPlayer p = null;
         try {

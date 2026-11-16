@@ -30,6 +30,18 @@ public class BlockWindTotem extends Block {
         setResistance(6000000.0F);
         setStepSound(soundTypeStone);
         setBlockName("dre.windTotem");
+        setTickRandomly(true);
+    }
+
+    /**
+     * A totem without its Wind Lord (removed by a command or a lag cleaner, not killed - then he does not take the totems away) disappears by
+     * itself: otherwise an unbreakable block stayed in the world forever.
+     */
+    @Override
+    public void updateTick(World w, int x, int y, int z, Random r) {
+        if (w.isRemote) return;
+        if (w.getEntitiesWithinAABB(EntityWindLord.class, net.minecraft.util.AxisAlignedBB.getBoundingBox(x - 48, y - 32, z - 48, x + 48, y + 32, z + 48)).isEmpty())
+            w.setBlockToAir(x, y, z);
     }
 
     @Override

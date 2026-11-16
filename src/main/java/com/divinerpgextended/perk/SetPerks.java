@@ -79,7 +79,7 @@ public class SetPerks {
         if (e.source.getEntity() instanceof EntityPlayer && !(e.entityLiving instanceof EntityPlayer)) {
             EntityPlayer p = (EntityPlayer) e.source.getEntity();
             if (wears(p, TwilightWorld.MORTUM) && !com.divinerpgextended.perk.RangedRoles.sidePellet(e.source.getSourceOfDamage())
-                && p.getRNG().nextFloat() < (dark(p) ? DRAIN_CHANCE_DARK : DRAIN_CHANCE))
+                && p.getRNG().nextFloat() < (dark(p) ? DRAIN_CHANCE_DARK : DRAIN_CHANCE) && !Protection.spare(p, e.entityLiving))
                 p.heal(Math.min(DRAIN_MAX, Math.min(e.ammount, e.entityLiving.getHealth()) * DRAIN));
         }
     }

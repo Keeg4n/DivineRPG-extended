@@ -77,7 +77,13 @@ public class EntityWindLord extends EntityGroveGuardian {
         return new int[] { cx + (int) Math.round(Math.cos(a) * TOTEM_R), cy + HEIGHTS[i], cz + (int) Math.round(Math.sin(a) * TOTEM_R) };
     }
 
-    /** Place totems on the 3x3 cloud platforms (empty above them). */
+    /** Air, leaves, grass, snow - what the arena may take; anything built stays (it could be someone's base on the island). */
+    private boolean soft(int x, int y, int z) {
+        net.minecraft.block.Block b = worldObj.getBlock(x, y, z);
+        return worldObj.isAirBlock(x, y, z) || b.isLeaves(worldObj, x, y, z) || b.isReplaceable(worldObj, x, y, z) && worldObj.getTileEntity(x, y, z) == null;
+    }
+
+    /** Place totems on the 3x3 cloud platforms (empty above them). Only into air, leaves and grass: built blocks are never cleared. */
     public void placeTotems() {
         center();
         for (int i = 0; i < 4; i++) {
@@ -85,9 +91,13 @@ public class EntityWindLord extends EntityGroveGuardian {
             for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
                 if (worldObj.isAirBlock(t[0] + dx, t[1] - 1, t[2] + dz) || worldObj.getBlock(t[0] + dx, t[1] - 1, t[2] + dz).isLeaves(worldObj, t[0] + dx, t[1] - 1, t[2] + dz))
                     worldObj.setBlock(t[0] + dx, t[1] - 1, t[2] + dz, ModBlocks.cloud, 0, 3);
-                for (int h = 0; h <= 3; h++) if (!(dx == 0 && dz == 0 && h == 0)) worldObj.setBlockToAir(t[0] + dx, t[1] + h, t[2] + dz);
+                for (int h = 0; h <= 3; h++) {
+                    int y = t[1] + h;
+                    if (!(dx == 0 && dz == 0 && h == 0) && !worldObj.isAirBlock(t[0] + dx, y, t[2] + dz) && soft(t[0] + dx, y, t[2] + dz))
+                        worldObj.setBlockToAir(t[0] + dx, y, t[2] + dz);
+                }
             }
-            worldObj.setBlock(t[0], t[1], t[2], ModBlocks.windTotem, 0, 3);
+            if (soft(t[0], t[1], t[2])) worldObj.setBlock(t[0], t[1], t[2], ModBlocks.windTotem, 0, 3);
         }
         placed = true;
     }
@@ -239,7 +249,7 @@ public class EntityWindLord extends EntityGroveGuardian {
     private void lightTotem(int x, int y, int z) {
         worldObj.setBlockMetadataWithNotify(x, y, z, 1, 3);
         // lightning strikes the Lord: flash and thunder for everyone, damage - with its own source
-        worldObj.addWeatherEffect(new EntityLightningBolt(worldObj, posX, posY, posZ));
+        worldObj.addWeatherEffect(EntitySafeLightning.boss(worldObj, posX, posY, posZ)); // without fire on blocks
         int lit = litTotems();
         hurtResistantTime = 0; // the totem's lightning always goes through
         if (lit >= 4) { // the last totem: 1 health, falls to the ground - finish him off with anything

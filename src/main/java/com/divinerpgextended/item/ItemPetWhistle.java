@@ -148,15 +148,17 @@ public class ItemPetWhistle extends Item {
 
     /** Release a pet with the whistle: the egg (with it inside) goes to the owner, a ghost disperses, others leave. */
     public static ItemStack dismiss(EntityPlayer p, Entity e) {
+        // two hits in one tick: the pet is already released (setDead leaves it in the world until the end of the tick) - and a dead one is not
+        // written, so a plain Divine egg came out the second time, which hatched a new pet
+        if (e == null || e.isDead) return null;
         ItemStack egg = eggOf(e);
         if (egg != null) {
             NBTTagCompound t = new NBTTagCompound();
-            if (e.writeToNBTOptional(t)) {
-                NBTTagCompound tag = new NBTTagCompound();
-                tag.setTag(PET, t);
-                tag.setString("DrePetName", e.getCommandSenderName());
-                egg.setTagCompound(tag);
-            }
+            if (!e.writeToNBTOptional(t)) return null; // the pet could not be written - it stays, no empty egg
+            NBTTagCompound tag = new NBTTagCompound();
+            tag.setTag(PET, t);
+            tag.setString("DrePetName", e.getCommandSenderName());
+            egg.setTagCompound(tag);
             if (!p.inventory.addItemStackToInventory(egg)) p.entityDropItem(egg, 0.5F);
         }
         if (p.worldObj instanceof WorldServer) ((WorldServer) p.worldObj).func_147487_a("portal", e.posX, e.posY + e.height / 2, e.posZ, 30, 0.4, 0.5, 0.4, 0.5);

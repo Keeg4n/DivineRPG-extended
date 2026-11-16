@@ -183,7 +183,8 @@ public final class DreamCrops {
                 (net.minecraftforge.common.IPlantable) ModBlocks.dreamCarrots)) return;
             p.getEntityData().setLong(TICK, w.getTotalWorldTime());
             if (w.isRemote) return;
-            if (!p.canPlayerEdit(e.x, e.y + 1, e.z, 1, held)) return;
+            if (e.useItem == cpw.mods.fml.common.eventhandler.Event.Result.DENY || !p.canPlayerEdit(e.x, e.y + 1, e.z, 1, held)
+                || !com.divinerpgextended.perk.Protection.canBuild(p, e.x, e.y + 1, e.z)) return; // not in someone else's garden
             w.setBlock(e.x, e.y + 1, e.z, ModBlocks.dreamCarrots);
             if (!p.capabilities.isCreativeMode && --held.stackSize <= 0) p.inventory.setInventorySlotContents(p.inventory.currentItem, null);
             e.setCanceled(true);

@@ -48,7 +48,7 @@ public class BlockBurrow extends Block {
     @Override
     public void onBlockHarvested(World world, int x, int y, int z, int meta, EntityPlayer player) {
         if (!world.isRemote && !player.capabilities.isCreativeMode) {
-            collapse(world, x, y, z);
+            collapse(world, x, y, z, player);
             player.addChatMessage(new ChatComponentTranslation("dre.chat.burrow_collapse"));
         }
         super.onBlockHarvested(world, x, y, z, meta, player);
@@ -73,20 +73,40 @@ public class BlockBurrow extends Block {
         Convert.placed(w, x, y, z, e, s);
     }
 
-    /** Fill with sand everything empty and flooded around the breach: the sand falls and clogs the passage. */
     public static void collapse(World world, int x, int y, int z) {
+        collapse(world, x, y, z, null);
+    }
+
+    /**
+     * Fill with sand the empty and flooded passage around the breach: the sand falls and clogs the passage. Only cells touching the burrow
+     * walls (the passage itself, not a base dug next to it), and if a player broke it - only where he may build: before, the whole 7x6x7 box
+     * was filled, reaching into a neighboring region, and every breach gave hundreds of free sand.
+     */
+    public static void collapse(World world, int x, int y, int z, EntityPlayer by) {
         for (int dx = -3; dx <= 3; dx++) {
             for (int dz = -3; dz <= 3; dz++) {
                 for (int dy = -1; dy <= 4; dy++) {
                     if (dx == 0 && dz == 0 && dy == 0) continue;
-                    Block b = world.getBlock(x + dx, y + dy, z + dz);
-                    if (b.getMaterial() == Material.water || b.isAir(world, x + dx, y + dy, z + dz)) {
-                        world.setBlock(x + dx, y + dy, z + dz, Blocks.sand);
-                    }
+                    int cx = x + dx, cy = y + dy, cz = z + dz;
+                    Block b = world.getBlock(cx, cy, cz);
+                    if (b.getMaterial() != Material.water && !b.isAir(world, cx, cy, cz) || !wall(world, cx, cy, cz)) continue;
+                    if (by != null && !com.divinerpgextended.perk.Protection.canBuildCached(by, cx, cy, cz)) continue;
+                    world.setBlock(cx, cy, cz, Blocks.sand);
                 }
             }
         }
         world.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, "dig.sand", 2.0F, 0.6F);
+    }
+
+    /** The cell touches a burrow wall, the nest or the heart (or the breach itself, already sand). */
+    private static boolean wall(World w, int x, int y, int z) {
+        int[][] d = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
+        for (int[] o : d) {
+            Block b = w.getBlock(x + o[0], y + o[1], z + o[2]);
+            if (b == com.divinerpgextended.registry.ModBlocks.burrow || b == com.divinerpgextended.registry.ModBlocks.sharkNest
+                || b == com.divinerpgextended.registry.ModBlocks.carcinusHeart) return true;
+        }
+        return false;
     }
 
     /** Vanilla twin of a burrow block (null - not a burrow block). */

@@ -58,6 +58,12 @@ public class BlockFrostIce extends Block {
         return 0;
     }
 
+    /** The boss's temporary ice does not become a permanent block under Silk Touch. */
+    @Override
+    public boolean canSilkHarvest(World w, net.minecraft.entity.player.EntityPlayer p, int x, int y, int z, int meta) {
+        return false;
+    }
+
     /** Places temporary ice only into air, so as not to spoil structures. */
     public static boolean place(World world, Block block, int x, int y, int z, int meta) {
         if (!world.isAirBlock(x, y, z)) return false;

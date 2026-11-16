@@ -117,6 +117,12 @@ public class JackOMan {
         // The Divine trade window builds the list on the client: we rebuild it on both sides identically, by the player's stage
         // (the client knows the stage from ProgressSync). We take Jack's original list and keep what is already unlocked.
         EntityJackOMan jack = (EntityJackOMan) e.target;
+        // the list belongs to Jack: rebuilt for a second player while the first trades, it changed under the first one's window - he could
+        // then pick trades of a stage he has not reached. Like a villager: one customer at a time
+        if (jack.getCustomer() != null && jack.getCustomer() != p) {
+            e.setCanceled(true);
+            return;
+        }
         MerchantRecipeList list = jack.getRecipes(p);
         if (list == null) return;
         MerchantRecipeList orig = new MerchantRecipeList();
@@ -152,7 +158,10 @@ public class JackOMan {
     private static void sellJunk(EntityPlayer p, ItemStack held) {
         int rate = junkRate(held.getItem());
         long night = p.worldObj.getWorldTime() / 24000L;
-        net.minecraft.nbt.NBTTagCompound d = p.getEntityData();
+        // the cap lives in the persisted data: plain entity data does not survive death, and dying reset the nightly cap
+        net.minecraft.nbt.NBTTagCompound root = p.getEntityData();
+        if (!root.hasKey(EntityPlayer.PERSISTED_NBT_TAG)) root.setTag(EntityPlayer.PERSISTED_NBT_TAG, new net.minecraft.nbt.NBTTagCompound());
+        net.minecraft.nbt.NBTTagCompound d = root.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
         int sold = d.getLong("dreJackNight") == night ? d.getInteger("dreJackSold") : 0;
         int left = NIGHT_CAP - sold;
         if (left <= 0) {

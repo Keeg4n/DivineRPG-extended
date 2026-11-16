@@ -274,7 +274,8 @@ public class EarlyWeapons {
         // Poison Saber: a poisoned target cannot heal
         if (atk instanceof EntityPlayer && src == atk) {
             ItemStack h = ((EntityPlayer) atk).getHeldItem();
-            if (h != null && h.getItem() == VanillaItemsWeapons.poisonSaber) v.getEntityData().setLong(NO_HEAL, v.worldObj.getTotalWorldTime() + NO_HEAL_TICKS);
+            if (h != null && h.getItem() == VanillaItemsWeapons.poisonSaber && !Protection.spare(atk, v))
+                v.getEntityData().setLong(NO_HEAL, v.worldObj.getTotalWorldTime() + NO_HEAL_TICKS);
         }
     }
 
@@ -287,6 +288,7 @@ public class EarlyWeapons {
         EntityPlayer p = (EntityPlayer) atk;
         ItemStack h = p.getHeldItem();
         if (h == null || h.getItem() != VanillaItemsWeapons.bloodgemSword || p.getHealth() >= p.getMaxHealth()) return;
+        if (Protection.spare(p, e.entityLiving)) return; // the region cancels this hit - nothing to drink
         float rate = p.getHealth() < p.getMaxHealth() / 3F ? VAMP_LOW : VAMP;
         float dealt = Math.min(e.ammount, e.entityLiving.getHealth() + e.entityLiving.getAbsorptionAmount());
         p.heal(dealt * rate);
@@ -494,7 +496,7 @@ public class EarlyWeapons {
      */
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onStruck(EntityStruckByLightningEvent e) {
-        if (!(e.lightning instanceof com.divinerpgextended.entity.EntitySafeLightning)) return;
+        if (!(e.lightning instanceof com.divinerpgextended.entity.EntitySafeLightning) || ((com.divinerpgextended.entity.EntitySafeLightning) e.lightning).boss) return;
         Entity t = e.entity;
         if (t instanceof net.minecraft.entity.player.EntityPlayer) { // other players - where PvP is allowed, yourself - never
             net.minecraft.entity.player.EntityPlayer by = ((com.divinerpgextended.entity.EntitySafeLightning) e.lightning).caster;

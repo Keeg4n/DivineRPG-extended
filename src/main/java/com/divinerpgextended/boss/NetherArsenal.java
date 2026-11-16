@@ -83,7 +83,7 @@ public class NetherArsenal {
         Entity proj = e.source.getSourceOfDamage();
         if (proj instanceof EntityMusic && BossMinions.isMinion(v)) e.ammount *= MINION_MULT;
         if (proj instanceof EntityCarol) {
-            v.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 60, 1));
+            if (!com.divinerpgextended.perk.Protection.spare(e.source.getEntity(), v)) v.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 60, 1));
             if (v instanceof com.divinerpgextended.entity.EntityFrostColossus || v instanceof com.divinerpgextended.entity.EntitySnowGlacon) e.ammount *= ICE_MULT;
         }
         // horde dragon: the ghast cannon knocks down the breath and the approach

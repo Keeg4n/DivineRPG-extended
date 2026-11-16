@@ -79,6 +79,7 @@ public class BlockLureTorch extends BlockTorch implements ITileEntityProvider {
             return true;
         }
         if (w.isRemote) return true;
+        if (!com.divinerpgextended.perk.Protection.canBuild(p, x, y, z)) return true; // someone else's torch in his region: it lures mobs to his base
         int meta = w.getBlockMetadata(x, y, z);
         if (!lit) w.setBlock(x, y, z, ModBlocks.lureTorchLit, meta, 3);
         TileEntity te = w.getTileEntity(x, y, z);

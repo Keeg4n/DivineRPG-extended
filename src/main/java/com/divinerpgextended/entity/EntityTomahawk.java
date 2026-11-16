@@ -146,18 +146,19 @@ public class EntityTomahawk extends Entity {
     private boolean valid(EntityLivingBase e) {
         if (e == owner || e.isDead || e.getHealth() <= 0 || hit.contains(e.getEntityId())) return false;
         if (e instanceof EntityTameable && ((EntityTameable) e).getOwner() == owner || com.divinerpgextended.magic.AnchorSummons.own(owner, e)) return false;
-        if (e instanceof EntityPlayer) return !com.divinerpgextended.perk.Protection.spare(owner, e);
-        return true;
+        // players - only where PvP is allowed; villagers, animals and pets - not in someone else's region (the region does not see whose the
+        // tomahawk is: it is not an arrow, the hit is not tied to the thrower)
+        return !com.divinerpgextended.perk.Protection.spare(owner, e);
     }
 
     private void strike(EntityLivingBase t) {
         boolean first = hits == 0;
         boolean far = first && owner.getDistanceToEntity(t) > STUN_RANGE;
         t.hurtResistantTime = 0;
-        t.attackEntityFrom(DamageSource.causeThrownDamage(this, owner), damage);
+        boolean landed = t.attackEntityFrom(DamageSource.causeThrownDamage(this, owner), damage);
         hit.add(t.getEntityId());
         hits++;
-        if (far) {
+        if (far && landed) {
             t.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, STUN_TICKS, 9));
             t.addPotionEffect(new PotionEffect(Potion.weakness.id, STUN_TICKS, 4));
             stunned = true;

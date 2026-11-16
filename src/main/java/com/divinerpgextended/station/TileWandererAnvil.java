@@ -25,7 +25,7 @@ public class TileWandererAnvil extends TileEntity {
     }
 
     public boolean isUseableByPlayer(EntityPlayer player) {
-        return worldObj.getTileEntity(xCoord, yCoord, zCoord) == this
+        return player.worldObj == worldObj && worldObj.getTileEntity(xCoord, yCoord, zCoord) == this // the same world: portals keep x and z
             && player.getDistanceSq(xCoord + 0.5, yCoord + 0.5, zCoord + 0.5) <= 64;
     }
 

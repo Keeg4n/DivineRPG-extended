@@ -198,7 +198,7 @@ public class FurnaceRoles {
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onBreak(BlockEvent.BreakEvent e) {
-        if (e.isCanceled()) return;
+        if (e.isCanceled() || com.divinerpgextended.perk.Protection.probing) return; // a trial event: the furnace stays
         if (e.world.isRemote) return;
         TileEntity te = e.world.getTileEntity(e.x, e.y, e.z);
         if (te == null || !isFurnace(te)) return;
@@ -213,8 +213,8 @@ public class FurnaceRoles {
 
     // ---------------- Doubling and speed ----------------
 
-    /** Snapshot of the furnace from the previous tick: what the input was and how much. */
-    private static final Map<TileEntity, ItemStack> LAST_IN = new WeakHashMap<TileEntity, ItemStack>();
+    /** Snapshot of the furnace from the previous tick: what the input and the output were and how much (the output - after our bonus). */
+    private static final Map<TileEntity, ItemStack> LAST_IN = new WeakHashMap<TileEntity, ItemStack>(), LAST_OUT = new WeakHashMap<TileEntity, ItemStack>();
 
     @SubscribeEvent
     public void onWorldTick(TickEvent.WorldTickEvent e) {
@@ -229,13 +229,28 @@ public class FurnaceRoles {
             IInventory inv = (IInventory) te;
             ItemStack in = inv.getStackInSlot(0);
             ItemStack last = LAST_IN.get(te);
-            if (last != null) {
-                int smelted = in == null ? last.stackSize : in.isItemEqual(last) ? last.stackSize - in.stackSize : 0;
+            if (last != null && LAST_OUT.containsKey(te)) {
+                int used = in == null ? last.stackSize : in.isItemEqual(last) ? last.stackSize - in.stackSize : 0;
+                int smelted = Math.min(used, made(last, LAST_OUT.get(te), inv.getStackInSlot(outSlot(te))));
                 for (int i = 0; i < smelted; i++) bonus(te, inv, last, a[0]);
             }
             LAST_IN.put(te, in == null ? null : in.copy());
+            ItemStack out = inv.getStackInSlot(outSlot(te));
+            LAST_OUT.put(te, out == null ? null : out.copy());
         }
         if (e.world.getTotalWorldTime() % 200 == 0) cleanup(e.world);
+    }
+
+    /**
+     * How many smelts the output shows: it grew by the recipe result. The input alone proves nothing - a hand, a hopper or a pipe taking
+     * the ore out also lowers it, and counting that as smelting doubled ore taken back out (64 diamond ore in a Demon furnace - 64 free diamonds).
+     * If the output was taken out in the same tick as a smelt, that bonus is lost - better than a dupe.
+     */
+    static int made(ItemStack input, ItemStack lastOut, ItemStack out) {
+        ItemStack result = FurnaceRecipes.smelting().getSmeltingResult(input);
+        if (result == null || result.stackSize <= 0 || out == null || !out.isItemEqual(result)) return 0;
+        int before = lastOut != null && lastOut.isItemEqual(result) ? lastOut.stackSize : 0;
+        return Math.max(0, out.stackSize - before) / result.stackSize;
     }
 
     /**

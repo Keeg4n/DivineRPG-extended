@@ -69,7 +69,7 @@ public class CorruptedGear {
 
     @SubscribeEvent
     public void onBreak(BlockEvent.BreakEvent e) {
-        if (e.getPlayer() != null && tool(held(e.getPlayer()))) sight(e.getPlayer());
+        if (e.getPlayer() != null && !com.divinerpgextended.perk.Protection.probing && tool(held(e.getPlayer()))) sight(e.getPlayer());
     }
 
     @SubscribeEvent

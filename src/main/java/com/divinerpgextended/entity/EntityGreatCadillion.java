@@ -354,7 +354,7 @@ public class EntityGreatCadillion extends EntityMob implements IBossDisplayData 
                 break;
             default: // Skythern: lightning on the target
                 EntityLivingBase t = getAttackTarget();
-                worldObj.addWeatherEffect(new EntityLightningBolt(worldObj, t.posX, t.posY, t.posZ));
+                worldObj.addWeatherEffect(EntitySafeLightning.boss(worldObj, t.posX, t.posY, t.posZ)); // without fire on blocks
                 abilityTimer = 240;
                 break;
         }

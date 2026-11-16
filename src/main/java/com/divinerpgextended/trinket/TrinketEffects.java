@@ -154,11 +154,25 @@ public class TrinketEffects {
         p.addChatMessage(c);
     }
 
+    /**
+     * The player who has just really shot an arrow that he spent (it can be picked up): otherwise null. The bow release event comes before the
+     * bow checks the arrows and the draw - a quick tap fired nothing and spent nothing, and the ring and Steady Hand returned an arrow for it.
+     * Arrows of Infinity and the Endless Quiver are not spent and are not returned either.
+     */
+    public static EntityPlayer realShot(net.minecraftforge.event.entity.EntityJoinWorldEvent e) {
+        if (e.world.isRemote || !(e.entity instanceof net.minecraft.entity.projectile.EntityArrow)) return null;
+        net.minecraft.entity.projectile.EntityArrow a = (net.minecraft.entity.projectile.EntityArrow) e.entity;
+        if (a.canBePickedUp != 1 || a.ticksExisted > 0 || !(a.shootingEntity instanceof EntityPlayer)) return null;
+        EntityPlayer p = (EntityPlayer) a.shootingEntity;
+        if (p.capabilities.isCreativeMode || wears(p, Trinket.ENDLESS_QUIVER)) return null;
+        return p;
+    }
+
     /** Bone ring: 25% chance that the arrow returns. */
     @SubscribeEvent
-    public void onLoose(ArrowLooseEvent e) {
-        EntityPlayer p = e.entityPlayer;
-        if (p.worldObj.isRemote || p.capabilities.isCreativeMode || !wears(p, Trinket.BONE_RING)) return;
+    public void onArrow(net.minecraftforge.event.entity.EntityJoinWorldEvent e) {
+        EntityPlayer p = realShot(e);
+        if (p == null || !wears(p, Trinket.BONE_RING)) return;
         if (p.worldObj.rand.nextFloat() < 0.25F) p.inventory.addItemStackToInventory(new ItemStack(Items.arrow));
     }
 
@@ -249,6 +263,7 @@ public class TrinketEffects {
         List<EntityItem> items = p.worldObj.getEntitiesWithinAABB(EntityItem.class, p.boundingBox.expand(6, 3, 6));
         for (EntityItem it : items) {
             if (it.isDead || it.delayBeforeCanPickup > 0) continue;
+            if (!com.divinerpgextended.perk.Protection.mayFetch(p, it)) continue; // not out of someone else's region, not someone else's boss loot
             double dx = p.posX - it.posX, dy = p.posY + 0.5 - it.posY, dz = p.posZ - it.posZ, d = Math.sqrt(dx * dx + dy * dy + dz * dz);
             if (d < 0.5) continue;
             it.motionX = dx / d * 0.35;

@@ -58,10 +58,17 @@ public class FastTeleporter extends DivineTeleporter {
      */
     @Override
     public boolean makePortal(Entity entity) {
+        net.minecraft.entity.player.EntityPlayer pl = entity instanceof net.minecraft.entity.player.EntityPlayer ? (net.minecraft.entity.player.EntityPlayer) entity : null;
         com.divinerpgextended.world.twilight.TwilightWorld tw = com.divinerpgextended.world.twilight.TwilightWorld.of(field_85192_a.provider.dimensionId);
         if (tw != null && tw != com.divinerpgextended.world.twilight.TwilightWorld.MORTUM) {
-            int[] land = island(tw, MathHelper.floor_double(entity.posX), MathHelper.floor_double(entity.posZ));
+            int[] land = island(tw, MathHelper.floor_double(entity.posX), MathHelper.floor_double(entity.posZ), pl);
             if (land != null) entity.setLocationAndAngles(land[0] + 0.5, land[1] + 1, land[2] + 0.5, entity.rotationYaw, entity.rotationPitch);
+        }
+        // Divine builds the frame, the platform and clears space within 16 blocks of the point without asking anyone: on the other side the
+        // point may fall into someone's base (the way back to the Overworld lands by the same coordinates) - we move it to where the player may build
+        if (pl != null && !free(pl, MathHelper.floor_double(entity.posX), MathHelper.floor_double(entity.posY), MathHelper.floor_double(entity.posZ))) {
+            int[] spot = freeSpot(pl, MathHelper.floor_double(entity.posX), MathHelper.floor_double(entity.posY), MathHelper.floor_double(entity.posZ));
+            if (spot != null) entity.setLocationAndAngles(spot[0] + 0.5, spot[1], spot[2] + 0.5, entity.rotationYaw, entity.rotationPitch);
         }
         int ex = MathHelper.floor_double(entity.posX), ez = MathHelper.floor_double(entity.posZ), r = 20;
         java.util.Set<Long> before = PortalFrames.snapshot(field_85192_a, frameBlock, ex, ez, r);
@@ -75,6 +82,11 @@ public class FastTeleporter extends DivineTeleporter {
      * {@link #ISLAND_SEARCH}: {x, ground y, z}; null - none (then as in Divine). Under the entry point itself there is an island - that is it.
      */
     int[] island(com.divinerpgextended.world.twilight.TwilightWorld tw, int x0, int z0) {
+        return island(tw, x0, z0, null);
+    }
+
+    /** The same, only where the player may build (null - anywhere). */
+    int[] island(com.divinerpgextended.world.twilight.TwilightWorld tw, int x0, int z0, net.minecraft.entity.player.EntityPlayer pl) {
         for (int r = 0; r <= ISLAND_SEARCH; r += 4) {
             int[] best = null;
             double bd = Double.MAX_VALUE;
@@ -82,7 +94,7 @@ public class FastTeleporter extends DivineTeleporter {
                 if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue; // only the ring of radius r
                 int x = x0 + dx, z = z0 + dz;
                 int y = flat(tw, x, z);
-                if (y < 0) continue;
+                if (y < 0 || pl != null && !free(pl, x, y + 1, z)) continue;
                 double d = dx * dx + dz * dz;
                 if (d < bd) {
                     bd = d;
@@ -90,6 +102,27 @@ public class FastTeleporter extends DivineTeleporter {
                 }
             }
             if (best != null) return best;
+        }
+        return null;
+    }
+
+    /** Divine builds within 16 blocks of the point: the player may build at the point and 16 blocks around it (spawn protection, regions). */
+    static boolean free(net.minecraft.entity.player.EntityPlayer p, int x, int y, int z) {
+        int yy = Math.max(1, Math.min(250, y));
+        for (int dx = -16; dx <= 16; dx += 16) for (int dz = -16; dz <= 16; dz += 16)
+            if (!com.divinerpgextended.perk.Protection.canBuild(p, x + dx, yy, z + dz)) return false;
+        return true;
+    }
+
+    /** The nearest point in rings of 8 blocks up to 96 where {@link #free} holds: {x, y, z} (y - above the top solid block if there is one); null - none. */
+    int[] freeSpot(net.minecraft.entity.player.EntityPlayer p, int x0, int y0, int z0) {
+        for (int r = 8; r <= 96; r += 8) {
+            for (int dx = -r; dx <= r; dx += 8) for (int dz = -r; dz <= r; dz += 8) {
+                if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue;
+                int x = x0 + dx, z = z0 + dz, top = field_85192_a.getTopSolidOrLiquidBlock(x, z);
+                int y = top > 0 ? top : y0;
+                if (free(p, x, y, z)) return new int[] { x, y, z };
+            }
         }
         return null;
     }

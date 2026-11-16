@@ -109,7 +109,7 @@ public class ContainerCorruptAltar extends Container {
 
     @Override
     public boolean canInteractWith(EntityPlayer p) {
-        return AltarLogic.altar(world, x, y, z) && p.getDistanceSq(x + 0.5, y + 0.5, z + 0.5) <= 64.0;
+        return p.worldObj == world && AltarLogic.altar(world, x, y, z) && p.getDistanceSq(x + 0.5, y + 0.5, z + 0.5) <= 64.0;
     }
 
     /** The window closed (including leaving the server and death) - the item and payment returned to the player. */

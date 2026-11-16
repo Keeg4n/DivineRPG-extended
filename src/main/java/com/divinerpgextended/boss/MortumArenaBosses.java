@@ -409,7 +409,8 @@ public class MortumArenaBosses {
             }
         }
         a.worldObj.playSoundAtEntity(a, "random.bow", 2.0F, 0.8F);
-        erode(a.worldObj, p);
+        int[] home = LairSummons.home(a);
+        if (home != null) erode(a.worldObj, p, home[0], home[1], home[2]); // only the gallery columns: no home - no arena, nothing to bring down
         return n;
     }
 
@@ -447,13 +448,17 @@ public class MortumArenaBosses {
         return broken;
     }
 
-    /** The top block of the column nearest to the target (carved stone) is brought down. */
-    public static boolean erode(World w, EntityLivingBase p) {
+    /**
+     * The top block of the cover column nearest to the target (carved stone) is brought down - only inside the gallery of the arena (cx, floor, cz):
+     * before, any carved stone within 5 blocks of the target went, a base by the arena included.
+     */
+    public static boolean erode(World w, EntityLivingBase p, int cx, int floor, int cz) {
         int px = (int) Math.floor(p.posX), py = (int) Math.floor(p.posY), pz = (int) Math.floor(p.posZ);
         int[] best = null;
         double bd = 26;
         for (int x = px - 5; x <= px + 5; x++) for (int z = pz - 5; z <= pz + 5; z++) for (int y = py + 6; y >= py - 1; y--) {
             if (w.getBlock(x, y, z) != Blocks.stonebrick || w.getBlockMetadata(x, y, z) != 3 || w.getBlock(x, y + 1, z) == Blocks.stonebrick) continue;
+            if (!pierceable(w, x, y, z, cx, floor, cz)) break; // outside the gallery
             double d = (x - px) * (x - px) + (z - pz) * (z - pz);
             if (d < bd) {
                 bd = d;
@@ -536,7 +541,7 @@ public class MortumArenaBosses {
     /** A broken headstone in the graveyard while the Soul Fiend is alive: he heals, a soul rises from the grave, the one who broke it gets Wither. */
     @SubscribeEvent
     public void onBreak(net.minecraftforge.event.world.BlockEvent.BreakEvent e) {
-        if (e.world.isRemote || e.block != Blocks.stonebrick || e.blockMetadata != 3 || e.getPlayer() == null) return;
+        if (e.world.isRemote || com.divinerpgextended.perk.Protection.probing || e.block != Blocks.stonebrick || e.blockMetadata != 3 || e.getPlayer() == null) return;
         EntitySoulFiend f = fiendNear(e.world, e.x, e.y, e.z, 40);
         if (f == null) return;
         f.heal(f.getMaxHealth() * DESECRATE_HEAL);

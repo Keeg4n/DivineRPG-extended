@@ -8,6 +8,7 @@ import java.util.Set;
 import net.divinerpg.utils.items.VanillaItemsWeapons;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.util.MathHelper;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.boss.IBossDisplayData;
 import net.minecraft.entity.monster.IMob;
@@ -121,7 +122,8 @@ public class SeaWeapons {
     }
 
     private static boolean pullable(EntityPlayer p, EntityLivingBase t) {
-        if (t instanceof EntityPlayer && Protection.spare(p, t)) return false; // a player - only where PvP is allowed
+        // a player - only where PvP is allowed, a villager or an animal - not out of someone else's region
+        if (Protection.spare(p, t)) return false;
         return t.getEntityAttribute(SharedMonsterAttributes.knockbackResistance).getAttributeValue() < 1.0;
     }
 
@@ -156,14 +158,17 @@ public class SeaWeapons {
      * PvP is allowed, and the push reaches the player's client (in Divine players were not pulled).
      */
     public static void attract(Entity t, double x, double y, double z, net.minecraft.entity.projectile.EntityThrowable a) {
-        if (t instanceof EntityPlayer) {
-            EntityLivingBase by = a.getThrower();
-            if (by == null || by == t || Protection.spare(by, t)) return;
-            t.addVelocity(x, y, z);
-            t.velocityChanged = true;
-            return;
+        EntityLivingBase by = a.getThrower();
+        if (by == t) return;
+        if (t instanceof EntityLivingBase) {
+            // players - only where PvP is allowed; villagers, animals and pets - not out of someone else's region
+            if (Protection.shielded(t) && (by == null || Protection.spare(by, t))) return;
+        } else if (by instanceof EntityPlayer && !Protection.canBuild((EntityPlayer) by, MathHelper.floor_double(t.posX),
+            MathHelper.floor_double(t.posY), MathHelper.floor_double(t.posZ))) {
+            return; // carts, boats and other things - not out of someone else's region
         }
         t.addVelocity(x, y, z);
+        if (t instanceof EntityPlayer) t.velocityChanged = true;
     }
 
     /** Yank everyone who was hooked: the speed is calculated to stop next to the one it pulls toward. */

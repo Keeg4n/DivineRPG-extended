@@ -33,6 +33,11 @@ public class Campfire {
             p.addChatMessage(new ChatComponentTranslation("dre.chat.campfire_unlit"));
             return;
         }
+        // a campfire in someone else's region: the player would respawn right inside his base
+        if (!com.divinerpgextended.perk.Protection.canBuild(p, e.x, e.y, e.z)) {
+            e.setCanceled(true);
+            return;
+        }
         NBTTagCompound ps = persisted(p);
         int[] cur = ps.getIntArray(KEY);
         int[] here = { e.world.provider.dimensionId, e.x, e.y, e.z };

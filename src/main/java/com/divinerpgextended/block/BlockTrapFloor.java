@@ -49,6 +49,12 @@ public class BlockTrapFloor extends Block {
         return Item.getItemFromBlock(Blocks.sandstone);
     }
 
+    /** Under Silk Touch - sandstone too, not the trap itself. */
+    @Override
+    public boolean canSilkHarvest(World w, EntityPlayer p, int x, int y, int z, int meta) {
+        return false;
+    }
+
     @Override
     public void onEntityWalking(World world, int x, int y, int z, Entity entity) {
         if (world.isRemote || !(entity instanceof EntityPlayer) || ((EntityPlayer) entity).capabilities.isCreativeMode) return;

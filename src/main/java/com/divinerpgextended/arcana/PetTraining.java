@@ -367,16 +367,16 @@ public class PetTraining {
         double r = lvl >= 3 ? 14 : 8;
         @SuppressWarnings("unchecked")
         List<EntityItem> items = pet.worldObj.getEntitiesWithinAABB(EntityItem.class, pet.boundingBox.expand(r, r / 2, r));
+        // the pet brings the item to the owner's feet, and the usual pickup takes it: with all the checks (someone else's boss loot share,
+        // pickup events of the server and plugins); before, the items went straight into the inventory bypassing them
+        boolean brought = false;
         for (EntityItem it : items) {
-            if (it.isDead || it.delayBeforeCanPickup > 0) continue;
-            ItemStack s = it.getEntityItem();
-            int before = s.stackSize;
-            if (owner.inventory.addItemStackToInventory(s)) {
-                it.setDead();
-            } else if (s.stackSize == before) {
-                continue; // inventory is full - leave it lying
-            }
-            pet.worldObj.playSoundAtEntity(owner, "random.pop", 0.2F, 1.6F);
+            if (it.isDead || it.delayBeforeCanPickup > 0 || it.getDistanceSqToEntity(owner) < 2.25) continue;
+            if (!com.divinerpgextended.perk.Protection.mayFetch(owner, it)) continue;
+            it.setPosition(owner.posX, owner.posY + 0.2, owner.posZ);
+            it.motionX = it.motionY = it.motionZ = 0;
+            brought = true;
         }
+        if (brought) pet.worldObj.playSoundAtEntity(owner, "random.pop", 0.2F, 1.6F);
     }
 }

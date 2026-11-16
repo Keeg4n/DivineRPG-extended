@@ -199,8 +199,14 @@ public class IceikaDecor implements IWorldGenerator {
         return true;
     }
 
-    /** Fill the chests Divine has just placed in this and neighboring chunks. */
+    /**
+     * Fill the chests Divine has just placed in this and neighboring chunks (its structures reach into the neighbors). Each chest is filled
+     * once: the positions of filled chests and of chests placed by players are kept in the world ({@link Seen}). Before, every population
+     * of a neighbor refilled an emptied dungeon chest again, and an empty decorative chest carried to the edge of the explored land was filled
+     * with village loot.
+     */
     private static void chests(World w, Random rand, int chunkX, int chunkZ) {
+        Seen seen = Seen.get(w);
         for (int i = 0; i <= 1; i++) {
             for (int k = 0; k <= 1; k++) {
                 if (!w.getChunkProvider()
@@ -210,6 +216,8 @@ public class IceikaDecor implements IWorldGenerator {
                     if (!(o instanceof TileEntityChest)) continue;
                     TileEntityChest te = (TileEntityChest) o;
                     Block b = w.getBlock(te.xCoord, te.yCoord, te.zCoord);
+                    if (b != IceikaBlocks.frostedChest && b != IceikaBlocks.decorativeFrostedChest) continue;
+                    if (!seen.add(te.xCoord, te.yCoord, te.zCoord)) continue;
                     if (b == IceikaBlocks.frostedChest && empty(te)) {
                         LairLoot.fill(te, rand, LairLoot.iceikaDungeon(), 3 + rand.nextInt(3));
                     } else if (b == IceikaBlocks.decorativeFrostedChest && onlyPeppermints(te)) {
@@ -217,6 +225,73 @@ public class IceikaDecor implements IWorldGenerator {
                     }
                 }
             }
+        }
+    }
+
+    /** Frosted chests already handled in Iceika: filled at generation or placed by a player - they are never filled again. */
+    public static class Seen extends net.minecraft.world.WorldSavedData {
+
+        static final String NAME = "dre_iceika_chests";
+        private final java.util.Set<Long> at = new java.util.HashSet<Long>();
+
+        public Seen(String name) {
+            super(name);
+        }
+
+        public static Seen get(World w) {
+            Seen s = (Seen) w.perWorldStorage.loadData(Seen.class, NAME);
+            if (s == null) {
+                s = new Seen(NAME);
+                w.perWorldStorage.setData(NAME, s);
+            }
+            return s;
+        }
+
+        static long key(int x, int y, int z) {
+            return ((long) x & 0x3FFFFFF) << 38 | ((long) z & 0x3FFFFFF) << 12 | (y & 0xFFF);
+        }
+
+        /** @return true if the chest was not seen before (now it is) */
+        public boolean add(int x, int y, int z) {
+            if (!at.add(key(x, y, z))) return false;
+            markDirty();
+            return true;
+        }
+
+        public boolean has(int x, int y, int z) {
+            return at.contains(key(x, y, z));
+        }
+
+        /** For the selftest: forget the place (the test world is reused between runs). */
+        public void forget(int x, int y, int z) {
+            if (at.remove(key(x, y, z))) markDirty();
+        }
+
+        @Override
+        public void readFromNBT(net.minecraft.nbt.NBTTagCompound tag) {
+            int[] a = tag.getIntArray("at");
+            for (int i = 0; i + 1 < a.length; i += 2) at.add((long) a[i] << 32 | a[i + 1] & 0xFFFFFFFFL);
+        }
+
+        @Override
+        public void writeToNBT(net.minecraft.nbt.NBTTagCompound tag) {
+            int[] a = new int[at.size() * 2];
+            int i = 0;
+            for (long k : at) {
+                a[i++] = (int) (k >>> 32);
+                a[i++] = (int) k;
+            }
+            tag.setIntArray("at", a);
+        }
+    }
+
+    /** A frosted chest placed by a player is his own: generation does not fill it. */
+    public static class Events {
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onPlace(net.minecraftforge.event.world.BlockEvent.PlaceEvent e) {
+            if (e.world.isRemote || e.world.provider.dimensionId != ConfigurationHelper.iceika) return;
+            if (e.placedBlock == IceikaBlocks.frostedChest || e.placedBlock == IceikaBlocks.decorativeFrostedChest) Seen.get(e.world).add(e.x, e.y, e.z);
         }
     }
 

@@ -162,19 +162,40 @@ public final class Infusion {
         return null;
     }
 
-    /** Every altar tick: what lies in the result slot. */
+    /**
+     * What lies in the result slot: computed from the inputs on every altar tick and right after every change of the inputs
+     * ({@link com.divinerpgextended.asm.VetheaHooks}) - so the result never lags behind the inputs even within one tick.
+     */
     public static void update(ItemStack[] inv) {
         if (inv == null || inv.length < 3) return;
         Recipe r = match(inv[0], inv[1]);
         inv[2] = r == null ? null : r.result(inv[1]);
     }
 
-    /** The result was taken: boulders - exactly as many as needed, template - one. */
+    /**
+     * The result is taken out of its slot (a click, a number key, a drop, a pipe): only here the cost is charged - boulders exactly as many
+     * as needed, the template - one. Before, the cost was taken after the pickup by the inputs of that moment, and the result was refreshed
+     * only on the tick: two clicks in one tick (take the template, then the result) or a pipe pulling the result slot gave the result for free.
+     */
+    public static ItemStack takeResult(ItemStack[] inv) {
+        if (inv == null || inv.length < 3 || inv[2] == null) return null;
+        Recipe r = match(inv[0], inv[1]);
+        if (r == null) {
+            update(inv);
+            return null;
+        }
+        ItemStack out = r.result(inv[1]);
+        inv[0].stackSize -= r.count;
+        if (inv[0].stackSize <= 0) inv[0] = null;
+        inv[1].stackSize--;
+        if (inv[1].stackSize <= 0) inv[1] = null;
+        update(inv);
+        return out;
+    }
+
+    /** After the pickup from the result slot: the cost is already charged in {@link #takeResult}. */
     public static void take(IInventory inv) {
-        Recipe r = match(inv.getStackInSlot(0), inv.getStackInSlot(1));
-        if (r == null) return;
-        inv.decrStackSize(0, r.count);
-        inv.decrStackSize(1, 1);
+        inv.markDirty();
     }
 
     /** Recipes where the item is a template (for the tooltip on templates). */

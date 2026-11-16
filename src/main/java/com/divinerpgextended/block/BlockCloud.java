@@ -55,6 +55,12 @@ public class BlockCloud extends Block {
         return null;
     }
 
+    /** Silk Touch does not take a temporary cloud: a cloud of the Cloud Staff came out as a permanent block - 9 free blocks every 40 s. */
+    @Override
+    public boolean canSilkHarvest(net.minecraft.world.World w, net.minecraft.entity.player.EntityPlayer p, int x, int y, int z, int meta) {
+        return meta != TEMP;
+    }
+
     @Override
     public void updateTick(net.minecraft.world.World w, int x, int y, int z, Random r) {
         if (w.getBlockMetadata(x, y, z) == TEMP) w.setBlockToAir(x, y, z);

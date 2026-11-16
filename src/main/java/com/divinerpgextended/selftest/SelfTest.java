@@ -1930,7 +1930,7 @@ public class SelfTest {
         t("Trading", "Exactly 6 coins", () -> {
             reset(p);
             time(ow, 18000);
-            p.getEntityData().removeTag("dreJackNight");
+            persisted(p).removeTag("dreJackNight"); // the nightly cap is in the persisted data: it survives death
             int[] stacks = new int[4];
             for (int i = 0; i < 4; i++) {
                 ItemStack bones = new ItemStack(Items.bone, 64);
@@ -11531,6 +11531,7 @@ public class SelfTest {
             net.divinerpg.entities.twilight.EntityEternalArcher ea = new net.divinerpg.entities.twilight.EntityEternalArcher(w);
             ea.setLocationAndAngles(x0 + 0.5, y0, z0 - 8.5, 0, 0);
             w.spawnEntityInWorld(ea);
+            com.divinerpgextended.boss.LairSummons.leash(ea, x0, y0, z0, 20); // columns are brought down only inside its gallery
             int arrows = com.divinerpgextended.boss.MortumArenaBosses.volley(ea, mp);
             boolean eroded = w.isAirBlock(x0 + 2, y0 + 3, z0 + 6) && w.getBlock(x0 + 2, y0 + 2, z0 + 6) == Blocks.stonebrick;
             for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, mp.boundingBox.expand(30, 10, 30))) ((net.minecraft.entity.Entity) o).setDead();
@@ -11777,6 +11778,167 @@ public class SelfTest {
             } finally {
                 com.divinerpgextended.Config.worldGates = true;
                 for (int[] pq : placed) server.worldServerForDimension(pq[0]).setBlock(pq[1], pq[2], pq[3], Blocks.air, 0, 2);
+            }
+            check(ok, log.toString());
+            return log.toString();
+        });
+        t("Server", "Dupes: furnace bonus, infusion altar, pet whistle, Iceika chests, arrow refund", () -> {
+            WorldServer dw = server.worldServerForDimension(0);
+            int fx = 9750, fy = 120, fz = 9750;
+            loadAround(dw, fx, fz, 1);
+            StringBuilder log = new StringBuilder();
+            boolean ok = true;
+            // 1. Demon furnace: taking the ore back out is not a smelt, a real smelt is doubled (diamond ore - its signature)
+            dw.setBlock(fx, fy, fz, net.divinerpg.utils.blocks.ArcanaBlocks.demonFurnace, 0, 2);
+            net.minecraft.inventory.IInventory fu = (net.minecraft.inventory.IInventory) dw.getTileEntity(fx, fy, fz);
+            int outSlot = (Integer) call(com.divinerpgextended.arcana.FurnaceRoles.class, "outSlot", new Class<?>[] { net.minecraft.tileentity.TileEntity.class },
+                dw.getTileEntity(fx, fy, fz));
+            com.divinerpgextended.arcana.FurnaceRoles fr = new com.divinerpgextended.arcana.FurnaceRoles();
+            TickEvent.WorldTickEvent wt = new TickEvent.WorldTickEvent(cpw.mods.fml.relauncher.Side.SERVER, TickEvent.Phase.END, dw);
+            fu.setInventorySlotContents(0, new ItemStack(Blocks.diamond_ore, 64));
+            fr.onWorldTick(wt);
+            fu.setInventorySlotContents(0, null); // the player took the ore back
+            fr.onWorldTick(wt);
+            boolean noFree = fu.getStackInSlot(outSlot) == null;
+            fu.setInventorySlotContents(0, new ItemStack(Blocks.diamond_ore, 64));
+            fr.onWorldTick(wt);
+            fu.setInventorySlotContents(0, new ItemStack(Blocks.diamond_ore, 63)); // the furnace smelted one
+            fu.setInventorySlotContents(outSlot, new ItemStack(Items.diamond, 1));
+            fr.onWorldTick(wt);
+            ItemStack fout = fu.getStackInSlot(outSlot);
+            boolean doubled = fout != null && fout.getItem() == Items.diamond && fout.stackSize == 2;
+            int made = fout == null ? 0 : fout.stackSize;
+            for (int i = 0; i < fu.getSizeInventory(); i++) fu.setInventorySlotContents(i, null); // the furnace drops its contents when removed
+            dw.setBlockToAir(fx, fy, fz);
+            ok &= noFree && doubled;
+            log.append("Demon furnace: 64 ore taken back out - diamonds ").append(noFree ? "none" : "GIVEN").append(", a real smelt gives ").append(made);
+            // 2. infusion altar: the result follows the inputs at once, the cost is charged when the result is taken, nothing goes into the result slot
+            net.minecraft.inventory.IInventory alt = (net.minecraft.inventory.IInventory) Class.forName("net.divinerpg.blocks.vethea.container.tileentity.TileEntityInfusionTable").newInstance();
+            com.divinerpgextended.vethea.Infusion.Recipe ir = com.divinerpgextended.vethea.Infusion.own().get(0);
+            alt.setInventorySlotContents(0, new ItemStack(ir.lump.getItem(), ir.count + 3, ir.lump.getItemDamage()));
+            alt.setInventorySlotContents(1, ir.template.copy());
+            boolean shown = alt.getStackInSlot(2) != null;
+            ItemStack tmpl = alt.decrStackSize(1, 1); // the template is taken out first in the same tick
+            boolean gone = alt.getStackInSlot(2) == null;
+            alt.setInventorySlotContents(1, tmpl);
+            ItemStack got = alt.decrStackSize(2, 1);
+            ItemStack lumpsLeft = alt.getStackInSlot(0);
+            boolean charged = got != null && got.isItemEqual(ir.output) && lumpsLeft != null && lumpsLeft.stackSize == 3 && alt.getStackInSlot(1) == null;
+            boolean noInsert = !alt.isItemValidForSlot(2, new ItemStack(Items.diamond));
+            alt.setInventorySlotContents(2, new ItemStack(Items.diamond));
+            boolean noPut = alt.getStackInSlot(2) == null;
+            ok &= shown && gone && charged && noInsert && noPut;
+            log.append("; altar: result at once ").append(shown).append(", without the template it is gone at once ").append(gone)
+                .append(", taken - cost charged ").append(charged).append(", nothing goes into the result slot ").append(noInsert && noPut);
+            // 3. pet whistle: two hits in one tick - one egg
+            TestPlayer wp = player(0, "TestWhistle", fx + 3.5, fy, fz + 0.5);
+            net.divinerpg.entities.arcana.EntitySeimer sm = new net.divinerpg.entities.arcana.EntitySeimer(dw);
+            sm.setPosition(fx + 4.5, fy, fz + 0.5);
+            dw.spawnEntityInWorld(sm);
+            ItemStack e1 = com.divinerpgextended.item.ItemPetWhistle.dismiss(wp, sm), e2 = com.divinerpgextended.item.ItemPetWhistle.dismiss(wp, sm);
+            int eggs = count(wp, net.divinerpg.utils.items.ArcanaItems.seimerSpawner);
+            boolean oneEgg = e1 != null && e1.hasTagCompound() && e2 == null && eggs == 1;
+            ok &= oneEgg;
+            log.append("; whistle twice in a tick: eggs ").append(eggs);
+            // 4. Iceika: a filled and emptied dungeon chest is not filled again by the next population
+            WorldServer iw = server.worldServerForDimension(ConfigurationHelper.iceika);
+            int cx0 = 9600, cy0 = 100, cz0 = 9600;
+            loadAround(iw, cx0, cz0, 1);
+            iw.setBlock(cx0 + 2, cy0, cz0 + 2, net.divinerpg.utils.blocks.IceikaBlocks.frostedChest, 0, 2);
+            com.divinerpgextended.world.IceikaDecor.Seen.get(iw).forget(cx0 + 2, cy0, cz0 + 2);
+            net.minecraft.tileentity.TileEntityChest ich = (net.minecraft.tileentity.TileEntityChest) iw.getTileEntity(cx0 + 2, cy0, cz0 + 2);
+            Class<?>[] sig = { net.minecraft.world.World.class, java.util.Random.class, int.class, int.class };
+            call(com.divinerpgextended.world.IceikaDecor.class, "chests", sig, iw, new java.util.Random(1), cx0 >> 4, cz0 >> 4);
+            int first = 0, again = 0;
+            for (int i = 0; i < ich.getSizeInventory(); i++) if (ich.getStackInSlot(i) != null) first++;
+            for (int i = 0; i < ich.getSizeInventory(); i++) ich.setInventorySlotContents(i, null);
+            call(com.divinerpgextended.world.IceikaDecor.class, "chests", sig, iw, new java.util.Random(2), cx0 >> 4, cz0 >> 4);
+            for (int i = 0; i < ich.getSizeInventory(); i++) if (ich.getStackInSlot(i) != null) again++;
+            iw.setBlockToAir(cx0 + 2, cy0, cz0 + 2);
+            ok &= first > 0 && again == 0;
+            log.append("; Iceika chest: filled with ").append(first).append(" stacks, after looting refilled with ").append(again);
+            // 5. arrow refund (Bone Ring, Steady Hand) - only for a real arrow that was spent
+            net.minecraft.entity.projectile.EntityArrow ar1 = new net.minecraft.entity.projectile.EntityArrow(dw, wp, 1F);
+            boolean real = com.divinerpgextended.trinket.TrinketEffects.realShot(new net.minecraftforge.event.entity.EntityJoinWorldEvent(ar1, dw)) == wp;
+            ar1.canBePickedUp = 2;
+            boolean infinite = com.divinerpgextended.trinket.TrinketEffects.realShot(new net.minecraftforge.event.entity.EntityJoinWorldEvent(ar1, dw)) == null;
+            ok &= real && infinite;
+            log.append("; arrow refund: a spent arrow ").append(real).append(", an Infinity arrow not ").append(infinite);
+            check(ok, log.toString());
+            return log.toString();
+        });
+        t("Server", "Claims: effects on peaceful creatures, addon blocks, boss leftovers", () -> {
+            WorldServer cw = server.worldServerForDimension(0);
+            int bx = 9700, by = 120, bz = 9700;
+            loadAround(cw, bx, bz, 1);
+            for (int x = bx - 6; x <= bx + 8; x++) for (int z = bz - 6; z <= bz + 8; z++) for (int y = by - 1; y <= by + 4; y++)
+                cw.setBlock(x, y, z, y == by - 1 ? Blocks.stone : Blocks.air, 0, 2);
+            StringBuilder log = new StringBuilder();
+            boolean ok = true;
+            TestPlayer cp = player(0, "TestClaims", bx + 0.5, by, bz + 0.5);
+            try {
+                // 1. an ice sword on a villager in someone else's region (testNoPvp imitates it): no frost; outside - frost
+                net.minecraft.entity.passive.EntityVillager vil = new net.minecraft.entity.passive.EntityVillager(cw);
+                vil.setPosition(bx + 2.5, by, bz + 0.5);
+                cw.spawnEntityInWorld(vil);
+                hold(cp, new ItemStack(IceikaItems.glacierSword));
+                com.divinerpgextended.perk.Protection.testNoPvp = true;
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(vil, DamageSource.causePlayerDamage(cp), 1));
+                boolean spared = vil.getActivePotionEffect(net.minecraft.potion.Potion.moveSlowdown) == null;
+                com.divinerpgextended.perk.Protection.testNoPvp = false;
+                MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(vil, DamageSource.causePlayerDamage(cp), 1));
+                boolean frosted = vil.getActivePotionEffect(net.minecraft.potion.Potion.moveSlowdown) != null;
+                vil.setDead();
+                ok &= spared && frosted;
+                log.append("ice sword on a villager: in a region frost ").append(!spared).append(", outside ").append(frosted);
+                // 2. who answers for an effect: the player himself, the shooter of an arrow; a villager - nobody
+                net.minecraft.entity.projectile.EntityArrow ca = new net.minecraft.entity.projectile.EntityArrow(cw, cp, 1F);
+                boolean owners = com.divinerpgextended.perk.Protection.playerOf(ca) == cp && com.divinerpgextended.perk.Protection.playerOf(cp) == cp
+                    && com.divinerpgextended.perk.Protection.playerOf(vil) == null;
+                ok &= owners;
+                log.append("; responsible player behind an arrow ").append(owners);
+                // 3. the Lethe bucket in someone else's region (testNoBuild): not scooped, the source stays; in one's own - scooped
+                cw.setBlock(bx - 2, by, bz, com.divinerpgextended.registry.ModBlocks.lethe, 0, 2);
+                net.minecraft.util.MovingObjectPosition mop = new net.minecraft.util.MovingObjectPosition(bx - 2, by, bz, 1, net.minecraft.util.Vec3.createVectorHelper(bx - 1.5, by + 1, bz + 0.5));
+                com.divinerpgextended.perk.Protection.testNoBuild = true;
+                net.minecraftforge.event.entity.player.FillBucketEvent fb = new net.minecraftforge.event.entity.player.FillBucketEvent(cp, new ItemStack(Items.bucket), cw, mop);
+                new com.divinerpgextended.item.ItemLetheBucket.Fill().onFill(fb);
+                boolean kept = fb.isCanceled() && com.divinerpgextended.block.BlockLethe.isSource(cw, bx - 2, by, bz);
+                com.divinerpgextended.perk.Protection.testNoBuild = false;
+                net.minecraftforge.event.entity.player.FillBucketEvent fb2 = new net.minecraftforge.event.entity.player.FillBucketEvent(cp, new ItemStack(Items.bucket), cw, mop);
+                new com.divinerpgextended.item.ItemLetheBucket.Fill().onFill(fb2);
+                boolean scooped = fb2.result != null && fb2.result.getItem() == com.divinerpgextended.registry.ModItems.letheBucket && cw.isAirBlock(bx - 2, by, bz);
+                ok &= kept && scooped;
+                log.append("; Lethe bucket: in a region the source stays ").append(kept).append(", outside scooped ").append(scooped);
+                // 4. a broken burrow: sand only into the passage by the walls, nothing in someone else's region
+                int ux = bx + 4, uz = bz + 4;
+                cw.setBlock(ux, by, uz, com.divinerpgextended.registry.ModBlocks.burrow, 0, 2);
+                com.divinerpgextended.perk.Protection.testNoBuild = true;
+                com.divinerpgextended.block.BlockBurrow.collapse(cw, ux, by, uz, cp);
+                boolean regionDry = cw.isAirBlock(ux, by + 1, uz);
+                com.divinerpgextended.perk.Protection.testNoBuild = false;
+                com.divinerpgextended.block.BlockBurrow.collapse(cw, ux, by, uz, cp);
+                boolean byWall = cw.getBlock(ux, by + 1, uz) == Blocks.sand, farAir = cw.isAirBlock(ux + 2, by + 2, uz + 2);
+                ok &= regionDry && byWall && farAir;
+                log.append("; burrow: in a region no sand ").append(regionDry).append(", by the wall sand ").append(byWall).append(", away from the walls air ").append(farAir);
+                // 5. a Wind Totem without its lord disappears; Silk Touch does not take temporary blocks
+                cw.setBlock(bx, by, bz - 3, com.divinerpgextended.registry.ModBlocks.windTotem, 0, 2);
+                com.divinerpgextended.registry.ModBlocks.windTotem.updateTick(cw, bx, by, bz - 3, cw.rand);
+                boolean totemGone = cw.isAirBlock(bx, by, bz - 3);
+                boolean silk = !com.divinerpgextended.registry.ModBlocks.cloud.canSilkHarvest(cw, cp, 0, 0, 0, com.divinerpgextended.block.BlockCloud.TEMP)
+                    && com.divinerpgextended.registry.ModBlocks.cloud.canSilkHarvest(cw, cp, 0, 0, 0, 0)
+                    && !com.divinerpgextended.registry.ModBlocks.frostIce.canSilkHarvest(cw, cp, 0, 0, 0, 0)
+                    && !com.divinerpgextended.registry.ModBlocks.trapFloor.canSilkHarvest(cw, cp, 0, 0, 0, 0);
+                // 6. a boss's lightning is safe for blocks, but is not filtered like a weapon's (it hits players)
+                com.divinerpgextended.entity.EntitySafeLightning bl = com.divinerpgextended.entity.EntitySafeLightning.boss(cw, bx + 0.5, by, bz - 5.5);
+                boolean bossBolt = bl.boss && bl.caster == null;
+                ok &= totemGone && silk && bossBolt;
+                log.append("; totem without the Wind Lord gone ").append(totemGone).append(", Silk Touch on temporary blocks refused ").append(silk)
+                    .append(", boss lightning without fire ").append(bossBolt);
+            } finally {
+                com.divinerpgextended.perk.Protection.testNoPvp = false;
+                com.divinerpgextended.perk.Protection.testNoBuild = false;
+                for (int x = bx - 6; x <= bx + 8; x++) for (int z = bz - 6; z <= bz + 8; z++) for (int y = by; y <= by + 4; y++) cw.setBlock(x, y, z, Blocks.air, 0, 2);
             }
             check(ok, log.toString());
             return log.toString();

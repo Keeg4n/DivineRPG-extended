@@ -88,6 +88,7 @@ public class FrostBite {
         if (!Config.iceFreeze || e.isCanceled() || t.worldObj.isRemote || e.ammount <= 0 || !(t instanceof EntityLiving)) return;
         if (t instanceof EntityTameable && ((EntityTameable) t).isTamed()) return; // we do not freeze pets
         if (!byIce(e.source)) return;
+        if (Protection.spare(e.source.getEntity(), t)) return; // a villager or an animal in someone else's region - the region cancels the hit, the frost too
         hit(t, t.worldObj.getTotalWorldTime());
     }
 

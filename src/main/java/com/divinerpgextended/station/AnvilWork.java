@@ -63,5 +63,21 @@ public class AnvilWork extends InventoryBasic {
         private static void close(EntityPlayer p) {
             if (!p.worldObj.isRemote && (p.openContainer instanceof ContainerWandererAnvil || p.openContainer instanceof ContainerCorruptAltar)) p.closeScreen();
         }
+
+        /**
+         * The server creates a new player entity without closing the old window (leaving the End, some cores on a teleport between worlds):
+         * the items of the old window are handed to the new player, otherwise they disappeared with the old entity. The slots are emptied first -
+         * a late close of the old window gives nothing.
+         */
+        @SubscribeEvent
+        public void onClone(net.minecraftforge.event.entity.player.PlayerEvent.Clone e) {
+            EntityPlayer old = e.original, now = e.entityPlayer;
+            if (now.worldObj.isRemote || old == null) return;
+            AnvilWork w = old.openContainer instanceof ContainerWandererAnvil ? ((ContainerWandererAnvil) old.openContainer).work()
+                : old.openContainer instanceof ContainerCorruptAltar ? ((ContainerCorruptAltar) old.openContainer).work() : null;
+            if (w == null) return;
+            w.giveBack(now);
+            old.openContainer = old.inventoryContainer;
+        }
     }
 }

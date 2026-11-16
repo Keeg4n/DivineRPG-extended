@@ -38,7 +38,7 @@ public class BlockSharkNest extends BlockContainer {
 
     @Override
     public boolean removedByPlayer(World world, EntityPlayer player, int x, int y, int z, boolean willHarvest) {
-        if (!world.isRemote && !player.capabilities.isCreativeMode) BlockBurrow.collapse(world, x, y, z);
+        if (!world.isRemote && !player.capabilities.isCreativeMode) BlockBurrow.collapse(world, x, y, z, player);
         return super.removedByPlayer(world, player, x, y, z, willHarvest);
     }
 

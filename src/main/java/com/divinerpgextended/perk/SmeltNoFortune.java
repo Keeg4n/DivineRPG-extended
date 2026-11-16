@@ -60,7 +60,7 @@ public class SmeltNoFortune {
 
     @SubscribeEvent
     public void onBreak(BlockEvent.BreakEvent e) {
-        if (e.world.isRemote || !ores().contains(e.block)) return;
+        if (e.world.isRemote || com.divinerpgextended.perk.Protection.probing || !ores().contains(e.block)) return;
         Item drop = e.block.getItemDropped(e.blockMetadata, e.world.rand, 0);
         ItemStack smelted = drop == null ? null : FurnaceRecipes.smelting().getSmeltingResult(new ItemStack(drop, 1, e.block.damageDropped(e.blockMetadata)));
         if (smelted == null) return;
