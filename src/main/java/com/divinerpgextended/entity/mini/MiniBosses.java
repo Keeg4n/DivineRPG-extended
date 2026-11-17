@@ -20,14 +20,16 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
 /**
- * Mini-boss spawning: in the twilight dimensions and on Vethea floors 1-3, no more often than once per {@link Config#miniBossMinutes} minutes per player, 20-32 blocks from
- * them, not at a world torch, not near a boss or another mini-boss.
+ * Mini-boss spawning: in the twilight dimensions and on Vethea floor 3, no more often than once per {@link Config#miniBossMinutes} minutes for a player and
+ * everyone near him (a group does not get one mini-boss per member), 20-32 blocks from them, not at a world torch, not near a boss or another mini-boss.
  */
 public class MiniBosses {
 
     private static final String NEXT = "dreMiniNext";
     private static final int FIRST_DELAY = 6000, CHECK_EVERY = 40;
     private static final double CHANCE = 0.05;
+    /** Players this close to the one who got a mini-boss share his pause. */
+    public static final double GROUP_R = 96;
     /** Per second of blizzard: the spruce appears in the first tens of seconds. */
     public static double SPRUCE_CHANCE = 0.05;
 
@@ -56,9 +58,9 @@ public class MiniBosses {
         if (d == ConfigurationHelper.skythern) return new EntitySkyGrabber(w);
         if (d == ConfigurationHelper.mortum) return new EntityMourner(w);
         if (d == ConfigurationHelper.iceika) return com.divinerpgextended.cold.Blizzard.get(w).phase == com.divinerpgextended.cold.Blizzard.STORM ? new EntityBlizzardSpruce(w) : null;
-        if (d == ConfigurationHelper.vethea && VetheaFloors.floorOf(p.posY) <= 3) {
+        if (d == ConfigurationHelper.vethea && VetheaFloors.floorOf(p.posY) == 3) { // floors 1-2 - too early, 4 - the arena bosses
             EntitySleepwalker s = new EntitySleepwalker(w);
-            s.setFloor(VetheaFloors.floorOf(p.posY));
+            s.setFloor(3);
             return s;
         }
         return null;
@@ -95,7 +97,11 @@ public class MiniBosses {
         if (!data(p).hasKey(NEXT)) setNext(p, now + FIRST_DELAY);
         if (now < next(p) || p.worldObj.rand.nextDouble() >= CHANCE) return null;
         EntityMiniBoss m = spawnNear(p);
-        if (m != null) setNext(p, now + Config.miniBossMinutes * 1200L);
+        if (m == null) return null;
+        // the pause is for everyone around: two players together got two mini-bosses in a few minutes
+        for (Object o : p.worldObj.getEntitiesWithinAABB(EntityPlayer.class, p.boundingBox.expand(GROUP_R, GROUP_R, GROUP_R)))
+            setNext((EntityPlayer) o, now + Config.miniBossMinutes * 1200L);
+        setNext(p, now + Config.miniBossMinutes * 1200L);
         return m;
     }
 

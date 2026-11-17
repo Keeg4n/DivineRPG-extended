@@ -7905,7 +7905,7 @@ public class SelfTest {
                 }
                 fillBox(w, cx - 34, cy - 1, cz - 34, cx + 34, cy - 1, cz + 34, Blocks.air);
             }
-            // schedule: a newcomer gets a grace period, by time it is allowed, when off it is not; Vethea: floors 1-3 yes, 4 no
+            // schedule: a newcomer gets a grace period, by time it is allowed, when off it is not; Vethea: only floor 3
             WorldServer ew = server.worldServerForDimension(ConfigurationHelper.eden);
             TestPlayer sched = player(ConfigurationHelper.eden, "TestMiniSched", cx + 0.5, cy, cz + 0.5);
             com.divinerpgextended.entity.mini.MiniBosses.tick(sched);
@@ -7917,17 +7917,61 @@ public class SelfTest {
             Config.miniBosses = oldOn;
             int vd2 = ConfigurationHelper.vethea;
             TestPlayer dream = player(vd2, "TestMiniDream", 0.5, 20, 0.5);
-            com.divinerpgextended.entity.mini.EntityMiniBoss first = com.divinerpgextended.entity.mini.MiniBosses.create(dream);
-            boolean floorOne = first instanceof com.divinerpgextended.entity.mini.EntitySleepwalker && near(first.getMaxHealth(), 200F);
+            boolean floorOne = com.divinerpgextended.entity.mini.MiniBosses.create(dream) == null; // floors 1-2: too early
+            int y2 = 20;
+            while (y2 < 160 && com.divinerpgextended.vethea.VetheaFloors.floorOf(y2) < 2) y2++;
+            dream.setPosition(0.5, y2 + 2, 0.5);
+            boolean floorTwo = com.divinerpgextended.vethea.VetheaFloors.floorOf(dream.posY) == 2 && com.divinerpgextended.entity.mini.MiniBosses.create(dream) == null;
             dream.setPosition(0.5, 120, 0.5);
             com.divinerpgextended.entity.mini.EntityMiniBoss third = com.divinerpgextended.entity.mini.MiniBosses.create(dream);
             boolean floorThree = third instanceof com.divinerpgextended.entity.mini.EntitySleepwalker && near(third.getMaxHealth(), 400F);
+            // the Sleepwalker's loot: Polished (red) and Shiny (purple) pearls only
+            int polished = 0, shiny = 0, other = 0;
+            if (third != null) {
+                third.setPosition(0.5, 120, 0.5);
+                List<net.minecraft.entity.item.EntityItem> before = new ArrayList<net.minecraft.entity.item.EntityItem>();
+                for (Object o : third.worldObj.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, third.boundingBox.expand(4, 4, 4))) before.add((net.minecraft.entity.item.EntityItem) o);
+                third.loot(0);
+                for (Object o : third.worldObj.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, third.boundingBox.expand(4, 4, 4))) {
+                    net.minecraft.entity.item.EntityItem it = (net.minecraft.entity.item.EntityItem) o;
+                    if (before.contains(it)) continue;
+                    ItemStack s = it.getEntityItem();
+                    if (s.getItem() == VetheaItems.polishedPearls) polished += s.stackSize;
+                    else if (s.getItem() == VetheaItems.shinyPearls) shiny += s.stackSize;
+                    else other += s.stackSize;
+                    it.setDead();
+                }
+            }
+            boolean pearls = polished >= 4 && polished <= 6 && shiny >= 1 && shiny <= 2 && other == 0;
             dream.setPosition(0.5, 170, 0.5);
             boolean top = com.divinerpgextended.entity.mini.MiniBosses.create(dream) == null;
             TestPlayer overworld = player(0, "TestMiniTop", sx + 230.5, sy, sz + 0.5);
             boolean notHere = com.divinerpgextended.entity.mini.MiniBosses.create(overworld) == null;
-            rep.append("; spawning ").append(spawned).append(", delay ").append(delayed).append(", setting ").append(off).append("; Vethea 1/3/4 ").append(floorOne).append("/").append(floorThree).append("/").append(top).append(", ordinary world no ").append(notHere);
-            check(hp && spawned && looted && delayed && off && floorOne && floorThree && top && notHere, rep.toString());
+            // the pause is shared: a mini-boss came to one player - the one next to him waits too
+            int qx = cx + 400; // away from the mini-bosses spawned above (they stay in the world list until the next tick)
+            loadAround(ew, qx, cz, 3);
+            TestPlayer pa = join(player(ConfigurationHelper.eden, "TestMiniPairA", qx + 0.5, cy, cz + 0.5), true);
+            TestPlayer pb = join(player(ConfigurationHelper.eden, "TestMiniPairB", qx + 4.5, cy, cz + 0.5), true);
+            boolean shared = false;
+            try {
+                com.divinerpgextended.entity.mini.MiniBosses.setNext(pa, 0);
+                com.divinerpgextended.entity.mini.MiniBosses.setNext(pb, 0);
+                fillBox(ew, qx - 34, cy - 1, cz - 34, qx + 34, cy - 1, cz + 34, Blocks.stone);
+                com.divinerpgextended.entity.mini.EntityMiniBoss got = null;
+                for (int i = 0; i < 400 && got == null; i++) got = com.divinerpgextended.entity.mini.MiniBosses.tick(pa);
+                shared = got != null && com.divinerpgextended.entity.mini.MiniBosses.next(pb) > ew.getTotalWorldTime();
+                if (got != null) got.setDead();
+            } finally {
+                fillBox(ew, qx - 34, cy - 1, cz - 34, qx + 34, cy - 1, cz + 34, Blocks.air);
+                for (TestPlayer tp : new TestPlayer[] { pa, pb }) {
+                    server.getConfigurationManager().playerEntityList.remove(tp);
+                    ew.removeEntity(tp);
+                }
+            }
+            rep.append("; spawning ").append(spawned).append(", delay ").append(delayed).append(", setting ").append(off).append("; Vethea floors 1/2 none ").append(floorOne).append("/").append(floorTwo)
+                .append(", 3 Sleepwalker ").append(floorThree).append(" (pearls: polished ").append(polished).append(", shiny ").append(shiny).append(", other ").append(other).append("), 4 none ").append(top)
+                .append(", ordinary world no ").append(notHere).append("; pause shared by the pair ").append(shared);
+            check(hp && spawned && looted && delayed && off && floorOne && floorTwo && floorThree && pearls && top && notHere && shared, rep.toString());
             return rep.toString();
         });
         t("Progression", "Mini-bosses: moves", () -> {

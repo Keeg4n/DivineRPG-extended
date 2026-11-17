@@ -13,7 +13,7 @@ import net.minecraft.world.WorldServer;
 import com.divinerpgextended.vethea.WeaponKind;
 
 /**
- * Sleepwalker, Vethea floors 1-3: the vulnerable weapon type changes every {@link #SHIFT} ticks, the particle color hints which (red - melee,
+ * Sleepwalker, Vethea floor 3 (floors 1-2 are too early for a mini-boss): the vulnerable weapon type changes every {@link #SHIFT} ticks, the particle color hints which (red - melee,
  * green - ranged, purple - arcana). The rules are the same as for Vethea's special mobs: x2 to its own type, x0.25 to the rest, when finished off with its own
  * type it drops loot twice ({@link com.divinerpgextended.vethea.VetheaCombat}).
  */
@@ -77,12 +77,14 @@ public class EntitySleepwalker extends EntityMiniBoss {
         tell("dre.chat.mini.sleepwalker_weak." + next);
     }
 
+    /** Polished (red) and Shiny (purple) pearls: an ordinary mob of floors 3-4 gives one; Looting - a chance of one more shiny. */
+    public static final int POLISHED_MIN = 4, POLISHED_MAX = 6, SHINY_MIN = 1, SHINY_MAX = 2;
+
     @Override
     public void loot(int looting) {
-        Item[][] lumps = { { VetheaItems.teakerLump, VetheaItems.amthirmisLump }, { VetheaItems.darvenLump, VetheaItems.cermileLump }, { VetheaItems.pardimalLump, VetheaItems.quadroticLump } };
-        Item[] own = lumps[floor - 1];
-        entityDropItem(new ItemStack(own[0], 2 + rand.nextInt(2)), 0.5F);
-        if (rand.nextInt(4) <= looting) entityDropItem(new ItemStack(own[1]), 0.5F);
+        entityDropItem(new ItemStack(VetheaItems.polishedPearls, POLISHED_MIN + rand.nextInt(POLISHED_MAX - POLISHED_MIN + 1)), 0.5F);
+        int shiny = SHINY_MIN + rand.nextInt(SHINY_MAX - SHINY_MIN + 1) + (rand.nextInt(4) < looting ? 1 : 0);
+        entityDropItem(new ItemStack(VetheaItems.shinyPearls, shiny), 0.5F);
     }
 
     @Override
