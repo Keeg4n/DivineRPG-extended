@@ -7956,6 +7956,7 @@ public class SelfTest {
             try {
                 com.divinerpgextended.entity.mini.MiniBosses.setNext(pa, 0);
                 com.divinerpgextended.entity.mini.MiniBosses.setNext(pb, 0);
+                com.divinerpgextended.world.twilight.EdenSun.setHeat(pa, 80); // Eden: the Noon Cori comes to the overheated
                 fillBox(ew, qx - 34, cy - 1, cz - 34, qx + 34, cy - 1, cz + 34, Blocks.stone);
                 com.divinerpgextended.entity.mini.EntityMiniBoss got = null;
                 for (int i = 0; i < 400 && got == null; i++) got = com.divinerpgextended.entity.mini.MiniBosses.tick(pa);
@@ -7972,6 +7973,85 @@ public class SelfTest {
                 .append(", 3 Sleepwalker ").append(floorThree).append(" (pearls: polished ").append(polished).append(", shiny ").append(shiny).append(", other ").append(other).append("), 4 none ").append(top)
                 .append(", ordinary world no ").append(notHere).append("; pause shared by the pair ").append(shared);
             check(hp && spawned && looted && delayed && off && floorOne && floorTwo && floorThree && pearls && top && notHere && shared, rep.toString());
+            return rep.toString();
+        });
+        t("Progression", "Mini-bosses: each world waits for its moment", () -> {
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            // Eden: half the overheat scale and heating up under the sky
+            WorldServer edw = server.worldServerForDimension(ConfigurationHelper.eden);
+            int ex = 9300, ey = 200, ez = 9300;
+            loadAround(edw, ex, ez, 1);
+            fillBox(edw, ex - 2, ey - 1, ez - 2, ex + 2, ey - 1, ez + 2, Blocks.stone);
+            fillBox(edw, ex - 2, ey, ez - 2, ex + 2, ey + 3, ez + 2, Blocks.air);
+            TestPlayer hot = player(ConfigurationHelper.eden, "TestMiniHot", ex + 0.5, ey, ez + 0.5);
+            com.divinerpgextended.world.twilight.EdenSun.setHeat(hot, 30);
+            boolean cool = !com.divinerpgextended.entity.mini.MiniBosses.ready(hot);
+            com.divinerpgextended.world.twilight.EdenSun.setHeat(hot, 70);
+            boolean heated = com.divinerpgextended.entity.mini.MiniBosses.ready(hot);
+            edw.setBlock(ex, ey + 2, ez, Blocks.stone); // a roof: the scale falls in the shade - cooling down
+            boolean shade = !com.divinerpgextended.entity.mini.MiniBosses.ready(hot);
+            fillBox(edw, ex - 2, ey - 1, ez - 2, ex + 2, ey + 3, ez + 2, Blocks.air);
+            ok &= cool && heated && shade;
+            rep.append("Eden: heat 30 no ").append(cool).append(", 70 under the sky yes ").append(heated).append(", 70 under a roof no ").append(shade);
+            // Wildwood and Apalachia: only in their weather
+            int[] wd = { ConfigurationHelper.wildwood, ConfigurationHelper.apalachia };
+            String[] wn = { "Wildwood downpour", "Apalachia rockfall" };
+            for (int i = 0; i < 2; i++) {
+                WorldServer ww = server.worldServerForDimension(wd[i]);
+                com.divinerpgextended.world.twilight.WorldWeather ws = com.divinerpgextended.world.twilight.WorldWeather.get(ww);
+                int was = ws.phase;
+                TestPlayer wp = player(wd[i], "TestMiniWeather" + i, 0.5, 120, 0.5);
+                try {
+                    ws.phase = com.divinerpgextended.world.twilight.WorldWeather.CALM;
+                    boolean calm = !com.divinerpgextended.entity.mini.MiniBosses.ready(wp);
+                    ws.phase = com.divinerpgextended.world.twilight.WorldWeather.ACTIVE;
+                    boolean active = com.divinerpgextended.entity.mini.MiniBosses.ready(wp);
+                    ok &= calm && active;
+                    rep.append("; ").append(wn[i]).append(": calm no ").append(calm).append(", active yes ").append(active);
+                } finally {
+                    ws.phase = was;
+                }
+            }
+            // Skythern: over the abyss yes, on solid ground no
+            WorldServer skw = server.worldServerForDimension(ConfigurationHelper.skythern);
+            int vx = 0, vz = 0;
+            boolean found = false;
+            for (int t2 = 0; t2 < 40 && !found; t2++) {
+                vx = 9000 + t2 * 37;
+                vz = 9000 - t2 * 23;
+                loadAround(skw, vx, vz, 0);
+                found = true;
+                for (int y = 200; y >= 200 - com.divinerpgextended.entity.mini.MiniBosses.ABYSS_DEPTH - 1 && found; y--) if (!skw.isAirBlock(vx, y, vz)) found = false;
+            }
+            boolean abyss = false, solid = false;
+            if (found) {
+                TestPlayer sp = player(ConfigurationHelper.skythern, "TestMiniAbyss", vx + 0.5, 200, vz + 0.5);
+                abyss = com.divinerpgextended.entity.mini.MiniBosses.ready(sp);
+                fillBox(skw, vx - 5, 199, vz - 5, vx + 5, 199, vz + 5, Blocks.stone);
+                solid = !com.divinerpgextended.entity.mini.MiniBosses.ready(sp);
+                fillBox(skw, vx - 5, 199, vz - 5, vx + 5, 199, vz + 5, Blocks.air);
+            }
+            ok &= found && abyss && solid;
+            rep.append("; Skythern: over the abyss yes ").append(abyss).append(", on a wide floor no ").append(solid).append(found ? "" : " (no empty column found)");
+            // Mortum and Vethea: a kill streak
+            int[] kd = { ConfigurationHelper.mortum, ConfigurationHelper.vethea };
+            int[] need = { com.divinerpgextended.entity.mini.MiniBosses.MORTUM_KILLS, com.divinerpgextended.entity.mini.MiniBosses.VETHEA_KILLS };
+            String[] kn = { "Mortum", "Vethea" };
+            for (int i = 0; i < 2; i++) {
+                TestPlayer kp = player(kd[i], "TestMiniStreak" + i, 0.5, 120, 0.5);
+                kp.getEntityData().removeTag("dreKillStreak");
+                for (int k2 = 0; k2 < need[i] - 1; k2++) com.divinerpgextended.entity.mini.MiniBosses.countKill(kp);
+                boolean few = !com.divinerpgextended.entity.mini.MiniBosses.ready(kp);
+                com.divinerpgextended.entity.mini.MiniBosses.countKill(kp);
+                boolean enough = com.divinerpgextended.entity.mini.MiniBosses.ready(kp);
+                kp.getEntityData().setLong("dreKillStreakAt", kp.worldObj.getTotalWorldTime() - com.divinerpgextended.entity.mini.MiniBosses.STREAK_GAP - 1);
+                boolean broke = !com.divinerpgextended.entity.mini.MiniBosses.ready(kp);
+                ok &= few && enough && broke;
+                rep.append("; ").append(kn[i]).append(": ").append(need[i] - 1).append(" kills no ").append(few).append(", ").append(need[i]).append(" yes ").append(enough)
+                    .append(", after a minute without kills no ").append(broke);
+            }
+            check(ok, rep.toString());
             return rep.toString();
         });
         t("Progression", "Mini-bosses: moves", () -> {

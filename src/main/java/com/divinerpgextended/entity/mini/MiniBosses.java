@@ -96,6 +96,7 @@ public class MiniBosses {
         long now = p.worldObj.getTotalWorldTime();
         if (!data(p).hasKey(NEXT)) setNext(p, now + FIRST_DELAY);
         if (now < next(p) || p.worldObj.rand.nextDouble() >= CHANCE) return null;
+        if (Config.miniBossConditions && !ready(p)) return null;
         EntityMiniBoss m = spawnNear(p);
         if (m == null) return null;
         // the pause is for everyone around: two players together got two mini-bosses in a few minutes
@@ -121,6 +122,84 @@ public class MiniBosses {
             return true;
         }
         return false;
+    }
+
+    // ---------------- the moment of each world
+
+    /** Kill streak: Mortum and Vethea mini-bosses come to a slaughter; a pause longer than this breaks the streak. */
+    public static final int STREAK_GAP = 1200, MORTUM_KILLS = 6, VETHEA_KILLS = 8, VOID_REACH = 4;
+    private static final String STREAK = "dreKillStreak", STREAK_AT = "dreKillStreakAt", STREAK_DIM = "dreKillStreakDim";
+
+    /**
+     * Besides the pause, each world waits for its moment - otherwise a mini-boss just came every 20 minutes:
+     * <ul>
+     * <li>Eden, Noon Cori - the player is overheated (half the scale or more) and still heating up (under open sky, not in water);</li>
+     * <li>Wildwood, Old Verek - only in a downpour;</li>
+     * <li>Apalachia, Stonebreaker - only in a rockfall;</li>
+     * <li>Skythern, Sky Grabber - the player is at an island edge or over the abyss (a drop of {@link #ABYSS_DEPTH} blocks within {@link #VOID_REACH} blocks);</li>
+     * <li>Mortum, Mourner - the player has just killed {@link #MORTUM_KILLS} mobs in a row (pauses no longer than a minute);</li>
+     * <li>Vethea floor 3, Sleepwalker - the same, {@link #VETHEA_KILLS} dream mobs.</li>
+     * </ul>
+     * A world's weather turned off in the config does not block its mini-boss.
+     */
+    public static boolean ready(EntityPlayer p) {
+        World w = p.worldObj;
+        int d = p.dimension;
+        if (d == ConfigurationHelper.eden) return !Config.edenSun || heating(p);
+        if (d == ConfigurationHelper.wildwood) return !Config.wildwoodRain || com.divinerpgextended.world.twilight.WorldWeather.rain(w);
+        if (d == ConfigurationHelper.apalachia) return !Config.apalachiaRockfall || com.divinerpgextended.world.twilight.WorldWeather.quake(w);
+        if (d == ConfigurationHelper.skythern) return nearVoid(p);
+        if (d == ConfigurationHelper.mortum) return streak(p) >= MORTUM_KILLS;
+        if (d == ConfigurationHelper.vethea) return streak(p) >= VETHEA_KILLS;
+        return true;
+    }
+
+    /** Eden: overheated to half and still heating (the scale grows under open sky, out of water). */
+    static boolean heating(EntityPlayer p) {
+        return com.divinerpgextended.world.twilight.EdenSun.heat(p) >= 50 && !p.isInWater() && com.divinerpgextended.world.twilight.WorldWeather.open(p)
+            && com.divinerpgextended.world.twilight.EdenSun.rate(p) > 0;
+    }
+
+    /** How deep a drop counts as the abyss (Skythern has clouds and stone far below - the world bottom itself is not empty). */
+    public static final int ABYSS_DEPTH = 24;
+
+    /** Skythern: within a few blocks around there is a drop of {@link #ABYSS_DEPTH} blocks of air under the player's feet - an island edge or open sky. */
+    static boolean nearVoid(EntityPlayer p) {
+        World w = p.worldObj;
+        int px = MathHelper.floor_double(p.posX), py = MathHelper.floor_double(p.posY), pz = MathHelper.floor_double(p.posZ);
+        for (int dx = -VOID_REACH; dx <= VOID_REACH; dx += 2) {
+            for (int dz = -VOID_REACH; dz <= VOID_REACH; dz += 2) {
+                boolean empty = true;
+                for (int y = py; y >= Math.max(0, py - ABYSS_DEPTH) && empty; y--) if (!w.isAirBlock(px + dx, y, pz + dz)) empty = false;
+                if (empty) return true;
+            }
+        }
+        return false;
+    }
+
+    /** Kills in a row in the current world (0 - the streak broke: another world or more than a minute without a kill). */
+    public static int streak(EntityPlayer p) {
+        NBTTagCompound d = p.getEntityData();
+        if (d.getInteger(STREAK_DIM) != p.dimension || p.worldObj.getTotalWorldTime() - d.getLong(STREAK_AT) > STREAK_GAP) return 0;
+        return d.getInteger(STREAK);
+    }
+
+    /** One more kill by the player (for the selftest - also directly). */
+    public static void countKill(EntityPlayer p) {
+        int s = streak(p) + 1;
+        NBTTagCompound d = p.getEntityData();
+        d.setInteger(STREAK, s);
+        d.setLong(STREAK_AT, p.worldObj.getTotalWorldTime());
+        d.setInteger(STREAK_DIM, p.dimension);
+    }
+
+    /** Kill streaks in Mortum and Vethea: hostile mobs killed by a player. */
+    @SubscribeEvent(priority = cpw.mods.fml.common.eventhandler.EventPriority.LOW)
+    public void onKill(LivingDeathEvent e) {
+        if (e.isCanceled() || e.entityLiving.worldObj.isRemote || !(e.entityLiving instanceof IMob) || e.entityLiving instanceof EntityMiniBoss) return;
+        int d = e.entityLiving.dimension;
+        if (d != ConfigurationHelper.mortum && d != ConfigurationHelper.vethea) return;
+        if (e.source.getEntity() instanceof EntityPlayer) countKill((EntityPlayer) e.source.getEntity());
     }
 
     /** A mob death nearby feeds the Mourner. */

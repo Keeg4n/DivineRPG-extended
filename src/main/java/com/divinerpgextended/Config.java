@@ -51,7 +51,7 @@ public class Config {
     /** Weather of the twilight dimensions: Eden overheating, Wildwood downpour, Apalachia rockfall. */
     public static boolean edenSun = true, wildwoodRain = true, apalachiaRockfall = true;
     /** World mini-bosses and how often they can appear for a single player. */
-    public static boolean miniBosses = true;
+    public static boolean miniBosses = true, miniBossConditions = true;
     public static int miniBossMinutes = 20;
     public static int upgradeTwilightFuelCount = 16;
     public static int perkFuelArlemiteIngots = 8;
@@ -227,7 +227,9 @@ public class Config {
         edenSun = cfg.getBoolean("edenSun", bal, edenSun, "Eden: the sun overheats players under the open sky (weakness, nausea, burning)");
         wildwoodRain = cfg.getBoolean("wildwoodRain", bal, wildwoodRain, "Wildwood: downpour every 15-25 minutes (slowness, mobs heal, marine weapons are stronger)");
         apalachiaRockfall = cfg.getBoolean("apalachiaRockfall", bal, apalachiaRockfall, "Apalachia: rockfall every 10-15 minutes (boulders fall from the sky, blocks are not broken)");
-        miniBosses = cfg.getBoolean("miniBosses", bal, miniBosses, "Mini-bosses in the twilight dimensions and on Vethea floors 1-3");
+        miniBosses = cfg.getBoolean("miniBosses", bal, miniBosses, "Mini-bosses in the twilight dimensions and on Vethea floor 3");
+        miniBossConditions = cfg.getBoolean("miniBossConditions", bal, miniBossConditions,
+            "Mini-bosses come only at their moment, besides the pause: Eden - the player overheated to half and still heating, Wildwood - downpour, Apalachia - rockfall, Skythern - at an island edge or over the abyss, Mortum - 6 kills in a row, Vethea floor 3 - 8 kills in a row. false - by the pause only");
         miniBossMinutes = cfg.getInt("miniBossMinutes", bal, miniBossMinutes, 1, 600, "A mini-boss spawns for a given player at most once per this many minutes");
         coreShadowSpeed = cfg.get(bal, "coreShadowSpeed", coreShadowSpeed, "Shadow core in Wanderer armor: how many times faster walking is (3 - like the Shadow set itself, 1 - no bonus)").getDouble();
         upgradeTwilightFuelCount = cfg.getInt("upgradeTwilightFuelCount", bal, upgradeTwilightFuelCount, 0, 64,
