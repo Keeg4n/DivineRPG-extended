@@ -17,10 +17,23 @@ import cpw.mods.fml.relauncher.SideOnly;
  * Walls of the crab burrow: look like sandstone (meta 0) and sand (meta 1). Broken in survival or blown up - the burrow collapses:
  * the passage around is filled with sand. The burrow blocks themselves, the nest and the heart cannot be carried away: in the player's inventory they immediately become ordinary
  * sandstone, sand and chiseled sandstone ({@link Convert}), and those placed in survival do too.
+ * <p>
+ * Metas from {@link #DECOR} (1.1.3) are the decor of lairs that must not be a free resource: the wreck in the Carcinus lair (planks, logs,
+ * sail), the inlaid dial of the tomb hall (colored clay), the sand of the hourglass. They look like the vanilla blocks, drop nothing,
+ * do not fall and do not collapse the burrow.
  */
 public class BlockBurrow extends Block {
 
-    private IIcon sandstoneSide, sandstoneTop, sand;
+    /** Decor metas: dark planks, spruce log, white and gray sail, clay white / blue / yellow / orange / brown, sand, light planks. */
+    public static final int DECOR = 2, PLANKS = 2, LOG = 3, SAIL = 4, SAIL_GRAY = 5, CLAY_WHITE = 6, CLAY_BLUE = 7, CLAY_YELLOW = 8,
+        CLAY_ORANGE = 9, CLAY_BROWN = 10, SAND = 11, PLANKS_LIGHT = 12;
+
+    private static final String[] DECOR_ICONS = { "planks_big_oak", "log_spruce", "wool_colored_white", "wool_colored_gray",
+        "hardened_clay_stained_white", "hardened_clay_stained_blue", "hardened_clay_stained_yellow", "hardened_clay_stained_orange",
+        "hardened_clay_stained_brown", "sand", "planks_oak" };
+
+    private IIcon sandstoneSide, sandstoneTop, sand, logTop;
+    private final IIcon[] decor = new IIcon[DECOR_ICONS.length];
 
     public BlockBurrow() {
         super(Material.rock);
@@ -36,31 +49,55 @@ public class BlockBurrow extends Block {
         sandstoneSide = reg.registerIcon("sandstone_normal");
         sandstoneTop = reg.registerIcon("sandstone_top");
         sand = reg.registerIcon("sand");
+        logTop = reg.registerIcon("log_spruce_top");
+        for (int i = 0; i < DECOR_ICONS.length; i++) decor[i] = reg.registerIcon(DECOR_ICONS[i]);
     }
 
     @Override
     @SideOnly(Side.CLIENT)
     public IIcon getIcon(int side, int meta) {
         if (meta == 1) return sand;
+        if (meta == LOG && (side == 0 || side == 1)) return logTop;
+        if (meta >= DECOR && meta - DECOR < decor.length) return decor[meta - DECOR];
         return side == 0 || side == 1 ? sandstoneTop : sandstoneSide;
+    }
+
+    /** Decor drops nothing (the walls drop themselves and turn into ordinary sandstone and sand in the inventory). */
+    @Override
+    public net.minecraft.item.Item getItemDropped(int meta, java.util.Random rand, int fortune) {
+        return meta >= DECOR ? null : super.getItemDropped(meta, rand, fortune);
+    }
+
+    /** Silk touch does not take the decor whole either. */
+    @Override
+    public boolean canSilkHarvest(World world, EntityPlayer player, int x, int y, int z, int meta) {
+        return meta < DECOR && super.canSilkHarvest(world, player, x, y, z, meta);
     }
 
     @Override
     public void onBlockHarvested(World world, int x, int y, int z, int meta, EntityPlayer player) {
-        if (!world.isRemote && !player.capabilities.isCreativeMode) {
+        if (!world.isRemote && !player.capabilities.isCreativeMode && meta < DECOR) {
             collapse(world, x, y, z, player);
             player.addChatMessage(new ChatComponentTranslation("dre.chat.burrow_collapse"));
         }
         super.onBlockHarvested(world, x, y, z, meta, player);
     }
 
-    /** In survival, falling sand appears at once in place of the broken block: the breach is filled at once. */
+    /** In survival, falling sand appears at once in place of the broken block: the breach is filled at once. Decor is simply removed. */
     @Override
     public boolean removedByPlayer(World world, EntityPlayer player, int x, int y, int z, boolean willHarvest) {
-        if (!world.isRemote && !player.capabilities.isCreativeMode) {
+        if (!world.isRemote && !player.capabilities.isCreativeMode && world.getBlockMetadata(x, y, z) < DECOR) {
             return world.setBlock(x, y, z, Blocks.sand);
         }
         return super.removedByPlayer(world, player, x, y, z, willHarvest);
+    }
+
+    /** The meta is known only before removal: the decor does not collapse the burrow when blown up either. */
+    @Override
+    public void onBlockExploded(World world, int x, int y, int z, Explosion explosion) {
+        int meta = world.getBlockMetadata(x, y, z);
+        world.setBlockToAir(x, y, z);
+        if (!world.isRemote && meta < DECOR) collapse(world, x, y, z);
     }
 
     @Override

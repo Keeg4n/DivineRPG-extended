@@ -483,13 +483,25 @@ public class SelfTest {
     }
 
     /** Damage to a target: health before minus after (minus means it was healed). */
-    /** For preview: non-empty blocks around a structure into logs/<name>.txt (x y z block meta). */
+    /**
+     * For preview: non-empty blocks around a structure into logs/<name>.txt (x y z block meta). Wider than 50 - only the surface (blocks with a
+     * non-opaque neighbor): underground domes are otherwise millions of lines of stone.
+     */
+    /** Lairs that are not dumped in a normal run are dumped for preview when the filter asks for renders ("render" in it). */
+    private static boolean renderLairs() {
+        for (String s : ONLY) if (s.contains("render")) return true;
+        return false;
+    }
+
     private static void dump(WorldServer w, int cx, int top, int cz, int r, String name) {
+        boolean surface = r > 50;
         try {
             java.io.PrintWriter out = new java.io.PrintWriter(new File(MinecraftServer.getServer().getFile("logs"), name + ".txt"), "UTF-8");
             for (int x = cx - r; x <= cx + r; x++) for (int z = cz - r; z <= cz + r; z++) for (int y = top - 70; y <= top + 62; y++) {
                 net.minecraft.block.Block b = w.getBlock(x, y, z);
                 if (b.getMaterial() == net.minecraft.block.material.Material.air) continue;
+                if (surface && w.getBlock(x + 1, y, z).isOpaqueCube() && w.getBlock(x - 1, y, z).isOpaqueCube() && w.getBlock(x, y + 1, z).isOpaqueCube()
+                    && w.getBlock(x, y - 1, z).isOpaqueCube() && w.getBlock(x, y, z + 1).isOpaqueCube() && w.getBlock(x, y, z - 1).isOpaqueCube()) continue;
                 out.println((x - cx) + " " + (y - top) + " " + (z - cz) + " " + net.minecraft.block.Block.blockRegistry.getNameForObject(b) + " "
                     + w.getBlockMetadata(x, y, z));
             }
@@ -5900,7 +5912,7 @@ public class SelfTest {
             int az = c[2] - com.divinerpgextended.world.twilight.WorldGenNests.ALTAR_DZ;
             String log = "";
             boolean altar = w.getBlock(c[0], top + 2, az) == com.divinerpgextended.registry.ModBlocks.nestAltar;
-            boolean column = w.getBlock(c[0] + 26, top + 20, c[2]) == Blocks.quartz_block;
+            boolean column = w.getBlock(c[0] + 27, top + 5, c[2] + 11) == Blocks.quartz_block; // a twisted wind spire on the rim (1.1.3: no colonnade)
             boolean open = w.isAirBlock(c[0], top + 10, c[2]);
             int clouds = 0, ladders = 0;
             for (int i = 0; i < 4; i++) {
@@ -5909,8 +5921,12 @@ public class SelfTest {
                     pz = c[2] + (int) Math.round(Math.sin(a) * com.divinerpgextended.entity.EntityWindLord.TOTEM_R);
                 int h = com.divinerpgextended.entity.EntityWindLord.HEIGHTS[i];
                 if (w.getBlock(px, top + h, pz) == com.divinerpgextended.registry.ModBlocks.cloud) clouds++;
-                int lsx = px > c[0] ? 1 : -1;
-                if (w.getBlock(px + 2 * lsx, top + 1, pz) == Blocks.ladder && w.getBlock(px + 2 * lsx, top + h - 1, pz) == Blocks.ladder) ladders++;
+                // a spiral of floating cloud steps leads up to the island: the first step over the floor, the last one under the totem pad
+                double b1 = a + Math.PI + 0.55, bl = a + Math.PI + (h - 1) * 0.55;
+                if (w.getBlock(c[0] + (int) Math.round(px - c[0] + Math.cos(b1) * 6.0), top + 1, c[2] + (int) Math.round(pz - c[2] + Math.sin(b1) * 6.0))
+                    == com.divinerpgextended.registry.ModBlocks.cloud
+                    && w.getBlock(c[0] + (int) Math.round(px - c[0] + Math.cos(bl) * 6.0), top + h - 1, c[2] + (int) Math.round(pz - c[2] + Math.sin(bl) * 6.0))
+                        == com.divinerpgextended.registry.ModBlocks.cloud) ladders++;
             }
             // the sky above the whole island is open to the top of the world (above the colonnade cornice there is nothing)
             int roof = 0;
@@ -5924,7 +5940,7 @@ public class SelfTest {
                 }
             }
             open &= roof == 0;
-            log = "altar " + altar + ", column " + column + ", above the center empty " + open + " (columns with a ceiling " + roof + ": " + roofAt + "), cloud platforms " + clouds + ", stairs " + ladders;
+            log = "altar " + altar + ", wind spire " + column + ", above the center empty " + open + " (columns with a ceiling " + roof + ": " + roofAt + "), cloud platforms " + clouds + ", spirals of cloud steps " + ladders;
             dump(w, c[0], top, c[2], 46, "temple-skythern");
             // the Call on the altar - the Wind Lord, totems stand on the platforms
             TestPlayer v = player(dim, "TestTemple", c[0], top + 1, az + 2);
@@ -5945,7 +5961,7 @@ public class SelfTest {
                 l.setDead();
             }
             check(altar && column && open && clouds == 4 && ladders == 4 && lords.size() == 1 && totems == 4, log + ", lords " + lords.size() + ", totems on clouds " + totems);
-            return "temple in " + c[0] + "," + c[2] + ": the sky over the island is open, colonnade, altar, 4 pedestals with stairs and clouds; Call - the Wind Lord, totems stand on clouds";
+            return "temple in " + c[0] + "," + c[2] + ": the sky over the island is open, wind spires, altar, 4 floating cloud islands with spirals of cloud steps; Call - the Wind Lord, totems stand on clouds";
         });
         t("Lairs", "Shrine and springs", () -> {
             int dim = ConfigurationHelper.wildwood;
@@ -5995,7 +6011,7 @@ public class SelfTest {
             }
             check(altar && waters == 4 && mossy > 20 && gl.size() == 1 && healed >= 4 && up > 1 && asleep,
                 log + ", healed " + healed + ", geyser " + up + ", spring fell asleep " + asleep);
-            return "shrine: altar, menhirs and shelters of mossy stone, 4 springs; in the Wildwood set the spring heals (+" + healed + "), after 1.5 s the geyser throws out, the spring falls asleep";
+            return "shrine (cromlech): altar, trilithons, shelters of mossy stone, 4 springs; in the Wildwood set the spring heals (+" + healed + "), after 1.5 s the geyser throws out, the spring falls asleep";
         });
         t("Lairs", "Sacred mountain and tiers", () -> {
             int dim = ConfigurationHelper.apalachia;
@@ -12429,6 +12445,7 @@ public class SelfTest {
             for (int[] ch : chunks) w.theChunkProviderServer.loadChunk(ch[0], ch[1]);
             StringBuilder ex = new StringBuilder();
             int[] bad = com.divinerpgextended.world.WorldGenThrone.audit(w, c[0], c[2], ex);
+            if (renderLairs()) dump(w, c[0], 66, c[2], com.divinerpgextended.world.WorldGenThrone.R + 6, "render-throne");
             // substitution by generation: lava in the hall, frozen stone and water in the wall at the edge - the seal after all generators fixes it
             int[] spot = null;
             for (int dz = 0; dz < 40 && spot == null; dz++) if (w.isAirBlock(c[0] + 40, 12, c[2] + dz) && w.isAirBlock(c[0] + 40, 13, c[2] + dz)) spot = new int[] { c[0] + 40, c[2] + dz };
@@ -12779,7 +12796,9 @@ public class SelfTest {
             loadAround(w, cx, cz, 3);
             int top = com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP;
             int hz = com.divinerpgextended.world.twilight.MortumArenas.GALLERY_HZ;
-            boolean roof = w.getBlock(cx - 5, top + 15, cz) == Blocks.nether_brick_stairs && w.getBlock(cx, top + 20, cz) == Blocks.obsidian;
+            net.minecraft.block.Block roofBlock = w.getBlock(cx - 5, top + 15, cz); // basilica (1.1.3): netherite brick with rows of nether brick
+            boolean roof = (roofBlock == com.divinerpgextended.world.twilight.MortumArenas.divine("netheriteBricks", Blocks.nether_brick) || roofBlock == Blocks.nether_brick)
+                && w.getBlock(cx, top + 20, cz) == Blocks.obsidian;
             net.divinerpg.entities.twilight.EntityEternalArcher ea = new net.divinerpg.entities.twilight.EntityEternalArcher(w);
             ea.setLocationAndAngles(cx + 0.5, top + 4, cz - hz + 3.5, 0, 0);
             w.spawnEntityInWorld(ea);
@@ -12804,8 +12823,8 @@ public class SelfTest {
             for (Object o : w.getEntitiesWithinAABB(net.minecraft.entity.projectile.EntityArrow.class, ea.boundingBox.expand(48, 20, 48))) ((net.minecraft.entity.Entity) o).setDead();
             tp.inventory.clearInventory(null, -1);
             check(roof && arrows == com.divinerpgextended.boss.MortumArenaBosses.VOLLEY_ARROWS && holes > 0 && r1 == 2 && r2 == 1 && rain == com.divinerpgextended.boss.MortumArenaBosses.RAIN_ARROWS,
-                "roof of stairs with an obsidian ridge " + roof + "; volley " + arrows + " arrows, blocks broken in the wall " + holes + "; runners " + r1 + "+" + r2 + "; rain " + rain + " arrows");
-            return "gallery roof - nether brick stairs; the volley breaks through the wall (" + holes + " blocks), up to three runners, arrow rain " + rain;
+                "roof of netherite brick with an obsidian ridge " + roof + "; volley " + arrows + " arrows, blocks broken in the wall " + holes + "; runners " + r1 + "+" + r2 + "; rain " + rain + " arrows");
+            return "gallery roof - netherite brick with an obsidian ridge; the volley breaks through the wall (" + holes + " blocks), up to three runners, arrow rain " + rain;
         });
         t("Lairs", "Karot: reflects projectiles, looks in the mirror", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
@@ -13446,6 +13465,20 @@ public class SelfTest {
             for (int y = 95; y <= 127; y++) w.setBlock(sx2, y, sz2, Blocks.air);
             check(found == 99, "ground found at " + found + " (ceiling - stone 115-122 and bedrock 123-127, cave floor - grass at 99)");
             return "in Mortum structures look for the cave floor, not the stone under the bedrock ceiling";
+        });
+        t("Lairs", "RENDER tomb hall", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            int cx = 31000, cz = 31000, tb = 40;
+            loadAround(w, cx, cz, 2);
+            for (int x = cx - 24; x <= cx + 24; x++) for (int z = cz - 24; z <= cz + 24; z++) for (int y = 2; y <= 90; y++) {
+                Block want = y < 64 ? Blocks.sandstone : y == 64 ? Blocks.sand : Blocks.air;
+                if (w.getBlock(x, y, z) != want) w.setBlock(x, y, z, want, 0, 2);
+            }
+            Method hall = com.divinerpgextended.world.WorldGenTomb.class.getDeclaredMethod("hall", net.minecraft.world.World.class, int.class, int.class, int.class);
+            hall.setAccessible(true);
+            hall.invoke(null, w, cx, tb, cz);
+            dump(w, cx, tb, cz, 20, "render-tomb-hall");
+            return "tomb hall built on a sandstone block and dumped";
         });
         t("Lairs", "Clock only at the tomb", () -> {
             String r = com.divinerpgextended.boss.LairSummons.refusal(p, net.divinerpg.utils.items.VanillaItemsOther.mysteriousClock, 0, 64, 0);
@@ -14455,6 +14488,20 @@ public class SelfTest {
                 for (int x = pyr[0] - 24; x <= pyr[0] + 24 && !pyramid; x++) for (int z = pyr[1] - 24; z <= pyr[1] + 24 && !pyramid; z++)
                     for (int y = 90; y >= 30 && !pyramid; y--) if (w.getBlock(x, y, z) == Blocks.stone_pressure_plate && w.getBlock(x, y - 2, z) == Blocks.tnt) pyramid = true;
                 rep.append("pyramid by formula ").append(pyr[0]).append(",").append(pyr[1]).append(pyramid ? " stands" : " NONE").append("; ");
+            }
+            if (firstBuilt != null && renderLairs()) { // preview: the whole crab lair and its grotto with the altar
+                int[] at = null, fun = data.nearest(com.divinerpgextended.world.LairData.CARCINUS, firstBuilt[0], firstBuilt[1]); // the funnel; the grotto is ~107 east
+                if (fun != null) {
+                    loadAround(w, fun[1] + 60, fun[3], 6);
+                    for (int x = fun[1] + 80; x <= fun[1] + 135 && at == null; x++) for (int z = fun[3] - 20; z <= fun[3] + 20 && at == null; z++)
+                        for (int y = 3; y <= 90 && at == null; y++) if (w.getBlock(x, y, z) == com.divinerpgextended.registry.ModBlocks.carcinusAltar) at = new int[] { x, y, z };
+                }
+                if (at != null) {
+                    dump(w, at[0], at[1], at[2], 22, "render-carcinus-grotto");
+                    dump(w, (at[0] + fun[1]) / 2, at[1] + 10, at[2], 66, "render-carcinus");
+                }
+                System.out.println("[dre render] crab funnel " + (fun == null ? "none" : fun[1] + "," + fun[2] + "," + fun[3]) + ", altar "
+                    + (at == null ? "not found" : at[0] + "," + at[1] + "," + at[2]));
             }
             // map: standing at a built lair, it leads to the next; a second click at once - cooldown
             boolean skipOk = true, cdOk = true, explorer = false;

@@ -359,7 +359,12 @@ public class LairDomes implements IWorldGenerator {
     public static final class JungleCity extends ColumnStructure {
 
         static final int SHELL = 1, GRASS = 2, DIRT = 3, BRICK = 4, COBBLE = 5, MOSSY = 6, GRAVEL = 7, LOG = 8, LEAVES = 9, GLOW = 10, FENCE = 11, FERN = 12,
-            ALTAR = 13, STEP = 14, VINE = 15, ROOT = 16;
+            ALTAR = 13, STEP = 14, VINE = 15, ROOT = 16, WATER = 17, GLASS = 18;
+        /** The water garden (1.1.3): the canal ring is from J_ARENA to CANAL, then a low hedge to RING. */
+        static final double CANAL = J_ARENA + 3.5;
+        /** The trees of the garden island: the ring of obstacles the ram hits (in place of the broken columns). */
+        static final int TREES = 12, TREE_R = 13;
+        static final double TREE_PHASE = 0.13;
         /** A special house block: a whole house, inside by the far wall a Divan RPG (an Easter egg). */
         public static final int HOME_IX = -3, HOME_IZ = 1;
         /** The ring boulevard around the arena: up to this radius it is paved, blocks start further out. */
@@ -383,6 +388,8 @@ public class LairDomes implements IWorldGenerator {
                 case ALTAR: return ModBlocks.jungleAltar;
                 case STEP: return Blocks.stonebrick;
                 case VINE: return Blocks.vine;
+                case WATER: return Blocks.water;
+                case GLASS: return Blocks.glass;
                 default: return Blocks.air;
             }
         }
@@ -429,11 +436,82 @@ public class LairDomes implements IWorldGenerator {
             // floor: grass and dirt
             put(col, J_FL, h % 3 == 0 ? DIRT : GRASS, 0);
             if (tower(dx, dz)) tower(dx + J_TOWER_DX, dz, ceil, h, col);
-            else if (arena(dx, dz)) arena(dx, dz, r, h, col);
-            else if (r < RING) ring(dx, dz, h, col);
+            else if (arena(dx, dz)) garden(dx, dz, r, h, col);
+            else if (r < RING) canal(dx, dz, r, h, col);
             else city(dx, dz, r, h, col);
             if (!tower(dx, dz) && r >= J_ARENA + 2) roots(dx, dz, ceil, col);
+            waterColumns(dx, dz, ceil, col);
             return true;
+        }
+
+        /**
+         * The Ancient Dramcryx arena - a water garden island (1.1.3): moss and grass, paths of stone brick on the axes and diagonals, a ring of
+         * twelve living jungle trees (the obstacles the ram hits), a mossy pad with the altar in the north and a stele behind it.
+         */
+        private void garden(int dx, int dz, double r, int h, int[] col) {
+            boolean path = Math.abs(Math.abs(dx) - Math.abs(dz)) < 1 || r < 3 || Math.abs(dx) <= 1 || Math.abs(dz) <= 1;
+            if (path) put(col, J_FL, BRICK, h % 3 == 0 ? 0 : 1);
+            else {
+                boolean grass = h % 5 != 0;
+                put(col, J_FL, grass ? GRASS : MOSSY, 0);
+                if (grass && h % 9 == 0) put(col, J_FL + 1, FERN, 0);
+            }
+            for (int k = 0; k < TREES; k++) {
+                double a = k * Math.PI * 2 / TREES + TREE_PHASE;
+                int cx = (int) Math.round(Math.cos(a) * TREE_R), cz = (int) Math.round(Math.sin(a) * TREE_R);
+                int ox = dx - cx, oz = dz - cz;
+                if (ox * ox + oz * oz > 25) continue;
+                double d = Math.sqrt(ox * ox + oz * oz);
+                int hgt = 9 + k % 3 * 2;
+                if (d <= 1.3) for (int y = J_FL + 1; y < J_FL + hgt; y++) put(col, y, LOG, 0);
+                if (ox == 2 && oz == 0) for (int y = J_FL + 3; y < J_FL + hgt; y++) if (hash(cx * 7 + y, k) % 3 == 0) put(col, y, VINE, 2); // on the trunk (west)
+                for (int dy = 0; dy < 3; dy++) if (d <= 4.2 - dy * 1.2 && hash(dx * 3 + dy, dz * 5 - dy) % 7 != 0) put(col, J_FL + hgt + dy, LEAVES, 0);
+                if (ox == (int) Math.round(Math.cos(a) * 2) && oz == (int) Math.round(Math.sin(a) * 2)) put(col, J_FL + hgt - 1, GLOW, 0);
+            }
+            int ad = WorldGenJungleLair.ALTAR_DZ;
+            double pd = Math.sqrt(dx * dx + (dz + ad) * (dz + ad));
+            if (pd <= 2.5) put(col, J_FL + 1, pd > 1.5 ? MOSSY : BRICK, pd > 1.5 ? 0 : 3); // the pad
+            if (dx == 0 && dz == -ad) put(col, J_FL + 2, ALTAR, 0);
+            if (Math.abs(dx) <= 1 && dz == -ad - 3) for (int y = J_FL + 1; y <= J_FL + 8; y++) put(col, y, BRICK, y % 2 != 0 ? 1 : 0); // the stele
+            if (dx == 0 && dz == -ad - 2) put(col, J_FL + 7, GLOW, 0);
+        }
+
+        /**
+         * The canal ring around the island (1.1.3): still water one block deep over brick with lamps under the water, four bridges on the axes
+         * (the main streets) with railings, at the outer edge a low mossy hedge with gaps at the bridges.
+         */
+        private void canal(int dx, int dz, double r, int h, int[] col) {
+            int ax = Math.abs(dx), az = Math.abs(dz);
+            boolean bridge = ax <= 1 || az <= 1;
+            if (r < CANAL) {
+                put(col, J_FL - 1, h % 5 == 0 ? GLOW : BRICK, 0);
+                put(col, J_FL, WATER, 0);
+                if (bridge) put(col, J_FL + 1, BRICK, h % 3 == 0 ? 0 : 1);
+                if (az == 2 && ax >= J_ARENA && ax <= J_ARENA + 3 || ax == 2 && az >= J_ARENA && az <= J_ARENA + 3) {
+                    put(col, J_FL + 1, BRICK, 0);
+                    put(col, J_FL + 2, FENCE, 0);
+                }
+                return;
+            }
+            put(col, J_FL, BRICK, 0);
+            if (bridge) return;
+            put(col, J_FL + 1, h % 3 == 0 ? BRICK : MOSSY, h % 3 == 0 ? 1 : 0);
+            if (h % 4 == 0) put(col, J_FL + 2, LEAVES, 0);
+        }
+
+        /**
+         * Four water columns on the diagonals over the canal, from the floor to the vault (1.1.3, in place of the concept's waterfalls): still
+         * water in a glass case - a free source would flood the arena and the streets. Mossy brackets at the vault.
+         */
+        private static void waterColumns(int dx, int dz, int ceil, int[] col) {
+            for (int k = 0; k < 4; k++) {
+                double a = Math.PI / 4 + k * Math.PI / 2;
+                int ox = dx - (int) Math.round(Math.cos(a) * 22), oz = dz - (int) Math.round(Math.sin(a) * 22);
+                if (Math.abs(ox) > 2 || Math.abs(oz) > 1 || Math.abs(ox) == 2 && oz != 0) continue;
+                boolean water = Math.abs(ox) <= 1 && oz == 0;
+                for (int y = J_FL + 1; y <= ceil; y++) put(col, y, water ? WATER : GLASS, 0);
+                if (Math.abs(ox) == 2) for (int y = ceil - 3; y <= ceil; y++) put(col, y, MOSSY, 0);
+            }
         }
 
         /** The tower under the temple: the well from the temple continues as a spiral staircase to the floor, around it a wall with passages at the bottom. */
@@ -455,43 +533,6 @@ public class LairDomes implements IWorldGenerator {
                 if (door || broken) continue;
                 put(col, y, BRICK, hash(dx + y, dz - y) % 3);
             }
-        }
-
-        /**
-         * The Ancient Dramcryx arena in the center: a paved circle, a ring of broken columns, a dais with an altar in the north, lanterns;
-         * along the edge a collapsed fence with openings to the four main streets.
-         */
-        private void arena(int dx, int dz, double r, int h, int[] col) {
-            put(col, J_FL, BRICK, h % 3);
-            if (ringDist(dx, dz, 13, 12, 0.13) < 0.8) {
-                int top = J_FL + 3 + h % 7;
-                for (int y = J_FL + 1; y <= top; y++) put(col, y, BRICK, (y + h) % 3);
-                put(col, top + 1, LEAVES, 0);
-            }
-            if (dz == -WorldGenJungleLair.ALTAR_DZ && Math.abs(dx) <= 1) {
-                put(col, J_FL + 1, BRICK, 3);
-                if (dx == 0) put(col, J_FL + 2, ALTAR, 0);
-            }
-            if (Math.abs(dx) == 10 && Math.abs(dz) == 10) {
-                put(col, J_FL + 1, FENCE, 0);
-                put(col, J_FL + 2, FENCE, 0);
-                put(col, J_FL + 3, GLOW, 0);
-            }
-            if (r >= J_ARENA - 1.5 && Math.abs(dx) > 2 && Math.abs(dz) > 2) { // the fence, in places collapsed to the base
-                int top = J_FL + 1 + h % 3 - (hash(dx * 7, dz * 3) % 5 == 0 ? 1 : 0);
-                for (int y = J_FL + 1; y <= top; y++) put(col, y, h % 4 == 0 ? MOSSY : BRICK, (y + h) % 3);
-                if (top > J_FL && h % 3 == 0) put(col, top + 1, LEAVES, 0);
-            }
-        }
-
-        /** The ring boulevard between the arena and the blocks: paving, lanterns every 30 degrees, rare ferns. */
-        private void ring(int dx, int dz, int h, int[] col) {
-            put(col, J_FL, h % 4 == 0 ? GRAVEL : h % 4 == 1 ? MOSSY : BRICK, 2);
-            if (ringDist(dx, dz, RING - 1, 12, Math.PI / 12) < 0.6) {
-                put(col, J_FL + 1, FENCE, 0);
-                put(col, J_FL + 2, FENCE, 0);
-                put(col, J_FL + 3, GLOW, 0);
-            } else if (h % 29 == 0) fern(col);
         }
 
         /** A block: a street, a house, ruins or a garden. */

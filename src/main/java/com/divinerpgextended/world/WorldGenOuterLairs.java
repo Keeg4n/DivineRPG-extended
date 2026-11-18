@@ -205,8 +205,11 @@ public class WorldGenOuterLairs implements IWorldGenerator {
     }
 
     private static final int BRICK = 1, GLOW = 2, LAVA = 3, OBSIDIAN = 4, END_STONE = 5, QUARTZ = 6, FENCE = 7, CLAY = 8;
+    /** Stained clay of a given color in the aerie decoration (nest 1.1.3): code CLAY_COLOR + color, meta = color. */
+    private static final int CLAY_COLOR = 16;
 
     private static Block block(int code) {
+        if (code >= CLAY_COLOR && code < CLAY_COLOR + 16) return Blocks.stained_hardened_clay;
         switch (code) {
             case BRICK: return Blocks.nether_brick;
             case GLOW: return net.divinerpg.utils.blocks.VanillaBlocks.lamp1;
@@ -306,15 +309,12 @@ public class WorldGenOuterLairs implements IWorldGenerator {
             if (icicle) for (int y = top - depth; y < top - depth + 3; y++) put(col, y, OBSIDIAN, 0);
             for (int y = top + rise + 1; y <= top + 40; y++) put(col, y, AIR, 0);
             if (r < ARENA) {
-                // arena: obsidian rings, fires in a circle and at the center
-                if (((int) r) % 8 == 0 && r > 1.5) put(col, top, OBSIDIAN, 0);
+                // arena - the nest cup (1.1.3): obsidian rings every 6 blocks, fires in a circle and at the center, toward the rim rare twigs
+                if (((int) r) % 6 == 0 && r > 3) put(col, top, OBSIDIAN, 0);
                 if (r < 1.5 || ringDist(dx, dz, 12, 8, 0) < 0.5 || ringDist(dx, dz, 24, 16, Math.PI / 16) < 0.5) put(col, top, GLOW, 0);
+                if (r > 28 && ((int) (r * 3)) % 2 == 0 && Math.floorMod(dx + dz, 3) == 0) put(col, top + 1, OBSIDIAN, 0);
             }
-            // obsidian teeth along the edge
-            if (t > 0.8 && ringDist(dx, dz, edge - 4, 24, 0) < 1.1) {
-                int sh = 4 + h % 6;
-                for (int y = top + rise + 1; y <= top + rise + sh; y++) put(col, y, OBSIDIAN, 0);
-            }
+            // (before 1.1.3 - obsidian teeth along the edge; now the woven rim of the nest, see nest())
             // horde pillar towers: obsidian with a spiral staircase around, on top a clay pillar of the color
             for (com.divinerpgextended.boss.AyeracoHorde.Hue hue : com.divinerpgextended.boss.AyeracoHorde.Hue.values()) {
                 int[] pa = com.divinerpgextended.boss.AyeracoHorde.pillarAt(0, top, 0, hue);
@@ -335,7 +335,62 @@ public class WorldGenOuterLairs implements IWorldGenerator {
                     for (int y = top + 1; y <= top + Math.min(step, lift); y++) put(col, y, END_STONE, 0);
                 }
             }
+            com.divinerpgextended.world.twilight.Voxels n = nest();
+            if (n.has(dx, dz)) n.apply(dx, dz, col);
             return true;
+        }
+
+        private static com.divinerpgextended.world.twilight.Voxels nest;
+
+        /**
+         * The nest (1.1.3), from the arena center: a woven rim of obsidian and quartz twigs on the ring 39..47 rising toward the edge (not
+         * past the island edge and not on the towers), three obsidian talons around each horde pillar curving up and in, and a big egg of
+         * quartz with spots of the tower's color beside each perch, off the arena. Heights are absolute (the arena floor is FLOOR).
+         */
+        static synchronized com.divinerpgextended.world.twilight.Voxels nest() {
+            if (nest != null) return nest;
+            com.divinerpgextended.world.twilight.Voxels v = new com.divinerpgextended.world.twilight.Voxels(
+                code -> code >= CLAY_COLOR && code < CLAY_COLOR + 16 ? code - CLAY_COLOR : code == GLOW ? 8 : 0);
+            int top = FLOOR[AYERACO];
+            com.divinerpgextended.boss.AyeracoHorde.Hue[] hues = com.divinerpgextended.boss.AyeracoHorde.Hue.values();
+            int[][] towers = new int[hues.length][];
+            for (int k = 0; k < hues.length; k++) towers[k] = com.divinerpgextended.boss.AyeracoHorde.pillarAt(0, top, 0, hues[k]);
+            Random rnd = new Random(7);
+            for (int i = 0; i < 700; i++) { // the woven rim: chords between points of the ring
+                double a0 = rnd.nextDouble() * Math.PI * 2, a1 = a0 + (0.15 + rnd.nextDouble() * 0.3) * (rnd.nextBoolean() ? 1 : -1);
+                double r0 = 39 + rnd.nextDouble() * 8, r1 = 39 + rnd.nextDouble() * 8;
+                double y0 = 1 + rnd.nextDouble() * 3 + (r0 - 39) * 1.1, y1 = 1 + rnd.nextDouble() * 3 + (r1 - 39) * 1.1;
+                int mat = rnd.nextDouble() < 0.75 ? OBSIDIAN : QUARTZ;
+                for (int j = 0; j <= 40; j++) {
+                    double s = j / 40.0, a = a0 + (a1 - a0) * s, rr = r0 + (r1 - r0) * s, y = y0 + (y1 - y0) * s;
+                    int x = (int) Math.round(Math.cos(a) * rr), z = (int) Math.round(Math.sin(a) * rr);
+                    if (rr > edge(x, z) - 0.5) continue; // not over the void past the island edge
+                    boolean nearTower = false;
+                    for (int[] t : towers) if ((x - t[0]) * (x - t[0]) + (z - t[2]) * (z - t[2]) < 25) nearTower = true;
+                    if (nearTower) continue;
+                    int yy = top + (int) Math.round(y);
+                    v.put(x, yy, z, mat);
+                    v.put(x, yy + 1, z, mat);
+                }
+            }
+            for (int k = 0; k < hues.length; k++) {
+                int tx = towers[k][0], tz = towers[k][2];
+                double a = Math.atan2(tz, tx);
+                for (int c = 0; c < 3; c++) { // talons around the pillar
+                    double ca = a + c * Math.PI * 2 / 3;
+                    for (int i = 0; i < 10; i++) {
+                        double s = i / 9.0, rr = 2.6 - s * 1.6;
+                        int y = top + com.divinerpgextended.boss.AyeracoHorde.PILLAR_LIFT + 1 + (int) Math.round(s * 7);
+                        v.put((int) Math.round(tx + Math.cos(ca) * rr), y, (int) Math.round(tz + Math.sin(ca) * rr), OBSIDIAN);
+                    }
+                }
+                double ex = Math.cos(a + 0.21) * com.divinerpgextended.boss.AyeracoHorde.PILLAR_RING, ez = Math.sin(a + 0.21) * com.divinerpgextended.boss.AyeracoHorde.PILLAR_RING;
+                for (int x = (int) ex - 4; x <= (int) ex + 4; x++) for (int z = (int) ez - 4; z <= (int) ez + 4; z++) for (int y = 1; y <= 8; y++) {
+                    double d = ((x - ex) / 2.6) * ((x - ex) / 2.6) + ((z - ez) / 2.6) * ((z - ez) / 2.6) + ((y - 4) / 3.6) * ((y - 4) / 3.6);
+                    if (d <= 1) v.put(x, top + y, z, hash(x * 7 + y, z * 13 - y) % 4 == 0 ? CLAY_COLOR + hues[k].clay() : QUARTZ);
+                }
+            }
+            return nest = v;
         }
 
         /** The island edge in this direction: ragged, with "tentacles" like an End island. */

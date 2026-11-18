@@ -18,6 +18,7 @@ import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 
 import com.divinerpgextended.Config;
 import com.divinerpgextended.registry.ModBlocks;
+import com.divinerpgextended.world.twilight.Voxels;
 
 import cpw.mods.fml.common.IWorldGenerator;
 
@@ -41,7 +42,7 @@ public class WorldGenThrone implements IWorldGenerator {
     public static final int R = 150, FLOOR = 6, TOP = 72, CITADEL = 34;
     /** The altar stands on the throne dais: ALTAR_DZ to the north of the arena center, ALTAR_DY above the floor. */
     public static final int ALTAR_DZ = 37, ALTAR_DY = 3;
-    private static final int HALL_R = 20, HALL_H = 17, TOWER_X = 14;
+    private static final int HALL_R = 20, TOWER_X = 14;
     private static final int KEEP = -1;
 
     // ---------------------------------------------------------------- location
@@ -400,8 +401,7 @@ public class WorldGenThrone implements IWorldGenerator {
         // ---- arena
         int ce = ceil(r);
         if (r < R) {
-            boolean ring = ((int) r / 8) % 2 == 0;
-            put(col, FLOOR - 1, r < 12 || ring ? ICY : SNOW, 0);
+            put(col, FLOOR - 1, floorCode(dx, dz, r), 0); // the cathedral floor (1.1.3): a snowflake, an avenue to the throne
             // lamps in the floor in a grid shifted every 5 blocks: light on the whole floor is at least 8, mobs (including others', Grimoire of Gaia) do not spawn
             if (Math.floorMod(dx, 5) == 0 && Math.floorMod(dz + (Math.floorMod(Math.floorDiv(dx, 5), 2) == 0 ? 0 : 2), 5) == 0) put(col, FLOOR - 1, LAMP, 0);
             for (int y = FLOOR; y < ce; y++) put(col, y, AIR, 0);
@@ -419,18 +419,19 @@ public class WorldGenThrone implements IWorldGenerator {
             for (int y = FLOOR; y < ce; y++) {
                 if (pa <= hourglass(y, FLOOR, ce, 2.5, 4.5)) put(col, y, y < FLOOR + 3 ? ICY : PACKED, 0);
             }
-            int pylon = FLOOR + 18;
-            for (int y = FLOOR; y <= pylon; y++) {
-                if (pb <= 2.2 && y < pylon) put(col, y, y < FLOOR + 3 ? ICY : PACKED, 0);
-                if (pb <= 3.4 && y >= pylon - 1) put(col, y, ICY, 0); // platform on top
-            }
-            if (pb < 0.75) put(col, pylon, LAMP, 0); // and a lamp in its center
-            // braziers around the center
-            if (ringDist(dx, dz, 30, 12, 0) < 0.5) {
-                put(col, FLOOR, ICY, 0);
-                put(col, FLOOR + 1, BRAZIER, 1);
-            }
+            if (pb <= 4.5) pylon(dx, dz, col);
+            avenue(dx, dz, col);
             throne(dx, dz, col);
+            knights(dx, dz, col);
+            Voxels v = deco();
+            if (v.has(dx, dz)) v.apply(dx, dz, col);
+            // braziers around the center (the one on the throne dais stands on its step)
+            if (ringDist(dx, dz, 30, 12, 0) < 0.5) {
+                int b = FLOOR;
+                while (b < FLOOR + 4 && col[b * 2] != AIR) b++;
+                if (b == FLOOR) put(col, b++, ICY, 0);
+                put(col, b, BRAZIER, 1);
+            }
         } else {
             for (int y = FLOOR - 1; y < FLOOR + 15; y++) put(col, y, ICY, 0); // wall at the edge
         }
@@ -442,13 +443,7 @@ public class WorldGenThrone implements IWorldGenerator {
             put(col, TOP, rim ? ICY : r < HALL_R - 1 ? ((dx + dz & 1) == 0 ? ICY : SNOW) : SNOW, 0);
             for (int y = TOP + 1; y <= TOP + 60; y++) put(col, y, AIR, 0);
             if (rim && r > CITADEL - 1 && (dx + dz) % 2 == 0) put(col, TOP + 1, ICY, 0);
-            // ring of columns in the courtyard
-            if (ringDist(dx, dz, 27, 12, Math.PI / 12) < 0.5 && !(dz < -24 && Math.abs(dx) < 9)) {
-                put(col, TOP + 1, ICY, 0);
-                for (int y = TOP + 2; y <= TOP + 8; y++) put(col, y, PACKED, 0);
-                put(col, TOP + 9, ICY, 0);
-                put(col, TOP + 10, LAMP, 0);
-            }
+            crown(dx, dz, col);
             hall(dx, dz, r, col);
         }
         spires(dx, dz, col);
@@ -456,25 +451,40 @@ public class WorldGenThrone implements IWorldGenerator {
         return true;
     }
 
-    /** The citadel's domed hall with a gate to the south, lamps, icicles and four warm braziers. */
+    /** The citadel hall (1.1.3): a pointed dome, its radius by height. */
+    private static final int OGIVE_H = 26;
+
+    private static double ogive(int dy) {
+        double t = dy / (double) OGIVE_H;
+        return dy > OGIVE_H ? -1 : HALL_R * Math.sqrt(Math.max(0, 1 - Math.pow(t, 1.6)));
+    }
+
+    /** Inner boundary of the dome shell at height dy: the shell reaches the next row's radius, so the steep top has no gaps. */
+    private static double ogiveInner(int dy) {
+        return Math.min(ogive(dy) - 1.4, ogive(dy + 1) - 0.3);
+    }
+
+    /**
+     * The citadel's hall (1.1.3, the cathedral): a pointed dome of packed ice with an ice brick base, a band of frosted glass, a gate to the south,
+     * on the top a lantern with a needle; inside lamps and icicles under the vault and four warm braziers.
+     */
     private static void hall(int dx, int dz, double r, int[] col) {
-        for (int dy = 1; dy <= HALL_H + 1; dy++) {
-            double d = Math.sqrt((dx / (double) HALL_R) * (dx / (double) HALL_R) + (dy / (double) HALL_H) * (dy / (double) HALL_H)
-                + (dz / (double) HALL_R) * (dz / (double) HALL_R));
-            if (d > 1.0 || d < 0.93) continue;
-            boolean gate = Math.abs(dx) <= 2 && dy <= 7 && dz < -14;
+        for (int dy = 1; dy <= OGIVE_H; dy++) {
+            if (r > ogive(dy) || r <= ogiveInner(dy)) continue;
+            boolean gate = Math.abs(dx) <= 2 && dy <= 7 && dz < -10;
             if (gate) continue;
-            int code = dy <= 3 ? ICY
-                : dy >= 6 && dy <= 8 && (Math.round(Math.toDegrees(Math.atan2(dz, dx)) + 360) % 30) < 12 ? GLASS : PACKED;
-            put(col, TOP + dy, code, 0);
+            int sector = (int) ((Math.atan2(dz, dx) + Math.PI) * 6 / Math.PI);
+            put(col, TOP + dy, dy <= 3 ? ICY : dy >= 6 && dy <= 8 && sector % 2 == 0 ? GLASS : PACKED, 0);
         }
         if (Math.abs(dx) == 3 && dz >= -21 && dz <= -18) for (int dy = 1; dy <= 8; dy++) put(col, TOP + dy, ICY, 0);
+        if (dx == 0 && dz == 0) { // the lantern with a needle on the top
+            for (int y = TOP + OGIVE_H + 1; y <= TOP + OGIVE_H + 17; y++) put(col, y, y < TOP + OGIVE_H + 14 ? ICY : PACKED, 0);
+            put(col, TOP + OGIVE_H + 18, LAMP, 0);
+        }
         if (r < HALL_R - 2) {
             int top = -1;
-            for (int dy = HALL_H; dy >= 4; dy--) {
-                double d = Math.sqrt((dx / (double) HALL_R) * (dx / (double) HALL_R) + (dy / (double) HALL_H) * (dy / (double) HALL_H)
-                    + (dz / (double) HALL_R) * (dz / (double) HALL_R));
-                if (d < 0.93) {
+            for (int dy = OGIVE_H; dy >= 4; dy--) {
+                if (r < ogiveInner(dy)) {
                     top = dy;
                     break;
                 }
@@ -488,6 +498,23 @@ public class WorldGenThrone implements IWorldGenerator {
         if (ringDist(dx, dz, 12, 4, Math.PI / 4) < 0.5) {
             put(col, TOP + 1, ICY, 0);
             put(col, TOP + 2, BRAZIER, 1);
+        }
+    }
+
+    /**
+     * The crown of the citadel (1.1.3, in place of the ring of columns in the courtyard): twelve tapering spires of ice, every other one taller, a
+     * lamp on each tip; none at the gate.
+     */
+    private static void crown(int dx, int dz, int[] col) {
+        for (int k = 0; k < 12; k++) {
+            double a = k * Math.PI / 6 + Math.PI / 12, cx = Math.cos(a) * 27, cz = Math.sin(a) * 27;
+            if (cz < -22 && Math.abs(cx) < 12) continue;
+            int rcx = (int) Math.round(cx), rcz = (int) Math.round(cz), ox = dx - rcx, oz = dz - rcz;
+            if (ox * ox + oz * oz > 9) continue;
+            int hgt = k % 2 != 0 ? 22 : 32;
+            double d = Math.sqrt((dx - cx) * (dx - cx) + (dz - cz) * (dz - cz));
+            for (int y = 1; y <= hgt; y++) if (d <= 2.2 * (1 - y / (double) (hgt + 3)) + 0.4) put(col, TOP + y, y < 6 ? ICY : PACKED, 0);
+            if (ox == 0 && oz == 0) put(col, TOP + hgt + 1, LAMP, 0);
         }
     }
 
@@ -540,25 +567,138 @@ public class WorldGenThrone implements IWorldGenerator {
         }
     }
 
-    /** The giant throne in the north of the arena: a dais of three steps, a seat, armrests, a back with spikes, an altar. */
+    /** The throne dais center: THRONE_DZ toward the throne from the arena center. */
+    private static final int THRONE_DZ = 40;
+
+    /**
+     * The cathedral floor (1.1.3): a six-armed snowflake of ice brick with side branches on snow brick, rings of packed ice at the brazier
+     * and pylon circles, an avenue of ice brick to the throne. The lamp grid is laid over it in column().
+     */
+    private static int floorCode(int dx, int dz, double d) {
+        if (Math.abs(dx) <= 3 && dz >= 10 && dz < 30) return Math.abs(dx) < 3 ? ICY : PACKED; // the avenue
+        if (d < 12) return ICY;
+        double a = Math.atan2(dz, dx) - Math.PI / 2;
+        if (Math.abs(Math.IEEEremainder(a, Math.PI / 3)) * d < 1.6) return ICY;
+        double k = Math.round(a / (Math.PI / 3)) * Math.PI / 3 + Math.PI / 2;
+        for (int br = 40; br <= 120; br += 40) { // side branches at 60 degrees from each arm
+            double vx = dx - Math.cos(k) * br, vz = dz - Math.sin(k) * br;
+            for (int s = -1; s <= 1; s += 2) {
+                double bx = Math.cos(k + s * Math.PI / 3), bz = Math.sin(k + s * Math.PI / 3);
+                double along = vx * bx + vz * bz, perp = Math.abs(-vx * bz + vz * bx);
+                if (along >= 0 && along <= br * 0.3 && perp < 1.2) return ICY;
+            }
+        }
+        if (Math.abs(d - 30) < 0.8 || Math.abs(d - 70) < 0.8) return PACKED;
+        return SNOW;
+    }
+
+    /** Obelisks along the avenue: packed ice with a lamp on top, in pairs. */
+    private static void avenue(int dx, int dz, int[] col) {
+        if (Math.abs(dx) != 5 || dz < 10 || dz >= 30 || Math.floorMod(dz, 6) != 4) return;
+        put(col, FLOOR, ICY, 0);
+        for (int y = FLOOR + 1; y < FLOOR + 6; y++) put(col, y, PACKED, 0);
+        put(col, FLOOR + 6, LAMP, 0);
+    }
+
+    /**
+     * A pylon - a crystal spire (1.1.3): a hexagonal prism of packed ice with ice brick belts, on top the same platform at FLOOR + 17..18 with
+     * a lamp in the center (the Lich King jumps on it); leaning shards at the foot are in deco().
+     */
+    private static void pylon(int dx, int dz, int[] col) {
+        double ang = Math.atan2(dz, dx) - Math.PI / 16;
+        double ca = Math.round(ang / (Math.PI / 8)) * (Math.PI / 8) + Math.PI / 16, cx = Math.cos(ca) * 70, cz = Math.sin(ca) * 70;
+        int rcx = (int) Math.round(cx), rcz = (int) Math.round(cz);
+        if ((dx - rcx) * (dx - rcx) + (dz - rcz) * (dz - rcz) > 16) return;
+        double hexd = Math.max(Math.abs(dx - cx), Math.abs(dz - cz) * 0.87 + Math.abs(dx - cx) * 0.5);
+        double d = Math.sqrt((dx - cx) * (dx - cx) + (dz - cz) * (dz - cz));
+        for (int y = FLOOR; y <= FLOOR + 18; y++) {
+            if (y < FLOOR + 17 && hexd <= 2.3) put(col, y, y < FLOOR + 2 || y == FLOOR + 9 ? ICY : PACKED, 0);
+            if (y >= FLOOR + 17 && d <= 3.4) put(col, y, ICY, 0); // platform on top
+        }
+        if (dx == rcx && dz == rcz) put(col, FLOOR + 18, LAMP, 0); // and a lamp in its center
+    }
+
+    /**
+     * The giant throne (1.1.3): a dais of three steps, the seat and armrests with lamps, a tall back up to FLOOR + 33 narrowing at the top,
+     * a fan of ice spikes behind it (deco()); the altar in front of the seat, as before.
+     */
     private static void throne(int dx, int dz, int[] col) {
-        int tz = dz - 40;
+        int tz = dz - THRONE_DZ, ax = Math.abs(dx);
         double rd = Math.sqrt(dx * dx + tz * tz);
-        if (rd <= 9) put(col, FLOOR, ICY, 0);
-        if (rd <= 7) put(col, FLOOR + 1, ICY, 0);
-        if (rd <= 5) put(col, FLOOR + 2, ICY, 0);
+        if (rd <= 14) put(col, FLOOR, ICY, 0);
+        if (rd <= 11.5) put(col, FLOOR + 1, SNOW, 0);
+        if (rd <= 9) put(col, FLOOR + 2, ICY, 0);
         if (dx == 0 && dz == ALTAR_DZ) {
             put(col, FLOOR + ALTAR_DY, ALTAR, 0);
             put(col, FLOOR + ALTAR_DY + 1, AIR, 0);
         }
-        int ax = Math.abs(dx);
-        if (ax <= 2 && tz >= 0 && tz <= 3) for (int y = FLOOR + 3; y <= FLOOR + 4; y++) put(col, y, PACKED, 0); // seat
-        if (ax >= 3 && ax <= 4 && tz >= 0 && tz <= 3) for (int y = FLOOR + 3; y <= FLOOR + 6; y++) put(col, y, ICY, 0);
-        if (ax <= 4 && tz >= 4 && tz <= 5) {
-            for (int y = FLOOR + 3; y <= FLOOR + 18; y++) put(col, y, ICY, 0); // back
-            if (tz == 4 && ax % 2 == 0) {
-                int spike = ax == 0 ? 7 : ax == 2 ? 5 : 3;
-                for (int y = FLOOR + 19; y < FLOOR + 19 + spike; y++) put(col, y, PACKED, 0);
+        if (ax <= 4 && tz >= 0 && tz <= 4) { // seat and armrests
+            for (int y = FLOOR + 3; y <= FLOOR + 5; y++) put(col, y, ax <= 2 ? PACKED : ICY, 0);
+            if (ax >= 3) for (int y = FLOOR + 6; y <= FLOOR + 8; y++) put(col, y, ICY, 0);
+            if (ax == 4 && tz == 0) put(col, FLOOR + 9, LAMP, 0);
+        }
+        if (tz >= 5 && tz <= 7) for (int y = FLOOR + 3; y <= FLOOR + 33; y++) // the back
+            if (ax <= 4 - Math.max(0, y - FLOOR - 26) / 2) put(col, y, (y + ax) % 6 != 0 ? ICY : PACKED, 0);
+    }
+
+    /**
+     * Two giant ice knights guard the throne (1.1.3): a plinth, a body of packed ice with broad shoulders, a head with a lamp-visor, a sword
+     * held point down in front.
+     */
+    private static void knights(int dx, int dz, int[] col) {
+        for (int s = -1; s <= 1; s += 2) {
+            int ox = dx - s * 19, oz = dz - (THRONE_DZ + 2);
+            if (Math.abs(ox) > 3 || Math.abs(oz) > 3) continue;
+            for (int y = FLOOR; y < FLOOR + 3; y++) put(col, y, ICY, 0);
+            for (int y = FLOOR + 3; y < FLOOR + 24; y++) {
+                int w = y < FLOOR + 12 ? 2 : y < FLOOR + 19 ? 3 : 1;
+                if (Math.abs(ox) <= w && Math.abs(oz) <= 1) put(col, y, PACKED, 0);
+            }
+            if (Math.abs(ox) <= 1 && Math.abs(oz) <= 1) for (int y = FLOOR + 24; y < FLOOR + 27; y++) put(col, y, ICY, 0);
+            if (ox == 0 && oz == -2) put(col, FLOOR + 25, LAMP, 0);
+            if (ox == 0 && oz == -3) for (int y = FLOOR + 3; y < FLOOR + 30; y++) put(col, y, y >= FLOOR + 17 && y <= FLOOR + 18 ? ICY : PACKED, 0);
+            if (oz == -3 && ox != 0 && Math.abs(ox) <= 2) put(col, FLOOR + 18, ICY, 0);
+        }
+    }
+
+    private static Voxels deco;
+
+    /** Volume parts of the cathedral: the fan of spikes behind the throne, three leaning shards at the foot of each pylon. */
+    private static synchronized Voxels deco() {
+        if (deco != null) return deco;
+        Voxels v = new Voxels(code -> code == BRAZIER ? 1 : 0);
+        for (int k = 0; k < 9; k++) {
+            double a = Math.PI / 2 + (k - 4) * 0.28;
+            prism(v, 0.5, FLOOR + 26, THRONE_DZ + 6.5, Math.cos(a) * 0.9, Math.sin(a), 0, 14 + (4 - Math.abs(k - 4)) * 4, 1.3, PACKED, k % 2 == 0 ? LAMP : 0);
+        }
+        for (int k = 0; k < 16; k++) {
+            double a = k * Math.PI / 8 + Math.PI / 16, cx = Math.cos(a) * 70, cz = Math.sin(a) * 70;
+            for (int j = 0; j < 3; j++) {
+                double b = a + j * 2 * Math.PI / 3 + 0.5;
+                prism(v, cx + Math.cos(b) * 2.5, FLOOR, cz + Math.sin(b) * 2.5, Math.cos(b) * 0.6, 1, Math.sin(b) * 0.6, 6 + j * 2, 1.0, PACKED, 0);
+            }
+        }
+        return deco = v;
+    }
+
+    /** A crystal: a thick segment from (x0, y0, z0) along the direction, tapering to a point in the last third (a tip block near the end). */
+    private static void prism(Voxels v, double x0, double y0, double z0, double ux, double uy, double uz, double length, double rad, int shell, int tip) {
+        double n = Math.sqrt(ux * ux + uy * uy + uz * uz);
+        ux /= n;
+        uy /= n;
+        uz /= n;
+        int r = (int) rad + 2;
+        for (int i = 0; i <= (int) (length * 2); i++) {
+            double t = i / 2.0, f = t / length, rr = f < 0.65 ? rad : rad * (1 - (f - 0.65) / 0.35) + 0.25;
+            double cx = x0 + ux * t, cy = y0 + uy * t, cz = z0 + uz * t;
+            for (int ddx = -r; ddx <= r; ddx++) for (int ddy = -r; ddy <= r; ddy++) for (int ddz = -r; ddz <= r; ddz++) {
+                int px = (int) Math.floor(cx) + ddx, py = (int) Math.floor(cy) + ddy, pz = (int) Math.floor(cz) + ddz;
+                if (py < FLOOR) continue; // not into the floor and its lamps
+                double vx = px + 0.5 - x0, vy = py + 0.5 - y0, vz = pz + 0.5 - z0, along = vx * ux + vy * uy + vz * uz;
+                if (Math.abs(along - t) > 0.5) continue;
+                double ax = vx - ux * along, ay = vy - uy * along, az = vz - uz * along;
+                if (Math.sqrt(ax * ax + ay * ay + az * az) > rr) continue;
+                v.put(px, py, pz, tip != 0 && f > 0.8 ? tip : shell);
             }
         }
     }

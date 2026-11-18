@@ -181,7 +181,7 @@ public class WorldGenNests implements IWorldGenerator {
         if (tw == TwilightWorld.SKYTHERN) return new Temple(c[0], c[2]);
         if (tw == TwilightWorld.WILDWOOD) return new Henge(c[0], c[2]);
         if (tw == TwilightWorld.APALACHIA) return new Mound(c[0], c[2]);
-        return tw == TwilightWorld.MORTUM ? new Circle() : new Nest(tw, c[0], c[2]);
+        return tw == TwilightWorld.MORTUM ? new Circle() : tw == TwilightWorld.EDEN ? new Sanctum(c[0], c[2]) : new Nest(tw, c[0], c[2]);
     }
 
     // ---------------------------------------------------------------- common
@@ -200,8 +200,131 @@ public class WorldGenNests implements IWorldGenerator {
             case GLOW: return w.lamp();
             case ALTAR: return ModBlocks.nestAltar;
             case ORE: return w.ore();
+            default: {
+                Block e = extra(w, code);
+                return e != null ? e : Blocks.air;
+            }
+        }
+    }
+
+    /**
+     * Decoration codes shared by the guardian arenas (1.1.3 redesign): quartz, slabs, clay instead of gold (no ore and metal blocks in the
+     * decoration - nothing to mine for profit), oriented logs, stone bricks, a world torch, a cloud, flowers of the world, wool of any color.
+     */
+    static final int QZ = 60, QZ_CHISEL = 61, QZ_PILLAR = 62, QSLAB = 63, QSLAB_TOP = 64, YELLOW = 65, ORANGE = 66, SKYBLUE = 67, LOG_X = 68, LOG_Z = 69,
+        SBRICK = 70, SB_MOSSY = 71, SB_CRACKED = 72, SB_CHISEL = 73, MOSSY_COBBLE = 74, OAK_FENCE = 75, LILY = 76, TORCH_UP = 77, CLOUD_B = 78,
+        FLOWER = 80, FLOWERS = 3, WOOL = 100;
+
+    /** Block of a shared decoration code (null - not one of them). */
+    static Block extra(TwilightWorld w, int code) {
+        if (code >= WOOL && code < WOOL + 16) return Blocks.wool;
+        if (code >= FLOWER && code < FLOWER + FLOWERS) return flower(w, code - FLOWER);
+        switch (code) {
+            case QZ: case QZ_CHISEL: case QZ_PILLAR: return Blocks.quartz_block;
+            case QSLAB: case QSLAB_TOP: return Blocks.stone_slab;
+            case YELLOW: case ORANGE: case SKYBLUE: return Blocks.stained_hardened_clay;
+            case LOG_X: case LOG_Z: return w.log();
+            case SBRICK: case SB_MOSSY: case SB_CRACKED: case SB_CHISEL: return Blocks.stonebrick;
+            case MOSSY_COBBLE: return Blocks.mossy_cobblestone;
+            case OAK_FENCE: return Blocks.fence;
+            case LILY: return Blocks.waterlily;
+            case TORCH_UP: return ModBlocks.worldTorch[w.ordinal()];
+            case CLOUD_B: return ModBlocks.cloud;
+            default: return null;
+        }
+    }
+
+    /** Meta of a shared decoration code (0 for the palette codes). */
+    static int extraMeta(int code) {
+        if (code >= WOOL && code < WOOL + 16) return code - WOOL;
+        switch (code) {
+            case QZ_CHISEL: return 1;
+            case QZ_PILLAR: return 2;
+            case QSLAB: return 7;
+            case QSLAB_TOP: return 15;
+            case YELLOW: return 4;
+            case ORANGE: return 1;
+            case SKYBLUE: return 3;
+            case LOG_X: return 4;
+            case LOG_Z: return 8;
+            case SB_MOSSY: return 1;
+            case SB_CRACKED: return 2;
+            case SB_CHISEL: return 3;
+            case TORCH_UP: return 5;
+            default: return 0;
+        }
+    }
+
+    /** Flowers and grasses of the world (variant 0..FLOWERS-1). */
+    static Block flower(TwilightWorld w, int k) {
+        switch (w) {
+            case EDEN: return k == 0 ? TwilightBlocks.sunbloom : k == 1 ? TwilightBlocks.edenBrush : TwilightBlocks.sunBlossom;
+            case WILDWOOD: return k == 2 ? TwilightBlocks.moonlightFern : TwilightBlocks.wildwoodTallgrass;
+            case APALACHIA: return k == 0 ? TwilightBlocks.duskBloom : k == 1 ? TwilightBlocks.apalachiaTallgrass : TwilightBlocks.duskFlower;
+            case SKYTHERN: return k == 0 ? TwilightBlocks.skythernBrush : TwilightBlocks.dustLily;
             default: return Blocks.air;
         }
+    }
+
+    /** Put a code with its decoration meta. */
+    static void setX(int[] col, int y, int code) {
+        ColumnStructure.put(col, y, code, extraMeta(code));
+    }
+
+    /** Flowers on the grass of the column: radius from rmin to rmax, about one column in density. */
+    static void flowers(int dx, int dz, double r, double rmin, double rmax, int density, int salt, int[] col) {
+        if (r < rmin || r > rmax || ColumnStructure.hash(dx * 13 + salt, dz) % density != 0) return;
+        if (col[TOP * 2] != GRASS || col[(TOP + 1) * 2] != ColumnStructure.AIR) return;
+        setX(col, TOP + 1, FLOWER + ColumnStructure.hash(dz, dx + salt) % FLOWERS);
+    }
+
+    /** A filled ellipsoid with a ragged surface (crowns, clouds); blocks above yMax are not placed. */
+    static void ellipsoid(Voxels v, double cx, double cy, double cz, double rx, double ry, double rz, Voxels.Mat mat, double rag, int salt, int yMax) {
+        for (int x = (int) (cx - rx) - 1; x <= (int) (cx + rx) + 1; x++) {
+            for (int z = (int) (cz - rz) - 1; z <= (int) (cz + rz) + 1; z++) {
+                for (int y = (int) (cy - ry) - 1; y <= Math.min(yMax, (int) (cy + ry) + 1); y++) {
+                    double ex = (x - cx) / rx, ey = (y - cy) / ry, ez = (z - cz) / rz, e = ex * ex + ey * ey + ez * ez;
+                    if (e > 1) continue;
+                    if (rag > 0 && e > 1 - rag && ColumnStructure.hash(x * 7 + y, z * 3 - y + salt) % 3 == 0) continue;
+                    v.put(x, y, z, mat.at(x, y, z));
+                }
+            }
+        }
+    }
+
+    /**
+     * A tall world tree into the decoration: a leaning trunk with buttress roots at the base (from TOP + base to TOP + height), branches to
+     * the crowns, crowns - ellipsoids {dx, dy, dz, rx, ry, rz} relative to the trunk top, lamps here and there in the leaves.
+     */
+    static void tree(Voxels v, int x0, int z0, int height, double trunk, double[][] crowns, double leanX, double leanZ, int salt, boolean buttress, int base) {
+        for (int yy = base; yy <= height; yy++) {
+            double t = (yy - base) / (double) Math.max(1, height - base), cx = x0 + leanX * t, cz = z0 + leanZ * t, rad = trunk * (1.0 - 0.25 * t);
+            int y = TOP + yy;
+            if (buttress && yy <= base + 4) {
+                double radB = rad + (base + 5 - yy) * 0.7;
+                for (int x = (int) (cx - radB) - 1; x <= (int) (cx + radB) + 1; x++) {
+                    for (int z = (int) (cz - radB) - 1; z <= (int) (cz + radB) + 1; z++) {
+                        double d = Math.hypot(x - cx, z - cz), ridge = Math.pow(Math.abs(Math.cos(2 * (Math.atan2(z - cz, x - cx) - salt * 0.3))), 2);
+                        if (d <= rad + (radB - rad) * ridge) v.put(x, y, z, LOG);
+                    }
+                }
+            } else v.cyl(cx, cz, Math.max(0.6, rad), y, y, Voxels.of(LOG), -1);
+        }
+        double tx = x0 + leanX, tz = z0 + leanZ;
+        for (double[] c : crowns) {
+            double cx = tx + c[0], cy = TOP + height + c[1], cz = tz + c[2];
+            if (Math.abs(c[0]) + Math.abs(c[2]) > 2)
+                v.line(new double[] { tx, TOP + height - 3, tz }, new double[] { cx, cy - c[4] * 0.5, cz }, t -> 0.9, Math.abs(c[0]) > Math.abs(c[2]) ? LOG_X : LOG_Z);
+            ellipsoid(v, cx, cy, cz, c[3], c[4], c[5], (x, y, z) -> ColumnStructure.hash(x + y * 13, z + salt) % 83 == 0 ? GLOW : LEAVES, 0.3, salt, 255);
+        }
+    }
+
+    /** Altar platform in the column: a disc of radius 2.5 at TOP + 1, steps of `steps` up to radius 3.5, the altar at (0, TOP + 2, -altarDz). */
+    static void altarPlatform(int dx, int dz, int altarDz, int disc, int steps, int[] col) {
+        double ad = Math.hypot(dx, dz + altarDz);
+        if (ad <= 2.5) setX(col, TOP + 1, disc);
+        else if (steps != 0 && ad <= 3.5) setX(col, TOP + 1, steps);
+        if (dx == 0 && dz == -altarDz) ColumnStructure.put(col, TOP + 2, ALTAR, 0);
     }
 
     /** A lamp of any twilight dimension (for recalculating the light around). */
@@ -228,7 +351,7 @@ public class WorldGenNests implements IWorldGenerator {
 
     /** The structure of the world's sacred grove (for checks and rendering). */
     public static ColumnStructure grove(TwilightWorld w, int cx, int cz) {
-        return new Nest(w, cx, cz);
+        return w == TwilightWorld.EDEN ? new Sanctum(cx, cz) : new Nest(w, cx, cz);
     }
 
     /** Nearest center of a ring item (radius ring, count pieces) - the distance to it. */
@@ -289,7 +412,17 @@ public class WorldGenNests implements IWorldGenerator {
 
         @Override
         protected boolean lit(Block b) {
-            return isLamp(b) || b == ModBlocks.nestAltar;
+            return isLamp(b) || b == ModBlocks.nestAltar || b.getLightValue() > 0;
+        }
+
+        /** The six giant trees with a vault of crowns over the clearing (the arenas redesigned in 1.1.3 have their own trees in {@link #voxels}). */
+        protected boolean giantTrees() {
+            return true;
+        }
+
+        /** Volume decoration of the arena (trees, trilithons, sun discs) or null. */
+        protected Voxels voxels() {
+            return null;
         }
 
         /** Smooth noise 0..1 over cells cell (bilinear over the corner hashes). */
@@ -380,6 +513,12 @@ public class WorldGenNests implements IWorldGenerator {
                 glade(dx, dz, r, col);
                 any |= underRoots(dx, dz, bottom, col);
             }
+            Voxels vx = voxels();
+            if (vx != null && vx.has(dx, dz)) {
+                vx.apply(dx, dz, col);
+                any = true;
+            }
+            if (!giantTrees()) return any;
             // trees: trunks lean toward the clearing, buttress roots at the base, roots going down under the island;
             // crowns are wide and flat, shifted toward the center - they join into a ragged vault over the clearing
             for (int i = 0; i < TREES; i++) {
@@ -432,6 +571,101 @@ public class WorldGenNests implements IWorldGenerator {
                 }
             }
             return any;
+        }
+    }
+
+    // ---------------------------------------------------------------- sun sanctuary (Eden)
+
+    /**
+     * The Eden Sun Sanctuary (1.1.3) - the Great Cadillion arena on the grove island: a round open temple of the sun - a floor mosaic of Eden
+     * planks with twelve yellow rays and rings, a ring of twelve quartz columns under an open ring architrave with sun discs, four obelisks on
+     * the diagonals, a pool in the south; instead of the vault of crowns six slender trees at the island edge: the sky over the center is open.
+     */
+    static class Sanctum extends Nest {
+
+        static final int COL_R = 22, COLS = 12, OBELISK_R = 28;
+
+        Sanctum(int cx, int cz) {
+            super(TwilightWorld.EDEN, cx, cz);
+        }
+
+        @Override
+        protected boolean giantTrees() {
+            return false;
+        }
+
+        private static Voxels deco;
+
+        @Override
+        protected Voxels voxels() {
+            return sun();
+        }
+
+        private static synchronized Voxels sun() {
+            if (deco != null) return deco;
+            Voxels v = new Voxels(WorldGenNests::extraMeta);
+            for (int k = 0; k < COLS; k++) { // sun discs on the architrave over the columns
+                double a = k * Math.PI / 6 + Math.PI / 12, cx = Math.cos(a) * COL_R, cz = Math.sin(a) * COL_R;
+                for (int dy = -1; dy <= 1; dy++) for (int dd = -1; dd <= 1; dd++) {
+                    if (Math.abs(dy) + Math.abs(dd) > 1) continue;
+                    v.put((int) Math.round(cx - Math.sin(a) * dd), TOP + 18 + dy, (int) Math.round(cz + Math.cos(a) * dd), dy != 0 || dd != 0 ? YELLOW : GLOW);
+                }
+                v.put((int) Math.round(cx), TOP + 17, (int) Math.round(cz), QZ_PILLAR);
+            }
+            for (int i = 0; i < 6; i++) { // slender trees at the edge between the obelisks
+                double a = Math.PI * 2 * i / 6 + 0.5;
+                tree(v, (int) Math.round(Math.cos(a) * 30), (int) Math.round(Math.sin(a) * 30), 22 + ColumnStructure.hash(i, 9) % 6, 1.4,
+                    new double[][] { { 0, 0, 0, 6, 3.5, 6 }, { 0, 4, 0, 3.5, 2.5, 3.5 } }, 0, 0, i + 7, true, 1);
+            }
+            return deco = v;
+        }
+
+        @Override
+        protected void glade(int dx, int dz, double r, int[] col) {
+            // floor: a mosaic of Eden planks, twelve yellow rays with lamps near the ends, two rings, a quartz rim with a step
+            if (r <= 23.5) {
+                double a = (Math.toDegrees(Math.atan2(dz, dx)) + 360) % 30;
+                boolean ray = (a < 3.5 || a > 26.5) && r > 3 && r < 19;
+                int v = PLANKS;
+                if (ray) v = YELLOW;
+                if (Math.abs(r - 10) < 0.6 || Math.abs(r - 19.5) < 0.6) v = ORANGE;
+                if (r > 21.5) v = QZ;
+                if (r < 2.5) v = YELLOW;
+                if (ray && Math.abs(r - 18.4) < 0.5) v = GLOW;
+                setX(col, TOP, v);
+                if (r > 22.5) setX(col, TOP + 1, QSLAB);
+            }
+            if (r < 0.5) put(col, TOP, GLOW, 0); // light in the center: the sky above it stays open
+            // twelve columns of pillar quartz with yellow capitals under a ring architrave, open above
+            if (ringDist(dx, dz, COL_R, COLS, Math.PI / COLS) < 1.6) {
+                setX(col, TOP + 1, QZ_CHISEL);
+                for (int y = TOP + 2; y <= TOP + 12; y++) setX(col, y, QZ_PILLAR);
+                setX(col, TOP + 13, YELLOW);
+            }
+            if (Math.abs(r - COL_R) < 1.6) {
+                setX(col, TOP + 14, QZ);
+                setX(col, TOP + 15, hash((int) Math.floor(Math.toDegrees(Math.atan2(dz, dx)) / 6), 1) % 2 == 0 ? QZ : QZ_CHISEL);
+            }
+            if (Math.abs(r - COL_R) < 2.1) setX(col, TOP + 16, QSLAB);
+            // four obelisks on the diagonals, a lamp on top
+            for (int k = 0; k < 4; k++) {
+                double a = Math.PI / 4 + k * Math.PI / 2;
+                int ox = (int) Math.round(Math.cos(a) * OBELISK_R), oz = (int) Math.round(Math.sin(a) * OBELISK_R);
+                double d = Math.hypot(dx - ox, dz - oz);
+                for (int y = 1; y < 20; y++) if (d <= (y < 3 ? 1.5 : y < 17 ? 1.0 : 0.5) + 0.01) setX(col, TOP + y, y < 17 ? QZ : YELLOW);
+                if (dx == ox && dz == oz) put(col, TOP + 20, GLOW, 0);
+            }
+            // a pool in the south in a quartz rim
+            double pd = Math.hypot(dx, dz - 27);
+            if (pd < 3.2) {
+                put(col, TOP, WATER, 0);
+                setX(col, TOP - 1, QZ);
+            } else if (pd < 4.2) {
+                setX(col, TOP, QZ);
+                setX(col, TOP + 1, QSLAB);
+            }
+            altarPlatform(dx, dz, ALTAR_DZ, YELLOW, QSLAB, col);
+            flowers(dx, dz, r, 25, 34, 5, salt, col);
         }
     }
 
@@ -514,15 +748,16 @@ public class WorldGenNests implements IWorldGenerator {
     // ---------------------------------------------------------------- shrine (Wildwood)
 
     /**
-     * The Wildwood shrine - the Wildwood Ancient Golem arena: a Wildwood grove (an island torn out of the land, six giant trees,
-     * a vault of crowns), and in the clearing instead of a colonnade - a ring of ten tall mossy menhirs with crossbeams and Wildwood
-     * torches, six low sheltering stones (the golem's boulders crumble them), four springs ({@link #spring}), a stone path and
-     * the altar.
+     * The Wildwood shrine (1.1.3 cromlech) - the Wildwood Ancient Golem arena on a grove island: the forest steps back to the island rim
+     * (seven trees, crowns over the edge, the clearing under the sky), in the clearing a stone circle of ten trilithons (two uprights and a
+     * lintel of mossy brick, a Wildwood torch on top), inside a horseshoe of five tall trilithons open to the south; six low sheltering stones
+     * of mossy cobblestone (the golem's boulders crumble them), four springs ({@link #spring}) as pools with lily pads, a path ring, the
+     * altar on a carved stone platform.
      */
     static class Henge extends Nest {
 
         static final int MOSSY = 30, BRICK = 31, TORCH = 33;
-        static final int RING = 17, MENHIRS = 10, COVER_R = 11, COVERS = 6;
+        static final int RING = 18, TRILITHONS = 10, HORSESHOE = 5, COVER_R = 11, COVERS = 6;
 
         Henge(int cx, int cz) {
             super(TwilightWorld.WILDWOOD, cx, cz);
@@ -543,50 +778,73 @@ public class WorldGenNests implements IWorldGenerator {
             return b == ModBlocks.worldTorch[TwilightWorld.WILDWOOD.ordinal()] || super.lit(b);
         }
 
-        private int menhirH(int k) {
-            return 8 + hash(k, salt) % 5;
+        @Override
+        protected boolean giantTrees() {
+            return false;
+        }
+
+        private static Voxels deco;
+
+        @Override
+        protected Voxels voxels() {
+            return cromlech();
+        }
+
+        /** Stone of the trilithons: mossy, plain and cracked brick, mossy cobblestone. */
+        static int stone(int x, int y, int z) {
+            int k = hash(x * 7 + y, z * 5 - y) % 4; // no mossy cobblestone: the golem's boulders crumble it, the circle must stand
+            return k <= 1 ? SB_MOSSY : k == 2 ? SBRICK : SB_CRACKED;
+        }
+
+        private static synchronized Voxels cromlech() {
+            if (deco != null) return deco;
+            Voxels v = new Voxels(WorldGenNests::extraMeta);
+            for (int i = 0; i < 7; i++) { // the forest at the rim
+                double a = Math.PI * 2 * i / 7 + hash(i, 40) % 100 / 100.0 * 0.4, ox = Math.cos(a), oz = Math.sin(a);
+                tree(v, (int) Math.round(ox * 29), (int) Math.round(oz * 29), 28 + hash(i, 41) % 8, 1.9,
+                    new double[][] { { ox * 3, -5, oz * 3, 8, 3, 8 }, { ox * 1.5, 1, oz * 1.5, 5.5, 2.5, 5.5 } }, ox * 1.5, oz * 1.5, 40 + i, true, 1);
+            }
+            Voxels.Mat st = Henge::stone;
+            for (int k = 0; k < TRILITHONS; k++) { // the outer circle
+                double a0 = Math.PI * 2 * k / TRILITHONS;
+                for (int s = -1; s <= 1; s += 2) v.cyl(Math.cos(a0 + s * 0.12) * RING, Math.sin(a0 + s * 0.12) * RING, 0.9, TOP + 1, TOP + 8, st, -1);
+                for (int i = 0; i <= 8; i++) {
+                    double a = a0 - 0.17 + 0.34 * i / 8;
+                    int x = (int) Math.round(Math.cos(a) * RING), z = (int) Math.round(Math.sin(a) * RING);
+                    v.put(x, TOP + 9, z, stone(x, TOP + 9, z));
+                }
+                v.put((int) Math.round(Math.cos(a0) * RING), TOP + 10, (int) Math.round(Math.sin(a0) * RING), TORCH_UP);
+            }
+            for (int k = 0; k < HORSESHOE; k++) { // the horseshoe behind the altar, open to the south
+                double a0 = -Math.PI / 2 + (k - 2) * 0.62, cx = Math.cos(a0) * 14.5, cz = Math.sin(a0) * 14.5, sx = -Math.sin(a0), sz = Math.cos(a0);
+                for (int s = -1; s <= 1; s += 2) v.cyl(cx + sx * 1.6 * s, cz + sz * 1.6 * s, 0.9, TOP + 1, TOP + 11, st, -1);
+                v.line(new double[] { cx + sx * 2.4, TOP + 12.5, cz + sz * 2.4 }, new double[] { cx - sx * 2.4, TOP + 12.5, cz - sz * 2.4 }, t -> 0.8, SB_MOSSY);
+            }
+            return deco = v;
         }
 
         @Override
         protected void glade(int dx, int dz, double r, int[] col) {
             int h = hash(dx + salt, dz);
-            // patches of moss and a stone path in a circle
-            if (Nest.noise(dx, dz, 3, 41 + salt) > 0.72) put(col, TOP, MOSSY, 0);
-            if (Math.abs(r - 13.5) < 0.9 && h % 3 != 0) put(col, TOP, BRICK, h % 2 == 0 ? 1 : 2);
-            // ring of menhirs with crossbeams over the pairs
-            double step = Math.PI * 2 / MENHIRS, a = Math.atan2(dz, dx) + Math.PI;
-            int k = (int) Math.round(a / step) % MENHIRS;
-            double md = ringDist(dx, dz, RING, MENHIRS, 0);
-            if (md < 1.5) {
-                int mh = menhirH(k);
-                for (int y = TOP + 1; y <= TOP + mh; y++) put(col, y, hash(dx * 3 + y, dz + salt) % 3 == 0 ? BRICK : MOSSY, hash(y, k) % 3 == 0 ? 1 : 0);
-                if (md < 0.6) put(col, TOP + mh + 1, TORCH, 5);
-            }
-            int base = (int) Math.floor(a / step) % MENHIRS;
-            double frac = a / step - Math.floor(a / step);
-            if (base % 2 == 0 && Math.abs(r - RING) < 1.1 && frac > 0.04 && frac < 0.96) {
-                int lh = Math.min(menhirH(base), menhirH((base + 1) % MENHIRS));
-                put(col, TOP + lh, MOSSY, 0);
-                put(col, TOP + lh + 1, MOSSY, 0);
-            }
-            // sheltering stones
-            if (ringDist(dx, dz, COVER_R, COVERS, 0) < 1.5) {
-                int ch = 3 + hash(dx, dz + salt) % 2;
-                for (int y = TOP + 1; y <= TOP + ch; y++) put(col, y, MOSSY, 0);
-            }
-            // springs in a mossy setting
+            // a path ring along the circle and patches of moss
+            if (Math.abs(r - RING) < 1.2 && hash(dx, dz) % 3 != 0) setX(col, TOP, hash(dz, dx) % 2 == 0 ? SB_MOSSY : SB_CRACKED);
+            else if (r < 21 && Nest.noise(dx, dz, 3, 41 + salt) > 0.75) put(col, TOP, MOSSY, 0);
+            // sheltering stones (the golem's boulders crumble them)
+            double cd = ringDist(dx, dz, COVER_R, COVERS, 0);
+            if (cd < 1.6) for (int y = TOP + 1; y <= TOP + 3 + hash(dx, dz + salt) % 2; y++) put(col, y, MOSSY, 0);
+            else if (cd < 2.2 && h % 2 == 0) put(col, TOP + 1, MOSSY, 0);
+            // springs: pools with lily pads in a mossy brick rim (no pad over the center: you stand in the spring there)
             for (int i = 0; i < 4; i++) {
                 int[] sp = spring(i);
-                double sd = Math.sqrt((dx - sp[0]) * (dx - sp[0]) + (dz - sp[1]) * (dz - sp[1]));
+                double sd = Math.hypot(dx - sp[0], dz - sp[1]);
                 if (sd < 1.6) {
                     put(col, TOP, WATER, 0);
                     put(col, TOP - 1, MOSSY, 0);
-                } else if (sd < 2.6) put(col, TOP, MOSSY, 0);
+                    if (sd > 0.5 && hash(dx, dz) % 3 == 0) setX(col, TOP + 1, LILY);
+                } else if (sd < 2.6) setX(col, TOP, SB_MOSSY);
             }
-            // platform with the altar
-            double ad = Math.sqrt(dx * dx + (dz + ALTAR_DZ) * (dz + ALTAR_DZ));
-            if (ad <= 2.5) put(col, TOP + 1, BRICK, 3);
-            if (dx == 0 && dz == -ALTAR_DZ) put(col, TOP + 2, ALTAR, 0);
+            altarPlatform(dx, dz, ALTAR_DZ, SB_CHISEL, SB_MOSSY, col);
+            flowers(dx, dz, r, 2, 34, 6, salt, col);
         }
     }
 
@@ -634,7 +892,7 @@ public class WorldGenNests implements IWorldGenerator {
 
         @Override
         protected boolean lit(Block b) {
-            return isLamp(b) || b == ModBlocks.nestAltar;
+            return isLamp(b) || b == ModBlocks.nestAltar || b.getLightValue() > 0;
         }
 
         @Override
@@ -645,87 +903,130 @@ public class WorldGenNests implements IWorldGenerator {
             tornBase(dx, dz, r, rOut, torn, salt, col, 1.5);
             put(col, TOP, GRASS, 0);
             for (int y = TOP + 1; y <= TOP + 40; y++) put(col, y, AIR, 0);
-            if (slope(dx, dz, r, PALISADE + 2.5, rOut, salt, col, GRASS)) return true; // behind the palisade - a slope down to the drop-off
+            Voxels vx = camp();
+            if (slope(dx, dz, r, PALISADE + 2.5, rOut, salt, col, GRASS)) { // behind the palisade - a slope down to the drop-off
+                vx.apply(dx, dz, col);
+                return true;
+            }
             int h = hash(dx + salt, dz);
-            // the mound: earthen tiers with grass on top, log stairs on the cardinal directions
-            int m = Math.max(Math.abs(dx), Math.abs(dz));
-            int tier = 0;
-            for (int i = 1; i < TIER_R.length; i++) if (m <= TIER_R[i]) tier = i;
-            for (int y = TOP + 1; y <= TOP + TIER_H[tier]; y++) put(col, y, y == TOP + TIER_H[tier] ? GRASS : DIRT, 0);
-            if (tier == TIER_R.length - 1 && m == TIER_R[tier] && h % 3 == 0) put(col, TOP + TIER_H[tier] + 1, FENCE, 0); // fence of the summit
+            // the mound (1.1.3 ceremonial): round earthen tiers with stone retaining bands, grass terraces, a fence around the summit
+            int tier = r <= TIER_R[2] + 0.4 ? 2 : r <= TIER_R[1] + 0.4 ? 1 : 0;
+            for (int y = TOP + 1; y <= TOP + TIER_H[tier]; y++) {
+                boolean band = tier > 0 && r > TIER_R[tier] - 0.6 && (y - TOP) % 2 == 1;
+                put(col, y, band ? BRICK : y == TOP + TIER_H[tier] ? GRASS : DIRT, 0);
+            }
+            if (tier == 2 && r > TIER_R[2] - 0.4 && h % 2 == 0) put(col, TOP + TIER_H[2] + 1, FENCE, 0);
+            // wide log stairs on the cardinal directions with earth under them, log posts along the sides
             for (int i = 1; i < TIER_R.length; i++) {
                 int rise = TIER_H[i] - TIER_H[i - 1];
                 for (int st = 0; st < rise; st++) {
                     int dist = TIER_R[i] + 1 + st, y = TOP + TIER_H[i] - st;
-                    if (Math.abs(dz) <= 1 && Math.abs(dx) == dist) put(col, y, STAIRS, dx > 0 ? 1 : 0);
-                    if (Math.abs(dx) <= 1 && Math.abs(dz) == dist) put(col, y, STAIRS, dz > 0 ? 3 : 2);
+                    boolean xs = Math.abs(dz) <= 1 && Math.abs(dx) == dist, zs = Math.abs(dx) <= 1 && Math.abs(dz) == dist;
+                    if (xs || zs) {
+                        for (int yy = TOP + 1; yy < y; yy++) put(col, yy, DIRT, 0);
+                        put(col, y, STAIRS, xs ? (dx > 0 ? 1 : 0) : (dz > 0 ? 3 : 2));
+                        for (int yy = y + 1; yy <= TOP + TIER_H[TIER_H.length - 1]; yy++) put(col, yy, AIR, 0);
+                    }
+                    boolean post = Math.abs(dz) == 2 && Math.abs(dx) == dist || Math.abs(dx) == 2 && Math.abs(dz) == dist;
+                    if (post && dist % 2 == 0) for (int yy = TOP + TIER_H[tier] + 1; yy <= y + 1; yy++) put(col, yy, LOG, 0);
                 }
             }
-            // a fire pit on the summit and four at the foot
-            if (m <= 1 && tier == TIER_R.length - 1) put(col, TOP + TIER_H[tier], m == 0 ? LAMP : STONE, 0);
+            // the summit: a fire bowl of stone with a lamp, a ring of eight short painted totems
+            if (tier == 2 && Math.abs(dx) <= 1 && Math.abs(dz) <= 1) put(col, TOP + TIER_H[2], dx == 0 && dz == 0 ? LAMP : STONE, 0);
+            for (int k = 0; k < 8; k++) {
+                double a = Math.PI / 8 + k * Math.PI / 4;
+                if (dx != (int) Math.round(Math.cos(a) * 6.5) || dz != (int) Math.round(Math.sin(a) * 6.5)) continue;
+                put(col, TOP + TIER_H[2] + 1, LOG, 0);
+                put(col, TOP + TIER_H[2] + 2, LOG, 0);
+                put(col, TOP + TIER_H[2] + 3, WOOL, k % 2 == 1 ? 1 : 10);
+            }
+            // four fire pits at the foot: a stone disc in the floor, a lamp in the middle
             for (int i = 0; i < 4; i++) {
                 double fa = Math.PI / 4 + Math.PI / 2 * i;
-                double fd = Math.sqrt(Math.pow(dx - Math.cos(fa) * 17, 2) + Math.pow(dz - Math.sin(fa) * 17, 2));
-                if (fd < 0.7) put(col, TOP, LAMP, 0);
-                else if (fd < 1.8) put(col, TOP + 1, STONE, 0);
+                int fx = (int) Math.round(Math.cos(fa) * 17), fz = (int) Math.round(Math.sin(fa) * 17);
+                double fd = Math.hypot(dx - fx, dz - fz);
+                if (fd < 0.5) put(col, TOP, LAMP, 0);
+                else if (fd <= 1.61) put(col, TOP, STONE, 0);
             }
-            // totem poles: a log with "faces" made of world stones and wings of planks at the top
-            double td = ringDist(dx, dz, TOTEM_R, TOTEMS, Math.PI / TOTEMS);
-            int tk = (int) Math.round((Math.atan2(dz, dx) - Math.PI / TOTEMS) / (Math.PI * 2 / TOTEMS));
-            int th = 10 + hash(tk & 7, salt) % 5;
-            if (td < 0.7) {
-                for (int y = TOP + 1; y <= TOP + th; y++) put(col, y, (y - TOP) % 4 == 3 ? GEM : LOG, 0);
-                put(col, TOP + th + 1, GEM, 0);
-            } else if (td < 1.8 && Math.abs(r - TOTEM_R) < 0.6) {
-                put(col, TOP + th - 1, PLANKS, 0); // wings
-            }
-            // wigwam huts: cones of hides (wool) on a frame
-            double hd = ringDist(dx, dz, HUT_R, HUTS, Math.PI / HUTS + 0.2);
-            if (hd < 3.2 && !gate(dx, dz)) {
-                int hh = (int) Math.round(6 - hd * 1.6);
-                for (int y = TOP + 1; y <= TOP + hh; y++) {
-                    boolean shell = hd > 3.2 - 1.0 - (y - TOP) * 0.45;
-                    if (shell || y == TOP + hh) put(col, y, WOOL, (hash(y, dx + dz) % 3 == 0) ? 12 : 1); // brown/orange
+            // palisade of logs with pointed tops and a wall walk, gates on the cardinal directions
+            if (!gate(dx, dz)) {
+                if (Math.abs(r - PALISADE) < 0.8) {
+                    int ph = 6 + h % 2;
+                    for (int y = TOP + 1; y <= TOP + ph; y++) put(col, y, LOG, 0);
+                    put(col, TOP + ph + 1, FENCE, 0);
                 }
-                if (hd < 0.6) put(col, TOP + hh + 1, FENCE, 0); // poles
+                if (Math.abs(r - (PALISADE - 1.5)) < 0.8) put(col, TOP + 5, PLANKS, 0);
             }
-            // palisade: logs in a row, pointed tops, gates on the cardinal directions
-            if (Math.abs(r - PALISADE) < 0.8 && !gate(dx, dz)) {
-                int ph = 5 + h % 2;
-                for (int y = TOP + 1; y <= TOP + ph; y++) put(col, y, LOG, 0);
-                put(col, TOP + ph + 1, FENCE, 0);
-            }
-            // watchtowers on the palisade diagonals
-            for (int i = 0; i < 4; i++) {
-                double va = Math.PI / 4 + Math.PI / 2 * i;
-                int vx = (int) Math.round(Math.cos(va) * PALISADE), vz = (int) Math.round(Math.sin(va) * PALISADE);
-                int ox = Math.abs(dx - vx), oz = Math.abs(dz - vz);
-                if (ox <= 2 && oz <= 2) {
-                    boolean corner = ox == 2 && oz == 2;
-                    if (corner) for (int y = TOP + 1; y <= TOP + 12; y++) put(col, y, LOG, 0);
-                    put(col, TOP + 9, PLANKS, 0); // platform
-                    if ((ox == 2 || oz == 2) && !corner) put(col, TOP + 10, FENCE, 0);
-                    put(col, TOP + 13, PLANKS, 0); // roof
-                    if (ox == 0 && oz == 0) put(col, TOP + 10, LAMP, 0);
-                }
-            }
-            // platform with the altar by the north gate of the mound
-            double ad = Math.sqrt(dx * dx + (dz + MOUND_ALTAR) * (dz + MOUND_ALTAR));
-            if (ad <= 2.5) put(col, TOP + 1, BRICK, 3);
-            if (dx == 0 && dz == -MOUND_ALTAR) put(col, TOP + 2, ALTAR, 0);
+            altarPlatform(dx, dz, MOUND_ALTAR, SB_CHISEL, SBRICK, col);
+            flowers(dx, dz, r, 14, 44, 7, salt, col);
+            vx.apply(dx, dz, col);
             return true;
+        }
+
+        private static Voxels deco;
+
+        /**
+         * Around the mound (1.1.3): eight tall carved totems with plank wings and a lamp in a face, six striped tents, towers with plank
+         * roofs at both sides of each palisade gate and a log lintel over the gate with purple and orange banners.
+         */
+        private static synchronized Voxels camp() {
+            if (deco != null) return deco;
+            Voxels v = new Voxels(WorldGenNests::extraMeta);
+            for (int k = 0; k < TOTEMS; k++) {
+                double a = Math.PI / 8 + k * Math.PI / 4;
+                int x = (int) Math.round(Math.cos(a) * TOTEM_R), z = (int) Math.round(Math.sin(a) * TOTEM_R), h = 12 + hash(k, 2) % 4;
+                int fx = (int) Math.round(Math.cos(a)), fz = (int) Math.round(Math.sin(a));
+                for (int y = 1; y <= h; y++) v.put(x, TOP + y, z, y % 4 == 3 ? GEM : y % 4 == 0 && y > 4 ? (y == h - 1 ? LAMP : GEM) : LOG);
+                for (int s = -2; s <= 2; s++) if (s != 0) v.put(x + s * fz, TOP + h - 1 - (Math.abs(s) == 2 ? 1 : 0), z + s * fx, PLANKS);
+                v.put(x, TOP + h + 1, z, GEM);
+            }
+            int[] stripes = { 1, 0, 14, 0 };
+            for (int k = 0; k < HUTS; k++) {
+                double a = Math.PI / 6 + k * Math.PI / 3 + 0.2, cx = Math.cos(a) * HUT_R, cz = Math.sin(a) * HUT_R, r = 3.4;
+                int th = 8;
+                for (int x = (int) (cx - r) - 1; x <= (int) (cx + r) + 1; x++) {
+                    for (int z = (int) (cz - r) - 1; z <= (int) (cz + r) + 1; z++) {
+                        double d = Math.hypot(x - cx, z - cz);
+                        for (int y = 1; y <= th; y++) {
+                            double rr = r * (1 - (y - 1) / (double) th);
+                            boolean door = y <= 2 && x - cx > 0 && Math.abs(z - cz) < 1;
+                            if (d > rr - 1.0 && d <= rr && !door) v.put(x, TOP + y, z, WorldGenNests.WOOL + stripes[y / 2 % 4]);
+                        }
+                    }
+                }
+                for (int p = 0; p < 4; p++) { // poles over the top
+                    double b = p * Math.PI / 2 + 0.4;
+                    v.put((int) Math.round(cx + Math.cos(b) * 0.6), TOP + th + 1, (int) Math.round(cz + Math.sin(b) * 0.6), FENCE);
+                    v.put((int) Math.round(cx + Math.cos(b) * 1.2), TOP + th + 2, (int) Math.round(cz + Math.sin(b) * 1.2), FENCE);
+                }
+            }
+            for (int k = 0; k < 4; k++) { // gate towers and lintels with banners
+                double a = k * Math.PI / 2, ax = Math.cos(a), az = Math.sin(a);
+                for (int s = -1; s <= 1; s += 2) {
+                    double ga = a + s * Math.toRadians(9), cx = Math.cos(ga) * PALISADE, cz = Math.sin(ga) * PALISADE;
+                    v.cyl(cx, cz, 1.6, TOP + 1, TOP + 10, Voxels.of(LOG), -1);
+                    v.cyl(cx, cz, 2.3, TOP + 11, TOP + 11, Voxels.of(PLANKS), -1);
+                    v.cone(cx, cz, 2.6, TOP + 12, 4, PLANKS, LOG, 2);
+                }
+                for (int s = -4; s <= 4; s++) {
+                    int x = (int) Math.round(ax * PALISADE - az * s), z = (int) Math.round(az * PALISADE + ax * s);
+                    v.put(x, TOP + 9, z, LOG);
+                    if (Math.abs(s) <= 2) for (int y = 6; y <= 8; y++) v.put(x, TOP + y, z, WorldGenNests.WOOL + (Math.abs(s) < 2 ? 10 : 1));
+                }
+            }
+            return deco = v;
         }
     }
 
     // ---------------------------------------------------------------- wind temple (Skythern)
 
     /**
-     * The Skythern Wind Temple - the Skythern Wind Lord arena instead of the grove: an island torn out of the land (as with the Eden grove), a marble
-     * stylobate, a ring of sixteen thick columns as tall as Eden trees under a shared entablature (no roof - the fight is under the
-     * sky), an altar on a platform by the north side and four pedestal columns for wind totems at different heights
-     * ({@link com.divinerpgextended.entity.EntityWindLord#HEIGHTS}), with a staircase on the outer face and a cloud platform
-     * on top. Around the stylobate there is a grass terrace so that a gust does not throw you off the island at once. Above the colonnade the upper
-     * layers of the world are punched through with a shaft to the sky.
+     * The Skythern Wind Temple (1.1.3 floating clouds) - the Skythern Wind Lord arena instead of the grove: an island torn out of the land (as
+     * with the Eden grove), a marble stylobate with a wind rose (eight light blue rays, rings, lamps), a stepped rim; no colonnade - the four
+     * wind totem platforms ({@link com.divinerpgextended.entity.EntityWindLord#HEIGHTS}) are floating cloud islands with lamps underneath,
+     * reached by spirals of floating cloud steps; eight twisted marble wind spires on the rim, a broken ring of marble arcs floating high
+     * above, wind-bent trees on the terrace. Around the stylobate a grass terrace, so that a gust does not throw you off the island at once.
+     * Above the island the upper layers of the world are punched through to the sky.
      */
     static class Temple extends ColumnStructure {
 
@@ -757,7 +1058,7 @@ public class WorldGenNests implements IWorldGenerator {
 
         @Override
         protected boolean lit(Block b) {
-            return isLamp(b) || b == ModBlocks.nestAltar;
+            return isLamp(b) || b == ModBlocks.nestAltar || b.getLightValue() > 0;
         }
 
         @Override
@@ -768,49 +1069,79 @@ public class WorldGenNests implements IWorldGenerator {
             tornBase(dx, dz, r, rOut, torn, salt, col, 1.3);
             // above the whole temple island - open sky up to the top of the world: the upper layers of Skythern are punched through, light falls into the temple
             for (int y = TOP + 1; y <= 255; y++) put(col, y, AIR, 0);
+            Voxels vx = clouds();
             if (r > STYLO + 1.5) {
                 put(col, TOP, GRASS, 0); // terrace, then a slope down to the drop-off
                 slope(dx, dz, r, STYLO + 4, rOut, salt, col, GRASS);
+                vx.apply(dx, dz, col);
                 return true;
             }
-            // stylobate: marble, pattern rings, a border and a step along the edge
-            boolean border = r > STYLO - 0.5 || Math.abs(r - 10) < 0.5 || Math.abs(r - 20) < 0.5;
-            put(col, TOP, MARBLE, border ? 1 : 0);
-            if (r < 1.2 || ringDist(dx, dz, 10, 8, Math.PI / 8) < 0.6) put(col, TOP, GLOW, 0);
-            if (r > STYLO - 0.5) put(col, TOP + 1, SLAB, 7);
-            // colonnade: base, thick trunk of pillar marble, capital, entablature on top
-            double cd = ringDist(dx, dz, PERI, COLS, 0);
-            if (cd < 3.0) put(col, TOP + 1, MARBLE, 1);
-            if (cd < 2.6) put(col, TOP + 2, MARBLE, 1);
-            if (cd < 2.1) for (int y = TOP + 3; y < TOP + COL_H - 1; y++) put(col, y, MARBLE, 2);
-            if (cd < 2.6) put(col, TOP + COL_H - 1, MARBLE, 1);
-            if (cd < 3.0) put(col, TOP + COL_H, MARBLE, 1);
-            if (Math.abs(r - PERI) < 2.6) {
-                put(col, TOP + COL_H + 1, MARBLE, 0);
-                put(col, TOP + COL_H + 2, MARBLE, ((int) Math.round(Math.atan2(dz, dx) * 24)) % 3 == 0 ? 1 : 0); // frieze
-                put(col, TOP + COL_H + 3, MARBLE, 0);
+            // stylobate: marble with a wind rose - eight light blue rays narrowing outward, two rings, lamps at the ray tips and in the
+            // center, a stepped rim
+            double a = (Math.toDegrees(Math.atan2(dz, dx)) + 360) % 45, off = Math.min(a, 45 - a);
+            boolean ray = off < 4 && r < 20 * (1 - off / 6) + 2;
+            setX(col, TOP, ray || Math.abs(r - 10) < 0.5 || Math.abs(r - 21) < 0.5 ? SKYBLUE : QZ);
+            if (r > STYLO - 0.5) setX(col, TOP + 1, QSLAB);
+            for (int k = 0; k < 8; k++) {
+                double b = k * Math.PI / 4;
+                if (dx == (int) Math.round(Math.cos(b) * 20) && dz == (int) Math.round(Math.sin(b) * 20)) put(col, TOP, GLOW, 0);
             }
-            if (Math.abs(r - PERI) < 3.4) put(col, TOP + COL_H + 4, SLAB, 7); // cornice
-            // platform with the altar to the north
-            double ad = Math.sqrt(dx * dx + (dz + ALTAR_DZ) * (dz + ALTAR_DZ));
-            if (ad <= 2.5) put(col, TOP + 1, MARBLE, 1);
-            if (dx == 0 && dz == -ALTAR_DZ) put(col, TOP + 2, ALTAR, 0);
-            // totem pedestals: 3x3 marble, staircase outside, cloud platform on top
+            if (r < 0.5) put(col, TOP, GLOW, 0);
+            altarPlatform(dx, dz, ALTAR_DZ, QZ_CHISEL, QSLAB, col);
+            vx.apply(dx, dz, col);
+            return true;
+        }
+
+        private static Voxels deco;
+
+        /**
+         * The floating part (1.1.3): cloud islands for the totems (the top layer at the totem height, nothing above - the Wind Lord puts the totems
+         * there), lamps under them, spirals of 2x2 cloud steps up to each island; eight twisted wind spires; a broken ring of arcs above;
+         * wind-bent trees on the terrace. Everything stays below the open-sky limit (TOP + 37).
+         */
+        private static synchronized Voxels clouds() {
+            if (deco != null) return deco;
+            Voxels v = new Voxels(WorldGenNests::extraMeta);
             for (int i = 0; i < 4; i++) {
                 double a = Math.PI / 4 + Math.PI / 2 * i;
                 int px = (int) Math.round(Math.cos(a) * com.divinerpgextended.entity.EntityWindLord.TOTEM_R);
                 int pz = (int) Math.round(Math.sin(a) * com.divinerpgextended.entity.EntityWindLord.TOTEM_R);
                 int ph = com.divinerpgextended.entity.EntityWindLord.HEIGHTS[i];
-                int sx = px > 0 ? 1 : -1;
-                int ox = dx - px, oz = dz - pz;
-                if (Math.abs(ox) <= 1 && Math.abs(oz) <= 1) {
-                    for (int y = TOP + 1; y < TOP + ph; y++) put(col, y, MARBLE, 2);
-                    put(col, TOP + ph, CLOUD, 0);
-                } else if (ox == 2 * sx && oz == 0) {
-                    for (int y = TOP + 1; y < TOP + ph; y++) put(col, y, LADDER, sx > 0 ? 5 : 4);
+                ellipsoid(v, px, TOP + ph - 0.6, pz, 4.6, 1.6, 4.6, Voxels.of(CLOUD_B), 0, 0, TOP + ph);
+                for (int x = px - 1; x <= px + 1; x++) for (int z = pz - 1; z <= pz + 1; z++) v.put(x, TOP + ph, z, CLOUD_B); // the totem pad
+                v.put(px, TOP + ph - 2, pz, GLOW);
+                v.put(px, TOP + ph - 3, pz, GLOW);
+                for (int s = 1; s < ph; s++) { // the spiral of floating steps, from the arena side around the island
+                    double b = a + Math.PI + s * 0.55;
+                    int x = (int) Math.round(px + Math.cos(b) * 6.0), z = (int) Math.round(pz + Math.sin(b) * 6.0);
+                    for (int ox = 0; ox <= 1; ox++) for (int oz = 0; oz <= 1; oz++) v.put(x + ox, TOP + s, z + oz, CLOUD_B);
                 }
             }
-            return true;
+            for (int k = 0; k < 8; k++) { // wind spires on the rim
+                double a = k * Math.PI / 4 + Math.PI / 8, x0 = Math.cos(a) * 29, z0 = Math.sin(a) * 29;
+                int hh = 24 + k % 2 * 6;
+                for (int y = 1; y < hh; y++) {
+                    double b = y * 0.45 + k, rr = 1.4 - y / (double) hh * 0.8;
+                    v.cyl(x0, z0, Math.max(0.6, rr), TOP + y, TOP + y, Voxels.of(QZ_PILLAR), -1);
+                    v.put((int) Math.round(x0 + Math.cos(b) * (rr + 0.9)), TOP + y, (int) Math.round(z0 + Math.sin(b) * (rr + 0.9)), SKYBLUE);
+                }
+                v.put((int) Math.round(x0), TOP + hh, (int) Math.round(z0), GLOW);
+            }
+            for (int k = 0; k < 6; k++) { // the broken ring floating above
+                double a0 = k * Math.PI / 3 + 0.2;
+                for (int i = 0; i < 25; i++) {
+                    double a = a0 + i * 0.03;
+                    for (int dr = 0; dr <= 2; dr++) for (int dy = 0; dy <= 1; dy++)
+                        v.put((int) Math.round(Math.cos(a) * (22 + dr)), TOP + 33 + dy, (int) Math.round(Math.sin(a) * (22 + dr)), dy == 1 ? QZ_CHISEL : QZ);
+                }
+                v.put((int) Math.round(Math.cos(a0 + 0.36) * 23), TOP + 32, (int) Math.round(Math.sin(a0 + 0.36) * 23), GLOW);
+            }
+            for (int k = 0; k < 7; k++) { // trees bent by the wind on the terrace
+                double a = k * Math.PI * 2 / 7 + 0.3;
+                tree(v, (int) Math.round(Math.cos(a) * 35), (int) Math.round(Math.sin(a) * 35), 11 + hash(k, 3) % 4, 0.9,
+                    new double[][] { { 2, 0, 0, 5, 2, 3.5 } }, 5, 1, k + 30, false, 1);
+            }
+            return deco = v;
         }
     }
 

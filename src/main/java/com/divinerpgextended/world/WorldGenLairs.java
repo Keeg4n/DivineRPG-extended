@@ -21,6 +21,7 @@ import net.minecraft.world.chunk.IChunkProvider;
 
 import com.divinerpgextended.Config;
 import com.divinerpgextended.DivineRPGExtended;
+import com.divinerpgextended.block.BlockBurrow;
 import com.divinerpgextended.registry.ModBlocks;
 
 import cpw.mods.fml.common.IWorldGenerator;
@@ -78,7 +79,8 @@ public class WorldGenLairs implements IWorldGenerator {
      * flooded burrow labyrinth at height 30-40 under the shore and seabed.
      * The passages are crooked, of different widths, with loops, dead-end pockets and widenings - as if the crab itself dug them. The walls,
      * floor and ceiling are burrow blocks: if broken, the passage is filled with sand. Under the floor are hidden Burrow Crab Nests, on the
-     * ceiling glow Kraken lamps and aqua lamps. In the east behind a bubble curtain is a dry grotto with the Carcinus summoning altar.
+     * ceiling glow Kraken lamps and aqua lamps. In the east behind a bubble curtain is a dry grotto with the Carcinus summoning altar - a ship
+     * graveyard (1.1.3: the bow of a wreck, a fallen mast, cargo, a fish skeleton); over the funnel lies a wrecked ship aground.
      */
     private boolean crabLair(World world, Random rand, int cx, int cz) {
         // entrance: sea-level water right at land (the beach edge). Several candidates: the labyrinth goes from the entrance
@@ -234,33 +236,48 @@ public class WorldGenLairs implements IWorldGenerator {
             LairLoot.chest(world, rand, x, y, z, false);
         }
 
-        // the crab's dry grotto behind the east wall: a hall of radius DEN_R under a low dome, the floor flush with the passages
+        // the crab's dry grotto behind the east wall (1.1.3 - the ship graveyard): a rugged cave of radius ~DEN_R + 0.7 with a flat floor,
+        // the vault higher in the middle (as much as the bottom above allows), stalactites, the broken bow of a ship at the north wall, a fallen
+        // mast, crates of the sunken cargo, a fish skeleton half in the sand, sand drifts at the walls. Within GROTTO_CLEAR of the altar - nothing:
+        // the boss rises on the altar and pulls everyone in with a vortex of radius 5.
         int yd = ym - 2;
-        for (int dx = -DEN_R - 1; dx <= DEN_R + 1; dx++) {
-            for (int dz = -DEN_R - 1; dz <= DEN_R + 1; dz++) {
-                for (int y = yd; y <= yd + 7; y++) {
-                    if (inDen(dx, y - yd, dz)) continue;
-                    boolean nearDen = false;
-                    for (int[] n : NEIGHBORS) {
-                        if (inDen(dx + n[0], y - yd + n[1], dz + n[2])) nearDen = true;
+        int minBed = 62;
+        for (int dx = -DEN_R - 2; dx <= DEN_R + 2; dx += 2) for (int dz = -DEN_R - 2; dz <= DEN_R + 2; dz += 2) minBed = Math.min(minBed, seabed(world, gcx + dx, gcz + dz));
+        int cap = Math.max(4, Math.min(8, minBed - yd - 4)); // two blocks of bottom stay above the vault
+        int n = GROTTO_N;
+        boolean[][][] den = new boolean[2 * n + 1][cap + 3][2 * n + 1];
+        for (int dx = -n; dx <= n; dx++) for (int dz = -n; dz <= n; dz++) for (int y = 0; y <= cap; y++) den[dx + n][y][dz + n] = inGrotto(dx, y, dz, cap);
+        for (int dx = -n; dx <= n; dx++) {
+            for (int dz = -n; dz <= n; dz++) {
+                for (int y = -1; y <= cap + 1; y++) {
+                    if (y >= 0 && den[dx + n][y][dz + n]) {
+                        set(world, gcx + dx, yd + 1 + y, gcz + dz, Blocks.air);
+                        continue;
                     }
-                    if (nearDen) burrow(world, gcx + dx, y, gcz + dz, y == yd ? 1 : 0);
-                }
-                for (int y = yd + 1; y <= yd + 6; y++) {
-                    if (inDen(dx, y - yd, dz)) set(world, gcx + dx, y, gcz + dz, Blocks.air);
+                    boolean near = false;
+                    for (int[] nb : NEIGHBORS) {
+                        int ix = dx + nb[0] + n, iy = y + nb[1], iz = dz + nb[2] + n;
+                        if (ix >= 0 && ix <= 2 * n && iz >= 0 && iz <= 2 * n && iy >= 0 && iy <= cap && den[ix][iy][iz]) near = true;
+                    }
+                    if (!near) continue;
+                    boolean floor = y + 1 <= cap && y + 1 >= 0 && den[dx + n][y + 1][dz + n];
+                    burrow(world, gcx + dx, yd + 1 + y, gcz + dz, floor || h32(dx, dz) % 4 == Math.floorMod(-y, 4) ? 1 : 0);
                 }
             }
         }
+        grottoDecor(world, gcx, yd + 1, gcz, den, cap);
         for (int[] g : new int[][] { { -3, -3 }, { -3, 3 }, { 3, -3 }, { 3, 3 }, { -8, 0 }, { 8, 0 }, { 0, -8 }, { 0, 8 },
-            { -6, -6 }, { -6, 6 }, { 6, -6 }, { 6, 6 } }) {
-            int y = 1;
-            while (inDen(g[0], y, g[1])) y++; // the vault above this point
-            lamp(world, rand, gcx + g[0], yd + y, gcz + g[1]);
+            { -6, -6 }, { -6, 6 }, { 6, -6 }, { 6, 6 }, { -9, -2 }, { 8, 6 }, { 9, -6 }, { -7, -6 } }) {
+            int y = 0;
+            while (y <= cap && den[g[0] + n][y][g[1] + n]) y++; // the vault above this point
+            if (y > 0) lamp(world, rand, gcx + g[0], yd + 1 + y, gcz + g[1]);
         }
         // the bubble curtain holds the water: the labyrinth water stands right in front of it, and you can walk straight through
         set(world, gx0, yd + 1, gcz, ModBlocks.bubbleCurtain);
         set(world, gx0, yd + 2, gcz, ModBlocks.bubbleCurtain);
         set(world, gcx, yd + 1, gcz, ModBlocks.carcinusAltar); // summoning: crab claws, dropped by Burrow Crabs
+
+        wreck(world, ex, ez); // the ship aground over the funnel: the lair is seen from the shore
 
         LairData.get(world)
             .add(LairData.CARCINUS, ex, ey + 1, ez); // funnel on the bottom
@@ -284,17 +301,127 @@ public class WorldGenLairs implements IWorldGenerator {
     private static final int[][] NEIGHBORS = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 },
         { 0, 0, -1 } };
 
-    /** Radius of the Carcinus arena grotto (was 6 - twice as cramped). */
+    /** Radius of the Carcinus arena grotto (was 6 - twice as cramped); the rugged edge reaches DEN_R + 0.7. */
     static final int DEN_R = 12;
+    /** Half size of the grotto box, and the radius around the altar where the decor does not go (the boss vortex is 5). */
+    static final int GROTTO_N = 14;
+    static final double GROTTO_CLEAR = 6.5;
 
-    /** The crab burrow void: a round hall of radius {@link #DEN_R}, height 4 and a dome on top (dy - from the floor). */
-    static boolean inDen(int dx, int dy, int dz) {
-        double r = Math.sqrt(dx * dx + dz * dz) / DEN_R;
-        if (r >= 1.0 || dy < 1) return false;
-        if (dy <= 4) return true;
-        if (dy == 5) return r < 0.8;
-        if (dy == 6) return r < 0.5;
-        return false;
+    /** A hash of the grotto and wreck shapes (the same as in the concept renders). */
+    static long h32(int... v) {
+        long x = 0x9E3779B9L;
+        for (int a : v) {
+            x = ((x ^ (a & 0xffffffffL)) * 0x85EBCA6BL) & 0xffffffffL;
+            x ^= x >>> 13;
+        }
+        return x;
+    }
+
+    /**
+     * The grotto void (dx, dz from the altar, dy from the floor top): radius ~DEN_R with a rugged edge, the vault from 4-6 at the walls to 6-8
+     * in the middle, not above cap; the wall with the bubble curtain (dx = -DEN_R) stays whole, it holds the labyrinth water.
+     */
+    static boolean inGrotto(int dx, int dy, int dz, int cap) {
+        double r = Math.sqrt(dx * dx + dz * dz) + h32(dx, dz, 2) % 3 * 0.25;
+        if (r >= DEN_R + 0.7 || dy < 0 || dx <= -DEN_R) return false;
+        double top = 5 + 2 * Math.cos(r / 12.6 * Math.PI / 2) + h32(Math.floorDiv(dx, 3), Math.floorDiv(dz, 3)) % 3 - 1;
+        return dy <= Math.min(top, cap);
+    }
+
+    /** Wreck decor in the grotto: only into the void and not closer than GROTTO_CLEAR to the altar. */
+    private static void grottoPut(World w, int gx, int gy, int gz, boolean[][][] den, int cap, int dx, int dy, int dz, int meta) {
+        int n = GROTTO_N;
+        if (Math.abs(dx) > n || Math.abs(dz) > n || dy < 0 || dy > cap || !den[dx + n][dy][dz + n] || Math.sqrt(dx * dx + dz * dz) < GROTTO_CLEAR) return;
+        burrow(w, gx + dx, gy + dy, gz + dz, meta);
+    }
+
+    /** gx, gy, gz - the altar (gy - the first row above the floor). */
+    private static void grottoDecor(World w, int gx, int gy, int gz, boolean[][][] den, int cap) {
+        int n = GROTTO_N;
+        for (int k = 0; k < 14; k++) { // stalactites from the vault, above head height
+            int x = (int) (h32(k, 1) % 19) - 9, z = (int) (h32(k, 2) % 19) - 9;
+            if (Math.sqrt(x * x + z * z) < 4) continue;
+            int top = -1;
+            for (int y = 0; y <= cap; y++) if (den[x + n][y][z + n]) top = y;
+            for (int y = top; y >= top - 1 - (int) (h32(k) % 2) && y > 4; y--) burrow(w, gx + x, gy + y, gz + z, 0);
+        }
+        for (int x = -8; x <= 5; x++) { // the bow: a curved hull of dark planks at the north wall, a broken deck
+            double t = (x + 8) / 13.0, half = 3.2 * Math.sin(Math.min(1.0, t * 1.4) * Math.PI / 2) + 0.4;
+            for (int z = -12; z <= -5; z++) {
+                double dz = z + 8.5;
+                for (int y = 0; y <= 5; y++) {
+                    if (Math.abs(Math.abs(dz) - half * (0.55 + 0.45 * (y / 5.0))) < 0.7 && !(h32(x, y, z) % 7 == 0 && y > 2))
+                        grottoPut(w, gx, gy, gz, den, cap, x, y, z, Math.floorMod(x, 4) != 0 ? BlockBurrow.PLANKS : BlockBurrow.LOG);
+                }
+                if (Math.abs(dz) < half && Math.floorMod(x, 3) == 0 && h32(x) % 2 == 0) grottoPut(w, gx, gy, gz, den, cap, x, 4, z, BlockBurrow.PLANKS_LIGHT);
+            }
+        }
+        for (int y = 0; y <= 6; y++) grottoPut(w, gx, gy, gz, den, cap, 6, y, -9, BlockBurrow.LOG); // stem post
+        for (int i = 0; i < 12; i++) grottoPut(w, gx, gy, gz, den, cap, -10 + i, 1 + i / 4, 8 - i / 2, BlockBurrow.LOG); // fallen mast
+        for (int[] c : new int[][] { { 8, 0, -3 }, { 9, 0, -2 }, { 8, 0, -2 }, { 9, 0, -3 }, { -6, 0, 9 }, { -5, 0, 10 }, { -6, 1, 9 } })
+            grottoPut(w, gx, gy, gz, den, cap, c[0], c[1], c[2], BlockBurrow.PLANKS_LIGHT); // crates of the sunken cargo
+        for (int i = 0; i < 7; i++) { // fish skeleton
+            int x = 3 + i;
+            grottoPut(w, gx, gy, gz, den, cap, x, 0, 7, BlockBurrow.CLAY_WHITE);
+            if (i % 2 == 0) for (int y = 1; y <= 3 - Math.abs(i - 3) / 2; y++) {
+                grottoPut(w, gx, gy, gz, den, cap, x, y, 6, BlockBurrow.CLAY_WHITE);
+                grottoPut(w, gx, gy, gz, den, cap, x, y, 8, BlockBurrow.CLAY_WHITE);
+            }
+        }
+        for (int x = -12; x <= 12; x++) for (int z = -12; z <= 12; z++) { // sand drifts at the walls (not in front of the curtain)
+            double r = Math.sqrt(x * x + z * z);
+            if (r > 10.5 && r < 12.5 && h32(x, z, 4) % 2 == 0 && !(x < -9 && Math.abs(z) <= 1)) grottoPut(w, gx, gy, gz, den, cap, x, 0, z, 1);
+        }
+    }
+
+    /** Puts a wreck block only into water or air: the ship lies aground, the beach stays; never over the funnel shaft. */
+    private static void wreckPut(World w, int ex, int ez, int x, int y, int z, Block b, int meta) {
+        if ((x - ex) * (x - ex) + (z - ez) * (z - ez) <= 6) return;
+        Block was = w.getBlock(x, y, z);
+        if (!was.isAir(w, x, y, z) && was.getMaterial() != Material.water) return;
+        w.setBlock(x, y, z, b, meta, 2);
+    }
+
+    /**
+     * The wreck at the entrance (1.1.3): a ship aground over the funnel - a hull of dark planks heeled over and broken in the middle, a mast
+     * with a torn sail and a kraken lantern, lanterns on posts around the funnel. The funnel itself stays open: there is a hole in the bottom
+     * of the hull over it. Planks, logs and sail are burrow decor - they drop nothing.
+     */
+    private static void wreck(World w, int ex, int ez) {
+        int sea = 62, len = 22, x0 = ex - 2;
+        for (int i = 0; i < len; i++) {
+            if (i == 9 || i == 10) continue; // broken in the middle
+            int x = x0 + i;
+            double t = i / (double) (len - 1), half = 3.4 * Math.sin(Math.PI * Math.min(1.0, 0.15 + t * 0.9)) + 0.3;
+            for (int z = -7; z <= 7; z++) {
+                for (int y = sea - 3; y <= sea + 5; y++) {
+                    double lz = z - (y - sea) * 0.35, k = (y - (sea - 3)) / 8.0;
+                    boolean shell = Math.abs(Math.abs(lz) - half * (0.45 + 0.55 * k)) < 0.65 || y == sea - 3 && Math.abs(lz) < half * 0.45;
+                    if (shell && !(h32(x - ex, y, z) % 6 == 0 && y > sea)) wreckPut(w, ex, ez, x, y, ez + z, ModBlocks.burrow, i % 5 != 0 ? BlockBurrow.PLANKS : BlockBurrow.LOG);
+                }
+                if (Math.abs(z) < half * 0.9 && i % 2 == 0 && i > 11) wreckPut(w, ex, ez, x, sea + 4, ez + z - 1, ModBlocks.burrow, BlockBurrow.PLANKS_LIGHT);
+            }
+        }
+        int mx = x0 + 15;
+        Block base = w.getBlock(mx, sea, ez); // the mast stands in the hull over water; on a high bank it would hang in the air - then no mast
+        if ((base == ModBlocks.burrow || base.getMaterial() == Material.water) && w.getBlock(mx, sea + 1, ez).isAir(w, mx, sea + 1, ez)) {
+            for (int y = sea + 1; y <= sea + 14; y++) wreckPut(w, ex, ez, mx, y, ez, ModBlocks.burrow, BlockBurrow.LOG);
+            for (int y = sea + 7; y <= sea + 13; y++) {
+                for (int z = -4; z <= 4; z++) {
+                    if (h32(z, y, 3) % 4 != 0 && y - sea - 7 < 7 - Math.abs(z) / 2)
+                        wreckPut(w, ex, ez, mx + 1, y, ez + z, ModBlocks.burrow, Math.floorMod(y + z, 3) != 0 ? BlockBurrow.SAIL : BlockBurrow.SAIL_GRAY);
+                }
+            }
+            wreckPut(w, ex, ez, mx, sea + 15, ez, VanillaBlocks.lamp2, 2); // kraken lantern on the mast
+        }
+        for (int[] p : new int[][] { { -4, -3 }, { -4, 3 }, { -1, -5 }, { -1, 5 } }) { // lanterns on posts around the funnel
+            int x = ex + p[0], z = ez + p[1];
+            int b = sea + 6;
+            while (b > 1 && (w.getBlock(x, b, z).isAir(w, x, b, z) || w.getBlock(x, b, z).getMaterial() == Material.water)) b--;
+            wreckPut(w, ex, ez, x, b + 1, z, ModBlocks.burrow, BlockBurrow.LOG);
+            wreckPut(w, ex, ez, x, b + 2, z, ModBlocks.burrow, BlockBurrow.LOG);
+            wreckPut(w, ex, ez, x, b + 3, z, VanillaBlocks.lamp2, 2);
+        }
     }
 
     private static void burrow(World world, int x, int y, int z, int meta) {

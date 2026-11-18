@@ -22,6 +22,7 @@ import net.minecraft.world.WorldSavedData;
 import net.minecraft.world.chunk.IChunkProvider;
 
 import com.divinerpgextended.DivineRPGExtended;
+import com.divinerpgextended.block.BlockBurrow;
 import com.divinerpgextended.registry.ModBlocks;
 
 import cpw.mods.fml.common.IWorldGenerator;
@@ -40,7 +41,8 @@ import cpw.mods.fml.common.gameevent.TickEvent;
  * maze about 25 blocks lower: straight corridors as in Egyptian tombs, sandstone walls with a strip of
  * "hieroglyphs" of orange and blue clay, Divine gold lamps in the ceiling. In dead ends there are sarcophagi with chests and
  * undead spawners; in the corridors - a crumbling floor indistinguishable from a normal one, and under it a pit with cobwebs. From the far
- * end of the maze a staircase leads to the burial hall; on a dais by the east wall - the altar for the Mysterious Clock.
+ * end of the maze a staircase leads to the Hall of the Clock (a round hall under a dome, a dial floor, an hourglass); on a dais by the east
+ * wall - the altar for the Mysterious Clock.
  */
 public class WorldGenTomb implements IWorldGenerator {
 
@@ -355,53 +357,88 @@ public class WorldGenTomb implements IWorldGenerator {
             || k < W - 1 && open[i][k + 1];
     }
 
+    /** Hall of the Clock: the inner half size (the round hall reaches HALL_R + 1.5 from the center) and the dome top above the floor. */
+    static final int HALL_R = 13, HALL_DOME = 18;
+
+    /** Decor of the hall without drops (colored inlays, sand of the hourglass): the burrow decor block. */
+    private static void decor(World w, int x, int y, int z, int meta) {
+        set(w, x, y, z, ModBlocks.burrow, meta);
+    }
+
     /**
-     * Burial hall: 27 x 27, height 12, columns of carved sandstone along the perimeter, inside four massive
-     * columns with a belt of gold lamps, lamps in the ceiling. Entrance from the west, a dais with the altar by the east wall.
+     * Hall of the Clock (1.1.3) - the Mysterious Clock summons the boss here: a round hall under a stepped dome, the floor is a dial (a blue ring
+     * of hours, a yellow ring with lamps, the hour hand points at the altar, the minute hand to the north-west), ten hour pillars with lamps,
+     * an hourglass of glass and sand behind the altar. The entrance from the west (3 x 4), the altar on a dais by the east wall, the center is free:
+     * the summoned boss stands there. Inlays and sand are decor without drops ({@link BlockBurrow#DECOR}), glass drops nothing anyway.
      */
     private static void hall(World w, int cx, int tb, int cz) {
-        int r = 13, h = 12;
-        for (int dx = -r - 1; dx <= r + 1; dx++) {
-            for (int dz = -r - 1; dz <= r + 1; dz++) {
+        int r = HALL_R, hd = HALL_DOME;
+        double rr = r + 1.5;
+        for (int dx = -r - 2; dx <= r + 2; dx++) {
+            for (int dz = -r - 2; dz <= r + 2; dz++) {
                 int x = cx + dx, z = cz + dz;
-                boolean wall = Math.abs(dx) == r + 1 || Math.abs(dz) == r + 1;
-                for (int y = tb - 1; y <= tb + h + 1; y++) {
-                    if (wall || y == tb - 1 || y == tb + h + 1) {
-                        boolean pillar = wall && (dx + dz) % 4 == 0;
-                        sandstone(w, x, y, z, pillar ? 1 : 0);
-                    } else if (y == tb) {
-                        boolean inlay = (Math.abs(dx) + Math.abs(dz)) % 6 == 0;
-                        if (inlay) set(w, x, y, z, Blocks.stained_hardened_clay, 11);
-                        else sandstone(w, x, y, z, 2);
-                    } else {
-                        set(w, x, y, z, Blocks.air, 0);
+                double d = Math.sqrt(dx * dx + dz * dz);
+                boolean inner = Math.abs(dx) <= r + 1 && Math.abs(dz) <= r + 1;
+                sandstone(w, x, tb - 1, z, 0);
+                for (int y = 1; y <= hd + 1; y++) {
+                    if (!inner || y > hd) {
+                        sandstone(w, x, tb + y, z, 0);
+                        continue;
                     }
+                    double lim = y <= 9 ? rr : rr - (y - 9) * 1.35; // the dome narrows in steps above the ninth row
+                    if (d < lim) set(w, x, tb + y, z, Blocks.air, 0);
+                    else sandstone(w, x, tb + y, z, y % 4 != 0 ? 2 : 1);
                 }
-                if (!wall && dx % 6 == 0 && dz % 6 == 0) lamp(w, x, tb + h, z);
+                // the dial
+                if (!inner || d >= rr) {
+                    sandstone(w, x, tb, z, inner ? 2 : 0);
+                    continue;
+                }
+                double ang = Math.atan2(dz, dx);
+                if (d >= 1.5 && d <= 8 && dz == 0 && dx > 0) decor(w, x, tb, z, BlockBurrow.CLAY_ORANGE); // hour hand - at the altar
+                else if (d >= 1.5 && d <= 9.5 && Math.abs(Math.IEEEremainder(ang + Math.PI * 0.62, Math.PI * 2)) * d < 0.6) decor(w, x, tb, z, BlockBurrow.CLAY_BROWN);
+                else if (Math.abs(d - 12.3) < 0.6) decor(w, x, tb, z, BlockBurrow.CLAY_BLUE);
+                else if (Math.abs(d - 10.2) < 0.5) decor(w, x, tb, z, BlockBurrow.CLAY_YELLOW);
+                else if (d < 1.5) lamp(w, x, tb, z);
+                else sandstone(w, x, tb, z, 2);
             }
         }
-        // passage from the west
-        for (int dz = -1; dz <= 1; dz++) for (int y = tb + 1; y <= tb + 4; y++) set(w, cx - r - 1, y, cz + dz, Blocks.air, 0);
-        // four massive 3x3 columns with a belt of gold lamps
-        for (int[] c : new int[][] { { -6, -6 }, { -6, 6 }, { 6, -6 }, { 6, 6 } }) {
-            for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
-                for (int y = tb + 1; y <= tb + h; y++) {
-                    boolean belt = y == tb + 6 && (dx == 0 || dz == 0) && !(dx == 0 && dz == 0);
-                    if (belt) lamp(w, cx + c[0] + dx, y, cz + c[1] + dz);
-                    else sandstone(w, cx + c[0] + dx, y, cz + c[1] + dz, y == tb + 1 || y == tb + h ? 1 : 2);
-                }
-            }
+        // ten hour pillars (the east one is the altar wall, the west one is the passage) and lamps of the hours in the yellow ring
+        for (int k = 0; k < 12; k++) {
+            if (k == 0 || k == 6) continue;
+            double a = k * Math.PI / 6;
+            int px = cx + (int) Math.round(Math.cos(a) * 11.6), pz = cz + (int) Math.round(Math.sin(a) * 11.6);
+            for (int y = 1; y <= 8; y++) sandstone(w, px, tb + y, pz, y == 1 || y == 8 ? 1 : 2);
+            lamp(w, px, tb + 9, pz);
+            lamp(w, cx + (int) Math.round(Math.cos(a) * 10.2), tb, cz + (int) Math.round(Math.sin(a) * 10.2));
         }
         // dais with the altar by the east wall: the boss stands in the center of the hall
         int ax = cx + ALTAR_DX;
         for (int dx = -1; dx <= 1; dx++) for (int dz = -2; dz <= 2; dz++) sandstone(w, ax + dx, tb + 1, cz + dz, 2);
-        for (int dz : new int[] { -2, 2 }) lamp(w, ax, tb + 2, cz + dz);
         set(w, ax, tb + ALTAR_DY, cz, ModBlocks.tombAltar, 0);
-        // carved "door" wall behind the altar with lamps
-        for (int dz = -1; dz <= 1; dz++) for (int y = tb + 1; y <= tb + 5; y++) {
-            if ((y + dz) % 2 == 0) lamp(w, cx + r + 1, y, cz + dz);
-            else sandstone(w, cx + r + 1, y, cz + dz, 1);
+        // the hourglass behind the altar: two bulbs of sand in glass between carved plates, a neck of sand (the upper part goes into the dome)
+        int hx = cx + 12;
+        for (int y = 3; y <= 15; y++) {
+            int t = Math.abs(y - 9), wd = t <= 1 ? 0 : Math.min(2, t - 1);
+            for (int dz = -3; dz <= 3; dz++) {
+                int z = cz + dz, adz = Math.abs(dz);
+                if (y == 3 || y == 15) {
+                    sandstone(w, hx, tb + y, z, 1);
+                    sandstone(w, hx + 1, tb + y, z, 1);
+                    continue;
+                }
+                if (adz == 3 && (y == 4 || y == 14)) sandstone(w, hx, tb + y, z, 1);
+                if (adz <= wd) {
+                    if (y <= 6 || y >= 12) decor(w, hx, tb + y, z, BlockBurrow.SAND);
+                    else set(w, hx, tb + y, z, Blocks.glass, 0);
+                } else if (adz == wd + 1) set(w, hx, tb + y, z, Blocks.glass, 0);
+            }
+            sandstone(w, hx + 1, tb + y, cz - 3, 1);
+            sandstone(w, hx + 1, tb + y, cz + 3, 1);
         }
+        for (int y = 7; y <= 11; y++) decor(w, hx, tb + y, cz, BlockBurrow.SAND);
+        // passage from the west: the staircase comes in here
+        for (int dz = -1; dz <= 1; dz++) for (int x = cx - r - 3; x <= cx - r - 1; x++) for (int y = tb + 1; y <= tb + 4; y++) set(w, x, y, cz + dz, Blocks.air, 0);
     }
 
     /** A maze by "recursive backtracking" on a cell grid: true - passage (a 3x3 cell and the openings between cells). */
