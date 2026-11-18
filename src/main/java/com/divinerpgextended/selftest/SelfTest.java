@@ -12790,15 +12790,67 @@ public class SelfTest {
                     + "; focus burning " + lit + ", while burning - invulnerable " + focusSafe + ", broken - hittable " + broken);
             return "The Demon retreats into the tower at 85% and climbs a floor every 12% up to the crown hall; unreachable when not on his floor; in the crown he holds a focus - break it, then strike";
         });
+        t("Lairs", "Twilight Demon: mage spire look", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            int cx = 30000, cz = 30000; // the tower is built by the render test
+            loadAround(w, cx, cz, 3);
+            int top = com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TOP, tx = cx + com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TX,
+                tz = cz + com.divinerpgextended.world.twilight.MortumArenas.SPIRE_TZ;
+            // the needle tip: a lamp under the ceiling, nothing above it
+            int tipY = top + com.divinerpgextended.world.twilight.MortumArenas.SPIRE_H;
+            net.minecraft.block.Block tip = w.getBlock(tx, tipY, tz);
+            boolean needle = tip.getLightValue() > 0 && w.isAirBlock(tx, tipY + 1, tz) && tipY <= 121
+                && w.getBlock(tx, tipY - 1, tz) == Blocks.obsidian;
+            // floating crystals: a glowing core, air below the crystal (it floats)
+            int crystals = 0;
+            for (int i = 0; i < com.divinerpgextended.world.twilight.MortumArenas.SPIRE_CRYSTALS; i++) {
+                int[] c = com.divinerpgextended.world.twilight.MortumArenas.spireCrystal(i);
+                if (w.getBlock(cx + c[0], c[1], cz + c[2]) == Blocks.glowstone && w.isAirBlock(cx + c[0], c[1] - 3, cz + c[2])) crystals++;
+            }
+            // a fin at 30 degrees from the east: Karos brick outside the wall, ten blocks up
+            net.minecraft.block.Block fin = w.getBlock(tx + 9, top + 10, tz + 5);
+            boolean fins = fin == net.divinerpg.utils.blocks.VetheaBlocks.blackKarosBricks;
+            // the door to the platform is open under the south fin
+            int open = 0;
+            for (int dz = 8; dz <= 12; dz++) if (w.isAirBlock(tx, top + 1, tz + dz) && w.isAirBlock(tx, top + 2, tz + dz)) open++;
+            // lamp windows and purple belts in the wall
+            int lamps = 0, purple = 0;
+            net.minecraft.block.Block divineBricks = com.divinerpgextended.world.twilight.MortumArenas.bricks(null);
+            int darkstone = 0;
+            for (int a = 0; a < 360; a += 3) {
+                int x = tx + (int) Math.round(Math.cos(Math.toRadians(a)) * 8.6), z = tz + (int) Math.round(Math.sin(Math.toRadians(a)) * 8.6);
+                for (int y = top + 1; y <= top + 44; y++) {
+                    net.minecraft.block.Block b = w.getBlock(x, y, z);
+                    int m = w.getBlockMetadata(x, y, z);
+                    if (b.getLightValue() > 0) lamps++;
+                    if (b == divineBricks && m == com.divinerpgextended.world.twilight.MortumArenas.BRICKS_PURPLE) purple++;
+                    if (b == divineBricks && m == com.divinerpgextended.world.twilight.MortumArenas.BRICKS_DARKSTONE) darkstone++;
+                }
+            }
+            // the needle is purple brick too
+            int needleBricks = 0;
+            for (int y = top + 54; y <= top + 70; y++)
+                if (w.getBlock(tx + 3, y, tz) == divineBricks && w.getBlockMetadata(tx + 3, y, tz) == com.divinerpgextended.world.twilight.MortumArenas.BRICKS_PURPLE) needleBricks++;
+            check(needle && crystals == com.divinerpgextended.world.twilight.MortumArenas.SPIRE_CRYSTALS && fins && open == 5 && lamps > 50 && purple > 50 && darkstone > 20
+                && needleBricks > 3,
+                "needle tip y " + tipY + " " + tip.getUnlocalizedName() + " ok " + needle + "; crystals " + crystals + "; fin " + fin.getUnlocalizedName() + "; door path open " + open
+                    + "/5; wall lamps " + lamps + ", purple belts " + purple + ", darkstone " + darkstone + "; needle purple " + needleBricks);
+            return "Mage spire: fins, lamp windows and purple belts, a needle with a lamp under the ceiling, three floating crystals; the door to the platform is open";
+        });
         t("Lairs", "Eternal Archer: runners, volley through blocks, arrow rain", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int cx = 30000 + com.divinerpgextended.world.twilight.MortumArenas.Type.ARCHER.ordinal() * 160, cz = 30000; // the gallery is built by the render test
             loadAround(w, cx, cz, 3);
             int top = com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP;
             int hz = com.divinerpgextended.world.twilight.MortumArenas.GALLERY_HZ;
-            net.minecraft.block.Block roofBlock = w.getBlock(cx - 5, top + 15, cz); // basilica (1.1.3): netherite brick with rows of nether brick
-            boolean roof = (roofBlock == com.divinerpgextended.world.twilight.MortumArenas.divine("netheriteBricks", Blocks.nether_brick) || roofBlock == Blocks.nether_brick)
-                && w.getBlock(cx, top + 20, cz) == Blocks.obsidian;
+            // basilica (1.1.3): netherite brick (Divine Bricks, meta 9) with rows of nether brick, an obsidian ridge
+            net.minecraft.block.Block divineBricks = com.divinerpgextended.world.twilight.MortumArenas.bricks(null);
+            int netherite = 0;
+            for (int roofZ = 0; roofZ < 4; roofZ++)
+                if (divineBricks != null && w.getBlock(cx - 5, top + 15, cz + roofZ) == divineBricks
+                    && w.getBlockMetadata(cx - 5, top + 15, cz + roofZ) == com.divinerpgextended.world.twilight.MortumArenas.BRICKS_NETHERITE) netherite++;
+            net.minecraft.block.Block roofBlock = w.getBlock(cx - 5, top + 15, cz);
+            boolean roof = netherite >= 2 && w.getBlock(cx, top + 20, cz) == Blocks.obsidian;
             net.divinerpg.entities.twilight.EntityEternalArcher ea = new net.divinerpg.entities.twilight.EntityEternalArcher(w);
             ea.setLocationAndAngles(cx + 0.5, top + 4, cz - hz + 3.5, 0, 0);
             w.spawnEntityInWorld(ea);

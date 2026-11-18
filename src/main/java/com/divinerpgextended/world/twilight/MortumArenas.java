@@ -236,7 +236,13 @@ public final class MortumArenas {
 
     /** The Demon tower for the fight (from the arena center): tower center, radius, platform floor, fight floors, crown hall. */
     public static final int SPIRE_TX = Spire.TX, SPIRE_TZ = Spire.TZ, SPIRE_TR = Spire.TR, SPIRE_TOP = Spire.TOP, SPIRE_CROWN = Spire.CROWN,
-        SPIRE_BASE = Spire.BASE, SPIRE_COURT = Spire.COURT, SPIRE_LIFT = Spire.LIFT, SPIRE_MOAT = Spire.MOAT_OUT;
+        SPIRE_BASE = Spire.BASE, SPIRE_COURT = Spire.COURT, SPIRE_LIFT = Spire.LIFT, SPIRE_MOAT = Spire.MOAT_OUT, SPIRE_H = Spire.SPIRE_H,
+        SPIRE_CRYSTALS = Spire.CRYSTALS.length;
+
+    /** The floating crystal n of the Demon spire: its glowing core {dx, y, dz} from the arena center. */
+    public static int[] spireCrystal(int n) {
+        return Spire.crystal(n);
+    }
 
     /** The Demon's main power focus: a block on the crown hall pedestal {dx, y, dz} from the arena center. */
     public static int[] crownFocus() {
@@ -307,6 +313,19 @@ public final class MortumArenas {
     static final int NSTAIR = 87;
     /** Arena redesign (1.1.3): Divine netherite bricks, quartz and carved quartz without a skin, purple glass, a nether brick slab. */
     static final int NETHERITE = 88, QUARTZ = 89, QUARTZ_CHISEL = 90, PURPLE_GLASS = 91, NSLAB = 92;
+    /** Mage spire (1.1.4): Divine darkstone and purple bricks. */
+    static final int DARKSTONE = 93, PURPLE = 94;
+    /**
+     * Divine colored bricks are one block "divinerpg:Bricks", the color by meta (the same order in Divine 1.4.1.5 and 1.4.2.3): darkstone 2,
+     * netherite 9, purple 11. There are no blocks "netheriteBricks" and the like - those are only texture and translation names.
+     */
+    public static final int BRICKS_DARKSTONE = 2, BRICKS_NETHERITE = 9, BRICKS_PURPLE = 11;
+
+    /** The Divine colored bricks block (the color is the meta); missing - the fallback. */
+    public static Block bricks(Block fallback) {
+        Block b = divine("Bricks", null);
+        return b != null ? b : fallback;
+    }
 
     private static final java.util.Map<String, Block> DIVINE = new java.util.HashMap<String, Block>();
 
@@ -385,10 +404,12 @@ public final class MortumArenas {
                 case SOUL: return Blocks.soul_sand;
                 case NETHER: return Blocks.nether_brick;
                 case BARS: return Blocks.iron_bars;
-                case NETHERITE: return divine("netheriteBricks", Blocks.nether_brick);
+                case NETHERITE: return bricks(Blocks.nether_brick);
                 case QUARTZ: case QUARTZ_CHISEL: return Blocks.quartz_block;
                 case PURPLE_GLASS: return Blocks.stained_glass;
                 case NSLAB: return Blocks.stone_slab;
+                case DARKSTONE: return bricks(Blocks.nether_brick);
+                case PURPLE: return bricks(Blocks.obsidian);
                 default: return WorldGenNests.palette(TwilightWorld.MORTUM, code);
             }
         }
@@ -409,6 +430,9 @@ public final class MortumArenas {
                 case QSLAB: return 7;
                 case QUARTZ_CHISEL: return 1;
                 case PURPLE_GLASS: return 10;
+                case NETHERITE: return BRICKS_NETHERITE;
+                case DARKSTONE: return BRICKS_DARKSTONE;
+                case PURPLE: return BRICKS_PURPLE;
                 case NSLAB: return 6;
                 default: return 0;
             }
@@ -1333,16 +1357,30 @@ public final class MortumArenas {
 
         /** The platform is LIFT higher than the floor of other arenas: the cliff is almost 30 blocks above the bottom of the world. */
         static final int LIFT = 12, TOP = WorldGenNests.MORTUM_TOP + LIFT;
-        /** The spire ends below the Mortum bedrock ceiling (~123). */
-        static final int COURT = 15, CRAG = 44, TX = 0, TZ = -21, TR = 9, TH = 44, ROOF = 18, STEP = 14, BASE = -28;
+        static final int COURT = 15, CRAG = 44, TX = 0, TZ = -21, TR = 9, TH = 44, STEP = 14, BASE = -28;
         /** Tower floors (from the platform floor): dungeon, storeroom, hall, library, laboratory, chambers, crown hall. */
         static final int[] FLOORS = { -21, -14, -7, 0, 7, 14, 21, 28, 35 };
         static final int CROWN = 35, BALCONY = 21;
-        /** Turrets: angle around the tower, bottom and top (from the platform floor), radius. */
-        static final double[][] TURRETS = { { 0.15, 6, 30, 2.8 }, { -1.15, 16, 38, 2.6 }, { -2.6, -2, 26, 2.9 } };
+        /**
+         * Mage spire (1.1.4): six gothic fins (the south one rises over the door), lamp windows in the six columns between them, a crown
+         * terrace, a lantern tier (radius LR, height LH), a needle of purple brick (height NEEDLE); over the crown a floating halo, around the
+         * tower three floating crystals. The needle tip (SPIRE_H above the platform, y 121) stays below the Mortum bedrock ceiling (~123).
+         */
+        static final double[] FINS = new double[6], WINS = new double[6];
+        static {
+            for (int k = 0; k < 6; k++) {
+                FINS[k] = Math.PI / 2 + k * Math.PI / 3;
+                WINS[k] = FINS[k] + Math.PI / 6;
+            }
+        }
+        static final double LR = 5.5, NEEDLE_R = LR + 0.5;
+        static final int LH = 8, NEEDLE = 16, NEEDLE_Y = TH + 2 + LH, APEX = NEEDLE_Y + (int) Math.round((NEEDLE_R + 0.3) * NEEDLE / NEEDLE_R), SPIRE_H = APEX + 2;
+        /** Floating crystals: angle around the tower and height of the center above the platform (at TR + 5 from the tower axis). */
+        static final double[][] CRYSTALS = { { 0.35, 24 }, { Math.PI - 0.35, 31 }, { -Math.PI / 2 + 0.2, 38 } };
         /** The Lethe moat at the foot (from the south and sides), a bridge on the path. */
         static final int MOAT_IN = 39, MOAT_OUT = 44;
         static final int FOCUS = 90, BOOKS = 91;
+        private static Voxels deco;
 
         @Override
         int skin(int code) {
@@ -1387,12 +1425,61 @@ public final class MortumArenas {
             return MOAT_OUT + 1;
         }
 
-        /** Cleared high only around the tower; above the courtyard - for obelisks and parapet; slopes - with their own dome ({@link #dome}). */
+        /**
+         * Cleared high only around the tower (up to the needle tip); above the courtyard - for obelisks and parapet; slopes - with their own dome
+         * ({@link #dome}). The halo and the crystals get air around them from the decoration envelope.
+         */
         @Override
         int clear(int dx, int dz) {
             // height - from the floor of other arenas (Building.TOP), and the tower platform is LIFT higher
-            if (tower(dx, dz) <= TR + 3) return LIFT + TH + ROOF + 8; // narrow: the tower with turrets and buttresses
+            if (tower(dx, dz) <= TR + 4) return LIFT + SPIRE_H; // narrow: the tower with its fins
             return dx * dx + dz * dz <= (COURT + 1) * (COURT + 1) ? LIFT + 12 : 0;
+        }
+
+        @Override
+        Voxels voxels() {
+            return magic();
+        }
+
+        /** Floating parts of the spire: a halo of stones with lamps over the needle base and three crystals (obsidian frame, glowing core). */
+        private static synchronized Voxels magic() {
+            if (deco != null) return deco;
+            Voxels v = new Voxels();
+            for (int k = 0; k < 8; k++) {
+                double a = k * Math.PI / 4 + 0.2;
+                int x = (int) Math.round(TX + Math.cos(a) * 9.5), z = (int) Math.round(TZ + Math.sin(a) * 9.5), y = TOP + TH + 15 + k % 2 * 2;
+                v.put(x, y, z, OBSIDIAN);
+                v.put(x, y + 1, z, WorldGenNests.GLOW);
+                v.put(x, y + 2, z, OBSIDIAN);
+            }
+            for (int n = 0; n < CRYSTALS.length; n++) {
+                int[] c = crystal(n);
+                for (int dy = -2; dy <= 2; dy++) {
+                    int w = 2 - Math.abs(dy);
+                    for (int i = -w; i <= w; i++) for (int k = -w; k <= w; k++) {
+                        boolean edge = Math.abs(i) == w || Math.abs(k) == w;
+                        v.put(c[0] + i, c[1] + dy, c[2] + k, !edge ? DLAMP : (Math.abs(i) + Math.abs(k)) % 2 == 0 ? OBSIDIAN : AIR);
+                    }
+                }
+            }
+            return deco = v;
+        }
+
+        /** Center of the floating crystal n {dx, y, dz} (the glowing core). */
+        static int[] crystal(int n) {
+            double[] c = CRYSTALS[n];
+            return new int[] { (int) Math.round(TX + Math.cos(c[0]) * (TR + 5)), TOP + (int) c[1], (int) Math.round(TZ + Math.sin(c[0]) * (TR + 5)) };
+        }
+
+        /** The column is within `width` blocks (along the wall) of one of the rays at the given angles from the tower axis. */
+        static boolean onRay(double ang, double td, double[] rays, double width) {
+            for (double r : rays) if (Math.abs(Math.IEEEremainder(ang - r, Math.PI * 2)) * td < width) return true;
+            return false;
+        }
+
+        /** Tower wall: black Karos brick with darkstone brick here and there. */
+        static int stone(int dx, int y, int dz) {
+            return hash(dx * 31 + y, dz * 17 - y) % 6 == 0 ? DARKSTONE : DDBRICK;
         }
 
         /** Top of the clearing above the cliff slope: a dome above the courtyard, descending outward. The tower passes through the upper layers by itself. */
@@ -1508,38 +1595,47 @@ public final class MortumArenas {
                 } else if (top > base + 4) for (int y = base + 1; y <= base + 4; y++) set(col, y, NETHER);
             }
             tower(dx, dz, td, col);
-            turrets(dx, dz, col);
         }
 
-        /** Main tower: walls with windows, buttresses, floors and a spiral staircase, a balcony, a belt with spikes and chains, a spire. */
+        /**
+         * Main tower: walls with lamp windows and purple belts, floors and a spiral staircase inside; below the platform (in the cliff rock)
+         * diagonal buttresses, above it six fins into pinnacles; the crown terrace, the lantern tier and the needle.
+         */
         private void tower(int dx, int dz, double td, int[] col) {
-            int ax = Math.abs(dx), az = Math.abs(dz);
+            int ax = Math.abs(dx);
             double ang = Math.atan2(dz - TZ, dx - TX);
             int base = TOP + BASE;
-            // buttresses: four diagonal ribs, narrowing from the foot toward the middle of the tower
+            // buttresses below the platform: four diagonal ribs from the foot, cut at the platform level (above it - the fins)
             double ribA = Math.abs(((ang % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2) - Math.PI / 4); // zero on the diagonals, doors are free
             if (td > TR && td <= TR + 3.5 && ribA * td < 0.8) {
-                int h = (int) ((TR + 3.5 - td) / 3.5 * (BALCONY - BASE)) + base;
+                int h = Math.min(TOP - 1, (int) ((TR + 3.5 - td) / 3.5 * (BALCONY - BASE)) + base);
                 put(col, base - 1, FOUNDATION, 0);
                 for (int y = base; y <= h; y++) set(col, y, NETHER);
-                set(col, h + 1, SLAB_TOP);
+                if (h < TOP - 1) set(col, h + 1, SLAB_TOP);
             }
-            // balcony: a ring of slabs outside with railings
-            if (td > TR && td <= TR + 1.6) {
-                set(col, TOP + BALCONY, SLAB_TOP);
-                if (td > TR + 0.8) set(col, TOP + BALCONY + 1, FENCE);
+            // fins: from the platform past the wall top into pinnacles with a lamp; brick with purple belts, obsidian above the wall; the south
+            // fin starts over the door
+            if (td > TR && td <= TR + 3.3 && onRay(ang, td, FINS, 0.7)) {
+                boolean door = dz > TZ && ax <= 1;
+                if (col[(TOP - 1) * 2] == KEEP) put(col, TOP - 1, FOUNDATION, 0); // over the cliff edge - on its own foundation
+                for (int h = door ? 7 : 0; h < TH + 9; h++) {
+                    double out = h < TH ? TR + 3.2 - h * 0.05 : TR + 1.0;
+                    if (td <= out) set(col, TOP + h, h >= TH ? OBSIDIAN : h % 7 == 0 ? PURPLE : DDBRICK);
+                }
+                if (td <= TR + 1.0) {
+                    set(col, TOP + TH + 9, FENCE);
+                    set(col, TOP + TH + 10, WorldGenNests.GLOW);
+                }
             }
-            if (td > TR + 1.6) return;
             if (td <= TR) {
                 put(col, base - 1, FOUNDATION, 0);
                 boolean wall = td > TR - 1.3;
                 for (int y = base; y <= TOP + TH; y++) {
-                    int h = y - TOP;
-                    if (wall) {
-                        boolean window = h % 7 == 3 && (int) ((ang + Math.PI) * 4) % 3 == 0 && h > -20;
-                        boolean crownWin = h > CROWN && h < TH && (int) ((ang + Math.PI) * 4) % 2 == 0; // wide windows of the crown hall
+                    int h = y - TOP, m7 = Math.floorMod(h, 7);
+                    if (wall) { // lamp windows three high above every floor, in the columns between the fins
+                        boolean window = h > -20 && m7 >= 2 && m7 <= 4 && onRay(ang, td, WINS, 0.6);
                         put(col, y, AIR, 0);
-                        if (!crownWin) set(col, y, window ? WorldGenNests.GLOW : h % 7 == 0 ? CHISEL : NETHER);
+                        set(col, y, window ? WorldGenNests.GLOW : m7 == 0 && h != 0 ? PURPLE : stone(dx, y, dz));
                         continue;
                     }
                     boolean ring = td > TR - 3.3; // staircase ring along the wall
@@ -1559,74 +1655,33 @@ public final class MortumArenas {
                     put(col, TOP + CROWN + 2, FOCUS, 0);
                 }
             }
-            // overhanging belt with crenellations and spikes, chains down
-            if (td > TR - 1.3) {
-                set(col, TOP + TH + 1, NETHER);
-                set(col, TOP + TH + 2, NETHER);
-                if ((ax + az) % 2 == 0) {
-                    set(col, TOP + TH + 3, NETHER);
-                    if ((ax * 3 + az) % 6 == 0) {
-                        set(col, TOP + TH + 4, FENCE);
-                        set(col, TOP + TH + 5, OBSIDIAN);
-                    }
-                }
-                if (td > TR) {
-                    set(col, TOP + TH, SLAB_TOP);
-                    if ((ax * 5 + az * 3) % 11 == 0) for (int y = TOP + TH - 7; y < TOP + TH; y++) set(col, y, BARS); // chains
-                }
+            // crown terrace over the crown hall (its ceiling) with a purple parapet
+            if (td <= TR) {
+                set(col, TOP + TH + 1, td > TR - 1.3 ? PURPLE : CHISEL);
+                if (td > TR - 0.8 && Math.floorMod(dx + dz, 2) == 0) set(col, TOP + TH + 2, PURPLE);
             }
-            // spire
-            if (td <= TR - 1) {
-                // roof: solid (thickness - the height difference between neighboring columns, without gaps), dark brick with
-                // obsidian belts, on the top an obsidian spire with fire
-                double k = ROOF / (double) TR;
-                int cone = TOP + TH + 2 + (int) Math.round((TR - td + 0.3) * k), shell = (int) Math.ceil(k) + 1;
-                for (int y = TOP + TH + 2; y < cone - shell; y++) put(col, y, AIR, 0);
-                for (int y = Math.max(TOP + TH + 2, cone - shell); y <= cone; y++) set(col, y, (cone - TOP - TH) % 5 == 0 ? OBSIDIAN : NETHER);
-                if (td < 0.7) for (int y = cone; y <= cone + 4; y++) set(col, y, y == cone + 4 ? WorldGenNests.GLOW : OBSIDIAN);
-            }
-        }
-
-        /** Turret center (x, z). */
-        static double[] turret(double[] t) {
-            return new double[] { TX + Math.cos(t[0]) * (TR + 1.8), TZ + Math.sin(t[0]) * (TR + 1.8) };
-        }
-
-        /** Turrets: walls, a corbel from below, a lantern focus on top under a cone. */
-        private void turrets(int dx, int dz, int[] col) {
-            for (double[] t : TURRETS) {
-                double[] c = turret(t);
-                double d = Math.sqrt((dx - c[0]) * (dx - c[0]) + (dz - c[1]) * (dz - c[1])), tr = t[3];
-                if (d > tr + 0.3) continue;
-                int lo = TOP + (int) t[1], hi = TOP + (int) t[2];
-                for (int y = lo; y <= hi; y++) set(col, y, NETHER);
-                set(col, lo - 1, SLAB_TOP); // corbel
-                // lantern: open windows near the top, the focus in the center
-                if (d > tr - 1) {
-                    boolean win = ((int) Math.round((Math.atan2(dz - c[1], dx - c[0]) + Math.PI) * 2)) % 2 == 0;
-                    if (win) for (int y = hi - 3; y <= hi - 1; y++) put(col, y, AIR, 0);
-                } else {
-                    for (int y = hi - 3; y <= hi - 1; y++) put(col, y, AIR, 0);
-                    if (d < 0.8) put(col, hi - 2, FOCUS, 0);
+            // lantern tier: a narrow drum with tall lamp windows, a purple cap
+            if (td <= LR) {
+                for (int h = TH + 2; h < NEEDLE_Y; h++) {
+                    put(col, TOP + h, AIR, 0);
+                    if (td <= LR - 1.3) continue;
+                    int i = h - TH - 2;
+                    boolean win = i >= 2 && i <= LH - 3 && (int) ((ang + Math.PI) * 6 / Math.PI) % 2 == 0;
+                    if (!win) set(col, TOP + h, DDBRICK);
+                    else if (td > LR - 0.7) set(col, TOP + h, WorldGenNests.GLOW);
                 }
-                int cone = hi + 1 + (int) Math.round((tr + 0.3 - d) * 2.4);
-                for (int y = Math.max(hi + 1, cone - 3); y <= cone; y++) set(col, y, OBSIDIAN); // solid cone, without gaps
-                if (d < 0.6) {
-                    set(col, cone + 1, OBSIDIAN);
-                    set(col, cone + 2, FENCE);
+                set(col, TOP + NEEDLE_Y, PURPLE);
+            }
+            // needle: a solid steep cone of purple brick with obsidian rows, on the tip obsidian and a lamp
+            if (td <= NEEDLE_R + 0.25) {
+                double k = NEEDLE / NEEDLE_R;
+                int y0 = TOP + NEEDLE_Y, top = y0 + (int) Math.round((NEEDLE_R - td + 0.3) * k);
+                for (int y = Math.max(y0, top - (int) Math.ceil(k) - 2); y <= top; y++) set(col, y, (y - y0) % 5 == 4 ? OBSIDIAN : PURPLE);
+                if (dx == TX && dz == TZ) {
+                    set(col, TOP + APEX + 1, OBSIDIAN);
+                    set(col, TOP + SPIRE_H, WorldGenNests.GLOW);
                 }
             }
-        }
-
-        /** The Demon's power foci (offsets from the center): three turret lanterns and the main one in the crown hall. */
-        static java.util.List<int[]> foci() {
-            java.util.List<int[]> l = new java.util.ArrayList<int[]>();
-            for (double[] t : TURRETS) {
-                double[] c = turret(t);
-                l.add(new int[] { (int) Math.floor(c[0] + 0.5), TOP + (int) t[2] - 2, (int) Math.floor(c[1] + 0.5) });
-            }
-            l.add(new int[] { TX, TOP + CROWN + 2, TZ });
-            return l;
         }
 
         @Override
@@ -1641,17 +1696,6 @@ public final class MortumArenas {
                 place(w, cx, cz, x0, z0, px, y, pz, Blocks.nether_brick_fence, 0);
                 place(w, cx, cz, x0, z0, px, y + 1, pz, Blocks.nether_brick_fence, 0);
                 skull(w, cx, cz, x0, z0, px, y + 2, pz, i);
-            }
-            // skull cages under the turret corbels
-            for (double[] t : TURRETS) {
-                double[] c = turret(t);
-                int tx = (int) Math.floor(c[0] + 0.5) + (int) Math.round(Math.cos(t[0]) * 4), tz = (int) Math.floor(c[1] + 0.5) + (int) Math.round(Math.sin(t[0]) * 4);
-                int ty = TOP + (int) t[1] - 3;
-                for (int y = ty; y <= ty + 2; y++) for (int i = -1; i <= 1; i++) for (int k = -1; k <= 1; k++)
-                    if (Math.abs(i) == 1 || Math.abs(k) == 1 || y == ty) place(w, cx, cz, x0, z0, tx + i, y, tz + k, Blocks.iron_bars, 0);
-                place(w, cx, cz, x0, z0, tx, ty - 1, tz, Blocks.iron_bars, 0);
-                skull(w, cx, cz, x0, z0, tx, ty + 1, tz, 3);
-                for (int y = ty + 3; y < TOP + (int) t[1] - 1; y++) place(w, cx, cz, x0, z0, tx, y, tz, Blocks.iron_bars, 0); // chain to the corbel
             }
             // floor furnishings
             int base = TOP + BASE;

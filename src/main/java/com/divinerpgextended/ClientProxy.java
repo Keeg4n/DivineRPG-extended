@@ -53,6 +53,7 @@ public class ClientProxy extends CommonProxy {
     public void init(FMLInitializationEvent event) {
         super.init(event);
         com.divinerpgextended.client.EasterClient.init();
+        com.divinerpgextended.client.DivineSoundCategories.register(); // Divine mob voices under the creature volume sliders
         com.divinerpgextended.client.RenderWandererAnvil.register();
         com.divinerpgextended.client.RenderLockedChest.register();
         com.divinerpgextended.client.MaulSwingClient maulSwing = new com.divinerpgextended.client.MaulSwingClient(); // maul cooldown
