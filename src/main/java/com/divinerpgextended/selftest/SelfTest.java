@@ -5548,24 +5548,55 @@ public class SelfTest {
 
         // ---- the Ayeraco flock ----
         t("Accessories", "Drop after the whole flock", () -> {
+            // A has not reached the horde (rank 0) and finishes the first dragon; B (rank 3) hits the first one and finishes the second
             TestPlayer a = join(player(0, "TestFlock", sx + 6, sy, sz + 6), true);
+            TestPlayer b = join(player(0, "TestFlockReady", sx + 7, sy, sz + 6), true);
             persisted(a).removeTag("dre_acc_got");
+            persisted(b).removeTag("dre_acc_got");
+            rankTo(a, 0);
+            rankTo(b, 3);
             net.divinerpg.entities.vanilla.EntityAyeracoGreen g1 = new net.divinerpg.entities.vanilla.EntityAyeracoGreen(ow);
             net.divinerpg.entities.vanilla.EntityAyeracoRed g2 = new net.divinerpg.entities.vanilla.EntityAyeracoRed(ow);
             g1.setPosition(sx + 8, sy + 3, sz + 8);
             g2.setPosition(sx + 9, sy + 3, sz + 8);
             ow.spawnEntityInWorld(g1);
             ow.spawnEntityInWorld(g2);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(g1, DamageSource.causePlayerDamage(b), 1));
             g1.setHealth(0);
             MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(g1, DamageSource.causePlayerDamage(a)));
-            int afterFirst = ownedDrops(a, Trinket.AYERACO_WING);
+            int afterFirst = ownedDrops(a, Trinket.AYERACO_WING) + ownedDrops(b, Trinket.AYERACO_WING);
             g1.setDead();
             g2.setHealth(0);
-            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(g2, DamageSource.causePlayerDamage(a)));
-            int afterLast = ownedDrops(a, Trinket.AYERACO_WING);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(g2, DamageSource.causePlayerDamage(b)));
+            int ready = ownedDrops(b, Trinket.AYERACO_WING), early = ownedDrops(a, Trinket.AYERACO_WING);
             g2.setDead();
-            check(afterFirst == 0 && afterLast == 1, "wing after the first: " + afterFirst + ", after the last: " + afterLast);
-            return "after the first dragon there is no wing, after the last there is";
+            rankTo(a, 0);
+            rankTo(b, 0);
+            check(afterFirst == 0 && ready == 1 && early == 0, "wing after the first: " + afterFirst + ", after the last: who reached the horde " + ready + ", who did not " + early);
+            return "after the first dragon there is no wing, after the last - to everyone who hit the horde and reached it; whoever has not reached the horde gets nothing";
+        });
+        t("Accessories", "Colossus pauldron by stage", () -> {
+            // ready (rank 1, the Lich King's stage) and early (rank 0) both hit the Colossus, an onlooker nearby did not hit
+            TestPlayer ready = join(player(0, "TestColReady", sx + 6, sy, sz + 4), true);
+            TestPlayer early = join(player(0, "TestColEarly", sx + 7, sy, sz + 4), true);
+            TestPlayer look = join(player(0, "TestColLook", sx + 8, sy, sz + 4), true);
+            for (TestPlayer colP : new TestPlayer[] { ready, early, look }) persisted(colP).removeTag("dre_acc_got");
+            rankTo(ready, 1);
+            rankTo(early, 0);
+            rankTo(look, 3);
+            com.divinerpgextended.entity.EntityFrostColossus col = new com.divinerpgextended.entity.EntityFrostColossus(ow);
+            col.setPosition(sx + 8, sy + 1, sz + 8);
+            ow.spawnEntityInWorld(col);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(col, DamageSource.causePlayerDamage(ready), 1));
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingHurtEvent(col, DamageSource.causePlayerDamage(early), 1));
+            col.setHealth(0);
+            MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.LivingDeathEvent(col, DamageSource.causePlayerDamage(early)));
+            int r = ownedDrops(ready, Trinket.COLOSSUS_PAULDRON), e = ownedDrops(early, Trinket.COLOSSUS_PAULDRON), l = ownedDrops(look, Trinket.COLOSSUS_PAULDRON);
+            boolean need = "dre.boss.carcinus".equals(com.divinerpgextended.boss.ProgressSpawns.bossNeedKey(col));
+            col.setDead();
+            for (TestPlayer colP : new TestPlayer[] { ready, early, look }) rankTo(colP, 0);
+            check(r == 1 && e == 0 && l == 0 && need, "pauldron: reached the Lich King " + r + ", not reached (finished him) " + e + ", did not hit " + l + "; stage - after Carcinus " + need);
+            return "the Frost Colossus pauldron - only to those who hit him and reached the Lich King's stage; not to those who have not, nor to onlookers";
         });
 
         // ---- a jump with the Ayeraco Wing cancels the fall ----
@@ -5912,7 +5943,7 @@ public class SelfTest {
             int az = c[2] - com.divinerpgextended.world.twilight.WorldGenNests.ALTAR_DZ;
             String log = "";
             boolean altar = w.getBlock(c[0], top + 2, az) == com.divinerpgextended.registry.ModBlocks.nestAltar;
-            boolean column = w.getBlock(c[0] + 27, top + 5, c[2] + 11) == Blocks.quartz_block; // a twisted wind spire on the rim (1.1.3: no colonnade)
+            boolean column = w.getBlock(c[0] + 27, top + 5, c[2] + 11) == com.divinerpgextended.world.WhiteStone.block(); // a twisted wind spire on the rim (1.1.3: no colonnade)
             boolean open = w.isAirBlock(c[0], top + 10, c[2]);
             int clouds = 0, ladders = 0;
             for (int i = 0; i < 4; i++) {
@@ -11692,7 +11723,7 @@ public class SelfTest {
             boolean skull = com.divinerpgextended.world.twilight.MortumWorld.giantSkull(w, rr, com.divinerpgextended.world.twilight.TwilightWorld.MORTUM, x0, z0);
             int bone = 0, chest = 0, airInside = 0;
             for (int x = x0 - 7; x <= x0 + 7; x++) for (int z = z0 - 7; z <= z0 + 7; z++) for (int y = y0 - 6; y <= y0 + 9; y++) {
-                if (w.getBlock(x, y, z) == Blocks.quartz_block) bone++;
+                if (w.getBlock(x, y, z) == com.divinerpgextended.world.WhiteStone.block()) bone++;
                 if (w.getBlock(x, y, z) == Blocks.chest) chest++;
                 if (Math.abs(x - x0) <= 2 && Math.abs(z - z0) <= 2 && y >= y0 && y <= y0 + 3 && w.isAirBlock(x, y, z)) airInside++;
             }
@@ -11702,7 +11733,7 @@ public class SelfTest {
             boolean ribs = com.divinerpgextended.world.twilight.MortumWorld.giantRibs(w, rr, com.divinerpgextended.world.twilight.TwilightWorld.MORTUM, x0, z0);
             int rib = 0, high = 0;
             for (int x = x0 - 9; x <= x0 + 9; x++) for (int z = z0 - 9; z <= z0 + 9; z++) for (int y = y0 - 1; y <= y0 + 8; y++)
-                if (w.getBlock(x, y, z) == Blocks.quartz_block) {
+                if (w.getBlock(x, y, z) == com.divinerpgextended.world.WhiteStone.block()) {
                     rib++;
                     if (y >= y0 + 4) high++;
                 }
@@ -14221,7 +14252,7 @@ public class SelfTest {
                 && w.getBlock(cx, TOP + 3, cz).getMaterial() == net.minecraft.block.material.Material.lava;
             double[] pc = com.divinerpgextended.world.WatcherVault.pillar(14, 6);
             int px = cx + (int) Math.floor(pc[0]), pz = cz + (int) Math.floor(pc[1]);
-            boolean mosaic = w.getBlock(cx, F, cz) == Blocks.obsidian && w.getBlock(cx + 4, F, cz) == Blocks.stained_hardened_clay && (w.getBlock(cx + 9, F, cz + 1) == Blocks.quartz_block || w.getBlock(cx + 9, F, cz + 1) == Blocks.stained_hardened_clay);
+            boolean mosaic = w.getBlock(cx, F, cz) == Blocks.obsidian && w.getBlock(cx + 4, F, cz) == Blocks.stained_hardened_clay && (w.getBlock(cx + 9, F, cz + 1) == com.divinerpgextended.world.WhiteStone.block() || w.getBlock(cx + 9, F, cz + 1) == Blocks.stained_hardened_clay);
             boolean pillar = w.getBlock(px, F + 4, pz) == Blocks.obsidian && w.getBlock(px, TOP - 6, pz) != Blocks.air;
             int lamps = 0;
             for (int dx = -R; dx <= R; dx++) for (int dz = -R; dz <= R; dz++) for (int y = F + 1; y <= F + 18; y += 6)
@@ -14256,9 +14287,9 @@ public class SelfTest {
                     walk += " " + t + "=" + w.getBlock(cx + R - 1 + t, yb + 1, cz).getUnlocalizedName() + "/" + w.getBlock(cx + R - 1 + t, yb + 2, cz).getUnlocalizedName();
             }
             boolean gate = w.getBlock(cx + end, TY + 5, cz + 3) == Blocks.obsidian && w.getBlock(cx + end, TY + 9, cz + 3) == Blocks.glowstone
-                && w.getBlock(cx + end, TY + 7, cz) == Blocks.quartz_block && w.getBlock(cx + end, TY + 6, cz) == Blocks.obsidian && w.getBlock(cx + end + 3, TY - 1, cz) == Blocks.nether_brick
+                && w.getBlock(cx + end, TY + 7, cz) == com.divinerpgextended.world.WhiteStone.block() && w.getBlock(cx + end, TY + 6, cz) == Blocks.obsidian && w.getBlock(cx + end + 3, TY - 1, cz) == Blocks.nether_brick
                 && w.getBlock(cx + end + 3, TY, cz + 3) == Blocks.nether_brick_fence && w.isAirBlock(cx + end + 3, TY + 1, cz) && w.getBlock(cx + end - 3, TY + 2, cz + 5) == Blocks.netherrack
-                && w.getBlock(cx + R - 1, F + 2, cz + 3) == Blocks.quartz_block;
+                && w.getBlock(cx + R - 1, F + 2, cz + 3) == com.divinerpgextended.world.WhiteStone.block();
             boolean tunnel = walk.isEmpty() && gate;
             TestPlayer v = join(player(-1, "TestWatcher", cx + 18.5, F + 1, cz + 0.5), true);
             net.minecraft.item.Item call = net.divinerpg.utils.items.VanillaItemsOther.callWatcher;
@@ -14381,7 +14412,7 @@ public class SelfTest {
             net.minecraftforge.event.entity.living.LivingHurtEvent boom = new net.minecraftforge.event.entity.living.LivingHurtEvent(v, DamageSource.setExplosionSource(null), 40F);
             MinecraftForge.EVENT_BUS.post(boom);
             boolean blast = w.getBlock(ex + 1, ey, ez) == Blocks.netherrack && !loot.isDead && wt.getHealth() == hpBefore && boom.ammount <= com.divinerpgextended.boss.WatcherHunt.BLAST_CAP
-                && (w.getBlock(cx + 9, F, cz + 1) == Blocks.quartz_block || w.getBlock(cx + 9, F, cz + 1) == Blocks.stained_hardened_clay);
+                && (w.getBlock(cx + 9, F, cz + 1) == com.divinerpgextended.world.WhiteStone.block() || w.getBlock(cx + 9, F, cz + 1) == Blocks.stained_hardened_clay);
             loot.setDead();
             w.setBlockToAir(ex + 1, ey, ez);
             // the Watcher has fallen - the eyes dissipate

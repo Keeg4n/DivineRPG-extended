@@ -331,6 +331,7 @@ public class ProgressSpawns {
     public static boolean bossReady(EntityPlayer p, Entity boss) {
         if (boss == null || boss.worldObj == null || !gated(boss.worldObj)) return true;
         Boss b = Boss.of(boss);
+        if (boss instanceof com.divinerpgextended.entity.EntityFrostColossus) b = Boss.LICH_KING; // the Lich King's companion: his stage
         if (b == null) return !(boss instanceof EntityAyeraco) || rank(p) >= 3; // the Ayeraco horde in the End - after the Ancient Entity
         com.divinerpgextended.bestiary.Bestiary.Chapter ch = bossWorld(b);
         return ch != null ? reached(p, ch) : rank(p) >= bossRank(b);
@@ -339,6 +340,7 @@ public class ProgressSpawns {
     /** Whom to defeat before this boss (translation key; null - no conditions). */
     public static String bossNeedKey(Entity boss) {
         Boss b = Boss.of(boss);
+        if (boss instanceof com.divinerpgextended.entity.EntityFrostColossus) b = Boss.LICH_KING;
         if (b == null) return boss instanceof EntityAyeraco ? Boss.ANCIENT_ENTITY.langKey() : null;
         com.divinerpgextended.bestiary.Bestiary.Chapter ch = bossWorld(b);
         if (ch != null) return needKey(ch);

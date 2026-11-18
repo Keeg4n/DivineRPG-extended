@@ -18,14 +18,25 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
-/** Counts the boss for all players who dealt damage to it, not just the one who finished it. */
+/**
+ * Counts the boss for all players who dealt damage to it, not just the one who finished it. The same players, if they have reached the
+ * boss's stage, get its accessories - also the Frost Colossus pauldron (the Lich King's stage) and the Ayeraco wing (everyone who hit any
+ * dragon of the horde, when the last one falls).
+ */
 public class BossTracker {
 
     private final Map<EntityLivingBase, Set<UUID>> attackers = new WeakHashMap<EntityLivingBase, Set<UUID>>();
+    /** Ayeraco: who hit the fallen dragons of the horde - passed on to the living ones, the last one gives the wing to all of them. */
+    private final Map<EntityLivingBase, Set<UUID>> horde = new WeakHashMap<EntityLivingBase, Set<UUID>>();
+
+    /** Tracked: the recorded bosses, the Ayeraco dragons and the Frost Colossus. */
+    static boolean tracked(Entity e) {
+        return Boss.of(e) != null || e instanceof net.divinerpg.entities.vanilla.EntityAyeraco || e instanceof com.divinerpgextended.entity.EntityFrostColossus;
+    }
 
     @SubscribeEvent
     public void onHurt(LivingHurtEvent event) {
-        if (event.entityLiving.worldObj.isRemote || Boss.of(event.entityLiving) == null && !(event.entityLiving instanceof net.divinerpg.entities.vanilla.EntityAyeraco)) return;
+        if (event.entityLiving.worldObj.isRemote || !tracked(event.entityLiving)) return;
         Entity source = event.source.getEntity();
         if (source instanceof EntityPlayer) {
             Set<UUID> set = attackers.get(event.entityLiving);
@@ -41,7 +52,7 @@ public class BossTracker {
     public void onDeath(LivingDeathEvent event) {
         if (event.entityLiving.worldObj.isRemote) return;
         Boss boss = Boss.of(event.entityLiving);
-        if (boss == null && !(event.entityLiving instanceof net.divinerpg.entities.vanilla.EntityAyeraco)) return;
+        if (!tracked(event.entityLiving)) return;
 
         Set<UUID> ids = attackers.remove(event.entityLiving);
         if (ids == null) ids = new HashSet<UUID>();
@@ -72,7 +83,29 @@ public class BossTracker {
             }
         }
         if (!anyReady && com.divinerpgextended.Config.lowRankNoDrops) ProgressSpawns.markNoDrops(event.entityLiving);
-        if (boss == null) return; // Ayeraco: the victory is not recorded
+        if (boss == null) { // the Colossus and the Ayeraco horde: the victory is not recorded, the accessory - to the ready ones who fought
+            Set<UUID> to = ids;
+            com.divinerpgextended.trinket.Trinket t = com.divinerpgextended.trinket.Trinket.COLOSSUS_PAULDRON;
+            if (event.entityLiving instanceof net.divinerpg.entities.vanilla.EntityAyeraco) {
+                Set<UUID> all = horde.remove(event.entityLiving);
+                to = all == null ? new HashSet<UUID>() : all;
+                to.addAll(ids);
+                java.util.List<EntityLivingBase> alive = flockAlive(event.entityLiving);
+                for (EntityLivingBase a : alive) {
+                    Set<UUID> s = horde.get(a);
+                    if (s == null) horde.put(a, s = new HashSet<UUID>());
+                    s.addAll(to);
+                }
+                if (!alive.isEmpty()) return; // the wing - when the last of the five falls
+                t = com.divinerpgextended.trinket.Trinket.AYERACO_WING;
+            }
+            for (Object o : MinecraftServer.getServer().getConfigurationManager().playerEntityList) {
+                EntityPlayerMP player = (EntityPlayerMP) o;
+                if (to.contains(player.getUniqueID()) && ProgressSpawns.bossReady(player, event.entityLiving))
+                    com.divinerpgextended.trinket.AccessorySources.reward(player, t, event.entityLiving);
+            }
+            return;
+        }
 
         for (Object o : MinecraftServer.getServer()
             .getConfigurationManager().playerEntityList) {
@@ -102,6 +135,14 @@ public class BossTracker {
                 lore(player, boss);
             }
         }
+    }
+
+    /** The living dragons of the same Ayeraco horde (within the arena range). */
+    static java.util.List<EntityLivingBase> flockAlive(EntityLivingBase dead) {
+        java.util.List<EntityLivingBase> l = new java.util.ArrayList<EntityLivingBase>();
+        for (Object o : dead.worldObj.getEntitiesWithinAABB(net.divinerpg.entities.vanilla.EntityAyeraco.class, dead.boundingBox.expand(128, 96, 128)))
+            if (o != dead && ((EntityLivingBase) o).isEntityAlive()) l.add((EntityLivingBase) o);
+        return l;
     }
 
     /** What changed in the world after the first victory: an atmospheric line and an ominous sound (if the boss has one). */

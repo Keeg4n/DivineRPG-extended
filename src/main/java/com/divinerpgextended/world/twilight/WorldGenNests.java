@@ -220,7 +220,7 @@ public class WorldGenNests implements IWorldGenerator {
         if (code >= WOOL && code < WOOL + 16) return Blocks.wool;
         if (code >= FLOWER && code < FLOWER + FLOWERS) return flower(w, code - FLOWER);
         switch (code) {
-            case QZ: case QZ_CHISEL: case QZ_PILLAR: return Blocks.quartz_block;
+            case QZ: case QZ_CHISEL: case QZ_PILLAR: return com.divinerpgextended.world.WhiteStone.block(); // milk stone, not quartz (1.1.5)
             case QSLAB: case QSLAB_TOP: return Blocks.stone_slab;
             case YELLOW: case ORANGE: case SKYBLUE: return Blocks.stained_hardened_clay;
             case LOG_X: case LOG_Z: return w.log();
@@ -238,10 +238,9 @@ public class WorldGenNests implements IWorldGenerator {
     static int extraMeta(int code) {
         if (code >= WOOL && code < WOOL + 16) return code - WOOL;
         switch (code) {
-            case QZ_CHISEL: return 1;
-            case QZ_PILLAR: return 2;
-            case QSLAB: return 7;
-            case QSLAB_TOP: return 15;
+            case QZ_CHISEL: case QZ_PILLAR: return 0;
+            case QSLAB: return com.divinerpgextended.world.WhiteStone.SLAB; // smooth stone slabs instead of quartz
+            case QSLAB_TOP: return com.divinerpgextended.world.WhiteStone.SLAB_TOP;
             case YELLOW: return 4;
             case ORANGE: return 1;
             case SKYBLUE: return 3;
@@ -1043,7 +1042,7 @@ public class WorldGenNests implements IWorldGenerator {
         @Override
         protected Block block(int code, int meta) {
             switch (code) {
-                case MARBLE: return Blocks.quartz_block;
+                case MARBLE: return com.divinerpgextended.world.WhiteStone.block();
                 case LADDER: return Blocks.ladder;
                 case CLOUD: return ModBlocks.cloud;
                 case SLAB: return Blocks.stone_slab;

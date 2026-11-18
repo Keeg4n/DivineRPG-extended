@@ -2,7 +2,6 @@ package com.divinerpgextended.trinket;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -10,7 +9,6 @@ import net.divinerpg.entities.arcana.EntityCaptianMerik;
 import net.divinerpg.entities.base.InfiniteTrade;
 import net.divinerpg.entities.iceika.EntityWorkshopMerchant;
 import net.divinerpg.entities.iceika.EntityWorkshopTinkerer;
-import net.divinerpg.entities.vanilla.EntityAyeraco;
 import net.divinerpg.utils.items.ArcanaItems;
 import net.divinerpg.utils.items.IceikaItems;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -24,12 +22,10 @@ import net.minecraft.util.ChatStyle;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.village.MerchantRecipe;
 import net.minecraft.village.MerchantRecipeList;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.player.EntityInteractEvent;
 
 import com.divinerpgextended.boss.Boss;
-import com.divinerpgextended.entity.EntityFrostColossus;
 import com.divinerpgextended.registry.ModItems;
 
 import cpw.mods.fml.common.eventhandler.EventPriority;
@@ -38,7 +34,8 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 /**
  * Where accessories come from (besides Jack's orders):
  * <ul>
- * <li>bosses: guaranteed for the first victory, then 10% from each (Ayeraco - when the last of the five falls);</li>
+ * <li>bosses: guaranteed for the first victory, then 10% from each (Ayeraco - when the last of the five falls); only to those who hit the
+ * boss and have reached its stage - handed out by {@link com.divinerpgextended.boss.BossTracker}, also the Frost Colossus pauldron;</li>
  * <li>Captain Merik - Master Scabbard, Iceika workshop merchant - Warm Scarf (trades are appended on both sides:
  * the Divine window builds the list on the client);</li>
  * <li>Arcana mobs - Dungeon Lamp (1% + 0.5% per Looting level);</li>
@@ -118,30 +115,6 @@ public class AccessorySources {
         p.worldObj.spawnEntityInWorld(it);
         say(p, EnumChatFormatting.LIGHT_PURPLE, "dre.chat.accessory_drop", s.getDisplayName());
         return it;
-    }
-
-    /**
-     * The Colossus is not a separate boss in the records (counted together with the Lich King), its pauldron goes to those nearby.
-     * Ayeraco is five dragons: the wing is given when the last of the pack falls.
-     */
-    @SubscribeEvent
-    public void onDeath(LivingDeathEvent e) {
-        if (e.entityLiving.worldObj.isRemote) return;
-        Trinket t;
-        if (e.entityLiving instanceof EntityFrostColossus) {
-            t = Trinket.COLOSSUS_PAULDRON;
-        } else if (e.entityLiving instanceof EntityAyeraco) {
-            List<?> flock = e.entityLiving.worldObj.getEntitiesWithinAABB(EntityAyeraco.class,
-                e.entityLiving.boundingBox.expand(128, 96, 128));
-            for (Object o : flock) if (o != e.entityLiving && ((EntityAyeraco) o).isEntityAlive()) return;
-            t = Trinket.AYERACO_WING;
-        } else {
-            return;
-        }
-        @SuppressWarnings("unchecked")
-        List<EntityPlayer> near = e.entityLiving.worldObj.getEntitiesWithinAABB(EntityPlayer.class,
-            e.entityLiving.boundingBox.expand(64, 48, 64));
-        for (EntityPlayer p : near) reward(p, t, e.entityLiving);
     }
 
     /** Dungeon Lamp is a rare drop from Arcana mobs. */

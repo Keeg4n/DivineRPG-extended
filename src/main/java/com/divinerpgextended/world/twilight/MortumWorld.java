@@ -581,8 +581,9 @@ public class MortumWorld {
 
     public static int giantSkulls, giantRibs;
 
+    /** A bone block of the giant remains: milk stone (quartz before 1.1.5; carved seams and lying ribs no longer differ - meta is ignored). */
     private static void bone(World w, int x, int y, int z, int meta) {
-        if (y > 1 && y < 250) w.setBlock(x, y, z, Blocks.quartz_block, meta, 2);
+        if (y > 1 && y < 250) w.setBlock(x, y, z, com.divinerpgextended.world.WhiteStone.block(), 0, 2);
     }
 
     /** Whether it is level under the remains: the surface spread in a square 2r+1 is at most 4. */

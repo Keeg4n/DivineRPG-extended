@@ -46,7 +46,7 @@ public class WatcherVault extends ColumnStructure {
             case NETHERRACK: return Blocks.netherrack;
             case BRICK: return Blocks.nether_brick;
             case GLOWSTONE: return Blocks.glowstone;
-            case QUARTZ: return Blocks.quartz_block;
+            case QUARTZ: return WhiteStone.block(); // milk stone, not quartz (1.1.5)
             case LAMP: return net.divinerpg.utils.blocks.VanillaBlocks.lamp2;
             case LAVA: return Blocks.lava;
             case SLAB: return Blocks.stone_slab;
@@ -62,6 +62,7 @@ public class WatcherVault extends ColumnStructure {
 
     @Override
     protected int metaOf(int code, int meta) {
+        if (code == QUARTZ) return 0; // the white has no carved and pillar variants
         return code == LAMP ? 6 : meta; // Divine purple lamp
     }
 
@@ -387,7 +388,7 @@ public class WatcherVault extends ColumnStructure {
     /** Blocks the rebuild may replace: air, fire, materials of the old and new hall. */
     static boolean ours(Block b) {
         return b == Blocks.air || b == Blocks.fire || b == Blocks.netherrack || b == Blocks.soul_sand || b == Blocks.nether_brick || b == Blocks.glowstone
-            || b == Blocks.quartz_block || b == Blocks.obsidian || b == Blocks.stone_slab || b == net.divinerpg.utils.blocks.VanillaBlocks.lamp2;
+            || WhiteStone.is(b) || b == Blocks.obsidian || b == Blocks.stone_slab || b == net.divinerpg.utils.blocks.VanillaBlocks.lamp2;
     }
 
     /**

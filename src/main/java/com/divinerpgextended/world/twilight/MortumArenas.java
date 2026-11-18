@@ -394,7 +394,7 @@ public final class MortumArenas {
                 case EYEPLANT: return net.divinerpg.utils.blocks.TwilightBlocks.eyePlant;
                 case GLOWBONE: return net.divinerpg.utils.blocks.TwilightBlocks.purpleGlowbone;
                 case BRICK: case CHISEL: case MOSSY: case CRACKED: return Blocks.stonebrick;
-                case BONE: case PILLAR: case BONE_CHISEL: return Blocks.quartz_block;
+                case BONE: case PILLAR: case BONE_CHISEL: return com.divinerpgextended.world.WhiteStone.block(); // milk stone, not quartz (1.1.5)
                 case MIRROR: return Blocks.stained_glass;
                 case OBSIDIAN: return Blocks.obsidian;
                 case SLAB: case SLAB_TOP: return Blocks.stone_slab;
@@ -405,7 +405,7 @@ public final class MortumArenas {
                 case NETHER: return Blocks.nether_brick;
                 case BARS: return Blocks.iron_bars;
                 case NETHERITE: return bricks(Blocks.nether_brick);
-                case QUARTZ: case QUARTZ_CHISEL: return Blocks.quartz_block;
+                case QUARTZ: case QUARTZ_CHISEL: return com.divinerpgextended.world.WhiteStone.block();
                 case PURPLE_GLASS: return Blocks.stained_glass;
                 case NSLAB: return Blocks.stone_slab;
                 case DARKSTONE: return bricks(Blocks.nether_brick);
@@ -414,7 +414,7 @@ public final class MortumArenas {
             }
         }
 
-        /** Meta by code: carved/mossy/cracked brick, quartz pillar, black glass, slabs. */
+        /** Meta by code: carved/mossy/cracked brick, black glass, slabs; the white (milk stone, before 1.1.5 quartz) has no variants. */
         static int meta(int code) {
             switch (code) {
                 case DDBRICK: case DBRICK: case ABRICK: case ASTONE: case ATILE: case SSTONE: case DLAMP: case MILK: case DARK: case CHECKER: case MINI:
@@ -422,13 +422,11 @@ public final class MortumArenas {
                 case CHISEL: return 3;
                 case MOSSY: return 1;
                 case CRACKED: return 2;
-                case PILLAR: return 2;
-                case BONE_CHISEL: return 1;
+                case PILLAR: case BONE_CHISEL: case QUARTZ_CHISEL: return 0;
                 case MIRROR: return 15;
                 case SLAB: return 5;
                 case SLAB_TOP: return 13;
-                case QSLAB: return 7;
-                case QUARTZ_CHISEL: return 1;
+                case QSLAB: return com.divinerpgextended.world.WhiteStone.SLAB; // smooth stone slab instead of quartz
                 case PURPLE_GLASS: return 10;
                 case NETHERITE: return BRICKS_NETHERITE;
                 case DARKSTONE: return BRICKS_DARKSTONE;
@@ -1216,7 +1214,7 @@ public final class MortumArenas {
             if (r <= PIT && !ramp && hash(dx, dz) % 31 == 0) set(col, floor, WorldGenNests.GLOW);
             // the giant's ribcage above the pit: the spine along X, ribs are arcs in the YZ plane
             int base = floor, spineY = base + 13;
-            if (dz == 0 && ax <= 15) put(col, spineY, PILLAR, 3); // spine (a pillar lying along X)
+            if (dz == 0 && ax <= 15) set(col, spineY, PILLAR); // spine along X (milk stone has no lying pillar)
             for (int rib : RIBS) {
                 if (Math.abs(dx - rib) > 0) continue;
                 for (int y = base; y <= spineY; y++) {

@@ -216,7 +216,7 @@ public class WorldGenOuterLairs implements IWorldGenerator {
             case LAVA: return Blocks.lava;
             case OBSIDIAN: return Blocks.obsidian;
             case END_STONE: return Blocks.end_stone;
-            case QUARTZ: return Blocks.quartz_block;
+            case QUARTZ: return WhiteStone.block(); // milk stone, not quartz (1.1.5)
             case FENCE: return Blocks.nether_brick_fence;
             case CLAY: return Blocks.stained_hardened_clay;
             default: return Blocks.air;
