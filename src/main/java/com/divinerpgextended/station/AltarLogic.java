@@ -79,6 +79,7 @@ public class AltarLogic {
 
     /** Enchantment tier for the price: 0 - best, 1 - medium, 2 - weak. */
     public static int tier(Enchantment e) {
+        if (e instanceof AltarEnchant) return ((AltarEnchant) e).altarTier();
         return BEST.contains(e) ? 0 : WEAK.contains(e) ? 2 : 1;
     }
 
@@ -149,17 +150,25 @@ public class AltarLogic {
         return out;
     }
 
-    /** Enchantments that go on the item at this strength: each at the highest level the strength can afford. */
-    private static Map<Integer, EnchantmentData> pool(ItemStack target, boolean book, int power) {
+    /**
+     * Enchantments that go on the item at this strength: each at the highest level the strength can afford. Besides the table ones -
+     * the altar-only ones ({@link AltarEnchant}, the addon's own weapon enchantments).
+     */
+    public static Map<Integer, EnchantmentData> pool(ItemStack target, boolean book, int power) {
         Map<Integer, EnchantmentData> m = new LinkedHashMap<Integer, EnchantmentData>();
         for (Enchantment e : Enchantment.enchantmentsList) {
             if (e == null || e.getWeight() <= 0) continue;
-            if (!e.canApplyAtEnchantingTable(target) || book && !e.isAllowedOnBooks()) continue;
+            if (!fits(e, target) || book && !e.isAllowedOnBooks()) continue;
             int lvl = 0;
             for (int l = e.getMinLevel(); l <= e.getMaxLevel(); l++) if (power >= e.getMinEnchantability(l)) lvl = l;
             if (lvl > 0) m.put(e.effectId, new EnchantmentData(e, lvl));
         }
         return m;
+    }
+
+    /** The altar may roll the enchantment for the item: like the table, plus the altar-only ones. */
+    public static boolean fits(Enchantment e, ItemStack target) {
+        return e instanceof AltarEnchant ? ((AltarEnchant) e).canApplyAtAltar(target) : e.canApplyAtEnchantingTable(target);
     }
 
     /** Item for a book: by weights, among those that get something at this strength (a fishing rod has nothing to get at low strength). */

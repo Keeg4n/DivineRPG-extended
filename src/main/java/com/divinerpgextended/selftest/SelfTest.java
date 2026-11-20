@@ -763,6 +763,7 @@ public class SelfTest {
         }
         lioTests(p, ow, sx, sy, sz);
         earlyWeaponTests(ow, sx, sy, sz);
+        enchantTests(ow, sx, sy, sz);
         dropIconTests();
         fishingReport();
         g.setDead();
@@ -1672,7 +1673,7 @@ public class SelfTest {
                     boolean one = false;
                     for (Item target : AltarLogic.BOOK_TARGETS) {
                         boolean all = true;
-                        for (EnchantmentData d : b.get(slot)) all &= d.enchantmentobj.canApplyAtEnchantingTable(new ItemStack(target));
+                        for (EnchantmentData d : b.get(slot)) all &= AltarLogic.fits(d.enchantmentobj, new ItemStack(target));
                         one |= all;
                     }
                     if (!one) bad.append(" book mismatched: ").append(names(b.get(slot))).append(';');
@@ -16890,6 +16891,299 @@ public class SelfTest {
     }
 
     /** Icons chosen from the concepts of 12.11.2026: mob materials, boss loot, Wanderer's Clock by level - own pictures in the jar. */
+    /** A sword with the addon's enchantments (kind, level, kind, level...). */
+    private static ItemStack enchanted(Item it, Object... kl) {
+        ItemStack s = new ItemStack(it);
+        for (int i = 0; i + 1 < kl.length; i += 2) {
+            Enchantment en = kl[i] instanceof Enchantment ? (Enchantment) kl[i] : com.divinerpgextended.perk.DreEnchants.get((com.divinerpgextended.perk.DreEnchants.Kind) kl[i]);
+            s.addEnchantment(en, (Integer) kl[i + 1]);
+        }
+        return s;
+    }
+
+    /** A real click hit with the weapon: {damage, window right after (10 + window), ticks until the next identical hit lands}. */
+    private static float[] enchStrike(TestPlayer a, EntityLivingBase v, ItemStack held) {
+        hold(a, held);
+        a.getAttributeMap().applyAttributeModifiers(held.getAttributeModifiers());
+        try {
+            v.hurtResistantTime = 0;
+            v.setHealth(v.getMaxHealth());
+            a.fallDistance = 0;
+            a.attackTargetEntityWithCurrentItem(v);
+            float dmg = v.getMaxHealth() - v.getHealth(), after = v.hurtResistantTime;
+            int ticks = 0;
+            for (int t = 1; t <= 60 && ticks == 0; t++) {
+                v.hurtResistantTime--;
+                float hp = v.getHealth();
+                a.fallDistance = 0;
+                a.attackTargetEntityWithCurrentItem(v);
+                if (v.getHealth() < hp) ticks = t;
+            }
+            v.setHealth(v.getMaxHealth());
+            v.motionX = v.motionY = v.motionZ = 0;
+            return new float[] { dmg, after, ticks };
+        } finally {
+            a.getAttributeMap().removeAttributeModifiers(held.getAttributeModifiers());
+        }
+    }
+
+    private static EntityLivingBase tough(EntityLivingBase e, WorldServer w, double x, double y, double z) {
+        e.setLocationAndAngles(x, y, z, 0, 0);
+        w.spawnEntityInWorld(e);
+        e.getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(100000);
+        e.setHealth(e.getMaxHealth());
+        return e;
+    }
+
+    private void enchantTests(final WorldServer ow, final int sx, final int sy, final int sz) {
+        t("Enchantments", "Registration, compatibility, only from the corrupt altar, commands", () -> {
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            com.divinerpgextended.perk.DreEnchants.Kind[] ks = com.divinerpgextended.perk.DreEnchants.Kind.values();
+            ItemStack sword = new ItemStack(Items.diamond_sword), pick = new ItemStack(Items.diamond_pickaxe), bow = new ItemStack(Items.bow), knife = new ItemStack(VanillaItemsWeapons.oceanKnife);
+            for (com.divinerpgextended.perk.DreEnchants.Kind k : ks) {
+                Enchantment en = com.divinerpgextended.perk.DreEnchants.get(k);
+                boolean reg = en != null && en.effectId == k.id && Enchantment.enchantmentsList[k.id] == en && ("enchantment.dre." + k.key()).equals(en.getName());
+                boolean apply = reg && en.canApply(sword) && en.canApply(knife) && !en.canApply(pick) && !en.canApply(bow) && !en.canApplyAtEnchantingTable(sword);
+                ok &= reg && apply;
+                rep.append(k.key()).append(" ").append(en == null ? "none" : String.valueOf(en.effectId)).append(reg && apply ? "" : " (wrong)").append("; ");
+            }
+            check(ok, rep.toString());
+            Enchantment sw = com.divinerpgextended.perk.DreEnchants.get(com.divinerpgextended.perk.DreEnchants.Kind.SWEEP), ag = com.divinerpgextended.perk.DreEnchants.get(com.divinerpgextended.perk.DreEnchants.Kind.AGILITY),
+                mi = com.divinerpgextended.perk.DreEnchants.get(com.divinerpgextended.perk.DreEnchants.Kind.MIGHT), cr = com.divinerpgextended.perk.DreEnchants.get(com.divinerpgextended.perk.DreEnchants.Kind.CROWN),
+                sp = com.divinerpgextended.perk.DreEnchants.get(com.divinerpgextended.perk.DreEnchants.Kind.SPITE);
+            // the strike group excludes the damage group and itself; the condition group - itself; the rest combine
+            boolean compat = !mi.canApplyTogether(Enchantment.sharpness) && !sw.canApplyTogether(Enchantment.smite) && !ag.canApplyTogether(Enchantment.baneOfArthropods)
+                && !ag.canApplyTogether(mi) && !sw.canApplyTogether(ag) && !cr.canApplyTogether(sp) && !sp.canApplyTogether(cr)
+                && cr.canApplyTogether(Enchantment.sharpness) && cr.canApplyTogether(mi) && mi.canApplyTogether(Enchantment.unbreaking) && sw.canApplyTogether(Enchantment.looting) && !mi.canApplyTogether(mi);
+            Enchantment wrath = null;
+            for (Enchantment e : Enchantment.enchantmentsList) if (e != null && "fox.spiteful.forbidden.enchantments.EnchantmentWrath".equals(e.getClass().getName())) wrath = e;
+            boolean wrathOk = wrath == null || !mi.canApplyTogether(wrath) && cr.canApplyTogether(wrath);
+            ok &= compat && wrathOk;
+            rep.append("strike group excludes Sharpness, Smite, Bane and each other ").append(compat).append(", Wrath ").append(wrath == null ? "no Forbidden Magic" : String.valueOf(wrathOk));
+            // Sharpness through the one-way vanilla check: Might is then silent
+            ItemStack both = enchanted(Items.diamond_sword, Enchantment.sharpness, 5, com.divinerpgextended.perk.DreEnchants.Kind.MIGHT, 1);
+            boolean clash = com.divinerpgextended.perk.DreEnchants.level(com.divinerpgextended.perk.DreEnchants.Kind.MIGHT, both) == 0
+                && com.divinerpgextended.perk.DreEnchants.level(com.divinerpgextended.perk.DreEnchants.Kind.MIGHT, enchanted(Items.diamond_sword, com.divinerpgextended.perk.DreEnchants.Kind.MIGHT, 1)) == 1
+                && com.divinerpgextended.perk.DreEnchants.level(com.divinerpgextended.perk.DreEnchants.Kind.CROWN, enchanted(Items.diamond_sword, Enchantment.sharpness, 5, com.divinerpgextended.perk.DreEnchants.Kind.CROWN, 1)) == 1;
+            ok &= clash;
+            rep.append("; Might beside Sharpness does nothing ").append(clash);
+            // the table never offers them, the altar does (Agility III at full strength), and not for a pickaxe; tiers: strike - best, condition - medium
+            Random r = new Random(7);
+            int onTable = 0;
+            for (int i = 0; i < 400; i++) {
+                @SuppressWarnings("unchecked")
+                List<EnchantmentData> l = EnchantmentHelper.buildEnchantmentList(r, new ItemStack(Items.diamond_sword), 5 + r.nextInt(26));
+                if (l != null) for (EnchantmentData d : l) if (d.enchantmentobj instanceof com.divinerpgextended.perk.DreEnchants.Ench) onTable++;
+            }
+            java.util.Map<Integer, EnchantmentData> altar = com.divinerpgextended.station.AltarLogic.pool(new ItemStack(Items.diamond_sword), false, 50);
+            java.util.Map<Integer, EnchantmentData> altarBook = com.divinerpgextended.station.AltarLogic.pool(new ItemStack(Items.diamond_sword), true, 50);
+            java.util.Map<Integer, EnchantmentData> altarPick = com.divinerpgextended.station.AltarLogic.pool(new ItemStack(Items.diamond_pickaxe), false, 50);
+            java.util.Map<Integer, EnchantmentData> altarWeak = com.divinerpgextended.station.AltarLogic.pool(new ItemStack(Items.diamond_sword), false, 12);
+            boolean inAltar = true, inPick = false;
+            for (com.divinerpgextended.perk.DreEnchants.Kind k : ks) {
+                inAltar &= altar.containsKey(k.id) && altarBook.containsKey(k.id);
+                inPick |= altarPick.containsKey(k.id);
+            }
+            boolean levels = altar.get(ag.effectId).enchantmentLevel == 3 && altarWeak.containsKey(ag.effectId) && altarWeak.get(ag.effectId).enchantmentLevel == 1 && !altarWeak.containsKey(sw.effectId);
+            boolean tiers = com.divinerpgextended.station.AltarLogic.tier(mi) == 0 && com.divinerpgextended.station.AltarLogic.tier(sw) == 0 && com.divinerpgextended.station.AltarLogic.tier(cr) == 1;
+            ok &= onTable == 0 && inAltar && !inPick && levels && tiers;
+            rep.append("; table offered ").append(onTable).append(" of ours in 400 rolls; altar: sword and book ").append(inAltar).append(", pickaxe ").append(inPick)
+                .append(", Agility at strength 50 - III, at 12 - I and no Sweep ").append(levels).append(", price tiers ").append(tiers);
+            // the commands from the release notes: /enchant on the held sword, /give of a book with stored enchantments
+            WorldServer w = server.worldServerForDimension(0);
+            TestPlayer a = join(player(0, "TestEnchCmd", sx + 260.5, sy, sz + 0.5), true);
+            try {
+                hold(a, new ItemStack(Items.diamond_sword));
+                server.getCommandManager().executeCommand(server, "enchant TestEnchCmd " + mi.effectId + " 1");
+                boolean enchCmd = EnchantmentHelper.getEnchantmentLevel(mi.effectId, a.getHeldItem()) == 1;
+                hold(a, new ItemStack(Items.diamond_sword));
+                server.getCommandManager().executeCommand(server, "enchant TestEnchCmd " + ag.effectId + " 3");
+                boolean enchCmd3 = EnchantmentHelper.getEnchantmentLevel(ag.effectId, a.getHeldItem()) == 3;
+                hold(a, null);
+                a.inventory.clearInventory(null, -1);
+                server.getCommandManager().executeCommand(server, "give TestEnchCmd enchanted_book 1 0 {StoredEnchantments:[{id:" + ag.effectId + "s,lvl:3s}]}");
+                // /give drops the item at the player's feet (picked up on the next tick) - look in the inventory and on the ground
+                List<ItemStack> got = new ArrayList<ItemStack>();
+                for (ItemStack it : a.inventory.mainInventory) if (it != null) got.add(it);
+                @SuppressWarnings("unchecked")
+                List<net.minecraft.entity.item.EntityItem> drops = w.getEntitiesWithinAABB(net.minecraft.entity.item.EntityItem.class, a.boundingBox.expand(3, 3, 3));
+                for (net.minecraft.entity.item.EntityItem ei : drops) {
+                    got.add(ei.getEntityItem());
+                    ei.setDead();
+                }
+                boolean bookCmd = false;
+                for (ItemStack it : got) {
+                    NBTTagList st = it.getItem() == Items.enchanted_book ? Items.enchanted_book.func_92110_g(it) : null;
+                    if (st != null && st.tagCount() == 1 && st.getCompoundTagAt(0).getShort("id") == ag.effectId && st.getCompoundTagAt(0).getShort("lvl") == 3) bookCmd = true;
+                }
+                ok &= enchCmd && enchCmd3 && bookCmd;
+                rep.append("; /enchant ").append(mi.effectId).append(" ").append(enchCmd).append(", /enchant ").append(ag.effectId).append(" 3 ").append(enchCmd3).append(", /give book ").append(bookCmd);
+            } finally {
+                hold(a, null);
+                a.inventory.clearInventory(null, -1);
+            }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
+        t("Enchantments", "Agility and Might: damage and target window, with the weapon subtype", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            loadAround(w, sx + 260, sz, 1);
+            double px = sx + 260.5, pz = sz + 4.5;
+            TestPlayer a = join(player(0, "TestEnchA", px, sy, pz), true);
+            EntityLivingBase z = tough(new EntityZombie(w), w, px + 1, sy, pz);
+            try {
+                com.divinerpgextended.perk.DreEnchants.testHurtAgo(a, -1);
+                com.divinerpgextended.perk.MeleeRoles.setup();
+                StringBuilder rep = new StringBuilder();
+                Item dia = Items.diamond_sword, knife = VanillaItemsWeapons.oceanKnife, maul = VanillaItemsWeapons.aquatoothMaul;
+                com.divinerpgextended.perk.DreEnchants.Kind AG = com.divinerpgextended.perk.DreEnchants.Kind.AGILITY, MI = com.divinerpgextended.perk.DreEnchants.Kind.MIGHT;
+                float[] base = enchStrike(a, z, new ItemStack(dia)), might = enchStrike(a, z, enchanted(dia, MI, 1)), ag1 = enchStrike(a, z, enchanted(dia, AG, 1)),
+                    ag2 = enchStrike(a, z, enchanted(dia, AG, 2)), ag3 = enchStrike(a, z, enchanted(dia, AG, 3));
+                // diamond sword: window 10 x1.4 = 14, x0.8 = 8, x0.65 = 7 (6.5 rounded), x0.5 = 5
+                boolean dmg = Math.abs(might[0] / base[0] - com.divinerpgextended.perk.DreEnchants.mightDamage) < 0.01 && Math.abs(ag1[0] / base[0] - com.divinerpgextended.perk.DreEnchants.agilityDamage[0]) < 0.01
+                    && Math.abs(ag2[0] / base[0] - com.divinerpgextended.perk.DreEnchants.agilityDamage[1]) < 0.01 && Math.abs(ag3[0] / base[0] - com.divinerpgextended.perk.DreEnchants.agilityDamage[2]) < 0.01;
+                boolean win = base[2] == 10 && might[2] == 14 && might[1] == 24 && ag1[2] == 8 && ag2[2] == 7 && ag3[2] == 5 && ag3[1] == 15;
+                rep.append("diamond sword ").append(f(base[0])).append(" window ").append((int) base[2]).append("; Might ").append(f(might[0])).append(" window ").append((int) might[2])
+                    .append("; Agility I ").append(f(ag1[0])).append(" window ").append((int) ag1[2]).append(", II ").append(f(ag2[0])).append(" window ").append((int) ag2[2])
+                    .append(", III ").append(f(ag3[0])).append(" window ").append((int) ag3[2]);
+                // on top of the subtype: knife 6 x0.5 = 3 - no shorter than 4; maul 20 x1.4 = 28; Sharpness beside Might - Might is silent
+                float[] kn = enchStrike(a, z, new ItemStack(knife)), kn3 = enchStrike(a, z, enchanted(knife, AG, 3)), mb = enchStrike(a, z, new ItemStack(maul)), mm = enchStrike(a, z, enchanted(maul, MI, 1));
+                float[] sharp = enchStrike(a, z, enchanted(dia, Enchantment.sharpness, 5)), sharpMight = enchStrike(a, z, enchanted(dia, Enchantment.sharpness, 5, MI, 1));
+                boolean stack = kn[2] == 6 && kn3[2] == com.divinerpgextended.perk.DreEnchants.agilityMinWindow && Math.abs(kn3[0] / kn[0] - com.divinerpgextended.perk.DreEnchants.agilityDamage[2]) < 0.01
+                    && mb[2] == 20 && mm[2] == 28 && Math.abs(mm[0] / mb[0] - com.divinerpgextended.perk.DreEnchants.mightDamage) < 0.01
+                    && sharpMight[2] == 10 && Math.abs(sharpMight[0] / sharp[0] - 1F) < 0.01;
+                rep.append("; knife window ").append((int) kn[2]).append(", with Agility III ").append((int) kn3[2]).append(" (").append(f(kn3[0])).append(" of ").append(f(kn[0]))
+                    .append("); maul window ").append((int) mb[2]).append(", with Might ").append((int) mm[2]).append(" (").append(f(mm[0])).append(" of ").append(f(mb[0]))
+                    .append("); Sharpness V + Might ").append(f(sharpMight[0])).append(" window ").append((int) sharpMight[2]).append(" (Sharpness alone ").append(f(sharp[0])).append(")");
+                check(dmg && win && stack, rep.toString());
+                return rep.toString();
+            } finally {
+                hold(a, null);
+                z.setDead();
+            }
+        });
+        t("Enchantments", "Sweep: mobs of the target's kind in front, not players, villagers, pets or those behind", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            loadAround(w, sx + 260, sz + 10, 1);
+            double px = sx + 260.5, pz = sz + 10.5;
+            TestPlayer a = join(player(0, "TestEnchS", px, sy, pz), true), foe = join(player(0, "TestEnchS2", px + 2.5, sy, pz + 1.2), true);
+            a.rotationYaw = a.rotationYawHead = -90F; // looking along +X
+            List<EntityLivingBase> made = new ArrayList<EntityLivingBase>();
+            try {
+                com.divinerpgextended.perk.DreEnchants.testHurtAgo(a, -1);
+                EntityLivingBase z = tough(new EntityZombie(w), w, px + 1.5, sy, pz);
+                EntityLivingBase front = tough(new EntityZombie(w), w, px + 2.5, sy, pz + 1), behind = tough(new EntityZombie(w), w, px - 1.5, sy, pz);
+                net.minecraft.entity.passive.EntityVillager vil = (net.minecraft.entity.passive.EntityVillager) tough(new net.minecraft.entity.passive.EntityVillager(w), w, px + 2.5, sy, pz - 1);
+                net.minecraft.entity.passive.EntityWolf wolf = new net.minecraft.entity.passive.EntityWolf(w);
+                wolf.setTamed(true);
+                wolf.func_152115_b(a.getUniqueID().toString());
+                tough(wolf, w, px + 3, sy, pz - 0.5);
+                foe.getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(100000);
+                foe.setHealth(foe.getMaxHealth());
+                made.add(z);
+                made.add(front);
+                made.add(behind);
+                made.add(vil);
+                made.add(wolf);
+                float[] plain = enchStrike(a, z, new ItemStack(Items.diamond_sword));
+                for (EntityLivingBase o : made) o.setHealth(o.getMaxHealth());
+                ItemStack sweep = enchanted(Items.diamond_sword, com.divinerpgextended.perk.DreEnchants.Kind.SWEEP, 1);
+                hold(a, sweep);
+                a.getAttributeMap().applyAttributeModifiers(sweep.getAttributeModifiers());
+                z.hurtResistantTime = front.hurtResistantTime = behind.hurtResistantTime = vil.hurtResistantTime = wolf.hurtResistantTime = foe.hurtResistantTime = 0;
+                a.fallDistance = 0;
+                a.attackTargetEntityWithCurrentItem(z);
+                a.getAttributeMap().removeAttributeModifiers(sweep.getAttributeModifiers());
+                float main = z.getMaxHealth() - z.getHealth(), fr = front.getMaxHealth() - front.getHealth(), be = behind.getMaxHealth() - behind.getHealth(),
+                    vi = vil.getMaxHealth() - vil.getHealth(), wo = wolf.getMaxHealth() - wolf.getHealth(), pl = foe.getMaxHealth() - foe.getHealth();
+                boolean ok = Math.abs(main / plain[0] - com.divinerpgextended.perk.DreEnchants.sweepDamage) < 0.01 && Math.abs(fr - main) < 0.01 && be == 0 && vi == 0 && wo == 0 && pl == 0;
+                String rep = "plain hit " + f(plain[0]) + ", with Sweep " + f(main) + "; in front " + f(fr) + ", behind " + f(be) + ", villager " + f(vi) + ", tamed wolf " + f(wo) + ", player " + f(pl);
+                // at most sweepTargets besides the target: six zombies in front - four are hit
+                for (EntityLivingBase o : made) o.setDead();
+                made.clear();
+                EntityLivingBase c = tough(new EntityZombie(w), w, px + 1.5, sy, pz);
+                made.add(c);
+                for (int i = 0; i < 6; i++) made.add(tough(new EntityZombie(w), w, px + 2.2 + 0.3 * i, sy, pz + (i % 2 == 0 ? 0.8 : -0.8)));
+                hold(a, sweep);
+                a.getAttributeMap().applyAttributeModifiers(sweep.getAttributeModifiers());
+                a.fallDistance = 0;
+                a.attackTargetEntityWithCurrentItem(c);
+                a.getAttributeMap().removeAttributeModifiers(sweep.getAttributeModifiers());
+                int hit = 0;
+                for (EntityLivingBase o : made) if (o != c && o.getHealth() < o.getMaxHealth()) hit++;
+                ok &= hit == com.divinerpgextended.perk.DreEnchants.sweepTargets;
+                rep += "; six zombies in front - hit " + hit;
+                check(ok, rep);
+                return rep;
+            } finally {
+                hold(a, null);
+                for (EntityLivingBase o : made) o.setDead();
+            }
+        });
+        t("Enchantments", "Crown and Spite: by the player's health and the damage taken; against players only with melee.pvp", () -> {
+            WorldServer w = server.worldServerForDimension(0);
+            loadAround(w, sx + 260, sz + 20, 1);
+            double px = sx + 260.5, pz = sz + 20.5;
+            TestPlayer a = join(player(0, "TestEnchC", px, sy, pz), true), foe = join(player(0, "TestEnchC2", px + 1, sy, pz + 2), true);
+            EntityLivingBase z = tough(new EntityZombie(w), w, px + 1, sy, pz);
+            try {
+                StringBuilder rep = new StringBuilder();
+                com.divinerpgextended.perk.DreEnchants.Kind CR = com.divinerpgextended.perk.DreEnchants.Kind.CROWN, SP = com.divinerpgextended.perk.DreEnchants.Kind.SPITE;
+                a.setHealth(a.getMaxHealth());
+                com.divinerpgextended.perk.DreEnchants.testHurtAgo(a, -1);
+                float[] base = enchStrike(a, z, new ItemStack(Items.diamond_sword)), crown = enchStrike(a, z, enchanted(Items.diamond_sword, CR, 1));
+                com.divinerpgextended.perk.DreEnchants.testHurtAgo(a, 20);
+                float[] crownHurt = enchStrike(a, z, enchanted(Items.diamond_sword, CR, 1));
+                com.divinerpgextended.perk.DreEnchants.testHurtAgo(a, com.divinerpgextended.perk.DreEnchants.crownCalmSeconds * 20 + 1);
+                float[] crownCalm = enchStrike(a, z, enchanted(Items.diamond_sword, CR, 1));
+                a.setHealth(a.getMaxHealth() - 1);
+                float[] crownLow = enchStrike(a, z, enchanted(Items.diamond_sword, CR, 1));
+                a.setHealth(a.getMaxHealth());
+                float k = com.divinerpgextended.perk.DreEnchants.crownDamage;
+                boolean crownOk = Math.abs(crown[0] / base[0] - k) < 0.01 && Math.abs(crownHurt[0] / base[0] - 1) < 0.01 && Math.abs(crownCalm[0] / base[0] - k) < 0.01 && Math.abs(crownLow[0] / base[0] - 1) < 0.01;
+                rep.append("Crown: calm ").append(f(crown[0])).append(" (plain ").append(f(base[0])).append("), 1 s after damage ").append(f(crownHurt[0])).append(", after the pause ").append(f(crownCalm[0]))
+                    .append(", without full health ").append(f(crownLow[0]));
+                // the real damage is recorded: after a hit taken Crown is off at once
+                com.divinerpgextended.perk.DreEnchants.testHurtAgo(a, -1);
+                a.hurtResistantTime = 0;
+                boolean took = a.attackEntityFrom(DamageSource.generic, 2F);
+                boolean seen = !took || com.divinerpgextended.perk.DreEnchants.sinceHurt(a) == 0 && !com.divinerpgextended.perk.DreEnchants.crowned(a) && com.divinerpgextended.perk.DreEnchants.spiteful(a);
+                a.setHealth(a.getMaxHealth());
+                rep.append("; damage taken is seen ").append(took ? String.valueOf(seen) : "(the test player takes no damage)");
+                // Spite: window x0.7 for 5 s after damage; together with Agility III - no shorter than 4
+                com.divinerpgextended.perk.DreEnchants.testHurtAgo(a, -1);
+                float[] spCalm = enchStrike(a, z, enchanted(Items.diamond_sword, SP, 1));
+                com.divinerpgextended.perk.DreEnchants.testHurtAgo(a, 20);
+                float[] spHurt = enchStrike(a, z, enchanted(Items.diamond_sword, SP, 1));
+                float[] spAg = enchStrike(a, z, enchanted(Items.diamond_sword, SP, 1, com.divinerpgextended.perk.DreEnchants.Kind.AGILITY, 3));
+                com.divinerpgextended.perk.DreEnchants.testHurtAgo(a, com.divinerpgextended.perk.DreEnchants.spiteSeconds * 20 + 1);
+                float[] spLate = enchStrike(a, z, enchanted(Items.diamond_sword, SP, 1));
+                boolean spiteOk = spCalm[2] == 10 && spHurt[2] == 7 && spAg[2] == com.divinerpgextended.perk.DreEnchants.agilityMinWindow && spLate[2] == 10 && Math.abs(spHurt[0] / base[0] - 1) < 0.01;
+                rep.append("; Spite window: calm ").append((int) spCalm[2]).append(", after damage ").append((int) spHurt[2]).append(", with Agility III ").append((int) spAg[2]).append(", 5 s later ").append((int) spLate[2]);
+                // against a player: without melee.pvp - nothing, with it - Might works
+                com.divinerpgextended.perk.DreEnchants.testHurtAgo(a, -1);
+                armor(foe, null, null, null, null);
+                foe.getEntityAttribute(SharedMonsterAttributes.maxHealth).setBaseValue(100000);
+                ItemStack mi = enchanted(Items.diamond_sword, com.divinerpgextended.perk.DreEnchants.Kind.MIGHT, 1);
+                float[] pOffBase = enchStrike(a, foe, new ItemStack(Items.diamond_sword)), pOff = enchStrike(a, foe, mi), pOn;
+                com.divinerpgextended.Config.meleeRolesPvp = true;
+                try {
+                    pOn = enchStrike(a, foe, mi);
+                } finally {
+                    com.divinerpgextended.Config.meleeRolesPvp = false;
+                }
+                boolean pvp = pOff[2] == 10 && Math.abs(pOff[0] / pOffBase[0] - 1) < 0.01 && pOn[2] == 14 && Math.abs(pOn[0] / pOffBase[0] - com.divinerpgextended.perk.DreEnchants.mightDamage) < 0.01;
+                rep.append("; player: without melee.pvp ").append(f(pOff[0])).append(" window ").append((int) pOff[2]).append(", with it ").append(f(pOn[0])).append(" window ").append((int) pOn[2]);
+                check(crownOk && seen && spiteOk && pvp, rep.toString());
+                return rep.toString();
+            } finally {
+                hold(a, null);
+                z.setDead();
+            }
+        });
+    }
+
     private void dropIconTests() {
         t("Items", "Icons: mob materials, boss loot, Wanderer's Clock by levels", () -> {
             List<String> need = new ArrayList<String>();

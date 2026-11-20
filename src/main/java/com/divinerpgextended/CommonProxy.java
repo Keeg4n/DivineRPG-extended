@@ -57,6 +57,7 @@ public class CommonProxy {
         com.divinerpgextended.boss.EnderGear.register();
         com.divinerpgextended.perk.RangedRoles.registerMessages();
         com.divinerpgextended.perk.MeleeRoles.registerMessages();
+        com.divinerpgextended.perk.DreEnchants.registerMessages();
         com.divinerpgextended.perk.AmmoLoad.register();
         com.divinerpgextended.debug.Debug.register();
         com.divinerpgextended.perk.FrostBite.register(); // ice block of a frozen mob - to the clients
@@ -140,6 +141,10 @@ public class CommonProxy {
         com.divinerpgextended.perk.MeleeRoles meleeRoles = new com.divinerpgextended.perk.MeleeRoles();
         MinecraftForge.EVENT_BUS.register(meleeRoles);
         FMLCommonHandler.instance().bus().register(meleeRoles);
+        com.divinerpgextended.perk.DreEnchants.register(); // own melee enchantments (only from the corrupt altar)
+        com.divinerpgextended.perk.DreEnchants enchants = new com.divinerpgextended.perk.DreEnchants();
+        MinecraftForge.EVENT_BUS.register(enchants);
+        FMLCommonHandler.instance().bus().register(enchants);
         com.divinerpgextended.world.twilight.TwilightCrafts.RailDrops rails = new com.divinerpgextended.world.twilight.TwilightCrafts.RailDrops();
         MinecraftForge.EVENT_BUS.register(rails);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.EnderGear());

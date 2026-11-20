@@ -493,6 +493,7 @@ public class Config {
                 }
             }
         }
+        com.divinerpgextended.perk.DreEnchants.config(cfg);
         if (cfg.hasChanged()) {
             cfg.save();
         }

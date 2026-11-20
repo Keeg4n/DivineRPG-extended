@@ -40,6 +40,8 @@ import io.netty.buffer.ByteBuf;
  * that player clears it. The Bedrock Maul wave and other hits "on behalf of the player" bypass it, projectiles all the more so.
  * A dummy counts as a mob: its hit goes through the ghost player, and the window lives on the dummy itself.
  * <p>
+ * The addon's own enchantments ({@link DreEnchants}: Sweep, Agility, Might, Crown, Spite) multiply the damage and the window of the same hit.
+ * <p>
  * Also here is the crit of the full Terran set ({@link #terranCrit}): a hit from the ground x{@link #TERRAN_CRIT} without jumping. The jump crit
  * requires leaving the ground, so they do not stack. Only the set itself, it is not passed to Wanderer armor.
  */
@@ -146,13 +148,16 @@ public class MeleeRoles {
             e.ammount *= TERRAN_CRIT;
             p.onCriticalHit(target);
         }
-        Kind k = Config.meleeRoles ? kind(p.getHeldItem()) : null;
-        if (k == null) return;
-        e.ammount *= pvp ? k.damagePvp : k.damage;
-        int window = pvp ? k.windowPvp : k.window;
+        ItemStack held = p.getHeldItem();
+        Kind k = Config.meleeRoles ? kind(held) : null;
+        // the addon's enchantments multiply on top of the subtype (weapons of other worlds - on top of vanilla: x1, window 10)
+        float mul = (k == null ? 1F : pvp ? k.damagePvp : k.damage) * DreEnchants.damage(p, held);
+        int window = DreEnchants.window(p, held, k == null ? VANILLA_WINDOW : pvp ? k.windowPvp : k.window);
+        if (mul != 1F) e.ammount *= mul;
         EntityLivingBase holder = dummy ? (EntityLivingBase) target : v;
         // equals the maximum - vanilla (or the dummy) just wrote it, the hit is fresh; we do not extend the window with the difference inside the window
         if (window != VANILLA_WINDOW && holder.hurtResistantTime == holder.maxHurtResistantTime) holder.hurtResistantTime = holder.maxHurtResistantTime / 2 + window;
+        DreEnchants.sweep(p, holder, e.ammount);
     }
 
     // ---------------- tooltip: server numbers, not the client's own config ----------------

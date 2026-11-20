@@ -82,6 +82,7 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.ColorTooltip());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.TooltipRu());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.PickTierTooltip());
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.EnchantTooltip());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.InfusionTooltip());
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.client.SocketTooltip());
         cpw.mods.fml.common.FMLCommonHandler.instance().bus().register(new com.divinerpgextended.perk.Satiety.Client()); // running while hungry with the Satiety perk
