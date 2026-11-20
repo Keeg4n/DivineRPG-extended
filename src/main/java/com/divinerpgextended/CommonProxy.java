@@ -141,7 +141,6 @@ public class CommonProxy {
         com.divinerpgextended.perk.MeleeRoles meleeRoles = new com.divinerpgextended.perk.MeleeRoles();
         MinecraftForge.EVENT_BUS.register(meleeRoles);
         FMLCommonHandler.instance().bus().register(meleeRoles);
-        com.divinerpgextended.perk.DreEnchants.register(); // own melee enchantments (only from the corrupt altar)
         com.divinerpgextended.perk.DreEnchants enchants = new com.divinerpgextended.perk.DreEnchants();
         MinecraftForge.EVENT_BUS.register(enchants);
         FMLCommonHandler.instance().bus().register(enchants);

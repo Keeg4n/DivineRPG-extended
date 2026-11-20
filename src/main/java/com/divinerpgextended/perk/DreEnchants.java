@@ -21,6 +21,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EntityDamageSourceIndirect;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.common.config.Property;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 
 import com.divinerpgextended.DivineRPGExtended;
@@ -58,7 +59,7 @@ import io.netty.buffer.ByteBuf;
 public final class DreEnchants {
 
     public enum Kind {
-        SWEEP(120, 3, 1, true), AGILITY(121, 4, 3, true), MIGHT(122, 4, 1, true), CROWN(123, 2, 1, false), SPITE(124, 2, 1, false);
+        SWEEP(240, 3, 1, true), AGILITY(241, 4, 3, true), MIGHT(242, 4, 1, true), CROWN(243, 2, 1, false), SPITE(244, 2, 1, false);
 
         /** From the config: registered at all, and the wanted ID. */
         public boolean enabled = true;
@@ -94,15 +95,28 @@ public final class DreEnchants {
     public static int spiteSeconds = 5;
 
     private static final Ench[] ENCH = new Ench[Kind.values().length];
+    /** The loader state at registration (AVAILABLE - after every mod's init and postInit); for the selftest. */
+    public static String registeredIn = "never";
+
+    /** 1.1.6 defaults (SWEEP 120 ... SPITE 124); 120 is the Morph enchantment in the RedServer client build. */
+    private static final int OLD_FIRST_ID = 120;
 
     public static void config(Configuration cfg) {
+        // the old defaults move to the new ones once; the flag keeps IDs set back to 120-124 by hand from moving again
+        Property moved = cfg.get("enchants", "oldIdsMoved", false,
+            "1.1.7 moved IDs left at the old defaults 120-124 to 240-244 (Morph takes 120 in some packs). Set once, so IDs put back to 120-124 by hand stay");
+        boolean move = !moved.getBoolean(false);
         for (Kind k : Kind.values()) {
             String c = "enchants." + k.key();
             k.enabled = cfg.getBoolean("enabled", c, k.enabled,
                 "The enchantment exists at all (false - not registered: the altar does not roll it, items that have it lose the effect). Requires a restart");
-            k.id = cfg.getInt("id", c, k.id, 1, 255,
-                "Enchantment ID (for /enchant and item data). If another mod already took it, a free one is chosen from 255 down and written to the log. Must be the same on the server and the clients. Requires a restart");
+            Property p = cfg.get(c, "id", k.id,
+                "Enchantment ID (for /enchant and item data). Registered after all mods have loaded; if another mod already took it, a free one is chosen from 255 down and written to the log. Must be the same on the server and the clients. Requires a restart",
+                1, 255);
+            if (move && p.getInt(k.id) == OLD_FIRST_ID + k.ordinal()) p.set(k.id);
+            k.id = Math.max(1, Math.min(255, p.getInt(k.id)));
         }
+        if (move) moved.set(true);
         String s = "enchants.sweep", a = "enchants.agility", m = "enchants.might", cr = "enchants.crown", sp = "enchants.spite";
         cfg.setCategoryComment("enchants", "The addon's melee enchantments: only from the corrupt altar (its rolls and books), never from the enchanting table. "
             + "Sweep, Agility and Might replace Sharpness, Smite, Bane of Arthropods and Wrath (one of them per weapon); Crown and Spite - one of the two per weapon. "
@@ -134,8 +148,13 @@ public final class DreEnchants {
         return out;
     }
 
-    /** Registration (init, both sides): an ID taken by another mod is replaced with a free one from 255 down. */
+    /**
+     * Registration (load complete, both sides): after init and postInit of every mod, because a mod that registers its enchantment later
+     * crashes on a taken ID (Morph in the RedServer client build does it in init). An ID taken by another mod is replaced with a free one
+     * from 255 down.
+     */
     public static void register() {
+        registeredIn = cpw.mods.fml.common.Loader.instance().getLoaderState().name();
         for (Kind k : Kind.values()) {
             ENCH[k.ordinal()] = null;
             if (!k.enabled) continue;

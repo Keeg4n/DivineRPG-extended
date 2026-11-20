@@ -8,6 +8,7 @@ import com.divinerpgextended.cold.CommandBlizzard;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
+import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
@@ -59,5 +60,11 @@ public class DivineRPGExtended {
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
         proxy.postInit(event);
+    }
+
+    @Mod.EventHandler
+    public void loadComplete(FMLLoadCompleteEvent event) {
+        // own melee enchantments (only from the corrupt altar): after every mod's init and postInit, so a later one never meets a taken ID
+        com.divinerpgextended.perk.DreEnchants.register();
     }
 }

@@ -16935,7 +16935,52 @@ public class SelfTest {
         return e;
     }
 
+    /** A config with the given IDs (and the move flag, if set) read the way a fresh start reads it; the IDs that came out. */
+    private static int[] enchIdsAfter(int[] ids, Boolean moved) throws Exception {
+        com.divinerpgextended.perk.DreEnchants.Kind[] ks = com.divinerpgextended.perk.DreEnchants.Kind.values();
+        File f = File.createTempFile("dre-ench", ".cfg");
+        try {
+            net.minecraftforge.common.config.Configuration c = new net.minecraftforge.common.config.Configuration(f);
+            for (int i = 0; i < ks.length; i++) c.get("enchants." + ks[i].key(), "id", ids[i]).set(ids[i]);
+            if (moved != null) c.get("enchants", "oldIdsMoved", false).set(moved.booleanValue());
+            for (int i = 0; i < ks.length; i++) ks[i].id = 240 + i; // the defaults in the code
+            com.divinerpgextended.perk.DreEnchants.config(c);
+            int[] out = new int[ks.length];
+            for (int i = 0; i < ks.length; i++) out[i] = ks[i].id;
+            return out;
+        } finally {
+            f.delete();
+        }
+    }
+
     private void enchantTests(final WorldServer ow, final int sx, final int sy, final int sz) {
+        t("Enchantments", "IDs: registered after all mods, the 1.1.6 defaults 120-124 move to 240-244 once, IDs set by hand stay", () -> {
+            com.divinerpgextended.perk.DreEnchants.Kind[] ks = com.divinerpgextended.perk.DreEnchants.Kind.values();
+            int[] keep = new int[ks.length];
+            boolean[] on = new boolean[ks.length];
+            for (int i = 0; i < ks.length; i++) {
+                keep[i] = ks[i].id;
+                on[i] = ks[i].enabled;
+            }
+            try {
+                int[] old = { 120, 121, 122, 123, 124 }, mixed = { 120, 200, 122, 123, 124 };
+                String fresh = java.util.Arrays.toString(enchIdsAfter(old, null)), again = java.util.Arrays.toString(enchIdsAfter(old, Boolean.TRUE)),
+                    hand = java.util.Arrays.toString(enchIdsAfter(mixed, null));
+                boolean ok = "[240, 241, 242, 243, 244]".equals(fresh) && "[120, 121, 122, 123, 124]".equals(again) && "[240, 200, 242, 243, 244]".equals(hand);
+                // registered after every mod's init and postInit (Morph in the RedServer client build takes 120 in init)
+                boolean late = "AVAILABLE".equals(com.divinerpgextended.perk.DreEnchants.registeredIn);
+                Enchantment e120 = Enchantment.enchantmentsList[120];
+                String rep = "registered in " + com.divinerpgextended.perk.DreEnchants.registeredIn + "; 1.1.6 config " + fresh + ", after the move with 120-124 put back "
+                    + again + ", agility set to 200 " + hand + "; slot 120: " + (e120 == null ? "free" : e120.getClass().getName());
+                check(ok && late, rep);
+                return rep;
+            } finally {
+                for (int i = 0; i < ks.length; i++) {
+                    ks[i].id = keep[i];
+                    ks[i].enabled = on[i];
+                }
+            }
+        });
         t("Enchantments", "Registration, compatibility, only from the corrupt altar, commands", () -> {
             StringBuilder rep = new StringBuilder();
             boolean ok = true;
