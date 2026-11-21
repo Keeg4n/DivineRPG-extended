@@ -72,6 +72,7 @@ public final class EasterClient {
     public static net.minecraft.client.model.ModelBiped armorModel(ItemStack s) {
         if (!Easter.hev(s) || !(s.getItem() instanceof net.minecraft.item.ItemArmor)) return null;
         HEV_MODEL.piece = piece(s);
+        HEV_MODEL.owner = null;
         return HEV_MODEL;
     }
 
@@ -143,6 +144,7 @@ public final class EasterClient {
             EasterModels.HevArmor m = HEV_MODEL;
             m.piece = piece(e.stack);
             ModelWandererArmor.pose(m, e.entityPlayer, e.partialRenderTick);
+            m.owner = e.renderer.modelBipedMain;
             Minecraft.getMinecraft().getTextureManager().bindTexture(HEV);
             e.renderer.setRenderPassModel(m);
             e.result = e.stack.isItemEnchanted() ? 15 : 1;

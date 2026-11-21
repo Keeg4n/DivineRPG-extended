@@ -19,6 +19,8 @@ public final class EasterModels {
         public static final EasterMesh MESH = new EasterMesh("hev");
         /** Which part is drawn in this armor pass: helmet, goggles, chest, legs, boots. */
         public String piece = "chest";
+        /** The main model of the player wearing the suit (null - a mob or a stand): the item in hand follows the suit's arms. */
+        public net.minecraft.client.model.ModelBiped owner;
 
         public HevArmor() {
             super(0F);
@@ -27,6 +29,7 @@ public final class EasterModels {
         @Override
         public void render(Entity e, float f, float f1, float f2, float f3, float f4, float scale) {
             setRotationAngles(f, f1, f2, f3, f4, scale, e);
+            ModelWandererArmor.lend(this, owner);
             part(bipedHead, "head", scale);
             part(bipedBody, "body", scale);
             part(bipedRightArm, "rightArm", scale);

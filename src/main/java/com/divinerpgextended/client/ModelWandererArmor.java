@@ -45,6 +45,8 @@ public class ModelWandererArmor extends ModelBiped {
 
     private int tier = 1;
     private String piece = "chest";
+    /** The main model of the player wearing it (null - a mob or a stand): the item in hand is drawn on its arms ({@link #lend}). */
+    private ModelBiped owner;
     /** Dye color 0xRRGGBB or -1. */
     private int color = -1;
 
@@ -55,6 +57,7 @@ public class ModelWandererArmor extends ModelBiped {
     /** Model of an armor part (armorType 0-3) of tier tier for mobs and stands: a pose without items in hands and without sneaking. */
     public static ModelBiped forMob(int tier, int armorType, int color) {
         ModelWandererArmor m = select(MOB_MODEL, tier, armorType, color);
+        m.owner = null;
         m.heldItemLeft = m.heldItemRight = 0;
         m.isSneak = m.aimedBow = false;
         return m;
@@ -72,6 +75,7 @@ public class ModelWandererArmor extends ModelBiped {
      * blocking, drawn bow, sneaking. Not copied from the main model - other mods may leave its fields in another state.
      */
     public static void pose(ModelBiped m, net.minecraft.entity.player.EntityPlayer p, float partial) {
+        if (m instanceof ModelWandererArmor) ((ModelWandererArmor) m).owner = null;
         m.onGround = p.getSwingProgress(partial);
         m.isRiding = p.isRiding();
         m.isChild = p.isChild();
@@ -90,6 +94,7 @@ public class ModelWandererArmor extends ModelBiped {
     @Override
     public void render(Entity e, float f, float f1, float f2, float f3, float f4, float scale) {
         setRotationAngles(f, f1, f2, f3, f4, scale, e);
+        lend(this, owner);
         EasterMesh mesh = MESH[tier];
         // Wraith R8: the base is translucent (alpha in the atlas), the glow and the darkness under the hood are not. Only in the normal pass: in the pass
         // of the enchantment glint the blending is its own
@@ -156,6 +161,25 @@ public class ModelWandererArmor extends ModelBiped {
 
     /** Waist height on the body (model pixels from the neck). */
     private static final float WAIST = 12F;
+
+    /**
+     * The arms of the armor go to the player's main model: the game draws the item in hand after the armor, on the arm of the main model. In some
+     * builds the main model stays in the rest pose (other mods), then the armor arms moved while the bow or the sword hung still (1.1.11).
+     */
+    public static void lend(ModelBiped from, ModelBiped to) {
+        if (to == null || to == from) return;
+        copy(from.bipedRightArm, to.bipedRightArm);
+        copy(from.bipedLeftArm, to.bipedLeftArm);
+    }
+
+    private static void copy(net.minecraft.client.model.ModelRenderer a, net.minecraft.client.model.ModelRenderer b) {
+        b.rotateAngleX = a.rotateAngleX;
+        b.rotateAngleY = a.rotateAngleY;
+        b.rotateAngleZ = a.rotateAngleZ;
+        b.rotationPointX = a.rotationPointX;
+        b.rotationPointY = a.rotationPointY;
+        b.rotationPointZ = a.rotationPointZ;
+    }
 
     private static boolean bound(ResourceLocation loc) {
         ITextureObject t = Minecraft.getMinecraft().getTextureManager().getTexture(loc);
@@ -242,6 +266,7 @@ public class ModelWandererArmor extends ModelBiped {
             if ("jds.bibliocraft.AbstractSteve".equals(e.entityPlayer.getClass().getName())) standLight(e.entityPlayer);
             ModelWandererArmor m = select(MODEL, look, ((ItemArmor) e.stack.getItem()).armorType, ArmorData.color(e.stack));
             pose(m, e.entityPlayer, e.partialRenderTick);
+            m.owner = e.renderer.modelBipedMain;
             Minecraft.getMinecraft().getTextureManager().bindTexture(TEX[look]);
             e.renderer.setRenderPassModel(m);
             e.result = e.stack.isItemEnchanted() ? 15 : 1;
