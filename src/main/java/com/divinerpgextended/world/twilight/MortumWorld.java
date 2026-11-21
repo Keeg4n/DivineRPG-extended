@@ -265,6 +265,17 @@ public class MortumWorld {
             || m == net.minecraft.block.material.Material.leaves || m.isReplaceable();
     }
 
+    /**
+     * Whether a structure in the square [x, x + w) x [z, z + d) would stand in Lethe: the riverbed (by its noise - the river of a
+     * neighboring area may not be poured yet) within margin m of it, or the floor not above the water level (lakes fill every void up
+     * to SEA). Crypts, gravestones and giant remains stand only on dry ground (1.1.9).
+     */
+    public static boolean wet(long seed, int x, int z, int w, int d, int m, int floor) {
+        if (floor <= SEA + 1) return true;
+        for (int i = -m; i < w + m; i++) for (int k = -m; k < d + m; k++) if (river(seed, x + i, z + k)) return true;
+        return false;
+    }
+
     /** A point on a Mortum arena (with margin): there is no river or small structures there. */
     static boolean onArena(World w, int x, int z) {
         int[] c = WorldGenNests.nearest(w.getSeed(), w.provider.dimensionId, x, z);
@@ -484,11 +495,11 @@ public class MortumWorld {
         int n = r.nextInt(3) == 0 ? 1 : 0;
         for (int i = 0; i < n; i++) {
             int x = x0 + r.nextInt(16), z = z0 + r.nextInt(16), y = WorldGenTwilightFeatures.surface(w, tw, x, z);
-            if (y > 0 && w.getBlock(x, y, z) != ModBlocks.lethe) skull(w, r, x, y + 1, z);
+            if (y > 0 && w.getBlock(x, y, z) != ModBlocks.lethe && !wet(w.getSeed(), x, z, 1, 1, 1, y)) skull(w, r, x, y + 1, z);
         }
         if (r.nextInt(6) == 0) {
             int x = x0 + 2 + r.nextInt(12), z = z0 + 2 + r.nextInt(12), y = WorldGenTwilightFeatures.surface(w, tw, x, z);
-            if (y > 0 && w.isAirBlock(x, y + 1, z) && w.isAirBlock(x, y + 2, z) && w.getBlock(x, y, z) != ModBlocks.lethe) {
+            if (y > 0 && w.isAirBlock(x, y + 1, z) && w.isAirBlock(x, y + 2, z) && w.getBlock(x, y, z) != ModBlocks.lethe && !wet(w.getSeed(), x, z, 1, 2, 1, y)) {
                 w.setBlock(x, y + 1, z, Blocks.stonebrick, 3, 2);
                 w.setBlock(x, y + 2, z, Blocks.stone_slab, 5, 2);
                 skull(w, r, x, y + 1, z + 1);
@@ -508,7 +519,7 @@ public class MortumWorld {
             lo = Math.min(lo, y);
             hi = Math.max(hi, y);
         }
-        if (hi - lo > 3) return false;
+        if (hi - lo > 3 || wet(w.getSeed(), x, z, 7, 9, 2, lo)) return false;
         int base = hi;
         for (int i = 0; i < 7; i++) for (int k = 0; k < 9; k++) {
             int s = WorldGenTwilightFeatures.surface(w, tw, x + i, z + k);
@@ -605,7 +616,7 @@ public class MortumWorld {
      */
     public static boolean giantSkull(World w, Random r, TwilightWorld tw, int cx, int cz) {
         int g = flatGround(w, tw, cx, cz, 6);
-        if (g < 6 || g > 110) return false;
+        if (g < 6 || g > 110 || wet(w.getSeed(), cx - 7, cz - 7, 15, 15, 2, g)) return false;
         double yaw = r.nextInt(4) * Math.PI / 2 + (r.nextDouble() - 0.5) * 0.6, tilt = Math.toRadians(18 + r.nextInt(18));
         double cy = g + 1.5, a = 5, b = 4, c = 5;
         double cyw = Math.cos(yaw), syw = Math.sin(yaw), ct = Math.cos(tilt), st = Math.sin(tilt);
@@ -643,7 +654,7 @@ public class MortumWorld {
      */
     public static boolean giantRibs(World w, Random r, TwilightWorld tw, int cx, int cz) {
         int g = flatGround(w, tw, cx, cz, 7);
-        if (g < 6 || g > 110) return false;
+        if (g < 6 || g > 110 || wet(w.getSeed(), cx - 8, cz - 8, 17, 17, 2, g)) return false;
         boolean alongX = r.nextBoolean();
         double roll = (r.nextDouble() - 0.5) * 0.5;
         int broken = r.nextInt(5), broken2 = r.nextInt(3) == 0 ? r.nextInt(5) : -1;

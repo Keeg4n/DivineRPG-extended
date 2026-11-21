@@ -487,6 +487,31 @@ public final class MortumArenas {
 
         static final int SLOPE = 10;
 
+        /** Smooth noise 0..1 by the column (two scales): the cleared cave around the structure is uneven, not a box of flat planes (1.1.9). */
+        static double rough(int dx, int dz, int salt) {
+            return Spire.smooth(dx, dz, 7, salt) * 0.6 + Spire.smooth(dx, dz, 3, salt + 11) * 0.4;
+        }
+
+        /** How much higher than the even vault the ceiling goes in this column: 0..5 blocks of lumps (1.1.9). */
+        static int lump(int dx, int dz) {
+            return (int) Math.round(rough(dx, dz, 5) * 5);
+        }
+
+        /**
+         * The slope distance with a ragged edge: up to 5 blocks farther than the plain shape, so the cut ends earlier in places and the outer
+         * border of the cave is not a straight line. Never nearer - the arena place depends on SLOPE (1.1.9). The noise is stretched in contrast:
+         * smooth noise stays near the middle and the edge barely wavered.
+         */
+        static double ragged(int dx, int dz, double out) {
+            double r = Math.max(0, Math.min(1, (rough(dx, dz, 3) - 0.5) * 2.2 + 0.5));
+            return out + r * 5 * Math.min(1, out / 4);
+        }
+
+        /** The vault over the slope at distance o (ragged): it descends from the structure and meets the rising slope. */
+        int slopeVault(int dx, int dz, double o) {
+            return TOP + dome() - (int) (o * 1.2) + lump(dx, dz) - 1;
+        }
+
         /** Volume decoration over the blueprint (towers, a crystal roof, a tree), or null. */
         Voxels voxels() {
             return null;
@@ -500,15 +525,16 @@ public final class MortumArenas {
             int env = vx == null ? Integer.MIN_VALUE : vx.envelope(dx, dz);
             int ax = Math.abs(dx), az = Math.abs(dz), far = Math.max(ax, az);
             boolean tunnel = false; // cut passages to the arena did not join with the terrain - there are none
-            double out = outside(dx, dz);
-            if (!in && !vox && !tunnel && out > 0 && out <= SLOPE && slopes()) {
+            double out = outside(dx, dz), o = out > 0 ? ragged(dx, dz, out) : out;
+            boolean slope = out > 0 && o <= SLOPE && slopes();
+            if (!in && !vox && !tunnel && slope) {
                 // slope around: a fill down to the ground; above - a slope up and the cave vault descending from the structure (a dome, not
-                // a sheer cut): where there is rock above, it overhangs as a vault and meets the slope
-                int surface = TOP - 1 - (int) (out * 1.3);
+                // a sheer cut): where there is rock above, it overhangs as a vault and meets the slope. Ragged edge and lumpy vault (1.1.9)
+                int surface = TOP - 1 - (int) (o * 1.3);
                 put(col, surface, WorldGenNests.GRASS, 0); // the fill on top is Mortum grass, as around (it used to be bare dirt)
                 put(col, surface - 1, FOUNDATION, 0);
-                int dome = Math.max(TOP + dome() - (int) (out * 1.2), env);
-                for (int y = TOP + 1 + (int) (out * 1.5); y <= dome; y++) put(col, y, AIR, 0);
+                int dome = Math.max(slopeVault(dx, dz, o), env);
+                for (int y = TOP + 1 + (int) (o * 1.5); y <= dome; y++) put(col, y, AIR, 0);
                 return true;
             }
             if (!in && !vox && env > TOP) { // beyond the slopes, near a tall decoration: only the air around it
@@ -519,7 +545,11 @@ public final class MortumArenas {
                 put(col, TOP - 5, FOUNDATION, 0);
                 for (int y = TOP - 4; y < TOP; y++) put(col, y, WorldGenNests.DIRT, 0);
                 put(col, TOP, WorldGenNests.GRASS, 0);
-                for (int y = TOP + 1; y <= Math.max(TOP + 4, env); y++) put(col, y, AIR, 0);
+                // on the slopes the vault is cleared above the decoration too: before only up to its top, and over the gallery buttresses
+                // the rock stood in ribs from the buttress to the ceiling (1.1.9)
+                int top = Math.max(TOP + 4, env);
+                if (slope) top = Math.max(top, slopeVault(dx, dz, o));
+                for (int y = TOP + 1; y <= top; y++) put(col, y, AIR, 0);
                 vx.apply(dx, dz, col);
                 return true;
             }
@@ -533,7 +563,8 @@ public final class MortumArenas {
             put(col, TOP - 5, FOUNDATION, 0);
             for (int y = TOP - 4; y < TOP; y++) put(col, y, WorldGenNests.DIRT, 0);
             int c = clear(dx, dz);
-            for (int y = TOP + 1; y <= Math.max(TOP + c + (slopes() ? 4 : 0), env); y++) put(col, y, AIR, 0); // margin above the roof - the start of the vault
+            // margin above the roof - the start of the vault; lumps in the ceiling, not a flat lid (1.1.9)
+            for (int y = TOP + 1; y <= Math.max(TOP + c + (slopes() ? 4 + lump(dx, dz) : 0), env); y++) put(col, y, AIR, 0);
             build(dx, dz, col);
             if (vox) vx.apply(dx, dz, col);
             // the floor layer that the structure did not define (under walls and stands): there was a cave - fill it, otherwise the brick hangs over

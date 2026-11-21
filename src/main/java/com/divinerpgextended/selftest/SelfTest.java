@@ -11717,6 +11717,7 @@ public class SelfTest {
         t("Lairs", "Mortum: giant remains", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int x0 = 9820, y0 = 60, z0 = 9820;
+            while (com.divinerpgextended.world.twilight.MortumWorld.wet(w.getSeed(), x0 - 10, z0 - 10, 21, 21, 2, y0)) x0 += 48; // giant remains do not stand by Lethe (1.1.9)
             loadAround(w, x0, z0, 2);
             for (int x = x0 - 12; x <= x0 + 12; x++) for (int z = z0 - 12; z <= z0 + 12; z++) for (int y = y0 - 6; y <= 120; y++)
                 w.setBlock(x, y, z, y < y0 ? net.divinerpg.utils.blocks.TwilightBlocks.mortumGrass : Blocks.air);
@@ -11742,6 +11743,53 @@ public class SelfTest {
             check(skull && bone > 120 && chest == 1 && airInside > 5 && buried && ribs && rib > 60 && high > 10,
                 "skull " + skull + ": bones " + bone + ", chest " + chest + ", cavity " + airInside + ", in ground " + buried + "; ribs " + ribs + ": bones " + rib + ", of them above 4 blocks " + high);
             return "giant skull (" + bone + " bone blocks, half in the ground, a cavity and a chest inside) and rib cage (" + rib + " blocks, ribs in arcs)";
+        });
+        t("Lairs", "Mortum: structures stay off Lethe, the cave around arenas is uneven", () -> {
+            WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
+            long seed = w.getSeed();
+            // 1. Lethe: a flat site right on the riverbed - no crypt, skull or ribs there (by the noise, even before the river is poured)
+            int rx = 14000, rz = 14000, y0 = 60;
+            while (!com.divinerpgextended.world.twilight.MortumWorld.river(seed, rx, rz)) rx += 3;
+            loadAround(w, rx, rz, 2);
+            for (int x = rx - 12; x <= rx + 12; x++) for (int z = rz - 12; z <= rz + 12; z++) for (int y = y0 - 6; y <= 120; y++)
+                w.setBlock(x, y, z, y < y0 ? net.divinerpg.utils.blocks.TwilightBlocks.mortumGrass : Blocks.air);
+            java.util.Random rr = new java.util.Random(7);
+            com.divinerpgextended.world.twilight.TwilightWorld mt = com.divinerpgextended.world.twilight.TwilightWorld.MORTUM;
+            boolean crypt = com.divinerpgextended.world.twilight.MortumWorld.crypt(w, rr, mt, rx - 3, rz - 4), skull = com.divinerpgextended.world.twilight.MortumWorld.giantSkull(w, rr, mt, rx, rz), ribs = com.divinerpgextended.world.twilight.MortumWorld.giantRibs(w, rr, mt, rx, rz);
+            boolean low = com.divinerpgextended.world.twilight.MortumWorld.wet(seed, rx + 500, rz + 500, 7, 9, 0, com.divinerpgextended.world.twilight.MortumWorld.SEA); // a floor at the water level counts as Lethe too
+            for (int x = rx - 12; x <= rx + 12; x++) for (int z = rz - 12; z <= rz + 12; z++) for (int y = y0 - 6; y <= 120; y++) w.setBlockToAir(x, y, z);
+            // 2. the gallery (archer): no rock ribs over the buttresses (every 4 blocks along the side), the ceiling is lumpy, the slope edge ragged
+            com.divinerpgextended.world.twilight.ColumnStructure gal = com.divinerpgextended.world.twilight.MortumArenas.shape(com.divinerpgextended.world.twilight.MortumArenas.Type.ARCHER);
+            int top = com.divinerpgextended.world.twilight.WorldGenNests.MORTUM_TOP, ribRock = 0, checked = 0;
+            int[] col = new int[512];
+            for (int dz = -24; dz <= 24; dz += 4) for (int s = -1; s <= 1; s += 2) for (int st = 1; st <= 3; st++) {
+                java.util.Arrays.fill(col, com.divinerpgextended.world.twilight.ColumnStructure.KEEP);
+                gal.columnAt(s * (11 + 1 + st), dz, col);
+                checked++;
+                if (col[(top + 18) * 2] == com.divinerpgextended.world.twilight.ColumnStructure.KEEP) ribRock++;
+            }
+            java.util.Set<Integer> ceilings = new java.util.HashSet<Integer>(), edges = new java.util.HashSet<Integer>();
+            for (int dz = -26; dz <= 26; dz += 2) {
+                for (int dx = -10; dx <= 10; dx += 2) {
+                    java.util.Arrays.fill(col, com.divinerpgextended.world.twilight.ColumnStructure.KEEP);
+                    gal.columnAt(dx, dz, col);
+                    int c = 0;
+                    for (int y = top + 1; y < 255; y++) if (col[y * 2] != com.divinerpgextended.world.twilight.ColumnStructure.KEEP) c = y;
+                    ceilings.add(c);
+                }
+                int edge = 0; // the last column with cave air going east from the side wall
+                for (int dx = 13; dx <= 30; dx++) {
+                    java.util.Arrays.fill(col, com.divinerpgextended.world.twilight.ColumnStructure.KEEP);
+                    if (!gal.columnAt(dx, dz + 1, col)) continue;
+                    for (int y = top + 1; y < 255; y++) if (col[y * 2] == com.divinerpgextended.world.twilight.ColumnStructure.AIR) edge = dx;
+                }
+                edges.add(edge);
+            }
+            check(!crypt && !skull && !ribs && low && ribRock == 0 && ceilings.size() >= 4 && edges.size() >= 3,
+                "on Lethe at " + rx + "," + rz + ": crypt " + crypt + ", skull " + skull + ", ribs " + ribs + ", floor at water level is wet " + low
+                    + "; gallery: rock over buttresses " + ribRock + " of " + checked + ", ceiling heights " + ceilings + ", slope edges " + edges);
+            return "no crypt or giant remains on the riverbed or at the water level; over the gallery buttresses the vault is cleared (" + checked
+                + " columns), the ceiling has " + ceilings.size() + " heights, the slope ends at " + edges.size() + " different distances";
         });
         t("Progression", "Vethea wood planks and crafts from them", () -> {
             StringBuilder sb = new StringBuilder();
@@ -13477,6 +13525,7 @@ public class SelfTest {
         t("Lairs", "Mortum: Lethe, Charon, crypt", () -> {
             WorldServer w = server.worldServerForDimension(ConfigurationHelper.mortum);
             int x0 = 9760, y0 = 90, z0 = 9760;
+            while (com.divinerpgextended.world.twilight.MortumWorld.wet(w.getSeed(), x0 - 8, z0 - 8, 25, 25, 2, y0)) x0 += 48; // a crypt does not stand by Lethe (1.1.9)
             loadAround(w, x0, z0, 2);
             for (int x = x0 - 8; x <= x0 + 16; x++) for (int z = z0 - 8; z <= z0 + 16; z++) for (int y = y0 - 2; y <= y0 + 10; y++)
                 w.setBlock(x, y, z, y < y0 ? net.divinerpg.utils.blocks.TwilightBlocks.mortumGrass : Blocks.air);
