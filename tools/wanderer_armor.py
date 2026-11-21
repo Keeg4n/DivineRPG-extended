@@ -57,6 +57,7 @@ w.P = _labeled(w.P)  # before importing the concepts: they take P from wconcepts
 import wslim5  # noqa: E402,F401 (registers the fifth-round concepts and R2 from the fourth)
 import wr1  # noqa: E402,F401 (first-tier looks by core)
 import wr8  # noqa: E402,F401 (R8 looks by Crown)
+import mesh_unfight  # noqa: E402
 
 RES = os.path.join(HERE, '..', 'src', 'main', 'resources', 'assets', 'divinerpgextended')
 LOOKS = {'r1': 'r1v', 'r2': 'r2s', 'r3': 'r3v', 'r4': 'r4v', 'r5': 'r5v', 'r6': 'r6v', 'r7': 'r7z',
@@ -191,6 +192,7 @@ def main():
                     blk = base[f.y - 1:f.y + f.ph + 1, f.x - 1:f.x + f.pw + 1, 3]
                     blk[blk > 0] = 255
         m.save(os.path.join(tex_dir, name + '.png'), os.path.join(mesh_dir, name + '.mesh'))
+        mesh_unfight.unfight(os.path.join(mesh_dir, name + '.mesh'))  # coplanar overlapping faces would flicker through each other
         Image.fromarray(base, 'RGBA').save(os.path.join(tex_dir, name + '.png'))
         gpath = os.path.join(tex_dir, name + '_glow.png')
         if glow.any():

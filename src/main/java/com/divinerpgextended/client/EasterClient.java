@@ -142,14 +142,7 @@ public final class EasterClient {
             if (!Easter.hev(e.stack) || !(e.stack.getItem() instanceof net.minecraft.item.ItemArmor)) return;
             EasterModels.HevArmor m = HEV_MODEL;
             m.piece = piece(e.stack);
-            net.minecraft.client.model.ModelBiped main = e.renderer.modelBipedMain;
-            m.onGround = main.onGround;
-            m.isRiding = main.isRiding;
-            m.isChild = main.isChild;
-            m.heldItemLeft = main.heldItemLeft;
-            m.heldItemRight = main.heldItemRight;
-            m.isSneak = main.isSneak;
-            m.aimedBow = main.aimedBow;
+            ModelWandererArmor.pose(m, e.entityPlayer, e.partialRenderTick);
             Minecraft.getMinecraft().getTextureManager().bindTexture(HEV);
             e.renderer.setRenderPassModel(m);
             e.result = e.stack.isItemEnchanted() ? 15 : 1;

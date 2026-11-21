@@ -31,7 +31,8 @@ public class ModelWandererArmor extends ModelBiped {
     private static final EasterMesh[] MESH = new EasterMesh[N + 1];
     private static final ResourceLocation[] TEX = new ResourceLocation[N + 1], GLOW = new ResourceLocation[N + 1], DYE = new ResourceLocation[N + 1];
     private static final Boolean[] HAS_GLOW = new Boolean[N + 1], HAS_DYE = new Boolean[N + 1];
-    private static final ModelWandererArmor MODEL = new ModelWandererArmor();
+    /** Players and mobs/stands have separate instances: a mod asking an item for its mob model mid-frame must not reset a player's pose. */
+    private static final ModelWandererArmor MODEL = new ModelWandererArmor(), MOB_MODEL = new ModelWandererArmor();
 
     static {
         for (int t = 1; t <= N; t++) {
@@ -53,17 +54,37 @@ public class ModelWandererArmor extends ModelBiped {
 
     /** Model of an armor part (armorType 0-3) of tier tier for mobs and stands: a pose without items in hands and without sneaking. */
     public static ModelBiped forMob(int tier, int armorType, int color) {
-        ModelWandererArmor m = select(tier, armorType, color);
+        ModelWandererArmor m = select(MOB_MODEL, tier, armorType, color);
         m.heldItemLeft = m.heldItemRight = 0;
         m.isSneak = m.aimedBow = false;
         return m;
     }
 
-    private static ModelWandererArmor select(int tier, int armorType, int color) {
-        MODEL.tier = tier;
-        MODEL.color = color;
-        MODEL.piece = PIECES[Math.max(0, Math.min(3, armorType))];
-        return MODEL;
+    private static ModelWandererArmor select(ModelWandererArmor m, int tier, int armorType, int color) {
+        m.tier = tier;
+        m.color = color;
+        m.piece = PIECES[Math.max(0, Math.min(3, armorType))];
+        return m;
+    }
+
+    /**
+     * The pose of a player's armor straight from the player, the same way RenderPlayer poses its own models: swing, riding, item in hand,
+     * blocking, drawn bow, sneaking. Not copied from the main model - other mods may leave its fields in another state.
+     */
+    public static void pose(ModelBiped m, net.minecraft.entity.player.EntityPlayer p, float partial) {
+        m.onGround = p.getSwingProgress(partial);
+        m.isRiding = p.isRiding();
+        m.isChild = p.isChild();
+        net.minecraft.item.ItemStack held = p.inventory.getCurrentItem();
+        m.heldItemLeft = 0;
+        m.heldItemRight = held != null ? 1 : 0;
+        m.aimedBow = false;
+        if (held != null && p.getItemInUseCount() > 0) {
+            net.minecraft.item.EnumAction a = held.getItemUseAction();
+            if (a == net.minecraft.item.EnumAction.block) m.heldItemRight = 3;
+            else if (a == net.minecraft.item.EnumAction.bow) m.aimedBow = true;
+        }
+        m.isSneak = p.isSneaking();
     }
 
     @Override
@@ -198,15 +219,8 @@ public class ModelWandererArmor extends ModelBiped {
             if (!ItemWandererArmor.hasLook(ArmorData.tier(e.stack))) return;
             int look = ItemWandererArmor.look(e.stack);
             if ("jds.bibliocraft.AbstractSteve".equals(e.entityPlayer.getClass().getName())) standLight(e.entityPlayer);
-            ModelWandererArmor m = select(look, ((ItemArmor) e.stack.getItem()).armorType, ArmorData.color(e.stack));
-            ModelBiped main = e.renderer.modelBipedMain;
-            m.onGround = main.onGround;
-            m.isRiding = main.isRiding;
-            m.isChild = main.isChild;
-            m.heldItemLeft = main.heldItemLeft;
-            m.heldItemRight = main.heldItemRight;
-            m.isSneak = main.isSneak;
-            m.aimedBow = main.aimedBow;
+            ModelWandererArmor m = select(MODEL, look, ((ItemArmor) e.stack.getItem()).armorType, ArmorData.color(e.stack));
+            pose(m, e.entityPlayer, e.partialRenderTick);
             Minecraft.getMinecraft().getTextureManager().bindTexture(TEX[look]);
             e.renderer.setRenderPassModel(m);
             e.result = e.stack.isItemEnchanted() ? 15 : 1;
