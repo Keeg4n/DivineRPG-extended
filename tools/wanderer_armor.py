@@ -122,11 +122,29 @@ def slot(b):
     return 'boots' if b.p0[1] >= 6.5 else 'legs'
 
 
+# Skirt (1.1.10): leg-piece details on the body that hang below the waist (tatters of the Wraith R8, the bone tail of R6, the crystal plates
+# of R7). In the game they hang from the waist and do not tilt with the body: when sneaking the body leans forward and a skirt tilted with it
+# flew back like a tail. In the mesh - their own bone 'skirt' in body coordinates.
+LIMBS['skirt'] = LIMBS['body']
+mk.BONES.setdefault('skirt', (0, 0, 0))
+WAIST = 12.5
+
+
+def bottom(b):
+    """The lowest point of a box (or a set of quads) in bone coordinates (y grows downward)."""
+    if hasattr(b, 'size'):
+        c = np.array([[x, y, z] for x in (0, b.size[0]) for y in (0, b.size[1]) for z in (0, b.size[2])], float)
+        return float(b.to_bone(c)[:, 1].max())
+    return float(np.asarray(b.quads, float)[..., 1].max())
+
+
 def build_model(name):
     boxes = w.CONCEPTS[LOOKS[name]][3]()
     for b in boxes:
         b.piece = slot(b)
         b.k = K
+        if b.bone == 'body' and b.piece == 'legs' and bottom(b) > WAIST:
+            b.bone = 'skirt'
     m = mk.Model('wanderer_' + name, boxes, atlas_width=ATLAS_W)
     m.warp = push_out
     return m

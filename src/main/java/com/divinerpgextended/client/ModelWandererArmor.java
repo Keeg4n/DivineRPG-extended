@@ -122,6 +122,7 @@ public class ModelWandererArmor extends ModelBiped {
     private void draw(EasterMesh mesh, float scale) {
         part(mesh, bipedHead, "head", scale);
         part(mesh, bipedBody, "body", scale);
+        skirt(mesh, scale);
         part(mesh, bipedRightArm, "rightArm", scale);
         part(mesh, bipedLeftArm, "leftArm", scale);
         part(mesh, bipedRightLeg, "rightLeg", scale);
@@ -135,6 +136,26 @@ public class ModelWandererArmor extends ModelBiped {
         mesh.render(piece, name, scale);
         GL11.glPopMatrix();
     }
+
+    /**
+     * The skirt - leg-piece details hanging below the belt (Wraith tatters, the R6 tail, R7 plates): it hangs from the waist and does not tilt
+     * with the body. When sneaking the body leans forward and the skirt drawn on the body flew back like a tail (1.1.10).
+     */
+    private void skirt(EasterMesh mesh, float scale) {
+        if (!mesh.has(piece, "skirt")) return;
+        GL11.glPushMatrix();
+        bipedBody.postRender(scale);
+        if (bipedBody.rotateAngleX != 0F) {
+            GL11.glTranslatef(0F, WAIST * scale, 0F);
+            GL11.glRotatef(-bipedBody.rotateAngleX * (180F / (float) Math.PI), 1F, 0F, 0F);
+            GL11.glTranslatef(0F, -WAIST * scale, 0F);
+        }
+        mesh.render(piece, "skirt", scale);
+        GL11.glPopMatrix();
+    }
+
+    /** Waist height on the body (model pixels from the neck). */
+    private static final float WAIST = 12F;
 
     private static boolean bound(ResourceLocation loc) {
         ITextureObject t = Minecraft.getMinecraft().getTextureManager().getTexture(loc);

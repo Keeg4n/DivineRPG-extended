@@ -1104,11 +1104,20 @@ public class SelfTest {
                     continue;
                 }
                 java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(mesh, "UTF-8"));
-                String grp = null;
+                String grp = null, bone = null;
+                int tail = 0; // leggings details on the body below the waist: they must hang on the skirt bone, otherwise they tilt with the body (1.1.10)
                 for (String line; (line = br.readLine()) != null;) {
-                    if (line.startsWith("p ")) grp = line.split(" ")[1];
-                    else if (line.startsWith("q ") && grp != null && line.trim().split("\\s+").length == 24) quads.put(grp, (quads.containsKey(grp) ? quads.get(grp) : 0) + 1);
+                    if (line.startsWith("p ")) {
+                        grp = line.split(" ")[1];
+                        bone = line.split(" ")[2];
+                    } else if (line.startsWith("q ") && grp != null && line.trim().split("\\s+").length == 24) {
+                        quads.put(grp, (quads.containsKey(grp) ? quads.get(grp) : 0) + 1);
+                        String[] v = line.trim().split("\\s+");
+                        if ("legs".equals(grp) && "body".equals(bone))
+                            for (int k = 0; k < 4; k++) if (Float.parseFloat(v[5 + k * 5]) > 13F) { tail++; break; }
+                    }
                 }
+                if (tail > 0) bad.append(' ').append(name).append(": ").append(tail).append(" leggings faces below the waist on the body, not on the skirt;");
                 br.close();
                 for (int a = 0; a < 4; a++) {
                     if (!quads.containsKey(parts[a]) || quads.get(parts[a]) < 6) bad.append(' ').append(name).append(": too few faces ").append(parts[a]).append(';');
