@@ -2,7 +2,7 @@
 
 Tier -> concept (fifth round, wslim5.py, slim proportions): R1 divine with a shield on the back,
 R2 petals and halo, R3 wooden plate with a plus-shaped slit and a staff, R4 feather headdress and beads, R5 closed helmet and wings,
-R6 deep hood and a bone spine, R7 green crystal plates. The look of the first tier depends on the core (wr1.py): r1_shadow,
+R6 deep hood and a bone spine, R7 green crystal plates (r7k from wr7.py: the trim is dark green, not near-black). The look of the first tier depends on the core (wr1.py): r1_shadow,
 r1_bedrock, r1_ender, r1_corrupted. Boxes are split by armor part, as in the H.E.V. suit:
 helmet - everything on the head, chest - torso and arms, legs - belt and thighs (on the body - below y=9), boots - shins below y=6.5.
 Glowing texels (alpha 0.6 in the concept atlas) go into a separate mask r<N>_glow.png: in the game it is drawn in a second
@@ -57,10 +57,11 @@ w.P = _labeled(w.P)  # before importing the concepts: they take P from wconcepts
 import wslim5  # noqa: E402,F401 (registers the fifth-round concepts and R2 from the fourth)
 import wr1  # noqa: E402,F401 (first-tier looks by core)
 import wr8  # noqa: E402,F401 (R8 looks by Crown)
+import wr7  # noqa: E402,F401 (R7 without the black outline)
 import mesh_unfight  # noqa: E402
 
 RES = os.path.join(HERE, '..', 'src', 'main', 'resources', 'assets', 'divinerpgextended')
-LOOKS = {'r1': 'r1v', 'r2': 'r2s', 'r3': 'r3v', 'r4': 'r4v', 'r5': 'r5v', 'r6': 'r6v', 'r7': 'r7z',
+LOOKS = {'r1': 'r1v', 'r2': 'r2s', 'r3': 'r3v', 'r4': 'r4v', 'r5': 'r5v', 'r6': 'r6v', 'r7': 'r7k',
          'r1_shadow': 'r1t', 'r1_bedrock': 'r1k', 'r1_ender': 'r1o', 'r1_corrupted': 'r1r',
          'r8_flight': 'r8m', 'r8_regen': 'r8b', 'r8_arcana': 'r8c'}
 # Translucent looks: opacity of the base (glow and boxes with the solid attribute are fully opaque). In the game
