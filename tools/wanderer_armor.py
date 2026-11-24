@@ -11,7 +11,11 @@ Translucent looks (TRANSLUCENT, currently the Wraith R8): the base in the atlas 
 Dyeing (dyes at the crafting table): mask r<N>_dye.png - gray where the texel is the look's main material (colors from DYE), in the game
 it is drawn over the same mesh, multiplied by the color. Trim, stones, leather and glow keep their own colors.
 
+Detailed textures (1.1.13, tools/wdetail.py): a pass over the painting of every box - pixel shading, plate seams, rivets, folds, grain.
+
 Run: python3 tools/wanderer_armor.py  (from the repo root). Writes to src/main/resources/assets/divinerpgextended.
+python3 tools/wanderer_armor.py --hd <dir>: the same in double resolution (K 4) with its own meshes into <dir>/assets/divinerpgextended -
+the optional resource pack, tools/wanderer_hd_pack.sh.
 """
 import math
 import os
@@ -54,6 +58,8 @@ def _labeled(P):
 
 
 w.P = _labeled(w.P)  # before importing the concepts: they take P from wconcepts at load time
+import wdetail  # noqa: E402 (detailed textures: shading, seams, rivets, folds - over the labeled painting, the labels stay)
+wdetail.install(w)
 import wslim5  # noqa: E402,F401 (registers the fifth-round concepts and R2 from the fourth)
 import wr1  # noqa: E402,F401 (first-tier looks by core)
 import wr8  # noqa: E402,F401 (R8 looks by Crown)
@@ -139,14 +145,15 @@ def bottom(b):
     return float(np.asarray(b.quads, float)[..., 1].max())
 
 
-def build_model(name):
+def build_model(name, k=K, atlas_w=ATLAS_W):
+    wdetail.LOOK = LOOKS[name]  # per-look material fixes of the detail pass
     boxes = w.CONCEPTS[LOOKS[name]][3]()
     for b in boxes:
         b.piece = slot(b)
-        b.k = K
+        b.k = k
         if b.bone == 'body' and b.piece == 'legs' and bottom(b) > WAIST:
             b.bone = 'skirt'
-    m = mk.Model('wanderer_' + name, boxes, atlas_width=ATLAS_W)
+    m = mk.Model('wanderer_' + name, boxes, atlas_width=atlas_w)
     m.warp = push_out
     return m
 
@@ -193,13 +200,13 @@ def dye_mask(m, name):
     return out if out[..., 3].any() else None
 
 
-def main():
-    mesh_dir = os.path.join(RES, 'models', 'wanderer')
-    tex_dir = os.path.join(RES, 'textures', 'models', 'wanderer')
+def main(res=RES, k=K, atlas_w=ATLAS_W):
+    mesh_dir = os.path.join(res, 'models', 'wanderer')
+    tex_dir = os.path.join(res, 'textures', 'models', 'wanderer')
     for d in (mesh_dir, tex_dir):
         os.makedirs(d, exist_ok=True)
     for name in sorted(LOOKS):
-        m = build_model(name)
+        m = build_model(name, k, atlas_w)
         a = m.img[..., 3]
         glow = (a > 25) & (a < 200)
         base = m.img.copy()
@@ -233,4 +240,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) > 2 and sys.argv[1] == '--hd':
+        # optional resource pack (tools/wanderer_hd_pack.sh): double resolution, own meshes for its UV layout
+        main(os.path.join(sys.argv[2], 'assets', 'divinerpgextended'), 2 * K, 2 * ATLAS_W)
+    else:
+        main()

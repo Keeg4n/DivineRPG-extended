@@ -11,6 +11,9 @@ import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.resources.IReloadableResourceManager;
+import net.minecraft.client.resources.IResourceManager;
+import net.minecraft.client.resources.IResourceManagerReloadListener;
 import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
@@ -18,6 +21,8 @@ import org.lwjgl.opengl.GL11;
 /**
  * A detailed Easter egg model from resources ({@code models/easter/*.mesh}, built by ~/mc/tools/easter_build.py together with the atlas):
  * "part + bone" groups of quadrilaterals with normals. Each group is drawn with an OpenGL display list.
+ * A resource reload (a resource pack switched on or off) drops the loaded meshes, the next draw reads them again: a pack may bring its own
+ * meshes together with its textures (the double resolution Wanderer armor pack does), and the old UV layout would not fit the new atlas.
  */
 public final class EasterMesh {
 
@@ -25,6 +30,32 @@ public final class EasterMesh {
     final Map<String, float[]> groups = new HashMap<String, float[]>(); // "part/bone" -> 23 numbers per quadrilateral
     final Map<String, Integer> lists = new HashMap<String, Integer>();
     boolean loaded;
+
+    private static final List<EasterMesh> LOADED = new ArrayList<EasterMesh>();
+    private static boolean listening;
+
+    /** First load: the reload listener is registered before the mesh is added (registration calls it at once). */
+    private static void watch(EasterMesh m) {
+        if (!listening) {
+            listening = true;
+            ((IReloadableResourceManager) Minecraft.getMinecraft().getResourceManager()).registerReloadListener(new IResourceManagerReloadListener() {
+
+                @Override
+                public void onResourceManagerReload(IResourceManager rm) {
+                    for (EasterMesh e : LOADED) e.reset();
+                    LOADED.clear();
+                }
+            });
+        }
+        LOADED.add(m);
+    }
+
+    void reset() {
+        for (Integer l : lists.values()) GLAllocation.deleteDisplayLists(l);
+        lists.clear();
+        groups.clear();
+        loaded = false;
+    }
 
     public EasterMesh(String name) {
         file = new ResourceLocation("divinerpgextended", "models/easter/" + name + ".mesh");
@@ -38,6 +69,7 @@ public final class EasterMesh {
     void load() {
         if (loaded) return;
         loaded = true;
+        watch(this);
         try {
             InputStream in = Minecraft.getMinecraft().getResourceManager().getResource(file).getInputStream();
             BufferedReader r = new BufferedReader(new InputStreamReader(in, "UTF-8"));
