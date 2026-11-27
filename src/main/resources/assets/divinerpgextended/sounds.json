@@ -18,5 +18,41 @@
     "sounds": [
       "reload_gun"
     ]
+  },
+  "note.hypersaw": {
+    "category": "record",
+    "sounds": [
+      "note/hypersaw"
+    ]
+  },
+  "note.guitar": {
+    "category": "record",
+    "sounds": [
+      "note/guitar"
+    ]
+  },
+  "note.pluck": {
+    "category": "record",
+    "sounds": [
+      "note/pluck"
+    ]
+  },
+  "note.bell": {
+    "category": "record",
+    "sounds": [
+      "note/bell"
+    ]
+  },
+  "note.bass": {
+    "category": "record",
+    "sounds": [
+      "note/bass"
+    ]
+  },
+  "note.musicbox": {
+    "category": "record",
+    "sounds": [
+      "note/musicbox"
+    ]
   }
 }

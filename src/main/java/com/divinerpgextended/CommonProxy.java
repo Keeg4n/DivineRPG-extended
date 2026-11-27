@@ -58,6 +58,7 @@ public class CommonProxy {
         com.divinerpgextended.perk.RangedRoles.registerMessages();
         com.divinerpgextended.perk.MeleeRoles.registerMessages();
         com.divinerpgextended.perk.DreEnchants.registerMessages();
+        com.divinerpgextended.world.NoteInstruments.registerMessages();
         com.divinerpgextended.perk.AmmoLoad.register();
         com.divinerpgextended.debug.Debug.register();
         com.divinerpgextended.perk.FrostBite.register(); // ice block of a frozen mob - to the clients
@@ -144,6 +145,7 @@ public class CommonProxy {
         com.divinerpgextended.perk.DreEnchants enchants = new com.divinerpgextended.perk.DreEnchants();
         MinecraftForge.EVENT_BUS.register(enchants);
         FMLCommonHandler.instance().bus().register(enchants);
+        MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.world.NoteInstruments()); // note blocks on twilight world and Vethea blocks
         com.divinerpgextended.world.twilight.TwilightCrafts.RailDrops rails = new com.divinerpgextended.world.twilight.TwilightCrafts.RailDrops();
         MinecraftForge.EVENT_BUS.register(rails);
         MinecraftForge.EVENT_BUS.register(new com.divinerpgextended.perk.EnderGear());

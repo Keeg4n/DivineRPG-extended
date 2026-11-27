@@ -764,6 +764,7 @@ public class SelfTest {
         lioTests(p, ow, sx, sy, sz);
         earlyWeaponTests(ow, sx, sy, sz);
         enchantTests(ow, sx, sy, sz);
+        noteTests(ow, sx, sy, sz);
         dropIconTests();
         fishingReport();
         g.setDead();
@@ -17009,6 +17010,99 @@ public class SelfTest {
         } finally {
             f.delete();
         }
+    }
+
+    private void noteTests(final WorldServer ow, final int sx, final int sy, final int sz) {
+        t("World", "Note blocks: own instruments on the blocks of the twilight worlds and Vethea, vanilla elsewhere", () -> {
+            final List<String> heard = new ArrayList<String>();
+            net.minecraft.world.IWorldAccess ear = new net.minecraft.world.IWorldAccess() {
+
+                @Override
+                public void playSound(String name, double x, double y, double z, float vol, float pitch) {
+                    heard.add(name + "@" + String.format(java.util.Locale.ROOT, "%.3f", pitch));
+                }
+
+                @Override
+                public void markBlockForUpdate(int x, int y, int z) {}
+
+                @Override
+                public void markBlockForRenderUpdate(int x, int y, int z) {}
+
+                @Override
+                public void markBlockRangeForRenderUpdate(int a, int b, int c, int d, int e, int f) {}
+
+                @Override
+                public void playSoundToNearExcept(net.minecraft.entity.player.EntityPlayer p, String name, double x, double y, double z, float vol, float pitch) {}
+
+                @Override
+                public void spawnParticle(String name, double x, double y, double z, double a, double b, double c) {}
+
+                @Override
+                public void onEntityCreate(net.minecraft.entity.Entity e) {}
+
+                @Override
+                public void onEntityDestroy(net.minecraft.entity.Entity e) {}
+
+                @Override
+                public void playRecord(String name, int x, int y, int z) {}
+
+                @Override
+                public void broadcastSound(int id, int x, int y, int z, int data) {}
+
+                @Override
+                public void playAuxSFX(net.minecraft.entity.player.EntityPlayer p, int id, int x, int y, int z, int data) {}
+
+                @Override
+                public void destroyBlockPartially(int id, int x, int y, int z, int progress) {}
+
+                @Override
+                public void onStaticEntitiesChanged() {}
+            };
+            Object[][] cases = { { net.divinerpg.utils.blocks.TwilightBlocks.edenBlock, "hypersaw" }, { net.divinerpg.utils.blocks.TwilightBlocks.wildwoodBlock, "guitar" },
+                { net.divinerpg.utils.blocks.TwilightBlocks.apalachiaBlock, "pluck" }, { net.divinerpg.utils.blocks.TwilightBlocks.skythernBlock, "bell" },
+                { net.divinerpg.utils.blocks.TwilightBlocks.mortumBlock, "bass" }, { net.divinerpg.utils.blocks.VetheaBlocks.dreamStone, "musicbox" },
+                { net.divinerpg.utils.blocks.VetheaBlocks.lunaBricks, "musicbox" }, { Blocks.stone, null } };
+            int x = sx + 5, y = sy + 3, z = sz + 5;
+            Block was0 = ow.getBlock(x, y - 1, z), was1 = ow.getBlock(x, y, z);
+            int m0 = ow.getBlockMetadata(x, y - 1, z), m1 = ow.getBlockMetadata(x, y, z);
+            StringBuilder rep = new StringBuilder();
+            boolean ok = true;
+            ow.addWorldAccess(ear);
+            try {
+                ow.setBlock(x, y, z, Blocks.noteblock);
+                for (Object[] c : cases) {
+                    ow.setBlock(x, y - 1, z, (Block) c[0]);
+                    String want = c[1] == null ? "note.harp" : "divinerpgextended:note." + c[1];
+                    StringBuilder got = new StringBuilder();
+                    for (int note : new int[] { 0, 12, 24 }) {
+                        heard.clear();
+                        Blocks.noteblock.onBlockEventReceived(ow, x, y, z, 0, note);
+                        String expect = want + "@" + String.format(java.util.Locale.ROOT, "%.3f", Math.pow(2.0, (note - 12) / 12.0));
+                        boolean hit = heard.size() == 1 && heard.get(0).equals(expect);
+                        ok &= hit;
+                        got.append(heard.isEmpty() ? "nothing" : heard.get(0).replace("divinerpgextended:", "")).append(hit ? "" : " (want " + expect + ")").append(' ');
+                    }
+                    if (c[1] != null && SelfTest.class.getResource("/assets/divinerpgextended/sounds/note/" + c[1] + ".ogg") == null) {
+                        ok = false;
+                        got.append("no sound file ");
+                    }
+                    rep.append(((Block) c[0]).getLocalizedName()).append(": ").append(got.toString().trim()).append("; ");
+                }
+            } finally {
+                ow.removeWorldAccess(ear);
+                ow.setBlock(x, y, z, was1, m1, 3);
+                ow.setBlock(x, y - 1, z, was0, m0, 3);
+            }
+            java.io.InputStream js = SelfTest.class.getResourceAsStream("/assets/divinerpgextended/sounds.json");
+            String json = js == null ? "" : new java.util.Scanner(js, "UTF-8").useDelimiter("\\A").next();
+            for (String n : new String[] { "hypersaw", "guitar", "pluck", "bell", "bass", "musicbox" })
+                if (!json.contains("\"note." + n + "\"")) {
+                    ok = false;
+                    rep.append("sounds.json has no note.").append(n).append("; ");
+                }
+            check(ok, rep.toString());
+            return rep.toString();
+        });
     }
 
     private void enchantTests(final WorldServer ow, final int sx, final int sy, final int sz) {
