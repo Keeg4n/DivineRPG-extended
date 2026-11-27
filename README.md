@@ -49,7 +49,7 @@ An unofficial add-on for DivineRPG: it contains no DivineRPG code or assets. You
 
 ## Sound credits
 
-The note block instruments (`assets/divinerpgextended/sounds/note`) are made from CC0 (public domain) recordings on Freesound, pitched, trimmed and leveled: hypersaw - "supersaw.WAV" by mollpe; electric guitar - "HighF.wav" by Skirox; synth pluck - "Pluck_Single_A_DRY_PSS560.aif" by Crabflag; crystal bell - "Crystal Bell - Bb5" by bassimat; bass guitar - "bass G2.wav" by mat_the_glad; music box - "Hand Crank Music Box [G5 Note]" by moodyfingers. Being CC0, these sounds are not covered by the restrictions of LICENSE.md.
+The note block instruments (`assets/divinerpgextended/sounds/note`): the hypersaw, the bass guitar and both electric guitar sounds (the power chord and the palm mute) are recorded by the author of the add-on. The synth pluck, the crystal bell and the music box are made from CC0 (public domain) recordings on Freesound, pitched, trimmed and leveled: synth pluck - "Pluck_Single_A_DRY_PSS560.aif" by Crabflag; crystal bell - "Crystal Bell - Bb5" by bassimat; music box - "Hand Crank Music Box [G5 Note]" by moodyfingers. Being CC0, these three sounds are not covered by the restrictions of LICENSE.md.
 
 ## Audit log for admins
 

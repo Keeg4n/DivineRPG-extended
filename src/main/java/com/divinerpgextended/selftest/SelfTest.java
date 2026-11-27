@@ -17059,6 +17059,7 @@ public class SelfTest {
                 public void onStaticEntitiesChanged() {}
             };
             Object[][] cases = { { net.divinerpg.utils.blocks.TwilightBlocks.edenBlock, "hypersaw" }, { net.divinerpg.utils.blocks.TwilightBlocks.wildwoodBlock, "guitar" },
+                { net.divinerpg.utils.blocks.TwilightBlocks.wildwoodPlanks, "guitar_mute" },
                 { net.divinerpg.utils.blocks.TwilightBlocks.apalachiaBlock, "pluck" }, { net.divinerpg.utils.blocks.TwilightBlocks.skythernBlock, "bell" },
                 { net.divinerpg.utils.blocks.TwilightBlocks.mortumBlock, "bass" }, { net.divinerpg.utils.blocks.VetheaBlocks.dreamStone, "musicbox" },
                 { net.divinerpg.utils.blocks.VetheaBlocks.lunaBricks, "musicbox" }, { Blocks.stone, null } };
@@ -17095,7 +17096,7 @@ public class SelfTest {
             }
             java.io.InputStream js = SelfTest.class.getResourceAsStream("/assets/divinerpgextended/sounds.json");
             String json = js == null ? "" : new java.util.Scanner(js, "UTF-8").useDelimiter("\\A").next();
-            for (String n : new String[] { "hypersaw", "guitar", "pluck", "bell", "bass", "musicbox" })
+            for (String n : new String[] { "hypersaw", "guitar", "guitar_mute", "pluck", "bell", "bass", "musicbox" })
                 if (!json.contains("\"note." + n + "\"")) {
                     ok = false;
                     rep.append("sounds.json has no note.").append(n).append("; ");

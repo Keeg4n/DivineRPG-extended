@@ -31,6 +31,12 @@
       "note/guitar"
     ]
   },
+  "note.guitar_mute": {
+    "category": "record",
+    "sounds": [
+      "note/guitar_mute"
+    ]
+  },
   "note.pluck": {
     "category": "record",
     "sounds": [

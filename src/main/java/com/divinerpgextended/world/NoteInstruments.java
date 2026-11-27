@@ -21,13 +21,14 @@ import io.netty.buffer.ByteBuf;
 
 /**
  * Note blocks on the blocks of the twilight worlds and Vethea play their own instruments: the block under the note block picks the
- * instrument, as stone, sand, glass and wood do in vanilla. Eden block - hypersaw, Wildwood block - electric guitar, Apalachia block -
- * synth pluck, Skythern block - crystal bell, Mortum block - bass guitar, Vethea dream stone and bricks - music box (a lullaby).
+ * instrument, as stone, sand, glass and wood do in vanilla. Eden block - hypersaw, Wildwood block - electric guitar power chord (a long
+ * note), Wildwood planks - the same guitar palm-muted (a short note), Apalachia block - synth pluck, Skythern block - crystal bell,
+ * Mortum block - bass guitar, Vethea dream stone and bricks - music box (a lullaby).
  * <p>
  * The vanilla play is cancelled (NoteBlockEvent.Play) and our sound is played at the same pitch: the note block's 25 steps are
- * 0.5..2.0 around the sample's own note (sounds/note/*.ogg: bass F#2, hypersaw F#3, guitar and pluck F#4, bell and music box F#5;
- * CC0 samples from Freesound, see the README). A cancelled play sends no block event to the clients, so the note particle comes in our
- * own message and is spawned on the client tick (client/NoteParticles).
+ * 0.5..2.0 around the sample's own note (sounds/note/*.ogg: bass, guitar and guitar_mute F#2, hypersaw F#3, pluck F#4, bell and
+ * music box F#5; the author's own recordings and CC0 samples from Freesound, see the README). A cancelled play sends no block event
+ * to the clients, so the note particle comes in our own message and is spawned on the client tick (client/NoteParticles).
  */
 public final class NoteInstruments {
 
@@ -38,6 +39,7 @@ public final class NoteInstruments {
             Map<Block, String> m = new HashMap<Block, String>();
             put(m, "hypersaw", TwilightBlocks.edenBlock);
             put(m, "guitar", TwilightBlocks.wildwoodBlock);
+            put(m, "guitar_mute", TwilightBlocks.wildwoodPlanks);
             put(m, "pluck", TwilightBlocks.apalachiaBlock);
             put(m, "bell", TwilightBlocks.skythernBlock);
             put(m, "bass", TwilightBlocks.mortumBlock);
